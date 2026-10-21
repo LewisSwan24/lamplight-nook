@@ -29,7 +29,7 @@ export type LabelPos = { key: string; text: string; x: number; y: number; kind: 
 
 /** Bubble icons; plain symbols until the bubble sprites are in. */
 const BUBBLE_ICON: Record<Bubble, string> = {
-  idea: '\u{1F4A1}', sweat: '\u{1F4A6}', question: '?', note: '✎', tea: '☕', alert: '!', dots: '...', zzz: 'z',
+  idea: '\u{1F4A1}', sweat: '\u{1F4A6}', question: '?', note: '\u270E', tea: '\u2615', alert: '!', dots: '...', zzz: 'z',
 };
 
 /** The cafe: a pixel-art background with the three staff and the shop cat as animated sprites. */
