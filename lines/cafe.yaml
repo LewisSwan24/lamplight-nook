@@ -1,0 +1,119 @@
+# Dialogue library for the café scene.
+# Each group is one kind of event. Each line has a unique id, a speaker, and bubbles shown in order (max 20 characters each).
+# {name} placeholders are filled at runtime. `when` is an optional condition checked by the translator.
+# Saved changes hot-reload in dev mode; `npm test` lints every line against the writing rules.
+
+opening:
+  - { id: opening_01, speaker: adeng, bubbles: ["{brief}……嗯，好。", "小橘，老石，来活儿了。"] }
+  - { id: opening_02, speaker: adeng, bubbles: ["是要{brief}吧？", "我先泡壶茶，你坐。", "我们从哪儿开始呢。"] }
+  - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["上次你说喜欢简单一点的。", "这次也照这个来？"] }
+  - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["上回这种页面，{stuckNote}卡过一次。", "这次我先盯着点。"] }
+  - { id: opening_xiaoju_01, speaker: xiaoju, bubbles: ["新委托？我先把围巾放下！"] }
+
+planning:
+  - { id: plan_01, speaker: adeng, bubbles: ["我先画个草图。"] }
+  - { id: plan_02, speaker: adeng, bubbles: ["先做哪块好……"] }
+  - { id: plan_03, speaker: adeng, bubbles: ["分三步吧。"] }
+
+writing:
+  - { id: write_01, speaker: adeng, bubbles: ["开始写{file}了。"] }
+  - { id: write_02, speaker: adeng, bubbles: ["这块写完了，下一块。"] }
+  - { id: write_03, speaker: adeng, bubbles: ["先把架子搭起来。"] }
+
+sub_go_xiaoju:
+  - { id: go_xj_01, speaker: adeng, bubbles: ["小橘，帮我去找找{topic}？"], reply: { speaker: xiaoju, bubbles: ["我去去就回！"] } }
+  - { id: go_xj_02, speaker: adeng, bubbles: ["你去找东西最快。", "别又带一堆零食回来。"], reply: { speaker: xiaoju, bubbles: ["那不行。"] } }
+  - { id: go_xj_03, speaker: xiaoju, bubbles: ["我去去就回！"] }
+
+sub_go_laoshi:
+  - { id: go_ls_01, speaker: adeng, bubbles: ["老石，帮我敲一敲这个。"], reply: { speaker: laoshi, bubbles: ["嗯。"] } }
+  - { id: go_ls_02, speaker: adeng, bubbles: ["老石，帮我看看？"], reply: { speaker: laoshi, bubbles: ["嗯。"] } }
+  - { id: go_ls_03, speaker: laoshi, bubbles: ["拿来。"] }
+
+sub_back_xiaoju:
+  - { id: back_xj_01, speaker: xiaoju, bubbles: ["找到了找到了！", "有{count}个能用的——", "还有这个，给你的。"] }
+  - { id: back_xj_02, speaker: xiaoju, bubbles: ["外面好冷……", "然后，我找到一个特别好看的。"] }
+  - { id: back_xj_03, speaker: xiaoju, bubbles: ["回来啦。先分零食。"] }
+
+sub_back_laoshi:
+  - { id: back_ls_issue, speaker: laoshi, when: has_issues, bubbles: ["{issueCount}处不对。标出来了。"] }
+  - { id: back_ls_ok, speaker: laoshi, when: no_issues, bubbles: ["……还行。"], reply: { speaker: xiaoju, bubbles: ["他说还行！"] } }
+  - { id: back_ls_ok2, speaker: laoshi, when: no_issues, bubbles: ["嗯。没毛病。"] }
+
+stuck:
+  - { id: stuck_01, speaker: adeng, bubbles: ["嗯？这里对不上。", "我换个法子。"] }
+  - { id: stuck_02, speaker: adeng, bubbles: ["又是这儿。"] }
+  - { id: stuck_03, speaker: xiaoju, bubbles: ["咦，跟我想的不一样。"] }
+  - { id: stuck_04, speaker: laoshi, bubbles: ["不对。{whatsWrong}。"] }
+
+stuck_long:
+  - { id: stuck_long_01, speaker: adeng, bubbles: ["这块有点难啃。", "我要多试几次，得多等一会儿。", "你去忙你的也行。"] }
+  - { id: stuck_long_02, speaker: adeng, bubbles: ["还在弄，没忘。"] }
+  - { id: stuck_long_03, speaker: adeng, bubbles: ["再给我一会儿。"] }
+
+waiting:
+  - { id: wait_01, speaker: adeng, bubbles: ["还得一会儿。"] }
+  - { id: wait_02, speaker: adeng, bubbles: ["它在跑，我们等等。"] }
+  - { id: wait_03, speaker: adeng, bubbles: ["窗外好像要下雨了。"] }
+
+ask:
+  - { id: ask_01, speaker: adeng, bubbles: ["有件事想问你。", "{question}"] }
+  - { id: ask_color, speaker: adeng, when: demo_color, bubbles: ["奶油白和浅薄荷，我纠结半天了。", "你觉得哪个更像你要的？"] }
+  - { id: ask_02, speaker: adeng, bubbles: ["这里有两种做法。", "你更想要哪种？"] }
+
+react_adopted:
+  - { id: react_ad_adeng, speaker: adeng, bubbles: ["我就觉得是这个。"] }
+  - { id: react_ad_laoshi, speaker: laoshi, bubbles: [] }
+  - { id: react_ad_xiaoju, speaker: xiaoju, bubbles: ["那我去把贴纸找出来！"] }
+
+react_rejected:
+  - { id: react_rj_adeng, speaker: adeng, bubbles: ["好，听你的。"] }
+  - { id: react_rj_laoshi, speaker: laoshi, bubbles: ["……我选的另一个。"] }
+  - { id: react_rj_xiaoju, speaker: xiaoju, bubbles: ["那我去把贴纸找出来！"] }
+
+react_delegated:
+  - { id: react_dl_01, speaker: adeng, bubbles: ["那我选{choice}，因为{reason}。", "不喜欢随时说。"] }
+  - { id: react_dl_02, speaker: adeng, bubbles: ["好，我先定{choice}。", "不合适再换。"] }
+  - { id: react_dl_03, speaker: adeng, bubbles: ["那就{choice}。", "理由我写在本子上了。"] }
+
+serious:
+  - { id: serious_01, speaker: adeng, bubbles: ["这一步要{action}。", "做了就{consequence}。", "你看一下再决定。"] }
+  - { id: serious_02, speaker: adeng, bubbles: ["这里要你确认一下。", "{action}，{consequence}。"] }
+  - { id: serious_03, speaker: adeng, bubbles: ["这一步是认真的。", "你看清楚再点。"] }
+
+serious_yes:
+  - { id: serious_yes_01, speaker: adeng, bubbles: ["好，我来做。"] }
+  - { id: serious_yes_02, speaker: adeng, bubbles: ["知道了，这就做。"] }
+  - { id: serious_yes_03, speaker: adeng, bubbles: ["好。"] }
+
+serious_no:
+  - { id: serious_no_01, speaker: adeng, bubbles: ["好，不动它。", "我换个不需要这样的办法。"] }
+  - { id: serious_no_02, speaker: adeng, bubbles: ["好，先放着。"] }
+  - { id: serious_no_03, speaker: adeng, bubbles: ["不做了。我绕开它。"] }
+
+done:
+  - { id: done_day, speaker: adeng, when: daytime, bubbles: ["做好了，放桌上了。", "你看看合不合心意？"] }
+  - { id: done_dusk, speaker: adeng, when: dusk, bubbles: ["做好了。", "正好天也快黑了。"] }
+  - { id: done_night, speaker: adeng, when: night, bubbles: ["做好了。", "这么晚了，看完早点睡。"] }
+  - { id: done_xiaoju, speaker: xiaoju, bubbles: ["收工！零食分你一半。"] }
+  - { id: done_laoshi, speaker: laoshi, when: reviewed, bubbles: ["……还行。"] }
+
+failed:
+  - { id: failed_01, speaker: adeng, bubbles: ["这次没做成，对不起。", "卡在{stuckAt}。", "我记在本子上了。", "你愿意的话，下次换个办法。"] }
+  - { id: failed_02, speaker: adeng, bubbles: ["没弄成。", "卡在{stuckAt}，我记下了。"] }
+  - { id: failed_03, speaker: adeng, bubbles: ["今天先到这儿。", "问题我写在本子上了。"] }
+
+idle_mutter:
+  - { id: idle_adeng, speaker: adeng, bubbles: ["杯子又多了一道缝。"] }
+  - { id: idle_xiaoju, speaker: xiaoju, bubbles: ["明天想吃桂花糕。"] }
+  - { id: idle_laoshi, speaker: laoshi, bubbles: ["嗯。"] }
+
+app_open:
+  - { id: open_01, speaker: adeng, bubbles: ["来啦。"] }
+  - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["来啦。", "上次那个{lastCommission}还好用吗？"] }
+  - { id: open_first, speaker: adeng, when: first_time, bubbles: ["来啦。怎么称呼你？"] }
+
+app_close:
+  - { id: close_01, speaker: adeng, bubbles: ["好，那我们收拾一下。"] }
+  - { id: close_02, speaker: adeng, bubbles: ["好，下次见。"] }
+  - { id: close_03, speaker: adeng, bubbles: ["灯我先关一半。"] }
