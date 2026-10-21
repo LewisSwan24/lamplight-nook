@@ -21,7 +21,7 @@ type CommandSpec = {
 
 export type Rule = CommandSpec & {
   on: AiEventKind;
-  when?: { agent?: OneOrMany; tool?: OneOrMany; risk?: OneOrMany; failStreak?: { lt?: number; gte?: number } };
+  when?: { agent?: OneOrMany; tool?: OneOrMany; risk?: OneOrMany; choice?: OneOrMany; failStreak?: { lt?: number; gte?: number } };
   extra?: CommandSpec[];
 };
 
@@ -43,7 +43,7 @@ export function matches(rule: Rule, e: AiEvent): boolean {
   if (rule.on !== e.kind) return false;
   const w = rule.when;
   if (!w) return true;
-  if (!has(w.agent, e.agent) || !has(w.tool, e.tool) || !has(w.risk, e.risk)) return false;
+  if (!has(w.agent, e.agent) || !has(w.tool, e.tool) || !has(w.risk, e.risk) || !has(w.choice, e.choice)) return false;
   if (w.failStreak) {
     const n = e.failStreak ?? 0;
     if (w.failStreak.lt !== undefined && !(n < w.failStreak.lt)) return false;
@@ -119,7 +119,7 @@ export class Translator {
       cmd.line = {
         group: spec.lines,
         // Variable names match the placeholders used in lines/cafe.yaml.
-        vars: { target, file: target, topic: target, brief: this.ctx.brief ?? strings.defaults.brief },
+        vars: { target, file: target, topic: target, question: target, choice: target, brief: this.ctx.brief ?? strings.defaults.brief },
         flags: [...(this.ctx.flags ?? []), ...(e.kind === 'subagent_stop' ? reviewFlags(e.target) : [])],
       };
       if (spec.own_lines) cmd.line.speaker = actor;

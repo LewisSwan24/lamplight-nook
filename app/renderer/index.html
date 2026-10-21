@@ -9,17 +9,21 @@
   <body>
     <div id="game"></div>
     <div id="labels"></div>
-    <div id="debug">
+    <div id="ui"></div>
+    <details id="debug" open>
+      <summary>Debug</summary>
       <div id="env"></div>
       <label>Actor <select id="actor"></select></label>
       <label>to <select id="anchor"></select></label>
       <button id="walk">Walk</button>
       <hr />
+      <button id="commission">New commission (or click the counter)</button>
+      <button id="preview-cards">Preview decision cards</button>
       <button id="replay">Replay recording (no API calls)</button>
       <button id="run-hello">Debug task: write hello.txt</button>
       <button id="run-sub">Debug task: two subagents</button>
       <pre id="log"></pre>
-    </div>
+    </details>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

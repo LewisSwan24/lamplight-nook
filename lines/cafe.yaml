@@ -45,6 +45,7 @@ stuck:
   - { id: stuck_02, speaker: adeng, bubbles: ["又是这儿。"] }
   - { id: stuck_03, speaker: xiaoju, bubbles: ["咦，跟我想的不一样。"] }
   - { id: stuck_04, speaker: laoshi, bubbles: ["不对。{whatsWrong}。"] }
+  - { id: stuck_05, speaker: laoshi, bubbles: ["……不对。", "再看一遍。"] }
 
 stuck_long:
   - { id: stuck_long_01, speaker: adeng, bubbles: ["这块有点难啃。", "我要多试几次，得多等一会儿。", "你去忙你的也行。"] }
@@ -72,6 +73,7 @@ react_rejected:
   - { id: react_rj_xiaoju, speaker: xiaoju, bubbles: ["那我去把贴纸找出来！"] }
 
 react_delegated:
+  - { id: react_dl_00, speaker: adeng, bubbles: ["好，那我来定。", "定好了跟你说。"] }
   - { id: react_dl_01, speaker: adeng, bubbles: ["那我选{choice}，因为{reason}。", "不喜欢随时说。"] }
   - { id: react_dl_02, speaker: adeng, bubbles: ["好，我先定{choice}。", "不合适再换。"] }
   - { id: react_dl_03, speaker: adeng, bubbles: ["那就{choice}。", "理由我写在本子上了。"] }

@@ -11,3 +11,63 @@ html, body { margin: 0; height: 100%; background: #1b1712; overflow: hidden; fon
 .label.zone { color: #fbf6ec; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5); }
 .label.actor { color: #222; font-weight: bold; transform: translate(-50%, -100%); background: rgba(251, 246, 236, 0.8); padding: 1px 4px; border-radius: 3px; }
 .label.bubble { color: #222; transform: translate(-50%, -100%); background: #fffdf7; border: 1px solid #8a6a4a; padding: 2px 6px; border-radius: 8px; font-size: 14px; }
+
+/* -- UI layer: placeholder watercolor look (soft paper, ragged shadow), real art comes in phase 3 -- */
+:root {
+  --paper: #fbf4e6;
+  --ink: #3b2a1e;
+  --wash: rgba(181, 101, 59, 0.18);
+  --accent: #b5653b;
+  --serious: #c8322b;
+}
+#ui { position: absolute; inset: 0; pointer-events: none; }
+#ui > * { pointer-events: auto; }
+.paper {
+  background: radial-gradient(ellipse at 20% 10%, var(--wash), transparent 60%), var(--paper);
+  color: var(--ink);
+  border-radius: 14px 18px 12px 20px;
+  box-shadow: 0 2px 0 rgba(59, 42, 30, 0.25), 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, 90vw); padding: 16px 18px; font-size: 15px; line-height: 1.6; }
+.card-title { font-weight: bold; font-size: 17px; margin-bottom: 6px; }
+.card .close { position: absolute; right: 8px; top: 6px; border: none; background: none; font-size: 20px; cursor: pointer; color: var(--ink); }
+.card .quote { font-style: italic; margin: 4px 0 8px; }
+.card details pre { max-height: 160px; overflow: auto; font-size: 11px; background: #fff; padding: 6px; }
+.actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+.actions button, .commission button { font-size: 15px; padding: 6px 14px; border-radius: 10px; border: 1px solid var(--ink); background: #fff; cursor: pointer; }
+.actions button.default { background: var(--accent); color: #fff; border-color: var(--accent); }
+.commission label { display: block; margin: 8px 0; }
+.commission textarea, .commission input { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 6px; border-radius: 8px; border: 1px solid #c9b79f; background: #fffdf8; }
+
+/* Decision dialog: background dimmed 40% */
+.backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; }
+.dialog { width: min(520px, 92vw); padding: 18px 20px; }
+.dialog .who { font-weight: bold; color: var(--accent); }
+.dialog .question { font-size: 18px; margin: 6px 0 4px; }
+.dialog .reason { font-size: 13px; opacity: 0.8; }
+.dialog .options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.sticker { text-align: left; padding: 8px 12px; border-radius: 12px; border: 1px dashed var(--ink); background: #fffdf8; cursor: pointer; font: inherit; }
+.sticker .opt-label { display: block; }
+.sticker .hint { display: block; font-size: 12px; opacity: 0.7; }
+.sticker.default, .sticker:focus { border-style: solid; background: #fff3e2; outline: 2px solid var(--accent); }
+
+/* Serious card: deliberately plain and flat, not watercolor */
+.serious { width: min(480px, 92vw); background: #fff; color: #111; border: 2px solid var(--serious); border-radius: 4px; padding: 18px 20px; font-size: 15px; }
+.serious-title { font-weight: bold; color: var(--serious); font-size: 17px; margin-bottom: 10px; }
+.serious dl { margin: 0; }
+.serious dt { font-weight: bold; margin-top: 6px; }
+.serious dd { margin: 2px 0 0 0; }
+.serious details pre { white-space: pre-wrap; font-size: 12px; background: #f4f4f4; padding: 6px; }
+.serious .actions button { border-radius: 4px; }
+.serious .actions button.default { background: #fff; color: #111; border: 2px solid #111; }
+.serious .actions button.confirm { background: var(--serious); color: #fff; border-color: var(--serious); }
+.serious .actions button.confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Blackboard, parcels, replay badge */
+.board { position: absolute; color: #f3efe2; font-size: 12px; line-height: 1.5; pointer-events: none; }
+.board .step.done { opacity: 0.6; text-decoration: line-through; }
+.parcel { position: absolute; right: 24px; bottom: 24px; width: 260px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
+.parcel .parcel-body { max-height: 3em; overflow: hidden; }
+.parcel.expanded .parcel-body { max-height: none; }
+.replay-badge { position: absolute; left: 12px; top: 12px; background: rgba(0, 0, 0, 0.6); color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 13px; }
+#debug summary { cursor: pointer; font-weight: bold; }

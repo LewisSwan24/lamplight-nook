@@ -23,8 +23,12 @@ The app's user-facing text is Simplified Chinese; all of it lives in `locales/zh
    npm run dev
    ```
 
-The debug panel (top right) can walk characters between anchors, replay the bundled real recording without calling
-the API, and run two debug tasks. Raw events of each run are written to `%APPDATA%\Lamplight Nook\recordings\`.
+Click the counter (or "New commission" in the debug panel) to open the commission form. The pre-filled request runs
+the fixed demo commission: research, a real failing check, a color question, a confirmation before deleting drafts,
+and a review. Questions open a dialog; risky steps open a plain confirmation card that defaults to "not now".
+
+The debug panel (top right) can also walk characters between anchors, preview the decision cards, replay the bundled
+real recording without calling the API, and run two debug tasks. Raw events of each run are written to `%APPDATA%\Lamplight Nook\recordings\`.
 
 ## Layout
 
@@ -36,7 +40,7 @@ the API, and run two debug tasks. Raw events of each run are written to `%APPDAT
 | `rules/` | Event -> character rules and animation fallbacks (YAML, hot-reloaded in dev) |
 | `lines/` | Dialogue library (YAML, linted by tests) |
 | `locales/` | User-facing strings |
-| `demo/` | A real, anonymized event recording used for replay and tests |
+| `demo/` | The demo commission's check script, and a real anonymized event recording used for replay and tests |
 
 ## Commands
 

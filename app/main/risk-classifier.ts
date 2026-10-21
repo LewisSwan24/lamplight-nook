@@ -2,7 +2,7 @@ import { homedir } from 'node:os';
 import { basename, isAbsolute, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
 import type { Risk } from '../shared/types';
-import { isInside } from './agent-runner';
+import { isInside } from './paths';
 
 /** Risk level plus a plain-language reason shown on the confirmation card. */
 export type RiskVerdict = { risk: Risk; reason: string };

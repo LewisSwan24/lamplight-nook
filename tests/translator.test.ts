@@ -104,12 +104,12 @@ describe('translation: cases not in the recording', () => {
     expect(third.map((c) => `${c.actor}:${c.line?.group ?? ''}`)).toEqual(['adeng:stuck_long', 'cat:']);
   });
 
-  it('a stuck reviewer only speaks his own lines', () => {
+  it('a stuck reviewer only speaks his own lines, skipping ones with unfilled placeholders', () => {
     const t = new Translator(rules, anims);
     t.translate(ev({ kind: 'session_start' }));
     t.translate(ev({ kind: 'subagent_start', agent: 'reviewer' }));
     const stuck = t.translate(ev({ kind: 'tool_fail', agent: 'reviewer', failStreak: 1 }))[0];
-    expect(new Director(toLineBook(lines)).submit(stuck)?.line?.vars._id).toBe('stuck_04');
+    expect(new Director(toLineBook(lines)).submit(stuck)?.line?.vars._id).toBe('stuck_05');
   });
 
   it('deleting a file triggers serious mode; a question triggers asking', () => {
