@@ -1,0 +1,79 @@
+{
+  "app": {
+    "title": "小灯屋",
+    "commissionRoot": ["小灯屋", "委托"],
+    "debugCommission": "调试-{kind}"
+  },
+  "actors": { "adeng": "阿灯", "xiaoju": "小橘", "laoshi": "老石", "cat": "栗子" },
+  "zones": {
+    "window": "窗台", "board": "小黑板", "shelf": "书架角", "table": "大工作桌",
+    "corner": "老石的角落", "counter": "柜台", "door": "门口"
+  },
+  "events": {
+    "session_start": "开始接活",
+    "plan": "列了个计划",
+    "planSteps": "{n} 步",
+    "thinking": "在想",
+    "long_wait": "在等它跑完",
+    "rateLimited": "限流",
+    "subagent_start": "派人出去",
+    "subagent_start_target": "派人去：{target}",
+    "subagent_stop": "回来了",
+    "ask_user": "有事想问你",
+    "permission": "想{verb}",
+    "permission_target": "想{verb}：{target}",
+    "done": "做完了",
+    "failed": "没做成",
+    "net_error": "网络出了问题",
+    "tool_fail": "{verb}没成",
+    "tool_fail_target": "{verb}没成：{target}",
+    "tool": "{verb}",
+    "tool_target": "{verb} {target}",
+    "searching": "在找资料",
+    "searching_target": "在找：{target}"
+  },
+  "verbs": {
+    "Read": "看", "Write": "写", "Edit": "改", "MultiEdit": "改", "NotebookEdit": "改",
+    "Glob": "翻找", "Grep": "翻找", "WebSearch": "搜", "WebFetch": "读网页",
+    "Bash": "试运行", "PowerShell": "试运行", "TodoWrite": "记清单",
+    "unknown": "用 {tool}", "none": "用工具"
+  },
+  "risk": {
+    "secretFile": "「{name}」看起来是密钥类文件",
+    "systemDir": "这是系统文件夹",
+    "hiddenConfig": "这是你电脑上程序的隐藏配置",
+    "outsideFolder": "要写到委托文件夹外面",
+    "overwrite": "会覆盖原来就有的「{name}」",
+    "ask": "想问问你的意见",
+    "delegate": "派帮手去做事",
+    "webRead": "上网查资料（只读）",
+    "read": "读文件",
+    "noTarget": "不知道要写到哪里",
+    "write": "在委托文件夹里写文件",
+    "emptyCommand": "命令是空的",
+    "delete": "要删除或移动文件，做了就找不回来",
+    "networkSend": "要往外发送数据",
+    "complexCommand": "这条命令比较复杂，我没法确定它会做什么",
+    "install": "要安装依赖包",
+    "readOutside": "要读委托文件夹外面的东西",
+    "safeCommand": "在委托文件夹里运行只读命令",
+    "unknownCommand": "要运行「{name}」，我没法确定它会做什么",
+    "unknownTool": "要用一个不认识的工具「{tool}」"
+  },
+  "patterns": {
+    "planWords": "计划|步骤|打算|接下来|plan|steps",
+    "reviewPassed": "没有问题|没问题|通过|还行",
+    "reviewFailed": "不通过|未通过",
+    "particles": "[～~呢哦啦吧呀嘛哈]",
+    "emotionWords": "开心|难过|兴奋|伤心|高兴|生气|激动|感动"
+  },
+  "lineLint": {
+    "tooFew": "{group}: fewer than 3 lines",
+    "duplicateId": "{id}: duplicate id",
+    "tooLong": "{id}: \"{text}\" is longer than {max} characters",
+    "laoshiParticle": "{id}: Laoshi never uses particles \"{text}\"",
+    "tooManyParticles": "{id}: more than one particle \"{text}\"",
+    "emotionWord": "{id}: names an emotion directly \"{text}\""
+  },
+  "defaults": { "brief": "这个" }
+}
