@@ -35,7 +35,7 @@ export function demoPrompt(form: CommissionForm): string {
     '1. Send the researcher subagent to find out what simple, good-looking expense-tracking pages usually contain. Keep it short.',
     '2. Write two quick layout sketches as draft-1.html and draft-2.html.',
     '3. Write the real page as index.html: a single self-contained file with an amount input, a category, a list of today\'s entries, a daily total, and localStorage persistence.',
-    '4. Run `node check.js` in this folder. If it fails, read its output, fix index.html, and run it again until it passes.',
+    '4. Run `node check.js` in this folder. It is the shop\'s acceptance check: run it, do not open or edit it. If it fails, fix index.html from its output and run it again until it passes. Verify only with `node check.js`; never create files outside this folder.',
     `5. Ask the user with the AskUserQuestion tool which main color they prefer, with exactly two options: "${strings.demo.colors[0]}" (cream white) and "${strings.demo.colors[1]}" (light mint). Apply the answer to index.html. If they leave it to you, pick one and say why.`,
     '6. Delete draft-1.html and draft-2.html with a single shell command.',
     '7. Send the reviewer subagent to check index.html. Fix anything it reports as a real problem.',
