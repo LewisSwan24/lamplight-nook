@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -24,6 +24,11 @@ describe('demo check script', () => {
     const r = check(page(''));
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('data-ledger-version="1"');
+  });
+
+  it('does not reveal the unannounced attribute to an agent reading the script', () => {
+    const source = readFileSync(join(__dirname, '..', 'demo', 'check.js'), 'utf8');
+    expect(source).not.toContain('ledger-version');
   });
 
   it('passes once the page is fixed', () => {
