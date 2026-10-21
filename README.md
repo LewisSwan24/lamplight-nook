@@ -57,3 +57,14 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 Art comes from purchased packs (LimeZu Modern Interiors / Exteriors / Farm, Cyberleaf Modern UI SFX).
 Their licenses forbid redistributing the original files, so raw packs go in the git-ignored `assets/vendor/`
 and this repository must stay private. LimeZu requires credit: https://limezu.itch.io/
+
+`assets/sprites/` holds only the images the app uses, built from the packs by our scripts:
+
+```bash
+# Unzip the Modern Interiors pack into assets/vendor/ first (1_Interiors/, 2_Characters/, 3_Animated_objects/).
+python3 scripts/art/characters.py   # the three staff from generator layers, recoloured; the chestnut shop cat
+python3 scripts/art/scene.py        # the 320x180 cafe background
+```
+
+Character sheets keep the generator layout: 16x32 frames, 56 per row, directional animations in
+right/up/left/down order (see `app/renderer/game/sprites.ts`).
