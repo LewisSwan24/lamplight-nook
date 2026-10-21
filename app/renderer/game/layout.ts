@@ -4,43 +4,57 @@ import type { ActorId, AnchorId } from '../../shared/types';
 /** Fixed 320x180 canvas, scaled up by integer factors to fit the window. */
 export const CANVAS = { width: 320, height: 180 } as const;
 
-export type Zone = { id: AnchorId; label: string; x: number; y: number; w: number; h: number; color: number };
+export type Zone = { id: AnchorId; label: string; x: number; y: number; w: number; h: number };
+
+/** Which way a character faces when standing at an anchor (the sheet's four directions). */
+export type Facing = 'right' | 'up' | 'left' | 'down';
 
 const Z = strings.zones;
 
-/** The seven zones of the cafe, in canvas pixels. */
+/** The seven zones of the cafe, in canvas pixels; they match the furniture in assets/sprites/cafe.png. */
 export const ZONES: Zone[] = [
-  { id: 'window', label: Z.window, x: 8, y: 8, w: 72, h: 36, color: 0x34405e },
-  { id: 'board', label: Z.board, x: 8, y: 56, w: 44, h: 40, color: 0x2f3b2f },
-  { id: 'shelf', label: Z.shelf, x: 8, y: 116, w: 52, h: 56, color: 0x7a5236 },
-  { id: 'table', label: Z.table, x: 116, y: 72, w: 88, h: 36, color: 0xa0704b },
-  { id: 'corner', label: Z.corner, x: 116, y: 136, w: 64, h: 36, color: 0x6e747a },
-  { id: 'counter', label: Z.counter, x: 244, y: 40, w: 36, h: 72, color: 0xb5653b },
-  { id: 'door', label: Z.door, x: 284, y: 136, w: 28, h: 36, color: 0xffd27a },
+  { id: 'window', label: Z.window, x: 16, y: 12, w: 64, h: 28 },
+  { id: 'board', label: Z.board, x: 92, y: 14, w: 28, h: 23 },
+  { id: 'shelf', label: Z.shelf, x: 8, y: 112, w: 48, h: 40 },
+  { id: 'table', label: Z.table, x: 116, y: 72, w: 68, h: 58 },
+  { id: 'corner', label: Z.corner, x: 128, y: 144, w: 32, h: 18 },
+  { id: 'counter', label: Z.counter, x: 216, y: 46, w: 54, h: 32 },
+  { id: 'door', label: Z.door, x: 288, y: 16, w: 15, h: 32 },
 ];
 
-/** Anchors: where characters stand (on the floor in front of each zone). */
-export const ANCHORS: Record<AnchorId, { x: number; y: number }> = {
-  window: { x: 44, y: 50 },
-  board: { x: 64, y: 76 },
-  shelf: { x: 70, y: 140 },
-  table: { x: 160, y: 116 },
-  corner: { x: 148, y: 128 },
-  counter: { x: 232, y: 76 },
-  door: { x: 278, y: 156 },
+/** Anchors: where characters stand (feet position) and which way they face there. */
+export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }> = {
+  window: { x: 70, y: 60, facing: 'up' },
+  board: { x: 100, y: 60, facing: 'up' },
+  shelf: { x: 66, y: 140, facing: 'left' },
+  table: { x: 196, y: 102, facing: 'left' },
+  corner: { x: 170, y: 160, facing: 'left' },
+  counter: { x: 244, y: 98, facing: 'down' },
+  door: { x: 295, y: 56, facing: 'up' },
 };
 
-/** The central aisle. Every move goes via the aisle so characters never walk through furniture. */
-export const AISLE_Y = 124;
+/** The free aisle across the room. Every move goes via the aisle so characters never walk through furniture. */
+export const AISLE_Y = 136;
 
-export function pathBetween(from: { x: number; y: number }, to: AnchorId): { x: number; y: number }[] {
-  const target = ANCHORS[to];
-  if (from.x === target.x && from.y === target.y) return [];
+/** Each character's place at an anchor, so two characters at the same spot stand side by side. */
+const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, cat: 0 };
+const SLOT_GAP = 12;
+
+/** Where a character's feet go at an anchor: beside the others, across the way they face. */
+export function standPoint(anchor: AnchorId, actor?: ActorId): { x: number; y: number } {
+  const { x, y, facing } = ANCHORS[anchor];
+  const d = actor ? SLOT[actor] * SLOT_GAP : 0;
+  return facing === 'left' || facing === 'right' ? { x, y: y + d } : { x: x + d, y };
+}
+
+export function pathBetween(from: { x: number; y: number }, to: AnchorId, actor?: ActorId): { x: number; y: number }[] {
+  const { x, y } = standPoint(to, actor);
+  if (from.x === x && from.y === y) return [];
   return [
     { x: from.x, y: AISLE_Y },
-    { x: target.x, y: AISLE_Y },
-    target,
-  ].filter((p, i, arr) => i === 0 || p.x !== arr[i - 1].x || p.y !== arr[i - 1].y);
+    { x, y: AISLE_Y },
+    { x, y },
+  ].filter((p, i, arr) => (i === 0 ? p.y !== from.y : p.x !== arr[i - 1].x || p.y !== arr[i - 1].y));
 }
 
 /** Largest integer scale that fits the canvas in the viewport, at least 1. */
@@ -50,9 +64,10 @@ export function integerScale(viewW: number, viewH: number): number {
 
 const A = strings.actors;
 
-export const ACTORS: { id: ActorId; name: string; color: number; home: AnchorId; w: number; h: number }[] = [
-  { id: 'adeng', name: A.adeng, color: 0xb5653b, home: 'counter', w: 10, h: 20 },
-  { id: 'xiaoju', name: A.xiaoju, color: 0xe98a3a, home: 'shelf', w: 9, h: 18 },
-  { id: 'laoshi', name: A.laoshi, color: 0x6e747a, home: 'corner', w: 11, h: 20 },
-  { id: 'cat', name: A.cat, color: 0x8a5a3c, home: 'window', w: 8, h: 6 },
+/** `height` is how tall the visible sprite is above the feet, for placing name labels and bubbles. */
+export const ACTORS: { id: ActorId; name: string; home: AnchorId; height: number }[] = [
+  { id: 'adeng', name: A.adeng, home: 'counter', height: 30 },
+  { id: 'xiaoju', name: A.xiaoju, home: 'shelf', height: 30 },
+  { id: 'laoshi', name: A.laoshi, home: 'corner', height: 30 },
+  { id: 'cat', name: A.cat, home: 'window', height: 12 },
 ];

@@ -98,8 +98,8 @@ export class Stage {
     const info = this.info.get(actor) ?? emptyInfo();
     this.info.set(actor, info);
     info.state = cmd.state;
-    this.scene.setStatus(actor, cmd.anim ? `${cmd.state} (${cmd.anim})` : cmd.state);
     if (cmd.moveTo) await this.scene.walkTo(actor, cmd.moveTo);
+    this.scene.play(actor, cmd.anim);
     const vars = cmd.line?.vars ?? {};
     const bubbles = vars._text ? vars._text.split('\n').map((b) => fillLine(b, vars)) : [];
     if (bubbles.length) info.lastLine = bubbles.join('');
@@ -116,7 +116,7 @@ export class Stage {
     this.scene.say(actor, null);
     const settled = this.translator.states.settle(actor);
     if (settled) {
-      this.scene.setStatus(actor, settled);
+      this.scene.play(actor, 'idle');
       this.actorInfo(actor).state = settled;
     }
     const next = this.director.finished(actor);
