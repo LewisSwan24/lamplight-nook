@@ -30,7 +30,7 @@ describe('scene layout', () => {
     const anchors = Object.keys(ANCHORS) as (keyof typeof ANCHORS)[];
     for (const actor of ['adeng', 'xiaoju', 'laoshi'] as const) {
       for (const [from, to] of anchors.flatMap((f) => anchors.map((t) => [f, t] as const))) {
-        let a = standPoint(from, actor);
+        let a: { x: number; y: number } = standPoint(from, actor);
         for (const b of pathBetween(a, to, actor)) {
           for (let t = 0; t <= 1; t += 0.05) {
             const p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
