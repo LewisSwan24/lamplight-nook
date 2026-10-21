@@ -1,5 +1,5 @@
 import { fill, pattern, strings } from '../shared/i18n';
-import type { AiEvent, AiEventKind, RawAgentEvent, Risk } from '../shared/types';
+import type { AiEvent, AiEventKind, Choice, RawAgentEvent, Risk } from '../shared/types';
 
 /**
  * SDK messages / hook calls -> AiEvent. Verified against a real recording (demo/subagents.jsonl).
@@ -144,6 +144,7 @@ export class EventNormalizer {
     if (e.source === 'hook') this.onHook(e.name, p, e.t, emit);
     else if (e.source === 'message') this.onMessage(p, e.t, emit);
     else if (e.source === 'permission') this.onPermission(e.name, p, emit);
+    else if (e.source === 'decision') this.onDecision(e.name, p, emit);
     return out;
   }
 
@@ -298,6 +299,13 @@ export class EventNormalizer {
         tool, target: targetOf(tool, input), risk,
       });
     }
+  }
+
+  private onDecision(tool: string, p: Obj, emit: EmitFn) {
+    const agentId = str(p.agent_id);
+    emit('decision', agentId ? (this.agentIds.get(agentId) ?? 'unknown') : 'main', {
+      tool, choice: str(p.choice) as Choice, risk: str(p.risk) as Risk, target: str(p.label),
+    });
   }
 
   private stopSubagent(id: string | undefined, emit: EmitFn) {

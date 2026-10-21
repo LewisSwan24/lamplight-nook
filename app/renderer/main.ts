@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
-import { strings } from '../shared/i18n';
+import { fill, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, LamplightApi, RawAgentEvent } from '../shared/types';
 import { CafeScene } from './game/CafeScene';
-import { ACTORS, ANCHORS, CANVAS, integerScale } from './game/layout';
+import { ACTORS, ANCHORS, CANVAS, ZONES, integerScale } from './game/layout';
 import { Stage, replay } from './stage/stage';
+import { showDecision } from './ui/decision';
+import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -56,12 +58,45 @@ function drawLabels() {
     for (const [key, el] of labelEls) {
       if (!seen.has(key)) { el.remove(); labelEls.delete(key); }
     }
+    // The blackboard list sits on the board zone.
+    const board = document.getElementById('board');
+    const z = ZONES.find((zone) => zone.id === 'board')!;
+    if (board) {
+      board.style.left = `${rect.left + (z.x + 2) * s}px`;
+      board.style.top = `${rect.top + (z.y + 10) * s}px`;
+      board.style.width = `${(z.w - 4) * s}px`;
+    }
   }
   requestAnimationFrame(drawLabels);
 }
 requestAnimationFrame(drawLabels);
 
 const stage = new Stage(scene);
+scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor));
+
+// Decisions from the main process: show the dialog or serious card, send the answer back.
+window.lamplight.onDecision(async (req) => {
+  const choice = await showDecision(req);
+  await window.lamplight.answerDecision({ id: req.id, choice });
+});
+window.lamplight.onResult((result) => showResult(result, (path, how) => void window.lamplight.openOutput(path, how)));
+
+// The counter holds the commission form.
+let running = false;
+async function newCommission() {
+  if (running) return;
+  const form = await showCommissionForm();
+  if (!form) return;
+  running = true;
+  append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
+  try {
+    const r = await window.lamplight.startCommission(form);
+    append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
+  } finally {
+    running = false;
+  }
+}
+scene.onCounterClick = () => void newCommission();
 
 // -- Debug panel --
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -95,6 +130,30 @@ for (const [btn, kind] of [['run-hello', 'hello'], ['run-sub', 'subagents']] as 
   });
 }
 
+$('commission').addEventListener('click', () => void newCommission());
+
+// Preview both decision cards with sample content (nothing is sent to the AI).
+$('preview-cards').addEventListener('click', async () => {
+  const D = strings.decision;
+  const [cream, mint] = strings.demo.colors;
+  const picked = await showDecision({
+    id: 'preview-q', kind: 'question', agent: 'main', tool: 'AskUserQuestion', title: strings.demo.colorQuestion, defaultId: '0',
+    options: [
+      { id: '0', label: cream, hint: strings.demo.colorHints[0] },
+      { id: '1', label: mint, hint: strings.demo.colorHints[1] },
+      { id: 'delegate', label: D.delegate, hint: D.delegateHint },
+    ],
+  });
+  append(`preview question -> ${picked}`);
+  const action = fill(D.deleteFiles, { files: ['draft-1.html', 'draft-2.html'].join(strings.app.listSeparator) });
+  const confirmed = await showDecision({
+    id: 'preview-s', kind: 'serious', agent: 'main', tool: 'Bash', title: action, reason: strings.risk.delete,
+    detail: 'rm draft-1.html draft-2.html', defaultId: 'deny',
+    options: [{ id: 'deny', label: D.deny }, { id: 'allow', label: action }],
+  });
+  append(`preview serious -> ${confirmed}`);
+});
+
 // Replay the bundled real recording without calling the API.
 let cancelReplay = () => {};
 $('replay').addEventListener('click', () => {
@@ -102,6 +161,6 @@ $('replay').addEventListener('click', () => {
   const raw: RawAgentEvent[] = replayText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l));
   const events = normalizeAll(raw);
   append(`replay: ${events.length} events at 3x`);
-  for (const e of events) append(`  ${e.agent} | ${e.kind} | ${e.plain}`);
-  cancelReplay = replay(stage, events, 3);
+  setReplayBadge(true);
+  cancelReplay = replay(stage, events, 3, () => setReplayBadge(false));
 });

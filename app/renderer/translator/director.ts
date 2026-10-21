@@ -113,15 +113,20 @@ export class Director {
     if (!urgent && last !== undefined && at - last < this.cooldown) {
       return { ...cmd, line: undefined };
     }
-    const { flags = [], speaker } = cmd.line;
+    const { flags = [], speaker, vars } = cmd.line;
     const pick = (this.lines[cmd.line.group] ?? []).find(
-      (l) => !this.usedLines.has(l.id) && (!l.when || flags.includes(l.when)) && (!speaker || l.speaker === speaker),
+      (l) => !this.usedLines.has(l.id) && (!l.when || flags.includes(l.when)) && (!speaker || l.speaker === speaker) && canFill(l.text, vars),
     );
     if (!pick) return { ...cmd, line: undefined };
     this.usedLines.add(pick.id);
     this.lastLineAt.set(cmd.line.group, at);
     return { ...cmd, line: { group: cmd.line.group, vars: { ...cmd.line.vars, _id: pick.id, _text: pick.text } } };
   }
+}
+
+/** A line is only usable if every `{name}` placeholder in it has a non-empty value. */
+function canFill(text: string, vars: Record<string, string>): boolean {
+  return [...text.matchAll(/\{(\w+)\}/g)].every(([, k]) => Boolean(vars[k]));
 }
 
 /** Collapse bursts of reads/searches into one "browsing" event, and cap at two events per second. */

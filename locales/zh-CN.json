@@ -1,13 +1,28 @@
 {
   "app": {
     "title": "小灯屋",
-    "commissionRoot": ["小灯屋", "委托"],
-    "debugCommission": "调试-{kind}"
+    "commissionRoot": [
+      "小灯屋",
+      "委托"
+    ],
+    "debugCommission": "调试-{kind}",
+    "listSeparator": "、",
+    "demoCommission": "记账小页面"
   },
-  "actors": { "adeng": "阿灯", "xiaoju": "小橘", "laoshi": "老石", "cat": "栗子" },
+  "actors": {
+    "adeng": "阿灯",
+    "xiaoju": "小橘",
+    "laoshi": "老石",
+    "cat": "栗子"
+  },
   "zones": {
-    "window": "窗台", "board": "小黑板", "shelf": "书架角", "table": "大工作桌",
-    "corner": "老石的角落", "counter": "柜台", "door": "门口"
+    "window": "窗台",
+    "board": "小黑板",
+    "shelf": "书架角",
+    "table": "大工作桌",
+    "corner": "老石的角落",
+    "counter": "柜台",
+    "door": "门口"
   },
   "events": {
     "session_start": "开始接活",
@@ -30,13 +45,24 @@
     "tool": "{verb}",
     "tool_target": "{verb} {target}",
     "searching": "在找资料",
-    "searching_target": "在找：{target}"
+    "searching_target": "在找：{target}",
+    "decision": "你做了决定"
   },
   "verbs": {
-    "Read": "看", "Write": "写", "Edit": "改", "MultiEdit": "改", "NotebookEdit": "改",
-    "Glob": "翻找", "Grep": "翻找", "WebSearch": "搜", "WebFetch": "读网页",
-    "Bash": "试运行", "PowerShell": "试运行", "TodoWrite": "记清单",
-    "unknown": "用 {tool}", "none": "用工具"
+    "Read": "看",
+    "Write": "写",
+    "Edit": "改",
+    "MultiEdit": "改",
+    "NotebookEdit": "改",
+    "Glob": "翻找",
+    "Grep": "翻找",
+    "WebSearch": "搜",
+    "WebFetch": "读网页",
+    "Bash": "试运行",
+    "PowerShell": "试运行",
+    "TodoWrite": "记清单",
+    "unknown": "用 {tool}",
+    "none": "用工具"
   },
   "risk": {
     "secretFile": "「{name}」看起来是密钥类文件",
@@ -75,5 +101,76 @@
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
     "emotionWord": "{id}: names an emotion directly \"{text}\""
   },
-  "defaults": { "brief": "这个" }
+  "defaults": {
+    "brief": "这个"
+  },
+  "decision": {
+    "delegate": "你们定吧",
+    "delegateHint": "交给他们自己决定",
+    "allow": "可以",
+    "deny": "先不要",
+    "seriousTitle": "这一步需要你确认",
+    "what": "要做什么",
+    "why": "为什么要你确认",
+    "undo": "能不能撤销",
+    "undoNo": "不能，做了就找不回来",
+    "showDetail": "展开看完整命令",
+    "confirm": "{action}",
+    "deleteFiles": "删除 {files}",
+    "runCommand": "运行 {command}",
+    "writeFile": "写入 {name}",
+    "useTool": "使用 {tool}",
+    "askAgentTitle": "{who}想问你"
+  },
+  "ui": {
+    "commissionTitle": "委托单",
+    "want": "想做什么",
+    "details": "有什么讲究",
+    "audience": "给谁用",
+    "submit": "交给阿灯",
+    "demoFill": "帮我做一个记账小页面，能记下每天花了多少钱。",
+    "resultTitle": "成品",
+    "openInBrowser": "在浏览器里打开",
+    "openFolder": "打开所在文件夹",
+    "parcelFrom": "{who}带回来的",
+    "doingNow": "现在在做：",
+    "soFar": "这个委托里已经：",
+    "statsLine": "写了 {writes} 次文件、试运行 {runs} 次、失败 {fails} 次",
+    "raw": "看原始记录",
+    "replayBadge": "回放",
+    "board": {
+      "research": "找参考",
+      "write": "写页面",
+      "check": "检查"
+    }
+  },
+  "states": {
+    "idle": "闲着",
+    "ready": "就位",
+    "working": "正在专注",
+    "thinking": "在想",
+    "stuck": "卡住了",
+    "waiting": "等着",
+    "asking": "想问你",
+    "reacting": "回应",
+    "serious": "认真",
+    "out": "外出中",
+    "returning": "回来了",
+    "checking": "在检查",
+    "wrapping": "收尾",
+    "low": "有点低落",
+    "comfort": "陪着"
+  },
+  "demo": {
+    "colors": [
+      "奶油白",
+      "浅薄荷"
+    ],
+    "brief": "记账小页面",
+    "colorQuestion": "页面主色调用哪个？",
+    "colorHints": [
+      "暖一点，像纸",
+      "清爽一点"
+    ]
+  }
 }

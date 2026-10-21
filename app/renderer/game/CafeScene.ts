@@ -24,6 +24,9 @@ export class CafeScene extends Phaser.Scene {
   private speech = new Map<ActorId, string>();
   /** Current state and animation, shown next to the name while art is placeholder. */
   private status = new Map<ActorId, string>();
+  /** Called when a character or the counter is clicked. */
+  onActorClick: (actor: ActorId) => void = () => {};
+  onCounterClick: () => void = () => {};
 
   constructor() {
     super('cafe');
@@ -33,7 +36,8 @@ export class CafeScene extends Phaser.Scene {
     this.add.rectangle(0, 0, 320, 180, 0xf2e3c9).setOrigin(0);
     this.add.rectangle(0, 100, 320, 80, 0x7a5236, 0.35).setOrigin(0);
     for (const z of ZONES) {
-      this.add.rectangle(z.x, z.y, z.w, z.h, z.color).setOrigin(0).setStrokeStyle(1, 0x3b2a1e, 0.6);
+      const zone = this.add.rectangle(z.x, z.y, z.w, z.h, z.color).setOrigin(0).setStrokeStyle(1, 0x3b2a1e, 0.6);
+      if (z.id === 'counter') zone.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.onCounterClick());
     }
     for (const [id, a] of Object.entries(ANCHORS)) {
       this.add.circle(a.x, a.y, 1.5, 0xc8322b).setAlpha(0.7).setName(`anchor-${id}`);
@@ -41,6 +45,7 @@ export class CafeScene extends Phaser.Scene {
     for (const a of ACTORS) {
       const p = ANCHORS[a.home];
       const body = this.add.rectangle(p.x, p.y, a.w, a.h, a.color).setOrigin(0.5, 1).setStrokeStyle(1, 0x222222);
+      body.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.onActorClick(a.id));
       this.actors.set(a.id, { id: a.id, body });
     }
   }

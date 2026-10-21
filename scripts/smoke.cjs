@@ -32,5 +32,19 @@ app.whenReady().then(async () => {
     await sleep(ms);
     writeFileSync(join(outDir, `${i}-replay.png`), (await win.webContents.capturePage()).toPNG());
   }
+  // Decision dialog, then the serious card (answered with Esc = "not now").
+  await win.webContents.executeJavaScript(`document.getElementById('preview-cards').click()`);
+  await sleep(800);
+  writeFileSync(join(outDir, '6-question.png'), (await win.webContents.capturePage()).toPNG());
+  await win.webContents.executeJavaScript(`document.querySelector('.sticker.default').click()`);
+  await sleep(300);
+  writeFileSync(join(outDir, '7-serious.png'), (await win.webContents.capturePage()).toPNG());
+  // The parcel and character card from the replay.
+  await win.webContents.executeJavaScript(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
+  await sleep(6000);
+  writeFileSync(join(outDir, '8-after-replay.png'), (await win.webContents.capturePage()).toPNG());
+  await win.webContents.executeJavaScript(`document.getElementById('commission').click()`);
+  await sleep(500);
+  writeFileSync(join(outDir, '9-commission-form.png'), (await win.webContents.capturePage()).toPNG());
   app.quit();
 });

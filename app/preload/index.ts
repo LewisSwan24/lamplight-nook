@@ -1,19 +1,23 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC, type AiEvent, type LamplightApi, type RawAgentEvent } from '../shared/types';
+import { IPC, type LamplightApi } from '../shared/types';
+
+/** Subscribe to a main -> renderer channel; returns an unsubscribe function. */
+function on<T>(channel: string, cb: (payload: T) => void) {
+  const listener = (_e: unknown, payload: T) => cb(payload);
+  ipcRenderer.on(channel, listener);
+  return () => { ipcRenderer.removeListener(channel, listener); };
+}
 
 const api: LamplightApi = {
   envStatus: () => ipcRenderer.invoke(IPC.envStatus),
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
-  onRawEvent: (cb) => {
-    const listener = (_e: unknown, event: RawAgentEvent) => cb(event);
-    ipcRenderer.on(IPC.rawEvent, listener);
-    return () => ipcRenderer.removeListener(IPC.rawEvent, listener);
-  },
-  onAiEvent: (cb) => {
-    const listener = (_e: unknown, event: AiEvent) => cb(event);
-    ipcRenderer.on(IPC.aiEvent, listener);
-    return () => ipcRenderer.removeListener(IPC.aiEvent, listener);
-  },
+  startCommission: (form) => ipcRenderer.invoke(IPC.startCommission, form),
+  answerDecision: (answer) => ipcRenderer.invoke(IPC.answer, answer),
+  openOutput: (path, how) => ipcRenderer.invoke(IPC.openOutput, path, how),
+  onRawEvent: (cb) => on(IPC.rawEvent, cb),
+  onAiEvent: (cb) => on(IPC.aiEvent, cb),
+  onDecision: (cb) => on(IPC.decision, cb),
+  onResult: (cb) => on(IPC.result, cb),
 };
 
 contextBridge.exposeInMainWorld('lamplight', api);

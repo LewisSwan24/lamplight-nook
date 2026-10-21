@@ -1,5 +1,5 @@
 import { mkdirSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { join } from 'node:path';
 import {
   query,
   type AgentDefinition,
@@ -9,12 +9,13 @@ import {
 } from '@anthropic-ai/claude-agent-sdk';
 import { strings } from '../shared/i18n';
 import type { AiEvent, RawAgentEvent, RunResult } from '../shared/types';
+import { REPLY_LANGUAGE } from './commission';
+import type { DecisionBroker } from './decision-broker';
 import { EventNormalizer } from './event-normalizer';
+import { makePermissionPolicy } from './permission-policy';
+import { isInside } from './paths';
 import { Recorder } from './recorder';
 import { classify } from './risk-classifier';
-
-// Results are shown to a Chinese-speaking user, so agents answer in Chinese.
-const REPLY_LANGUAGE = 'Always reply in Simplified Chinese.';
 
 /** The two subagents. Their names map directly to characters (researcher -> Xiaoju, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -42,11 +43,6 @@ export const DEBUG_PROMPTS = {
 const SAFE_READ_TOOLS = new Set(['Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'Agent', 'Task']);
 const WRITE_TOOLS = new Set(['Write', 'Edit']);
 
-export function isInside(workDir: string, target: string): boolean {
-  const abs = isAbsolute(target) ? target : resolve(workDir, target);
-  const rel = relative(workDir, abs);
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
-}
 
 /**
  * Interim permission rule: allow read-only tools and writes inside the commission folder, deny everything else.
@@ -85,7 +81,21 @@ export type RunOptions = {
   emit: (e: RawAgentEvent) => void;
   /** Normalized events for the translation layer. */
   emitAi?: (e: AiEvent) => void;
+  /**
+   * When given, permissions go through the risk classifier and the user decides questions and risky steps.
+   * Without it (debug tasks), the interim rule applies.
+   */
+  broker?: DecisionBroker;
+  /** Files that existed in the folder before the run; overwriting them needs confirmation. */
+  preexisting?: Set<string>;
+  /** Abort the run (the user cancelled the commission or closed the app). */
+  abort?: AbortController;
 };
+
+export { isInside };
+
+/** Built-in tools available to the agents. Everything else (workflows, cron, MCP...) is off. */
+export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite'];
 
 /**
  * Developers may test locally with their own signed-in Claude Code subscription (LAMPLIGHT_DEV_SUBSCRIPTION=1).
@@ -96,7 +106,7 @@ export function hasCredentials(env: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -112,12 +122,32 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi }:
     return { ok: false, recordingPath, workDir, error: 'no_api_key' };
   }
 
+  // agent_id -> subagent type, so permission requests from a subagent can be attributed.
+  const agents = new Map<string, AiEvent['agent']>();
   const hookRecorder: HookCallback = async (input) => {
     record({ source: 'hook', name: input.hook_event_name, payload: input });
+    if (input.hook_event_name === 'SubagentStart') {
+      const type = input.agent_type === 'researcher' || input.agent_type === 'reviewer' ? input.agent_type : 'unknown';
+      agents.set(input.agent_id, type);
+    }
     return {};
   };
   const hooks = Object.fromEntries(HOOK_EVENTS.map((ev) => [ev, [{ hooks: [hookRecorder] }]]));
-  const allow = interimPermission(workDir);
+  const interim = interimPermission(workDir);
+  const canUseTool: CanUseTool = broker
+    ? makePermissionPolicy({ workDir, preexisting }, broker, {
+        onRequest: (tool, input, risk, reason, agentId) =>
+          record({ source: 'permission', name: tool, payload: { input, risk, reason, agent_id: agentId } }),
+        onDecision: (tool, choice, risk, label, agentId) =>
+          record({ source: 'decision', name: tool, payload: { choice, risk, label, agent_id: agentId } }),
+      }, agents)
+    : async (toolName, input, opts) => {
+        const result = await interim(toolName, input, opts);
+        // Debug tasks record the risk level without asking the user.
+        const { risk, reason } = classify(toolName, input, { workDir });
+        record({ source: 'permission', name: toolName, payload: { input, result, risk, reason, agent_id: opts.agentID } });
+        return result;
+      };
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
 
   try {
@@ -127,16 +157,14 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi }:
       options: {
         cwd: workDir,
         agents: SUBAGENTS,
+        tools: TOOLS,
         hooks,
-        // Ignore Claude Code settings on the user's machine; behavior is defined by this app only.
+        // Ignore Claude Code settings and MCP servers on the user's machine; behavior is defined by this app only.
         settingSources: [],
-        canUseTool: async (toolName, input, opts) => {
-          const result = await allow(toolName, input, opts);
-          // Risk is recorded but not enforced yet; DecisionBroker will hand serious cases to the user.
-          const { risk, reason } = classify(toolName, input, { workDir });
-          record({ source: 'permission', name: toolName, payload: { input, result, risk, reason, agent_id: opts.agentID } });
-          return result;
-        },
+        mcpServers: {},
+        strictMcpConfig: true,
+        abortController: abort,
+        canUseTool,
       },
     })) {
       record({ source: 'message', name: message.type, payload: message });

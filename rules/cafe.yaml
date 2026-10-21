@@ -192,6 +192,56 @@
   lines: ask
   priority: ask
 
+# The user answered a question or a permission card
+- on: decision
+  when: { choice: picked }
+  actor: adeng
+  state: reacting
+  anim: idle
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+  extra:
+    - { actor: laoshi, state: reacting, lines: react_rejected, own_lines: true, priority: chat }
+    - { actor: xiaoju, state: reacting, lines: react_adopted, own_lines: true, priority: chat }
+
+- on: decision
+  when: { choice: delegated }
+  actor: adeng
+  state: reacting
+  anim: idle
+  lines: react_delegated
+  priority: fail
+
+- on: decision
+  when: { choice: allowed, risk: serious }
+  actor: adeng
+  state: reacting
+  lines: serious_yes
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: [serious, blocked] }
+  actor: adeng
+  state: reacting
+  lines: serious_no
+  priority: fail
+
+- on: decision
+  when: { choice: allowed }
+  actor: adeng
+  state: reacting
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  actor: adeng
+  state: reacting
+  lines: react_rejected
+  own_lines: true
+  priority: fail
+
 - on: done
   actor: adeng
   state: wrapping
