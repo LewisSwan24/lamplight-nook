@@ -54,6 +54,22 @@ FURNITURE = [
 ]
 
 
+# Chairs at the table seats (app/renderer/game/layout.ts, SEATS): a chair's 16x32 cell sits 8px below
+# the sitting character's frame, whose feet are at the seat point.
+CHAIR_FACING_LEFT = (7, 270)   # back on the right
+CHAIR_FACING_RIGHT = (7, 268)  # back on the left
+CHAIRS = [
+    (CHAIR_FACING_LEFT, (196, 100)),
+    (CHAIR_FACING_RIGHT, (104, 100)),
+]
+
+# Animated props are played by the game, so they are copied as sheets rather than drawn in.
+ANIMATED = {
+    'clock.png': 'animated_cuckoo_clock.png',  # 10 frames of 16x32
+    'cup.png': 'animated_coffee.png',  # 6 frames of 16x32, a steaming cup
+}
+
+
 def build():
     img = Image.new('RGBA', (W, H), (59, 42, 30, 255))
     floor = tiles(floors, 4, 12, 3, 2)
@@ -65,8 +81,14 @@ def build():
         img.alpha_composite(wall, (x, 16))
     for _name, rect, pos in FURNITURE:
         img.alpha_composite(obj(*rect), pos)
+    # Chairs are drawn top to bottom so a lower chair overlaps the one above it.
+    for (col, row), (x, y) in sorted(CHAIRS, key=lambda c: c[1][1]):
+        img.alpha_composite(tiles(interiors, col, row, 1, 2), (x - 8, y - 24))
     OUT.mkdir(parents=True, exist_ok=True)
     img.save(OUT / 'cafe.png')
+    animated = ROOT / 'assets/vendor/3_Animated_objects/16x16/spritesheets'
+    for out, src in ANIMATED.items():
+        Image.open(animated / src).convert('RGBA').save(OUT / out)
     return img
 
 

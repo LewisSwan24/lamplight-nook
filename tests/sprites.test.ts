@@ -29,3 +29,18 @@ describe('staff sprite sheet layout', () => {
     expect(facingTowards({ x: 0, y: 10 }, { x: 0, y: 0 })).toBe('up');
   });
 });
+
+describe('idle life', () => {
+  it('a glance never keeps facing the same way', async () => {
+    const { glanceFacing } = await import('../app/renderer/game/life');
+    for (const home of ['up', 'down', 'left', 'right'] as const) {
+      for (const r of [0, 0.1, 0.3, 0.59, 0.6, 0.99]) expect(glanceFacing(home, r)).not.toBe(home);
+    }
+  });
+
+  it('idle pauses are long enough not to fidget', async () => {
+    const { idleDelay, napDelay } = await import('../app/renderer/game/life');
+    expect(idleDelay(0)).toBeGreaterThanOrEqual(6000);
+    expect(napDelay(1)).toBeLessThanOrEqual(20000);
+  });
+});
