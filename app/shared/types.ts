@@ -15,11 +15,24 @@ export type RawAgentEvent = {
 
 export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean };
 
+/** What the user set up: how to address them and where commissions are saved. */
+export type Settings = { name: string; workRoot: string; onboarded: boolean };
+
+/** Pages the renderer may open in the browser (install guides and credits). */
+export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'limezu';
+
 export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export interface LamplightApi {
   envStatus(): Promise<EnvStatus>;
+  getSettings(): Promise<Settings>;
+  saveSettings(patch: Partial<Settings>): Promise<Settings>;
+  /** Let the user pick the folder commissions are saved in; resolves with the new settings, or null if cancelled. */
+  chooseWorkRoot(): Promise<Settings | null>;
+  openWorkRoot(): Promise<void>;
+  openLink(link: ExternalLink): Promise<void>;
+  appVersion(): Promise<string>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   startCommission(form: CommissionForm): Promise<RunResult>;
   answerDecision(answer: DecisionAnswer): Promise<boolean>;
@@ -63,6 +76,12 @@ export type DecisionAnswer = { id: string; choice: string };
 
 export const IPC = {
   envStatus: 'env:status',
+  getSettings: 'settings:get',
+  saveSettings: 'settings:save',
+  chooseWorkRoot: 'settings:choose-work-root',
+  openWorkRoot: 'settings:open-work-root',
+  openLink: 'app:open-link',
+  appVersion: 'app:version',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',

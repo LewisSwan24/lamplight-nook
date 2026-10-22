@@ -14,7 +14,7 @@ export type ActorInfo = {
 };
 
 let open: HTMLElement | null = null;
-function replaceOpen(node: HTMLElement) {
+export function replaceOpen(node: HTMLElement) {
   open?.remove();
   open = node;
   layer().append(node);
@@ -78,15 +78,6 @@ export function showCommissionForm(): Promise<CommissionForm | null> {
     replaceOpen(form);
     want.focus();
   });
-}
-
-/** A short notice card, e.g. when something the shop needs is missing on this computer. */
-export function showNotice(title: string, body: string) {
-  replaceOpen(el('div.card.paper.notice-card', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el('div.card-title', {}, title),
-    el('div', {}, body),
-  ));
 }
 
 /** The finished-work card: open the page in the browser, or show it in its folder. */
