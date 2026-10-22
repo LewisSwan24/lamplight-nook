@@ -12,12 +12,19 @@ import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
 import { SettingsStore } from './settings';
+import { ShopTray } from './tray';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let win: BrowserWindow | null = null;
 
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
-const broker = new DecisionBroker((req) => send(IPC.decision, req));
+const broker = new DecisionBroker((req) => {
+  send(IPC.decision, req);
+  tray.attention(req, settings.get().notify);
+});
+const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
+/** The lamp in the tray. Quitting from its menu closes for real, even with "close to tray" on. */
+const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.close(); });
 /** The commission currently running (one at a time), and the folder of the last one. */
 let current: { workDir: string; abort: AbortController } | null = null;
 let lastWorkDir: string | null = null;
@@ -29,6 +36,8 @@ let lastFailed: Job | null = null;
 let leftover: Job | null = null;
 /** Set once the user chose to stop and close, so the close prompt doesn't come back. */
 let quitting = false;
+/** Set when the user quits from the tray, so closing doesn't just hide the window. */
+let leaving = false;
 
 /** The only pages the renderer can open in a browser. */
 const LINKS: Record<ExternalLink, string> = {
@@ -47,6 +56,7 @@ function createWindow() {
     title: strings.app.title,
     backgroundColor: '#1b1712',
     useContentSize: true,
+    icon: join(iconDir(), 'icon.png'),
     webPreferences: {
       preload: join(here, '../preload/index.cjs'),
       contextIsolation: true,
@@ -58,6 +68,12 @@ function createWindow() {
   });
   // Closing mid-commission asks first; stopping is the second, deliberate choice.
   win.on('close', (e) => {
+    // With "close to tray" on, the shop keeps running out of sight (a commission carries on too).
+    if (!leaving && !quitting && settings.get().closeToTray && tray.available) {
+      e.preventDefault();
+      win?.hide();
+      return;
+    }
     if (!current || quitting || !win) return;
     const R = strings.ui.run;
     const choice = dialog.showMessageBoxSync(win, {
@@ -65,6 +81,7 @@ function createWindow() {
       buttons: [R.keepGoing, R.stopAndClose], defaultId: 0, cancelId: 0, noLink: true,
     });
     if (choice === 0) {
+      leaving = false;
       e.preventDefault();
       return;
     }
@@ -175,7 +192,11 @@ ipcMain.handle(IPC.dropPending, () => {
   pending.clear();
 });
 
-ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => broker.answer(answer));
+ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
+  const ok = broker.answer(answer);
+  if (!broker.waiting) tray.calm();
+  return ok;
+});
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
 ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
 ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
@@ -196,8 +217,11 @@ app.whenReady().then(() => {
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
   leftover = pending.load();
   createWindow();
+  tray.create();
+  win?.on('focus', () => tray.calm());
 });
 app.on('before-quit', () => {
+  leaving = true;
   broker.cancelAll();
   current?.abort.abort();
 });
