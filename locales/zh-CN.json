@@ -241,6 +241,17 @@
       "forgetYes": "忘掉",
       "keep": "留着",
       "forgotten": "好，本子上的都划掉了。称呼还在设置里，想改随时改。"
+    },
+    "tray": {
+      "sectionLabel": "不在眼前的时候",
+      "notifyToggle": "需要你决定时，弹一次系统通知",
+      "closeToTrayToggle": "关窗口时缩到托盘，店继续开着",
+      "tooltip": "小灯屋",
+      "tooltipWaiting": "小灯屋：有事等你决定",
+      "show": "打开小灯屋",
+      "quit": "关店退出",
+      "notifyTitle": "{who}在等你决定",
+      "notifySerious": "有一步需要你确认"
     }
   },
   "states": {
