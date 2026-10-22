@@ -57,6 +57,9 @@ export class CafeScene extends Phaser.Scene {
   private speech = new Map<ActorId, { text: string; icon?: Bubble }>();
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
   private hovered: ActorId | 'counter' | null = null;
+  private glow?: { sprite: Phaser.GameObjects.Sprite; fx: Phaser.FX.Glow };
+  /** Settings or the system asked for less motion: no hops, no pulsing, light changes at once. */
+  reducedMotion = false;
   private door!: Phaser.GameObjects.Sprite;
   /** The blank commission form on the counter; it glows softly while it waits to be filled in. */
   private form!: Phaser.GameObjects.Graphics;
@@ -71,6 +74,8 @@ export class CafeScene extends Phaser.Scene {
   onCounterClick: () => void = () => {};
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
+  /** Every line said out loud, for the caption log. */
+  onSay?: (actor: ActorId, text: string) => void;
 
   constructor() {
     super('cafe');
@@ -95,32 +100,19 @@ export class CafeScene extends Phaser.Scene {
       .setOrigin(0)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.onCounterClick())
-      .on('pointerover', () => (this.hovered = 'counter'))
-      .on('pointerout', () => (this.hovered = null));
+      .on('pointerover', () => this.highlight('counter'))
+      .on('pointerout', () => this.hovered === 'counter' && this.highlight(null));
     for (const a of ACTORS) {
       const spot = standPoint(a.home, a.id);
       const isCat = a.id === 'cat';
       const shadow = this.add.ellipse(spot.x, spot.y, isCat ? 20 : 11, 4, 0x3b2a1e, 0.28);
       const sprite = this.add.sprite(spot.x, spot.y, a.id).setOrigin(0.5, 1).setDepth(spot.y);
       const actor: Actor = { id: a.id, sprite, shadow, facing: spot.facing, at: a.home, pose: isCat ? 'lie' : 'idle', height: a.height };
-      let glow: Phaser.FX.Glow | undefined;
       sprite
         .setInteractive({ useHandCursor: true, pixelPerfect: true })
-        .on('pointerdown', () => {
-          if (actor.outside) return;
-          this.react(actor);
-          this.onActorClick(a.id);
-        })
-        .on('pointerover', () => {
-          if (actor.outside) return;
-          this.hovered = a.id;
-          glow = sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4);
-        })
-        .on('pointerout', () => {
-          if (this.hovered === a.id) this.hovered = null;
-          if (glow) sprite.preFX?.remove(glow);
-          glow = undefined;
-        });
+        .on('pointerdown', () => this.activate(a.id))
+        .on('pointerover', () => this.highlight(a.id))
+        .on('pointerout', () => this.hovered === a.id && this.highlight(null));
       // One-off actions (picking up, handing over, lifting) end in the standing pose instead of freezing.
       sprite.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
         if (isCat || actor.tween?.isPlaying()) return;
@@ -176,11 +168,17 @@ export class CafeScene extends Phaser.Scene {
     this.setFormWaiting(true);
   }
 
+  setReducedMotion(on: boolean) {
+    this.reducedMotion = on;
+    if (this.form?.visible) this.setFormWaiting(true);
+  }
+
   /** Show the blank form glowing on the counter (nothing running), or put it away (a commission is under way). */
   setFormWaiting(on: boolean) {
     this.formGlow?.stop();
     this.form.setVisible(on).setAlpha(1);
-    if (on) this.formGlow = this.tweens.add({ targets: this.form, alpha: 0.55, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    if (on && this.reducedMotion) this.form.setAlpha(0.8);
+    else if (on) this.formGlow = this.tweens.add({ targets: this.form, alpha: 0.55, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   /** Warm pools of light from the window, the counter, the floor lamp and the wall lamp; additive so they only brighten. */
@@ -254,7 +252,7 @@ export class CafeScene extends Phaser.Scene {
       const sun = from.sun + (look.sun - from.sun) * t;
       for (const g of this.glows) g.img.setAlpha(Math.min(1, g.base * (g.sun ? sun : lamps)));
     };
-    if (now) return apply(1);
+    if (now || this.reducedMotion) return apply(1);
     this.tweens.addCounter({ from: 0, to: 1, duration: DAYLIGHT_MS, onUpdate: (tw) => apply(tw.getValue() ?? 1) });
   }
 
@@ -291,6 +289,36 @@ export class CafeScene extends Phaser.Scene {
     return near ? facingTowards(actor.sprite, near.sprite) : actor.facing;
   }
 
+  /** Point at the counter or a character (mouse over or keyboard focus): show its name and a soft glow. */
+  highlight(target: ActorId | 'counter' | null) {
+    if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
+    this.glow = undefined;
+    const actor = target && target !== 'counter' ? this.actors.get(target) : undefined;
+    if (actor?.outside) target = null;
+    this.hovered = target;
+    const fx = actor && !actor.outside ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
+    if (actor && fx) this.glow = { sprite: actor.sprite, fx };
+  }
+
+  /** Click (or Enter on) the counter or a character. */
+  activate(target: ActorId | 'counter') {
+    if (target === 'counter') return this.onCounterClick();
+    const actor = this.actors.get(target);
+    if (!actor || actor.outside) return;
+    this.react(actor);
+    this.onActorClick(target);
+  }
+
+  /** What can be clicked, in canvas pixels, for the keyboard hotspots laid over the canvas. */
+  hotspots(): { id: ActorId | 'counter'; x: number; y: number; w: number; h: number }[] {
+    const counter = ZONES.find((z) => z.id === 'counter')!;
+    const people = [...this.actors.values()].filter((a) => !a.outside).map((a) => {
+      const b = a.sprite.getBounds();
+      return { id: a.id, x: b.x, y: b.y, w: b.width, h: b.height };
+    });
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...people];
+  }
+
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */
   private react(actor: Actor) {
     const { sprite } = actor;
@@ -309,7 +337,7 @@ export class CafeScene extends Phaser.Scene {
       actor.facing = 'down';
       this.hold(actor);
     }
-    this.tweens.add({ targets: sprite, y: sprite.y - 3, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+    if (!this.reducedMotion) this.tweens.add({ targets: sprite, y: sprite.y - 3, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
     this.time.delayedCall(1600, () => {
       if (actor.tween?.isPlaying() || actor.pose !== 'idle') return;
       actor.facing = before;
@@ -382,6 +410,7 @@ export class CafeScene extends Phaser.Scene {
   say(actorId: ActorId, text: string | null, bubble?: Bubble) {
     if (text === null && !bubble) this.speech.delete(actorId);
     else this.speech.set(actorId, { text: text ?? '', icon: bubble });
+    if (text) this.onSay?.(actorId, text);
   }
 
   /**
