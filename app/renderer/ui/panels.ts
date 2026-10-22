@@ -1,6 +1,8 @@
 import { fill, strings } from '../../shared/i18n';
 import type { ActorId, CommissionForm, CommissionResult } from '../../shared/types';
 import { el, layer } from './dom';
+import { expressionFor } from './expression';
+import { withPortrait } from './portraits';
 
 const U = strings.ui;
 
@@ -30,8 +32,9 @@ export function showActorCard(actor: ActorId, info: ActorInfo, detailed = false)
   const state = (strings.states as Record<string, string>)[info.state] ?? info.state;
   replaceOpen(el('div.card.paper.actor-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el('div.card-title', {}, `${strings.actors[actor]} - ${state}`),
-    info.lastLine ? el('div.quote', {}, `\u201C${info.lastLine}\u201D`) : null,
+    withPortrait(actor, expressionFor(info.state),
+      el('div.card-title', {}, `${strings.actors[actor]} - ${state}`),
+      info.lastLine ? el('div.quote', {}, `\u201C${info.lastLine}\u201D`) : null),
     info.doing ? el('div', {}, el('b', {}, U.doingNow), info.doing) : null,
     el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)),
     info.raw.length ? el('details', { open: detailed }, el('summary', {}, U.raw), el('pre', {}, info.raw.slice(-30).join('\n'))) : null,
