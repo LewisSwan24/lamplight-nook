@@ -60,7 +60,10 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 - It creates a GitHub release with `Lamplight-Nook-Setup-<version>.exe` attached, tagged with the pushed tag or with the version in `package.json`. Bump the version before each release.
 
 The installer is not code-signed yet, so Windows SmartScreen asks for confirmation ("More info", then "Run anyway").
-The installed app needs the same credentials as development: `ANTHROPIC_API_KEY`, or `LAMPLIGHT_DEV_SUBSCRIPTION=1` on a machine signed in to Claude Code.
+The installer does not include Claude Code. The app uses the copy installed on the machine
+(native installer location, `PATH`, or a global npm install; `LAMPLIGHT_CLAUDE_PATH` overrides the lookup)
+and shows a notice when none is found. It also needs the same credentials as development:
+`ANTHROPIC_API_KEY`, or `LAMPLIGHT_DEV_SUBSCRIPTION=1` on a machine signed in to Claude Code.
 
 ## Art and licenses
 

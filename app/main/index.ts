@@ -5,6 +5,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
 import { IPC, type CommissionForm, type DecisionAnswer, type EnvStatus, type RunResult } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, hasCredentials, runAgent } from './agent-runner';
+import { locateClaude } from './claude-locator';
 import { collectOutputs, commissionPrompt, demoPrompt, prepareDemoFolder, snapshot } from './commission';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
@@ -45,7 +46,7 @@ const emitters = {
 };
 
 // The key is only read in the main process; the renderer just gets a boolean.
-ipcMain.handle(IPC.envStatus, (): EnvStatus => ({ hasApiKey: hasCredentials() }));
+ipcMain.handle(IPC.envStatus, (): EnvStatus => ({ hasApiKey: hasCredentials(), hasClaude: locateClaude() !== null }));
 
 ipcMain.handle(IPC.runDebugTask, async (_e, kind: keyof typeof DEBUG_PROMPTS) => {
   const workDir = commissionDir(app.getPath('documents'), fill(strings.app.debugCommission, { kind }));

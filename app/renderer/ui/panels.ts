@@ -80,6 +80,15 @@ export function showCommissionForm(): Promise<CommissionForm | null> {
   });
 }
 
+/** A short notice card, e.g. when something the shop needs is missing on this computer. */
+export function showNotice(title: string, body: string) {
+  replaceOpen(el('div.card.paper.notice-card', {},
+    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    el('div.card-title', {}, title),
+    el('div', {}, body),
+  ));
+}
+
 /** The finished-work card: open the page in the browser, or show it in its folder. */
 export function showResult(result: CommissionResult, openOutput: (path: string, how: 'open' | 'reveal') => void) {
   if (!result.main && !result.files.length) return;

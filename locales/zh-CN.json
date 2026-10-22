@@ -142,7 +142,11 @@
       "research": "找参考",
       "write": "写页面",
       "check": "检查"
-    }
+    },
+    "noClaudeTitle": "店里还缺一样东西",
+    "noClaudeBody": "小灯屋要靠电脑上的 Claude Code 干活，但这台电脑上还没装。请按 https://code.claude.com/docs/en/setup 装好 Claude Code，再重新打开小灯屋。",
+    "noKeyTitle": "还没有钥匙",
+    "noKeyBody": "小灯屋需要一把 Anthropic API Key 才能开工。请把它设成环境变量 ANTHROPIC_API_KEY，再重新打开小灯屋。"
   },
   "states": {
     "idle": "闲着",

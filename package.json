@@ -40,10 +40,8 @@
     "files": [
       "out/**",
       "demo/check.js",
-      "package.json"
-    ],
-    "asarUnpack": [
-      "node_modules/@anthropic-ai/claude-agent-sdk-*/**"
+      "package.json",
+      "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
     ],
     "win": {
       "target": [
@@ -53,9 +51,6 @@
             "x64"
           ]
         }
-      ],
-      "files": [
-        "!node_modules/@anthropic-ai/claude-agent-sdk-{linux,darwin}*/**"
       ]
     },
     "nsis": {

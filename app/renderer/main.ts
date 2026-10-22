@@ -7,7 +7,7 @@ import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Stage, replay } from './stage/stage';
 import { showDecision } from './ui/decision';
-import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { setReplayBadge, showActorCard, showCommissionForm, showNotice, showResult } from './ui/panels';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -89,6 +89,11 @@ window.lamplight.onResult((result) => showResult(result, (path, how) => void win
 let running = false;
 async function newCommission() {
   if (running) return;
+  // Check what the shop needs before the form is filled in, not after.
+  const env = await window.lamplight.envStatus();
+  const U = strings.ui;
+  if (!env.hasClaude) return showNotice(U.noClaudeTitle, U.noClaudeBody);
+  if (!env.hasApiKey) return showNotice(U.noKeyTitle, U.noKeyBody);
   const form = await showCommissionForm();
   if (!form) return;
   running = true;
@@ -113,10 +118,13 @@ $('walk').addEventListener('click', () => scene.walkTo(actorSel.value as ActorId
 const log = $<HTMLPreElement>('log');
 const append = (line: string) => { log.textContent = `${line}\n${log.textContent}`.slice(0, 20000); };
 
-window.lamplight.envStatus().then(({ hasApiKey }) => {
+window.lamplight.envStatus().then(({ hasApiKey, hasClaude }) => {
   const env = $('env');
-  env.textContent = hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.';
-  env.classList.toggle('missing', !hasApiKey);
+  env.textContent = [
+    hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',
+    hasClaude ? 'Claude Code found.' : 'Claude Code not installed.',
+  ].join(' ');
+  env.classList.toggle('missing', !hasApiKey || !hasClaude);
 });
 
 // Live runs: normalized events drive the stage and are logged.
