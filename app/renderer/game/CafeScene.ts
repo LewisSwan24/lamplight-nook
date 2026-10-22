@@ -370,6 +370,11 @@ export class CafeScene extends Phaser.Scene {
     });
   }
 
+  /** Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). */
+  busyTalking(actorId: ActorId): boolean {
+    return this.speech.has(actorId) || !!this.actors.get(actorId)?.outside;
+  }
+
   /** Show a line above a character (text may be empty to show just the bubble). Pass null and no bubble to clear. */
   say(actorId: ActorId, text: string | null, bubble?: Bubble) {
     if (text === null && !bubble) this.speech.delete(actorId);
@@ -435,7 +440,8 @@ export class CafeScene extends Phaser.Scene {
       const { sprite, height } = this.actors.get(a.id)!;
       return { key: `a-${a.id}`, text: a.name, x: sprite.x, y: sprite.y - height - 1, kind: 'actor' as const };
     });
-    const bubbles = ACTORS.filter((a) => this.speech.has(a.id)).map((a) => {
+    // Someone out on an errand can't be heard in the shop.
+    const bubbles = ACTORS.filter((a) => this.speech.has(a.id) && !this.actors.get(a.id)!.outside).map((a) => {
       const { sprite, height } = this.actors.get(a.id)!;
       const { text, icon } = this.speech.get(a.id)!;
       return { key: `b-${a.id}`, text, icon, x: sprite.x, y: sprite.y - height - 2, kind: 'bubble' as const };

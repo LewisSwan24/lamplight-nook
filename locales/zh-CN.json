@@ -101,7 +101,8 @@
     "tooLong": "{id}: \"{text}\" is longer than {max} characters",
     "laoshiParticle": "{id}: Laoshi never uses particles \"{text}\"",
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
-    "emotionWord": "{id}: names an emotion directly \"{text}\""
+    "emotionWord": "{id}: names an emotion directly \"{text}\"",
+    "badChat": "{id}: a chat needs at least two turns and `when` of idle or waiting"
   },
   "defaults": {
     "brief": "这个"
