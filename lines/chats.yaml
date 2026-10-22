@@ -1,0 +1,98 @@
+# Small talk between the staff, so the shop feels lived in (story.md section 4).
+# Each chat is a few turns; every turn is one bubble (max 20 characters, same writing rules as cafe.yaml).
+# when: idle = no commission running; waiting = a long command is running and everyone is waiting.
+# period (optional): only at this time of day (dawn, day, dusk, night).
+
+- id: sugar
+  when: idle
+  turns:
+    - xiaoju: 阿灯，你茶里我又放了一勺糖。
+    - adeng: ……我说今天怎么这么好喝。
+
+- id: mallet
+  when: idle
+  turns:
+    - laoshi: 我的木槌。
+    - xiaoju: 不知道呀。
+    - laoshi: ……
+
+- id: sunset
+  when: idle
+  period: dusk
+  turns:
+    - xiaoju: 今天的晚霞像橘子汽水。
+    - laoshi: 像铁锈。
+    - xiaoju: 你这人真没意思。
+
+- id: chair
+  when: idle
+  turns:
+    - laoshi: 这把椅子又晃了。
+    - adeng: 上周不是修过吗？
+    - laoshi: 嗯。所以再修一次。
+
+- id: scarf
+  when: idle
+  turns:
+    - laoshi: 围巾。
+    - xiaoju: 啊，又掉了？
+    - laoshi: 挂门后了。
+
+- id: notebook
+  when: idle
+  turns:
+    - xiaoju: 阿灯，你那个小本子里写我什么了？
+    - adeng: 写你上周欠我三块饼干。
+    - xiaoju: ……那是借的。
+
+- id: windowsill
+  when: idle
+  turns:
+    - xiaoju: 栗子今天又占了窗台。
+    - adeng: 那是她的位置。
+    - laoshi: 我的椅子也是她的。
+
+- id: cold_tea
+  when: idle
+  turns:
+    - adeng: 茶又凉了。
+    - laoshi: 那就再泡一壶。
+    - adeng: 你帮我看着水。
+    - laoshi: 嗯。
+
+- id: bakery
+  when: idle
+  period: day
+  turns:
+    - xiaoju: 对面面包店换招牌了。
+    - adeng: 换成什么了？
+    - xiaoju: 还是面包。然后字大了一点。
+
+- id: table_leg
+  when: idle
+  turns:
+    - laoshi: 这桌子腿短了一毫米。
+    - xiaoju: 你怎么看出来的？
+    - laoshi: 敲出来的。
+
+- id: biscuit
+  when: waiting
+  turns:
+    - adeng: 还得一会儿。
+    - xiaoju: 那我能先吃一块饼干吗？
+    - adeng: 吃吧，给老石留一块。
+    - laoshi: 不用。
+
+- id: kettle
+  when: waiting
+  turns:
+    - xiaoju: 它还在跑吗？
+    - adeng: 在跑。我们泡壶茶。
+    - laoshi: 我来烧水。
+
+- id: sketch
+  when: waiting
+  turns:
+    - adeng: 这一步要等一会儿。
+    - xiaoju: 那我画一下栗子。
+    - laoshi: 画得像一点。

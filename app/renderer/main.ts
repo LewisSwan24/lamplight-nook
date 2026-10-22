@@ -5,6 +5,8 @@ import { fill, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult } from '../shared/types';
 import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
+import { Chatter, type ShopMood } from './stage/chatter';
+import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { Stage, replay } from './stage/stage';
 import { showDecision } from './ui/decision';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
@@ -89,6 +91,18 @@ requestAnimationFrame(drawLabels);
 
 const stage = new Stage(scene);
 stage.onEvent = noteEvent;
+
+// Small talk when the shop is quiet: never while working, while a card waits for the user, or when hidden.
+let replaying = false;
+const chatter = new Chatter(ruleBook().chats, ruleBook().lines.idle_mutter ?? [], Date.now());
+onRuleBookChange((b) => chatter.reload(b.chats, b.lines.idle_mutter ?? []));
+setInterval(() => {
+  const blocked = document.hidden || document.querySelector('.backdrop');
+  const busy = running || replaying;
+  const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
+  const talk = chatter.next(mood, Date.now(), scene.period);
+  if (talk) void stage.talk(talk.turns);
+}, 5000);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
@@ -223,5 +237,6 @@ $('replay').addEventListener('click', () => {
   const events = normalizeAll(raw);
   append(`replay: ${events.length} events at 3x`);
   setReplayBadge(true);
-  cancelReplay = replay(stage, events, 3, () => setReplayBadge(false));
+  replaying = true;
+  cancelReplay = replay(stage, events, 3, () => { setReplayBadge(false); replaying = false; });
 });

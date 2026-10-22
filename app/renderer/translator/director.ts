@@ -14,7 +14,7 @@ export type DirectorOptions = {
 type Queued = { cmd: CharacterCommand; at: number };
 
 /** Line book: group -> lines. */
-export type LineBook = Record<string, { id: string; text: string; when?: string; speaker?: ActorId }[]>;
+export type LineBook = Record<string, { id: string; text: string; when?: string; speaker?: ActorId; reply?: { speaker: ActorId; text: string } }[]>;
 
 /**
  * Pacing:
@@ -120,7 +120,10 @@ export class Director {
     if (!pick) return { ...cmd, line: undefined };
     this.usedLines.add(pick.id);
     this.lastLineAt.set(cmd.line.group, at);
-    return { ...cmd, line: { group: cmd.line.group, vars: { ...cmd.line.vars, _id: pick.id, _text: pick.text } } };
+    const said: Record<string, string> = { _id: pick.id, _text: pick.text };
+    if (pick.speaker) said._speaker = pick.speaker;
+    if (pick.reply) Object.assign(said, { _reply: pick.reply.text, _replyBy: pick.reply.speaker });
+    return { ...cmd, line: { group: cmd.line.group, vars: { ...cmd.line.vars, ...said } } };
   }
 }
 
