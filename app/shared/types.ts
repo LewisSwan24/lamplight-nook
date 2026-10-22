@@ -13,10 +13,15 @@ export type RawAgentEvent = {
   payload: unknown;
 };
 
-export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean };
+/** `debug` is true in development or with LAMPLIGHT_DEBUG=1; the debug panel and debug tasks need it. */
+export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean };
 
-/** What the user set up: how to address them and where commissions are saved. */
-export type Settings = { name: string; workRoot: string; onboarded: boolean };
+/**
+ * What the user set up: how to address them, where commissions are saved, sound, and whether
+ * the scene also shows what is really happening underneath (detailed mode).
+ */
+/** volume is 0-100 and covers both effects and music. */
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean };
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
@@ -137,13 +142,16 @@ export type AiEvent = {
   raw?: unknown;
 };
 
-export type Bubble = 'idea' | 'sweat' | 'question' | 'note' | 'tea' | 'alert' | 'dots' | 'zzz';
+/** Mood bubbles shown above a character; `heart` is only for the cat. */
+export type Bubble = 'idea' | 'sweat' | 'question' | 'note' | 'tea' | 'alert' | 'dots' | 'zzz' | 'heart';
 
 export type CharacterCommand = {
   actor: ActorId;
   state: string;
   moveTo?: AnchorId;
   anim?: string;
+  /** What the rule asked for before the sprite fallback (write, hammer, ...); sounds follow this, not the sprite. */
+  action?: string;
   /**
    * flags: `when` conditions that currently hold (has_issues, has_memory, ...).
    * speaker: only pick lines spoken by this actor (for groups that mix speakers).

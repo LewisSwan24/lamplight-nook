@@ -1,6 +1,8 @@
 import { strings } from '../../shared/i18n';
 import type { DecisionRequest } from '../../shared/types';
+import { setSerious, sfx } from '../audio/sound';
 import { el, layer } from './dom';
+import { withPortrait } from './portraits';
 
 const D = strings.decision;
 /** The confirm button on the serious card can't be clicked for this long, to prevent accidental clicks. */
@@ -13,9 +15,11 @@ export const CONFIRM_DELAY_MS = 1000;
 export function showDecision(req: DecisionRequest): Promise<string> {
   return new Promise((resolve) => {
     const backdrop = el('div.backdrop');
+    const serious = req.kind === 'serious';
     const close = (choice: string) => {
       document.removeEventListener('keydown', onKey, true);
       backdrop.remove();
+      if (serious) setSerious(false);
       resolve(choice);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -31,16 +35,20 @@ export function showDecision(req: DecisionRequest): Promise<string> {
     document.addEventListener('keydown', onKey, true);
     backdrop.append(req.kind === 'serious' ? seriousCard(req, close) : dialog(req, close));
     layer().append(backdrop);
+    // Serious mode: the music stops and a single alert is the only sound.
+    if (serious) setSerious(true);
+    sfx(serious ? 'serious' : 'ask');
     backdrop.querySelector<HTMLButtonElement>('button.default')?.focus();
   });
 }
 
 function dialog(req: DecisionRequest, close: (id: string) => void) {
-  const who = strings.actors[req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : 'adeng'];
+  const actor = req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : 'adeng';
   return el('div.dialog.paper', { role: 'dialog', 'aria-modal': 'true' },
-    el('div.who', {}, who),
-    el('div.question', {}, req.title),
-    req.reason && req.kind === 'permission' ? el('div.reason', {}, req.reason) : null,
+    withPortrait(actor, 'unsure',
+      el('div.who', {}, strings.actors[actor]),
+      el('div.question', {}, req.title),
+      req.reason && req.kind === 'permission' ? el('div.reason', {}, req.reason) : null),
     el('div.options', {},
       ...req.options.map((o, i) => el(`button.sticker${o.id === req.defaultId ? '.default' : ''}`, { onclick: () => close(o.id), 'data-key': i + 1 },
         el('span.opt-label', {}, `${i + 1}. ${o.label}`),

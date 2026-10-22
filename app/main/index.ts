@@ -50,6 +50,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // The shop's sounds and music start without waiting for a click.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   // Closing mid-commission asks first; stopping is the second, deliberate choice.
@@ -78,7 +80,9 @@ const emitters = {
 };
 
 // The key is only read in the main process; the renderer just gets a boolean.
-ipcMain.handle(IPC.envStatus, (): EnvStatus => ({ hasApiKey: hasCredentials(), hasClaude: locateClaude() !== null }));
+// Debug tools are for development; a packaged build hides them unless LAMPLIGHT_DEBUG=1.
+const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1';
+ipcMain.handle(IPC.envStatus, (): EnvStatus => ({ hasApiKey: hasCredentials(), hasClaude: locateClaude() !== null, debug: debugEnabled() }));
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => settings.update(patch));
@@ -96,6 +100,7 @@ ipcMain.handle(IPC.openLink, (_e, link: ExternalLink) => (LINKS[link] ? shell.op
 ipcMain.handle(IPC.appVersion, () => app.getVersion());
 
 ipcMain.handle(IPC.runDebugTask, async (_e, kind: keyof typeof DEBUG_PROMPTS) => {
+  if (!debugEnabled()) throw new Error('debug tasks are disabled');
   const workDir = commissionDir(settings.get().workRoot, fill(strings.app.debugCommission, { kind }));
   return runAgent({ prompt: DEBUG_PROMPTS[kind], workDir, recordingPath: recordingFor(kind), ...emitters });
 });

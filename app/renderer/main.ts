@@ -2,15 +2,21 @@ import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult } from '../shared/types';
+import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
+import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
+import { Chatter, type ShopMood } from './stage/chatter';
+import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { Stage, replay } from './stage/stage';
+import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
+import { updateHotspots } from './ui/hotspots';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { showFailure, showPending, showRunning } from './ui/run';
-import { showNotReady, showSettings, showWelcome } from './ui/setup';
-import { el, layer } from './ui/dom';
+import { showNotReady, showWelcome } from './ui/setup';
+import { emoteEl } from './ui/emotes';
+import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -44,6 +50,9 @@ function drawLabels() {
   if (scene.sys.isActive()) {
     const rect = game.canvas.getBoundingClientRect();
     const s = rect.width / CANVAS.width;
+    // Mood bubbles are pixel art: whole screen pixels per art pixel, smaller next to a line of text.
+    overlay.style.setProperty('--emote-px', `${Math.max(1, Math.floor(s * 0.75))}px`);
+    overlay.style.setProperty('--emote-px-small', `${Math.max(1, Math.floor(s / 2))}px`);
     const seen = new Set<string>();
     for (const l of scene.labels()) {
       seen.add(l.key);
@@ -54,13 +63,19 @@ function drawLabels() {
         overlay.appendChild(el);
         labelEls.set(l.key, el);
       }
-      if (el.textContent !== l.text) el.textContent = l.text;
+      const content = `${l.icon ?? ''}|${l.text}`;
+      if (el.dataset.content !== content) {
+        el.dataset.content = content;
+        el.classList.toggle('icon-only', !!l.icon && !l.text);
+        el.replaceChildren(...[l.icon ? emoteEl(l.icon) : null, l.text || null].filter((c): c is HTMLElement | string => c !== null));
+      }
       el.style.left = `${rect.left + l.x * s}px`;
       el.style.top = `${rect.top + l.y * s}px`;
     }
     for (const [key, el] of labelEls) {
       if (!seen.has(key)) { el.remove(); labelEls.delete(key); }
     }
+    updateHotspots(scene, rect, s);
     // The step list is chalked onto the blackboard's slate and scales with the scene.
     const board = document.getElementById('board');
     if (board) {
@@ -79,7 +94,23 @@ function drawLabels() {
 requestAnimationFrame(drawLabels);
 
 const stage = new Stage(scene);
-scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor));
+stage.onEvent = noteEvent;
+
+// Small talk when the shop is quiet: never while working, while a card waits for the user, or when hidden.
+let replaying = false;
+const chatter = new Chatter(ruleBook().chats, ruleBook().lines.idle_mutter ?? [], Date.now());
+onRuleBookChange((b) => chatter.reload(b.chats, b.lines.idle_mutter ?? []));
+setInterval(() => {
+  setPeriod(scene.period);
+  const blocked = document.hidden || document.querySelector('.backdrop');
+  const busy = running || replaying;
+  const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
+  const talk = chatter.next(mood, Date.now(), scene.period);
+  if (talk) void stage.talk(talk.turns);
+}, 5000);
+scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
+scene.onSound = sfx;
+scene.onSay = recordLine;
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 window.lamplight.onDecision(async (req) => {
@@ -92,13 +123,16 @@ window.lamplight.onResult((result) => showResult(result, (path, how) => void win
 let running: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  scene.setFormWaiting(false);
   try {
     const r = await start();
     if (!r) return;
+    sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
     if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()));
   } finally {
     running = null;
+    scene.setFormWaiting(true);
   }
 }
 async function newCommission() {
@@ -113,6 +147,19 @@ async function newCommission() {
 }
 scene.onCounterClick = () => void newCommission();
 
+// Settings that change how the shop looks and sounds. Less motion also follows the system setting.
+const systemCalm = matchMedia('(prefers-reduced-motion: reduce)');
+let current: Settings | null = null;
+function applySettings(s: Settings) {
+  current = s;
+  setMix({ volume: s.volume, muted: s.muted, period: scene.period });
+  setCaptionBar(s.captions);
+  const calm = s.reducedMotion || systemCalm.matches;
+  document.body.classList.toggle('reduce-motion', calm);
+  scene.setReducedMotion(calm);
+}
+systemCalm.addEventListener('change', () => current && applySettings(current));
+
 // Adeng greets the user by name; the first visit walks through setup first.
 const greet = (text: string) => {
   scene.say('adeng', text);
@@ -121,6 +168,8 @@ const greet = (text: string) => {
 async function openShop() {
   const api = window.lamplight;
   let settings = await api.getSettings();
+  mountToolbar(api, settings, applySettings);
+  applySettings(settings);
   const S = strings.ui.setup;
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());
@@ -134,12 +183,6 @@ async function openShop() {
 }
 void openShop();
 
-// Settings live behind a small button in the corner.
-layer().append(el('button.corner-btn', {
-  title: strings.ui.setup.settingsButton,
-  'aria-label': strings.ui.setup.settingsButton,
-  onclick: () => void showSettings(window.lamplight, () => {}),
-}, '\u2699'));
 
 // -- Debug panel --
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -152,7 +195,15 @@ $('walk').addEventListener('click', () => scene.walkTo(actorSel.value as ActorId
 const log = $<HTMLPreElement>('log');
 const append = (line: string) => { log.textContent = `${line}\n${log.textContent}`.slice(0, 20000); };
 
-window.lamplight.envStatus().then(({ hasApiKey, hasClaude }) => {
+window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
+  // The debug panel is for development only.
+  document.body.classList.toggle('debug', debug);
+  // Handles for driving the scene from dev tools and screenshot scripts.
+  if (debug) {
+    const api = window.lamplight;
+    const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm };
+    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay } });
+  }
   const env = $('env');
   env.textContent = [
     hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',
@@ -202,11 +253,13 @@ $('preview-cards').addEventListener('click', async () => {
 
 // Replay the bundled real recording without calling the API.
 let cancelReplay = () => {};
-$('replay').addEventListener('click', () => {
+function startReplay(speed = 3) {
   cancelReplay();
   const raw: RawAgentEvent[] = replayText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l));
   const events = normalizeAll(raw);
-  append(`replay: ${events.length} events at 3x`);
+  append(`replay: ${events.length} events at ${speed}x`);
   setReplayBadge(true);
-  cancelReplay = replay(stage, events, 3, () => setReplayBadge(false));
-});
+  replaying = true;
+  cancelReplay = replay(stage, events, speed, () => { setReplayBadge(false); replaying = false; });
+}
+$('replay').addEventListener('click', () => startReplay());

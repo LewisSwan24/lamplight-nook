@@ -101,7 +101,8 @@
     "tooLong": "{id}: \"{text}\" is longer than {max} characters",
     "laoshiParticle": "{id}: Laoshi never uses particles \"{text}\"",
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
-    "emotionWord": "{id}: names an emotion directly \"{text}\""
+    "emotionWord": "{id}: names an emotion directly \"{text}\"",
+    "badChat": "{id}: a chat needs at least two turns and `when` of idle or waiting"
   },
   "defaults": {
     "brief": "这个"
@@ -167,7 +168,6 @@
       "greet": "{name}，欢迎。坐吧。",
       "notReadyTitle": "开工前还差一点",
       "settingsTitle": "设置",
-      "settingsButton": "设置",
       "nameLabel": "称呼",
       "folderLabel": "委托放在",
       "checkLabel": "开工条件",
@@ -175,7 +175,11 @@
       "version": "小灯屋 {version}",
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》",
       "creditLink": "limezu.itch.io",
-      "greetBack": "{name}，来啦。"
+      "greetBack": "{name}，来啦。",
+      "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）",
+      "volumeLabel": "声音大小",
+      "volumeHint": "想安静的时候，点左上角的小喇叭就能静音。",
+      "creditSound": "界面音效：Andrea Baroni（Cyberleaf Studio）《Modern UI SFX》；门铃、木槌和铅笔声由小灯屋自己合成"
     },
     "run": {
       "runningTitle": "正在做：{want}",
@@ -201,6 +205,25 @@
       "closeTitle": "委托还没做完",
       "closeText": "现在关的话，店员们会停下来。下次打开小灯屋可以接着做。",
       "stopAndClose": "停下并关闭"
+    },
+    "toolbar": {
+      "label": "店里的开关",
+      "settings": "设置",
+      "detailedOn": "详细模式：显示 AI 实际在做什么",
+      "detailedOff": "关闭详细模式",
+      "mute": "静音",
+      "unmute": "打开声音"
+    },
+    "access": {
+      "captionsButton": "字幕记录",
+      "captionsTitle": "字幕记录",
+      "captionsEmpty": "还没有人说话。",
+      "sectionLabel": "看和听",
+      "captionsToggle": "在画面下方一直显示刚说的话",
+      "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
+      "hotspotCounter": "柜台：递一张委托",
+      "hotspotActor": "{name}：看看在做什么",
+      "hotspotCat": "{name}：摸摸它"
     }
   },
   "states": {

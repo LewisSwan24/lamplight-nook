@@ -9,6 +9,7 @@ import laoshiUrl from '../../../assets/sprites/laoshi.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import type { ActorId, AnchorId, Bubble } from '../../shared/types';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
+import { LOOKS, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -18,6 +19,13 @@ const CORNER_PAUSE_MS = 90;
 /** Top-left of the door sprite; the doorway behind it is painted into cafe.png (scripts/art/scene.py, DOOR). */
 const DOOR_POS = { x: 288, y: 16 };
 const DOOR_MS = 260;
+/** The window panes in cafe.png (scripts/art/scene.py) and the colours of their glass, which takes the sky's colour. */
+const WINDOW_PANES = [{ x: 18, y: 12, w: 24, h: 18 }, { x: 54, y: 12, w: 24, h: 18 }];
+const GLASS = new Set(['216,208,224', '235,228,242', '248,248,248']);
+/** How long the room takes to change its light when the hour turns a new period. */
+const DAYLIGHT_MS = 4000;
+/** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
+const FORM_POS = { x: 224, y: 57 };
 
 type Actor = {
   id: ActorId;
@@ -40,24 +48,34 @@ type Actor = {
  * Text label positions in canvas coordinates. Text is drawn by an HTML overlay:
  * the canvas is 320x180 scaled up, so CJK text drawn on it would be blurry.
  */
-export type LabelPos = { key: string; text: string; x: number; y: number; kind: 'zone' | 'actor' | 'bubble' };
-
-/** Bubble icons; plain symbols until the bubble sprites are in. */
-const BUBBLE_ICON: Record<Bubble, string> = {
-  idea: '\u{1F4A1}', sweat: '\u{1F4A6}', question: '?', note: '\u270E', tea: '\u2615', alert: '!', dots: '...', zzz: 'z',
-};
+export type LabelPos = { key: string; text: string; x: number; y: number; kind: 'zone' | 'actor' | 'bubble'; icon?: Bubble };
 
 /** The cafe: a pixel-art background with the three staff and the shop cat as animated sprites. */
 export class CafeScene extends Phaser.Scene {
   private actors = new Map<ActorId, Actor>();
-  /** What each character is currently saying (or just a bubble icon). */
-  private speech = new Map<ActorId, string>();
+  /** What each character is currently saying, and its mood bubble (either may be empty). */
+  private speech = new Map<ActorId, { text: string; icon?: Bubble }>();
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
   private hovered: ActorId | 'counter' | null = null;
+  private glow?: { sprite: Phaser.GameObjects.Sprite; fx: Phaser.FX.Glow };
+  /** Settings or the system asked for less motion: no hops, no pulsing, light changes at once. */
+  reducedMotion = false;
   private door!: Phaser.GameObjects.Sprite;
+  /** The blank commission form on the counter; it glows softly while it waits to be filled in. */
+  private form!: Phaser.GameObjects.Graphics;
+  private formGlow?: Phaser.Tweens.Tween;
+  /** Time-of-day layers: a tint over the room, the sky in the window glass, and the lamp glows with their base strength. */
+  private shade!: Phaser.GameObjects.Rectangle;
+  private sky!: Phaser.GameObjects.Image;
+  private glows: { img: Phaser.GameObjects.Image; base: number; sun: boolean }[] = [];
+  period: Period = 'day';
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
+  /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
+  onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
+  /** Every line said out loud, for the caption log. */
+  onSay?: (actor: ActorId, text: string) => void;
 
   constructor() {
     super('cafe');
@@ -82,32 +100,19 @@ export class CafeScene extends Phaser.Scene {
       .setOrigin(0)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.onCounterClick())
-      .on('pointerover', () => (this.hovered = 'counter'))
-      .on('pointerout', () => (this.hovered = null));
+      .on('pointerover', () => this.highlight('counter'))
+      .on('pointerout', () => this.hovered === 'counter' && this.highlight(null));
     for (const a of ACTORS) {
       const spot = standPoint(a.home, a.id);
       const isCat = a.id === 'cat';
       const shadow = this.add.ellipse(spot.x, spot.y, isCat ? 20 : 11, 4, 0x3b2a1e, 0.28);
       const sprite = this.add.sprite(spot.x, spot.y, a.id).setOrigin(0.5, 1).setDepth(spot.y);
       const actor: Actor = { id: a.id, sprite, shadow, facing: spot.facing, at: a.home, pose: isCat ? 'lie' : 'idle', height: a.height };
-      let glow: Phaser.FX.Glow | undefined;
       sprite
         .setInteractive({ useHandCursor: true, pixelPerfect: true })
-        .on('pointerdown', () => {
-          if (actor.outside) return;
-          this.react(actor);
-          this.onActorClick(a.id);
-        })
-        .on('pointerover', () => {
-          if (actor.outside) return;
-          this.hovered = a.id;
-          glow = sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4);
-        })
-        .on('pointerout', () => {
-          if (this.hovered === a.id) this.hovered = null;
-          if (glow) sprite.preFX?.remove(glow);
-          glow = undefined;
-        });
+        .on('pointerdown', () => this.activate(a.id))
+        .on('pointerover', () => this.highlight(a.id))
+        .on('pointerout', () => this.hovered === a.id && this.highlight(null));
       // One-off actions (picking up, handing over, lifting) end in the standing pose instead of freezing.
       sprite.on(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
         if (isCat || actor.tween?.isPlaying()) return;
@@ -119,6 +124,7 @@ export class CafeScene extends Phaser.Scene {
       this.scheduleIdle(actor);
     }
     this.addLight();
+    this.addDaylight();
   }
 
   update() {
@@ -154,9 +160,28 @@ export class CafeScene extends Phaser.Scene {
     this.add.sprite(200, 14, 'clock').setOrigin(0).play('clock');
     this.add.sprite(256, 48, 'cup').setOrigin(0).setDepth(1).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
+    // A sheet of paper with two pencilled lines, slightly askew on the counter top.
+    this.form = this.add.graphics({ x: FORM_POS.x, y: FORM_POS.y }).setDepth(2);
+    this.form.fillStyle(0x7a5236, 0.35).fillRect(1, 1, 9, 7);
+    this.form.fillStyle(0xfbf6ec, 1).fillRect(0, 0, 9, 7);
+    this.form.fillStyle(0xc9b79f, 1).fillRect(2, 2, 5, 1).fillRect(2, 4, 4, 1);
+    this.setFormWaiting(true);
   }
 
-  /** Warm pools of light from the window, the counter and the floor lamp; additive so they only brighten. */
+  setReducedMotion(on: boolean) {
+    this.reducedMotion = on;
+    if (this.form?.visible) this.setFormWaiting(true);
+  }
+
+  /** Show the blank form glowing on the counter (nothing running), or put it away (a commission is under way). */
+  setFormWaiting(on: boolean) {
+    this.formGlow?.stop();
+    this.form.setVisible(on).setAlpha(1);
+    if (on && this.reducedMotion) this.form.setAlpha(0.8);
+    else if (on) this.formGlow = this.tweens.add({ targets: this.form, alpha: 0.55, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  /** Warm pools of light from the window, the counter, the floor lamp and the wall lamp; additive so they only brighten. */
   private addLight() {
     const size = 128;
     const tex = this.textures.createCanvas('glow', size, size)!;
@@ -167,11 +192,68 @@ export class CafeScene extends Phaser.Scene {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
     tex.refresh();
-    const glow = (x: number, y: number, r: number, alpha: number) =>
-      this.add.image(x, y, 'glow').setDisplaySize(r * 2, r * 2).setAlpha(alpha).setBlendMode(Phaser.BlendModes.ADD).setDepth(1000);
-    glow(48, 60, 56, 0.22);
+    const glow = (x: number, y: number, r: number, alpha: number, sun = false) => {
+      const img = this.add.image(x, y, 'glow').setDisplaySize(r * 2, r * 2).setAlpha(alpha).setBlendMode(Phaser.BlendModes.ADD).setDepth(1000);
+      this.glows.push({ img, base: alpha, sun });
+    };
+    glow(48, 60, 56, 0.22, true);
     glow(243, 70, 48, 0.18);
     glow(278, 146, 36, 0.2);
+    glow(207, 34, 20, 0.12);
+  }
+
+  /**
+   * The light follows the system clock: a colour multiplied over the room, the sky showing in the
+   * window glass, and lamps that glow brighter after dark. Checked again at every whole hour.
+   */
+  private addDaylight() {
+    // A mask of the glass pixels, so the sky colour lands on the panes and nowhere else.
+    const src = this.textures.get('cafe').getSourceImage() as HTMLImageElement;
+    const tex = this.textures.createCanvas('glass', src.width, src.height)!;
+    const ctx = tex.getContext();
+    ctx.drawImage(src, 0, 0);
+    const img = ctx.getImageData(0, 0, src.width, src.height);
+    const mask = ctx.createImageData(src.width, src.height);
+    for (const p of WINDOW_PANES) {
+      for (let y = p.y; y < p.y + p.h; y++) {
+        for (let x = p.x; x < p.x + p.w; x++) {
+          const i = (y * src.width + x) * 4;
+          if (!GLASS.has(`${img.data[i]},${img.data[i + 1]},${img.data[i + 2]}`)) continue;
+          mask.data.fill(255, i, i + 4);
+        }
+      }
+    }
+    ctx.clearRect(0, 0, src.width, src.height);
+    ctx.putImageData(mask, 0, 0);
+    tex.refresh();
+    this.sky = this.add.image(0, 0, 'glass').setOrigin(0).setDepth(0.5).setAlpha(0);
+    this.shade = this.add.rectangle(0, 0, src.width, src.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.setPeriod(periodAt(new Date().getHours()), true);
+    const tick = () => this.time.delayedCall(msToNextHour(new Date()) + 1000, () => {
+      this.setPeriod(periodAt(new Date().getHours()));
+      tick();
+    });
+    tick();
+  }
+
+  /** Change the light to a time of day, fading over a few seconds unless `now`. */
+  setPeriod(period: Period, now = false) {
+    const look = LOOKS[period];
+    const from = LOOKS[this.period];
+    this.period = period;
+    const apply = (t: number) => {
+      const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 1, t);
+      const tint = mix(from.tint, look.tint);
+      this.shade.setFillStyle(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
+      const sky = mix(from.sky, look.sky);
+      this.sky.setTint(Phaser.Display.Color.GetColor(sky.r, sky.g, sky.b)).setAlpha(from.skyAlpha + (look.skyAlpha - from.skyAlpha) * t);
+      const lamps = from.lamps + (look.lamps - from.lamps) * t;
+      const sun = from.sun + (look.sun - from.sun) * t;
+      for (const g of this.glows) g.img.setAlpha(Math.min(1, g.base * (g.sun ? sun : lamps)));
+    };
+    if (now || this.reducedMotion) return apply(1);
+    this.tweens.addCounter({ from: 0, to: 1, duration: DAYLIGHT_MS, onUpdate: (tw) => apply(tw.getValue() ?? 1) });
   }
 
   /** Play the actor's current pose at its current facing. */
@@ -207,14 +289,45 @@ export class CafeScene extends Phaser.Scene {
     return near ? facingTowards(actor.sprite, near.sprite) : actor.facing;
   }
 
+  /** Point at the counter or a character (mouse over or keyboard focus): show its name and a soft glow. */
+  highlight(target: ActorId | 'counter' | null) {
+    if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
+    this.glow = undefined;
+    const actor = target && target !== 'counter' ? this.actors.get(target) : undefined;
+    if (actor?.outside) target = null;
+    this.hovered = target;
+    const fx = actor && !actor.outside ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
+    if (actor && fx) this.glow = { sprite: actor.sprite, fx };
+  }
+
+  /** Click (or Enter on) the counter or a character. */
+  activate(target: ActorId | 'counter') {
+    if (target === 'counter') return this.onCounterClick();
+    const actor = this.actors.get(target);
+    if (!actor || actor.outside) return;
+    this.react(actor);
+    this.onActorClick(target);
+  }
+
+  /** What can be clicked, in canvas pixels, for the keyboard hotspots laid over the canvas. */
+  hotspots(): { id: ActorId | 'counter'; x: number; y: number; w: number; h: number }[] {
+    const counter = ZONES.find((z) => z.id === 'counter')!;
+    const people = [...this.actors.values()].filter((a) => !a.outside).map((a) => {
+      const b = a.sprite.getBounds();
+      return { id: a.id, x: b.x, y: b.y, w: b.width, h: b.height };
+    });
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...people];
+  }
+
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */
   private react(actor: Actor) {
     const { sprite } = actor;
     if (actor.id === 'cat') {
       sprite.anims.resume();
       if (!this.speech.has('cat')) {
-        this.speech.set('cat', '\u2665');
-        this.time.delayedCall(1500, () => this.speech.get('cat') === '\u2665' && this.speech.delete('cat'));
+        const purr = { text: '', icon: 'heart' as const };
+        this.speech.set('cat', purr);
+        this.time.delayedCall(1500, () => this.speech.get('cat') === purr && this.speech.delete('cat'));
       }
       return;
     }
@@ -224,7 +337,7 @@ export class CafeScene extends Phaser.Scene {
       actor.facing = 'down';
       this.hold(actor);
     }
-    this.tweens.add({ targets: sprite, y: sprite.y - 3, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+    if (!this.reducedMotion) this.tweens.add({ targets: sprite, y: sprite.y - 3, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
     this.time.delayedCall(1600, () => {
       if (actor.tween?.isPlaying() || actor.pose !== 'idle') return;
       actor.facing = before;
@@ -233,6 +346,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private openDoor(): Promise<void> {
+    this.onSound?.('door');
     this.door.play('door-open');
     return new Promise((r) => this.time.delayedCall(DOOR_MS, r));
   }
@@ -287,10 +401,16 @@ export class CafeScene extends Phaser.Scene {
     });
   }
 
+  /** Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). */
+  busyTalking(actorId: ActorId): boolean {
+    return this.speech.has(actorId) || !!this.actors.get(actorId)?.outside;
+  }
+
   /** Show a line above a character (text may be empty to show just the bubble). Pass null and no bubble to clear. */
   say(actorId: ActorId, text: string | null, bubble?: Bubble) {
     if (text === null && !bubble) this.speech.delete(actorId);
-    else this.speech.set(actorId, [bubble ? BUBBLE_ICON[bubble] : '', text ?? ''].filter(Boolean).join(' '));
+    else this.speech.set(actorId, { text: text ?? '', icon: bubble });
+    if (text) this.onSay?.(actorId, text);
   }
 
   /**
@@ -352,9 +472,11 @@ export class CafeScene extends Phaser.Scene {
       const { sprite, height } = this.actors.get(a.id)!;
       return { key: `a-${a.id}`, text: a.name, x: sprite.x, y: sprite.y - height - 1, kind: 'actor' as const };
     });
-    const bubbles = ACTORS.filter((a) => this.speech.has(a.id)).map((a) => {
+    // Someone out on an errand can't be heard in the shop.
+    const bubbles = ACTORS.filter((a) => this.speech.has(a.id) && !this.actors.get(a.id)!.outside).map((a) => {
       const { sprite, height } = this.actors.get(a.id)!;
-      return { key: `b-${a.id}`, text: this.speech.get(a.id)!, x: sprite.x, y: sprite.y - height - 9, kind: 'bubble' as const };
+      const { text, icon } = this.speech.get(a.id)!;
+      return { key: `b-${a.id}`, text, icon, x: sprite.x, y: sprite.y - height - 2, kind: 'bubble' as const };
     });
     return [...zones, ...actors, ...bubbles];
   }

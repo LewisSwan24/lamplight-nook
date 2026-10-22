@@ -18,6 +18,9 @@ const fillLine = (text: string, vars: Record<string, string>) => text.replace(/\
 
 const emptyInfo = (): ActorInfo => ({ state: 'idle', stats: { writes: 0, runs: 0, fails: 0 }, raw: [] });
 
+/** Work that makes a sound in the room. */
+const ACTION_SOUNDS: Record<string, 'mallet' | 'pencil'> = { hammer: 'mallet', write: 'pencil' };
+
 /**
  * Glue between events and the scene: AiEvent -> Translator -> Director -> CafeScene.
  * Each command: walk (if needed), then show the line/bubble, then report back so the next queued command plays.
@@ -27,10 +30,17 @@ export class Stage {
   private translator: Translator;
   private director: Director;
   private timers = new Map<ActorId, ReturnType<typeof setTimeout>>();
+  /**
+   * Whose command each showing bubble belongs to (speaker -> command actor). Adeng can speak in Xiaoju's
+   * command, so Adeng's own command finishing must not clear that line.
+   */
+  private owner = new Map<ActorId, ActorId>();
   private info = new Map<ActorId, ActorInfo>();
   private board: BoardStep[] = [];
   /** Playback speed multiplier (replays run faster). */
   speed = 1;
+  /** Called with every event, live or replayed (the detail strip listens here). */
+  onEvent: (e: AiEvent) => void = () => {};
 
   constructor(private scene: CafeScene, opts: { brief?: string } = {}) {
     const book = ruleBook();
@@ -47,6 +57,7 @@ export class Stage {
   }
 
   handle(e: AiEvent) {
+    this.onEvent(e);
     if (e.kind === 'session_start') {
       this.director.resetCommission();
       this.info.clear();
@@ -92,28 +103,45 @@ export class Stage {
     if (e.kind === 'subagent_stop' && e.target) showParcel(actor, e.target);
   }
 
+  /**
+   * Play one command. A line may be spoken by someone other than the command's actor (Adeng sends
+   * Xiaoju out) and may have a reply; each turn shows above its own speaker. Someone heading out of the
+   * door finishes the exchange first, then leaves; everyone else walks first, then talks.
+   */
   private async perform(cmd: CharacterCommand) {
     const { actor } = cmd;
     clearTimeout(this.timers.get(actor));
     const info = this.info.get(actor) ?? emptyInfo();
     this.info.set(actor, info);
     info.state = cmd.state;
-    if (cmd.moveTo) await this.scene.walkTo(actor, cmd.moveTo);
+    const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
+    if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
     this.scene.play(actor, cmd.anim);
+    const sound = ACTION_SOUNDS[cmd.action ?? cmd.anim ?? ''];
+    if (sound) this.scene.onSound?.(sound);
     const vars = cmd.line?.vars ?? {};
-    const bubbles = vars._text ? vars._text.split('\n').map((b) => fillLine(b, vars)) : [];
-    if (bubbles.length) info.lastLine = bubbles.join('');
-    if (bubbles.length || cmd.bubble) this.scene.say(actor, bubbles[0] ?? '', cmd.bubble);
-    // Show the remaining bubbles one after another.
-    for (let i = 1; i < bubbles.length; i++) {
-      await this.wait(SPEAK_MS);
-      this.scene.say(actor, bubbles[i], cmd.bubble);
+    const split = (text: string | undefined, who: ActorId) => (text ? text.split('\n').map((b) => ({ who, text: fillLine(b, vars) })) : []);
+    const turns = [...split(vars._text, (vars._speaker as ActorId) || actor), ...split(vars._reply, vars._replyBy as ActorId)];
+    const own = turns.filter((t) => t.who === actor).map((t) => t.text);
+    if (own.length) info.lastLine = own.join('');
+    if (!turns.length && cmd.bubble) this.show(actor, actor, '', cmd.bubble);
+    let last: ActorId | undefined;
+    for (const [i, t] of turns.entries()) {
+      if (i) await this.wait(SPEAK_MS);
+      if (last && last !== t.who) this.hide(actor, last);
+      this.show(actor, t.who, t.text, t.who === actor ? cmd.bubble : undefined);
+      last = t.who;
     }
-    this.timers.set(actor, setTimeout(() => this.done(actor), (bubbles.length ? SPEAK_MS : ACTION_MS) / this.speed));
+    if (goingOut) {
+      if (turns.length) await this.wait(SPEAK_MS);
+      if (last) this.hide(actor, last);
+      await this.scene.walkTo(actor, 'door');
+    }
+    this.timers.set(actor, setTimeout(() => this.done(actor), (turns.length && !goingOut ? SPEAK_MS : ACTION_MS) / this.speed));
   }
 
   private done(actor: ActorId) {
-    this.scene.say(actor, null);
+    for (const [who, owner] of [...this.owner]) if (owner === actor) this.hide(actor, who);
     const settled = this.translator.states.settle(actor);
     if (settled) {
       this.scene.play(actor, 'idle');
@@ -121,6 +149,33 @@ export class Stage {
     }
     const next = this.director.finished(actor);
     if (next) void this.perform(next);
+  }
+
+  /**
+   * Play small talk turn by turn, each bubble up for 2 s plus 0.15 s per character (design 4.4).
+   * Nobody is interrupted: if a speaker is already talking or out, the chat is skipped or cut short.
+   */
+  async talk(turns: { speaker: ActorId; text: string }[]): Promise<void> {
+    if (turns.some((t) => this.scene.busyTalking(t.speaker))) return;
+    for (const t of turns) {
+      if (this.scene.busyTalking(t.speaker)) return;
+      this.scene.say(t.speaker, t.text);
+      await new Promise((r) => setTimeout(r, 2000 + 150 * [...t.text].length));
+      this.scene.say(t.speaker, null);
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+
+  private show(owner: ActorId, who: ActorId, text: string, bubble?: CharacterCommand['bubble']) {
+    this.owner.set(who, owner);
+    this.scene.say(who, text, bubble);
+  }
+
+  /** Clear a bubble, unless someone else's command has taken that speaker over since. */
+  private hide(owner: ActorId, who: ActorId) {
+    if (this.owner.get(who) !== owner) return;
+    this.owner.delete(who);
+    this.scene.say(who, null);
   }
 
   private wait(ms: number) {
