@@ -13,10 +13,14 @@ export type RawAgentEvent = {
   payload: unknown;
 };
 
-export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean };
+/** `debug` is true in development or with LAMPLIGHT_DEBUG=1; the debug panel and debug tasks need it. */
+export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean };
 
-/** What the user set up: how to address them and where commissions are saved. */
-export type Settings = { name: string; workRoot: string; onboarded: boolean };
+/**
+ * What the user set up: how to address them, where commissions are saved, sound, and whether
+ * the scene also shows what is really happening underneath (detailed mode).
+ */
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean };
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
