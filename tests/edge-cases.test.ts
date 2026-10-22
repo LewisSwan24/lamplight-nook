@@ -58,3 +58,16 @@ describe('unfinished commissions', () => {
     expect(fresh).toMatch(/already be in this folder/);
   });
 });
+
+describe('normalizer: waiting on the user', () => {
+  it('no "long wait" or "thinking" while a permission card is open', () => {
+    const n = new EventNormalizer({ longWaitMs: 1000, thinkingGapMs: 500 });
+    const hook = (name: string, payload: object, t: number) => ({ t, source: 'hook' as const, name, payload: { hook_event_name: name, ...payload } });
+    n.push({ t: 0, source: 'message', name: 'system', payload: { type: 'system', subtype: 'init' } });
+    n.push(hook('PreToolUse', { tool_name: 'Bash', tool_use_id: 'b1', tool_input: { command: 'rm draft-1.html' } }, 10));
+    n.push({ t: 20, source: 'permission', name: 'Bash', payload: { input: { command: 'rm draft-1.html' }, risk: 'serious' } });
+    expect(n.tick(60_000)).toEqual([]);
+    n.push({ t: 60_000, source: 'decision', name: 'Bash', payload: { choice: 'denied', risk: 'serious' } });
+    expect(n.tick(120_000).map((e) => e.kind)).toContain('long_wait');
+  });
+});
