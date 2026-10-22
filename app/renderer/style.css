@@ -11,7 +11,14 @@ body.debug #debug { display: block; }
 .label { position: absolute; white-space: nowrap; font-size: 13px; line-height: 1; }
 .label.zone { color: #222; font-weight: bold; transform: translate(-50%, -100%); background: rgba(251, 246, 236, 0.8); padding: 1px 4px; border-radius: 3px; }
 .label.actor { color: #222; font-weight: bold; transform: translate(-50%, -100%); background: rgba(251, 246, 236, 0.8); padding: 1px 4px; border-radius: 3px; }
-.label.bubble { color: #222; transform: translate(-50%, -100%); background: #fffdf7; border: 1px solid #8a6a4a; padding: 2px 6px; border-radius: 8px; font-size: 14px; }
+.label.bubble { color: #222; transform: translate(-50%, -100%); background: #fffdf7; border: 1px solid #8a6a4a; padding: 2px 6px; border-radius: 8px; font-size: 14px; display: flex; align-items: center; gap: 4px; }
+.label.bubble.icon-only { background: none; border: none; padding: 0; }
+/* Pixel mood bubbles (assets/ui/emotes.png): a 16x16 window; the strip behind it alternates two frames and pops in. */
+.emote { --px: var(--emote-px-small); display: inline-block; width: calc(16 * var(--px)); height: calc(16 * var(--px)); overflow: hidden; flex: none; animation: emote-pop 220ms ease-out; transform-origin: 50% 100%; }
+.icon-only .emote { --px: var(--emote-px); }
+.emote-strip { display: block; width: calc(32 * var(--px)); height: 100%; image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(288 * var(--px)) 100%; background-position: calc(-32 * var(--i) * var(--px)) 0; animation: emote-frames 1s steps(2) infinite; }
+@keyframes emote-frames { to { transform: translateX(calc(-32 * var(--px))); } }
+@keyframes emote-pop { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* -- UI layer: placeholder watercolor look (soft paper, ragged shadow), real art comes in phase 3 -- */
 :root {
