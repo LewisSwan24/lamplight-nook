@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type Recall, type RunResult, type Settings } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, hasCredentials, runAgent } from './agent-runner';
 import { locateClaude } from './claude-locator';
 import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, prepareDemoFolder, snapshot } from './commission';
@@ -178,6 +178,8 @@ ipcMain.handle(IPC.dropPending, () => {
 ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => broker.answer(answer));
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
 ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
+ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
+ipcMain.handle(IPC.clearMemory, () => memory.clear());
 
 // Only files from the current or last commission folder can be opened from the renderer.
 ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') => {

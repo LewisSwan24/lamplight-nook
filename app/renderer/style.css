@@ -194,3 +194,15 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .toggle input { accent-color: #b5653a; width: 16px; height: 16px; }
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }
+
+/* Adeng's notebook (M3.2): lined pages of what the shop remembers. */
+.notebook { width: min(560px, 88vw); }
+.notebook-pages { max-height: 46vh; overflow-y: auto; margin: 8px 0; padding: 4px 10px; font-family: var(--hand); font-size: 16px; line-height: 1.7;
+  background-image: repeating-linear-gradient(transparent 0 26px, rgba(138, 106, 74, 0.18) 26px 27px); }
+.notebook-pages ul { margin: 0; padding-left: 18px; }
+.notebook-pages h4 { margin: 6px 0 2px; }
+.notebook-date { color: #9a8a76; font-size: 12px; }
+.notebook-choice { color: #6b5a48; font-size: 14px; padding-left: 4px; }
+.notebook-empty { color: #7a6a58; padding: 12px 0; }
+.notebook-warn { flex-basis: 100%; color: #8a3b2a; font-size: 14px; margin-bottom: 4px; }
+.notebook .actions { flex-wrap: wrap; align-items: center; }
