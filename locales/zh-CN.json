@@ -22,7 +22,8 @@
     "table": "大工作桌",
     "corner": "老石的角落",
     "counter": "柜台",
-    "door": "门口"
+    "door": "门口",
+    "bell": "开会铃"
   },
   "events": {
     "session_start": "开始接活",
@@ -222,7 +223,8 @@
       "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",
-      "hotspotCat": "{name}：摸摸它"
+      "hotspotCat": "{name}：摸摸它",
+      "hotspotBell": "开会铃：叫大家到大桌边说两句"
     },
     "notebook": {
       "sectionLabel": "阿灯的小本子",
@@ -252,6 +254,13 @@
       "quit": "关店退出",
       "notifyTitle": "{who}在等你决定",
       "notifySerious": "有一步需要你确认"
+    },
+    "meeting": {
+      "title": "开个小会",
+      "text": "想补充或改什么？大家都听着。",
+      "placeholder": "比如：页面再加一个“本月合计”",
+      "send": "就这些",
+      "never": "算了"
     }
   },
   "states": {

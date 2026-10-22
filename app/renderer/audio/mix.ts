@@ -1,7 +1,7 @@
 import type { Period } from '../game/daytime';
 
 /** Sound effects, as built by scripts/audio/sfx.py into assets/audio/<name>.ogg. */
-export const SFX = ['click', 'open', 'close', 'ask', 'success', 'fail', 'serious', 'door', 'mallet', 'pencil'] as const;
+export const SFX = ['click', 'open', 'close', 'ask', 'success', 'fail', 'serious', 'door', 'mallet', 'pencil', 'ding'] as const;
 export type Sfx = (typeof SFX)[number];
 
 /** Sounds of the shop itself (not the UI): softer, and never stacked on top of each other. */

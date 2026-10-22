@@ -7,6 +7,7 @@ import cupUrl from '../../../assets/sprites/cup.png';
 import doorUrl from '../../../assets/sprites/door.png';
 import laoshiUrl from '../../../assets/sprites/laoshi.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
+import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble } from '../../shared/types';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Period, msToNextHour, periodAt } from './daytime';
@@ -26,6 +27,12 @@ const GLASS = new Set(['216,208,224', '235,228,242', '248,248,248']);
 const DAYLIGHT_MS = 4000;
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FORM_POS = { x: 224, y: 57 };
+/** The meeting bell at the left end of the counter (top-left corner, canvas pixels); shown while a commission runs. */
+const BELL_POS = { x: 216, y: 57 };
+/** A brass service bell, 7x6: k knob, g brass, h highlight, s shade, b wooden base. */
+const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
+const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
+type Target = ActorId | 'counter' | 'bell';
 
 type Actor = {
   id: ActorId;
@@ -56,7 +63,9 @@ export class CafeScene extends Phaser.Scene {
   /** What each character is currently saying, and its mood bubble (either may be empty). */
   private speech = new Map<ActorId, { text: string; icon?: Bubble }>();
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
-  private hovered: ActorId | 'counter' | null = null;
+  private hovered: Target | null = null;
+  private bell!: Phaser.GameObjects.Graphics;
+  private bellZone!: Phaser.GameObjects.Zone;
   private glow?: { sprite: Phaser.GameObjects.Sprite; fx: Phaser.FX.Glow };
   /** Settings or the system asked for less motion: no hops, no pulsing, light changes at once. */
   reducedMotion = false;
@@ -72,6 +81,8 @@ export class CafeScene extends Phaser.Scene {
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
+  /** The meeting bell on the counter was rung. */
+  onBellClick: () => void = () => {};
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
   /** Every line said out loud, for the caption log. */
@@ -166,6 +177,35 @@ export class CafeScene extends Phaser.Scene {
     this.form.fillStyle(0xfbf6ec, 1).fillRect(0, 0, 9, 7);
     this.form.fillStyle(0xc9b79f, 1).fillRect(2, 2, 5, 1).fillRect(2, 4, 4, 1);
     this.setFormWaiting(true);
+    this.bell = this.add.graphics({ x: BELL_POS.x, y: BELL_POS.y }).setDepth(2).setVisible(false);
+    BELL.forEach((row, y) => [...row].forEach((c, x) => { if (BELL_COLORS[c]) this.bell.fillStyle(BELL_COLORS[c], 1).fillRect(x, y, 1, 1); }));
+    // Over the counter's own zone, so a click on the bell rings it instead of opening the counter.
+    this.bellZone = this.add.zone(BELL_POS.x - 1, BELL_POS.y - 2, 9, 9).setOrigin(0).setDepth(3)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.activate('bell'))
+      .on('pointerover', () => this.highlight('bell'))
+      .on('pointerout', () => this.hovered === 'bell' && this.highlight(null));
+    this.bellZone.disableInteractive();
+  }
+
+  /** The meeting bell is out on the counter only while a commission runs. */
+  setBell(on: boolean) {
+    this.bell.setVisible(on);
+    if (on) this.bellZone.setInteractive({ useHandCursor: true });
+    else this.bellZone.disableInteractive();
+    if (!on && this.hovered === 'bell') this.highlight(null);
+  }
+
+  /** Ring the bell: a little wobble (the sound is played by whoever handles the click). */
+  private ringBell() {
+    if (this.reducedMotion) return;
+    this.tweens.add({ targets: this.bell, y: BELL_POS.y - 1, duration: 70, yoyo: true, repeat: 1 });
+  }
+
+  /** Where a character stands now, or null while out on an errand. */
+  anchorOf(actorId: ActorId): AnchorId | null {
+    const actor = this.actors.get(actorId);
+    return !actor || actor.outside ? null : actor.at;
   }
 
   setReducedMotion(on: boolean) {
@@ -290,10 +330,10 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** Point at the counter or a character (mouse over or keyboard focus): show its name and a soft glow. */
-  highlight(target: ActorId | 'counter' | null) {
+  highlight(target: Target | null) {
     if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
     this.glow = undefined;
-    const actor = target && target !== 'counter' ? this.actors.get(target) : undefined;
+    const actor = target && target !== 'counter' && target !== 'bell' ? this.actors.get(target) : undefined;
     if (actor?.outside) target = null;
     this.hovered = target;
     const fx = actor && !actor.outside ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
@@ -301,8 +341,13 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** Click (or Enter on) the counter or a character. */
-  activate(target: ActorId | 'counter') {
+  activate(target: Target) {
     if (target === 'counter') return this.onCounterClick();
+    if (target === 'bell') {
+      if (!this.bell.visible) return;
+      this.ringBell();
+      return this.onBellClick();
+    }
     const actor = this.actors.get(target);
     if (!actor || actor.outside) return;
     this.react(actor);
@@ -310,13 +355,14 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** What can be clicked, in canvas pixels, for the keyboard hotspots laid over the canvas. */
-  hotspots(): { id: ActorId | 'counter'; x: number; y: number; w: number; h: number }[] {
+  hotspots(): { id: Target; x: number; y: number; w: number; h: number }[] {
     const counter = ZONES.find((z) => z.id === 'counter')!;
     const people = [...this.actors.values()].filter((a) => !a.outside).map((a) => {
       const b = a.sprite.getBounds();
       return { id: a.id, x: b.x, y: b.y, w: b.width, h: b.height };
     });
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...people];
+    const bell = this.bell.visible ? [{ id: 'bell' as const, x: BELL_POS.x - 1, y: BELL_POS.y - 2, w: 9, h: 9 }] : [];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, ...people];
   }
 
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */
@@ -482,6 +528,7 @@ export class CafeScene extends Phaser.Scene {
   labels(): LabelPos[] {
     // Names appear only on hover; the art shows who is who and what each place is.
     const zones = ZONES.filter((z) => z.id === this.hovered).map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
+    if (this.hovered === 'bell') zones.push({ key: 'z-bell', text: strings.zones.bell, x: BELL_POS.x + 3, y: BELL_POS.y - 2, kind: 'zone' as const });
     const actors = ACTORS.filter((a) => a.id === this.hovered).map((a) => {
       const { sprite, height } = this.actors.get(a.id)!;
       return { key: `a-${a.id}`, text: a.name, x: sprite.x, y: sprite.y - height - 1, kind: 'actor' as const };
