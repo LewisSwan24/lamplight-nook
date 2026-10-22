@@ -2,6 +2,7 @@ import { fill, strings } from '../../shared/i18n';
 import type { EnvStatus, LamplightApi, Settings } from '../../shared/types';
 import { closePanel, replaceOpen } from './panels';
 import { el } from './dom';
+import { withPortrait } from './portraits';
 
 const S = strings.ui.setup;
 const OK = '\u2713';
@@ -52,8 +53,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
 
     const askName = () => {
       const form = el('form', {},
-        el('div.card-title', {}, S.welcomeTitle),
-        el('div', {}, S.welcomeText),
+        withPortrait('adeng', 'calm', el('div.card-title', {}, S.welcomeTitle), el('div', {}, S.welcomeText)),
         name,
         el('div.actions', {}, el('button.default', { type: 'submit' }, S.next)));
       form.addEventListener('submit', (e) => { e.preventDefault(); if (name.value.trim()) check(); });
@@ -67,8 +67,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
       el('div.actions', {}, el('button.default', { onclick: folder }, S.next)),
     );
     const folder = () => page(
-      el('div.card-title', {}, S.folderTitle),
-      el('div', {}, S.folderText),
+      withPortrait('adeng', 'happy', el('div.card-title', {}, S.folderTitle), el('div', {}, S.folderText)),
       folderRow(api, settings, (s) => { settings = s; }),
       el('div.actions', {}, el('button.default', { onclick: async () => {
         closePanel();
@@ -85,8 +84,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
 export function showNotReady(api: LamplightApi, env: EnvStatus) {
   replaceOpen(el('div.card.paper.notice-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el('div.card-title', {}, S.notReadyTitle),
-    envRows(api, env),
+    withPortrait('adeng', 'unsure', el('div.card-title', {}, S.notReadyTitle), envRows(api, env)),
   ));
 }
 
