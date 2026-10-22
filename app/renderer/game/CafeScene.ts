@@ -18,6 +18,8 @@ const CORNER_PAUSE_MS = 90;
 /** Top-left of the door sprite; the doorway behind it is painted into cafe.png (scripts/art/scene.py, DOOR). */
 const DOOR_POS = { x: 288, y: 16 };
 const DOOR_MS = 260;
+/** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
+const FORM_POS = { x: 224, y: 57 };
 
 type Actor = {
   id: ActorId;
@@ -50,6 +52,9 @@ export class CafeScene extends Phaser.Scene {
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
   private hovered: ActorId | 'counter' | null = null;
   private door!: Phaser.GameObjects.Sprite;
+  /** The blank commission form on the counter; it glows softly while it waits to be filled in. */
+  private form!: Phaser.GameObjects.Graphics;
+  private formGlow?: Phaser.Tweens.Tween;
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
@@ -149,6 +154,19 @@ export class CafeScene extends Phaser.Scene {
     this.add.sprite(200, 14, 'clock').setOrigin(0).play('clock');
     this.add.sprite(256, 48, 'cup').setOrigin(0).setDepth(1).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
+    // A sheet of paper with two pencilled lines, slightly askew on the counter top.
+    this.form = this.add.graphics({ x: FORM_POS.x, y: FORM_POS.y }).setDepth(2);
+    this.form.fillStyle(0x7a5236, 0.35).fillRect(1, 1, 9, 7);
+    this.form.fillStyle(0xfbf6ec, 1).fillRect(0, 0, 9, 7);
+    this.form.fillStyle(0xc9b79f, 1).fillRect(2, 2, 5, 1).fillRect(2, 4, 4, 1);
+    this.setFormWaiting(true);
+  }
+
+  /** Show the blank form glowing on the counter (nothing running), or put it away (a commission is under way). */
+  setFormWaiting(on: boolean) {
+    this.formGlow?.stop();
+    this.form.setVisible(on).setAlpha(1);
+    if (on) this.formGlow = this.tweens.add({ targets: this.form, alpha: 0.55, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   /** Warm pools of light from the window, the counter and the floor lamp; additive so they only brighten. */

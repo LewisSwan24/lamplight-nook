@@ -102,6 +102,7 @@ window.lamplight.onResult((result) => showResult(result, (path, how) => void win
 let running: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  scene.setFormWaiting(false);
   try {
     const r = await start();
     if (!r) return;
@@ -109,6 +110,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()));
   } finally {
     running = null;
+    scene.setFormWaiting(true);
   }
 }
 async function newCommission() {
@@ -161,7 +163,11 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   // The debug panel is for development only.
   document.body.classList.toggle('debug', debug);
   // Handles for driving the scene from dev tools and screenshot scripts.
-  if (debug) Object.assign(window, { lamplightDebug: { scene, stage } });
+  if (debug) {
+    const api = window.lamplight;
+    const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm };
+    Object.assign(window, { lamplightDebug: { scene, stage, ui } });
+  }
   const env = $('env');
   env.textContent = [
     hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',

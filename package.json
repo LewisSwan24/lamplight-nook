@@ -40,6 +40,7 @@
     "files": [
       "out/**",
       "demo/check.js",
+      "assets/fonts/hand-OFL.txt",
       "package.json",
       "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
     ],
