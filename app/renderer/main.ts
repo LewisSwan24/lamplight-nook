@@ -7,6 +7,7 @@ import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
+import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
@@ -108,7 +109,32 @@ setInterval(() => {
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
   const talk = chatter.next(mood, Date.now(), scene.period);
   if (talk) void stage.talk(talk.turns);
+  if (running && !blocked) sayProgress();
 }, 5000);
+
+// Long commissions: now and then Adeng says how far along it is (from the blackboard).
+let runStartedAt = 0;
+let progressSaidAt: number | undefined;
+let progressCount = 0;
+function sayProgress() {
+  const now = Date.now();
+  if (!progressDue(runStartedAt, progressSaidAt, now) || scene.busyTalking('adeng')) return;
+  const lines = ruleBook().lines.progress ?? [];
+  const k = progressCount % Math.max(1, lines.length);
+  const { done, left, doing } = stage.progress();
+  const vars: Record<string, string> = { minutes: String(Math.round((now - runStartedAt) / 60_000)), done: String(done), left: String(left) };
+  if (doing) vars.doing = doing;
+  // Take the lines in turn; one that can't be filled (nothing under way) passes to the next.
+  const turns = pickLine([...lines.slice(k), ...lines.slice(0, k)], [], vars);
+  if (!turns) return;
+  progressSaidAt = now;
+  progressCount++;
+  void stage.talk(turns);
+}
+
+// Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
+const syncVisibility = () => { stage.catchingUp = document.hidden; };
+document.addEventListener('visibilitychange', syncVisibility);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 scene.onSound = sfx;
 scene.onSay = recordLine;
@@ -124,6 +150,8 @@ window.lamplight.onResult((result) => showResult(result, (path, how) => void win
 let running: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  runStartedAt = Date.now();
+  progressSaidAt = undefined;
   scene.setFormWaiting(false);
   try {
     const r = await start();
