@@ -270,3 +270,23 @@
   bubble: alert
   lines: failed
   priority: fail
+
+- on: net_retry
+  actor: adeng
+  state: waiting
+  moveTo: window
+  anim: idle
+  bubble: dots
+  lines: net_retry
+  priority: fail
+
+- on: cancelled
+  actor: adeng
+  state: idle
+  moveTo: counter
+  anim: idle
+  lines: cancelled
+  priority: fail
+  extra:
+    - { actor: xiaoju, state: idle, moveTo: shelf, anim: idle, priority: chat }
+    - { actor: laoshi, state: idle, moveTo: corner, anim: read, priority: chat }

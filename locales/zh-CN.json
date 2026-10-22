@@ -46,7 +46,9 @@
     "tool_target": "{verb} {target}",
     "searching": "在找资料",
     "searching_target": "在找：{target}",
-    "decision": "你做了决定"
+    "decision": "你做了决定",
+    "net_retry": "连不上，在重试",
+    "cancelled": "不做了"
   },
   "verbs": {
     "Read": "看",
@@ -174,6 +176,31 @@
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》",
       "creditLink": "limezu.itch.io",
       "greetBack": "{name}，来啦。"
+    },
+    "run": {
+      "runningTitle": "正在做：{want}",
+      "runningText": "店员们在忙。做好了会放到桌上。",
+      "cancel": "不做了",
+      "cancelConfirm": "确定不做了吗？已经做好的文件会留着。",
+      "keepGoing": "继续做",
+      "retry": "再试一次",
+      "netTitle": "外面好像断网了",
+      "netText": "试了几次都连不上 Anthropic。网络好了以后可以接着做，已经做好的部分不会丢。",
+      "busyTitle": "那边暂时忙不过来",
+      "busyText": "Anthropic 的服务这会儿太忙，或者请求太多被限速了。过几分钟再试一次。",
+      "billingTitle": "API 额度用完了",
+      "billingText": "这把 API Key 的余额或额度不够了。到 Anthropic 后台看看账单，充值以后再接着做。",
+      "billingHow": "去看账单",
+      "authTitle": "API Key 用不了",
+      "authText": "这把 API Key 无效或者过期了。换一把新的，设成环境变量 ANTHROPIC_API_KEY，再重新打开小灯屋。",
+      "authHow": "去换一把",
+      "pendingTitle": "上次的委托还没做完",
+      "pendingText": "「{want}」做到一半停下了。要接着做吗？",
+      "resume": "接着做",
+      "drop": "不用了",
+      "closeTitle": "委托还没做完",
+      "closeText": "现在关的话，店员们会停下来。下次打开小灯屋可以接着做。",
+      "stopAndClose": "停下并关闭"
     }
   },
   "states": {

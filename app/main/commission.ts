@@ -24,6 +24,16 @@ export function commissionPrompt(form: CommissionForm): string {
 }
 
 /**
+ * Prompt for a commission that stopped part-way (network failure, crash, app closed).
+ * With the earlier session resumed the agent has its own history; without it, it starts over from the folder.
+ */
+export function continuePrompt(form: CommissionForm, resumed: boolean): string {
+  if (resumed) return `The commission stopped part-way. Continue from where you left off and finish it.\n${REPLY_LANGUAGE}`;
+  const original = form.demo ? demoPrompt(form) : commissionPrompt(form);
+  return `${original}\n\nAn earlier attempt was interrupted. Files it made may already be in this folder: look at them first and continue from them instead of starting over.`;
+}
+
+/**
  * The fixed demo commission. The steps are spelled out so that a real run always covers the storyboard:
  * research, drafts, a real failing check, a color question, a serious delete, a review, done.
  */

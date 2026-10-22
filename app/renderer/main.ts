@@ -2,12 +2,13 @@ import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, LamplightApi, RawAgentEvent } from '../shared/types';
+import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult } from '../shared/types';
 import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Stage, replay } from './stage/stage';
 import { showDecision } from './ui/decision';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showSettings, showWelcome } from './ui/setup';
 import { el, layer } from './ui/dom';
 
@@ -87,23 +88,28 @@ window.lamplight.onDecision(async (req) => {
 });
 window.lamplight.onResult((result) => showResult(result, (path, how) => void window.lamplight.openOutput(path, how)));
 
-// The counter holds the commission form.
-let running = false;
+// The counter holds the commission form; while a commission runs it shows what is being made instead.
+let running: string | null = null;
+async function run(want: string, start: () => Promise<RunResult | null>) {
+  running = want;
+  try {
+    const r = await start();
+    if (!r) return;
+    append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
+    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()));
+  } finally {
+    running = null;
+  }
+}
 async function newCommission() {
-  if (running) return;
+  if (running) return showRunning(window.lamplight, running);
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
   if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env);
   const form = await showCommissionForm();
   if (!form) return;
-  running = true;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
-  try {
-    const r = await window.lamplight.startCommission(form);
-    append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
-  } finally {
-    running = false;
-  }
+  await run(form.want, () => window.lamplight.startCommission(form));
 }
 scene.onCounterClick = () => void newCommission();
 
@@ -122,6 +128,9 @@ async function openShop() {
   } else if (settings.name) {
     setTimeout(() => greet(fill(S.greetBack, { name: settings.name })), 1200);
   }
+  // A commission left unfinished when the app last closed.
+  const left = await api.pendingCommission();
+  if (left) showPending(api, left, () => void run(left.want, () => api.resumePending()));
 }
 void openShop();
 
