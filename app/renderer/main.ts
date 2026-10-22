@@ -202,7 +202,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   if (debug) {
     const api = window.lamplight;
     const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm };
-    Object.assign(window, { lamplightDebug: { scene, stage, ui } });
+    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay } });
   }
   const env = $('env');
   env.textContent = [
@@ -253,12 +253,13 @@ $('preview-cards').addEventListener('click', async () => {
 
 // Replay the bundled real recording without calling the API.
 let cancelReplay = () => {};
-$('replay').addEventListener('click', () => {
+function startReplay(speed = 3) {
   cancelReplay();
   const raw: RawAgentEvent[] = replayText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l));
   const events = normalizeAll(raw);
-  append(`replay: ${events.length} events at 3x`);
+  append(`replay: ${events.length} events at ${speed}x`);
   setReplayBadge(true);
   replaying = true;
-  cancelReplay = replay(stage, events, 3, () => { setReplayBadge(false); replaying = false; });
-});
+  cancelReplay = replay(stage, events, speed, () => { setReplayBadge(false); replaying = false; });
+}
+$('replay').addEventListener('click', () => startReplay());
