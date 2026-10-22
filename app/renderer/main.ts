@@ -7,7 +7,9 @@ import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Stage, replay } from './stage/stage';
 import { showDecision } from './ui/decision';
-import { setReplayBadge, showActorCard, showCommissionForm, showNotice, showResult } from './ui/panels';
+import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { showNotReady, showSettings, showWelcome } from './ui/setup';
+import { el, layer } from './ui/dom';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -91,9 +93,7 @@ async function newCommission() {
   if (running) return;
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  const U = strings.ui;
-  if (!env.hasClaude) return showNotice(U.noClaudeTitle, U.noClaudeBody);
-  if (!env.hasApiKey) return showNotice(U.noKeyTitle, U.noKeyBody);
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env);
   const form = await showCommissionForm();
   if (!form) return;
   running = true;
@@ -106,6 +106,31 @@ async function newCommission() {
   }
 }
 scene.onCounterClick = () => void newCommission();
+
+// Adeng greets the user by name; the first visit walks through setup first.
+const greet = (text: string) => {
+  scene.say('adeng', text);
+  setTimeout(() => scene.say('adeng', null), 3500);
+};
+async function openShop() {
+  const api = window.lamplight;
+  let settings = await api.getSettings();
+  const S = strings.ui.setup;
+  if (!settings.onboarded) {
+    settings = await showWelcome(api, settings, await api.envStatus());
+    greet(fill(S.greet, { name: settings.name }));
+  } else if (settings.name) {
+    setTimeout(() => greet(fill(S.greetBack, { name: settings.name })), 1200);
+  }
+}
+void openShop();
+
+// Settings live behind a small button in the corner.
+layer().append(el('button.corner-btn', {
+  title: strings.ui.setup.settingsButton,
+  'aria-label': strings.ui.setup.settingsButton,
+  onclick: () => void showSettings(window.lamplight, () => {}),
+}, '\u2699'));
 
 // -- Debug panel --
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;

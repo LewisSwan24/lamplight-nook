@@ -10,6 +10,12 @@ function on<T>(channel: string, cb: (payload: T) => void) {
 
 const api: LamplightApi = {
   envStatus: () => ipcRenderer.invoke(IPC.envStatus),
+  getSettings: () => ipcRenderer.invoke(IPC.getSettings),
+  saveSettings: (patch) => ipcRenderer.invoke(IPC.saveSettings, patch),
+  chooseWorkRoot: () => ipcRenderer.invoke(IPC.chooseWorkRoot),
+  openWorkRoot: () => ipcRenderer.invoke(IPC.openWorkRoot),
+  openLink: (link) => ipcRenderer.invoke(IPC.openLink, link),
+  appVersion: () => ipcRenderer.invoke(IPC.appVersion),
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
   startCommission: (form) => ipcRenderer.invoke(IPC.startCommission, form),
   answerDecision: (answer) => ipcRenderer.invoke(IPC.answer, answer),

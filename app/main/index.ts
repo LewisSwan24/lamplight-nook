@@ -1,14 +1,15 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
-import { IPC, type CommissionForm, type DecisionAnswer, type EnvStatus, type RunResult } from '../shared/types';
+import { IPC, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type RunResult, type Settings } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, hasCredentials, runAgent } from './agent-runner';
 import { locateClaude } from './claude-locator';
 import { collectOutputs, commissionPrompt, demoPrompt, prepareDemoFolder, snapshot } from './commission';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
+import { SettingsStore } from './settings';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let win: BrowserWindow | null = null;
@@ -18,6 +19,14 @@ const broker = new DecisionBroker((req) => send(IPC.decision, req));
 /** The commission currently running (one at a time), and the folder of the last one. */
 let current: { workDir: string; abort: AbortController } | null = null;
 let lastWorkDir: string | null = null;
+let settings: SettingsStore;
+
+/** The only pages the renderer can open in a browser. */
+const LINKS: Record<ExternalLink, string> = {
+  claudeSetup: 'https://code.claude.com/docs/en/setup',
+  apiKeys: 'https://console.anthropic.com/settings/keys',
+  limezu: 'https://limezu.itch.io/',
+};
 
 function createWindow() {
   win = new BrowserWindow({
@@ -48,15 +57,30 @@ const emitters = {
 // The key is only read in the main process; the renderer just gets a boolean.
 ipcMain.handle(IPC.envStatus, (): EnvStatus => ({ hasApiKey: hasCredentials(), hasClaude: locateClaude() !== null }));
 
+ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
+ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => settings.update(patch));
+ipcMain.handle(IPC.chooseWorkRoot, async (): Promise<Settings | null> => {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, { defaultPath: settings.get().workRoot, properties: ['openDirectory', 'createDirectory'] });
+  return r.canceled || !r.filePaths[0] ? null : settings.update({ workRoot: r.filePaths[0] });
+});
+ipcMain.handle(IPC.openWorkRoot, async () => {
+  const root = settings.get().workRoot;
+  mkdirSync(root, { recursive: true });
+  await shell.openPath(root);
+});
+ipcMain.handle(IPC.openLink, (_e, link: ExternalLink) => (LINKS[link] ? shell.openExternal(LINKS[link]) : undefined));
+ipcMain.handle(IPC.appVersion, () => app.getVersion());
+
 ipcMain.handle(IPC.runDebugTask, async (_e, kind: keyof typeof DEBUG_PROMPTS) => {
-  const workDir = commissionDir(app.getPath('documents'), fill(strings.app.debugCommission, { kind }));
+  const workDir = commissionDir(settings.get().workRoot, fill(strings.app.debugCommission, { kind }));
   return runAgent({ prompt: DEBUG_PROMPTS[kind], workDir, recordingPath: recordingFor(kind), ...emitters });
 });
 
 ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<RunResult> => {
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   const name = form.demo ? strings.demo.brief : form.want.slice(0, 16).replace(/[\\/:*?"<>|\s]+/g, '-');
-  const workDir = commissionDir(app.getPath('documents'), name);
+  const workDir = commissionDir(settings.get().workRoot, name);
   const abort = new AbortController();
   current = { workDir, abort };
   try {
@@ -91,7 +115,10 @@ ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') 
   return true;
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
+  createWindow();
+});
 app.on('before-quit', () => {
   broker.cancelAll();
   current?.abort.abort();
