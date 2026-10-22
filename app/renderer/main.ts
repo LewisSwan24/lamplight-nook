@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult } from '../shared/types';
+import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
+import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
@@ -97,6 +98,7 @@ let replaying = false;
 const chatter = new Chatter(ruleBook().chats, ruleBook().lines.idle_mutter ?? [], Date.now());
 onRuleBookChange((b) => chatter.reload(b.chats, b.lines.idle_mutter ?? []));
 setInterval(() => {
+  setPeriod(scene.period);
   const blocked = document.hidden || document.querySelector('.backdrop');
   const busy = running || replaying;
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
@@ -104,6 +106,7 @@ setInterval(() => {
   if (talk) void stage.talk(talk.turns);
 }, 5000);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
+scene.onSound = sfx;
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 window.lamplight.onDecision(async (req) => {
@@ -120,6 +123,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   try {
     const r = await start();
     if (!r) return;
+    sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
     if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()));
   } finally {
@@ -147,7 +151,9 @@ const greet = (text: string) => {
 async function openShop() {
   const api = window.lamplight;
   let settings = await api.getSettings();
-  mountToolbar(api, settings, () => {});
+  const mix = (s: Settings) => setMix({ volume: s.volume, muted: s.muted, period: scene.period });
+  mix(settings);
+  mountToolbar(api, settings, mix);
   const S = strings.ui.setup;
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());

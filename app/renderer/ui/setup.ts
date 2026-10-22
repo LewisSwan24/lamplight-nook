@@ -1,5 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import type { EnvStatus, LamplightApi, Settings } from '../../shared/types';
+import { setMix, sfx } from '../audio/sound';
 import { closePanel, replaceOpen } from './panels';
 import { el } from './dom';
 import { withPortrait } from './portraits';
@@ -88,7 +89,18 @@ export function showNotReady(api: LamplightApi, env: EnvStatus) {
   ));
 }
 
-/** Settings: name, work folder, what is needed to start, and credits. */
+/** The volume slider: heard while dragging, saved when let go. */
+function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  const slider = el('input', { type: 'range', min: 0, max: 100, step: 5, value: settings.volume, 'aria-label': S.volumeLabel }) as HTMLInputElement;
+  slider.addEventListener('input', () => setMix({ volume: Number(slider.value) }));
+  slider.addEventListener('change', async () => {
+    changed(await api.saveSettings({ volume: Number(slider.value) }));
+    sfx('ask');
+  });
+  return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
+}
+
+/** Settings: name, work folder, sound, what is needed to start, and credits. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
   const [settings, env, version] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name }) as HTMLInputElement;
@@ -98,11 +110,13 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('div.card-title', {}, S.settingsTitle),
     el('section', {}, el('h4', {}, S.nameLabel), name),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
+    el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
     el('section.about', {},
       el('h4', {}, S.aboutLabel),
       el('div', {}, fill(S.version, { version })),
       el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
-      el('div', {}, S.creditFont)),
+      el('div', {}, S.creditFont),
+      el('div', {}, S.creditSound)),
   ));
 }

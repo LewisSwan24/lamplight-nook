@@ -69,6 +69,8 @@ export class CafeScene extends Phaser.Scene {
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
+  /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
+  onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
 
   constructor() {
     super('cafe');
@@ -316,6 +318,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private openDoor(): Promise<void> {
+    this.onSound?.('door');
     this.door.play('door-open');
     return new Promise((r) => this.time.delayedCall(DOOR_MS, r));
   }

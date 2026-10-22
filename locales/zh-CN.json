@@ -176,7 +176,10 @@
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》",
       "creditLink": "limezu.itch.io",
       "greetBack": "{name}，来啦。",
-      "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）"
+      "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）",
+      "volumeLabel": "声音大小",
+      "volumeHint": "想安静的时候，点左上角的小喇叭就能静音。",
+      "creditSound": "界面音效：Andrea Baroni（Cyberleaf Studio）《Modern UI SFX》；门铃、木槌和铅笔声由小灯屋自己合成"
     },
     "run": {
       "runningTitle": "正在做：{want}",

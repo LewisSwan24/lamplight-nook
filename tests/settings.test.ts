@@ -9,13 +9,13 @@ const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-settings-')), 'se
 describe('settings store', () => {
   it('starts with the default work folder and no name', () => {
     const s = new SettingsStore(fresh(), '/docs').get();
-    expect(s).toEqual({ name: '', workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false });
+    expect(s).toEqual({ name: '', workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70 });
   });
 
   it('saves and reloads changes', () => {
     const file = fresh();
-    new SettingsStore(file, '/docs').update({ name: '  Lin  ', onboarded: true, workRoot: '/work', muted: true, detailed: true });
-    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', workRoot: '/work', onboarded: true, muted: true, detailed: true });
+    new SettingsStore(file, '/docs').update({ name: '  Lin  ', onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40 });
+    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40 });
   });
 
   it('ignores empty folders and unknown fields', () => {
@@ -29,6 +29,20 @@ describe('settings store', () => {
     const s = new SettingsStore(fresh(), '/docs').update({ muted: 'yes', detailed: 1 } as never);
     expect(s.muted).toBe(false);
     expect(s.detailed).toBe(false);
+  });
+
+  it('keeps the volume a whole number from 0 to 100', () => {
+    const store = new SettingsStore(fresh(), '/docs');
+    expect(store.update({ volume: 140 }).volume).toBe(100);
+    expect(store.update({ volume: -3 }).volume).toBe(0);
+    expect(store.update({ volume: 33.6 }).volume).toBe(34);
+    expect(store.update({ volume: 'loud' } as never).volume).toBe(34);
+  });
+
+  it('repairs a bad volume in the file', () => {
+    const file = fresh();
+    writeFileSync(file, JSON.stringify({ volume: 'max' }));
+    expect(new SettingsStore(file, '/docs').get().volume).toBe(70);
   });
 
   it('falls back to defaults when the file is broken', () => {
