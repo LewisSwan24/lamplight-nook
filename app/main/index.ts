@@ -50,6 +50,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // The shop's sounds and music start without waiting for a click.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   // Closing mid-commission asks first; stopping is the second, deliberate choice.

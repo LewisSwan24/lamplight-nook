@@ -111,6 +111,7 @@ export class Translator {
     if (spec.anim) {
       const a = resolveAnim(this.anims, actor, spec.anim);
       cmd.anim = a.anim;
+      if (a.anim !== spec.anim) cmd.action = spec.anim;
       if (a.bubble) cmd.bubble = a.bubble;
     }
     if (spec.bubble) cmd.bubble = spec.bubble;

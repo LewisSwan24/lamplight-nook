@@ -1,5 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import type { ActorId, CommissionForm, CommissionResult } from '../../shared/types';
+import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
 import { withPortrait } from './portraits';
@@ -20,8 +21,10 @@ export function replaceOpen(node: HTMLElement) {
   open?.remove();
   open = node;
   layer().append(node);
+  sfx('open');
 }
 export function closePanel() {
+  if (open) sfx('close');
   open?.remove();
   open = null;
 }

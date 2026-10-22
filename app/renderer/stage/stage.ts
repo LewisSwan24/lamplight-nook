@@ -18,6 +18,9 @@ const fillLine = (text: string, vars: Record<string, string>) => text.replace(/\
 
 const emptyInfo = (): ActorInfo => ({ state: 'idle', stats: { writes: 0, runs: 0, fails: 0 }, raw: [] });
 
+/** Work that makes a sound in the room. */
+const ACTION_SOUNDS: Record<string, 'mallet' | 'pencil'> = { hammer: 'mallet', write: 'pencil' };
+
 /**
  * Glue between events and the scene: AiEvent -> Translator -> Director -> CafeScene.
  * Each command: walk (if needed), then show the line/bubble, then report back so the next queued command plays.
@@ -114,6 +117,8 @@ export class Stage {
     const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
     if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
     this.scene.play(actor, cmd.anim);
+    const sound = ACTION_SOUNDS[cmd.action ?? cmd.anim ?? ''];
+    if (sound) this.scene.onSound?.(sound);
     const vars = cmd.line?.vars ?? {};
     const split = (text: string | undefined, who: ActorId) => (text ? text.split('\n').map((b) => ({ who, text: fillLine(b, vars) })) : []);
     const turns = [...split(vars._text, (vars._speaker as ActorId) || actor), ...split(vars._reply, vars._replyBy as ActorId)];
