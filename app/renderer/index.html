@@ -7,6 +7,17 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <!-- Watercolor edges: turbulence displaces the paper so its rim bleeds and wobbles (used by .paper::before). -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <filter id="wc-edge" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="4" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+      <filter id="wc-edge-small" x="-8%" y="-15%" width="116%" height="130%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" seed="9" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
     <div id="game"></div>
     <div id="labels"></div>
     <div id="ui"></div>

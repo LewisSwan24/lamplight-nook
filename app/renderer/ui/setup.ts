@@ -102,6 +102,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('section.about', {},
       el('h4', {}, S.aboutLabel),
       el('div', {}, fill(S.version, { version })),
-      el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink))),
+      el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
+      el('div', {}, S.creditFont)),
   ));
 }
