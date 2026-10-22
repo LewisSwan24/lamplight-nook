@@ -141,7 +141,8 @@ export type AiEvent = {
   raw?: unknown;
 };
 
-export type Bubble = 'idea' | 'sweat' | 'question' | 'note' | 'tea' | 'alert' | 'dots' | 'zzz';
+/** Mood bubbles shown above a character; `heart` is only for the cat. */
+export type Bubble = 'idea' | 'sweat' | 'question' | 'note' | 'tea' | 'alert' | 'dots' | 'zzz' | 'heart';
 
 export type CharacterCommand = {
   actor: ActorId;

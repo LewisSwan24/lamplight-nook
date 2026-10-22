@@ -10,6 +10,7 @@ import { showDecision } from './ui/decision';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showWelcome } from './ui/setup';
+import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
 declare global {
@@ -44,6 +45,9 @@ function drawLabels() {
   if (scene.sys.isActive()) {
     const rect = game.canvas.getBoundingClientRect();
     const s = rect.width / CANVAS.width;
+    // Mood bubbles are pixel art: whole screen pixels per art pixel, smaller next to a line of text.
+    overlay.style.setProperty('--emote-px', `${Math.max(1, Math.floor(s * 0.75))}px`);
+    overlay.style.setProperty('--emote-px-small', `${Math.max(1, Math.floor(s / 2))}px`);
     const seen = new Set<string>();
     for (const l of scene.labels()) {
       seen.add(l.key);
@@ -54,7 +58,12 @@ function drawLabels() {
         overlay.appendChild(el);
         labelEls.set(l.key, el);
       }
-      if (el.textContent !== l.text) el.textContent = l.text;
+      const content = `${l.icon ?? ''}|${l.text}`;
+      if (el.dataset.content !== content) {
+        el.dataset.content = content;
+        el.classList.toggle('icon-only', !!l.icon && !l.text);
+        el.replaceChildren(...[l.icon ? emoteEl(l.icon) : null, l.text || null].filter((c): c is HTMLElement | string => c !== null));
+      }
       el.style.left = `${rect.left + l.x * s}px`;
       el.style.top = `${rect.top + l.y * s}px`;
     }
@@ -151,6 +160,8 @@ const append = (line: string) => { log.textContent = `${line}\n${log.textContent
 window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   // The debug panel is for development only.
   document.body.classList.toggle('debug', debug);
+  // Handles for driving the scene from dev tools and screenshot scripts.
+  if (debug) Object.assign(window, { lamplightDebug: { scene, stage } });
   const env = $('env');
   env.textContent = [
     hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',

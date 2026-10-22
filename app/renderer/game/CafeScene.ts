@@ -40,18 +40,13 @@ type Actor = {
  * Text label positions in canvas coordinates. Text is drawn by an HTML overlay:
  * the canvas is 320x180 scaled up, so CJK text drawn on it would be blurry.
  */
-export type LabelPos = { key: string; text: string; x: number; y: number; kind: 'zone' | 'actor' | 'bubble' };
-
-/** Bubble icons; plain symbols until the bubble sprites are in. */
-const BUBBLE_ICON: Record<Bubble, string> = {
-  idea: '\u{1F4A1}', sweat: '\u{1F4A6}', question: '?', note: '\u270E', tea: '\u2615', alert: '!', dots: '...', zzz: 'z',
-};
+export type LabelPos = { key: string; text: string; x: number; y: number; kind: 'zone' | 'actor' | 'bubble'; icon?: Bubble };
 
 /** The cafe: a pixel-art background with the three staff and the shop cat as animated sprites. */
 export class CafeScene extends Phaser.Scene {
   private actors = new Map<ActorId, Actor>();
-  /** What each character is currently saying (or just a bubble icon). */
-  private speech = new Map<ActorId, string>();
+  /** What each character is currently saying, and its mood bubble (either may be empty). */
+  private speech = new Map<ActorId, { text: string; icon?: Bubble }>();
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
   private hovered: ActorId | 'counter' | null = null;
   private door!: Phaser.GameObjects.Sprite;
@@ -213,8 +208,9 @@ export class CafeScene extends Phaser.Scene {
     if (actor.id === 'cat') {
       sprite.anims.resume();
       if (!this.speech.has('cat')) {
-        this.speech.set('cat', '\u2665');
-        this.time.delayedCall(1500, () => this.speech.get('cat') === '\u2665' && this.speech.delete('cat'));
+        const purr = { text: '', icon: 'heart' as const };
+        this.speech.set('cat', purr);
+        this.time.delayedCall(1500, () => this.speech.get('cat') === purr && this.speech.delete('cat'));
       }
       return;
     }
@@ -290,7 +286,7 @@ export class CafeScene extends Phaser.Scene {
   /** Show a line above a character (text may be empty to show just the bubble). Pass null and no bubble to clear. */
   say(actorId: ActorId, text: string | null, bubble?: Bubble) {
     if (text === null && !bubble) this.speech.delete(actorId);
-    else this.speech.set(actorId, [bubble ? BUBBLE_ICON[bubble] : '', text ?? ''].filter(Boolean).join(' '));
+    else this.speech.set(actorId, { text: text ?? '', icon: bubble });
   }
 
   /**
@@ -354,7 +350,8 @@ export class CafeScene extends Phaser.Scene {
     });
     const bubbles = ACTORS.filter((a) => this.speech.has(a.id)).map((a) => {
       const { sprite, height } = this.actors.get(a.id)!;
-      return { key: `b-${a.id}`, text: this.speech.get(a.id)!, x: sprite.x, y: sprite.y - height - 9, kind: 'bubble' as const };
+      const { text, icon } = this.speech.get(a.id)!;
+      return { key: `b-${a.id}`, text, icon, x: sprite.x, y: sprite.y - height - 2, kind: 'bubble' as const };
     });
     return [...zones, ...actors, ...bubbles];
   }
