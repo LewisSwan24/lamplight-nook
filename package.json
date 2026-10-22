@@ -41,10 +41,14 @@
       "out/**",
       "demo/check.js",
       "assets/fonts/hand-OFL.txt",
+      "assets/ui/icon.png",
+      "assets/ui/tray.png",
+      "assets/ui/tray-glow.png",
       "package.json",
       "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
     ],
     "win": {
+      "icon": "assets/ui/icon.png",
       "target": [
         {
           "target": "nsis",

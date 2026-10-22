@@ -16,7 +16,7 @@ export class SettingsStore {
   private data: Settings;
 
   constructor(private file: string, documentsDir: string) {
-    const defaults: Settings = { name: '', workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false };
+    const defaults: Settings = { name: '', workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false };
     this.data = { ...defaults, ...this.read() };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
     this.data.volume = cleanVolume(this.data.volume) ?? DEFAULT_VOLUME;
@@ -30,7 +30,7 @@ export class SettingsStore {
     const clean: Partial<Settings> = {};
     if (typeof patch.name === 'string') clean.name = patch.name.trim().slice(0, 20);
     if (typeof patch.workRoot === 'string' && patch.workRoot.trim()) clean.workRoot = patch.workRoot.trim();
-    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion'] as const) {
+    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'notify', 'closeToTray'] as const) {
       if (typeof patch[flag] === 'boolean') clean[flag] = patch[flag];
     }
     const volume = cleanVolume(patch.volume);
