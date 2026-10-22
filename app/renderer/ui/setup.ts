@@ -100,7 +100,19 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-/** Settings: name, work folder, sound, what is needed to start, and credits. */
+/** Accessibility switches: the caption bar and less motion. Saved as soon as they change. */
+function accessRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  const A = strings.ui.access;
+  const toggle = (key: 'captions' | 'reducedMotion', text: string) => {
+    const box = el('input', { type: 'checkbox' }) as HTMLInputElement;
+    box.checked = settings[key];
+    box.addEventListener('change', async () => changed(await api.saveSettings({ [key]: box.checked })));
+    return el('label.toggle', {}, box, text);
+  };
+  return el('div.access-rows', {}, toggle('captions', A.captionsToggle), toggle('reducedMotion', A.reduceMotion));
+}
+
+/** Settings: name, work folder, sound, seeing and hearing, what is needed to start, and credits. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
   const [settings, env, version] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name }) as HTMLInputElement;
@@ -111,6 +123,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('section', {}, el('h4', {}, S.nameLabel), name),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
+    el('section', {}, el('h4', {}, strings.ui.access.sectionLabel), accessRows(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
     el('section.about', {},
       el('h4', {}, S.aboutLabel),

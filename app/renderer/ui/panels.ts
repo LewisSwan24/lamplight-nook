@@ -17,17 +17,35 @@ export type ActorInfo = {
 };
 
 let open: HTMLElement | null = null;
+/** Where keyboard focus was before the first card opened, to give it back on close. */
+let returnFocus: HTMLElement | null = null;
+const FOCUS_FIRST = 'textarea, input, button.default, button:not(.close), button';
+
 export function replaceOpen(node: HTMLElement) {
+  if (!open) returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   open?.remove();
   open = node;
   layer().append(node);
   sfx('open');
+  if (!node.contains(document.activeElement)) node.querySelector<HTMLElement>(FOCUS_FIRST)?.focus();
 }
 export function closePanel() {
-  if (open) sfx('close');
-  open?.remove();
+  if (!open) return;
+  sfx('close');
+  open.dispatchEvent(new Event('panel-closed'));
+  open.remove();
   open = null;
+  returnFocus?.focus();
+  returnFocus = null;
 }
+
+// Esc closes the open card (decision dialogs handle their own keys and always win).
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && open && !open.classList.contains('welcome') && !document.querySelector('.backdrop')) {
+    e.preventDefault();
+    closePanel();
+  }
+});
 
 /** Card shown when a character is clicked. */
 /** Detailed mode opens the raw record straight away. */
@@ -64,7 +82,7 @@ export function showCommissionForm(): Promise<CommissionForm | null> {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     const details = el('input', { type: 'text' }) as HTMLInputElement;
     const audience = el('input', { type: 'text' }) as HTMLInputElement;
-    const done = (form: CommissionForm | null) => { closePanel(); resolve(form); };
+    const done = (form: CommissionForm | null) => { resolve(form); closePanel(); };
     const form = el('form.card.paper.commission', {},
       el('div.card-title', {}, U.commissionTitle),
       el('label', {}, U.want, want),
@@ -75,6 +93,8 @@ export function showCommissionForm(): Promise<CommissionForm | null> {
         el('button.default', { type: 'submit' }, U.submit),
       ),
     );
+    // Closed some other way (Esc): same as the close button.
+    form.addEventListener('panel-closed', () => resolve(null));
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = want.value.trim();
