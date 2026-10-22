@@ -92,6 +92,8 @@ export class Stage {
       ];
     }
     this.track(e);
+    // The connection dropped: the lamps flicker twice while Adeng waits to try again.
+    if (e.kind === 'net_retry' && !this.catchingUp) this.scene.flickerLamps();
     // The user answered: release the freeze before the reactions are queued.
     if (e.kind === 'decision') for (const cmd of this.director.unfreeze()) void this.perform(cmd);
     for (const cmd of this.translator.translate(e)) {
