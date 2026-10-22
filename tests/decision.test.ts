@@ -42,6 +42,19 @@ describe('decision broker', () => {
     broker.cancelAll();
     expect(await p).toBe('deny');
   });
+
+  it('reports what the user answered (for the notebook), but not automatic answers', async () => {
+    const broker = new DecisionBroker(() => {});
+    const seen: string[] = [];
+    broker.onAnswered = (req, choice) => seen.push(`${req.title}=${choice}`);
+    const q = broker.ask({ kind: 'question', agent: 'main', tool: 'AskUserQuestion', title: 'Color?', options: [{ id: '0', label: 'mint' }], defaultId: '0' });
+    broker.answer({ id: 'd1', choice: '0' });
+    await q;
+    const s = broker.ask({ kind: 'serious', agent: 'main', tool: 'Bash', title: 'rm', options: [{ id: 'deny', label: 'd' }], defaultId: 'deny' });
+    broker.cancelAll();
+    await s;
+    expect(seen).toEqual(['Color?=0']);
+  });
 });
 
 describe('permission policy', () => {

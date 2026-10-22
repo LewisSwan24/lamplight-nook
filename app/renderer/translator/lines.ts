@@ -56,6 +56,19 @@ const EMOTION_WORDS = pattern('emotionWords');
 const MAX_BUBBLE = 20;
 const L = strings.lineLint;
 
+/**
+ * Pick a line from a group for a one-off moment (the greeting): lines whose `when` holds come first,
+ * lines with a `when` that doesn't hold are skipped, and every placeholder must have a value.
+ * Returns the turns to say, or null if nothing fits.
+ */
+export function pickLine(lines: Line[], flags: string[], vars: Record<string, string>): { speaker: ActorId; text: string }[] | null {
+  const fits = (l: Line) => [...l.bubbles, ...(l.reply?.bubbles ?? [])].every((b) => [...b.matchAll(/\{(\w+)\}/g)].every((m) => vars[m[1]]));
+  const pick = [...lines.filter((l) => l.when && flags.includes(l.when)), ...lines.filter((l) => !l.when)].find(fits);
+  if (!pick) return null;
+  const say = (speaker: ActorId, bubbles: string[]) => bubbles.map((b) => ({ speaker, text: b.replace(/\{(\w+)\}/g, (_m, k: string) => vars[k]) }));
+  return [...say(pick.speaker, pick.bubbles), ...(pick.reply ? say(pick.reply.speaker, pick.reply.bubbles) : [])];
+}
+
 /** Character count excluding {variables}. */
 const visibleLength = (s: string) => [...s.replace(/\{[^}]*\}/g, '')].length;
 

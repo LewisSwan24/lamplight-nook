@@ -50,6 +50,10 @@ export interface LamplightApi {
   answerDecision(answer: DecisionAnswer): Promise<boolean>;
   /** Open a file or folder produced by the current commission (refused outside it). */
   openOutput(path: string, how: 'open' | 'reveal'): Promise<boolean>;
+  /** What Adeng may bring up as this commission starts (from earlier commissions). */
+  recallForCommission(form: CommissionForm): Promise<Recall>;
+  /** What Adeng may bring up as the shop opens; each past commission is brought up only once. */
+  recallOnOpen(): Promise<Recall>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -107,6 +111,8 @@ export const IPC = {
   openOutput: 'commission:open-output',
   decision: 'decision:request',
   answer: 'decision:answer',
+  recallForCommission: 'memory:recall-commission',
+  recallOnOpen: 'memory:recall-open',
 } as const;
 
 // -- Translation layer --
@@ -160,3 +166,25 @@ export type CharacterCommand = {
   bubble?: Bubble;
   priority: number;
 };
+
+/** One commission in Adeng's notebook (summaries only, never the conversation). */
+export type CommissionMemo = {
+  id: string;
+  title: string;
+  /** YYYY-MM-DD */
+  date: string;
+  result: 'done' | 'failed';
+  /** Question -> the option the user picked. */
+  choices: Record<string, string>;
+  folder: string;
+};
+/** A place where a commission got stuck ("pits we fell into together"). */
+export type StuckNote = { commission: string; note: string; date: string };
+export type Memory = {
+  commissions: CommissionMemo[];
+  stuckNotes: StuckNote[];
+  /** Id of the last commission already brought up when the app opened. */
+  greeted?: string;
+};
+/** What may be brought up in a line: `when` flags that hold, and values for the line's placeholders. */
+export type Recall = { flags: string[]; vars: Record<string, string> };
