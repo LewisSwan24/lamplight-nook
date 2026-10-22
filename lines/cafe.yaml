@@ -124,6 +124,20 @@ idle_mutter:
   - { id: idle_xiaoju_02, speaker: xiaoju, bubbles: ["这本书我看过三遍了。"] }
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["……歪了。"] }
 
+# A meeting at the big table (the bell on the counter). Replies from someone out on an errand are left out.
+meeting_call:
+  - { id: meeting_call_01, speaker: adeng, bubbles: ["来，都过来一下。"], reply: { speaker: xiaoju, bubbles: ["开会？"] } }
+  - { id: meeting_call_02, speaker: adeng, bubbles: ["铃响了，先停一停。"], reply: { speaker: laoshi, bubbles: ["嗯。"] } }
+  - { id: meeting_call_03, speaker: xiaoju, bubbles: ["来了来了！"] }
+meeting_heard:
+  - { id: meeting_heard_01, speaker: adeng, bubbles: ["好，记下了。", "我们照这个改。"], reply: { speaker: laoshi, bubbles: ["嗯。"] } }
+  - { id: meeting_heard_02, speaker: adeng, bubbles: ["明白。", "接着干活。"], reply: { speaker: xiaoju, bubbles: ["收到！"] } }
+  - { id: meeting_heard_03, speaker: adeng, bubbles: ["这个好办。", "改完我叫你看。"] }
+meeting_late:
+  - { id: meeting_late_01, speaker: adeng, bubbles: ["这单刚收尾。", "下次一开始就告诉我。"] }
+  - { id: meeting_late_02, speaker: adeng, bubbles: ["哎，已经交了。", "要改就再递一张单子。"] }
+  - { id: meeting_late_03, speaker: adeng, bubbles: ["晚了一步。", "我记着，下回先问你。"] }
+
 # Long commissions (over 20 minutes): Adeng says how it is going, at most every 10 minutes. Taken in turn.
 progress:
   - { id: progress_01, speaker: adeng, bubbles: ["做了{minutes}分钟了。", "{done}步做完，还剩{left}步。"] }

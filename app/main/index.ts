@@ -6,7 +6,7 @@ import { fill, strings } from '../shared/i18n';
 import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, hasCredentials, runAgent } from './agent-runner';
 import { locateClaude } from './claude-locator';
-import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, prepareDemoFolder, snapshot } from './commission';
+import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, snapshot } from './commission';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
@@ -26,7 +26,7 @@ const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
 /** The lamp in the tray. Quitting from its menu closes for real, even with "close to tray" on. */
 const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.close(); });
 /** The commission currently running (one at a time), and the folder of the last one. */
-let current: { workDir: string; abort: AbortController } | null = null;
+let current: { workDir: string; abort: AbortController; note?: (text: string) => boolean } | null = null;
 let lastWorkDir: string | null = null;
 let settings: SettingsStore;
 let pending: PendingStore;
@@ -148,6 +148,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       prompt: again ? continuePrompt(job.form, Boolean(job.sessionId), notes) : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes),
       resume: again ? job.sessionId : undefined,
       onSession: (id) => { job.sessionId = id; pending.save(job); },
+      onInput: (add) => { if (current) current.note = (text) => add(meetingNote(text)); },
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker,
@@ -200,6 +201,11 @@ ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
 ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
 ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
+// A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
+ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
+  const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
+  return Boolean(clean && current?.note?.(clean));
+});
 ipcMain.handle(IPC.clearMemory, () => memory.clear());
 
 // Only files from the current or last commission folder can be opened from the renderer.

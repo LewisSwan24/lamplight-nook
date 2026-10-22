@@ -54,6 +54,8 @@ export interface LamplightApi {
   recallForCommission(form: CommissionForm): Promise<Recall>;
   /** What Adeng may bring up as the shop opens; each past commission is brought up only once. */
   recallOnOpen(): Promise<Recall>;
+  /** Add a note from a meeting to the running commission; false if none is running or it has wrapped up. */
+  addNote(text: string): Promise<boolean>;
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
   /** Forget everything in the notebook. */
@@ -118,6 +120,7 @@ export const IPC = {
   recallForCommission: 'memory:recall-commission',
   recallOnOpen: 'memory:recall-open',
   getMemory: 'memory:get',
+  addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
 } as const;
 

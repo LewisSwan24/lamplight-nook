@@ -27,6 +27,7 @@ const api: LamplightApi = {
   openOutput: (path, how) => ipcRenderer.invoke(IPC.openOutput, path, how),
   recallForCommission: (form) => ipcRenderer.invoke(IPC.recallForCommission, form),
   recallOnOpen: () => ipcRenderer.invoke(IPC.recallOnOpen),
+  addNote: (text) => ipcRenderer.invoke(IPC.addNote, text),
   getMemory: () => ipcRenderer.invoke(IPC.getMemory),
   clearMemory: () => ipcRenderer.invoke(IPC.clearMemory),
   onRawEvent: (cb) => on(IPC.rawEvent, cb),
