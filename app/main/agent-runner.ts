@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import {
   query,
   type AgentDefinition,
@@ -165,6 +166,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         strictMcpConfig: true,
         abortController: abort,
         canUseTool,
+        pathToClaudeCodeExecutable: claudeExecutable(),
       },
     })) {
       record({ source: 'message', name: message.type, payload: message });
@@ -178,6 +180,24 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   } finally {
     clearInterval(ticker);
   }
+}
+
+/**
+ * In the packaged app the SDK's native Claude Code binary is unpacked next to app.asar, since a file inside
+ * the archive cannot be launched. Returns undefined in development so the SDK finds the binary itself.
+ */
+export function claudeExecutable(platform = process.platform, arch = process.arch): string | undefined {
+  try {
+    const pkg = createRequire(import.meta.url).resolve(`@anthropic-ai/claude-agent-sdk-${platform}-${arch}/package.json`);
+    return unpackedBinary(dirname(pkg), platform);
+  } catch {
+    return undefined;
+  }
+}
+
+export function unpackedBinary(pkgDir: string, platform: string): string | undefined {
+  if (!/app\.asar([\\/]|$)/.test(pkgDir)) return undefined;
+  return join(pkgDir.replace(/app\.asar(?=[\\/]|$)/, 'app.asar.unpacked'), platform === 'win32' ? 'claude.exe' : 'claude');
 }
 
 /** Commission folder: ~/Documents/<app>/<commissions>/<date>-<time>-<name> (folder names come from the locale). */

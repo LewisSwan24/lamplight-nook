@@ -52,6 +52,16 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 | `npm run smoke` | Build and capture screenshots |
 | `npm run record -- <hello\|subagents> <folder>` | Run a debug task headlessly and record its events |
 
+## Windows installer
+
+`.github/workflows/release.yml` builds the installer on a Windows runner (typecheck, tests, `npm run dist`).
+
+- Push a tag such as `v0.1.0` to create a GitHub release with `Lamplight-Nook-Setup-<version>.exe` attached.
+- Or run the workflow by hand from the Actions tab; the installer is kept as a build artifact.
+
+The installer is not code-signed yet, so Windows SmartScreen asks for confirmation ("More info", then "Run anyway").
+The installed app needs the same credentials as development: `ANTHROPIC_API_KEY`, or `LAMPLIGHT_DEV_SUBSCRIPTION=1` on a machine signed in to Claude Code.
+
 ## Art and licenses
 
 Art comes from purchased packs (LimeZu Modern Interiors / Exteriors / Farm, Cyberleaf Modern UI SFX).
