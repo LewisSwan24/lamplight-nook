@@ -220,8 +220,16 @@
   lines: serious_yes
   priority: fail
 
+# Refused outright (secrets, system folders): no card was shown, so Adeng says so and keeps working
 - on: decision
-  when: { choice: denied, risk: [serious, blocked] }
+  when: { choice: denied, risk: blocked }
+  actor: adeng
+  state: working
+  lines: refused
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: serious }
   actor: adeng
   state: reacting
   lines: serious_no

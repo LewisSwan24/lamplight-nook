@@ -31,6 +31,11 @@ sub_go_laoshi:
   - { id: go_ls_02, speaker: adeng, bubbles: ["老石，帮我看看？"], reply: { speaker: laoshi, bubbles: ["嗯。"] } }
   - { id: go_ls_03, speaker: laoshi, bubbles: ["拿来。"] }
 
+sub_queue:
+  - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["等小橘回来再去。"] }
+  - { id: sub_queue_02, speaker: adeng, bubbles: ["{who}手上还有一件，这个排队。"] }
+  - { id: sub_queue_03, speaker: adeng, bubbles: ["先放着，等{who}忙完这件。"] }
+
 sub_back_xiaoju:
   - { id: back_xj_01, speaker: xiaoju, bubbles: ["找到了找到了！", "有{count}个能用的——", "还有这个，给你的。"] }
   - { id: back_xj_02, speaker: xiaoju, bubbles: ["外面好冷……", "然后，我找到一个特别好看的。"] }
@@ -83,6 +88,11 @@ serious:
   - { id: serious_01, speaker: adeng, bubbles: ["这一步要{action}。", "做了就{consequence}。", "你看一下再决定。"] }
   - { id: serious_02, speaker: adeng, bubbles: ["这里要你确认一下。", "{action}，{consequence}。"] }
   - { id: serious_03, speaker: adeng, bubbles: ["这一步是认真的。", "你看清楚再点。"] }
+
+refused:
+  - { id: refused_01, speaker: adeng, bubbles: ["这个我不能碰。", "换条路走。"] }
+  - { id: refused_02, speaker: adeng, bubbles: ["这个不归我们碰。"] }
+  - { id: refused_03, speaker: adeng, bubbles: ["那边是你的私事，我不去翻。"] }
 
 serious_yes:
   - { id: serious_yes_01, speaker: adeng, bubbles: ["好，我来做。"] }

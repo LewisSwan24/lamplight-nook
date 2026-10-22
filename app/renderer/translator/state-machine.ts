@@ -30,7 +30,7 @@ const TRANSITIONS: Record<ActorState, ActorState[]> = {
   serious: ['reacting', ...BUSY],
   reacting: ['ready', ...BUSY],
   out: ['out', 'returning'],
-  returning: ['ready'],
+  returning: ['ready', 'out'],
   wrapping: [],
   low: [],
   comfort: ['comfort'],
