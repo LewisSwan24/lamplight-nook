@@ -2,6 +2,7 @@ import { fill, strings } from '../../shared/i18n';
 import type { CommissionForm, ExternalLink, LamplightApi } from '../../shared/types';
 import { el } from './dom';
 import { closePanel, replaceOpen } from './panels';
+import { withPortrait } from './portraits';
 
 const R = strings.ui.run;
 
@@ -19,8 +20,7 @@ export function showRunning(api: LamplightApi, want: string) {
   const note = el('div', {}, R.runningText);
   replaceOpen(el('div.card.paper.running-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el('div.card-title', {}, fill(R.runningTitle, { want })),
-    note,
+    withPortrait('adeng', 'calm', el('div.card-title', {}, fill(R.runningTitle, { want })), note),
     actions,
   ));
   ask();
@@ -45,8 +45,10 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void):
   if (!f) return false;
   replaceOpen(el(f.plain ? 'div.card.serious' : 'div.card.paper', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el(f.plain ? 'div.serious-title' : 'div.card-title', {}, f.title),
-    el('div', {}, f.text),
+    // Money and key problems stay plain, without a character; the rest is Adeng telling you.
+    ...(f.plain
+      ? [el('div.serious-title', {}, f.title), el('div', {}, f.text)]
+      : [withPortrait('adeng', 'troubled', el('div.card-title', {}, f.title), el('div', {}, f.text))]),
     el('div.actions', {},
       f.link ? el('button', { onclick: () => api.openLink(f.link![0]) }, f.link[1]) : null,
       f.retry ? el('button.default', { onclick: () => { closePanel(); retry(); } }, R.retry) : null),
@@ -57,8 +59,7 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void):
 /** At startup: a commission was left unfinished last time. */
 export function showPending(api: LamplightApi, form: CommissionForm, resume: () => void) {
   replaceOpen(el('div.card.paper.pending-card', {},
-    el('div.card-title', {}, R.pendingTitle),
-    el('div', {}, fill(R.pendingText, { want: form.want })),
+    withPortrait('adeng', 'calm', el('div.card-title', {}, R.pendingTitle), el('div', {}, fill(R.pendingText, { want: form.want }))),
     el('div.actions', {},
       el('button', { onclick: () => { closePanel(); void api.dropPending(); } }, R.drop),
       el('button.default', { onclick: () => { closePanel(); resume(); } }, R.resume)),

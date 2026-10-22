@@ -1,10 +1,1 @@
-[
- [null, "{ const d=window.lamplightDebug; ['idea','sweat','question'].forEach((b,i)=>d.scene.say(['adeng','xiaoju','laoshi'][i], '', b)); }", 600],
- ["1-icons-a", null, 100],
- [null, "{ const d=window.lamplightDebug; ['note','tea','alert'].forEach((b,i)=>d.scene.say(['adeng','xiaoju','laoshi'][i], '', b)); }", 600],
- ["2-icons-b", null, 100],
- [null, "{ const d=window.lamplightDebug; ['dots','zzz','heart'].forEach((b,i)=>d.scene.say(['adeng','xiaoju','cat'][i], '', b)); }", 600],
- ["3-icons-c", null, 100],
- [null, "{ const d=window.lamplightDebug; d.scene.say('adeng','嗯？这里对不上。','sweat'); d.scene.say('xiaoju','我去去就回！'); d.scene.say('laoshi',null); d.scene.say('cat',null); }", 700],
- ["4-with-text", null, 100]
-]
+[["3-welcome", null, 500]]
