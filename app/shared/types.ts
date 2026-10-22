@@ -54,6 +54,10 @@ export interface LamplightApi {
   recallForCommission(form: CommissionForm): Promise<Recall>;
   /** What Adeng may bring up as the shop opens; each past commission is brought up only once. */
   recallOnOpen(): Promise<Recall>;
+  /** Everything in Adeng's notebook, for the user to read. */
+  getMemory(): Promise<Memory>;
+  /** Forget everything in the notebook. */
+  clearMemory(): Promise<void>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -113,6 +117,8 @@ export const IPC = {
   answer: 'decision:answer',
   recallForCommission: 'memory:recall-commission',
   recallOnOpen: 'memory:recall-open',
+  getMemory: 'memory:get',
+  clearMemory: 'memory:clear',
 } as const;
 
 // -- Translation layer --
