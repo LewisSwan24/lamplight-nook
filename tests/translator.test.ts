@@ -95,6 +95,30 @@ describe('translation: real recording', () => {
 });
 
 describe('translation: cases not in the recording', () => {
+  it('a second errand for Xiaoju waits its turn, then she sets off again when the first one is back', () => {
+    const t = new Translator(rules, anims);
+    t.translate(ev({ kind: 'session_start' }));
+    const show = (e: Partial<AiEvent>) => t.translate(ev(e)).map((c) => `${c.actor}:${c.state}${c.moveTo ? '@' + c.moveTo : ''}${c.line ? '/' + c.line.group : ''}`);
+    expect(show({ kind: 'subagent_start', agent: 'researcher' })).toEqual(['xiaoju:out@door/sub_go_xiaoju']);
+    const queued = t.translate(ev({ kind: 'subagent_start', agent: 'unknown' }));
+    expect(queued).toMatchObject([{ actor: 'adeng', line: { group: 'sub_queue', flags: ['who_xiaoju'] } }]);
+    expect(new Director(toLineBook(lines)).submit(queued[0])?.line?.vars._id).toBe('sub_queue_01');
+    expect(show({ kind: 'subagent_stop', agent: 'researcher', target: 'notes' })).toEqual([
+      'xiaoju:returning@counter/sub_back_xiaoju', 'xiaoju:out@door/sub_go_xiaoju',
+    ]);
+    expect(show({ kind: 'subagent_stop', agent: 'unknown' })).toEqual(['xiaoju:returning@counter/sub_back_xiaoju']);
+  });
+
+  it('a refused call (a secret or a system folder) gets its own line, not the serious-card one', () => {
+    const t = new Translator(rules, anims);
+    t.translate(ev({ kind: 'session_start' }));
+    t.translate(ev({ kind: 'tool_start', tool: 'Read' }));
+    const [cmd] = t.translate(ev({ kind: 'decision', choice: 'denied', risk: 'blocked' }));
+    expect(cmd.line?.group).toBe('refused');
+    t.states.move('adeng', 'serious'); // a serious card was shown
+    expect(t.translate(ev({ kind: 'decision', choice: 'denied', risk: 'serious' }))[0].line?.group).toBe('serious_no');
+  });
+
   it('from the third failure the cat comes over', () => {
     const t = new Translator(rules, anims);
     t.translate(ev({ kind: 'session_start' }));

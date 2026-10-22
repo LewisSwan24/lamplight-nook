@@ -202,6 +202,16 @@ export class CafeScene extends Phaser.Scene {
     this.tweens.add({ targets: this.bell, y: BELL_POS.y - 1, duration: 70, yoyo: true, repeat: 1 });
   }
 
+  /** The lamps dip twice, like the power just wavered (the connection dropped). Skipped with reduced motion. */
+  flickerLamps() {
+    if (this.reducedMotion) return;
+    for (const g of this.glows) {
+      if (g.sun) continue;
+      const lit = g.img.alpha;
+      this.tweens.add({ targets: g.img, alpha: lit * 0.15, duration: 90, yoyo: true, repeat: 1, repeatDelay: 140, onComplete: () => g.img.setAlpha(lit) });
+    }
+  }
+
   /** Where a character stands now, or null while out on an errand. */
   anchorOf(actorId: ActorId): AnchorId | null {
     const actor = this.actors.get(actorId);
