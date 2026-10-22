@@ -85,9 +85,9 @@ body.debug #debug { display: block; }
 .actions button.default::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
 .actions button:focus-visible, .sticker:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .commission label { display: block; margin: 8px 0; font-family: var(--hand); font-size: 17px; }
-.commission textarea, .commission input, .welcome input, .settings input { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 15px; background: rgba(255, 253, 248, 0.7) !important; border: none !important; border-bottom: 1.5px solid rgba(122, 82, 54, 0.45) !important; border-radius: 0 !important; }
-.commission textarea:focus, .commission input:focus, .welcome input:focus, .settings input:focus { outline: none; border-bottom-color: var(--accent) !important; background: rgba(255, 253, 248, 0.95) !important; }
-.commission textarea, .commission input { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 6px; border-radius: 8px; border: 1px solid #c9b79f; background: #fffdf8; }
+.commission textarea, .commission input, .meeting textarea, .welcome input, .settings input { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 15px; background: rgba(255, 253, 248, 0.7) !important; border: none !important; border-bottom: 1.5px solid rgba(122, 82, 54, 0.45) !important; border-radius: 0 !important; }
+.commission textarea:focus, .commission input:focus, .meeting textarea:focus, .welcome input:focus, .settings input:focus { outline: none; border-bottom-color: var(--accent) !important; background: rgba(255, 253, 248, 0.95) !important; }
+.commission textarea, .commission input, .meeting textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 6px; border-radius: 8px; border: 1px solid #c9b79f; background: #fffdf8; }
 
 /* Decision dialog: background dimmed 40% */
 .backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; }
@@ -194,3 +194,16 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .toggle input { accent-color: #b5653a; width: 16px; height: 16px; }
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }
+
+/* Adeng's notebook (M3.2): lined pages of what the shop remembers. */
+.notebook { width: min(560px, 88vw); }
+.notebook-pages { max-height: 46vh; overflow-y: auto; margin: 8px 0; padding: 4px 10px; font-family: var(--hand); font-size: 16px; line-height: 1.7;
+  background-image: repeating-linear-gradient(transparent 0 26px, rgba(138, 106, 74, 0.18) 26px 27px); }
+.notebook-pages ul { margin: 0; padding-left: 18px; }
+.notebook-pages h4 { margin: 6px 0 2px; }
+.notebook-date { color: #9a8a76; font-size: 12px; }
+.notebook-choice { color: #6b5a48; font-size: 14px; padding-left: 4px; }
+.notebook-empty { color: #7a6a58; padding: 12px 0; }
+.notebook-warn { flex-basis: 100%; color: #8a3b2a; font-size: 14px; margin-bottom: 4px; }
+.notebook .actions { flex-wrap: wrap; align-items: center; }
+.meeting { width: min(460px, 86vw); }

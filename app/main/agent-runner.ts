@@ -17,6 +17,7 @@ import { isInside } from './paths';
 import { Recorder } from './recorder';
 import { classify } from './risk-classifier';
 import { locateClaude } from './claude-locator';
+import { InputQueue } from './input-queue';
 
 /** The two subagents. Their names map directly to characters (researcher -> Xiaoju, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -95,7 +96,12 @@ export type RunOptions = {
   resume?: string;
   /** Called once the SDK reports the session id, so the run can be resumed later. */
   onSession?: (sessionId: string) => void;
+  /** Hands over a way to add to the running commission (a meeting note); it returns false once it is too late. */
+  onInput?: (add: (text: string) => boolean) => void;
 };
+
+/** After a result, how long the session stays open in case the agent picks up a note sent just before. */
+const WRAP_UP_GRACE_MS = 1500;
 
 /**
  * Why a run did not finish, as the user needs to hear it: the network, a busy or rate-limited service,
@@ -130,7 +136,7 @@ export function hasCredentials(env: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInput }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -181,11 +187,20 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   let apiError: string | undefined;
   let resultText = '';
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
+  // Streaming input, so a meeting can add to the commission while it runs.
+  const input = new InputQueue();
+  input.push(prompt);
+  onInput?.((text) => {
+    const added = input.push(text, 'next');
+    if (added) record({ source: 'runner', name: 'meeting_note', payload: { text } });
+    return added;
+  });
+  abort?.signal.addEventListener('abort', () => input.close());
 
   try {
     let ok = false;
     for await (const message of query({
-      prompt,
+      prompt: input,
       options: {
         cwd: workDir,
         agents: SUBAGENTS,
@@ -202,6 +217,8 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
       },
     })) {
       record({ source: 'message', name: message.type, payload: message });
+      if (message.type === 'result') input.closeSoon(WRAP_UP_GRACE_MS);
+      else input.stay();
       if (message.type === 'system' && message.subtype === 'init') onSession?.(message.session_id);
       if (message.type === 'assistant' && message.error) apiError = message.error;
       if (message.type === 'result') {
@@ -220,6 +237,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     return { ok: false, recordingPath, workDir, error: failureKind(apiError, `${error}\n${resultText}`) };
   } finally {
     clearInterval(ticker);
+    input.close();
   }
 }
 

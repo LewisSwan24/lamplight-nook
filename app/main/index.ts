@@ -3,30 +3,41 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
-import { IPC, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type RunResult, type Settings } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, hasCredentials, runAgent } from './agent-runner';
 import { locateClaude } from './claude-locator';
-import { collectOutputs, commissionPrompt, continuePrompt, demoPrompt, prepareDemoFolder, snapshot } from './commission';
+import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, snapshot } from './commission';
+import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
 import { SettingsStore } from './settings';
+import { ShopTray } from './tray';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let win: BrowserWindow | null = null;
 
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
-const broker = new DecisionBroker((req) => send(IPC.decision, req));
+const broker = new DecisionBroker((req) => {
+  send(IPC.decision, req);
+  tray.attention(req, settings.get().notify);
+});
+const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
+/** The lamp in the tray. Quitting from its menu closes for real, even with "close to tray" on. */
+const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.close(); });
 /** The commission currently running (one at a time), and the folder of the last one. */
-let current: { workDir: string; abort: AbortController } | null = null;
+let current: { workDir: string; abort: AbortController; note?: (text: string) => boolean } | null = null;
 let lastWorkDir: string | null = null;
 let settings: SettingsStore;
 let pending: PendingStore;
+let memory: MemoryStore;
 /** The last commission that failed (offered as "try again"), and one left over from a crash. */
 let lastFailed: Job | null = null;
 let leftover: Job | null = null;
 /** Set once the user chose to stop and close, so the close prompt doesn't come back. */
 let quitting = false;
+/** Set when the user quits from the tray, so closing doesn't just hide the window. */
+let leaving = false;
 
 /** The only pages the renderer can open in a browser. */
 const LINKS: Record<ExternalLink, string> = {
@@ -45,6 +56,7 @@ function createWindow() {
     title: strings.app.title,
     backgroundColor: '#1b1712',
     useContentSize: true,
+    icon: join(iconDir(), 'icon.png'),
     webPreferences: {
       preload: join(here, '../preload/index.cjs'),
       contextIsolation: true,
@@ -56,6 +68,12 @@ function createWindow() {
   });
   // Closing mid-commission asks first; stopping is the second, deliberate choice.
   win.on('close', (e) => {
+    // With "close to tray" on, the shop keeps running out of sight (a commission carries on too).
+    if (!leaving && !quitting && settings.get().closeToTray && tray.available) {
+      e.preventDefault();
+      win?.hide();
+      return;
+    }
     if (!current || quitting || !win) return;
     const R = strings.ui.run;
     const choice = dialog.showMessageBoxSync(win, {
@@ -63,6 +81,7 @@ function createWindow() {
       buttons: [R.keepGoing, R.stopAndClose], defaultId: 0, cancelId: 0, noLink: true,
     });
     if (choice === 0) {
+      leaving = false;
       e.preventDefault();
       return;
     }
@@ -76,7 +95,7 @@ function createWindow() {
 const recordingFor = (kind: string) => join(app.getPath('userData'), 'recordings', `${Date.now()}-${kind}.jsonl`);
 const emitters = {
   emit: (event: unknown) => send(IPC.rawEvent, event),
-  emitAi: (event: { raw?: unknown }) => send(IPC.aiEvent, { ...event, raw: undefined }),
+  emitAi: (event: AiEvent) => send(IPC.aiEvent, { ...event, raw: undefined }),
 };
 
 // The key is only read in the main process; the renderer just gets a boolean.
@@ -114,23 +133,38 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   const abort = new AbortController();
   current = { workDir: job.workDir, abort };
   pending.save(job);
+  // What goes in Adeng's notebook: the user's answers to questions, and where the work got stuck.
+  const title = commissionTitle(job.form);
+  const notes = memory.promptNotes(title);
+  const choices: Record<string, string> = {};
+  const stuck = new StuckTracker();
+  broker.onAnswered = (req, choice) => {
+    const picked = req.kind === 'question' ? req.options.find((o) => o.id === choice && o.id !== 'delegate') : undefined;
+    if (picked) choices[req.title] = picked.label;
+  };
   try {
     const before = new Set(job.preexisting);
     const result = await runAgent({
-      prompt: again ? continuePrompt(job.form, Boolean(job.sessionId)) : job.form.demo ? demoPrompt(job.form) : commissionPrompt(job.form),
+      prompt: again ? continuePrompt(job.form, Boolean(job.sessionId), notes) : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes),
       resume: again ? job.sessionId : undefined,
       onSession: (id) => { job.sessionId = id; pending.save(job); },
+      onInput: (add) => { if (current) current.note = (text) => add(meetingNote(text)); },
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker,
       preexisting: before,
       abort,
       ...emitters,
+      emitAi: (e) => { stuck.see(e); emitters.emitAi(e); },
     });
-    if (result.error !== 'cancelled') send(IPC.result, { ok: result.ok, workDir: job.workDir, ...collectOutputs(job.workDir, before) });
+    if (result.error !== 'cancelled') {
+      send(IPC.result, { ok: result.ok, workDir: job.workDir, ...collectOutputs(job.workDir, before) });
+      memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
+    }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
     return result;
   } finally {
+    broker.onAnswered = undefined;
     pending.clear();
     current = null;
     lastWorkDir = job.workDir;
@@ -139,8 +173,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
 
 ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<RunResult> => {
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
-  const name = form.demo ? strings.demo.brief : form.want.slice(0, 16).replace(/[\\/:*?"<>|\s]+/g, '-');
-  const workDir = commissionDir(settings.get().workRoot, name);
+  const workDir = commissionDir(settings.get().workRoot, commissionTitle(form));
   mkdirSync(workDir, { recursive: true });
   if (form.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
   return runJob({ form, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
@@ -160,7 +193,20 @@ ipcMain.handle(IPC.dropPending, () => {
   pending.clear();
 });
 
-ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => broker.answer(answer));
+ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
+  const ok = broker.answer(answer);
+  if (!broker.waiting) tray.calm();
+  return ok;
+});
+ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
+ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
+ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
+// A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
+ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
+  const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
+  return Boolean(clean && current?.note?.(clean));
+});
+ipcMain.handle(IPC.clearMemory, () => memory.clear());
 
 // Only files from the current or last commission folder can be opened from the renderer.
 ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') => {
@@ -174,10 +220,14 @@ ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') 
 app.whenReady().then(() => {
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
+  memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
   leftover = pending.load();
   createWindow();
+  tray.create();
+  win?.on('focus', () => tray.calm());
 });
 app.on('before-quit', () => {
+  leaving = true;
   broker.cancelAll();
   current?.abort.abort();
 });

@@ -2,7 +2,7 @@
 
 UI sounds are picked from Cyberleaf "Modern UI SFX" (assets/vendor/sfx, not in the repo; its license
 allows use in the app but not remixing, so each file is only re-encoded and levelled). The shop
-sounds the pack doesn't have (door bell, mallet, pencil) are synthesized here. Deterministic (fixed seed).
+sounds the pack doesn't have (door bell, counter bell, mallet, pencil) are synthesized here. Deterministic (fixed seed).
 Needs ffmpeg with libvorbis. Run: python3 scripts/audio/sfx.py
 """
 import subprocess
@@ -28,7 +28,7 @@ PICKED = {
 }
 # Peak level per sound (UI clicks quieter than news).
 PEAK = {'click': 0.35, 'open': 0.4, 'close': 0.35, 'ask': 0.5, 'success': 0.5, 'fail': 0.45, 'serious': 0.55,
-        'door': 0.45, 'mallet': 0.4, 'pencil': 0.25}
+        'door': 0.45, 'mallet': 0.4, 'pencil': 0.25, 'ding': 0.45}
 
 
 def load(path: Path) -> np.ndarray:
@@ -63,6 +63,14 @@ def door_bell() -> np.ndarray:
     return out
 
 
+def service_bell() -> np.ndarray:
+    """The little bell on the counter that calls a meeting: one bright strike with a long ring."""
+    tt = t(1.4)
+    partials = [(1.0, 1.0, 0.9), (2.0, 0.35, 0.5), (3.01, 0.2, 0.3), (4.2, 0.1, 0.2)]
+    ring = sum(a * np.sin(2 * np.pi * 2350 * r * tt) * np.exp(-tt / d) for r, a, d in partials)
+    return ring * np.minimum(tt / 0.001, 1)
+
+
 def mallet(rng) -> np.ndarray:
     """A wooden mallet tapping a board: a short pitched knock plus a puff of filtered noise."""
     tt = t(0.18)
@@ -93,6 +101,7 @@ def main():
         save(name, load(PACK / rel))
     rng = np.random.default_rng(11)
     save('door', door_bell())
+    save('ding', service_bell())
     save('mallet', mallet(rng))
     save('pencil', pencil(rng))
     print('wrote', ', '.join(sorted(p.name for p in OUT.glob('*.ogg'))))

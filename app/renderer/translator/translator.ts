@@ -70,6 +70,8 @@ export type TranslateContext = {
   brief?: string;
   /** Conditions from memory: has_memory / has_stuck_note. */
   flags?: string[];
+  /** Values from memory for lines that use them: lastChoice, stuckNote. */
+  vars?: Record<string, string>;
 };
 
 /**
@@ -78,8 +80,15 @@ export type TranslateContext = {
  */
 export class Translator {
   readonly states = new StateMachine();
+  /** Subagents each helper is handling; Xiaoju and Laoshi take one at a time and the rest wait their turn. */
+  private errands = new Map<ActorId, number>();
 
   constructor(private rules: Rule[], private anims: AnimTable, private ctx: TranslateContext = {}) {}
+
+  /** A new commission (or a replay): its brief and what memory brings to it. */
+  setContext(ctx: TranslateContext) {
+    this.ctx = ctx;
+  }
 
   /** Hot reload: swap rules and the animation table without touching current states. */
   reload(rules: Rule[], anims: AnimTable) {
@@ -88,7 +97,15 @@ export class Translator {
   }
 
   translate(e: AiEvent): CharacterCommand[] {
-    if (e.kind === 'session_start') this.states.reset();
+    if (e.kind === 'session_start') {
+      this.states.reset();
+      this.errands.clear();
+    }
+    if (e.kind === 'subagent_start' || e.kind === 'subagent_stop') return this.errand(e);
+    return this.apply(e);
+  }
+
+  private apply(e: AiEvent): CharacterCommand[] {
     const rule = this.rules.find((r) => matches(r, e));
     if (!rule) return [];
     const out: CharacterCommand[] = [];
@@ -97,6 +114,26 @@ export class Translator {
       if (cmd) out.push(cmd);
     }
     return out;
+  }
+
+  /**
+   * A helper already busy with one subagent doesn't start a second: Adeng says it will wait its turn,
+   * and when the helper finishes one it sets off on the next.
+   */
+  private errand(e: AiEvent): CharacterCommand[] {
+    const actor = AGENT_ACTOR[e.agent];
+    const n = this.errands.get(actor) ?? 0;
+    if (e.kind === 'subagent_start') {
+      this.errands.set(actor, n + 1);
+      if (n === 0) return this.apply(e);
+      return [{
+        actor: 'adeng', state: this.states.get('adeng'), priority: PRIORITY.subagent,
+        line: { group: 'sub_queue', vars: { who: strings.actors[actor] }, flags: [`who_${actor}`] },
+      }];
+    }
+    this.errands.set(actor, Math.max(0, n - 1));
+    const back = this.apply(e);
+    return n > 1 ? [...back, ...this.apply({ ...e, kind: 'subagent_start', target: undefined })] : back;
   }
 
   private build(spec: CommandSpec, e: AiEvent): CharacterCommand | null {
@@ -120,7 +157,7 @@ export class Translator {
       cmd.line = {
         group: spec.lines,
         // Variable names match the placeholders used in lines/cafe.yaml.
-        vars: { target, file: target, topic: target, question: target, choice: target, brief: this.ctx.brief ?? strings.defaults.brief },
+        vars: { ...this.ctx.vars, target, file: target, topic: target, question: target, choice: target, brief: this.ctx.brief ?? strings.defaults.brief },
         flags: [...(this.ctx.flags ?? []), ...(e.kind === 'subagent_stop' ? reviewFlags(e.target) : [])],
       };
       if (spec.own_lines) cmd.line.speaker = actor;

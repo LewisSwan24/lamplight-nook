@@ -4,12 +4,12 @@ import type { CafeScene } from '../game/CafeScene';
 import { el, layer } from './dom';
 
 const A = strings.ui.access;
-type Target = ActorId | 'counter';
+type Target = ActorId | 'counter' | 'bell';
 const buttons = new Map<Target, HTMLButtonElement>();
 let box: HTMLElement | null = null;
 
 const label = (id: Target) =>
-  id === 'counter' ? A.hotspotCounter : fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id] });
+  id === 'counter' ? A.hotspotCounter : id === 'bell' ? A.hotspotBell : fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id] });
 
 /**
  * Invisible buttons over the counter and each character, so the shop works from the keyboard:

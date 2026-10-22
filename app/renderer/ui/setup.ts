@@ -3,6 +3,7 @@ import type { EnvStatus, LamplightApi, Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closePanel, replaceOpen } from './panels';
 import { el } from './dom';
+import { showNotebook } from './notebook';
 import { withPortrait } from './portraits';
 
 const S = strings.ui.setup;
@@ -100,16 +101,17 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-/** Accessibility switches: the caption bar and less motion. Saved as soon as they change. */
-function accessRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
-  const A = strings.ui.access;
-  const toggle = (key: 'captions' | 'reducedMotion', text: string) => {
+type Switch = 'captions' | 'reducedMotion' | 'notify' | 'closeToTray';
+
+/** On/off switches, saved as soon as they change. */
+function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
+  const toggle = (key: Switch, text: string) => {
     const box = el('input', { type: 'checkbox' }) as HTMLInputElement;
     box.checked = settings[key];
     box.addEventListener('change', async () => changed(await api.saveSettings({ [key]: box.checked })));
     return el('label.toggle', {}, box, text);
   };
-  return el('div.access-rows', {}, toggle('captions', A.captionsToggle), toggle('reducedMotion', A.reduceMotion));
+  return el('div.access-rows', {}, ...rows.map(([key, text]) => toggle(key, text)));
 }
 
 /** Settings: name, work folder, sound, seeing and hearing, what is needed to start, and credits. */
@@ -123,7 +125,13 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('section', {}, el('h4', {}, S.nameLabel), name),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
-    el('section', {}, el('h4', {}, strings.ui.access.sectionLabel), accessRows(api, settings, onChange)),
+    el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
+      switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion]])),
+    el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
+      switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle]])),
+    el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
+      el('div.hint', {}, strings.ui.notebook.sectionText),
+      el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
     el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
     el('section.about', {},
       el('h4', {}, S.aboutLabel),

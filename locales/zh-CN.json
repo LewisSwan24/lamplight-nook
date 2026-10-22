@@ -22,7 +22,8 @@
     "table": "大工作桌",
     "corner": "老石的角落",
     "counter": "柜台",
-    "door": "门口"
+    "door": "门口",
+    "bell": "开会铃"
   },
   "events": {
     "session_start": "开始接活",
@@ -166,7 +167,7 @@
       "open": "打开",
       "openShop": "开张",
       "greet": "{name}，欢迎。坐吧。",
-      "notReadyTitle": "开工前还差一点",
+      "notReadyTitle": "店里还没通电。",
       "settingsTitle": "设置",
       "nameLabel": "称呼",
       "folderLabel": "委托放在",
@@ -175,7 +176,6 @@
       "version": "小灯屋 {version}",
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》",
       "creditLink": "limezu.itch.io",
-      "greetBack": "{name}，来啦。",
       "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）",
       "volumeLabel": "声音大小",
       "volumeHint": "想安静的时候，点左上角的小喇叭就能静音。",
@@ -223,7 +223,44 @@
       "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",
-      "hotspotCat": "{name}：摸摸它"
+      "hotspotCat": "{name}：摸摸它",
+      "hotspotBell": "开会铃：叫大家到大桌边说两句"
+    },
+    "notebook": {
+      "sectionLabel": "阿灯的小本子",
+      "sectionText": "阿灯会记下做过的委托、你做的选择和卡住过的地方，只记这些，不记聊天内容。",
+      "open": "翻开看看",
+      "title": "阿灯的小本子",
+      "commissions": "做过的委托",
+      "stuck": "一起踩过的坑",
+      "empty": "本子还是空的。",
+      "done": "做好了",
+      "failed": "没做成",
+      "choice": "你选了：{q} → {a}",
+      "stuckLine": "{commission}：{note} 卡过",
+      "forget": "全部忘掉",
+      "forgetConfirm": "真的全部忘掉吗？忘了就找不回来了。",
+      "forgetYes": "忘掉",
+      "keep": "留着",
+      "forgotten": "好，本子上的都划掉了。称呼还在设置里，想改随时改。"
+    },
+    "tray": {
+      "sectionLabel": "不在眼前的时候",
+      "notifyToggle": "需要你决定时，弹一次系统通知",
+      "closeToTrayToggle": "关窗口时缩到托盘，店继续开着",
+      "tooltip": "小灯屋",
+      "tooltipWaiting": "小灯屋：有事等你决定",
+      "show": "打开小灯屋",
+      "quit": "关店退出",
+      "notifyTitle": "{who}在等你决定",
+      "notifySerious": "有一步需要你确认"
+    },
+    "meeting": {
+      "title": "开个小会",
+      "text": "想补充或改什么？大家都听着。",
+      "placeholder": "比如：页面再加一个“本月合计”",
+      "send": "就这些",
+      "never": "算了"
     }
   },
   "states": {

@@ -15,21 +15,37 @@ const HOUSE_RULES = [
   REPLY_LANGUAGE,
 ].join('\n');
 
+/** Short name of a commission: its folder name and how Adeng's notebook refers to it. */
+export const commissionTitle = (form: CommissionForm) => (form.demo ? strings.demo.brief : form.want.slice(0, 16).replace(/[\\/:*?"<>|\s]+/g, '-'));
+
+/** Add what the shop remembers about this user (may be empty) to a prompt. */
+const withNotes = (prompt: string, notes = '') => (notes ? `${prompt}\n\n${notes}` : prompt);
+
 /** Prompt for an ordinary commission built from the form. */
-export function commissionPrompt(form: CommissionForm): string {
+export function commissionPrompt(form: CommissionForm, notes?: string): string {
   const lines = [`The user's request: ${form.want}`];
   if (form.details) lines.push(`Particulars: ${form.details}`);
   if (form.audience) lines.push(`Who it is for: ${form.audience}`);
-  return `${lines.join('\n')}\n\n${HOUSE_RULES}`;
+  return withNotes(`${lines.join('\n')}\n\n${HOUSE_RULES}`, notes);
+}
+
+/** What the user said in a meeting, sent to the running commission. */
+export function meetingNote(text: string): string {
+  return [
+    'The user called the staff together for a quick word and adds this to the commission:',
+    `"${text}"`,
+    'Take it into account from now on. If it changes something you already made, update that too.',
+    REPLY_LANGUAGE,
+  ].join('\n');
 }
 
 /**
  * Prompt for a commission that stopped part-way (network failure, crash, app closed).
  * With the earlier session resumed the agent has its own history; without it, it starts over from the folder.
  */
-export function continuePrompt(form: CommissionForm, resumed: boolean): string {
+export function continuePrompt(form: CommissionForm, resumed: boolean, notes?: string): string {
   if (resumed) return `The commission stopped part-way. Continue from where you left off and finish it.\n${REPLY_LANGUAGE}`;
-  const original = form.demo ? demoPrompt(form) : commissionPrompt(form);
+  const original = form.demo ? demoPrompt(form, notes) : commissionPrompt(form, notes);
   return `${original}\n\nAn earlier attempt was interrupted. Files it made may already be in this folder: look at them first and continue from them instead of starting over.`;
 }
 
@@ -37,8 +53,8 @@ export function continuePrompt(form: CommissionForm, resumed: boolean): string {
  * The fixed demo commission. The steps are spelled out so that a real run always covers the storyboard:
  * research, drafts, a real failing check, a color question, a serious delete, a review, done.
  */
-export function demoPrompt(form: CommissionForm): string {
-  return [
+export function demoPrompt(form: CommissionForm, notes?: string): string {
+  return withNotes([
     `The user's request: ${form.want}`,
     '',
     'Before using any tool, state your plan as a numbered list of exactly three steps: research, write the page, check it.',
@@ -54,7 +70,7 @@ export function demoPrompt(form: CommissionForm): string {
     '8. Finish with two or three sentences on what you made.',
     '',
     HOUSE_RULES,
-  ].join('\n');
+  ].join('\n'), notes);
 }
 
 /** Put the demo's check script into the commission folder before the run starts. */

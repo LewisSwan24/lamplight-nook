@@ -1,7 +1,7 @@
 {
   "name": "lamplight-nook",
   "productName": "Lamplight Nook",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "A cozy pixel-art desktop app that turns long AI tasks into the daily life of a small cafe crew.",
   "main": "out/main/index.js",
@@ -41,10 +41,14 @@
       "out/**",
       "demo/check.js",
       "assets/fonts/hand-OFL.txt",
+      "assets/ui/icon.png",
+      "assets/ui/tray.png",
+      "assets/ui/tray-glow.png",
       "package.json",
       "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
     ],
     "win": {
+      "icon": "assets/ui/icon.png",
       "target": [
         {
           "target": "nsis",

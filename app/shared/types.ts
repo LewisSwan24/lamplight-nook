@@ -21,7 +21,7 @@ export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. */
-export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean };
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean };
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
@@ -50,6 +50,16 @@ export interface LamplightApi {
   answerDecision(answer: DecisionAnswer): Promise<boolean>;
   /** Open a file or folder produced by the current commission (refused outside it). */
   openOutput(path: string, how: 'open' | 'reveal'): Promise<boolean>;
+  /** What Adeng may bring up as this commission starts (from earlier commissions). */
+  recallForCommission(form: CommissionForm): Promise<Recall>;
+  /** What Adeng may bring up as the shop opens; each past commission is brought up only once. */
+  recallOnOpen(): Promise<Recall>;
+  /** Add a note from a meeting to the running commission; false if none is running or it has wrapped up. */
+  addNote(text: string): Promise<boolean>;
+  /** Everything in Adeng's notebook, for the user to read. */
+  getMemory(): Promise<Memory>;
+  /** Forget everything in the notebook. */
+  clearMemory(): Promise<void>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -107,6 +117,11 @@ export const IPC = {
   openOutput: 'commission:open-output',
   decision: 'decision:request',
   answer: 'decision:answer',
+  recallForCommission: 'memory:recall-commission',
+  recallOnOpen: 'memory:recall-open',
+  getMemory: 'memory:get',
+  addNote: 'commission:add-note',
+  clearMemory: 'memory:clear',
 } as const;
 
 // -- Translation layer --
@@ -160,3 +175,25 @@ export type CharacterCommand = {
   bubble?: Bubble;
   priority: number;
 };
+
+/** One commission in Adeng's notebook (summaries only, never the conversation). */
+export type CommissionMemo = {
+  id: string;
+  title: string;
+  /** YYYY-MM-DD */
+  date: string;
+  result: 'done' | 'failed';
+  /** Question -> the option the user picked. */
+  choices: Record<string, string>;
+  folder: string;
+};
+/** A place where a commission got stuck ("pits we fell into together"). */
+export type StuckNote = { commission: string; note: string; date: string };
+export type Memory = {
+  commissions: CommissionMemo[];
+  stuckNotes: StuckNote[];
+  /** Id of the last commission already brought up when the app opened. */
+  greeted?: string;
+};
+/** What may be brought up in a line: `when` flags that hold, and values for the line's placeholders. */
+export type Recall = { flags: string[]; vars: Record<string, string> };

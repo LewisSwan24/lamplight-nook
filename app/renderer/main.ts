@@ -2,15 +2,18 @@ import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
+import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
+import { pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
+import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { showFailure, showPending, showRunning } from './ui/run';
@@ -107,7 +110,65 @@ setInterval(() => {
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
   const talk = chatter.next(mood, Date.now(), scene.period);
   if (talk) void stage.talk(talk.turns);
+  if (running && !blocked) sayProgress();
 }, 5000);
+
+// Long commissions: now and then Adeng says how far along it is (from the blackboard).
+let runStartedAt = 0;
+let progressSaidAt: number | undefined;
+let progressCount = 0;
+function sayProgress() {
+  const now = Date.now();
+  if (!progressDue(runStartedAt, progressSaidAt, now) || scene.busyTalking('adeng')) return;
+  const lines = ruleBook().lines.progress ?? [];
+  const k = progressCount % Math.max(1, lines.length);
+  const { done, left, doing } = stage.progress();
+  const vars: Record<string, string> = { minutes: String(Math.round((now - runStartedAt) / 60_000)), done: String(done), left: String(left) };
+  if (doing) vars.doing = doing;
+  // Take the lines in turn; one that can't be filled (nothing under way) passes to the next.
+  const turns = pickLine([...lines.slice(k), ...lines.slice(0, k)], [], vars);
+  if (!turns) return;
+  progressSaidAt = now;
+  progressCount++;
+  void stage.talk(turns);
+}
+
+// A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
+// says goes to the running commission. Nobody moves for the work while the meeting lasts.
+const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi'];
+let meetingOpen = false;
+let meetingCount = 0;
+function sayFrom(group: string, k = 0) {
+  const lines = ruleBook().lines[group] ?? [];
+  const turns = pickLine([...lines.slice(k % Math.max(1, lines.length)), ...lines.slice(0, k % Math.max(1, lines.length))], [], {});
+  const present = (turns ?? []).filter((t) => scene.anchorOf(t.speaker) !== null);
+  return present.length ? stage.talk(present) : Promise.resolve();
+}
+async function meeting() {
+  if (!running || meetingOpen) return;
+  meetingOpen = true;
+  sfx('ding');
+  stage.holdStill();
+  const here = STAFF.filter((a) => scene.anchorOf(a) !== null);
+  const before = new Map(here.map((a) => [a, scene.anchorOf(a)!]));
+  void sayFrom('meeting_call', meetingCount);
+  // The card opens straight away; everyone gathers at the table meanwhile.
+  const gathered = Promise.all(here.map((a) => scene.walkTo(a, 'table')));
+  const note = await showMeeting();
+  await gathered;
+  const heard = note ? await window.lamplight.addNote(note) : false;
+  if (note) void sayFrom(heard ? 'meeting_heard' : 'meeting_late', meetingCount);
+  meetingCount++;
+  stage.carryOn();
+  // Whoever no command has sent elsewhere goes back to where they were.
+  for (const [a, spot] of before) if (scene.anchorOf(a) === 'table' && spot !== 'table') void scene.walkTo(a, spot);
+  meetingOpen = false;
+}
+scene.onBellClick = () => void meeting();
+
+// Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
+const syncVisibility = () => { stage.catchingUp = document.hidden; };
+document.addEventListener('visibilitychange', syncVisibility);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 scene.onSound = sfx;
 scene.onSay = recordLine;
@@ -123,7 +184,10 @@ window.lamplight.onResult((result) => showResult(result, (path, how) => void win
 let running: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  runStartedAt = Date.now();
+  progressSaidAt = undefined;
   scene.setFormWaiting(false);
+  scene.setBell(true);
   try {
     const r = await start();
     if (!r) return;
@@ -133,6 +197,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   } finally {
     running = null;
     scene.setFormWaiting(true);
+    scene.setBell(false);
   }
 }
 async function newCommission() {
@@ -143,7 +208,14 @@ async function newCommission() {
   const form = await showCommissionForm();
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
+  await prepare(form);
   await run(form.want, () => window.lamplight.startCommission(form));
+}
+
+/** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
+async function prepare(form: CommissionForm) {
+  const brief = form.demo ? strings.demo.brief : [...form.want].slice(0, 10).join('');
+  stage.setCommission({ brief, ...(await window.lamplight.recallForCommission(form)) });
 }
 scene.onCounterClick = () => void newCommission();
 
@@ -165,6 +237,12 @@ const greet = (text: string) => {
   scene.say('adeng', text);
   setTimeout(() => scene.say('adeng', null), 3500);
 };
+/** Welcome back, bringing up the last commission once if there is one to ask about. */
+async function greetBack(name: string) {
+  const { flags, vars } = await window.lamplight.recallOnOpen();
+  const turns = pickLine(ruleBook().lines.app_open ?? [], flags, { ...vars, name });
+  if (turns) void stage.talk(turns);
+}
 async function openShop() {
   const api = window.lamplight;
   let settings = await api.getSettings();
@@ -175,11 +253,11 @@ async function openShop() {
     settings = await showWelcome(api, settings, await api.envStatus());
     greet(fill(S.greet, { name: settings.name }));
   } else if (settings.name) {
-    setTimeout(() => greet(fill(S.greetBack, { name: settings.name })), 1200);
+    setTimeout(() => void greetBack(settings.name), 1200);
   }
   // A commission left unfinished when the app last closed.
   const left = await api.pendingCommission();
-  if (left) showPending(api, left, () => void run(left.want, () => api.resumePending()));
+  if (left) showPending(api, left, () => void prepare(left).then(() => run(left.want, () => api.resumePending())));
 }
 void openShop();
 
@@ -202,7 +280,9 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   if (debug) {
     const api = window.lamplight;
     const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm };
-    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay } });
+    // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
+    const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; scene.setFormWaiting(!on); scene.setBell(on); };
+    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning } });
   }
   const env = $('env');
   env.textContent = [
@@ -255,6 +335,8 @@ $('preview-cards').addEventListener('click', async () => {
 let cancelReplay = () => {};
 function startReplay(speed = 3) {
   cancelReplay();
+  // The bundled recording is a stranger's commission: nothing from this user's memory applies.
+  stage.setCommission({ brief: strings.demo.brief });
   const raw: RawAgentEvent[] = replayText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l));
   const events = normalizeAll(raw);
   append(`replay: ${events.length} events at ${speed}x`);
