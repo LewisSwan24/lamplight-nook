@@ -1,0 +1,8 @@
+[
+ ["1-start", null, 3000],
+ [null, "document.querySelector('.tool-btn').click()", 300],
+ [null, "document.getElementById('replay').click()", 9000],
+ ["2-detailed-replay", null, 100],
+ [null, "document.querySelector('.toolbar .tool-btn:nth-child(2)').click()", 300],
+ ["3-muted", null, 100]
+]

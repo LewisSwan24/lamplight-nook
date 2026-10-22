@@ -9,8 +9,8 @@ import { Stage, replay } from './stage/stage';
 import { showDecision } from './ui/decision';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { showFailure, showPending, showRunning } from './ui/run';
-import { showNotReady, showSettings, showWelcome } from './ui/setup';
-import { el, layer } from './ui/dom';
+import { showNotReady, showWelcome } from './ui/setup';
+import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -79,7 +79,8 @@ function drawLabels() {
 requestAnimationFrame(drawLabels);
 
 const stage = new Stage(scene);
-scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor));
+stage.onEvent = noteEvent;
+scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 window.lamplight.onDecision(async (req) => {
@@ -121,6 +122,7 @@ const greet = (text: string) => {
 async function openShop() {
   const api = window.lamplight;
   let settings = await api.getSettings();
+  mountToolbar(api, settings, () => {});
   const S = strings.ui.setup;
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());
@@ -134,12 +136,6 @@ async function openShop() {
 }
 void openShop();
 
-// Settings live behind a small button in the corner.
-layer().append(el('button.corner-btn', {
-  title: strings.ui.setup.settingsButton,
-  'aria-label': strings.ui.setup.settingsButton,
-  onclick: () => void showSettings(window.lamplight, () => {}),
-}, '\u2699'));
 
 // -- Debug panel --
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -152,7 +148,9 @@ $('walk').addEventListener('click', () => scene.walkTo(actorSel.value as ActorId
 const log = $<HTMLPreElement>('log');
 const append = (line: string) => { log.textContent = `${line}\n${log.textContent}`.slice(0, 20000); };
 
-window.lamplight.envStatus().then(({ hasApiKey, hasClaude }) => {
+window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
+  // The debug panel is for development only.
+  document.body.classList.toggle('debug', debug);
   const env = $('env');
   env.textContent = [
     hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',

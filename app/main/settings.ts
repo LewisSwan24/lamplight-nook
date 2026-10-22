@@ -11,7 +11,7 @@ export class SettingsStore {
   private data: Settings;
 
   constructor(private file: string, documentsDir: string) {
-    const defaults: Settings = { name: '', workRoot: defaultWorkRoot(documentsDir), onboarded: false };
+    const defaults: Settings = { name: '', workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false };
     this.data = { ...defaults, ...this.read() };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
   }
@@ -24,7 +24,9 @@ export class SettingsStore {
     const clean: Partial<Settings> = {};
     if (typeof patch.name === 'string') clean.name = patch.name.trim().slice(0, 20);
     if (typeof patch.workRoot === 'string' && patch.workRoot.trim()) clean.workRoot = patch.workRoot.trim();
-    if (typeof patch.onboarded === 'boolean') clean.onboarded = patch.onboarded;
+    for (const flag of ['onboarded', 'muted', 'detailed'] as const) {
+      if (typeof patch[flag] === 'boolean') clean[flag] = patch[flag];
+    }
     this.data = { ...this.data, ...clean };
     mkdirSync(dirname(this.file), { recursive: true });
     // Write then rename so a crash never leaves a half-written file.
