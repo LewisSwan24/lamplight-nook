@@ -1,5 +1,6 @@
 import { strings } from '../../shared/i18n';
 import type { ActorId, AiEvent, LamplightApi, Settings } from '../../shared/types';
+import { showCaptionLog } from './captions';
 import { el, layer } from './dom';
 import { showSettings } from './setup';
 
@@ -32,6 +33,7 @@ export function mountToolbar(api: LamplightApi, settings: Settings, onChange: (s
     bar.replaceChildren(
       button(view.detailed ? T.detailedOff : T.detailedOn, '\u{1F50D}', () => void save({ detailed: !view.detailed }), view.detailed),
       button(view.muted ? T.unmute : T.mute, view.muted ? '\u{1F507}' : '\u{1F509}', () => void save({ muted: !view.muted }), view.muted),
+      button(strings.ui.access.captionsButton, '\u{1F4DC}', showCaptionLog),
       button(T.settings, '\u2699', () => void showSettings(api, onChange)),
     );
     strip.hidden = !view.detailed;

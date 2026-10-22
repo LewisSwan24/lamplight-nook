@@ -9,7 +9,9 @@ import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layou
 import { Chatter, type ShopMood } from './stage/chatter';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { Stage, replay } from './stage/stage';
+import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
+import { updateHotspots } from './ui/hotspots';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showWelcome } from './ui/setup';
@@ -73,6 +75,7 @@ function drawLabels() {
     for (const [key, el] of labelEls) {
       if (!seen.has(key)) { el.remove(); labelEls.delete(key); }
     }
+    updateHotspots(scene, rect, s);
     // The step list is chalked onto the blackboard's slate and scales with the scene.
     const board = document.getElementById('board');
     if (board) {
@@ -107,6 +110,7 @@ setInterval(() => {
 }, 5000);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 scene.onSound = sfx;
+scene.onSay = recordLine;
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 window.lamplight.onDecision(async (req) => {
@@ -143,6 +147,19 @@ async function newCommission() {
 }
 scene.onCounterClick = () => void newCommission();
 
+// Settings that change how the shop looks and sounds. Less motion also follows the system setting.
+const systemCalm = matchMedia('(prefers-reduced-motion: reduce)');
+let current: Settings | null = null;
+function applySettings(s: Settings) {
+  current = s;
+  setMix({ volume: s.volume, muted: s.muted, period: scene.period });
+  setCaptionBar(s.captions);
+  const calm = s.reducedMotion || systemCalm.matches;
+  document.body.classList.toggle('reduce-motion', calm);
+  scene.setReducedMotion(calm);
+}
+systemCalm.addEventListener('change', () => current && applySettings(current));
+
 // Adeng greets the user by name; the first visit walks through setup first.
 const greet = (text: string) => {
   scene.say('adeng', text);
@@ -151,9 +168,8 @@ const greet = (text: string) => {
 async function openShop() {
   const api = window.lamplight;
   let settings = await api.getSettings();
-  const mix = (s: Settings) => setMix({ volume: s.volume, muted: s.muted, period: scene.period });
-  mix(settings);
-  mountToolbar(api, settings, mix);
+  mountToolbar(api, settings, applySettings);
+  applySettings(settings);
   const S = strings.ui.setup;
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());

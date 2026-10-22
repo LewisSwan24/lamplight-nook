@@ -21,7 +21,7 @@ export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. */
-export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number };
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean };
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';

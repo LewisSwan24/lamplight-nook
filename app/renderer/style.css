@@ -177,3 +177,20 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .waiting { display: flex; align-items: flex-end; gap: 10px; }
 .teacup { flex: none; width: 48px; height: 96px; margin: -54px -8px -6px -10px; background: url('../../assets/sprites/cup.png') 0 0 / 288px 96px no-repeat; image-rendering: pixelated; animation: teacup 1.2s steps(6) infinite; }
 @keyframes teacup { to { background-position-x: -288px; } }
+
+/* Accessibility (design 9): caption bar and log, keyboard hotspots over the scene, less motion. */
+.caption-bar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(640px, 80vw); padding: 6px 14px; background: rgba(251, 246, 236, 0.94); color: #2e2219; border: 1px solid #8a6a4a; border-radius: 8px; font-family: var(--hand); font-size: 17px; line-height: 1.5; pointer-events: none; }
+.caption-bar:empty { display: none; }
+/* Sits above the detail strip when both are showing (the strip is mounted first). */
+.detail-strip:not([hidden]):not(:empty) ~ .caption-bar { bottom: 92px; }
+.caption-line b { color: #8a4b2a; margin-right: 2px; }
+.caption-card { width: min(520px, 86vw); }
+.caption-list { max-height: 50vh; overflow-y: auto; font-family: var(--hand); font-size: 16px; line-height: 1.6; padding-right: 6px; }
+.caption-time { color: #9a8a76; font-family: inherit; font-size: 12px; }
+.hotspots { pointer-events: none !important; }
+.hotspot { position: fixed; padding: 0; margin: 0; background: transparent; border: none; opacity: 0; pointer-events: none; }
+.hotspot:focus-visible { opacity: 1; outline: 2px dashed var(--accent); outline-offset: 2px; border-radius: 4px; }
+.access-rows { display: flex; flex-direction: column; gap: 6px; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.toggle input { accent-color: #b5653a; width: 16px; height: 16px; }
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }

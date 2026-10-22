@@ -213,6 +213,17 @@
       "detailedOff": "关闭详细模式",
       "mute": "静音",
       "unmute": "打开声音"
+    },
+    "access": {
+      "captionsButton": "字幕记录",
+      "captionsTitle": "字幕记录",
+      "captionsEmpty": "还没有人说话。",
+      "sectionLabel": "看和听",
+      "captionsToggle": "在画面下方一直显示刚说的话",
+      "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
+      "hotspotCounter": "柜台：递一张委托",
+      "hotspotActor": "{name}：看看在做什么",
+      "hotspotCat": "{name}：摸摸它"
     }
   },
   "states": {
