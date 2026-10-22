@@ -46,6 +46,8 @@ export class CafeScene extends Phaser.Scene {
   private actors = new Map<ActorId, Actor>();
   /** What each character is currently saying (or just a bubble icon). */
   private speech = new Map<ActorId, string>();
+  /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
+  private hovered: ActorId | 'counter' | null = null;
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
@@ -71,13 +73,19 @@ export class CafeScene extends Phaser.Scene {
       .zone(counter.x, counter.y, counter.w, counter.h)
       .setOrigin(0)
       .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.onCounterClick());
+      .on('pointerdown', () => this.onCounterClick())
+      .on('pointerover', () => (this.hovered = 'counter'))
+      .on('pointerout', () => (this.hovered = null));
     for (const a of ACTORS) {
       const spot = standPoint(a.home, a.id);
       const isCat = a.id === 'cat';
       const shadow = this.add.ellipse(spot.x, spot.y, isCat ? 20 : 11, 4, 0x3b2a1e, 0.28);
       const sprite = this.add.sprite(spot.x, spot.y, a.id).setOrigin(0.5, 1).setDepth(spot.y);
-      sprite.setInteractive({ useHandCursor: true, pixelPerfect: true }).on('pointerdown', () => this.onActorClick(a.id));
+      sprite
+        .setInteractive({ useHandCursor: true, pixelPerfect: true })
+        .on('pointerdown', () => this.onActorClick(a.id))
+        .on('pointerover', () => (this.hovered = a.id))
+        .on('pointerout', () => (this.hovered = null));
       const actor: Actor = { id: a.id, sprite, shadow, facing: spot.facing, at: a.home, pose: isCat ? 'lie' : 'idle', height: a.height };
       this.actors.set(a.id, actor);
       this.hold(actor);
@@ -237,9 +245,9 @@ export class CafeScene extends Phaser.Scene {
   }
 
   labels(): LabelPos[] {
-    // The art shows what each zone is; only the counter keeps its name, as a hint that it can be clicked.
-    const zones = ZONES.filter((z) => z.id === 'counter').map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + 2, y: z.y - 8, kind: 'zone' as const }));
-    const actors = ACTORS.map((a) => {
+    // Names appear only on hover; the art shows who is who and what each place is.
+    const zones = ZONES.filter((z) => z.id === this.hovered).map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
+    const actors = ACTORS.filter((a) => a.id === this.hovered).map((a) => {
       const { sprite, height } = this.actors.get(a.id)!;
       return { key: `a-${a.id}`, text: a.name, x: sprite.x, y: sprite.y - height - 1, kind: 'actor' as const };
     });
