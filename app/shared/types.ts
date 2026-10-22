@@ -19,7 +19,7 @@ export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean };
 export type Settings = { name: string; workRoot: string; onboarded: boolean };
 
 /** Pages the renderer may open in the browser (install guides and credits). */
-export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'limezu';
+export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
 
 export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string };
 
@@ -35,6 +35,13 @@ export interface LamplightApi {
   appVersion(): Promise<string>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   startCommission(form: CommissionForm): Promise<RunResult>;
+  /** Run the last failed commission again, continuing its session; null if there is none. */
+  retryCommission(): Promise<RunResult | null>;
+  cancelCommission(): Promise<void>;
+  /** A commission left unfinished when the app last closed, if any. */
+  pendingCommission(): Promise<CommissionForm | null>;
+  resumePending(): Promise<RunResult | null>;
+  dropPending(): Promise<void>;
   answerDecision(answer: DecisionAnswer): Promise<boolean>;
   /** Open a file or folder produced by the current commission (refused outside it). */
   openOutput(path: string, how: 'open' | 'reveal'): Promise<boolean>;
@@ -86,6 +93,11 @@ export const IPC = {
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
   startCommission: 'commission:start',
+  retryCommission: 'commission:retry',
+  cancelCommission: 'commission:cancel',
+  pendingCommission: 'commission:pending',
+  resumePending: 'commission:resume-pending',
+  dropPending: 'commission:drop-pending',
   result: 'commission:result',
   openOutput: 'commission:open-output',
   decision: 'decision:request',
@@ -102,7 +114,7 @@ export type AiEventKind =
   | 'long_wait'
   | 'subagent_start' | 'subagent_stop'
   | 'ask_user' | 'permission' | 'decision'
-  | 'done' | 'failed' | 'net_error';
+  | 'done' | 'failed' | 'net_error' | 'net_retry' | 'cancelled';
 
 /** How the user answered a decision. */
 export type Choice = 'picked' | 'delegated' | 'allowed' | 'denied';

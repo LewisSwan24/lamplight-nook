@@ -145,6 +145,10 @@ export class EventNormalizer {
     else if (e.source === 'message') this.onMessage(p, e.t, emit);
     else if (e.source === 'permission') this.onPermission(e.name, p, emit);
     else if (e.source === 'decision') this.onDecision(e.name, p, emit);
+    else if (e.source === 'runner' && e.name === 'cancelled') {
+      this.finish();
+      emit('cancelled', 'main');
+    }
     return out;
   }
 
@@ -235,6 +239,10 @@ export class EventNormalizer {
     const subtype = str(p.subtype);
     if (type === 'system') {
       if (subtype === 'init') emit('session_start', 'main');
+      // The SDK retries failed API calls by itself; say so once per run of retries.
+      else if (subtype === 'api_retry') {
+        if (Number(p.attempt) === 1) emit('net_retry', 'main');
+      }
       else if (subtype === 'thinking_tokens') {
         if (t - this.lastThinkingAt >= this.thinkingMergeMs) emit('thinking', 'main');
         this.lastThinkingAt = t;
