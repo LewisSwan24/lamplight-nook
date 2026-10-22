@@ -1,0 +1,37 @@
+# Builds the Windows installer and attaches it to a GitHub release.
+# Publishes when a tag like v0.1.0 is pushed, or when run by hand from the Actions tab
+# (the release is then tagged with the version in package.json).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then tag="$GITHUB_REF_NAME"; else tag="v$(node -p "require('./package.json').version")"; fi
+          gh release create "$tag" dist/*.exe --target "$GITHUB_SHA" --title "Lamplight Nook $tag" --generate-notes

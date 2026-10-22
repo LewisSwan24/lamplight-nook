@@ -1,0 +1,292 @@
+# Cafe scene rules: AiEvent -> character commands.
+# Rules are checked top to bottom; the first whose `on` and `when` match wins. `extra` adds commands for other characters.
+# actor "{agent}" means whoever the event came from: main->adeng, researcher->xiaoju, reviewer->laoshi, unrecognized->xiaoju.
+# priority: chat < work < subagent < fail < ask < serious.
+# anim is an animation name; names the art doesn't have yet are mapped in anim-fallback.yaml.
+# Saved changes hot-reload in dev mode; `npm test` checks that every line group and animation exists.
+
+- on: session_start
+  actor: adeng
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: opening
+  priority: work
+  extra:
+    - { actor: xiaoju, state: ready, moveTo: shelf, anim: idle, priority: chat }
+    - { actor: laoshi, state: ready, moveTo: corner, anim: read, priority: chat }
+
+- on: plan
+  actor: adeng
+  state: working
+  moveTo: board
+  anim: write
+  bubble: note
+  lines: planning
+  priority: work
+
+- on: thinking
+  actor: adeng
+  state: thinking
+  anim: spin_cup
+  bubble: dots
+  priority: work
+
+# Subagents leave and come back
+- on: subagent_start
+  when: { agent: researcher }
+  actor: xiaoju
+  state: out
+  moveTo: door
+  anim: put_on_coat
+  lines: sub_go_xiaoju
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: researcher }
+  actor: xiaoju
+  state: returning
+  moveTo: counter
+  anim: gift
+  lines: sub_back_xiaoju
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: reviewer }
+  actor: laoshi
+  state: checking
+  moveTo: table
+  anim: hammer
+  lines: sub_go_laoshi
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: reviewer }
+  actor: laoshi
+  state: ready
+  moveTo: corner
+  anim: idle
+  lines: sub_back_laoshi
+  priority: subagent
+
+# Unrecognized subagents are played by Xiaoju
+- on: subagent_start
+  actor: xiaoju
+  state: out
+  moveTo: door
+  anim: put_on_coat
+  lines: sub_go_xiaoju
+  priority: subagent
+
+- on: subagent_stop
+  actor: xiaoju
+  state: returning
+  moveTo: counter
+  anim: gift
+  lines: sub_back_xiaoju
+  priority: subagent
+
+# Xiaoju working while out: she stays out, just shows a bubble
+- on: tool_start
+  when: { agent: researcher }
+  actor: xiaoju
+  state: out
+  bubble: note
+  priority: work
+
+- on: tool_start
+  when: { agent: reviewer }
+  actor: laoshi
+  state: checking
+  anim: hammer
+  priority: work
+
+# Adeng's own work
+- on: tool_start
+  when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
+  actor: adeng
+  state: working
+  moveTo: table
+  anim: write
+  lines: writing
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Read, Glob, Grep, WebSearch, WebFetch] }
+  actor: adeng
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_start
+  when: { agent: main }
+  actor: adeng
+  state: working
+  moveTo: table
+  anim: write
+  priority: work
+
+- on: long_wait
+  actor: "{agent}"
+  state: waiting
+  moveTo: window
+  anim: drink
+  bubble: tea
+  lines: waiting
+  priority: work
+
+# Failures: under three, scratch head; from the third, the cat comes over to comfort
+- on: tool_fail
+  when: { failStreak: { lt: 3 } }
+  actor: "{agent}"
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck
+  own_lines: true
+  priority: fail
+
+- on: tool_fail
+  actor: "{agent}"
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck_long
+  priority: fail
+  extra:
+    - { actor: cat, state: comfort, moveTo: counter, anim: rub_leg, priority: fail }
+
+# Success after being stuck: back to working (silently)
+- on: tool_ok
+  when: { agent: main }
+  actor: adeng
+  state: working
+  priority: chat
+
+- on: ask_user
+  actor: adeng
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: permission
+  when: { risk: [serious, blocked] }
+  actor: adeng
+  state: serious
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: serious
+  priority: serious
+
+- on: permission
+  actor: adeng
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+# The user answered a question or a permission card
+- on: decision
+  when: { choice: picked }
+  actor: adeng
+  state: reacting
+  anim: idle
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+  extra:
+    - { actor: laoshi, state: reacting, lines: react_rejected, own_lines: true, priority: chat }
+    - { actor: xiaoju, state: reacting, lines: react_adopted, own_lines: true, priority: chat }
+
+- on: decision
+  when: { choice: delegated }
+  actor: adeng
+  state: reacting
+  anim: idle
+  lines: react_delegated
+  priority: fail
+
+- on: decision
+  when: { choice: allowed, risk: serious }
+  actor: adeng
+  state: reacting
+  lines: serious_yes
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: [serious, blocked] }
+  actor: adeng
+  state: reacting
+  lines: serious_no
+  priority: fail
+
+- on: decision
+  when: { choice: allowed }
+  actor: adeng
+  state: reacting
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  actor: adeng
+  state: reacting
+  lines: react_rejected
+  own_lines: true
+  priority: fail
+
+- on: done
+  actor: adeng
+  state: wrapping
+  moveTo: counter
+  anim: idle
+  lines: done
+  priority: fail
+  extra:
+    - { actor: xiaoju, state: idle, moveTo: shelf, anim: idle, priority: chat }
+    - { actor: laoshi, state: idle, moveTo: corner, anim: read, priority: chat }
+    - { actor: cat, state: idle, moveTo: window, anim: sleep, priority: chat }
+
+- on: failed
+  actor: adeng
+  state: low
+  moveTo: counter
+  anim: idle
+  lines: failed
+  priority: fail
+
+- on: net_error
+  actor: adeng
+  state: low
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: failed
+  priority: fail
+
+- on: net_retry
+  actor: adeng
+  state: waiting
+  moveTo: window
+  anim: idle
+  bubble: dots
+  lines: net_retry
+  priority: fail
+
+- on: cancelled
+  actor: adeng
+  state: idle
+  moveTo: counter
+  anim: idle
+  lines: cancelled
+  priority: fail
+  extra:
+    - { actor: xiaoju, state: idle, moveTo: shelf, anim: idle, priority: chat }
+    - { actor: laoshi, state: idle, moveTo: corner, anim: read, priority: chat }

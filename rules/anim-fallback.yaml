@@ -1,0 +1,22 @@
+# Animation fallbacks: animations the purchased art doesn't have yet are mapped to ones it does.
+# `available` lists animations that really exist; `fallback` maps rule animation names to them, optionally with a bubble.
+# Once an animation is drawn, add it to `available` and delete its fallback line.
+# Source: the LimeZu character generator's built-in animations; the shop cat only has a lying/tail-wag loop.
+
+staff:
+  available: [idle, walk, sleep, sit, phone, read, push, pick_up, gift, lift, throw]
+  fallback:
+    write: { anim: sit }
+    drink: { anim: sit, bubble: tea }
+    spin_cup: { anim: sit, bubble: dots }
+    hammer: { anim: lift, bubble: dots }
+    put_on_coat: { anim: walk }
+    scratch_head: { anim: idle, bubble: sweat }
+
+cat:
+  available: [lie]
+  fallback:
+    idle: { anim: lie }
+    sleep: { anim: lie }
+    rub_leg: { anim: lie, bubble: idea }
+    walk: { anim: lie }
