@@ -4,7 +4,7 @@ import { normalizeAll } from '../main/event-normalizer';
 import { fill, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, LamplightApi, RawAgentEvent } from '../shared/types';
 import { CafeScene } from './game/CafeScene';
-import { ACTORS, ANCHORS, CANVAS, ZONES, integerScale } from './game/layout';
+import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Stage, replay } from './stage/stage';
 import { showDecision } from './ui/decision';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
@@ -58,13 +58,17 @@ function drawLabels() {
     for (const [key, el] of labelEls) {
       if (!seen.has(key)) { el.remove(); labelEls.delete(key); }
     }
-    // The blackboard list sits on the board zone.
+    // The step list is chalked onto the blackboard's slate and scales with the scene.
     const board = document.getElementById('board');
-    const z = ZONES.find((zone) => zone.id === 'board')!;
     if (board) {
-      board.style.left = `${rect.left + (z.x + 2) * s}px`;
-      board.style.top = `${rect.top + (z.y + 10) * s}px`;
-      board.style.width = `${(z.w - 4) * s}px`;
+      const b = BOARD_SLATE;
+      Object.assign(board.style, {
+        left: `${rect.left + b.x * s}px`,
+        top: `${rect.top + b.y * s}px`,
+        width: `${b.w * s}px`,
+        height: `${b.h * s}px`,
+        fontSize: `${3.1 * s}px`,
+      });
     }
   }
   requestAnimationFrame(drawLabels);

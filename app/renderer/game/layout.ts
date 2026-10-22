@@ -22,6 +22,9 @@ export const ZONES: Zone[] = [
   { id: 'door', label: Z.door, x: 288, y: 16, w: 15, h: 32 },
 ];
 
+/** The writable slate of the blackboard in cafe.png (inside its wooden frame), where progress steps are chalked. */
+export const BOARD_SLATE = { x: 94, y: 18, w: 24, h: 13 } as const;
+
 /** Anchors: where characters stand (feet position) and which way they face there. */
 export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }> = {
   window: { x: 70, y: 60, facing: 'up' },

@@ -39,7 +39,6 @@ FURNITURE = [
     ('window', (0, at(226), 32, at(228)), (16, 12)),
     ('window2', (0, at(226), 32, at(228)), (52, 12)),
     ('board', (0, at(338), 32, at(340)), (92, 14)),
-    ('door', (0, at(215), 16, at(217)), (288, 16)),
     # floor
     ('plant_l', (192, at(26), 208, at(29)), (4, 40)),
     ('rug', (112, at(15), 176, at(18)), (116, 76)),
@@ -54,6 +53,9 @@ FURNITURE = [
 ]
 
 
+# Top-left of the door (an animated sprite placed by the game at the same spot).
+DOOR = (288, 16)
+
 # Chairs at the table seats (app/renderer/game/layout.ts, SEATS): a chair's 16x32 cell sits 8px below
 # the sitting character's frame, whose feet are at the seat point.
 CHAIR_FACING_LEFT = (7, 270)   # back on the right
@@ -65,6 +67,7 @@ CHAIRS = [
 
 # Animated props are played by the game, so they are copied as sheets rather than drawn in.
 ANIMATED = {
+    'door.png': 'animated_door_4.png',  # 5 frames of 16x32, closed to open
     'clock.png': 'animated_cuckoo_clock.png',  # 10 frames of 16x32
     'cup.png': 'animated_coffee.png',  # 6 frames of 16x32, a steaming cup
 }
@@ -79,6 +82,9 @@ def build():
     wall = tiles(walls, 1, 22, 1, 2)
     for x in range(0, W, T):
         img.alpha_composite(wall, (x, 16))
+    # The doorway behind the animated door: daylight outside, seen when the door opens.
+    door = (DOOR[0], DOOR[1])
+    img.paste((205, 226, 222, 255), (door[0] + 1, door[1] + 12, door[0] + 15, door[1] + 32))
     for _name, rect, pos in FURNITURE:
         img.alpha_composite(obj(*rect), pos)
     # Chairs are drawn top to bottom so a lower chair overlaps the one above it.
