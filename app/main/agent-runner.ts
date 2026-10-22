@@ -187,9 +187,9 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   }
 }
 
-/** Commission folder: ~/Documents/<app>/<commissions>/<date>-<time>-<name> (folder names come from the locale). */
-export function commissionDir(documentsDir: string, name: string, now = new Date()): string {
+/** One folder per commission inside the work folder: <date>-<time>-<name>. */
+export function commissionDir(workRoot: string, name: string, now = new Date()): string {
   const date = now.toISOString().slice(0, 10);
   const stamp = now.toISOString().slice(11, 19).replace(/:/g, '');
-  return join(documentsDir, ...strings.app.commissionRoot, `${date}-${stamp}-${name}`);
+  return join(workRoot, `${date}-${stamp}-${name}`);
 }

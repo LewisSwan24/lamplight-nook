@@ -79,3 +79,22 @@ html, body { margin: 0; height: 100%; background: #1b1712; overflow: hidden; fon
 .parcel.expanded .parcel-body { max-height: none; }
 .replay-badge { position: absolute; left: 12px; top: 12px; background: rgba(0, 0, 0, 0.6); color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 13px; }
 #debug summary { cursor: pointer; font-weight: bold; }
+
+/* Setup: welcome, settings, not-ready notice */
+.welcome input, .settings input { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 6px; margin-top: 8px; border-radius: 8px; border: 1px solid #c9b79f; background: #fffdf8; }
+.env-rows { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.env-row { display: grid; grid-template-columns: 1.2em 1fr; align-items: baseline; }
+.env-rows .recheck { text-align: right; }
+.env-row .mark { font-weight: bold; width: 1em; }
+.env-row.ok .mark { color: #4f7a3a; }
+.env-row.missing .mark { color: var(--accent); }
+button.link { border: none; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.hint { font-size: 13px; opacity: 0.75; margin-top: 6px; }
+.folder-row .path { font-family: Consolas, monospace; font-size: 13px; word-break: break-all; background: #fffdf8; border: 1px solid #e3d5c0; border-radius: 6px; padding: 4px 6px; margin-top: 4px; }
+.folder-row .actions { margin-top: 6px; }
+.settings { width: min(480px, 92vw); max-height: 86vh; overflow: auto; }
+.settings section { margin-top: 10px; }
+.settings h4 { margin: 0 0 2px; font-size: 14px; opacity: 0.8; }
+.settings .about { font-size: 13px; }
+.corner-btn { position: absolute; left: 10px; bottom: 10px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(59, 42, 30, 0.4); background: rgba(251, 244, 230, 0.75); color: var(--ink); font-size: 17px; line-height: 1; cursor: pointer; opacity: 0.6; }
+.corner-btn:hover, .corner-btn:focus { opacity: 1; }
