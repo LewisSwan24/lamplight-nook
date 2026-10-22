@@ -3,7 +3,7 @@ import type { ActorId, AiEvent, CharacterCommand } from '../../shared/types';
 import type { CafeScene } from '../game/CafeScene';
 import { Director } from '../translator/director';
 import { toLineBook } from '../translator/lines';
-import { Translator } from '../translator/translator';
+import { type TranslateContext, Translator } from '../translator/translator';
 import { type ActorInfo, type BoardStep, renderBoard, showParcel } from '../ui/panels';
 import { onRuleBookChange, ruleBook } from './rulebook';
 
@@ -50,6 +50,11 @@ export class Stage {
       this.translator.reload(b.rules, b.anims);
       this.director.setLines(toLineBook(b.lines));
     });
+  }
+
+  /** Before a commission or replay starts: what it is about, and what memory may bring up. */
+  setCommission(ctx: TranslateContext) {
+    this.translator.setContext(ctx);
   }
 
   actorInfo(actor: ActorId): ActorInfo {
