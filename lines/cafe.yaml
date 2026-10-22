@@ -124,6 +124,12 @@ idle_mutter:
   - { id: idle_xiaoju_02, speaker: xiaoju, bubbles: ["这本书我看过三遍了。"] }
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["……歪了。"] }
 
+# Long commissions (over 20 minutes): Adeng says how it is going, at most every 10 minutes. Taken in turn.
+progress:
+  - { id: progress_01, speaker: adeng, bubbles: ["做了{minutes}分钟了。", "{done}步做完，还剩{left}步。"] }
+  - { id: progress_02, speaker: adeng, bubbles: ["还在{doing}。", "没忘，你忙你的。"] }
+  - { id: progress_03, speaker: adeng, bubbles: ["慢是慢了点。", "不过一直在往前走。"] }
+
 app_open:
   - { id: open_01, speaker: adeng, bubbles: ["{name}，来啦。"] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}，来啦。", "上次那个{lastCommission}还好用吗？"] }

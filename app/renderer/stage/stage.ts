@@ -37,6 +37,8 @@ export class Stage {
   private owner = new Map<ActorId, ActorId>();
   private info = new Map<ActorId, ActorInfo>();
   private board: BoardStep[] = [];
+  /** The window is hidden or minimized: skip the acting and keep the shop's state current (see skip). */
+  catchingUp = false;
   /** Playback speed multiplier (replays run faster). */
   speed = 1;
   /** Called with every event, live or replayed (the detail strip listens here). */
@@ -55,6 +57,12 @@ export class Stage {
   /** Before a commission or replay starts: what it is about, and what memory may bring up. */
   setCommission(ctx: TranslateContext) {
     this.translator.setContext(ctx);
+  }
+
+  /** How far the commission has got, from the blackboard: steps done, steps left, the step under way. */
+  progress(): { done: number; left: number; doing?: string } {
+    const done = this.board.filter((s) => s.status === 'done').length;
+    return { done, left: this.board.length - done, doing: this.board.find((s) => s.status === 'doing')?.label };
   }
 
   actorInfo(actor: ActorId): ActorInfo {
@@ -119,6 +127,7 @@ export class Stage {
     const info = this.info.get(actor) ?? emptyInfo();
     this.info.set(actor, info);
     info.state = cmd.state;
+    if (this.catchingUp) return this.skip(cmd, info);
     const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
     if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
     this.scene.play(actor, cmd.anim);
@@ -143,6 +152,24 @@ export class Stage {
       await this.scene.walkTo(actor, 'door');
     }
     this.timers.set(actor, setTimeout(() => this.done(actor), (turns.length && !goingOut ? SPEAK_MS : ACTION_MS) / this.speed));
+  }
+
+  /**
+   * While the window is out of sight, nothing is acted out: characters are put where the command sends
+   * them and the lines go straight to the caption log, so coming back shows the shop as it is now.
+   */
+  private skip(cmd: CharacterCommand, info: ActorInfo) {
+    const { actor } = cmd;
+    for (const [who, owner] of [...this.owner]) if (owner === actor) this.hide(actor, who);
+    if (cmd.moveTo) this.scene.place(actor, cmd.moveTo);
+    this.scene.play(actor, cmd.anim);
+    const vars = cmd.line?.vars ?? {};
+    const said = (text: string | undefined, who: ActorId) => text?.split('\n').forEach((b) => this.scene.onSay?.(who, fillLine(b, vars)));
+    said(vars._text, (vars._speaker as ActorId) || actor);
+    said(vars._reply, vars._replyBy as ActorId);
+    if (vars._text && ((vars._speaker as ActorId) || actor) === actor) info.lastLine = fillLine(vars._text.replace(/\n/g, ''), vars);
+    // A microtask, not a timer: timers in a hidden window are throttled and would let commands pile up.
+    void Promise.resolve().then(() => this.done(actor));
   }
 
   private done(actor: ActorId) {

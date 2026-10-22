@@ -465,6 +465,20 @@ export class CafeScene extends Phaser.Scene {
     if (anchor === 'door' && actorId !== 'cat' && !actor.outside) await this.leave(actor);
   }
 
+  /** Put a character at an anchor at once, without walking (catching up after the window was hidden). */
+  place(actorId: ActorId, anchor: AnchorId) {
+    const actor = this.actors.get(actorId);
+    if (!actor) return;
+    actor.tween?.stop();
+    const spot = standPoint(anchor, actorId);
+    actor.at = anchor;
+    actor.outside = anchor === 'door' && actorId !== 'cat';
+    actor.sprite.setPosition(spot.x, spot.y).setDepth(spot.y).setAlpha(actor.outside ? 0 : 1);
+    actor.facing = spot.facing;
+    actor.pose = this.poseAt(actor.pose, actor);
+    this.hold(actor);
+  }
+
   labels(): LabelPos[] {
     // Names appear only on hover; the art shows who is who and what each place is.
     const zones = ZONES.filter((z) => z.id === this.hovered).map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
