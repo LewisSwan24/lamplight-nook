@@ -3,6 +3,7 @@ import type { EnvStatus, LamplightApi, Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closePanel, replaceOpen } from './panels';
 import { el } from './dom';
+import { showNotebook } from './notebook';
 import { withPortrait } from './portraits';
 
 const S = strings.ui.setup;
@@ -124,6 +125,9 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, strings.ui.access.sectionLabel), accessRows(api, settings, onChange)),
+    el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
+      el('div.hint', {}, strings.ui.notebook.sectionText),
+      el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
     el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
     el('section.about', {},
       el('h4', {}, S.aboutLabel),
