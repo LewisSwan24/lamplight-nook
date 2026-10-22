@@ -41,6 +41,8 @@ export function demoPrompt(form: CommissionForm): string {
   return [
     `The user's request: ${form.want}`,
     '',
+    'Before using any tool, state your plan as a numbered list of exactly three steps: research, write the page, check it.',
+    '',
     'Follow these steps in order:',
     '1. Send the researcher subagent to find out what simple, good-looking expense-tracking pages usually contain. Keep it short.',
     '2. Write two quick layout sketches as draft-1.html and draft-2.html.',

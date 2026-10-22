@@ -112,6 +112,8 @@ export class EventNormalizer {
   /** tool_use_ids already counted as failures, so a hook and a tool_result don't double-count. */
   private failedIds = new Set<string>();
   private finished = false;
+  /** A question or permission card is open: the agent is waiting on the user, not working or thinking. */
+  private waitingForUser = false;
   /** The main agent has started working (used a tool or sent someone out). */
   private workStarted = false;
   private readonly thinkingGapMs: number;
@@ -149,12 +151,16 @@ export class EventNormalizer {
       this.finish();
       emit('cancelled', 'main');
     }
+    for (const o of out) {
+      if (o.kind === 'ask_user' || o.kind === 'permission') this.waitingForUser = true;
+      if (o.kind === 'decision') this.waitingForUser = false;
+    }
     return out;
   }
 
   /** Time-based events: inferred thinking and long-running shell commands. */
   tick(now: number): AiEvent[] {
-    if (this.finished || this.lastAt === 0) return [];
+    if (this.finished || this.lastAt === 0 || this.waitingForUser) return [];
     const out: AiEvent[] = [];
     const make = (kind: AiEventKind, agent: Agent, extra: Partial<AiEvent> = {}): AiEvent => ({
       id: `ev${++this.seq}`, t: now, kind, agent, plain: plainOf(kind, extra.tool, extra.target), ...extra,
