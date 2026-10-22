@@ -1,5 +1,6 @@
 # Builds the Windows installer and attaches it to a GitHub release.
-# Push a tag like v0.1.0 to publish, or run it by hand from the Actions tab to get the installer as a build artifact.
+# Publishes when a tag like v0.1.0 is pushed, or when run by hand from the Actions tab
+# (the release is then tagged with the version in package.json).
 name: release
 
 on:
@@ -28,8 +29,9 @@ jobs:
           name: windows-installer
           path: dist/*.exe
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.exe --title "Lamplight Nook $GITHUB_REF_NAME" --generate-notes
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then tag="$GITHUB_REF_NAME"; else tag="v$(node -p "require('./package.json').version")"; fi
+          gh release create "$tag" dist/*.exe --target "$GITHUB_SHA" --title "Lamplight Nook $tag" --generate-notes

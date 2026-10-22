@@ -56,8 +56,8 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 
 `.github/workflows/release.yml` builds the installer on a Windows runner (typecheck, tests, `npm run dist`).
 
-- Push a tag such as `v0.1.0` to create a GitHub release with `Lamplight-Nook-Setup-<version>.exe` attached.
-- Or run the workflow by hand from the Actions tab; the installer is kept as a build artifact.
+- Run the workflow from the Actions tab, or push a tag such as `v0.1.0`.
+- It creates a GitHub release with `Lamplight-Nook-Setup-<version>.exe` attached, tagged with the pushed tag or with the version in `package.json`. Bump the version before each release.
 
 The installer is not code-signed yet, so Windows SmartScreen asks for confirmation ("More info", then "Run anyway").
 The installed app needs the same credentials as development: `ANTHROPIC_API_KEY`, or `LAMPLIGHT_DEV_SUBSCRIPTION=1` on a machine signed in to Claude Code.
