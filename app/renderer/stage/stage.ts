@@ -31,6 +31,8 @@ export class Stage {
   private board: BoardStep[] = [];
   /** Playback speed multiplier (replays run faster). */
   speed = 1;
+  /** Called with every event, live or replayed (the detail strip listens here). */
+  onEvent: (e: AiEvent) => void = () => {};
 
   constructor(private scene: CafeScene, opts: { brief?: string } = {}) {
     const book = ruleBook();
@@ -47,6 +49,7 @@ export class Stage {
   }
 
   handle(e: AiEvent) {
+    this.onEvent(e);
     if (e.kind === 'session_start') {
       this.director.resetCommission();
       this.info.clear();

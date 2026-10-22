@@ -25,7 +25,8 @@ export function closePanel() {
 }
 
 /** Card shown when a character is clicked. */
-export function showActorCard(actor: ActorId, info: ActorInfo) {
+/** Detailed mode opens the raw record straight away. */
+export function showActorCard(actor: ActorId, info: ActorInfo, detailed = false) {
   const state = (strings.states as Record<string, string>)[info.state] ?? info.state;
   replaceOpen(el('div.card.paper.actor-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
@@ -33,7 +34,7 @@ export function showActorCard(actor: ActorId, info: ActorInfo) {
     info.lastLine ? el('div.quote', {}, `\u201C${info.lastLine}\u201D`) : null,
     info.doing ? el('div', {}, el('b', {}, U.doingNow), info.doing) : null,
     el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)),
-    info.raw.length ? el('details', {}, el('summary', {}, U.raw), el('pre', {}, info.raw.slice(-30).join('\n'))) : null,
+    info.raw.length ? el('details', { open: detailed }, el('summary', {}, U.raw), el('pre', {}, info.raw.slice(-30).join('\n'))) : null,
   ));
 }
 
