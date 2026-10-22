@@ -105,6 +105,16 @@ failed:
   - { id: failed_02, speaker: adeng, bubbles: ["没弄成。", "卡在{stuckAt}，我记下了。"] }
   - { id: failed_03, speaker: adeng, bubbles: ["今天先到这儿。", "问题我写在本子上了。"] }
 
+net_retry:
+  - { id: net_retry_01, speaker: adeng, bubbles: ["外面好像断电了，我等等再试。"] }
+  - { id: net_retry_02, speaker: adeng, bubbles: ["电话没打通，我再拨一次。"] }
+  - { id: net_retry_03, speaker: adeng, bubbles: ["门外没人应，过会儿再敲。"] }
+
+cancelled:
+  - { id: cancelled_01, speaker: adeng, bubbles: ["好，那先放着。"] }
+  - { id: cancelled_02, speaker: adeng, bubbles: ["行，做好的都留着。"] }
+  - { id: cancelled_03, speaker: adeng, bubbles: ["好，先不做了。"] }
+
 idle_mutter:
   - { id: idle_adeng, speaker: adeng, bubbles: ["杯子又多了一道缝。"] }
   - { id: idle_xiaoju, speaker: xiaoju, bubbles: ["明天想吃桂花糕。"] }

@@ -91,7 +91,30 @@ export type RunOptions = {
   preexisting?: Set<string>;
   /** Abort the run (the user cancelled the commission or closed the app). */
   abort?: AbortController;
+  /** Continue an earlier SDK session (retry after a network failure, or after the app closed mid-commission). */
+  resume?: string;
+  /** Called once the SDK reports the session id, so the run can be resumed later. */
+  onSession?: (sessionId: string) => void;
 };
+
+/**
+ * Why a run did not finish, as the user needs to hear it: the network, a busy or rate-limited service,
+ * the account's billing, the key itself, or the work itself.
+ */
+export type FailureKind = 'net' | 'busy' | 'billing' | 'auth' | 'failed';
+
+const NET_TEXT = /ECONN|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|network|fetch failed|socket hang up|connection error/i;
+
+export function failureKind(apiError: string | undefined, text: string): FailureKind {
+  if (apiError === 'billing_error' || apiError === 'account_on_hold') return 'billing';
+  if (apiError === 'authentication_failed' || apiError === 'oauth_org_not_allowed' || apiError === 'verification_required') return 'auth';
+  if (apiError === 'rate_limit' || apiError === 'overloaded' || apiError === 'server_error') return 'busy';
+  if (/credit balance|billing/i.test(text)) return 'billing';
+  if (/invalid (x-)?api.?key|authentication_error|\b401\b/i.test(text)) return 'auth';
+  if (/rate.?limit|overloaded|\b(429|500|502|503|529)\b/i.test(text)) return 'busy';
+  if (NET_TEXT.test(text)) return 'net';
+  return 'failed';
+}
 
 export { isInside };
 
@@ -107,7 +130,7 @@ export function hasCredentials(env: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -154,6 +177,9 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         record({ source: 'permission', name: toolName, payload: { input, result, risk, reason, agent_id: opts.agentID } });
         return result;
       };
+  // The SDK may throw on an error result, so what it reported before that is kept outside the try.
+  let apiError: string | undefined;
+  let resultText = '';
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
 
   try {
@@ -172,16 +198,26 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         abortController: abort,
         canUseTool,
         pathToClaudeCodeExecutable: claude ?? undefined,
+        resume,
       },
     })) {
       record({ source: 'message', name: message.type, payload: message });
-      if (message.type === 'result') ok = message.subtype === 'success';
+      if (message.type === 'system' && message.subtype === 'init') onSession?.(message.session_id);
+      if (message.type === 'assistant' && message.error) apiError = message.error;
+      if (message.type === 'result') {
+        ok = message.subtype === 'success' && !message.is_error;
+        resultText = JSON.stringify('errors' in message ? message.errors : message.result);
+      }
     }
-    return { ok, recordingPath, workDir };
+    return ok ? { ok, recordingPath, workDir } : { ok, recordingPath, workDir, error: failureKind(apiError, resultText) };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
+    if (abort?.signal.aborted) {
+      record({ source: 'runner', name: 'cancelled', payload: {} });
+      return { ok: false, recordingPath, workDir, error: 'cancelled' };
+    }
     record({ source: 'runner', name: 'error', payload: { error } });
-    return { ok: false, recordingPath, workDir, error };
+    return { ok: false, recordingPath, workDir, error: failureKind(apiError, `${error}\n${resultText}`) };
   } finally {
     clearInterval(ticker);
   }
