@@ -59,6 +59,16 @@ export class Stage {
     this.translator.setContext(ctx);
   }
 
+  /** A meeting: new commands wait instead of moving anyone. */
+  holdStill() {
+    this.director.freeze();
+  }
+
+  /** The meeting is over: play each character's latest command, dropping stale ones. */
+  carryOn() {
+    for (const cmd of this.director.unfreeze()) void this.perform(cmd);
+  }
+
   /** How far the commission has got, from the blackboard: steps done, steps left, the step under way. */
   progress(): { done: number; left: number; doing?: string } {
     const done = this.board.filter((s) => s.status === 'done').length;

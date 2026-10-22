@@ -99,6 +99,11 @@ export class Director {
     return out;
   }
 
+  /** Hold everyone where they are (a meeting at the big table); unfreeze() picks up from the current state. */
+  freeze() {
+    this.frozen = true;
+  }
+
   isFrozen() {
     return this.frozen;
   }

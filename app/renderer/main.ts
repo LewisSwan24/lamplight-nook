@@ -13,6 +13,7 @@ import { pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
+import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { showFailure, showPending, showRunning } from './ui/run';
@@ -132,6 +133,39 @@ function sayProgress() {
   void stage.talk(turns);
 }
 
+// A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
+// says goes to the running commission. Nobody moves for the work while the meeting lasts.
+const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi'];
+let meetingOpen = false;
+let meetingCount = 0;
+function sayFrom(group: string, k = 0) {
+  const lines = ruleBook().lines[group] ?? [];
+  const turns = pickLine([...lines.slice(k % Math.max(1, lines.length)), ...lines.slice(0, k % Math.max(1, lines.length))], [], {});
+  const present = (turns ?? []).filter((t) => scene.anchorOf(t.speaker) !== null);
+  return present.length ? stage.talk(present) : Promise.resolve();
+}
+async function meeting() {
+  if (!running || meetingOpen) return;
+  meetingOpen = true;
+  sfx('ding');
+  stage.holdStill();
+  const here = STAFF.filter((a) => scene.anchorOf(a) !== null);
+  const before = new Map(here.map((a) => [a, scene.anchorOf(a)!]));
+  void sayFrom('meeting_call', meetingCount);
+  // The card opens straight away; everyone gathers at the table meanwhile.
+  const gathered = Promise.all(here.map((a) => scene.walkTo(a, 'table')));
+  const note = await showMeeting();
+  await gathered;
+  const heard = note ? await window.lamplight.addNote(note) : false;
+  if (note) void sayFrom(heard ? 'meeting_heard' : 'meeting_late', meetingCount);
+  meetingCount++;
+  stage.carryOn();
+  // Whoever no command has sent elsewhere goes back to where they were.
+  for (const [a, spot] of before) if (scene.anchorOf(a) === 'table' && spot !== 'table') void scene.walkTo(a, spot);
+  meetingOpen = false;
+}
+scene.onBellClick = () => void meeting();
+
 // Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
 const syncVisibility = () => { stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
@@ -153,6 +187,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   runStartedAt = Date.now();
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
+  scene.setBell(true);
   try {
     const r = await start();
     if (!r) return;
@@ -162,6 +197,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   } finally {
     running = null;
     scene.setFormWaiting(true);
+    scene.setBell(false);
   }
 }
 async function newCommission() {
@@ -244,7 +280,9 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   if (debug) {
     const api = window.lamplight;
     const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm };
-    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay } });
+    // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
+    const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; scene.setFormWaiting(!on); scene.setBell(on); };
+    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning } });
   }
   const env = $('env');
   env.textContent = [

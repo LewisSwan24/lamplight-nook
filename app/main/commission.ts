@@ -29,6 +29,16 @@ export function commissionPrompt(form: CommissionForm, notes?: string): string {
   return withNotes(`${lines.join('\n')}\n\n${HOUSE_RULES}`, notes);
 }
 
+/** What the user said in a meeting, sent to the running commission. */
+export function meetingNote(text: string): string {
+  return [
+    'The user called the staff together for a quick word and adds this to the commission:',
+    `"${text}"`,
+    'Take it into account from now on. If it changes something you already made, update that too.',
+    REPLY_LANGUAGE,
+  ].join('\n');
+}
+
 /**
  * Prompt for a commission that stopped part-way (network failure, crash, app closed).
  * With the earlier session resumed the agent has its own history; without it, it starts over from the folder.
