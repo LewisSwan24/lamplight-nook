@@ -174,7 +174,8 @@
       "version": "小灯屋 {version}",
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》",
       "creditLink": "limezu.itch.io",
-      "greetBack": "{name}，来啦。"
+      "greetBack": "{name}，来啦。",
+      "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）"
     },
     "run": {
       "runningTitle": "正在做：{want}",

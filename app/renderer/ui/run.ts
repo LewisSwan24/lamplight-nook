@@ -20,7 +20,7 @@ export function showRunning(api: LamplightApi, want: string) {
   const note = el('div', {}, R.runningText);
   replaceOpen(el('div.card.paper.running-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    withPortrait('adeng', 'calm', el('div.card-title', {}, fill(R.runningTitle, { want })), note),
+    withPortrait('adeng', 'calm', el('div.card-title', {}, fill(R.runningTitle, { want })), el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), note)),
     actions,
   ));
   ask();
