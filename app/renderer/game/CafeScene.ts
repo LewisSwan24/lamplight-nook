@@ -9,6 +9,7 @@ import laoshiUrl from '../../../assets/sprites/laoshi.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import type { ActorId, AnchorId, Bubble } from '../../shared/types';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
+import { LOOKS, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -18,6 +19,11 @@ const CORNER_PAUSE_MS = 90;
 /** Top-left of the door sprite; the doorway behind it is painted into cafe.png (scripts/art/scene.py, DOOR). */
 const DOOR_POS = { x: 288, y: 16 };
 const DOOR_MS = 260;
+/** The window panes in cafe.png (scripts/art/scene.py) and the colours of their glass, which takes the sky's colour. */
+const WINDOW_PANES = [{ x: 18, y: 12, w: 24, h: 18 }, { x: 54, y: 12, w: 24, h: 18 }];
+const GLASS = new Set(['216,208,224', '235,228,242', '248,248,248']);
+/** How long the room takes to change its light when the hour turns a new period. */
+const DAYLIGHT_MS = 4000;
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FORM_POS = { x: 224, y: 57 };
 
@@ -55,6 +61,11 @@ export class CafeScene extends Phaser.Scene {
   /** The blank commission form on the counter; it glows softly while it waits to be filled in. */
   private form!: Phaser.GameObjects.Graphics;
   private formGlow?: Phaser.Tweens.Tween;
+  /** Time-of-day layers: a tint over the room, the sky in the window glass, and the lamp glows with their base strength. */
+  private shade!: Phaser.GameObjects.Rectangle;
+  private sky!: Phaser.GameObjects.Image;
+  private glows: { img: Phaser.GameObjects.Image; base: number; sun: boolean }[] = [];
+  period: Period = 'day';
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
@@ -119,6 +130,7 @@ export class CafeScene extends Phaser.Scene {
       this.scheduleIdle(actor);
     }
     this.addLight();
+    this.addDaylight();
   }
 
   update() {
@@ -169,7 +181,7 @@ export class CafeScene extends Phaser.Scene {
     if (on) this.formGlow = this.tweens.add({ targets: this.form, alpha: 0.55, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
-  /** Warm pools of light from the window, the counter and the floor lamp; additive so they only brighten. */
+  /** Warm pools of light from the window, the counter, the floor lamp and the wall lamp; additive so they only brighten. */
   private addLight() {
     const size = 128;
     const tex = this.textures.createCanvas('glow', size, size)!;
@@ -180,11 +192,68 @@ export class CafeScene extends Phaser.Scene {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, size, size);
     tex.refresh();
-    const glow = (x: number, y: number, r: number, alpha: number) =>
-      this.add.image(x, y, 'glow').setDisplaySize(r * 2, r * 2).setAlpha(alpha).setBlendMode(Phaser.BlendModes.ADD).setDepth(1000);
-    glow(48, 60, 56, 0.22);
+    const glow = (x: number, y: number, r: number, alpha: number, sun = false) => {
+      const img = this.add.image(x, y, 'glow').setDisplaySize(r * 2, r * 2).setAlpha(alpha).setBlendMode(Phaser.BlendModes.ADD).setDepth(1000);
+      this.glows.push({ img, base: alpha, sun });
+    };
+    glow(48, 60, 56, 0.22, true);
     glow(243, 70, 48, 0.18);
     glow(278, 146, 36, 0.2);
+    glow(207, 34, 20, 0.12);
+  }
+
+  /**
+   * The light follows the system clock: a colour multiplied over the room, the sky showing in the
+   * window glass, and lamps that glow brighter after dark. Checked again at every whole hour.
+   */
+  private addDaylight() {
+    // A mask of the glass pixels, so the sky colour lands on the panes and nowhere else.
+    const src = this.textures.get('cafe').getSourceImage() as HTMLImageElement;
+    const tex = this.textures.createCanvas('glass', src.width, src.height)!;
+    const ctx = tex.getContext();
+    ctx.drawImage(src, 0, 0);
+    const img = ctx.getImageData(0, 0, src.width, src.height);
+    const mask = ctx.createImageData(src.width, src.height);
+    for (const p of WINDOW_PANES) {
+      for (let y = p.y; y < p.y + p.h; y++) {
+        for (let x = p.x; x < p.x + p.w; x++) {
+          const i = (y * src.width + x) * 4;
+          if (!GLASS.has(`${img.data[i]},${img.data[i + 1]},${img.data[i + 2]}`)) continue;
+          mask.data.fill(255, i, i + 4);
+        }
+      }
+    }
+    ctx.clearRect(0, 0, src.width, src.height);
+    ctx.putImageData(mask, 0, 0);
+    tex.refresh();
+    this.sky = this.add.image(0, 0, 'glass').setOrigin(0).setDepth(0.5).setAlpha(0);
+    this.shade = this.add.rectangle(0, 0, src.width, src.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.setPeriod(periodAt(new Date().getHours()), true);
+    const tick = () => this.time.delayedCall(msToNextHour(new Date()) + 1000, () => {
+      this.setPeriod(periodAt(new Date().getHours()));
+      tick();
+    });
+    tick();
+  }
+
+  /** Change the light to a time of day, fading over a few seconds unless `now`. */
+  setPeriod(period: Period, now = false) {
+    const look = LOOKS[period];
+    const from = LOOKS[this.period];
+    this.period = period;
+    const apply = (t: number) => {
+      const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 1, t);
+      const tint = mix(from.tint, look.tint);
+      this.shade.setFillStyle(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
+      const sky = mix(from.sky, look.sky);
+      this.sky.setTint(Phaser.Display.Color.GetColor(sky.r, sky.g, sky.b)).setAlpha(from.skyAlpha + (look.skyAlpha - from.skyAlpha) * t);
+      const lamps = from.lamps + (look.lamps - from.lamps) * t;
+      const sun = from.sun + (look.sun - from.sun) * t;
+      for (const g of this.glows) g.img.setAlpha(Math.min(1, g.base * (g.sun ? sun : lamps)));
+    };
+    if (now) return apply(1);
+    this.tweens.addCounter({ from: 0, to: 1, duration: DAYLIGHT_MS, onUpdate: (tw) => apply(tw.getValue() ?? 1) });
   }
 
   /** Play the actor's current pose at its current facing. */
