@@ -13,7 +13,7 @@ export type RawAgentEvent = {
   payload: unknown;
 };
 
-export type EnvStatus = { hasApiKey: boolean };
+export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean };
 
 export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string };
 
