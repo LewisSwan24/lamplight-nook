@@ -1,5 +1,6 @@
 import { strings } from '../../shared/i18n';
 import type { DecisionRequest } from '../../shared/types';
+import { setSerious, sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { withPortrait } from './portraits';
 
@@ -14,9 +15,11 @@ export const CONFIRM_DELAY_MS = 1000;
 export function showDecision(req: DecisionRequest): Promise<string> {
   return new Promise((resolve) => {
     const backdrop = el('div.backdrop');
+    const serious = req.kind === 'serious';
     const close = (choice: string) => {
       document.removeEventListener('keydown', onKey, true);
       backdrop.remove();
+      if (serious) setSerious(false);
       resolve(choice);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -32,6 +35,9 @@ export function showDecision(req: DecisionRequest): Promise<string> {
     document.addEventListener('keydown', onKey, true);
     backdrop.append(req.kind === 'serious' ? seriousCard(req, close) : dialog(req, close));
     layer().append(backdrop);
+    // Serious mode: the music stops and a single alert is the only sound.
+    if (serious) setSerious(true);
+    sfx(serious ? 'serious' : 'ask');
     backdrop.querySelector<HTMLButtonElement>('button.default')?.focus();
   });
 }
