@@ -70,6 +70,8 @@ export type TranslateContext = {
   brief?: string;
   /** Conditions from memory: has_memory / has_stuck_note. */
   flags?: string[];
+  /** Values from memory for lines that use them: lastChoice, stuckNote. */
+  vars?: Record<string, string>;
 };
 
 /**
@@ -80,6 +82,11 @@ export class Translator {
   readonly states = new StateMachine();
 
   constructor(private rules: Rule[], private anims: AnimTable, private ctx: TranslateContext = {}) {}
+
+  /** A new commission (or a replay): its brief and what memory brings to it. */
+  setContext(ctx: TranslateContext) {
+    this.ctx = ctx;
+  }
 
   /** Hot reload: swap rules and the animation table without touching current states. */
   reload(rules: Rule[], anims: AnimTable) {
@@ -120,7 +127,7 @@ export class Translator {
       cmd.line = {
         group: spec.lines,
         // Variable names match the placeholders used in lines/cafe.yaml.
-        vars: { target, file: target, topic: target, question: target, choice: target, brief: this.ctx.brief ?? strings.defaults.brief },
+        vars: { ...this.ctx.vars, target, file: target, topic: target, question: target, choice: target, brief: this.ctx.brief ?? strings.defaults.brief },
         flags: [...(this.ctx.flags ?? []), ...(e.kind === 'subagent_stop' ? reviewFlags(e.target) : [])],
       };
       if (spec.own_lines) cmd.line.speaker = actor;

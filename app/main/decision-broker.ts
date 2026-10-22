@@ -9,6 +9,9 @@ export class DecisionBroker {
   private seq = 0;
   private pending = new Map<string, { req: DecisionRequest; resolve: (choice: string) => void }>();
 
+  /** Told about every answer the user gives (not the automatic ones from cancelAll). */
+  onAnswered?: (req: DecisionRequest, choice: string) => void;
+
   constructor(private send: (req: DecisionRequest) => void) {}
 
   ask(req: Omit<DecisionRequest, 'id'>): Promise<string> {
@@ -24,6 +27,7 @@ export class DecisionBroker {
     const p = this.pending.get(id);
     if (!p || !p.req.options.some((o) => o.id === choice)) return false;
     this.pending.delete(id);
+    this.onAnswered?.(p.req, choice);
     p.resolve(choice);
     return true;
   }

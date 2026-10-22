@@ -3,11 +3,12 @@
 # {name} placeholders are filled at runtime. `when` is an optional condition checked by the translator.
 # Saved changes hot-reload in dev mode; `npm test` lints every line against the writing rules.
 
+# Lines that bring up memory come first, so they win whenever their condition holds (at most one per commission).
 opening:
+  - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["{brief}……嗯，好。", "上回在{stuckNote}卡过一次。", "这次我先盯着点。"] }
+  - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["{brief}……嗯，好。", "上次你选了{lastChoice}。", "这次也照这个来？"] }
   - { id: opening_01, speaker: adeng, bubbles: ["{brief}……嗯，好。", "小橘，老石，来活儿了。"] }
   - { id: opening_02, speaker: adeng, bubbles: ["是要{brief}吧？", "我先泡壶茶，你坐。", "我们从哪儿开始呢。"] }
-  - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["上次你说喜欢简单一点的。", "这次也照这个来？"] }
-  - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["上回这种页面，{stuckNote}卡过一次。", "这次我先盯着点。"] }
   - { id: opening_xiaoju_01, speaker: xiaoju, bubbles: ["新委托？我先把围巾放下！"] }
 
 planning:
@@ -124,8 +125,8 @@ idle_mutter:
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["……歪了。"] }
 
 app_open:
-  - { id: open_01, speaker: adeng, bubbles: ["来啦。"] }
-  - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["来啦。", "上次那个{lastCommission}还好用吗？"] }
+  - { id: open_01, speaker: adeng, bubbles: ["{name}，来啦。"] }
+  - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}，来啦。", "上次那个{lastCommission}还好用吗？"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["来啦。怎么称呼你？"] }
 
 app_close:

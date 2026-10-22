@@ -2,12 +2,13 @@ import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
+import { pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
@@ -143,7 +144,14 @@ async function newCommission() {
   const form = await showCommissionForm();
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
+  await prepare(form);
   await run(form.want, () => window.lamplight.startCommission(form));
+}
+
+/** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
+async function prepare(form: CommissionForm) {
+  const brief = form.demo ? strings.demo.brief : [...form.want].slice(0, 10).join('');
+  stage.setCommission({ brief, ...(await window.lamplight.recallForCommission(form)) });
 }
 scene.onCounterClick = () => void newCommission();
 
@@ -165,6 +173,12 @@ const greet = (text: string) => {
   scene.say('adeng', text);
   setTimeout(() => scene.say('adeng', null), 3500);
 };
+/** Welcome back, bringing up the last commission once if there is one to ask about. */
+async function greetBack(name: string) {
+  const { flags, vars } = await window.lamplight.recallOnOpen();
+  const turns = pickLine(ruleBook().lines.app_open ?? [], flags, { ...vars, name });
+  if (turns) void stage.talk(turns);
+}
 async function openShop() {
   const api = window.lamplight;
   let settings = await api.getSettings();
@@ -175,11 +189,11 @@ async function openShop() {
     settings = await showWelcome(api, settings, await api.envStatus());
     greet(fill(S.greet, { name: settings.name }));
   } else if (settings.name) {
-    setTimeout(() => greet(fill(S.greetBack, { name: settings.name })), 1200);
+    setTimeout(() => void greetBack(settings.name), 1200);
   }
   // A commission left unfinished when the app last closed.
   const left = await api.pendingCommission();
-  if (left) showPending(api, left, () => void run(left.want, () => api.resumePending()));
+  if (left) showPending(api, left, () => void prepare(left).then(() => run(left.want, () => api.resumePending())));
 }
 void openShop();
 
@@ -255,6 +269,8 @@ $('preview-cards').addEventListener('click', async () => {
 let cancelReplay = () => {};
 function startReplay(speed = 3) {
   cancelReplay();
+  // The bundled recording is a stranger's commission: nothing from this user's memory applies.
+  stage.setCommission({ brief: strings.demo.brief });
   const raw: RawAgentEvent[] = replayText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l));
   const events = normalizeAll(raw);
   append(`replay: ${events.length} events at ${speed}x`);
