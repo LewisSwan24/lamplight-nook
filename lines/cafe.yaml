@@ -119,6 +119,9 @@ idle_mutter:
   - { id: idle_adeng, speaker: adeng, bubbles: ["杯子又多了一道缝。"] }
   - { id: idle_xiaoju, speaker: xiaoju, bubbles: ["明天想吃桂花糕。"] }
   - { id: idle_laoshi, speaker: laoshi, bubbles: ["嗯。"] }
+  - { id: idle_adeng_02, speaker: adeng, bubbles: ["明天进点新茶叶。"] }
+  - { id: idle_xiaoju_02, speaker: xiaoju, bubbles: ["这本书我看过三遍了。"] }
+  - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["……歪了。"] }
 
 app_open:
   - { id: open_01, speaker: adeng, bubbles: ["来啦。"] }
