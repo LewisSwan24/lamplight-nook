@@ -17,6 +17,7 @@ const api: LamplightApi = {
   openLink: (link) => ipcRenderer.invoke(IPC.openLink, link),
   appVersion: () => ipcRenderer.invoke(IPC.appVersion),
   relaunch: () => ipcRenderer.invoke(IPC.relaunch),
+  legalNotices: () => ipcRenderer.invoke(IPC.legalNotices),
   saveApiKey: (key) => ipcRenderer.invoke(IPC.saveApiKey, key),
   clearApiKey: () => ipcRenderer.invoke(IPC.clearApiKey),
   spendThisMonth: () => ipcRenderer.invoke(IPC.spendThisMonth),

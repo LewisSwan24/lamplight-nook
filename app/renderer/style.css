@@ -238,3 +238,13 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .claude-steps .watching { opacity: 0.7; font-style: italic; }
 .notice-card { width: min(560px, 92vw); }
 .trial-offer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(122, 82, 54, 0.35); font-size: 14px; }
+/* Privacy, terms and licenses: a reading sheet over whatever card is open. */
+.legal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: 20; }
+.card.legal { width: min(600px, 92vw); }
+.legal-body { max-height: calc(80vh - 110px); overflow: auto; padding-right: 8px; }
+.legal-text p { margin: 0 0 8px; font-size: 14px; }
+.legal-text h5 { margin: 12px 0 4px; font-family: var(--hand); font-size: 17px; font-weight: normal; }
+.legal-text p:first-child { opacity: 0.7; font-size: 12px; }
+pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; line-height: 1.45; margin: 0; font-family: Consolas, 'Courier New', monospace; }
+.legal-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; }
+.legal-line { margin-top: 10px; }
