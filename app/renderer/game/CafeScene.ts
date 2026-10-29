@@ -6,12 +6,15 @@ import clockUrl from '../../../assets/sprites/clock.png';
 import cupUrl from '../../../assets/sprites/cup.png';
 import doorUrl from '../../../assets/sprites/door.png';
 import laoshiUrl from '../../../assets/sprites/laoshi.png';
+import streetUrl from '../../../assets/sprites/street.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble } from '../../shared/types';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
+import { StreetView } from './StreetView';
+import { INSET } from './street';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
 const SHEETS: Record<ActorId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, cat: catUrl };
@@ -78,6 +81,10 @@ export class CafeScene extends Phaser.Scene {
   private sky!: Phaser.GameObjects.Image;
   private glows: { img: Phaser.GameObjects.Image; base: number; sun: boolean }[] = [];
   period: Period = 'day';
+  /** The colour currently laid over the room, which the street inset takes too. */
+  private tintColor = 0xffffff;
+  /** The street outside, shown in an inset while someone is out on an errand. */
+  private street!: StreetView;
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
@@ -85,6 +92,8 @@ export class CafeScene extends Phaser.Scene {
   onBellClick: () => void = () => {};
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
+  /** The street inset opened or closed (the page moves what sits in that corner). */
+  onStreet?: (open: boolean) => void;
   /** Every line said out loud, for the caption log. */
   onSay?: (actor: ActorId, text: string) => void;
 
@@ -94,6 +103,7 @@ export class CafeScene extends Phaser.Scene {
 
   preload() {
     this.load.image('cafe', cafeUrl);
+    this.load.image('street', streetUrl);
     for (const id of STAFF_IDS) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     this.load.spritesheet('cat', SHEETS.cat, { frameWidth: CAT_FRAME.width, frameHeight: CAT_FRAME.height });
     this.load.spritesheet('clock', clockUrl, { frameWidth: 16, frameHeight: 32 });
@@ -135,10 +145,14 @@ export class CafeScene extends Phaser.Scene {
       this.scheduleIdle(actor);
     }
     this.addLight();
+    this.street = new StreetView(this);
+    this.street.onClick = (id) => this.onActorClick(id);
+    this.street.onOpen = (open) => this.onStreet?.(open);
     this.addDaylight();
   }
 
   update() {
+    this.street.update();
     // Shadows follow their characters; the cat's sits under its body, which is drawn left of centre.
     for (const a of this.actors.values()) {
       a.shadow.setPosition(a.sprite.x + (a.id === 'cat' ? 3 : 0), a.sprite.y - 1).setDepth(a.sprite.depth - 0.5).setAlpha(0.28 * a.sprite.alpha);
@@ -220,6 +234,7 @@ export class CafeScene extends Phaser.Scene {
 
   setReducedMotion(on: boolean) {
     this.reducedMotion = on;
+    if (this.street) this.street.reducedMotion = on;
     if (this.form?.visible) this.setFormWaiting(true);
   }
 
@@ -295,7 +310,9 @@ export class CafeScene extends Phaser.Scene {
       const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
         Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 1, t);
       const tint = mix(from.tint, look.tint);
-      this.shade.setFillStyle(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b));
+      this.tintColor = Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b);
+      this.shade.setFillStyle(this.tintColor);
+      this.street?.setTint(this.tintColor);
       const sky = mix(from.sky, look.sky);
       this.sky.setTint(Phaser.Display.Color.GetColor(sky.r, sky.g, sky.b)).setAlpha(from.skyAlpha + (look.skyAlpha - from.skyAlpha) * t);
       const lamps = from.lamps + (look.lamps - from.lamps) * t;
@@ -359,6 +376,8 @@ export class CafeScene extends Phaser.Scene {
       return this.onBellClick();
     }
     const actor = this.actors.get(target);
+    // Someone out on an errand can still be clicked in the street inset.
+    if (actor?.outside && this.street.who === target) return this.onActorClick(target);
     if (!actor || actor.outside) return;
     this.react(actor);
     this.onActorClick(target);
@@ -372,7 +391,8 @@ export class CafeScene extends Phaser.Scene {
       return { id: a.id, x: b.x, y: b.y, w: b.width, h: b.height };
     });
     const bell = this.bell.visible ? [{ id: 'bell' as const, x: BELL_POS.x - 1, y: BELL_POS.y - 2, w: 9, h: 9 }] : [];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, ...people];
+    const out = this.street.open && this.street.who ? [{ id: this.street.who, x: INSET.x, y: INSET.y, w: INSET.w, h: INSET.h }] : [];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, ...people, ...out];
   }
 
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */
@@ -418,10 +438,12 @@ export class CafeScene extends Phaser.Scene {
     await new Promise<void>((r) => this.tweens.add({ targets: actor.sprite, y: actor.sprite.y - 8, alpha: 0, duration: 420, onComplete: () => r() }));
     actor.outside = true;
     this.closeDoor();
+    this.street.goOut(actor.id, this.tintColor);
   }
 
   /** Come back in through the door, facing into the room. */
   private async enter(actor: Actor) {
+    await this.street.comeBack(actor.id);
     const spot = standPoint('door', actor.id);
     actor.sprite.setPosition(spot.x, spot.y - 8).setAlpha(0).setDepth(spot.y);
     await this.openDoor();
@@ -455,6 +477,11 @@ export class CafeScene extends Phaser.Scene {
       }
       this.scheduleIdle(actor);
     });
+  }
+
+  /** Someone out on an errand starts a new piece of work: in the street inset she heads for the shop it belongs to. */
+  errand(actorId: ActorId, tool?: string) {
+    if (this.actors.get(actorId)?.outside) this.street.errand(actorId, tool);
   }
 
   /** Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). */
@@ -529,6 +556,7 @@ export class CafeScene extends Phaser.Scene {
     const spot = standPoint(anchor, actorId);
     actor.at = anchor;
     actor.outside = anchor === 'door' && actorId !== 'cat';
+    this.street.place(actorId, actor.outside, this.tintColor);
     actor.sprite.setPosition(spot.x, spot.y).setDepth(spot.y).setAlpha(actor.outside ? 0 : 1);
     actor.facing = spot.facing;
     actor.pose = this.poseAt(actor.pose, actor);
@@ -543,11 +571,13 @@ export class CafeScene extends Phaser.Scene {
       const { sprite, height } = this.actors.get(a.id)!;
       return { key: `a-${a.id}`, text: a.name, x: sprite.x, y: sprite.y - height - 1, kind: 'actor' as const };
     });
-    // Someone out on an errand can't be heard in the shop.
-    const bubbles = ACTORS.filter((a) => this.speech.has(a.id) && !this.actors.get(a.id)!.outside).map((a) => {
-      const { sprite, height } = this.actors.get(a.id)!;
+    // Someone out on an errand can't be heard in the shop, but her mood shows over her in the street inset.
+    const bubbles = ACTORS.filter((a) => this.speech.has(a.id)).flatMap((a) => {
+      const { sprite, height, outside } = this.actors.get(a.id)!;
       const { text, icon } = this.speech.get(a.id)!;
-      return { key: `b-${a.id}`, text, icon, x: sprite.x, y: sprite.y - height - 2, kind: 'bubble' as const };
+      if (!outside) return [{ key: `b-${a.id}`, text, icon, x: sprite.x, y: sprite.y - height - 2, kind: 'bubble' as const }];
+      const head = this.street.who === a.id ? this.street.headPos(height) : null;
+      return head && icon ? [{ key: `b-${a.id}`, text: '', icon, x: head.x, y: head.y, kind: 'bubble' as const }] : [];
     });
     return [...zones, ...actors, ...bubbles];
   }

@@ -188,6 +188,7 @@ document.addEventListener('visibilitychange', syncVisibility);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 scene.onSound = sfx;
 scene.onSay = recordLine;
+scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 window.lamplight.onDecision(async (req) => {

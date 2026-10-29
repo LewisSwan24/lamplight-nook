@@ -96,6 +96,8 @@ export class Stage {
     this.track(e);
     // The connection dropped: the lamps flicker twice while Adeng waits to try again.
     if (e.kind === 'net_retry' && !this.catchingUp) this.scene.flickerLamps();
+    // Work done while out on an errand: the street inset shows her going to the shop it belongs to.
+    if (e.kind === 'tool_start' && e.agent !== 'main' && !this.catchingUp) this.scene.errand(AGENT_ACTOR[e.agent], e.tool);
     // The user answered: release the freeze before the reactions are queued.
     if (e.kind === 'decision') for (const cmd of this.director.unfreeze()) void this.perform(cmd);
     for (const cmd of this.translator.translate(e)) {
