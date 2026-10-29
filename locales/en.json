@@ -384,7 +384,7 @@
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
       "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); a record of each commission; the last 7 days of the app's log; crash records.",
-      "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook). You can clear the notebook in Settings, and after uninstalling you can delete that folder to remove everything.",
+      "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook; the Microsoft Store version keeps it in the app's own storage, which Windows removes when you uninstall). You can clear the notebook in Settings. If you installed from the setup file, delete that folder after uninstalling to remove everything.",
       "What the staff make goes in the commission folder you chose, and it is yours.",
       "# What is sent to Anthropic",
       "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",
