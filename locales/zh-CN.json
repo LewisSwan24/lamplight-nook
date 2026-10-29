@@ -18,6 +18,10 @@
     "laoshi": "老石",
     "cat": "栗子"
   },
+  "animals": {
+    "dog": "麦芽",
+    "hens": "母鸡"
+  },
   "zones": {
     "window": "窗台",
     "board": "小黑板",
@@ -305,7 +309,8 @@
       "hotspotCat": "{name}：摸摸它",
       "hotspotBell": "开会铃：叫大家到大桌边说两句",
       "hotspotGarden": "后门：看看后院",
-      "hotspotShop": "后门：回店里"
+      "hotspotShop": "后门：回店里",
+      "hotspotHens": "母鸡：撒把米"
     },
     "notebook": {
       "sectionLabel": "阿灯的小本子",

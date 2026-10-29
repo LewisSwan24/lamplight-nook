@@ -25,7 +25,7 @@ export const GARDEN_DOOR_SPOT = { x: 160, y: 56 } as const;
 /** The row in front of the planters and flower beds where everyone walks across the lawn. */
 const LAWN_ROW = 126;
 
-export type SpotId = 'veg' | 'flowers' | 'bench' | 'lawn' | 'sun';
+export type SpotId = 'veg' | 'flowers' | 'bench' | 'lawn' | 'hens' | 'sun';
 
 export type GardenSpot = {
   id: SpotId;
@@ -44,7 +44,9 @@ export const SPOTS: GardenSpot[] = [
   { id: 'flowers', x: 140, y: 128, facing: 'down', anim: 'lift', who: ['xiaoju', 'adeng'] },
   { id: 'bench', x: 296, y: 112, facing: 'left', anim: 'sit', who: ['adeng', 'laoshi'] },
   { id: 'lawn', x: 208, y: 140, facing: 'down', anim: 'read', who: ['adeng', 'xiaoju'] },
-  { id: 'sun', x: 184, y: 96, facing: 'down', anim: 'lie', who: ['cat'] },
+  // Scattering grain for the hens in front of the henhouse (game/animals.ts).
+  { id: 'hens', x: 206, y: 106, facing: 'up', anim: 'pick_up', who: ['xiaoju', 'adeng'] },
+  { id: 'sun', x: 122, y: 100, facing: 'down', anim: 'lie', who: ['cat'] },
 ];
 
 /** In the shop: from wherever someone stands to the back door, along the aisle and up the gap between the table and the counter. */

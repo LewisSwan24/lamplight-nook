@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import adengUrl from '../../../assets/sprites/adeng.png';
 import cafeUrl from '../../../assets/sprites/cafe.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
+import dogUrl from '../../../assets/sprites/dog.png';
+import dogSleepUrl from '../../../assets/sprites/dog-sleep.png';
+import hensUrl from '../../../assets/sprites/hens.png';
 import catUrl from '../../../assets/sprites/cat.png';
 import clockUrl from '../../../assets/sprites/clock.png';
 import cupUrl from '../../../assets/sprites/cup.png';
@@ -26,6 +29,7 @@ import { StreetView } from './StreetView';
 import { HOLIDAYS, SKIES, WeatherLayer } from './WeatherLayer';
 import { INSET, VIEW } from './street';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
+import { DOG_FRAME, HEN_FRAME } from './animals';
 import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -52,8 +56,8 @@ const BELL_POS = { x: 216, y: 57 };
 /** A brass service bell, 7x6: k knob, g brass, h highlight, s shade, b wooden base. */
 const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
-/** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in. */
-export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor';
+/** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
+export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens';
 
 type Actor = {
   id: ActorId;
@@ -136,6 +140,9 @@ export class CafeScene extends Phaser.Scene {
     this.load.image('cafe', cafeUrl);
     this.load.image('street', streetUrl);
     this.load.image('garden', gardenUrl);
+    this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
+    this.load.spritesheet('dog-sleep', dogSleepUrl, { frameWidth: 32, frameHeight: 48 });
+    this.load.spritesheet('hens', hensUrl, { frameWidth: HEN_FRAME.width, frameHeight: HEN_FRAME.height });
     for (const h of HOLIDAYS) this.load.image(`decor-${h}`, DECOR_URLS[h]);
     for (const s of SKIES) this.load.image(`weather-${s}`, WEATHER_URLS[s]);
     for (const id of STAFF_IDS) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
@@ -184,6 +191,7 @@ export class CafeScene extends Phaser.Scene {
     this.garden = new GardenView(this);
     this.garden.onDoorClick = () => this.activate('shopdoor');
     this.garden.onActorClick = (id) => this.onActorClick(id);
+    this.garden.onAnimalClick = (what) => this.activate(what);
     this.street.onOpen = (open) => {
       this.weather?.setOutdoorsVisible(open);
       this.onStreet?.(open);
@@ -349,6 +357,8 @@ export class CafeScene extends Phaser.Scene {
       { area: garden, mask: gardenMask, depth: GARDEN_WEATHER_DEPTH },
     ]);
     this.weather.setReducedMotion(this.reducedMotion);
+    // The hour first, so today's weather (and the animals) start out right for it.
+    this.period = periodAt(new Date().getHours());
     this.followCalendar(new Date());
     this.setPeriod(periodAt(new Date().getHours()), true);
     const tick = () => this.time.delayedCall(msToNextHour(new Date()) + 1000, () => {
@@ -383,6 +393,7 @@ export class CafeScene extends Phaser.Scene {
     const look = withWeather(LOOKS[period], this.weather?.sky ?? 'clear');
     const from = fromLook ?? withWeather(LOOKS[this.period], this.weather?.sky ?? 'clear');
     this.period = period;
+    this.garden?.setOutdoors(this.weather?.sky ?? 'clear', period);
     const apply = (t: number) => {
       const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
         Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 1, t);
@@ -439,7 +450,7 @@ export class CafeScene extends Phaser.Scene {
   highlight(target: Target | null) {
     if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
     this.glow = undefined;
-    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor'].includes(target) ? this.actors.get(target as ActorId) : undefined;
+    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor', 'dog', 'hens'].includes(target) ? this.actors.get(target as ActorId) : undefined;
     if (actor?.outside || actor?.inGarden) target = null;
     this.hovered = target;
     const fx = actor && target ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
@@ -451,6 +462,8 @@ export class CafeScene extends Phaser.Scene {
     if (target === 'counter') return this.onCounterClick();
     if (target === 'backdoor') return this.showGarden();
     if (target === 'shopdoor') return this.showShop();
+    if (target === 'dog') return this.garden.animals.pat();
+    if (target === 'hens') return this.garden.animals.scatterGrain();
     if (target === 'bell') {
       if (!this.bell.visible) return;
       this.ringBell();
@@ -768,10 +781,18 @@ export class CafeScene extends Phaser.Scene {
     const door = this.garden.hovered === 'door' || this.hovered === 'shopdoor'
       ? [{ key: 'z-shop', text: strings.zones.shop, x: GARDEN_DOOR.x + 8, y: GARDEN_DOOR.y - 2, kind: 'zone' as const }]
       : [];
+    const { animals } = this.garden;
+    const dog = animals.dogHead();
+    const hens = animals.hensHead();
+    const names = [
+      ...(this.garden.hovered === 'dog' || this.hovered === 'dog' ? [{ key: 'a-dog', text: strings.animals.dog, x: dog.x, y: dog.y - 1, kind: 'actor' as const }] : []),
+      ...((this.garden.hovered === 'hens' || this.hovered === 'hens') && hens ? [{ key: 'a-hens', text: strings.animals.hens, x: hens.x, y: hens.y - 1, kind: 'actor' as const }] : []),
+    ];
+    const pat = animals.bubble ? [{ key: 'b-dog', text: '', icon: animals.bubble.icon, x: dog.x, y: dog.y - 2, kind: 'bubble' as const }] : [];
     const bubbles = this.garden.heads().filter((h) => this.speech.has(h.id)).map((h) => {
       const { text, icon } = this.speech.get(h.id)!;
       return { key: `b-${h.id}`, text, icon, x: h.x, y: h.y, kind: 'bubble' as const };
     });
-    return [...door, ...bubbles];
+    return [...door, ...names, ...pat, ...bubbles];
   }
 }

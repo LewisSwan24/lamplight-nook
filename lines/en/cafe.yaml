@@ -198,6 +198,13 @@ garden:
   - { id: garden_lawn_adeng_02, speaker: adeng, when: spot_lawn, bubbles: ["Someone folded this page.", "Clem did."] }
   - { id: garden_lawn_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["Reading on the grass is the best."] }
   - { id: garden_lawn_xiaoju_02, speaker: xiaoju, when: spot_lawn, bubbles: ["There's an ant on my book."] }
+  - { id: garden_hens_xiaoju, speaker: xiaoju, when: spot_hens, bubbles: ["Chook chook chook. Dinner."] }
+  - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["Two eggs today.", "One for Wick, one for me."] }
+  - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["One, two, three. All here."] }
+  - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["No shoving. There's plenty."] }
+  - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["Malt, come sit."] }
+  - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["Malt, don't lick my book."] }
+  - { id: garden_dog_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["Malt.", "No digging."] }
   - { id: garden_snow_xiaoju, speaker: xiaoju, when: sky_snow, bubbles: ["Made a snowman. Looks like Flint."] }
   - { id: garden_snow_adeng, speaker: adeng, when: sky_snow, bubbles: ["Snow on the cabbages."] }
   - { id: garden_snow_laoshi, speaker: laoshi, when: sky_snow, bubbles: ["Slippery."] }

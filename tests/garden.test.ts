@@ -156,11 +156,10 @@ describe('what people say out in the garden', () => {
   it('brings up the weather first, then the spot, without repeating until all are said', () => {
     const talk = new GardenTalk(0, seeded(3));
     const out = [{ id: 'laoshi' as const, spot: 'veg' as const }];
-    const said: string[] = [];
-    for (let i = 1; i <= 3; i++) said.push(talk.next(i * GARDEN_TALK_MS[1], lines, out, 'snow')!.line!.id);
-    expect(said[0]).toBe('garden_snow_laoshi');
-    expect(new Set(said).size).toBe(3);
-    expect(said.slice(1).every((id) => id.startsWith('garden_veg_laoshi'))).toBe(true);
+    const said = [1, 2, 3, 4].map((i) => talk.next(i * GARDEN_TALK_MS[1], lines, out, 'snow')!.line!);
+    expect(said[0].id).toBe('garden_snow_laoshi');
+    expect(new Set(said.map((l) => l.id)).size).toBe(4);
+    expect(said.slice(1).every((l) => l.when === 'spot_veg')).toBe(true);
   });
 
   it('lets the cat doze instead of talking', () => {

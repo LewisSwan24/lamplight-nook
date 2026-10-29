@@ -44,9 +44,15 @@ FLOWERS = [
     ('ME_Singles_City_Props_16x16_Flower_Bush_1.png', (112, 136)),
     ('ME_Singles_City_Props_16x16_Flower_Bush_3.png', (132, 138)),
     ('ME_Singles_City_Props_16x16_Flower_Bush_5.png', (152, 136)),
-    ('ME_Singles_City_Props_16x16_Flowers_1.png', (200, 72)),
+    ('ME_Singles_City_Props_16x16_Flowers_1.png', (112, 48)),
     ('ME_Singles_City_Props_16x16_Flowers_3.png', (96, 64)),
 ]
+# The animals' homes (app/renderer/game/animals.ts): a henhouse against the wall right of the path,
+# Malt's doghouse in the corner beyond the tree, with a bowl.
+FARM_SINGLES = FARM / 'Single_Files_16x16/Props_and_Buildings_16x16'
+HENHOUSE = ('Henhouse_16x16.png', (172, 22))
+DOGHOUSE = ('Doghouse_16x16.png', (284, 42))
+BOWL = ('Dog_Bowl_Red_Full_16x16.png', (266, 82))
 # Grass tufts and a fence along the bottom.
 TUFTS = [(453, 17, 460, 30), (469, 17, 476, 30), (389, 21, 396, 29), (452, 38, 460, 44), (468, 38, 476, 44), (404, 53, 411, 59)]
 FENCE = (288, 96, 391, 120)
@@ -77,6 +83,8 @@ def build():
         for j in range(2):
             veg = crops.crop(VEG[(i * 2 + j) % len(VEG)])
             img.alpha_composite(veg, (x + 2 + j * 14, y + 14 - veg.height))
+    for name, pos in [HENHOUSE, DOGHOUSE, BOWL]:
+        img.alpha_composite(Image.open(FARM_SINGLES / name).convert('RGBA'), pos)
     for name, pos in [TREE, BENCH, *FLOWERS]:
         img.alpha_composite(single(name), pos)
     fence = fences.crop(FENCE)

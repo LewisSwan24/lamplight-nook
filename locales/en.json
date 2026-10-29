@@ -18,6 +18,10 @@
     "laoshi": "Flint",
     "cat": "Chestnut"
   },
+  "animals": {
+    "dog": "Malt",
+    "hens": "The hens"
+  },
   "zones": {
     "window": "the windowsill",
     "board": "the blackboard",
@@ -305,7 +309,8 @@
       "hotspotCat": "{name}: give her a pat",
       "hotspotBell": "Meeting bell: call everyone to the big table",
       "hotspotGarden": "Back door: look out at the garden",
-      "hotspotShop": "Back door: go back inside"
+      "hotspotShop": "Back door: go back inside",
+      "hotspotHens": "The hens: toss them some grain"
     },
     "notebook": {
       "sectionLabel": "Wick's notebook",

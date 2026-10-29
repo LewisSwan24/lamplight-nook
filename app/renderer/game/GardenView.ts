@@ -1,9 +1,12 @@
 import Phaser from 'phaser';
 import type { ActorId } from '../../shared/types';
+import type { Period } from './daytime';
+import { GardenAnimals } from './GardenAnimals';
 import { GARDEN_DOOR, GARDEN_DOOR_SPOT, GARDEN_X, type GardenSpot, type SpotId, pathInGarden } from './garden';
 import { CANVAS } from './layout';
 import { WALK_SPEED } from './life';
 import { STAFF_ANIMS, animKey, facingTowards } from './sprites';
+import type { Sky } from './weather';
 
 /** One-off chores (picking, watering) are done again every few seconds. */
 const CHORE_EVERY_MS = [2500, 4500] as const;
@@ -20,8 +23,11 @@ export class GardenView {
   private visitors = new Map<ActorId, Visitor>();
   onDoorClick: () => void = () => {};
   onActorClick: (actor: ActorId) => void = () => {};
-  /** What the pointer is over: the door shows its name. */
-  hovered: 'door' | null = null;
+  onAnimalClick: (what: 'dog' | 'hens') => void = () => {};
+  /** What the pointer is over: the door and the animals show their names. */
+  hovered: 'door' | 'dog' | 'hens' | null = null;
+  /** Malt and the hens, who live out here. */
+  readonly animals: GardenAnimals;
 
   constructor(private scene: Phaser.Scene) {
     scene.add.image(GARDEN_X, 0, 'garden').setOrigin(0);
@@ -31,12 +37,18 @@ export class GardenView {
       .on('pointerdown', () => this.onDoorClick())
       .on('pointerover', () => (this.hovered = 'door'))
       .on('pointerout', () => (this.hovered = null));
+    this.animals = new GardenAnimals(scene, GARDEN_X, (what) => this.onAnimalClick(what), (what) => (this.hovered = what));
     // The garden's own share of the time-of-day light.
     this.shade = scene.add.rectangle(GARDEN_X, 0, CANVAS.width, CANVAS.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
   }
 
   setTint(color: number) {
     this.shade.setFillStyle(color);
+  }
+
+  /** The weather and the hour, which send the animals in and out. */
+  setOutdoors(sky: Sky, period: Period) {
+    this.animals.setOutdoors(sky, period);
   }
 
   has(actor: ActorId): boolean {
@@ -72,6 +84,7 @@ export class GardenView {
     const v = this.visitors.get(actor);
     if (!v) return;
     v.settled = false;
+    this.tellAnimals();
     v.chore?.remove();
     if (quick) return this.remove(actor);
     v.walk?.stop();
@@ -93,9 +106,11 @@ export class GardenView {
     v.sprite.destroy();
     v.shadow.destroy();
     this.visitors.delete(actor);
+    this.tellAnimals();
   }
 
   update() {
+    this.animals.update();
     for (const v of this.visitors.values()) v.shadow.setPosition(v.sprite.x + (v.id === 'cat' ? 3 : 0), v.sprite.y - 1);
   }
 
@@ -104,17 +119,18 @@ export class GardenView {
     return [...this.visitors.values()].map((v) => ({ id: v.id, x: v.sprite.x - GARDEN_X, y: v.sprite.y - (v.id === 'cat' ? 12 : 30) - 2 }));
   }
 
-  hotspots(): { id: ActorId | 'door'; x: number; y: number; w: number; h: number }[] {
+  hotspots(): { id: ActorId | 'door' | 'dog' | 'hens'; x: number; y: number; w: number; h: number }[] {
     const people = [...this.visitors.values()].map((v) => {
       const b = v.sprite.getBounds();
       return { id: v.id, x: b.x - GARDEN_X, y: b.y, w: b.width, h: b.height };
     });
-    return [{ id: 'door' as const, x: GARDEN_DOOR.x, y: GARDEN_DOOR.y, w: 16, h: 32 }, ...people];
+    return [{ id: 'door' as const, x: GARDEN_DOOR.x, y: GARDEN_DOOR.y, w: 16, h: 32 }, ...this.animals.hotspots(), ...people];
   }
 
   /** Arrived: do what this spot is for. */
   private settle(v: Visitor) {
     v.settled = true;
+    this.tellAnimals(v);
     v.sprite.setDepth(v.sprite.y);
     if (v.id === 'cat') {
       v.sprite.play('cat-lie', true);
@@ -123,6 +139,18 @@ export class GardenView {
     const def = STAFF_ANIMS[v.spot.anim];
     v.sprite.play(animKey(v.id, v.spot.anim, v.spot.facing), true);
     if (def && def.repeat === 0) this.choreLater(v);
+  }
+
+  /**
+   * Malt keeps someone company (whoever just settled, else anyone still out here) and the hens crowd
+   * round whoever is scattering grain. `arrived`: Malt barks hello first.
+   */
+  private tellAnimals(arrived?: Visitor) {
+    const settled = [...this.visitors.values()].filter((v) => v.settled);
+    const company = arrived ?? settled.at(-1);
+    this.animals.setCompany(company ? { x: company.spot.x, y: company.spot.y } : null, !!arrived);
+    const feeder = settled.find((v) => v.spot.id === 'hens');
+    this.animals.setFeeder(feeder ? { x: feeder.spot.x, y: feeder.spot.y } : null);
   }
 
   /** Between two goes at a chore, stand and look at the work. */

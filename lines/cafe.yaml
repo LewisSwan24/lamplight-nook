@@ -198,6 +198,13 @@ garden:
   - { id: garden_lawn_adeng_02, speaker: adeng, when: spot_lawn, bubbles: ["这一页折过角。", "是小橘折的。"] }
   - { id: garden_lawn_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["草地上看书最舒服了。"] }
   - { id: garden_lawn_xiaoju_02, speaker: xiaoju, when: spot_lawn, bubbles: ["有只蚂蚁爬到书上了。"] }
+  - { id: garden_hens_xiaoju, speaker: xiaoju, when: spot_hens, bubbles: ["咕咕咕，开饭了。"] }
+  - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["今天下了两个蛋。", "一个给阿灯，一个给我。"] }
+  - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["一、二、三，都在。"] }
+  - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["别抢，人人有份。"] }
+  - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["麦芽，过来坐。"] }
+  - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["麦芽，别舔我的书。"] }
+  - { id: garden_dog_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["麦芽。", "别刨。"] }
   - { id: garden_snow_xiaoju, speaker: xiaoju, when: sky_snow, bubbles: ["我堆了个小雪人，像老石。"] }
   - { id: garden_snow_adeng, speaker: adeng, when: sky_snow, bubbles: ["雪落在菜叶上了。"] }
   - { id: garden_snow_laoshi, speaker: laoshi, when: sky_snow, bubbles: ["地滑。"] }
