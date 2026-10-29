@@ -64,8 +64,8 @@ waiting:
   - { id: wait_03, speaker: adeng, bubbles: ["窗外好像要下雨了。"] }
 
 ask:
-  - { id: ask_01, speaker: adeng, bubbles: ["有件事想问你。", "{question}"] }
   - { id: ask_color, speaker: adeng, when: demo_color, bubbles: ["奶油白和浅薄荷，我纠结半天了。", "你觉得哪个更像你要的？"] }
+  - { id: ask_01, speaker: adeng, bubbles: ["有件事想问你。", "{question}"] }
   - { id: ask_02, speaker: adeng, bubbles: ["这里有两种做法。", "你更想要哪种？"] }
 
 react_adopted:

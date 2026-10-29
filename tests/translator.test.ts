@@ -109,6 +109,18 @@ describe('translation: cases not in the recording', () => {
     expect(show({ kind: 'subagent_stop', agent: 'unknown' })).toEqual(['xiaoju:returning@counter/sub_back_xiaoju']);
   });
 
+  it('the demo colour question gets its own line; other questions get the general one', () => {
+    const ask = (flags: string[]) => {
+      const t = new Translator(rules, anims, { flags });
+      t.translate(ev({ kind: 'session_start' }));
+      t.translate(ev({ kind: 'tool_start', tool: 'Write' }));
+      const cmd = t.translate(ev({ kind: 'ask_user', tool: 'AskUserQuestion', target: 'Main color?' })).find((c) => c.line?.group === 'ask')!;
+      return new Director(toLineBook(lines)).submit(cmd)?.line?.vars._id;
+    };
+    expect(ask(['demo_color'])).toBe('ask_color');
+    expect(ask([])).toBe('ask_01');
+  });
+
   it('a refused call (a secret or a system folder) gets its own line, not the serious-card one', () => {
     const t = new Translator(rules, anims);
     t.translate(ev({ kind: 'session_start' }));

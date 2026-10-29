@@ -30,6 +30,8 @@ export class Stage {
   private translator: Translator;
   private director: Director;
   private timers = new Map<ActorId, ReturnType<typeof setTimeout>>();
+  /** Counts each actor's commands, so an older one still playing knows it has been replaced. */
+  private runs = new Map<ActorId, number>();
   /**
    * Whose command each showing bubble belongs to (speaker -> command actor). Adeng can speak in Xiaoju's
    * command, so Adeng's own command finishing must not clear that line.
@@ -135,6 +137,11 @@ export class Stage {
    */
   private async perform(cmd: CharacterCommand) {
     const { actor } = cmd;
+    // A newer command for this actor (a higher priority one, or what follows an answered card) takes over:
+    // this one stops before its next walk or bubble, so a question isn't still being asked after the answer.
+    const run = (this.runs.get(actor) ?? 0) + 1;
+    this.runs.set(actor, run);
+    const replaced = () => this.runs.get(actor) !== run;
     clearTimeout(this.timers.get(actor));
     const info = this.info.get(actor) ?? emptyInfo();
     this.info.set(actor, info);
@@ -142,6 +149,7 @@ export class Stage {
     if (this.catchingUp) return this.skip(cmd, info);
     const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
     if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
+    if (replaced()) return;
     this.scene.play(actor, cmd.anim);
     const sound = ACTION_SOUNDS[cmd.action ?? cmd.anim ?? ''];
     if (sound) this.scene.onSound?.(sound);
@@ -154,15 +162,18 @@ export class Stage {
     let last: ActorId | undefined;
     for (const [i, t] of turns.entries()) {
       if (i) await this.wait(SPEAK_MS);
+      if (replaced()) return;
       if (last && last !== t.who) this.hide(actor, last);
       this.show(actor, t.who, t.text, t.who === actor ? cmd.bubble : undefined);
       last = t.who;
     }
     if (goingOut) {
       if (turns.length) await this.wait(SPEAK_MS);
+      if (replaced()) return;
       if (last) this.hide(actor, last);
       await this.scene.walkTo(actor, 'door');
     }
+    if (replaced()) return;
     this.timers.set(actor, setTimeout(() => this.done(actor), (turns.length && !goingOut ? SPEAK_MS : ACTION_MS) / this.speed));
   }
 

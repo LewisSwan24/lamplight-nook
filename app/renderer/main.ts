@@ -215,7 +215,9 @@ async function newCommission() {
 /** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
 async function prepare(form: CommissionForm) {
   const brief = form.demo ? strings.demo.brief : [...form.want].slice(0, 10).join('');
-  stage.setCommission({ brief, ...(await window.lamplight.recallForCommission(form)) });
+  const recall = await window.lamplight.recallForCommission(form);
+  // The demo's one question is the colour question, which has its own line.
+  stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
 }
 scene.onCounterClick = () => void newCommission();
 
