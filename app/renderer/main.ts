@@ -17,6 +17,7 @@ import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showWelcome } from './ui/setup';
 import { emoteEl } from './ui/emotes';
@@ -38,6 +39,8 @@ const game = new Phaser.Game({
   backgroundColor: '#1b1712',
   scene,
   scale: { mode: Phaser.Scale.NONE },
+  // Starts the frame limiter; the pacer below moves it between 30 and 15.
+  fps: { limit: ACTIVE_FPS },
 });
 
 // Integer zoom keeps pixels crisp; leftover space stays dark.
@@ -166,6 +169,15 @@ async function meeting() {
   meetingOpen = false;
 }
 scene.onBellClick = () => void meeting();
+
+// Frame pacing: 30 a second while anything is going on, 15 once the shop has been quiet for a while.
+let lastInput = Date.now();
+for (const type of ['pointerdown', 'pointermove', 'keydown', 'wheel']) window.addEventListener(type, () => { lastInput = Date.now(); }, { passive: true, capture: true });
+const pace = () => {
+  const fps = framesPerSecond({ busy: running !== null, sinceInputMs: Date.now() - lastInput });
+  if (game.loop.fpsLimit !== fps) applyFps(game.loop as unknown as Loop, fps);
+};
+setInterval(pace, 5000);
 
 // Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
 const syncVisibility = () => { stage.catchingUp = document.hidden; };
