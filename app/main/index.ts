@@ -1,14 +1,14 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings, type SourcePick } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude } from './claude-locator';
-import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, snapshot } from './commission';
+import { EDITABLE, MAX_EDIT_BYTES, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, snapshot } from './commission';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
@@ -238,11 +238,27 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   }
 }
 
+// Files and folders the user picked in a dialog this session: the only sources a commission may use.
+const picked = new Set<string>();
+ipcMain.handle(IPC.chooseSource, async (_e, kind: 'edit' | 'tidy'): Promise<SourcePick | null> => {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, kind === 'tidy'
+    ? { properties: ['openDirectory'] }
+    : { properties: ['openFile'], filters: [{ name: strings.ui.templates.edit, extensions: EDITABLE }] });
+  const path = r.canceled ? undefined : r.filePaths[0];
+  if (!path) return null;
+  if (kind === 'edit' && statSync(path).size > MAX_EDIT_BYTES) return { error: 'too-big' };
+  picked.add(path);
+  return { path, name: basename(path) };
+});
+
 ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<RunResult> => {
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
+  if (form.source && !picked.has(form.source)) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   const workDir = commissionDir(settings.get().workRoot, commissionTitle(form));
   mkdirSync(workDir, { recursive: true });
   if (form.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
+  prepareSource(workDir, form);
   return runJob({ form, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
 });
 

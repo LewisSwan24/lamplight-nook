@@ -219,7 +219,7 @@ async function newCommission() {
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
   if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial);
-  const form = await showCommissionForm();
+  const form = await showCommissionForm(window.lamplight);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
@@ -295,7 +295,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   // Handles for driving the scene from dev tools and screenshot scripts.
   if (debug) {
     const api = window.lamplight;
-    const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm };
+    const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm: () => showCommissionForm(api) };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; scene.setFormWaiting(!on); scene.setBell(on); };
     Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning } });
