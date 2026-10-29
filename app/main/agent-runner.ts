@@ -18,6 +18,7 @@ import { Recorder } from './recorder';
 import { classify } from './risk-classifier';
 import { locateClaude } from './claude-locator';
 import { InputQueue } from './input-queue';
+import { agentEnv, type Credentials } from './api-key';
 
 /** The two subagents. Their names map directly to characters (researcher -> Xiaoju, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -98,6 +99,8 @@ export type RunOptions = {
   onSession?: (sessionId: string) => void;
   /** Hands over a way to add to the running commission (a meeting note); it returns false once it is too late. */
   onInput?: (add: (text: string) => boolean) => void;
+  /** The API key (or dev subscription) to run with; null when there is none. */
+  credentials: Credentials | null;
 };
 
 /** After a result, how long the session stays open in case the agent picks up a note sent just before. */
@@ -127,16 +130,8 @@ export { isInside };
 /** Built-in tools available to the agents. Everything else (workflows, cron, MCP...) is off. */
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite'];
 
-/**
- * Developers may test locally with their own signed-in Claude Code subscription (LAMPLIGHT_DEV_SUBSCRIPTION=1).
- * Builds shipped to other people must use an API key.
- */
-export function hasCredentials(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(env.ANTHROPIC_API_KEY) || env.LAMPLIGHT_DEV_SUBSCRIPTION === '1';
-}
-
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInput }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInput, credentials }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -147,7 +142,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     sendAi(normalizer.push(raw));
   };
 
-  if (!hasCredentials()) {
+  if (!credentials) {
     record({ source: 'runner', name: 'no_api_key', payload: {} });
     return { ok: false, recordingPath, workDir, error: 'no_api_key' };
   }
@@ -213,6 +208,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         abortController: abort,
         canUseTool,
         pathToClaudeCodeExecutable: claude ?? undefined,
+        env: agentEnv(credentials, process.env),
         resume,
       },
     })) {

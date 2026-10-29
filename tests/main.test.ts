@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { commissionDir, hasCredentials, interimPermission, isInside } from '../app/main/agent-runner';
+import { commissionDir, interimPermission, isInside } from '../app/main/agent-runner';
 import { Recorder, truncateDeep } from '../app/main/recorder';
 import { strings } from '../app/shared/i18n';
 
@@ -51,10 +51,3 @@ describe('interim permissions', () => {
   });
 });
 
-describe('credentials', () => {
-  it('requires an API key or dev subscription mode', () => {
-    expect(hasCredentials({})).toBe(false);
-    expect(hasCredentials({ ANTHROPIC_API_KEY: 'x' })).toBe(true);
-    expect(hasCredentials({ LAMPLIGHT_DEV_SUBSCRIPTION: '1' })).toBe(true);
-  });
-});

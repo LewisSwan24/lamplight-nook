@@ -288,7 +288,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   }
   const env = $('env');
   env.textContent = [
-    hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',
+    hasApiKey ? 'Credentials found (saved key, ANTHROPIC_API_KEY, or dev subscription).' : 'No credentials: paste a key in Settings, or set ANTHROPIC_API_KEY.',
     hasClaude ? 'Claude Code found.' : 'Claude Code not installed.',
   ].join(' ');
   env.classList.toggle('missing', !hasApiKey || !hasClaude);

@@ -1,10 +1,11 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
-import { DEBUG_PROMPTS, commissionDir, hasCredentials, runAgent } from './agent-runner';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
+import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
+import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { locateClaude } from './claude-locator';
 import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, snapshot } from './commission';
 import { MemoryStore, StuckTracker } from './memory';
@@ -31,6 +32,7 @@ let lastWorkDir: string | null = null;
 let settings: SettingsStore;
 let pending: PendingStore;
 let memory: MemoryStore;
+let keys: KeyStore;
 /** The last commission that failed (offered as "try again"), and one left over from a crash. */
 let lastFailed: Job | null = null;
 let leftover: Job | null = null;
@@ -101,7 +103,21 @@ const emitters = {
 // The key is only read in the main process; the renderer just gets a boolean.
 // Debug tools are for development; a packaged build hides them unless LAMPLIGHT_DEBUG=1.
 const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1';
-ipcMain.handle(IPC.envStatus, (): EnvStatus => ({ hasApiKey: hasCredentials(), hasClaude: locateClaude() !== null, debug: debugEnabled() }));
+/** The key saved in the app wins over ANTHROPIC_API_KEY; a dev subscription only counts unpackaged. */
+const credentials = () => pickCredentials(keys.get(), process.env, app.isPackaged);
+ipcMain.handle(IPC.envStatus, (): EnvStatus => {
+  const creds = credentials();
+  return {
+    hasApiKey: creds !== null,
+    hasClaude: locateClaude() !== null,
+    debug: debugEnabled(),
+    keySource: creds?.source ?? null,
+    keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
+  };
+});
+ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
+  saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
+ipcMain.handle(IPC.clearApiKey, () => keys.clear());
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => settings.update(patch));
@@ -121,7 +137,7 @@ ipcMain.handle(IPC.appVersion, () => app.getVersion());
 ipcMain.handle(IPC.runDebugTask, async (_e, kind: keyof typeof DEBUG_PROMPTS) => {
   if (!debugEnabled()) throw new Error('debug tasks are disabled');
   const workDir = commissionDir(settings.get().workRoot, fill(strings.app.debugCommission, { kind }));
-  return runAgent({ prompt: DEBUG_PROMPTS[kind], workDir, recordingPath: recordingFor(kind), ...emitters });
+  return runAgent({ prompt: DEBUG_PROMPTS[kind], workDir, recordingPath: recordingFor(kind), credentials: credentials(), ...emitters });
 });
 
 /**
@@ -152,6 +168,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker,
+      credentials: credentials(),
       preexisting: before,
       abort,
       ...emitters,
@@ -221,6 +238,7 @@ app.whenReady().then(() => {
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
+  keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   leftover = pending.load();
   createWindow();
   tray.create();
