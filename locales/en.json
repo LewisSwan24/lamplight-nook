@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "Lamplight Nook",
+    "tagline": "A cozy pixel shop where a small team does computer jobs for you with Claude.",
     "commissionRoot": [
       "Lamplight Nook",
       "Commissions"

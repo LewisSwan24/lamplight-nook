@@ -14,7 +14,8 @@
     "test": "vitest run",
     "smoke": "npm run build && electron scripts/smoke.cjs smoke-shots",
     "record": "tsx scripts/record.ts",
-    "dist": "electron-vite build && node scripts/notices.mjs && electron-builder --win nsis --publish never"
+    "dist": "electron-vite build && node scripts/notices.mjs && electron-builder --win nsis --publish never",
+    "msix": "node scripts/msix.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
