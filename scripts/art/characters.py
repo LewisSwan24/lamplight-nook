@@ -35,6 +35,20 @@ STAFF = {
     },
 }
 
+# Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and
+# Axin the postman, with his mail bag.
+GUESTS = {
+    'baker': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_33_01.png', 'Hairstyles/16x16/Hairstyle_11_05.png'],
+    },
+    'postman': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_05_04.png',
+                   'Accessories/16x16/Accessory_03_Backpack_01.png'],
+    },
+}
+
 
 def hex_rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
@@ -122,7 +136,7 @@ def build_cat():
 
 
 if __name__ == '__main__':
-    for name, recipe in STAFF.items():
+    for name, recipe in {**STAFF, **GUESTS}.items():
         build(name, recipe)
         print('built', name)
     build_cat()

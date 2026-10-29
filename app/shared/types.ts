@@ -4,6 +4,10 @@
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
 
 export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'cat';
+/** Neighbours who drop in now and then: Auntie Gui from the bakery and Axin the postman. */
+export type GuestId = 'baker' | 'postman';
+/** Anyone who can say something in the shop. */
+export type Speaker = ActorId | GuestId;
 
 /** A raw SDK message, hook call or permission callback, recorded as-is. */
 export type RawAgentEvent = {

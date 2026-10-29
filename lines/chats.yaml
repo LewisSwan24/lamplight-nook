@@ -157,3 +157,138 @@
     - adeng: 福字倒着贴，福到了。
     - xiaoju: 灯笼也挂好啦！
     - laoshi: 红红火火。
+
+# Neighbours dropping in (game/guests.ts): guest: baker (Auntie Gui from the bakery) or postman (Axin).
+# The guest speaks first; turns from staff who are out or in the garden are left out.
+- id: baker_fresh
+  when: idle
+  guest: baker
+  period: dawn
+  turns:
+    - baker: 早，刚出炉的，给你们留了两个。
+    - adeng: 桂姨又破费了。
+    - baker: 趁热吃。
+
+- id: baker_osmanthus
+  when: idle
+  guest: baker
+  turns:
+    - baker: 今天做了桂花糕。
+    - xiaoju: 我就知道！
+    - baker: 给你留了最大的。
+
+- id: baker_butter
+  when: idle
+  guest: baker
+  turns:
+    - baker: 你们家栗子又去我店里了。
+    - adeng: ……它拿了什么？
+    - baker: 一整块黄油。
+
+- id: baker_prices
+  when: idle
+  guest: baker
+  turns:
+    - baker: 阿灯，帮我看看这张价目表。
+    - adeng: 这两个价写反了。
+    - baker: 难怪昨天亏了。
+
+- id: baker_rain
+  when: idle
+  guest: baker
+  sky: rain
+  turns:
+    - baker: 雨太大，进来躲一躲。
+    - adeng: 坐，茶刚泡好。
+
+- id: baker_halloween
+  when: idle
+  guest: baker
+  holiday: halloween
+  turns:
+    - baker: 南瓜饼，一人一个。
+    - xiaoju: 老石不吃甜的。
+    - laoshi: ……吃。
+
+- id: baker_christmas
+  when: idle
+  guest: baker
+  holiday: christmas
+  turns:
+    - baker: 姜饼人，烤糊了一个。
+    - xiaoju: 糊的给我！
+
+- id: baker_new_year
+  when: idle
+  guest: baker
+  holiday: new_year
+  turns:
+    - baker: 年糕，回去蒸着吃。
+    - adeng: 桂姨新年好。
+    - baker: 你们也好，生意兴隆。
+
+- id: postman_letter
+  when: idle
+  guest: postman
+  turns:
+    - postman: 小灯屋，有信。
+    - adeng: 谢谢阿信。
+    - postman: 这周第三封了。
+
+- id: postman_parcel
+  when: idle
+  guest: postman
+  turns:
+    - postman: 老石的包裹，挺沉。
+    - laoshi: 木料。
+    - postman: 我就知道。
+
+- id: postman_postcard
+  when: idle
+  guest: postman
+  turns:
+    - postman: 一张明信片，没写寄件人。
+    - xiaoju: 画的是海！
+    - adeng: 收着吧。
+
+- id: postman_water
+  when: idle
+  guest: postman
+  turns:
+    - postman: 路过，讨杯水喝。
+    - adeng: 坐会儿再走。
+    - postman: 不了，还有一条街。
+
+- id: postman_rain
+  when: idle
+  guest: postman
+  sky: rain
+  turns:
+    - postman: 雨大，信湿了一个角。
+    - adeng: 放炉子边烘一烘。
+
+- id: postman_snow
+  when: idle
+  guest: postman
+  sky: snow
+  turns:
+    - postman: 路滑，今天摔了一跤。
+    - xiaoju: 信没事吧？
+    - postman: ……先问我啊。
+
+- id: postman_christmas
+  when: idle
+  guest: postman
+  holiday: christmas
+  turns:
+    - postman: 今天的信，装了一麻袋。
+    - xiaoju: 有我们的吗？
+    - postman: 有一张贺卡。
+
+- id: postman_new_year
+  when: idle
+  guest: postman
+  holiday: new_year
+  turns:
+    - postman: 邮局发的红包袋，一人一个。
+    - xiaoju: 谢谢阿信！

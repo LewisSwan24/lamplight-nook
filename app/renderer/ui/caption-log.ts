@@ -1,6 +1,6 @@
-import type { ActorId } from '../../shared/types';
+import type { Speaker } from '../../shared/types';
 
-export type Caption = { at: number; who: ActorId; text: string };
+export type Caption = { at: number; who: Speaker; text: string };
 
 /** Everything said out loud, newest last, so a line missed in a bubble can be read again (design 9). */
 export class CaptionLog {
@@ -9,7 +9,7 @@ export class CaptionLog {
   constructor(private readonly max = 200) {}
 
   /** Record a line. The same speaker repeating the same words (a bubble re-shown) is kept once. */
-  add(who: ActorId, text: string, at: number): Caption | null {
+  add(who: Speaker, text: string, at: number): Caption | null {
     const clean = text.trim();
     const last = this.lines.at(-1);
     if (!clean || (last && last.who === who && last.text === clean)) return null;

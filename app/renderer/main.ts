@@ -9,6 +9,7 @@ import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
+import { VisitPlanner, pickVisit } from './game/guests';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
@@ -120,6 +121,7 @@ setInterval(() => {
   const talk = chatter.next(mood, Date.now(), scene.period, scene.outside());
   if (talk) void stage.talk(talk.turns);
   tendGarden(!busy);
+  dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
 }, 5000);
 
@@ -137,6 +139,17 @@ function tendGarden(quiet: boolean) {
   }
   if (step.go) void scene.visitGarden(step.go.actor, step.go.spot);
   talkInGarden();
+}
+
+// Now and then a neighbour drops in for a word while the shop is quiet; work sends them on their way.
+const visits = new VisitPlanner(Date.now());
+const heardVisits = new Set<string>();
+function dropIn(quiet: boolean) {
+  const guest = visits.next(Date.now(), quiet && !scene.hasGuest(), scene.period);
+  if (!guest) return;
+  const present = (who: string) => scene.anchorOf(who as ActorId) !== null;
+  const chat = pickVisit(ruleBook().chats, guest, scene.outside(), scene.period, present, heardVisits);
+  if (chat) void scene.guestVisit(guest, chat.turns);
 }
 
 // Out in the garden people say something about what they are doing, heard while you look out there.
@@ -252,6 +265,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
   scene.showShop();
   tendGarden(false);
+  scene.sendGuestAway();
   runStartedAt = Date.now();
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
@@ -414,6 +428,7 @@ function startReplay(speed = 3) {
   replaying = true;
   scene.showShop();
   tendGarden(false);
+  scene.sendGuestAway();
   cancelReplay = replay(stage, events, speed, () => { setReplayBadge(false); replaying = false; });
 }
 $('replay').addEventListener('click', () => startReplay());
@@ -433,6 +448,7 @@ function startTrial() {
   replaying = true;
   scene.showShop();
   tendGarden(false);
+  scene.sendGuestAway();
   scene.setFormWaiting(false);
   // A little slower than recorded, and the end card waits for the wrap-up lines to finish.
   cancelReplay = replay(stage, events, TRIAL_SPEED, () => {

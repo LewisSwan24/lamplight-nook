@@ -157,3 +157,138 @@
     - adeng: The fu sign goes upside down. Luck arrives.
     - xiaoju: And the lanterns are up!
     - laoshi: Nice and red.
+
+# Neighbours dropping in (game/guests.ts): guest: baker (Auntie Olive from the bakery) or postman (Pip).
+# The guest speaks first; turns from staff who are out or in the garden are left out.
+- id: baker_fresh
+  when: idle
+  guest: baker
+  period: dawn
+  turns:
+    - baker: Morning. Saved you two, fresh out.
+    - adeng: You shouldn't have.
+    - baker: Eat them warm.
+
+- id: baker_osmanthus
+  when: idle
+  guest: baker
+  turns:
+    - baker: Osmanthus cakes today.
+    - xiaoju: I knew it!
+    - baker: Kept the biggest for you.
+
+- id: baker_butter
+  when: idle
+  guest: baker
+  turns:
+    - baker: Your Chestnut came by my shop again.
+    - adeng: ...What did she take?
+    - baker: A whole block of butter.
+
+- id: baker_prices
+  when: idle
+  guest: baker
+  turns:
+    - baker: Wick, look over my price list?
+    - adeng: These two are the wrong way round.
+    - baker: That explains yesterday.
+
+- id: baker_rain
+  when: idle
+  guest: baker
+  sky: rain
+  turns:
+    - baker: Mind if I wait out the rain?
+    - adeng: Sit. The tea's just made.
+
+- id: baker_halloween
+  when: idle
+  guest: baker
+  holiday: halloween
+  turns:
+    - baker: Pumpkin buns, one each.
+    - xiaoju: Flint doesn't eat sweet things.
+    - laoshi: ...I do.
+
+- id: baker_christmas
+  when: idle
+  guest: baker
+  holiday: christmas
+  turns:
+    - baker: Gingerbread men. One got burnt.
+    - xiaoju: I'll take the burnt one!
+
+- id: baker_new_year
+  when: idle
+  guest: baker
+  holiday: new_year
+  turns:
+    - baker: Rice cakes. Steam them at home.
+    - adeng: A good new year to you, Olive.
+    - baker: And to you. Busy days ahead.
+
+- id: postman_letter
+  when: idle
+  guest: postman
+  turns:
+    - postman: Letter for the Nook.
+    - adeng: Thanks, Pip.
+    - postman: Third this week.
+
+- id: postman_parcel
+  when: idle
+  guest: postman
+  turns:
+    - postman: Parcel for Flint. Heavy.
+    - laoshi: Timber.
+    - postman: Thought so.
+
+- id: postman_postcard
+  when: idle
+  guest: postman
+  turns:
+    - postman: A postcard. No sender.
+    - xiaoju: It's the sea!
+    - adeng: Keep it.
+
+- id: postman_water
+  when: idle
+  guest: postman
+  turns:
+    - postman: Just passing. Glass of water?
+    - adeng: Sit a minute.
+    - postman: Can't. One more street.
+
+- id: postman_rain
+  when: idle
+  guest: postman
+  sky: rain
+  turns:
+    - postman: Rain got a corner of this one.
+    - adeng: Dry it by the stove.
+
+- id: postman_snow
+  when: idle
+  guest: postman
+  sky: snow
+  turns:
+    - postman: Slipped on the ice today.
+    - xiaoju: Are the letters all right?
+    - postman: ...Ask about me first.
+
+- id: postman_christmas
+  when: idle
+  guest: postman
+  holiday: christmas
+  turns:
+    - postman: A whole sack of post today.
+    - xiaoju: Any for us?
+    - postman: One card.
+
+- id: postman_new_year
+  when: idle
+  guest: postman
+  holiday: new_year
+  turns:
+    - postman: Red envelopes from the post office.
+    - xiaoju: Thanks, Pip!

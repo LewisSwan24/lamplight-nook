@@ -22,6 +22,10 @@
     "dog": "麦芽",
     "hens": "母鸡"
   },
+  "guests": {
+    "baker": "桂姨",
+    "postman": "阿信"
+  },
   "zones": {
     "window": "窗台",
     "board": "小黑板",

@@ -1,5 +1,6 @@
 import type { Period } from '../game/daytime';
 import type { Holiday, Sky } from '../game/weather';
+import type { ActorId } from '../../shared/types';
 import type { Chat, Line } from '../translator/lines';
 
 /** At least this long between two chats, and before the first one. */
@@ -16,7 +17,7 @@ const QUIET_AROUND_CHAT_MS = 30_000;
  */
 export type ShopMood = 'idle' | 'waiting' | 'working' | 'blocked';
 
-export type Talk = { kind: 'chat' | 'mutter'; id: string; turns: Chat['turns'] };
+export type Talk = { kind: 'chat' | 'mutter'; id: string; turns: { speaker: ActorId; text: string }[] };
 
 /** Draws without repeats until every item has been used once, then starts a fresh round. */
 class Bag<T extends { id: string }> {
@@ -82,12 +83,13 @@ export class Chatter {
   next(mood: ShopMood, now: number, period: Period, outside: { sky: Sky; holiday: Holiday | null } = { sky: 'clear', holiday: null }): Talk | null {
     if (mood === 'blocked' || mood === 'working') return null;
     if (now - this.lastChat >= CHAT_GAP_MS) {
-      const fits = this.allChats.filter((c) => c.when === mood && (!c.period || c.period === period)
+      // Neighbours' visits are played when they drop in (game/guests.ts), not here.
+      const fits = this.allChats.filter((c) => !c.guest && c.when === mood && (!c.period || c.period === period)
         && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday));
       const chat = this.chats.draw(fits, (c) => !!(c.sky || c.holiday));
       if (chat) {
         this.lastChat = now;
-        return { kind: 'chat', id: chat.id, turns: chat.turns };
+        return { kind: 'chat', id: chat.id, turns: chat.turns as Talk['turns'] };
       }
     }
     if (mood === 'idle' && now - this.lastMutter >= this.mutterGap && now - this.lastChat >= QUIET_AROUND_CHAT_MS

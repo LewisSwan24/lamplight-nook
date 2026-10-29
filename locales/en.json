@@ -22,6 +22,10 @@
     "dog": "Malt",
     "hens": "The hens"
   },
+  "guests": {
+    "baker": "Auntie Olive",
+    "postman": "Pip"
+  },
   "zones": {
     "window": "the windowsill",
     "board": "the blackboard",

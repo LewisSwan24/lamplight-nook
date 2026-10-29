@@ -1,6 +1,6 @@
 import { parse } from 'yaml';
 import { fill, pattern, strings, type Strings } from '../../shared/i18n';
-import type { ActorId } from '../../shared/types';
+import type { ActorId, GuestId, Speaker } from '../../shared/types';
 import type { Holiday, Sky } from '../game/weather';
 import type { LineBook } from './director';
 
@@ -21,7 +21,9 @@ export type Chat = {
   /** Only on a day with this weather, or while this holiday's decorations are up (game/weather.ts). */
   sky?: Sky;
   holiday?: Holiday;
-  turns: { speaker: ActorId; text: string }[];
+  /** A neighbour's visit (game/guests.ts): played when they drop in, never as everyday small talk. */
+  guest?: GuestId;
+  turns: { speaker: Speaker; text: string }[];
 };
 
 /** YAML turns are one-key maps (`- xiaoju: text`); flatten them to speaker and text. */
@@ -33,9 +35,10 @@ export function parseChats(text: string): Chat[] {
     period: c.period,
     ...(c.sky ? { sky: c.sky } : {}),
     ...(c.holiday ? { holiday: c.holiday } : {}),
+    ...(c.guest ? { guest: c.guest } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
-      return { speaker: speaker as ActorId, text: String(said) };
+      return { speaker: speaker as Speaker, text: String(said) };
     }),
   }));
 }
@@ -110,13 +113,16 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
     ids.add(chat.id);
     const badSky = chat.sky && !['rain', 'snow', 'petals', 'leaves'].includes(chat.sky);
     const badHoliday = chat.holiday && !['halloween', 'christmas', 'new_year'].includes(chat.holiday);
-    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday) problems.push(fill(L.badChat, { id: chat.id }));
+    // A visit opens with the guest, and only that guest comes along.
+    const guests = chat.turns.map((t) => t.speaker).filter((s) => s === 'baker' || s === 'postman');
+    const badGuest = chat.guest ? !['baker', 'postman'].includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
+    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday || badGuest) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;
 }
 
-function checkBubble(id: string, speaker: ActorId, text: string, problems: string[], rules: LintRules) {
+function checkBubble(id: string, speaker: Speaker, text: string, problems: string[], rules: LintRules) {
   if (visibleLength(text) > rules.max) problems.push(fill(L.tooLong, { id, text, max: rules.max }));
   const particles = text.match(rules.particles)?.length ?? 0;
   if (speaker === 'laoshi' && particles > 0) problems.push(fill(L.laoshiParticle, { id, text }));
