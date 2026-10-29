@@ -13,15 +13,16 @@ export const MAX_EDIT_BYTES = 1024 * 1024;
 const LIST_DEPTH = 2;
 const LIST_MAX = 500;
 
-// Agents reply in Chinese because the user reads their results.
-export const REPLY_LANGUAGE = 'Always reply in Simplified Chinese.';
+// Agents reply in the app's language because the user reads their results.
+const LANGUAGE = strings.app.agentLanguage;
+export const REPLY_LANGUAGE = `Always reply in ${LANGUAGE}.`;
 
 const HOUSE_RULES = [
   'Work only inside the current folder.',
   'When looking things up would help, send the researcher subagent; do not research yourself.',
   'When a design choice is genuinely up to the user, ask with the AskUserQuestion tool instead of guessing.',
   'Before finishing, send the reviewer subagent to check the result.',
-  'Write the user-facing page text in Simplified Chinese.',
+  `Write the user-facing page text in ${LANGUAGE}.`,
   REPLY_LANGUAGE,
 ].join('\n');
 
@@ -46,7 +47,7 @@ function templateSteps(form: CommissionForm): string[] {
     case 'research':
       return [
         'This is a research commission: do not make a web page.',
-        `Send the researcher subagent to look it up, then write the findings as "${F.summary}" in Simplified Chinese:`,
+        `Send the researcher subagent to look it up, then write the findings as "${F.summary}" in ${LANGUAGE}:`,
         'a three-sentence summary first, then the key points as a list, then the sources with their links.',
         'Say plainly where sources disagree or where you are unsure.',
       ];
@@ -62,7 +63,7 @@ function templateSteps(form: CommissionForm): string[] {
       return [
         `"${F.listing}" lists what is in the user's folder "${basename(form.source ?? '')}": relative path, size in bytes, last modified date. Folders end with "/".`,
         'You cannot see that folder and must not try to look for it. Work only from the list.',
-        `Write a plan for tidying it up as "${F.tidyPlan}" in Simplified Chinese: a suggested folder layout, which files go where,`,
+        `Write a plan for tidying it up as "${F.tidyPlan}" in ${LANGUAGE}: a suggested folder layout, which files go where,`,
         'and anything that looks like a duplicate, an old version or a leftover worth a look.',
         'Do not move, rename or delete anything: the user carries out the plan themselves.',
       ];

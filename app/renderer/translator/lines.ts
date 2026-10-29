@@ -1,5 +1,5 @@
 import { parse } from 'yaml';
-import { fill, pattern, strings } from '../../shared/i18n';
+import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId } from '../../shared/types';
 import type { LineBook } from './director';
 
@@ -51,9 +51,9 @@ export function toLineBook(lib: LineLibrary): LineBook {
   );
 }
 
-const PARTICLES = pattern('particles', 'g');
-const EMOTION_WORDS = pattern('emotionWords');
-const MAX_BUBBLE = 20;
+/** The writing rules of a language: bubble length, particles (an exclamation mark in English), emotion words. */
+type LintRules = { particles: RegExp; emotions: RegExp; max: number };
+const rulesFor = (S: Strings): LintRules => ({ particles: pattern('particles', 'g', S), emotions: pattern('emotionWords', 'i', S), max: S.lineLint.maxBubble });
 const L = strings.lineLint;
 
 /**
@@ -74,10 +74,11 @@ const visibleLength = (s: string) => [...s.replace(/\{[^}]*\}/g, '')].length;
 
 /**
  * Writing rules for dialogue, checked automatically:
- * at least 3 lines per group, unique ids, <= 20 characters per bubble, at most one particle per bubble,
+ * at least 3 lines per group, unique ids, a length limit per bubble (20 characters in Chinese), at most one particle per bubble,
  * Laoshi never uses particles, and no line names an emotion directly.
  */
-export function lintLines(lib: LineLibrary): string[] {
+export function lintLines(lib: LineLibrary, S: Strings = strings): string[] {
+  const rules = rulesFor(S);
   const problems: string[] = [];
   const ids = new Set<string>();
   for (const [group, lines] of Object.entries(lib)) {
@@ -87,29 +88,30 @@ export function lintLines(lib: LineLibrary): string[] {
       if (ids.has(id)) problems.push(fill(L.duplicateId, { id }));
       ids.add(id);
       const all = [{ speaker: line.speaker, bubbles: line.bubbles }, ...(line.reply ? [line.reply] : [])];
-      for (const { speaker, bubbles } of all) for (const text of bubbles) checkBubble(id, speaker, text, problems);
+      for (const { speaker, bubbles } of all) for (const text of bubbles) checkBubble(id, speaker, text, problems, rules);
     }
   }
   return problems;
 }
 
 /** The same rules for small talk, plus: at least two turns, unique ids, and a known `when`. */
-export function lintChats(chats: Chat[]): string[] {
+export function lintChats(chats: Chat[], S: Strings = strings): string[] {
+  const rules = rulesFor(S);
   const problems: string[] = [];
   const ids = new Set<string>();
   for (const chat of chats) {
     if (ids.has(chat.id)) problems.push(fill(L.duplicateId, { id: chat.id }));
     ids.add(chat.id);
     if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when)) problems.push(fill(L.badChat, { id: chat.id }));
-    for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems);
+    for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;
 }
 
-function checkBubble(id: string, speaker: ActorId, text: string, problems: string[]) {
-  if (visibleLength(text) > MAX_BUBBLE) problems.push(fill(L.tooLong, { id, text, max: MAX_BUBBLE }));
-  const particles = text.match(PARTICLES)?.length ?? 0;
+function checkBubble(id: string, speaker: ActorId, text: string, problems: string[], rules: LintRules) {
+  if (visibleLength(text) > rules.max) problems.push(fill(L.tooLong, { id, text, max: rules.max }));
+  const particles = text.match(rules.particles)?.length ?? 0;
   if (speaker === 'laoshi' && particles > 0) problems.push(fill(L.laoshiParticle, { id, text }));
   if (particles > 1) problems.push(fill(L.tooManyParticles, { id, text }));
-  if (EMOTION_WORDS.test(text)) problems.push(fill(L.emotionWord, { id, text }));
+  if (rules.emotions.test(text)) problems.push(fill(L.emotionWord, { id, text }));
 }

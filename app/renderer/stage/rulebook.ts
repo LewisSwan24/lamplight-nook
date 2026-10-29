@@ -1,9 +1,12 @@
-// Rules, animation fallbacks and dialogue are bundled as text.
+// Rules, animation fallbacks and dialogue are bundled as text; the dialogue comes in each language.
 // In dev mode (npm run dev), saving any of these YAML files hot-swaps them without a restart.
 import rulesText from '../../../rules/cafe.yaml?raw';
 import animText from '../../../rules/anim-fallback.yaml?raw';
-import linesText from '../../../lines/cafe.yaml?raw';
-import chatsText from '../../../lines/chats.yaml?raw';
+import zhLines from '../../../lines/cafe.yaml?raw';
+import zhChats from '../../../lines/chats.yaml?raw';
+import enLines from '../../../lines/en/cafe.yaml?raw';
+import enChats from '../../../lines/en/chats.yaml?raw';
+import { locale } from '../../shared/i18n';
 import { type Chat, type LineLibrary, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
 import { parseAnimTable, parseRules, type AnimTable, type Rule } from '../translator/translator';
 
@@ -16,6 +19,10 @@ function build(r: string, a: string, l: string, c: string): RuleBook {
   if (problems.length) console.warn(`Dialogue lint:\n${problems.join('\n')}`);
   return { rules: parseRules(r), anims: parseAnimTable(a), lines, chats };
 }
+
+const english = locale() === 'en';
+const linesText = english ? enLines : zhLines;
+const chatsText = english ? enChats : zhChats;
 
 let current = build(rulesText, animText, linesText, chatsText);
 const listeners = new Set<(b: RuleBook) => void>();
@@ -42,6 +49,8 @@ if (import.meta.hot) {
   };
   import.meta.hot.accept('../../../rules/cafe.yaml?raw', (m) => { if (m) { texts.r = m.default; update(); } });
   import.meta.hot.accept('../../../rules/anim-fallback.yaml?raw', (m) => { if (m) { texts.a = m.default; update(); } });
-  import.meta.hot.accept('../../../lines/cafe.yaml?raw', (m) => { if (m) { texts.l = m.default; update(); } });
-  import.meta.hot.accept('../../../lines/chats.yaml?raw', (m) => { if (m) { texts.c = m.default; update(); } });
+  import.meta.hot.accept('../../../lines/cafe.yaml?raw', (m) => { if (m && !english) { texts.l = m.default; update(); } });
+  import.meta.hot.accept('../../../lines/chats.yaml?raw', (m) => { if (m && !english) { texts.c = m.default; update(); } });
+  import.meta.hot.accept('../../../lines/en/cafe.yaml?raw', (m) => { if (m && english) { texts.l = m.default; update(); } });
+  import.meta.hot.accept('../../../lines/en/chats.yaml?raw', (m) => { if (m && english) { texts.c = m.default; update(); } });
 }
