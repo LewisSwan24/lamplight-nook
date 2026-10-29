@@ -313,6 +313,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('div', {}, fill(S.version, { version })),
       el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
       el('div', {}, S.creditFont),
-      el('div', {}, S.creditSound))),
+      el('div', {}, S.creditSound),
+      el('div', {}, S.creditMusic, ' ', el('button.link', { onclick: () => api.openLink('music') }, S.creditMusicLink)))),
   ));
 }

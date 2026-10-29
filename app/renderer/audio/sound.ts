@@ -2,7 +2,7 @@ import type { Period } from '../game/daytime';
 import { type MixState, SFX, type Sfx, musicVolume, sfxVolume } from './mix';
 
 const effectUrls = import.meta.glob<string>('../../../assets/audio/*.ogg', { eager: true, query: '?url', import: 'default' });
-/** Background music tracks, played in turn; empty until a licensed pack is added (art.md 7). */
+/** Background music tracks, played in name order (credits in assets/audio/music/CREDITS.md). */
 const musicUrls = Object.values(import.meta.glob<string>('../../../assets/audio/music/*.{ogg,mp3}', { eager: true, query: '?url', import: 'default' }));
 
 /** Some sounds are a few hits in a row (seconds after the first). */

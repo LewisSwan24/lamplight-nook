@@ -43,7 +43,7 @@ export type LanguageChoice = 'system' | 'zh-CN' | 'en';
 export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 
 /** Pages the renderer may open in the browser (install guides and credits). */
-export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
+export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
 /** costUsd is Claude Code's estimate of what the session has cost so far. */
 export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; /** The technical reason, for the log. */ detail?: string };
