@@ -155,11 +155,26 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
   });
 }
 
-/** Shown instead of the commission form when something needed to start is missing. */
-export function showNotReady(api: LamplightApi, env: EnvStatus) {
+/**
+ * Shown instead of the commission form when something needed to start is missing. With `trial`, it also
+ * offers a replay of a recorded demo, so people can see the shop at work before setting anything up.
+ */
+export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => void) {
   replaceOpen(el('div.card.paper.notice-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     withPortrait('adeng', 'unsure', el('div.card-title', {}, S.notReadyTitle), envRows(api, env)),
+    trial ? el('div.trial-offer', {}, el('span', {}, S.trialOffer),
+      el('button.sticker', { type: 'button', onclick: () => { closePanel(); trial(); } }, S.trialButton)) : null,
+  ));
+}
+
+/** After the trial replay: what it was, and the way to the real thing. */
+export function showTrialEnd(setUp: () => void) {
+  replaceOpen(el('div.card.paper.trial-end', {},
+    withPortrait('adeng', 'happy', el('div.card-title', {}, S.trialEndTitle), el('div', {}, S.trialEndText)),
+    el('div.actions', {},
+      el('button', { onclick: closePanel }, S.trialDone),
+      el('button.default', { onclick: () => { closePanel(); setUp(); } }, S.trialSetUp)),
   ));
 }
 
