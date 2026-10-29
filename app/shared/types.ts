@@ -66,6 +66,8 @@ export interface LamplightApi {
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
+  /** Pick the file to edit or the folder to tidy; null if cancelled. */
+  chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
   startCommission(form: CommissionForm): Promise<RunResult>;
   /** Run the last failed commission again, continuing its session; null if there is none. */
   retryCommission(): Promise<RunResult | null>;
@@ -93,8 +95,17 @@ export interface LamplightApi {
   onResult(cb: (r: CommissionResult) => void): () => void;
 }
 
-/** The commission form: what the user wants, any particulars, who it's for. */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean };
+/** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
+export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy';
+
+/**
+ * The commission form: what the user wants, any particulars, who it's for.
+ * source: the file to edit or the folder to tidy, as picked in the main process's dialog.
+ */
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string };
+
+/** A file or folder the user picked for a commission; error when it can't be used. */
+export type SourcePick = { path: string; name: string } | { error: 'too-big' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
@@ -140,6 +151,7 @@ export const IPC = {
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
+  chooseSource: 'commission:choose-source',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
   cancelCommission: 'commission:cancel',

@@ -128,6 +128,24 @@
   },
   "ui": {
     "commissionTitle": "委托单",
+    "templates": {
+      "label": "挑一种，或者直接写",
+      "demo": "示范：记账小页面",
+      "page": "做个小网页",
+      "research": "查资料写总结",
+      "edit": "改一份文档",
+      "tidy": "整理文件夹",
+      "pageFill": "帮我做一个……的小网页。",
+      "researchFill": "帮我查一查……，写一份简短的总结。",
+      "editFill": "帮我改一下这份文档：……",
+      "tidyFill": "帮我看看这个文件夹该怎么整理：……",
+      "chooseFile": "选文件",
+      "chooseFolder": "选文件夹",
+      "editHint": "只会改一份复制件，你的原文件不会被动。支持 txt、md、html、csv、json，1MB 以内。",
+      "tidyHint": "店员们只看文件名、大小和日期，写一份整理方案给你，不会移动任何东西。",
+      "needSource": "先选一下要处理的文件或文件夹。",
+      "tooBig": "这个文件有点大（超过 1MB），店员们一次看不完，换个小一点的吧。"
+    },
     "want": "想做什么",
     "details": "有什么讲究",
     "audience": "给谁用",
@@ -136,6 +154,7 @@
     "resultTitle": "成品",
     "resultCost": "这次大约花了 {cost}。",
     "openInBrowser": "在浏览器里打开",
+    "openFile": "打开",
     "openFolder": "打开所在文件夹",
     "parcelFrom": "{who}带回来的",
     "doingNow": "现在在做：",
@@ -145,7 +164,7 @@
     "replayBadge": "回放",
     "board": {
       "research": "找参考",
-      "write": "写页面",
+      "write": "动手做",
       "check": "检查"
     },
     "setup": {
@@ -299,6 +318,13 @@
       "placeholder": "比如：页面再加一个“本月合计”",
       "send": "就这些",
       "never": "算了"
+    },
+    "files": {
+      "summary": "总结.md",
+      "tidyPlan": "整理方案.md",
+      "listing": "文件清单.txt",
+      "originalPrefix": "原稿-",
+      "revisedPrefix": "修改版-"
     }
   },
   "states": {

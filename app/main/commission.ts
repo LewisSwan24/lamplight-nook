@@ -1,7 +1,17 @@
-import { copyFileSync, existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, existsSync, lstatSync, readdirSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import { strings } from '../shared/i18n';
 import type { CommissionForm } from '../shared/types';
+
+const F = strings.ui.files;
+
+/** Text files the edit template accepts, and how big they may be. */
+export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json'];
+export const MAX_EDIT_BYTES = 1024 * 1024;
+
+/** How much of a folder the tidy template lists. */
+const LIST_DEPTH = 2;
+const LIST_MAX = 500;
 
 // Agents reply in Chinese because the user reads their results.
 export const REPLY_LANGUAGE = 'Always reply in Simplified Chinese.';
@@ -21,12 +31,54 @@ export const commissionTitle = (form: CommissionForm) => (form.demo ? strings.de
 /** Add what the shop remembers about this user (may be empty) to a prompt. */
 const withNotes = (prompt: string, notes = '') => (notes ? `${prompt}\n\n${notes}` : prompt);
 
+/** Names of the files the shop puts in the folder before an edit commission. */
+export const originalName = (source: string) => `${F.originalPrefix}${basename(source)}`;
+export const revisedName = (source: string) => `${F.revisedPrefix}${basename(source)}`;
+
+/** What each template asks for on top of the request itself. File names are quoted so they are unambiguous. */
+function templateSteps(form: CommissionForm): string[] {
+  switch (form.template) {
+    case 'page':
+      return [
+        'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
+        'Keep data in localStorage if the page needs to remember anything.',
+      ];
+    case 'research':
+      return [
+        'This is a research commission: do not make a web page.',
+        `Send the researcher subagent to look it up, then write the findings as "${F.summary}" in Simplified Chinese:`,
+        'a three-sentence summary first, then the key points as a list, then the sources with their links.',
+        'Say plainly where sources disagree or where you are unsure.',
+      ];
+    case 'edit': {
+      const source = form.source ?? '';
+      return [
+        `The document to work on is "${originalName(source)}" in this folder, a copy of the user's file.`,
+        `Do not change "${originalName(source)}". Write the edited version as "${revisedName(source)}", in the same format.`,
+        'In your final reply, list the main changes in two to five short points.',
+      ];
+    }
+    case 'tidy':
+      return [
+        `"${F.listing}" lists what is in the user's folder "${basename(form.source ?? '')}": relative path, size in bytes, last modified date. Folders end with "/".`,
+        'You cannot see that folder and must not try to look for it. Work only from the list.',
+        `Write a plan for tidying it up as "${F.tidyPlan}" in Simplified Chinese: a suggested folder layout, which files go where,`,
+        'and anything that looks like a duplicate, an old version or a leftover worth a look.',
+        'Do not move, rename or delete anything: the user carries out the plan themselves.',
+      ];
+    default:
+      return [];
+  }
+}
+
 /** Prompt for an ordinary commission built from the form. */
 export function commissionPrompt(form: CommissionForm, notes?: string): string {
   const lines = [`The user's request: ${form.want}`];
   if (form.details) lines.push(`Particulars: ${form.details}`);
   if (form.audience) lines.push(`Who it is for: ${form.audience}`);
-  return withNotes(`${lines.join('\n')}\n\n${HOUSE_RULES}`, notes);
+  const steps = templateSteps(form);
+  const body = steps.length ? `${lines.join('\n')}\n\n${steps.join('\n')}` : lines.join('\n');
+  return withNotes(`${body}\n\n${HOUSE_RULES}`, notes);
 }
 
 /** What the user said in a meeting, sent to the running commission. */
@@ -78,15 +130,59 @@ export function prepareDemoFolder(workDir: string, checkScript: string) {
   copyFileSync(checkScript, join(workDir, 'check.js'));
 }
 
+/**
+ * Put what a template works from into the commission folder before the run starts:
+ * a copy of the file to edit, or a list of the folder to tidy. The user's own files are never touched.
+ */
+export function prepareSource(workDir: string, form: CommissionForm) {
+  if (!form.source) return;
+  if (form.template === 'edit') copyFileSync(form.source, join(workDir, originalName(form.source)));
+  if (form.template === 'tidy') writeFileSync(join(workDir, F.listing), listFolder(form.source), 'utf8');
+}
+
+/** A plain-text list of a folder, two levels deep, hidden files and links left out, capped in length. */
+export function listFolder(root: string, maxDepth = LIST_DEPTH, max = LIST_MAX): string {
+  const lines: string[] = [];
+  let more = 0;
+  const walk = (dir: string, rel: string, depth: number) => {
+    let names: string[];
+    try { names = readdirSync(dir).sort((a, b) => a.localeCompare(b)); } catch { return; }
+    for (const name of names) {
+      if (name.startsWith('.')) continue;
+      let st;
+      try { st = lstatSync(join(dir, name)); } catch { continue; }
+      if (st.isSymbolicLink()) continue;
+      if (lines.length >= max) { more++; continue; }
+      const path = rel ? `${rel}/${name}` : name;
+      const date = st.mtime.toISOString().slice(0, 10);
+      if (st.isDirectory()) {
+        lines.push(`${path}/\t-\t${date}`);
+        if (depth < maxDepth) walk(join(dir, name), path, depth + 1);
+      } else if (st.isFile()) {
+        lines.push(`${path}\t${st.size}\t${date}`);
+      }
+    }
+  };
+  walk(root, '', 1);
+  if (more) lines.push(`... and ${more} more not listed`);
+  return `${lines.join('\n')}\n`;
+}
+
 /** Files present in a folder (absolute paths), used to protect pre-existing files from being overwritten. */
 export function snapshot(dir: string): Set<string> {
   if (!existsSync(dir)) return new Set();
   return new Set(readdirSync(dir).map((f) => join(dir, f)));
 }
 
-/** What the commission produced, for the result card. The main output is index.html if present. */
+/**
+ * What the commission produced, for the result card. The main output is index.html if present,
+ * else an edited document, else any page, else a Markdown write-up (a research summary or a tidy plan).
+ */
 export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string } {
   const files = [...snapshot(workDir)].filter((f) => !before.has(f));
-  const main = files.find((f) => /index\.html$/i.test(f)) ?? files.find((f) => /\.html?$/i.test(f));
+  const main = files.find((f) => /index\.html$/i.test(f))
+    ?? files.find((f) => basename(f).startsWith(F.revisedPrefix))
+    ?? files.find((f) => /\.html?$/i.test(f))
+    ?? files.find((f) => /\.md$/i.test(f));
   return { files, main };
 }
