@@ -9,13 +9,13 @@ const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-settings-')), 'se
 describe('settings store', () => {
   it('starts with the default work folder and no name', () => {
     const s = new SettingsStore(fresh(), '/docs').get();
-    expect(s).toEqual({ name: '', workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: 3 });
+    expect(s).toEqual({ name: '', workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: 3, language: 'system' });
   });
 
   it('saves and reloads changes', () => {
     const file = fresh();
-    new SettingsStore(file, '/docs').update({ name: '  Lin  ', onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5 });
-    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5 });
+    new SettingsStore(file, '/docs').update({ name: '  Lin  ', onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5, language: 'en' });
+    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5, language: 'en' });
   });
 
   it('ignores empty folders and unknown fields', () => {
@@ -29,6 +29,14 @@ describe('settings store', () => {
     const s = new SettingsStore(fresh(), '/docs').update({ muted: 'yes', detailed: 1 } as never);
     expect(s.muted).toBe(false);
     expect(s.detailed).toBe(false);
+  });
+
+  it('only takes a known language, and a broken one in the file means the system language', () => {
+    const file = fresh();
+    expect(new SettingsStore(file, '/docs').update({ language: 'fr' } as never).language).toBe('system');
+    expect(new SettingsStore(file, '/docs').update({ language: 'zh-CN' }).language).toBe('zh-CN');
+    writeFileSync(file, JSON.stringify({ language: 42 }));
+    expect(new SettingsStore(file, '/docs').get().language).toBe('system');
   });
 
   it('keeps the volume a whole number from 0 to 100', () => {

@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
-import trialText from '../../demo/trial.zh-CN.jsonl?raw';
+import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
+import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
-import { fill, strings } from '../shared/i18n';
+import { fill, locale, shorten, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
@@ -29,6 +30,7 @@ declare global {
 }
 
 document.title = strings.app.title;
+document.documentElement.lang = locale();
 
 const scene = new CafeScene();
 const game = new Phaser.Game({
@@ -228,7 +230,7 @@ async function newCommission() {
 
 /** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
 async function prepare(form: CommissionForm) {
-  const brief = form.demo ? strings.demo.brief : [...form.want].slice(0, 10).join('');
+  const brief = form.demo ? strings.demo.brief : shorten(form.want);
   const recall = await window.lamplight.recallForCommission(form);
   // The demo's one question is the colour question, which has its own line.
   stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
@@ -371,6 +373,7 @@ const TRIAL_WRAP_UP_MS = 6000;
 function startTrial() {
   cancelReplay();
   stage.setCommission({ brief: strings.demo.brief, flags: ['demo_color'] });
+  const trialText = locale() === 'en' ? enTrial : zhTrial;
   const events = normalizeAll(trialText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l) as RawAgentEvent));
   setReplayBadge(true);
   replaying = true;

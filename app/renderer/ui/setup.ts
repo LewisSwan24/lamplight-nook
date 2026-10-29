@@ -1,6 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
-import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type Settings } from '../../shared/types';
+import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closePanel, replaceOpen } from './panels';
 import { el } from './dom';
@@ -213,6 +213,24 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
     el('div.hint', {}, S.budgetHint));
 }
 
+/** The app's language. It changes on restart, which waits while a commission is running. */
+function languageRow(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  const choices: [LanguageChoice, string][] = [['system', S.languageSystem], ['zh-CN', S.languageZh], ['en', S.languageEn]];
+  const select = el('select', { 'aria-label': S.languageLabel }, ...choices.map(([id, label]) =>
+    el('option', { value: id, selected: id === settings.language }, label))) as HTMLSelectElement;
+  const note = el('div.hint');
+  const restart = el('button.sticker', { type: 'button', hidden: true }, S.languageRestartNow) as HTMLButtonElement;
+  select.addEventListener('change', async () => {
+    changed(await api.saveSettings({ language: select.value as LanguageChoice }));
+    note.textContent = S.languageRestart;
+    restart.hidden = false;
+  });
+  restart.addEventListener('click', async () => {
+    if (!(await api.relaunch())) note.textContent = S.languageBusy;
+  });
+  return el('div', {}, select, note, el('div.actions', {}, restart));
+}
+
 /** Export a diagnostics zip; says where it went. */
 function troubleRow(api: LamplightApi): HTMLElement {
   const said = el('div.hint');
@@ -237,6 +255,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     // Only the inside scrolls, so the paper behind it always covers the whole card.
     el('div.settings-body', {},
     el('section', {}, el('h4', {}, S.nameLabel), name),
+    el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),

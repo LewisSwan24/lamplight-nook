@@ -16,6 +16,7 @@ const api: LamplightApi = {
   openWorkRoot: () => ipcRenderer.invoke(IPC.openWorkRoot),
   openLink: (link) => ipcRenderer.invoke(IPC.openLink, link),
   appVersion: () => ipcRenderer.invoke(IPC.appVersion),
+  relaunch: () => ipcRenderer.invoke(IPC.relaunch),
   saveApiKey: (key) => ipcRenderer.invoke(IPC.saveApiKey, key),
   clearApiKey: () => ipcRenderer.invoke(IPC.clearApiKey),
   spendThisMonth: () => ipcRenderer.invoke(IPC.spendThisMonth),
@@ -43,3 +44,5 @@ const api: LamplightApi = {
 };
 
 contextBridge.exposeInMainWorld('lamplight', api);
+// The app's language, needed before any page script runs (shared/i18n.ts reads it as it loads).
+contextBridge.exposeInMainWorld('lamplightLocale', ipcRenderer.sendSync(IPC.locale));

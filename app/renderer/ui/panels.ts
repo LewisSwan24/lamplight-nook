@@ -86,8 +86,8 @@ const TEMPLATES: { id: CommissionTemplate | 'demo'; label: string; fill: string 
   { id: 'edit', label: T.edit, fill: T.editFill },
   { id: 'tidy', label: T.tidy, fill: T.tidyFill },
 ];
-/** The blank in a template sentence, selected so typing replaces it. */
-const BLANK = '\u2026\u2026';
+/** The blank in a template sentence (a Chinese or an English ellipsis), selected so typing replaces it. */
+const BLANK = /\u2026\u2026|\.\.\./;
 
 /**
  * The commission form. A row of stickers fills in a ready-made kind of commission (the demo is picked to begin with);
@@ -124,8 +124,8 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Pro
       if (untouched) want.value = chosen?.fill ?? '';
       refresh();
       want.focus();
-      const at = want.value.indexOf(BLANK);
-      if (untouched && at >= 0) want.setSelectionRange(at, at + BLANK.length);
+      const blank = BLANK.exec(want.value);
+      if (untouched && blank) want.setSelectionRange(blank.index, blank.index + blank[0].length);
     };
     const pick = async () => {
       const r = await api.chooseSource(chosen?.id === 'tidy' ? 'tidy' : 'edit');

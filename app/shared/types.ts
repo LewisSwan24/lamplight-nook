@@ -34,7 +34,10 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number };
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number; language: LanguageChoice };
+
+/** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
+export type LanguageChoice = 'system' | 'zh-CN' | 'en';
 
 /** The per-run caps offered in settings, in US dollars; 0 means no cap. */
 export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
@@ -55,6 +58,8 @@ export interface LamplightApi {
   openWorkRoot(): Promise<void>;
   openLink(link: ExternalLink): Promise<void>;
   appVersion(): Promise<string>;
+  /** Restart the app (to switch language); false while a commission is running. */
+  relaunch(): Promise<boolean>;
   /** Check and save the user's API key (encrypted on this computer). */
   saveApiKey(key: string): Promise<KeySaveResult>;
   /** Forget the saved API key. */
@@ -143,6 +148,8 @@ export const IPC = {
   openWorkRoot: 'settings:open-work-root',
   openLink: 'app:open-link',
   appVersion: 'app:version',
+  locale: 'app:locale',
+  relaunch: 'app:relaunch',
   saveApiKey: 'key:save',
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',

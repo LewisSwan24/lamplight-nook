@@ -1,9 +1,10 @@
+import './locale-boot';
 import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
-import { fill, strings } from '../shared/i18n';
+import { fill, locale, strings } from '../shared/i18n';
 import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings, type SourcePick } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
@@ -176,6 +177,14 @@ ipcMain.handle(IPC.openWorkRoot, async () => {
 });
 ipcMain.handle(IPC.openLink, (_e, link: ExternalLink) => (LINKS[link] ? shell.openExternal(LINKS[link]) : undefined));
 ipcMain.handle(IPC.appVersion, () => app.getVersion());
+ipcMain.on(IPC.locale, (e) => { e.returnValue = locale(); });
+ipcMain.handle(IPC.relaunch, () => {
+  if (current) return false;
+  log?.info('relaunch for language', { language: settings.get().language });
+  app.relaunch();
+  app.exit(0);
+  return true;
+});
 
 ipcMain.handle(IPC.runDebugTask, async (_e, kind: keyof typeof DEBUG_PROMPTS) => {
   if (!debugEnabled()) throw new Error('debug tasks are disabled');

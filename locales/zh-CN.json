@@ -7,7 +7,9 @@
     ],
     "debugCommission": "调试-{kind}",
     "listSeparator": "、",
-    "demoCommission": "记账小页面"
+    "demoCommission": "记账小页面",
+    "briefLength": 10,
+    "agentLanguage": "Simplified Chinese"
   },
   "actors": {
     "adeng": "阿灯",
@@ -103,7 +105,8 @@
     "laoshiParticle": "{id}: Laoshi never uses particles \"{text}\"",
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
     "emotionWord": "{id}: names an emotion directly \"{text}\"",
-    "badChat": "{id}: a chat needs at least two turns and `when` of idle or waiting"
+    "badChat": "{id}: a chat needs at least two turns and `when` of idle or waiting",
+    "maxBubble": 20
   },
   "defaults": {
     "brief": "这个"
@@ -225,6 +228,13 @@
       "troubleText": "导出一个诊断包发给我们。里面只有运行日志和电脑、设置的概况，不含 API Key，也不含委托内容。",
       "troubleExport": "导出诊断包",
       "troubleDone": "存好了，已经在文件夹里帮你选中。",
+      "languageLabel": "语言 · Language",
+      "languageSystem": "跟随系统",
+      "languageZh": "简体中文",
+      "languageEn": "English",
+      "languageRestart": "重开小灯屋以后换成新的语言。",
+      "languageRestartNow": "现在重开",
+      "languageBusy": "等这张委托做完再重开吧。",
       "aboutLabel": "关于",
       "version": "小灯屋 {version}",
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》",
