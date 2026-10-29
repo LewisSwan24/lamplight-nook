@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import adengUrl from '../../../assets/sprites/adeng.png';
 import cafeUrl from '../../../assets/sprites/cafe.png';
+import gardenUrl from '../../../assets/sprites/garden.png';
 import catUrl from '../../../assets/sprites/cat.png';
 import clockUrl from '../../../assets/sprites/clock.png';
 import cupUrl from '../../../assets/sprites/cup.png';
@@ -20,9 +21,11 @@ import type { ActorId, AnchorId, Bubble } from '../../shared/types';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
+import { GardenView } from './GardenView';
 import { StreetView } from './StreetView';
 import { HOLIDAYS, SKIES, WeatherLayer } from './WeatherLayer';
 import { INSET, VIEW } from './street';
+import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, pathToBackDoor } from './garden';
 import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -39,6 +42,9 @@ const WINDOW_PANES = [{ x: 18, y: 12, w: 24, h: 18 }, { x: 54, y: 12, w: 24, h: 
 const GLASS = new Set(['216,208,224', '235,228,242', '248,248,248']);
 /** How long the room takes to change its light when the hour turns a new period. */
 const DAYLIGHT_MS = 4000;
+/** Weather in the garden falls over the lawn, under the garden's light and shade. */
+const GARDEN_WEATHER_DEPTH = 0.6;
+const VIEW_FADE_MS = 180;
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FORM_POS = { x: 224, y: 57 };
 /** The meeting bell at the left end of the counter (top-left corner, canvas pixels); shown while a commission runs. */
@@ -46,7 +52,8 @@ const BELL_POS = { x: 216, y: 57 };
 /** A brass service bell, 7x6: k knob, g brass, h highlight, s shade, b wooden base. */
 const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
-type Target = ActorId | 'counter' | 'bell';
+/** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in. */
+export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor';
 
 type Actor = {
   id: ActorId;
@@ -63,6 +70,10 @@ type Actor = {
   idle?: Phaser.Time.TimerEvent;
   /** Gone out through the door (a subagent off on an errand); hidden until it walks somewhere again. */
   outside?: boolean;
+  /** Out in the back garden; comes back in through the back door when it walks somewhere. */
+  inGarden?: boolean;
+  /** Counts walks, so a trip to the garden knows when a newer walk has taken over. */
+  trip: number;
 };
 
 /**
@@ -96,6 +107,13 @@ export class CafeScene extends Phaser.Scene {
   private tintColor = 0xffffff;
   /** The street outside, shown in an inset while someone is out on an errand. */
   private street!: StreetView;
+  /** The back garden, beside the shop in this scene; the camera slides over to look at it. */
+  private garden!: GardenView;
+  private backDoor!: Phaser.GameObjects.Sprite;
+  /** What the window shows: the shop, or the garden through the back door. */
+  view: 'shop' | 'garden' = 'shop';
+  /** Called when the view changes (the page hides the blackboard's chalk in the garden). */
+  onView?: (view: 'shop' | 'garden') => void;
   /** Rain or snow past the windows and in the street, holiday decorations in the room; they follow the calendar. */
   private weather!: WeatherLayer;
   /** Called when a character or the counter is clicked. */
@@ -117,6 +135,7 @@ export class CafeScene extends Phaser.Scene {
   preload() {
     this.load.image('cafe', cafeUrl);
     this.load.image('street', streetUrl);
+    this.load.image('garden', gardenUrl);
     for (const h of HOLIDAYS) this.load.image(`decor-${h}`, DECOR_URLS[h]);
     for (const s of SKIES) this.load.image(`weather-${s}`, WEATHER_URLS[s]);
     for (const id of STAFF_IDS) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
@@ -143,7 +162,7 @@ export class CafeScene extends Phaser.Scene {
       const isCat = a.id === 'cat';
       const shadow = this.add.ellipse(spot.x, spot.y, isCat ? 20 : 11, 4, 0x3b2a1e, 0.28);
       const sprite = this.add.sprite(spot.x, spot.y, a.id).setOrigin(0.5, 1).setDepth(spot.y);
-      const actor: Actor = { id: a.id, sprite, shadow, facing: spot.facing, at: a.home, pose: isCat ? 'lie' : 'idle', height: a.height };
+      const actor: Actor = { id: a.id, sprite, shadow, facing: spot.facing, at: a.home, pose: isCat ? 'lie' : 'idle', height: a.height, trip: 0 };
       sprite
         .setInteractive({ useHandCursor: true, pixelPerfect: true })
         .on('pointerdown', () => this.activate(a.id))
@@ -162,6 +181,9 @@ export class CafeScene extends Phaser.Scene {
     this.addLight();
     this.street = new StreetView(this);
     this.street.onClick = (id) => this.onActorClick(id);
+    this.garden = new GardenView(this);
+    this.garden.onDoorClick = () => this.activate('shopdoor');
+    this.garden.onActorClick = (id) => this.onActorClick(id);
     this.street.onOpen = (open) => {
       this.weather?.setOutdoorsVisible(open);
       this.onStreet?.(open);
@@ -171,6 +193,7 @@ export class CafeScene extends Phaser.Scene {
 
   update() {
     this.street.update();
+    this.garden.update();
     // Shadows follow their characters; the cat's sits under its body, which is drawn left of centre.
     for (const a of this.actors.values()) {
       a.shadow.setPosition(a.sprite.x + (a.id === 'cat' ? 3 : 0), a.sprite.y - 1).setDepth(a.sprite.depth - 0.5).setAlpha(0.28 * a.sprite.alpha);
@@ -200,9 +223,16 @@ export class CafeScene extends Phaser.Scene {
 
   /** Small animated things that make the room feel lived in. */
   private addProps() {
-    this.add.sprite(200, 14, 'clock').setOrigin(0).play('clock');
+    this.add.sprite(180, 14, 'clock').setOrigin(0).play('clock');
     this.add.sprite(256, 48, 'cup').setOrigin(0).setDepth(1).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
+    // The back door: click it to look out at the garden.
+    this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'door', 0).setOrigin(0).setDepth(1);
+    this.add.zone(BACK_DOOR.x, BACK_DOOR.y, 16, 32).setOrigin(0)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.activate('backdoor'))
+      .on('pointerover', () => this.highlight('backdoor'))
+      .on('pointerout', () => this.hovered === 'backdoor' && this.highlight(null));
     // A sheet of paper with two pencilled lines, slightly askew on the counter top.
     this.form = this.add.graphics({ x: FORM_POS.x, y: FORM_POS.y }).setDepth(2);
     this.form.fillStyle(0x7a5236, 0.35).fillRect(1, 1, 9, 7);
@@ -247,7 +277,7 @@ export class CafeScene extends Phaser.Scene {
   /** Where a character stands now, or null while out on an errand. */
   anchorOf(actorId: ActorId): AnchorId | null {
     const actor = this.actors.get(actorId);
-    return !actor || actor.outside ? null : actor.at;
+    return !actor || actor.outside || actor.inGarden ? null : actor.at;
   }
 
   setReducedMotion(on: boolean) {
@@ -312,7 +342,12 @@ export class CafeScene extends Phaser.Scene {
     tex.refresh();
     this.sky = this.add.image(0, 0, 'glass').setOrigin(0).setDepth(0.5).setAlpha(0);
     this.shade = this.add.rectangle(0, 0, src.width, src.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
-    this.weather = new WeatherLayer(this, 'glass', [{ area: VIEW, mask: this.street.mask, depth: StreetView.WEATHER_DEPTH }]);
+    const garden = { x: GARDEN_X, y: 0, w: src.width, h: src.height };
+    const gardenMask = this.make.graphics({}, false).fillStyle(0xffffff).fillRect(garden.x, garden.y, garden.w, garden.h).createGeometryMask();
+    this.weather = new WeatherLayer(this, 'glass', [
+      { area: VIEW, mask: this.street.mask, depth: StreetView.WEATHER_DEPTH, inset: true },
+      { area: garden, mask: gardenMask, depth: GARDEN_WEATHER_DEPTH },
+    ]);
     this.weather.setReducedMotion(this.reducedMotion);
     this.followCalendar(new Date());
     this.setPeriod(periodAt(new Date().getHours()), true);
@@ -355,6 +390,7 @@ export class CafeScene extends Phaser.Scene {
       this.tintColor = Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b);
       this.shade.setFillStyle(this.tintColor);
       this.street?.setTint(this.tintColor);
+      this.garden?.setTint(this.tintColor);
       this.weather?.setTint(this.tintColor);
       const sky = mix(from.sky, look.sky);
       this.sky.setTint(Phaser.Display.Color.GetColor(sky.r, sky.g, sky.b)).setAlpha(from.skyAlpha + (look.skyAlpha - from.skyAlpha) * t);
@@ -403,24 +439,27 @@ export class CafeScene extends Phaser.Scene {
   highlight(target: Target | null) {
     if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
     this.glow = undefined;
-    const actor = target && target !== 'counter' && target !== 'bell' ? this.actors.get(target) : undefined;
-    if (actor?.outside) target = null;
+    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor'].includes(target) ? this.actors.get(target as ActorId) : undefined;
+    if (actor?.outside || actor?.inGarden) target = null;
     this.hovered = target;
-    const fx = actor && !actor.outside ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
+    const fx = actor && target ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
     if (actor && fx) this.glow = { sprite: actor.sprite, fx };
   }
 
   /** Click (or Enter on) the counter or a character. */
   activate(target: Target) {
     if (target === 'counter') return this.onCounterClick();
+    if (target === 'backdoor') return this.showGarden();
+    if (target === 'shopdoor') return this.showShop();
     if (target === 'bell') {
       if (!this.bell.visible) return;
       this.ringBell();
       return this.onBellClick();
     }
     const actor = this.actors.get(target);
-    // Someone out on an errand can still be clicked in the street inset.
+    // Someone out on an errand can still be clicked in the street inset, and someone in the garden out there.
     if (actor?.outside && this.street.who === target) return this.onActorClick(target);
+    if (actor?.inGarden) return this.view === 'garden' ? this.onActorClick(target) : undefined;
     if (!actor || actor.outside) return;
     this.react(actor);
     this.onActorClick(target);
@@ -428,14 +467,16 @@ export class CafeScene extends Phaser.Scene {
 
   /** What can be clicked, in canvas pixels, for the keyboard hotspots laid over the canvas. */
   hotspots(): { id: Target; x: number; y: number; w: number; h: number }[] {
+    if (this.view === 'garden') return this.garden.hotspots().map((h) => ({ ...h, id: h.id === 'door' ? 'shopdoor' : h.id }));
     const counter = ZONES.find((z) => z.id === 'counter')!;
-    const people = [...this.actors.values()].filter((a) => !a.outside).map((a) => {
+    const people = [...this.actors.values()].filter((a) => !a.outside && !a.inGarden).map((a) => {
       const b = a.sprite.getBounds();
       return { id: a.id, x: b.x, y: b.y, w: b.width, h: b.height };
     });
     const bell = this.bell.visible ? [{ id: 'bell' as const, x: BELL_POS.x - 1, y: BELL_POS.y - 2, w: 9, h: 9 }] : [];
     const out = this.street.open && this.street.who ? [{ id: this.street.who, x: INSET.x, y: INSET.y, w: INSET.w, h: INSET.h }] : [];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, ...people, ...out];
+    const back = { id: 'backdoor' as const, x: BACK_DOOR.x, y: BACK_DOOR.y, w: 16, h: 32 };
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...people, ...out];
   }
 
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */
@@ -529,7 +570,8 @@ export class CafeScene extends Phaser.Scene {
 
   /** Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). */
   busyTalking(actorId: ActorId): boolean {
-    return this.speech.has(actorId) || !!this.actors.get(actorId)?.outside;
+    const actor = this.actors.get(actorId);
+    return this.speech.has(actorId) || !!actor?.outside || !!actor?.inGarden;
   }
 
   /** Show a line above a character (text may be empty to show just the bubble). Pass null and no bubble to clear. */
@@ -546,15 +588,31 @@ export class CafeScene extends Phaser.Scene {
   async walkTo(actorId: ActorId, anchor: AnchorId): Promise<void> {
     const actor = this.actors.get(actorId);
     if (!actor) return;
+    actor.trip++;
     actor.tween?.stop();
     if (actor.outside && anchor === 'door') return;
+    if (actor.inGarden) await this.backFromGarden(actor);
     if (actor.outside) await this.enter(actor);
+    // A trip to the garden cut short on the doorstep: back in full view.
+    if (!actor.outside) actor.sprite.setAlpha(1);
     actor.at = anchor;
     if (actorId === 'cat') actor.sprite.anims.resume();
-    const { sprite } = actor;
-    const speed = WALK_SPEED[actorId];
+    const path = pathBetween({ x: actor.sprite.x, y: actor.sprite.y }, anchor, actorId);
+    if (path.length) {
+      await this.followPath(actor, path);
+      actor.facing = standPoint(anchor, actorId).facing;
+      actor.pose = this.poseAt(actor.pose, actor);
+      this.hold(actor);
+    }
+    // Staff sent to the door are going out on an errand.
+    if (anchor === 'door' && actorId !== 'cat' && !actor.outside) await this.leave(actor);
+  }
+
+  /** Walk a path, easing in and out and pausing briefly at each turn. Resolves when done or stopped by a newer walk. */
+  private followPath(actor: Actor, path: { x: number; y: number }[]): Promise<void> {
+    const { sprite, id } = actor;
+    const speed = WALK_SPEED[id];
     let from = { x: sprite.x, y: sprite.y };
-    const path = pathBetween(from, anchor, actorId);
     const steps = path.map((to, i) => {
       const start = from;
       const first = i === 0;
@@ -571,31 +629,102 @@ export class CafeScene extends Phaser.Scene {
         ease: first && last ? 'Sine.easeInOut' : first ? 'Sine.easeIn' : last ? 'Sine.easeOut' : 'Linear',
         onStart: () => {
           actor.facing = facingTowards(start, to);
-          if (actorId !== 'cat') sprite.play(animKey(actorId, 'walk', actor.facing), true);
+          if (id !== 'cat') sprite.play(animKey(id, 'walk', actor.facing), true);
         },
         onUpdate: () => sprite.setDepth(sprite.y),
       };
     });
-    if (steps.length) {
-      await new Promise<void>((done) => {
-        const arrive = () => {
-          actor.facing = standPoint(anchor, actorId).facing;
-          actor.pose = this.poseAt(actor.pose, actor);
-          this.hold(actor);
-          done();
-        };
-        actor.tween = this.tweens.chain({ tweens: steps, onComplete: arrive, onStop: arrive });
-      });
-    }
-    // Staff sent to the door are going out on an errand.
-    if (anchor === 'door' && actorId !== 'cat' && !actor.outside) await this.leave(actor);
+    if (!steps.length) return Promise.resolve();
+    return new Promise((done) => {
+      actor.tween = this.tweens.chain({ tweens: steps, onComplete: () => done(), onStop: () => done() });
+    });
+  }
+
+  isInGarden(actorId: ActorId): boolean {
+    return !!this.actors.get(actorId)?.inGarden;
+  }
+
+  /** Who could wander out to the garden now: at home, standing about, not talking, not out. */
+  freeForGarden(): ActorId[] {
+    return ACTORS.filter((a) => {
+      const actor = this.actors.get(a.id)!;
+      return actor.at === a.home && !actor.outside && !actor.inGarden && !actor.tween?.isPlaying() && !this.speech.has(a.id)
+        && (a.id === 'cat' || actor.pose === 'idle');
+    }).map((a) => a.id);
+  }
+
+  /**
+   * Go out to the garden through the back door, and over to a spot there. Any walk that comes along
+   * meanwhile (a commission needing them) takes over and the trip is off.
+   */
+  async visitGarden(actorId: ActorId, spot: GardenSpot) {
+    const actor = this.actors.get(actorId);
+    if (!actor || actor.outside || actor.inGarden) return;
+    const trip = ++actor.trip;
+    actor.tween?.stop();
+    if (actorId === 'cat') actor.sprite.anims.resume();
+    await this.followPath(actor, pathToBackDoor({ x: actor.sprite.x, y: actor.sprite.y }));
+    if (actor.trip !== trip) return;
+    await this.throughBackDoor(actor, 'out');
+    if (actor.trip !== trip) return;
+    actor.inGarden = true;
+    void this.garden.arrive(actorId, spot);
+  }
+
+  /** In from the garden: across the lawn if anyone is watching out there, then in through the back door. */
+  private async backFromGarden(actor: Actor) {
+    // Already on the way in: nobody else needs to fetch them.
+    actor.inGarden = false;
+    await this.garden.leave(actor.id, this.view !== 'garden');
+    actor.sprite.setPosition(BACK_DOOR_SPOT.x, BACK_DOOR_SPOT.y - 8).setDepth(BACK_DOOR_SPOT.y);
+    await this.throughBackDoor(actor, 'in');
+  }
+
+  /** Open the back door and step through it, fading out going out or in coming back. */
+  private async throughBackDoor(actor: Actor, way: 'out' | 'in') {
+    if (this.view === 'shop') this.onSound?.('door');
+    this.backDoor.play('door-open');
+    await new Promise((r) => this.time.delayedCall(DOOR_MS, r));
+    if (actor.id !== 'cat') actor.sprite.play(animKey(actor.id, 'walk', way === 'out' ? 'up' : 'down'), true);
+    const to = way === 'out' ? { y: BACK_DOOR_SPOT.y - 8, alpha: 0 } : { y: BACK_DOOR_SPOT.y, alpha: 1 };
+    await new Promise<void>((done) => {
+      actor.tween = this.tweens.chain({ tweens: [{ targets: [actor.sprite], ...to, duration: 420 }], onComplete: () => done(), onStop: () => done() });
+    });
+    this.backDoor.play('door-close');
+  }
+
+  /** Look out at the garden, or back into the shop: a quick fade while the camera moves over. */
+  showGarden() {
+    this.setView('garden');
+  }
+
+  showShop() {
+    this.setView('shop');
+  }
+
+  private setView(view: 'shop' | 'garden') {
+    if (view === this.view) return;
+    this.view = view;
+    this.highlight(null);
+    const cam = this.cameras.main;
+    const move = () => cam.setScroll(view === 'garden' ? GARDEN_X : 0, 0);
+    this.onView?.(view);
+    if (this.reducedMotion) return move();
+    cam.fadeOut(VIEW_FADE_MS, 27, 23, 18);
+    cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      move();
+      cam.fadeIn(VIEW_FADE_MS, 27, 23, 18);
+    });
   }
 
   /** Put a character at an anchor at once, without walking (catching up after the window was hidden). */
   place(actorId: ActorId, anchor: AnchorId) {
     const actor = this.actors.get(actorId);
     if (!actor) return;
+    actor.trip++;
     actor.tween?.stop();
+    if (actor.inGarden) this.garden.remove(actorId);
+    actor.inGarden = false;
     const spot = standPoint(anchor, actorId);
     actor.at = anchor;
     actor.outside = anchor === 'door' && actorId !== 'cat';
@@ -607,21 +736,36 @@ export class CafeScene extends Phaser.Scene {
   }
 
   labels(): LabelPos[] {
+    if (this.view === 'garden') return this.gardenLabels();
     // Names appear only on hover; the art shows who is who and what each place is.
     const zones = ZONES.filter((z) => z.id === this.hovered).map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
     if (this.hovered === 'bell') zones.push({ key: 'z-bell', text: strings.zones.bell, x: BELL_POS.x + 3, y: BELL_POS.y - 2, kind: 'zone' as const });
+    if (this.hovered === 'backdoor') zones.push({ key: 'z-garden', text: strings.zones.garden, x: BACK_DOOR.x + 8, y: BACK_DOOR.y - 2, kind: 'zone' as const });
     const actors = ACTORS.filter((a) => a.id === this.hovered).map((a) => {
       const { sprite, height } = this.actors.get(a.id)!;
       return { key: `a-${a.id}`, text: a.name, x: sprite.x, y: sprite.y - height - 1, kind: 'actor' as const };
     });
     // Someone out on an errand can't be heard in the shop, but her mood shows over her in the street inset.
     const bubbles = ACTORS.filter((a) => this.speech.has(a.id)).flatMap((a) => {
-      const { sprite, height, outside } = this.actors.get(a.id)!;
+      const { sprite, height, outside, inGarden } = this.actors.get(a.id)!;
       const { text, icon } = this.speech.get(a.id)!;
+      if (inGarden) return [];
       if (!outside) return [{ key: `b-${a.id}`, text, icon, x: sprite.x, y: sprite.y - height - 2, kind: 'bubble' as const }];
       const head = this.street.who === a.id ? this.street.headPos(height) : null;
       return head && icon ? [{ key: `b-${a.id}`, text: '', icon, x: head.x, y: head.y, kind: 'bubble' as const }] : [];
     });
     return [...zones, ...actors, ...bubbles];
+  }
+
+  /** In the garden view: the door's name on hover, and what anyone out there says. */
+  private gardenLabels(): LabelPos[] {
+    const door = this.garden.hovered === 'door' || this.hovered === 'shopdoor'
+      ? [{ key: 'z-shop', text: strings.zones.shop, x: GARDEN_DOOR.x + 8, y: GARDEN_DOOR.y - 2, kind: 'zone' as const }]
+      : [];
+    const bubbles = this.garden.heads().filter((h) => this.speech.has(h.id)).map((h) => {
+      const { text, icon } = this.speech.get(h.id)!;
+      return { key: `b-${h.id}`, text, icon, x: h.x, y: h.y, kind: 'bubble' as const };
+    });
+    return [...door, ...bubbles];
   }
 }

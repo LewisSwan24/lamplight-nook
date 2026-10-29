@@ -1,18 +1,17 @@
 import { fill, strings } from '../../shared/i18n';
 import type { ActorId } from '../../shared/types';
-import type { CafeScene } from '../game/CafeScene';
+import type { CafeScene, Target } from '../game/CafeScene';
 import { el, layer } from './dom';
 
 const A = strings.ui.access;
-type Target = ActorId | 'counter' | 'bell';
 const buttons = new Map<Target, HTMLButtonElement>();
 let box: HTMLElement | null = null;
 
-const label = (id: Target) =>
-  id === 'counter' ? A.hotspotCounter : id === 'bell' ? A.hotspotBell : fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id] });
+const PLACES: Partial<Record<Target, string>> = { counter: A.hotspotCounter, bell: A.hotspotBell, backdoor: A.hotspotGarden, shopdoor: A.hotspotShop };
+const label = (id: Target) => PLACES[id] ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
 
 /**
- * Invisible buttons over the counter and each character, so the shop works from the keyboard:
+ * Invisible buttons over the counter, the doors and each character, so the shop works from the keyboard:
  * Tab moves between them (showing the name and glow), Enter does what a click does.
  * Call every frame with the canvas's place on screen and its scale.
  */

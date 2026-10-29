@@ -145,6 +145,8 @@ body.debug #debug { display: block; }
 .parcel .parcel-body { max-height: 3em; overflow: hidden; }
 /* While the street inset is open in the bottom right corner, what usually sits there makes room. */
 .street-open .parcel { top: 64px; bottom: auto; }
+/* Looking out at the garden: the chalk on the shop's blackboard stays in the shop. */
+.garden-view #board { visibility: hidden; }
 .parcel.expanded .parcel-body { max-height: none; }
 .replay-badge { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(0, 0, 0, 0.6); color: #fff; padding: 3px 14px; border-radius: 10px; font-size: 14px; letter-spacing: 0.1em; pointer-events: none; }
 #debug summary { cursor: pointer; font-weight: bold; }

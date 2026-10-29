@@ -7,6 +7,7 @@ import { fill, locale, shorten, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
+import { GardenPlanner } from './game/garden';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
@@ -117,8 +118,22 @@ setInterval(() => {
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
   const talk = chatter.next(mood, Date.now(), scene.period, scene.outside());
   if (talk) void stage.talk(talk.turns);
+  tendGarden(!busy);
   if (running && !blocked) sayProgress();
 }, 5000);
+
+// The back garden: when the shop is quiet someone wanders out now and then; work calls everyone back in.
+const gardenPlanner = new GardenPlanner(Date.now());
+function tendGarden(quiet: boolean) {
+  const step = gardenPlanner.next(Date.now(), quiet, scene.freeForGarden());
+  for (const id of step.back) {
+    const home = ACTORS.find((a) => a.id === id)!.home;
+    // Someone a commission already sent for is on their way; only fetch whoever is still out there.
+    if (scene.isInGarden(id)) void scene.walkTo(id, home);
+  }
+  if (step.go) void scene.visitGarden(step.go.actor, step.go.spot);
+}
+scene.onView = (v) => document.body.classList.toggle('garden-view', v === 'garden');
 
 // Long commissions: now and then Adeng says how far along it is (from the blackboard).
 let runStartedAt = 0;
@@ -201,6 +216,8 @@ window.lamplight.onResult((result) => showResult(result, (path, how) => void win
 let running: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  scene.showShop();
+  tendGarden(false);
   runStartedAt = Date.now();
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
@@ -361,6 +378,8 @@ function startReplay(speed = 3) {
   append(`replay: ${events.length} events at ${speed}x`);
   setReplayBadge(true);
   replaying = true;
+  scene.showShop();
+  tendGarden(false);
   cancelReplay = replay(stage, events, speed, () => { setReplayBadge(false); replaying = false; });
 }
 $('replay').addEventListener('click', () => startReplay());
@@ -378,6 +397,8 @@ function startTrial() {
   const events = normalizeAll(trialText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l) as RawAgentEvent));
   setReplayBadge(true);
   replaying = true;
+  scene.showShop();
+  tendGarden(false);
   scene.setFormWaiting(false);
   // A little slower than recorded, and the end card waits for the wrap-up lines to finish.
   cancelReplay = replay(stage, events, TRIAL_SPEED, () => {

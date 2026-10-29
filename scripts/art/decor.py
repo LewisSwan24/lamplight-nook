@@ -20,7 +20,7 @@ christmas = Image.open(THEMES / '15_Christmas_16x16.png').convert('RGBA')
 # Holiday -> pieces: (sheet, pixel rect on it, top-left on the canvas). Kept clear of the anchors in layout.ts.
 PIECES = {
     'halloween': [
-        (halloween, (14, 4, 62, 22), (134, 17)),  # bunting with bats and ghosts, on the wall
+        (halloween, (14, 4, 62, 22), (128, 17)),  # bunting with bats and ghosts, on the wall
         (halloween, (128, 8, 160, 24), (24, 26)),  # two jack-o'-lanterns on the window sill
         (halloween, (83, 7, 93, 22), (278, 46)),  # a small pumpkin on the counter
         (halloween, (163, 6, 189, 28), (2, 90)),  # a pile of pumpkins by the bookshelf

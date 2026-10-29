@@ -13,6 +13,8 @@ export const HOLIDAYS: Holiday[] = ['halloween', 'christmas', 'new_year'];
 export const SKIES: Exclude<Sky, 'clear'>[] = ['rain', 'snow', 'leaves', 'petals'];
 
 type Area = { x: number; y: number; w: number; h: number };
+/** `inset`: a small view above the room's shade, lit by itself and only there while it is open (the street). */
+type Outdoor = { area: Area; mask: Phaser.Display.Masks.GeometryMask; depth: number; inset?: boolean };
 
 /**
  * Rain, snow, petals or leaves falling past the windows (and in the street inset), and the holiday
@@ -22,6 +24,8 @@ export class WeatherLayer {
   private decor: Phaser.GameObjects.Image;
   private touch: Phaser.GameObjects.Image;
   private emitters: Phaser.GameObjects.Particles.ParticleEmitter[] = [];
+  /** The emitters of inset views, which take the light and come and go with their inset. */
+  private insets: Phaser.GameObjects.Particles.ParticleEmitter[] = [];
   sky: Sky = 'clear';
   holiday: Holiday | null = null;
   reducedMotion = false;
@@ -32,7 +36,7 @@ export class WeatherLayer {
    * `glass` is a mask texture of the window panes; `outdoors` are other views of the outside
    * (the street inset), each with its own mask and depth.
    */
-  constructor(private scene: Phaser.Scene, private glass: string, private outdoors: { area: Area; mask: Phaser.Display.Masks.GeometryMask; depth: number }[] = []) {
+  constructor(private scene: Phaser.Scene, private glass: string, private outdoors: Outdoor[] = []) {
     if (!scene.textures.exists('weather-px')) {
       const g = scene.make.graphics({}, false).fillStyle(0xffffff).fillRect(0, 0, 1, 1);
       g.generateTexture('weather-px', 1, 1);
@@ -58,27 +62,32 @@ export class WeatherLayer {
     this.restart();
   }
 
-  /** Outdoor views take the room's light colour themselves (they sit above the room's shade). */
+  /** Inset views take the room's light colour themselves (they sit above the room's shade). */
   setTint(color: number) {
     this.tint = color;
     if (this.sky === 'clear') return;
-    for (const e of this.emitters.slice(1)) e.setParticleTint(multiply(FALLING[this.sky].color, color));
+    for (const e of this.insets) e.setParticleTint(multiply(FALLING[this.sky].color, color));
   }
 
-  /** Outdoor views are only there while their inset is open. */
+  /** Inset views are only there while their inset is open. */
   setOutdoorsVisible(on: boolean) {
     this.outdoorsOn = on;
-    for (const e of this.emitters.slice(1)) e.setVisible(on);
+    for (const e of this.insets) e.setVisible(on);
   }
 
   private restart() {
     for (const e of this.emitters) e.destroy();
     this.emitters = [];
+    this.insets = [];
     // Falling things are motion: with less motion asked for, the day is only greyer.
     if (this.sky === 'clear' || this.reducedMotion) return;
     const glassMask = this.scene.make.image({ x: 0, y: 0, key: this.glass, origin: 0 }, false).createBitmapMask();
     this.emitters.push(this.emitter(WINDOW_AREA, 1, GLASS_DEPTH).setMask(glassMask));
-    for (const o of this.outdoors) this.emitters.push(this.emitter(o.area, o.area.w / WINDOW_AREA.w, o.depth).setMask(o.mask));
+    for (const o of this.outdoors) {
+      const e = this.emitter(o.area, o.area.w / WINDOW_AREA.w, o.depth).setMask(o.mask);
+      this.emitters.push(e);
+      if (o.inset) this.insets.push(e);
+    }
     this.setTint(this.tint);
     this.setOutdoorsVisible(this.outdoorsOn);
   }
