@@ -24,7 +24,7 @@ export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean
 export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean };
 
 /** Pages the renderer may open in the browser (install guides and credits). */
-export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
+export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
 export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string };
 

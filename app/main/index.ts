@@ -45,6 +45,7 @@ const LINKS: Record<ExternalLink, string> = {
   apiKeys: 'https://console.anthropic.com/settings/keys',
   billing: 'https://console.anthropic.com/settings/billing',
   limezu: 'https://limezu.itch.io/',
+  music: 'https://freemusicarchive.org/music/alex-morgan',
 };
 
 function createWindow() {

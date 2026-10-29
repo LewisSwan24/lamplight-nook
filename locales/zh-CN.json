@@ -179,7 +179,9 @@
       "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）",
       "volumeLabel": "声音大小",
       "volumeHint": "想安静的时候，点左上角的小喇叭就能静音。",
-      "creditSound": "界面音效：Andrea Baroni（Cyberleaf Studio）《Modern UI SFX》；门铃、木槌和铅笔声由小灯屋自己合成"
+      "creditSound": "界面音效：Andrea Baroni（Cyberleaf Studio）《Modern UI SFX》；门铃、木槌和铅笔声由小灯屋自己合成",
+      "creditMusic": "背景音乐：Alex Morgan《Jazz Study Sessions》《Jazz Cafe & Coffee Shop》（CC BY 4.0，已统一音量并转为 Ogg）",
+      "creditMusicLink": "freemusicarchive.org"
     },
     "run": {
       "runningTitle": "正在做：{want}",
