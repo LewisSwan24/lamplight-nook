@@ -50,3 +50,8 @@ function sdkBinaryInstalled(): boolean {
 export function locateClaude(): string | undefined | null {
   return findClaude({ platform: process.platform, env: process.env, home: homedir(), exists: existsSync, sdkBinary: sdkBinaryInstalled() });
 }
+
+/** The official one-line installer (code.claude.com/docs/en/setup); no administrator rights needed. */
+export function installCommand(platform: NodeJS.Platform): string {
+  return platform === 'win32' ? 'irm https://claude.ai/install.ps1 | iex' : 'curl -fsSL https://claude.ai/install.sh | bash';
+}

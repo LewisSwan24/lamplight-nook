@@ -52,19 +52,52 @@ function keyRow(api: LamplightApi, e: EnvStatus, changed: (said?: string) => voi
   return row;
 }
 
-/** Whether Claude Code and the API key are there, with a way to fix what is missing. Re-checks in place. */
+/** Claude Code is missing: three steps with the official install command and a copy button. */
+function claudeSteps(api: LamplightApi, e: EnvStatus): HTMLElement {
+  const copy = el('button.sticker', { type: 'button' }, S.claudeCopy) as HTMLButtonElement;
+  copy.addEventListener('click', async () => {
+    await api.copyInstallCommand();
+    copy.textContent = S.claudeCopied;
+    setTimeout(() => { copy.textContent = S.claudeCopy; }, 2000);
+  });
+  return el('ol.claude-steps', {},
+    el('li', {}, e.platform === 'win32' ? S.claudeStep1 : S.claudeStep1Mac),
+    el('li', {}, S.claudeStep2, el('div.install-line', {}, el('code', {}, e.installCommand), copy)),
+    el('li', {}, S.claudeStep3, ' ', el('span.watching', {}, S.claudeWatching)));
+}
+
+/** How often to look for Claude Code while the user is installing it. */
+const WATCH_MS = 3000;
+
+/**
+ * Whether Claude Code and the API key are there, with a way to fix what is missing. While Claude Code is
+ * missing and the rows are on screen it keeps looking, so the row turns green once the install finishes.
+ */
 function envRows(api: LamplightApi, env: EnvStatus): HTMLElement {
   const box = el('div.env-rows');
-  const render = (e: EnvStatus, said?: string) => box.replaceChildren(...[
-    el(`div.env-row.${e.hasClaude ? 'ok' : 'missing'}`, {},
-      el('span.mark', {}, e.hasClaude ? OK : MISSING),
-      el('span', {}, e.hasClaude ? S.claudeOk : S.claudeMissing, ' ',
-        e.hasClaude ? null : el('button.link', { onclick: () => api.openLink('claudeSetup') }, S.claudeHow))),
-    keyRow(api, e, async (said) => render(await api.envStatus(), said)),
-    said ? el('div.hint.key-said', {}, said) : null,
-    e.hasClaude ? null
-      : el('div.recheck', {}, el('button.link', { onclick: async () => render(await api.envStatus()) }, S.recheck)),
-  ].filter((n): n is HTMLElement => n !== null));
+  let watch: ReturnType<typeof setInterval> | undefined;
+  const render = (e: EnvStatus, said?: string) => {
+    box.replaceChildren(...[
+      el(`div.env-row.${e.hasClaude ? 'ok' : 'missing'}`, {},
+        el('span.mark', {}, e.hasClaude ? OK : MISSING),
+        el('div', {}, e.hasClaude ? S.claudeOk : S.claudeMissing, ' ',
+          e.hasClaude ? null : el('button.link', { onclick: () => api.openLink('claudeSetup') }, S.claudeHow),
+          e.hasClaude ? null : claudeSteps(api, e))),
+      keyRow(api, e, async (next) => render(await api.envStatus(), next)),
+      said ? el('div.hint.key-said', {}, said) : null,
+    ].filter((n): n is HTMLElement => n !== null));
+    if (e.hasClaude && watch) {
+      clearInterval(watch);
+      watch = undefined;
+      sfx('success');
+    } else if (!e.hasClaude && !watch) {
+      watch = setInterval(async () => {
+        if (!box.isConnected) { clearInterval(watch); watch = undefined; return; }
+        const next = await api.envStatus();
+        if (next.hasClaude) render(next);
+      }, WATCH_MS);
+    }
+  };
   render(env);
   return box;
 }
