@@ -1,5 +1,5 @@
 import './locale-boot';
-import { mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -178,6 +178,14 @@ ipcMain.handle(IPC.openWorkRoot, async () => {
 ipcMain.handle(IPC.openLink, (_e, link: ExternalLink) => (LINKS[link] ? shell.openExternal(LINKS[link]) : undefined));
 ipcMain.handle(IPC.appVersion, () => app.getVersion());
 ipcMain.on(IPC.locale, (e) => { e.returnValue = locale(); });
+// Built by scripts/notices.mjs next to the compiled app.
+ipcMain.handle(IPC.legalNotices, (): string | null => {
+  try {
+    return readFileSync(join(app.getAppPath(), 'out', 'THIRD-PARTY-NOTICES.txt'), 'utf8');
+  } catch {
+    return null;
+  }
+});
 ipcMain.handle(IPC.relaunch, () => {
   if (current) return false;
   log?.info('relaunch for language', { language: settings.get().language });

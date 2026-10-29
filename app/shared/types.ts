@@ -58,6 +58,8 @@ export interface LamplightApi {
   openWorkRoot(): Promise<void>;
   openLink(link: ExternalLink): Promise<void>;
   appVersion(): Promise<string>;
+  /** The third-party license list built with the app; null if it is missing. */
+  legalNotices(): Promise<string | null>;
   /** Restart the app (to switch language); false while a commission is running. */
   relaunch(): Promise<boolean>;
   /** Check and save the user's API key (encrypted on this computer). */
@@ -150,6 +152,7 @@ export const IPC = {
   appVersion: 'app:version',
   locale: 'app:locale',
   relaunch: 'app:relaunch',
+  legalNotices: 'app:legal-notices',
   saveApiKey: 'key:save',
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
