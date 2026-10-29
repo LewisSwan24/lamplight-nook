@@ -16,6 +16,7 @@
     "adeng": "Wick",
     "xiaoju": "Clem",
     "laoshi": "Flint",
+    "qingdai": "Iris",
     "cat": "Chestnut"
   },
   "animals": {
@@ -178,6 +179,7 @@
     "replayBadge": "Replay",
     "board": {
       "research": "Research",
+      "design": "Design",
       "write": "Make it",
       "check": "Check"
     },

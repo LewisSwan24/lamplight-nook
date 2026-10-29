@@ -34,6 +34,12 @@ sub_go_laoshi:
   - { id: go_ls_02, speaker: adeng, bubbles: ["Flint, take a look?"], reply: { speaker: laoshi, bubbles: ["Mm."] } }
   - { id: go_ls_03, speaker: laoshi, bubbles: ["Hand it over."] }
 
+sub_go_qingdai:
+  - { id: go_qd_rain, speaker: qingdai, when: sky_rain, bubbles: ["Rainy day. Softer colours, I think.", "I'll sketch it on the board first."] }
+  - { id: go_qd_01, speaker: adeng, bubbles: ["Iris, how should this one look?"], reply: { speaker: qingdai, bubbles: ["Let me get my swatches."] } }
+  - { id: go_qd_02, speaker: adeng, bubbles: ["Colours are your department, Iris."], reply: { speaker: qingdai, bubbles: ["Leave it with me."] } }
+  - { id: go_qd_03, speaker: qingdai, bubbles: ["I'll sketch it on the board first."] }
+
 sub_queue:
   - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["That can wait till Clem's back."] }
   - { id: sub_queue_02, speaker: adeng, bubbles: ["{who} has one on the go. This one queues."] }
@@ -55,6 +61,11 @@ sub_back_laoshi:
   - { id: back_ls_issue, speaker: laoshi, when: has_issues, bubbles: ["{issueCount} things wrong. Marked them."] }
   - { id: back_ls_ok, speaker: laoshi, when: no_issues, bubbles: ["...It'll do."], reply: { speaker: xiaoju, bubbles: ["He says it'll do!"] } }
   - { id: back_ls_ok2, speaker: laoshi, when: no_issues, bubbles: ["Mm. Nothing wrong with it."] }
+
+sub_back_qingdai:
+  - { id: back_qd_01, speaker: qingdai, bubbles: ["Here's the look.", "Five colours, laid out top to bottom."], reply: { speaker: adeng, bubbles: ["Good. We'll build to that."] } }
+  - { id: back_qd_02, speaker: qingdai, bubbles: ["Palette's done.", "Warm, and easy on the eyes."] }
+  - { id: back_qd_03, speaker: qingdai, bubbles: ["Sketched. Have a look."], reply: { speaker: laoshi, bubbles: ["...Bigger letters."] } }
 
 stuck:
   - { id: stuck_01, speaker: adeng, bubbles: ["Hm? That doesn't add up.", "Let me try another way."] }
@@ -143,6 +154,8 @@ idle_mutter:
   - { id: idle_adeng_02, speaker: adeng, bubbles: ["Need to get new tea leaves tomorrow."] }
   - { id: idle_xiaoju_02, speaker: xiaoju, bubbles: ["I've read this book three times now."] }
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["...Crooked."] }
+  - { id: idle_qingdai, speaker: qingdai, bubbles: ["That wall wants to be pale green."] }
+  - { id: idle_qingdai_02, speaker: qingdai, bubbles: ["This chalk keeps getting shorter."] }
 
 # A meeting at the big table (the bell on the counter). Replies from someone out on an errand are left out.
 meeting_call:
@@ -198,6 +211,10 @@ garden:
   - { id: garden_lawn_adeng_02, speaker: adeng, when: spot_lawn, bubbles: ["Someone folded this page.", "Clem did."] }
   - { id: garden_lawn_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["Reading on the grass is the best."] }
   - { id: garden_lawn_xiaoju_02, speaker: xiaoju, when: spot_lawn, bubbles: ["There's an ant on my book."] }
+  - { id: garden_flowers_qingdai, speaker: qingdai, when: spot_flowers, bubbles: ["Noting this colour down."] }
+  - { id: garden_flowers_qingdai_02, speaker: qingdai, when: spot_flowers, bubbles: ["That bit of purple at the edge.", "I can never mix it."] }
+  - { id: garden_lawn_qingdai, speaker: qingdai, when: spot_lawn, bubbles: ["A quick sketch out here."] }
+  - { id: garden_lawn_qingdai_02, speaker: qingdai, when: spot_lawn, bubbles: ["The sky keeps changing colour."] }
   - { id: garden_hens_xiaoju, speaker: xiaoju, when: spot_hens, bubbles: ["Chook chook chook. Dinner."] }
   - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["Two eggs today.", "One for Wick, one for me."] }
   - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["One, two, three. All here."] }
@@ -208,6 +225,7 @@ garden:
   - { id: garden_snow_xiaoju, speaker: xiaoju, when: sky_snow, bubbles: ["Made a snowman. Looks like Flint."] }
   - { id: garden_snow_adeng, speaker: adeng, when: sky_snow, bubbles: ["Snow on the cabbages."] }
   - { id: garden_snow_laoshi, speaker: laoshi, when: sky_snow, bubbles: ["Slippery."] }
+  - { id: garden_snow_qingdai, speaker: qingdai, when: sky_snow, bubbles: ["Snow isn't white. It's a little blue."] }
   - { id: garden_leaves_adeng, speaker: adeng, when: sky_leaves, bubbles: ["Leaves everywhere again."] }
   - { id: garden_leaves_laoshi, speaker: laoshi, when: sky_leaves, bubbles: ["Leaves.", "No point sweeping."] }
   - { id: garden_petals_xiaoju, speaker: xiaoju, when: sky_petals, bubbles: ["A petal fell in my tea."] }

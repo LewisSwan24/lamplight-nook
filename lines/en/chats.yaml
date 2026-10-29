@@ -292,3 +292,31 @@
   turns:
     - postman: Red envelopes from the post office.
     - xiaoju: Thanks, Pip!
+
+- id: swatch
+  when: idle
+  turns:
+    - qingdai: Clem, your scarf is the perfect orange.
+    - xiaoju: Tangerine!
+    - qingdai: I'm borrowing it for a palette.
+
+- id: pinned
+  when: idle
+  turns:
+    - laoshi: The sheet on the board is crooked.
+    - qingdai: On purpose.
+    - laoshi: ...
+
+- id: blue_cup
+  when: idle
+  turns:
+    - qingdai: Wick, a blue cup, maybe?
+    - adeng: I've had this one ten years.
+    - qingdai: Then ten more it is.
+
+- id: best_light
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: This is the best light to paint in.
+    - xiaoju: Paint me, then!

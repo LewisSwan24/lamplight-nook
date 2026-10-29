@@ -12,6 +12,7 @@ import clockUrl from '../../../assets/sprites/clock.png';
 import cupUrl from '../../../assets/sprites/cup.png';
 import doorUrl from '../../../assets/sprites/door.png';
 import laoshiUrl from '../../../assets/sprites/laoshi.png';
+import qingdaiUrl from '../../../assets/sprites/qingdai.png';
 import streetUrl from '../../../assets/sprites/street.png';
 import christmasUrl from '../../../assets/sprites/decor-christmas.png';
 import halloweenUrl from '../../../assets/sprites/decor-halloween.png';
@@ -38,7 +39,7 @@ import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, fa
 
 const DECOR_URLS: Record<Holiday, string> = { halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl };
 /** Pause at each corner of a walk, so a turn reads as a turn. */
 const CORNER_PAUSE_MS = 90;
 /** Top-left of the door sprite; the doorway behind it is painted into cafe.png (scripts/art/scene.py, DOOR). */

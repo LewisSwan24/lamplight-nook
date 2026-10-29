@@ -31,7 +31,7 @@ export const parseRules = (text: string) => parse(text) as Rule[];
 export const parseAnimTable = (text: string) => parse(text) as AnimTable;
 
 /** Who performs an agent's events. Unrecognized subagents are played by Xiaoju. */
-const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', reviewer: 'laoshi', unknown: 'xiaoju' };
+const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', designer: 'qingdai', reviewer: 'laoshi', unknown: 'xiaoju' };
 
 const REVIEW_PASSED = pattern('reviewPassed');
 const REVIEW_FAILED = pattern('reviewFailed');

@@ -20,12 +20,17 @@ import { locateClaude } from './claude-locator';
 import { InputQueue } from './input-queue';
 import { agentEnv, type Credentials } from './api-key';
 
-/** The two subagents. Their names map directly to characters (researcher -> Xiaoju, reviewer -> Laoshi). */
+/** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
   researcher: {
     description: 'Finds references and reads web pages and files. Use for research. Read-only; never modifies files.',
     prompt: `You do research. Only read and search; do not modify files. Finish with a three-to-five sentence summary of what you found. ${REPLY_LANGUAGE}`,
     tools: ['WebSearch', 'WebFetch', 'Read', 'Glob', 'Grep'],
+  },
+  designer: {
+    description: 'Proposes the look of a page or interface before it is built: colours, type and layout. Read-only; never modifies files.',
+    prompt: `You design. Before anything is built, propose how it should look: a small palette (four to six colours as hex codes, each with what it is for), fonts and sizes, and the layout from top to bottom in a few lines. Keep it simple, warm and readable, and fit it to what the user asked for. Read any files that already exist if they matter; do not modify files. Finish with the proposal only, under fifteen lines. ${REPLY_LANGUAGE}`,
+    tools: ['Read', 'Glob', 'Grep'],
   },
   reviewer: {
     description: 'Checks finished work for problems. Use for the final review. Never modifies files.',
@@ -160,7 +165,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   const hookRecorder: HookCallback = async (input) => {
     record({ source: 'hook', name: input.hook_event_name, payload: input });
     if (input.hook_event_name === 'SubagentStart') {
-      const type = input.agent_type === 'researcher' || input.agent_type === 'reviewer' ? input.agent_type : 'unknown';
+      const type = ['researcher', 'designer', 'reviewer'].includes(input.agent_type) ? (input.agent_type as AiEvent['agent']) : 'unknown';
       agents.set(input.agent_id, type);
     }
     return {};

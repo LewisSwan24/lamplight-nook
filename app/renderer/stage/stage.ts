@@ -12,7 +12,7 @@ import { onRuleBookChange, ruleBook } from './rulebook';
 const SPEAK_MS = 2200;
 const ACTION_MS = 1200;
 
-const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', reviewer: 'laoshi', unknown: 'xiaoju' };
+const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', designer: 'qingdai', reviewer: 'laoshi', unknown: 'xiaoju' };
 
 /** Fill `{name}` placeholders in a line. The Director only picks lines whose placeholders can all be filled. */
 const fillLine = (text: string, vars: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_m, k: string) => vars[k] ?? '');
@@ -125,6 +125,14 @@ export class Stage {
     };
     if (e.kind === 'subagent_start' && e.agent === 'researcher') step('research', 'doing');
     if (e.kind === 'subagent_stop' && e.agent === 'researcher') step('research', 'done');
+    // Qingdai's step only appears on the board once she is asked for a design.
+    if (e.kind === 'subagent_start' && e.agent === 'designer') {
+      if (!this.board.some((b) => b.key === 'design')) {
+        this.board.splice(this.board.findIndex((b) => b.key === 'write'), 0, { key: 'design', label: strings.ui.board.design, status: 'todo' });
+      }
+      step('design', 'doing');
+    }
+    if (e.kind === 'subagent_stop' && e.agent === 'designer') step('design', 'done');
     if (e.kind === 'tool_start' && e.agent === 'main' && (e.tool === 'Write' || e.tool === 'Edit')) step('write', 'doing');
     if (e.kind === 'subagent_start' && e.agent === 'reviewer') { step('write', 'done'); step('check', 'doing'); }
     if (e.kind === 'subagent_stop' && e.agent === 'reviewer') step('check', 'done');

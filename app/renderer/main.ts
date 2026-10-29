@@ -204,7 +204,7 @@ function sayProgress() {
 
 // A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
 // says goes to the running commission. Nobody moves for the work while the meeting lasts.
-const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi'];
+const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 let meetingOpen = false;
 let meetingCount = 0;
 function sayFrom(group: string, k = 0) {

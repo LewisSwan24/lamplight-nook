@@ -16,6 +16,7 @@
     "adeng": "阿灯",
     "xiaoju": "小橘",
     "laoshi": "老石",
+    "qingdai": "青黛",
     "cat": "栗子"
   },
   "animals": {
@@ -178,6 +179,7 @@
     "replayBadge": "回放",
     "board": {
       "research": "找参考",
+      "design": "定样子",
       "write": "动手做",
       "check": "检查"
     },

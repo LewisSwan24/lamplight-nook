@@ -292,3 +292,31 @@
   turns:
     - postman: 邮局发的红包袋，一人一个。
     - xiaoju: 谢谢阿信！
+
+- id: swatch
+  when: idle
+  turns:
+    - qingdai: 小橘，你的围巾颜色真正。
+    - xiaoju: 是橘子色！
+    - qingdai: 借来当配色。
+
+- id: pinned
+  when: idle
+  turns:
+    - laoshi: 黑板上那张，贴歪了。
+    - qingdai: 故意的。
+    - laoshi: ……
+
+- id: blue_cup
+  when: idle
+  turns:
+    - qingdai: 阿灯，杯子换个蓝的？
+    - adeng: 这个用了十年了。
+    - qingdai: 那就再用十年。
+
+- id: best_light
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: 这会儿的光最好画。
+    - xiaoju: 那你画我！

@@ -33,6 +33,11 @@ STAFF = {
                    'Outfits/16x16/Outfit_05_01.png', 'Hairstyles/16x16/Hairstyle_06_05.png',
                    'Accessories/16x16/Accessory_15_Glasses_01.png'],
     },
+    # The designer: blue-black hair (qingdai is an indigo pigment) and a flowery smock.
+    'qingdai': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_24_04.png', 'Hairstyles/16x16/Hairstyle_19_07.png'],
+    },
 }
 
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and

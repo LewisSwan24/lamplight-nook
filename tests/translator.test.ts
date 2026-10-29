@@ -65,7 +65,7 @@ describe('translation: real recording', () => {
 
   it('plays the storyboard', () => {
     expect(story).toEqual([
-      'adeng:ready@counter', 'xiaoju:ready@shelf', 'laoshi:ready@corner',
+      'adeng:ready@counter', 'xiaoju:ready@shelf', 'laoshi:ready@corner', 'qingdai:ready@board',
       'xiaoju:out@door',
       'xiaoju:out', // web search while out: bubble only
       'xiaoju:returning@counter',
@@ -76,7 +76,7 @@ describe('translation: real recording', () => {
       'adeng:thinking',
       'adeng:working@table',
       'adeng:thinking',
-      'adeng:wrapping@counter', 'xiaoju:idle@shelf', 'laoshi:idle@corner', 'cat:idle@window',
+      'adeng:wrapping@counter', 'xiaoju:idle@shelf', 'laoshi:idle@corner', 'qingdai:idle@board', 'cat:idle@window',
     ]);
   });
 
@@ -161,5 +161,15 @@ describe('translation: cases not in the recording', () => {
     const t = new Translator(rules, anims);
     t.translate(ev({ kind: 'session_start' }));
     expect(t.translate(ev({ kind: 'subagent_start', agent: 'unknown' }))[0].actor).toBe('xiaoju');
+  });
+
+  it('the designer is Qingdai: she sketches at the blackboard, then brings the proposal to the counter', () => {
+    const t = new Translator(rules, anims);
+    t.translate(ev({ kind: 'session_start' }));
+    expect(t.translate(ev({ kind: 'subagent_start', agent: 'designer' }))[0])
+      .toMatchObject({ actor: 'qingdai', state: 'working', moveTo: 'board', bubble: 'idea', line: { group: 'sub_go_qingdai' } });
+    expect(t.translate(ev({ kind: 'tool_start', agent: 'designer', tool: 'Read' }))[0]).toMatchObject({ actor: 'qingdai', state: 'working' });
+    expect(t.translate(ev({ kind: 'subagent_stop', agent: 'designer' }))[0])
+      .toMatchObject({ actor: 'qingdai', state: 'ready', moveTo: 'counter', line: { group: 'sub_back_qingdai' } });
   });
 });

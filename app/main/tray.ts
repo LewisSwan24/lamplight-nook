@@ -5,7 +5,7 @@ import type { ActorId, DecisionRequest } from '../shared/types';
 const T = strings.ui.tray;
 /** How fast the tray lamp flickers while a decision waits. */
 const FLICKER_MS = 600;
-const AGENT_ACTOR: Record<DecisionRequest['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', reviewer: 'laoshi', unknown: 'adeng' };
+const AGENT_ACTOR: Record<DecisionRequest['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', designer: 'qingdai', reviewer: 'laoshi', unknown: 'adeng' };
 
 /**
  * The lamp in the system tray. While the window is out of sight and a decision waits, the lamp flickers,
