@@ -115,7 +115,7 @@ setInterval(() => {
   const blocked = document.hidden || document.querySelector('.backdrop');
   const busy = running || replaying;
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
-  const talk = chatter.next(mood, Date.now(), scene.period);
+  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside());
   if (talk) void stage.talk(talk.turns);
   if (running && !blocked) sayProgress();
 }, 5000);

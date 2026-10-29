@@ -96,3 +96,64 @@
     - adeng: This step takes a while.
     - xiaoju: Then I'll draw Chestnut.
     - laoshi: Make it look like her.
+
+# Weather and holidays (sky: rain, snow, petals, leaves; holiday: halloween, christmas, new_year).
+# They come up before the everyday chats while they fit.
+- id: rain_umbrella
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: It's raining. My umbrella's by the door.
+    - adeng: Don't forget it when you go out.
+
+- id: rain_fix
+  when: idle
+  sky: rain
+  turns:
+    - laoshi: Rain. Good day for mending.
+    - xiaoju: Which day isn't?
+
+- id: snow_sill
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: Snow! The sills are all white.
+    - laoshi: Shut the window.
+    - adeng: I'll put the kettle on.
+
+- id: leaves_door
+  when: idle
+  sky: leaves
+  turns:
+    - xiaoju: More leaves blew in the door.
+    - laoshi: Leave them. They look nice.
+
+- id: petals_tea
+  when: idle
+  sky: petals
+  turns:
+    - xiaoju: Petals are blowing in.
+    - adeng: One in the tea wouldn't hurt.
+
+- id: halloween_pumpkin
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaoju: I picked the pumpkins. Cute, right?
+    - laoshi: That one's grinning at me.
+
+- id: christmas_star
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: The star on the tree is crooked.
+    - laoshi: I'll do it.
+    - adeng: Mind the ladder.
+
+- id: new_year_fu
+  when: idle
+  holiday: new_year
+  turns:
+    - adeng: The fu sign goes upside down. Luck arrives.
+    - xiaoju: And the lanterns are up!
+    - laoshi: Nice and red.

@@ -1,6 +1,7 @@
 import { parse } from 'yaml';
 import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId } from '../../shared/types';
+import type { Holiday, Sky } from '../game/weather';
 import type { LineBook } from './director';
 
 export type Line = {
@@ -17,16 +18,21 @@ export type Chat = {
   id: string;
   when: 'idle' | 'waiting';
   period?: 'dawn' | 'day' | 'dusk' | 'night';
+  /** Only on a day with this weather, or while this holiday's decorations are up (game/weather.ts). */
+  sky?: Sky;
+  holiday?: Holiday;
   turns: { speaker: ActorId; text: string }[];
 };
 
 /** YAML turns are one-key maps (`- xiaoju: text`); flatten them to speaker and text. */
 export function parseChats(text: string): Chat[] {
-  const raw = (parse(text) ?? []) as { id: string; when: Chat['when']; period?: Chat['period']; turns: Record<string, string>[] }[];
+  const raw = (parse(text) ?? []) as (Omit<Chat, 'turns'> & { turns: Record<string, string>[] })[];
   return raw.map((c) => ({
     id: c.id,
     when: c.when,
     period: c.period,
+    ...(c.sky ? { sky: c.sky } : {}),
+    ...(c.holiday ? { holiday: c.holiday } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
       return { speaker: speaker as ActorId, text: String(said) };
@@ -102,7 +108,9 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
   for (const chat of chats) {
     if (ids.has(chat.id)) problems.push(fill(L.duplicateId, { id: chat.id }));
     ids.add(chat.id);
-    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when)) problems.push(fill(L.badChat, { id: chat.id }));
+    const badSky = chat.sky && !['rain', 'snow', 'petals', 'leaves'].includes(chat.sky);
+    const badHoliday = chat.holiday && !['halloween', 'christmas', 'new_year'].includes(chat.holiday);
+    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;

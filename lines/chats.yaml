@@ -96,3 +96,64 @@
     - adeng: 这一步要等一会儿。
     - xiaoju: 那我画一下栗子。
     - laoshi: 画得像一点。
+
+# Weather and holidays (sky: rain, snow, petals, leaves; holiday: halloween, christmas, new_year).
+# They come up before the everyday chats while they fit.
+- id: rain_umbrella
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: 下雨了，伞我放门口了。
+    - adeng: 待会儿出门记得拿上。
+
+- id: rain_fix
+  when: idle
+  sky: rain
+  turns:
+    - laoshi: 雨天，适合修东西。
+    - xiaoju: 你哪天不修东西？
+
+- id: snow_sill
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: 下雪了！窗台都白了。
+    - laoshi: 关好窗。
+    - adeng: 我去烧壶热水。
+
+- id: leaves_door
+  when: idle
+  sky: leaves
+  turns:
+    - xiaoju: 门口又吹进来几片叶子。
+    - laoshi: 留着。挺好看。
+
+- id: petals_tea
+  when: idle
+  sky: petals
+  turns:
+    - xiaoju: 花瓣飘进来了。
+    - adeng: 落进茶里也不错。
+
+- id: halloween_pumpkin
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaoju: 南瓜是我挑的，好看吧？
+    - laoshi: 那个在笑我。
+
+- id: christmas_star
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: 树顶的星星歪了。
+    - laoshi: 我来。
+    - adeng: 小心梯子。
+
+- id: new_year_fu
+  when: idle
+  holiday: new_year
+  turns:
+    - adeng: 福字倒着贴，福到了。
+    - xiaoju: 灯笼也挂好啦！
+    - laoshi: 红红火火。

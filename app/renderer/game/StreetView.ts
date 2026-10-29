@@ -21,6 +21,10 @@ export class StreetView {
   private image: Phaser.GameObjects.Image;
   private walker?: Phaser.GameObjects.Sprite;
   private zone: Phaser.GameObjects.Zone;
+  /** Clips the strip to the inset; weather falling in the street uses it too. */
+  mask: Phaser.Display.Masks.GeometryMask;
+  /** Above the strip, under its frame: where the street's weather is drawn. */
+  static readonly WEATHER_DEPTH = DEPTH + 0.5;
   /** Who is out on the street (one at a time; anyone else who goes out just disappears as before). */
   who: ActorId | null = null;
   /** Where she is headed or stands, and the walks still to do, each waiting for the one before. */
@@ -39,7 +43,8 @@ export class StreetView {
     this.image = scene.add.image(0, 0, 'street').setOrigin(0);
     this.strip = scene.add.container(VIEW.x, VIEW.y, [this.image]).setDepth(DEPTH).setVisible(false);
     const mask = scene.make.graphics({}, false).fillStyle(0xffffff).fillRect(VIEW.x, VIEW.y, VIEW.w, VIEW.h);
-    this.strip.setMask(mask.createGeometryMask());
+    this.mask = mask.createGeometryMask();
+    this.strip.setMask(this.mask);
     // The inset sits over the room: clicks on it go to whoever is out, not to what is behind it.
     this.zone = scene.add.zone(INSET.x, INSET.y, INSET.w, INSET.h).setOrigin(0).setDepth(DEPTH + 2)
       .setInteractive({ useHandCursor: true })

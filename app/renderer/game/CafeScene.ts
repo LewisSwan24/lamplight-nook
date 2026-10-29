@@ -7,16 +7,27 @@ import cupUrl from '../../../assets/sprites/cup.png';
 import doorUrl from '../../../assets/sprites/door.png';
 import laoshiUrl from '../../../assets/sprites/laoshi.png';
 import streetUrl from '../../../assets/sprites/street.png';
+import christmasUrl from '../../../assets/sprites/decor-christmas.png';
+import halloweenUrl from '../../../assets/sprites/decor-halloween.png';
+import newYearUrl from '../../../assets/sprites/decor-new_year.png';
+import leavesUrl from '../../../assets/sprites/weather-leaves.png';
+import petalsUrl from '../../../assets/sprites/weather-petals.png';
+import rainUrl from '../../../assets/sprites/weather-rain.png';
+import snowUrl from '../../../assets/sprites/weather-snow.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble } from '../../shared/types';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
-import { LOOKS, type Period, msToNextHour, periodAt } from './daytime';
+import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { StreetView } from './StreetView';
-import { INSET } from './street';
+import { HOLIDAYS, SKIES, WeatherLayer } from './WeatherLayer';
+import { INSET, VIEW } from './street';
+import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
+const DECOR_URLS: Record<Holiday, string> = { halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl };
+const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
 const SHEETS: Record<ActorId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, cat: catUrl };
 /** Pause at each corner of a walk, so a turn reads as a turn. */
 const CORNER_PAUSE_MS = 90;
@@ -85,6 +96,8 @@ export class CafeScene extends Phaser.Scene {
   private tintColor = 0xffffff;
   /** The street outside, shown in an inset while someone is out on an errand. */
   private street!: StreetView;
+  /** Rain or snow past the windows and in the street, holiday decorations in the room; they follow the calendar. */
+  private weather!: WeatherLayer;
   /** Called when a character or the counter is clicked. */
   onActorClick: (actor: ActorId) => void = () => {};
   onCounterClick: () => void = () => {};
@@ -104,6 +117,8 @@ export class CafeScene extends Phaser.Scene {
   preload() {
     this.load.image('cafe', cafeUrl);
     this.load.image('street', streetUrl);
+    for (const h of HOLIDAYS) this.load.image(`decor-${h}`, DECOR_URLS[h]);
+    for (const s of SKIES) this.load.image(`weather-${s}`, WEATHER_URLS[s]);
     for (const id of STAFF_IDS) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     this.load.spritesheet('cat', SHEETS.cat, { frameWidth: CAT_FRAME.width, frameHeight: CAT_FRAME.height });
     this.load.spritesheet('clock', clockUrl, { frameWidth: 16, frameHeight: 32 });
@@ -147,7 +162,10 @@ export class CafeScene extends Phaser.Scene {
     this.addLight();
     this.street = new StreetView(this);
     this.street.onClick = (id) => this.onActorClick(id);
-    this.street.onOpen = (open) => this.onStreet?.(open);
+    this.street.onOpen = (open) => {
+      this.weather?.setOutdoorsVisible(open);
+      this.onStreet?.(open);
+    };
     this.addDaylight();
   }
 
@@ -235,6 +253,7 @@ export class CafeScene extends Phaser.Scene {
   setReducedMotion(on: boolean) {
     this.reducedMotion = on;
     if (this.street) this.street.reducedMotion = on;
+    this.weather?.setReducedMotion(on);
     if (this.form?.visible) this.setFormWaiting(true);
   }
 
@@ -293,18 +312,41 @@ export class CafeScene extends Phaser.Scene {
     tex.refresh();
     this.sky = this.add.image(0, 0, 'glass').setOrigin(0).setDepth(0.5).setAlpha(0);
     this.shade = this.add.rectangle(0, 0, src.width, src.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.weather = new WeatherLayer(this, 'glass', [{ area: VIEW, mask: this.street.mask, depth: StreetView.WEATHER_DEPTH }]);
+    this.weather.setReducedMotion(this.reducedMotion);
+    this.followCalendar(new Date());
     this.setPeriod(periodAt(new Date().getHours()), true);
     const tick = () => this.time.delayedCall(msToNextHour(new Date()) + 1000, () => {
+      this.followCalendar(new Date());
       this.setPeriod(periodAt(new Date().getHours()));
       tick();
     });
     tick();
   }
 
+  /** A new day may bring new weather or put the decorations up (checked every hour with the light). */
+  private followCalendar(date: Date) {
+    const sky = skyOn(date);
+    const holiday = holidayOn(date);
+    if (sky !== this.weather.sky || holiday !== this.weather.holiday) this.setWeather(sky, holiday, false);
+  }
+
+  /** Today's weather and holiday, for small talk about them. */
+  outside(): { sky: Sky; holiday: Holiday | null } {
+    return { sky: this.weather?.sky ?? 'clear', holiday: this.weather?.holiday ?? null };
+  }
+
+  /** Show a kind of weather and a holiday's decorations (also for screenshots: lamplightDebug.scene.setWeather). */
+  setWeather(sky: Sky, holiday: Holiday | null = null, now = true) {
+    const before = withWeather(LOOKS[this.period], this.weather.sky);
+    this.weather.set(sky, holiday);
+    this.setPeriod(this.period, now, before);
+  }
+
   /** Change the light to a time of day, fading over a few seconds unless `now`. */
-  setPeriod(period: Period, now = false) {
-    const look = LOOKS[period];
-    const from = LOOKS[this.period];
+  setPeriod(period: Period, now = false, fromLook?: Look) {
+    const look = withWeather(LOOKS[period], this.weather?.sky ?? 'clear');
+    const from = fromLook ?? withWeather(LOOKS[this.period], this.weather?.sky ?? 'clear');
     this.period = period;
     const apply = (t: number) => {
       const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
@@ -313,6 +355,7 @@ export class CafeScene extends Phaser.Scene {
       this.tintColor = Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b);
       this.shade.setFillStyle(this.tintColor);
       this.street?.setTint(this.tintColor);
+      this.weather?.setTint(this.tintColor);
       const sky = mix(from.sky, look.sky);
       this.sky.setTint(Phaser.Display.Color.GetColor(sky.r, sky.g, sky.b)).setAlpha(from.skyAlpha + (look.skyAlpha - from.skyAlpha) * t);
       const lamps = from.lamps + (look.lamps - from.lamps) * t;
