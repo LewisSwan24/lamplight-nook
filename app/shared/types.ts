@@ -20,7 +20,11 @@ export type KeySource = 'stored' | 'env' | 'subscription' | null;
  * `debug` is true in development or with LAMPLIGHT_DEBUG=1; the debug panel and debug tasks need it.
  * `keyHint` shows the saved key masked (sk-ant-...abcd); the key itself never leaves the main process.
  */
-export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean; keySource: KeySource; keyHint?: string };
+export type EnvStatus = {
+  hasApiKey: boolean; hasClaude: boolean; debug: boolean; keySource: KeySource; keyHint?: string;
+  /** The official install command for this OS, shown when Claude Code is missing. */
+  installCommand: string; platform: string;
+};
 
 /** Saving a pasted key: `verified` is false when Anthropic could not be reached to check it. */
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
@@ -55,6 +59,8 @@ export interface LamplightApi {
   saveApiKey(key: string): Promise<KeySaveResult>;
   /** Forget the saved API key. */
   clearApiKey(): Promise<void>;
+  /** Put the Claude Code install command on the clipboard. */
+  copyInstallCommand(): Promise<void>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
@@ -127,6 +133,7 @@ export const IPC = {
   saveApiKey: 'key:save',
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
+  copyInstallCommand: 'setup:copy-install',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',

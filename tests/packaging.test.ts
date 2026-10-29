@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findClaude } from '../app/main/claude-locator';
+import { findClaude, installCommand } from '../app/main/claude-locator';
 
 const home = join('/home', 'lewis');
 const nativeBin = join(home, '.local', 'bin', 'claude');
@@ -32,5 +32,18 @@ describe('installed Claude Code', () => {
 
   it('reports a missing install', () => {
     expect(findClaude(lookup([]))).toBeNull();
+  });
+});
+
+describe('installing Claude Code', () => {
+  it('offers the official one-line installer for the OS', () => {
+    expect(installCommand('win32')).toBe('irm https://claude.ai/install.ps1 | iex');
+    expect(installCommand('darwin')).toBe('curl -fsSL https://claude.ai/install.sh | bash');
+  });
+
+  it('finds a fresh native install without a restart, even before PATH is updated', () => {
+    const exe = join('C:\\Users\\lewis', '.local', 'bin', 'claude.exe');
+    const fresh = lookup([exe], { platform: 'win32', home: 'C:\\Users\\lewis', env: { Path: 'C:\\Windows' } });
+    expect(findClaude(fresh)).toBe(exe);
   });
 });
