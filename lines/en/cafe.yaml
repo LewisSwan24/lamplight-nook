@@ -1,0 +1,165 @@
+# Dialogue library for the café scene, in English. Same groups, ids and conditions as lines/cafe.yaml.
+# Written for English, not translated line by line. Each bubble is at most 44 characters (placeholders not counted).
+# At most one "!" per bubble, and Flint never uses one. No line names an emotion directly.
+# `npm test` lints every line against these rules.
+
+# Lines that bring up memory come first, so they win whenever their condition holds (at most one per commission).
+opening:
+  - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["\"{brief}\". Got it.", "Last time we got stuck on {stuckNote}.", "I'll keep an eye on that this time."] }
+  - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["\"{brief}\". Got it.", "Last time you went with {lastChoice}.", "Same again this time?"] }
+  - { id: opening_01, speaker: adeng, bubbles: ["\"{brief}\". Got it.", "Clem, Flint, we've got work."] }
+  - { id: opening_02, speaker: adeng, bubbles: ["So, \"{brief}\"?", "Let me put the kettle on. Have a seat.", "Now, where do we start."] }
+  - { id: opening_xiaoju_01, speaker: xiaoju, bubbles: ["A new job? Let me hang up my scarf!"] }
+
+planning:
+  - { id: plan_01, speaker: adeng, bubbles: ["Let me sketch it out first."] }
+  - { id: plan_02, speaker: adeng, bubbles: ["Which part first..."] }
+  - { id: plan_03, speaker: adeng, bubbles: ["Three steps, I think."] }
+
+writing:
+  - { id: write_01, speaker: adeng, bubbles: ["Starting on {file}."] }
+  - { id: write_02, speaker: adeng, bubbles: ["That bit's done. On to the next."] }
+  - { id: write_03, speaker: adeng, bubbles: ["Getting the frame up first."] }
+
+sub_go_xiaoju:
+  - { id: go_xj_01, speaker: adeng, bubbles: ["Clem, a job for you: {topic}."], reply: { speaker: xiaoju, bubbles: ["Back in a flash!"] } }
+  - { id: go_xj_02, speaker: adeng, bubbles: ["You're the quickest at finding things.", "No bag of snacks this time."], reply: { speaker: xiaoju, bubbles: ["No promises."] } }
+  - { id: go_xj_03, speaker: xiaoju, bubbles: ["Back in a flash!"] }
+
+sub_go_laoshi:
+  - { id: go_ls_01, speaker: adeng, bubbles: ["Flint, give this a knock, would you?"], reply: { speaker: laoshi, bubbles: ["Mm."] } }
+  - { id: go_ls_02, speaker: adeng, bubbles: ["Flint, take a look?"], reply: { speaker: laoshi, bubbles: ["Mm."] } }
+  - { id: go_ls_03, speaker: laoshi, bubbles: ["Hand it over."] }
+
+sub_queue:
+  - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["That can wait till Clem's back."] }
+  - { id: sub_queue_02, speaker: adeng, bubbles: ["{who} has one on the go. This one queues."] }
+  - { id: sub_queue_03, speaker: adeng, bubbles: ["Let's hold it till {who} is free."] }
+
+sub_back_xiaoju:
+  - { id: back_xj_01, speaker: xiaoju, bubbles: ["Found it, found it!", "{count} of them are any good.", "And this one's for you."] }
+  - { id: back_xj_02, speaker: xiaoju, bubbles: ["It's freezing out there...", "Anyway, I found a really nice one."] }
+  - { id: back_xj_03, speaker: xiaoju, bubbles: ["I'm back. Snacks first."] }
+
+sub_back_laoshi:
+  - { id: back_ls_issue, speaker: laoshi, when: has_issues, bubbles: ["{issueCount} things wrong. Marked them."] }
+  - { id: back_ls_ok, speaker: laoshi, when: no_issues, bubbles: ["...It'll do."], reply: { speaker: xiaoju, bubbles: ["He says it'll do!"] } }
+  - { id: back_ls_ok2, speaker: laoshi, when: no_issues, bubbles: ["Mm. Nothing wrong with it."] }
+
+stuck:
+  - { id: stuck_01, speaker: adeng, bubbles: ["Hm? That doesn't add up.", "Let me try another way."] }
+  - { id: stuck_02, speaker: adeng, bubbles: ["This spot again."] }
+  - { id: stuck_03, speaker: xiaoju, bubbles: ["Huh. Not what I expected."] }
+  - { id: stuck_04, speaker: laoshi, bubbles: ["Wrong. {whatsWrong}."] }
+  - { id: stuck_05, speaker: laoshi, bubbles: ["...Wrong.", "Look again."] }
+
+stuck_long:
+  - { id: stuck_long_01, speaker: adeng, bubbles: ["This one's a tough nut.", "It'll take a few more tries.", "Feel free to get on with your day."] }
+  - { id: stuck_long_02, speaker: adeng, bubbles: ["Still on it. Haven't forgotten."] }
+  - { id: stuck_long_03, speaker: adeng, bubbles: ["Give me a little longer."] }
+
+waiting:
+  - { id: wait_01, speaker: adeng, bubbles: ["A little while yet."] }
+  - { id: wait_02, speaker: adeng, bubbles: ["It's running. We wait."] }
+  - { id: wait_03, speaker: adeng, bubbles: ["Looks like rain out there."] }
+
+ask:
+  - { id: ask_color, speaker: adeng, when: demo_color, bubbles: ["Cream or mint. I've gone back and forth.", "Which feels more like what you want?"] }
+  - { id: ask_01, speaker: adeng, bubbles: ["I'd like to ask you something.", "{question}"] }
+  - { id: ask_02, speaker: adeng, bubbles: ["There are two ways to do this.", "Which would you rather?"] }
+
+react_adopted:
+  - { id: react_ad_adeng, speaker: adeng, bubbles: ["I had a feeling it'd be that one."] }
+  - { id: react_ad_laoshi, speaker: laoshi, bubbles: [] }
+  - { id: react_ad_xiaoju, speaker: xiaoju, bubbles: ["I'll go find the stickers!"] }
+
+react_rejected:
+  - { id: react_rj_adeng, speaker: adeng, bubbles: ["Right, your call."] }
+  - { id: react_rj_laoshi, speaker: laoshi, bubbles: ["...I'd have picked the other."] }
+  - { id: react_rj_xiaoju, speaker: xiaoju, bubbles: ["I'll go find the stickers!"] }
+
+react_delegated:
+  - { id: react_dl_00, speaker: adeng, bubbles: ["All right, I'll decide.", "I'll tell you what I picked."] }
+  - { id: react_dl_01, speaker: adeng, bubbles: ["Then {choice}, because {reason}.", "Say if you'd rather not."] }
+  - { id: react_dl_02, speaker: adeng, bubbles: ["{choice} for now, then.", "Easy to change later."] }
+  - { id: react_dl_03, speaker: adeng, bubbles: ["{choice} it is.", "The reason's in my notebook."] }
+
+serious:
+  - { id: serious_01, speaker: adeng, bubbles: ["Next step: {action}.", "Once done, {consequence}.", "Have a look before you decide."] }
+  - { id: serious_02, speaker: adeng, bubbles: ["I need your OK here.", "{action}: {consequence}."] }
+  - { id: serious_03, speaker: adeng, bubbles: ["This one matters.", "Read it before you click."] }
+
+refused:
+  - { id: refused_01, speaker: adeng, bubbles: ["I can't touch that.", "We'll go another way."] }
+  - { id: refused_02, speaker: adeng, bubbles: ["That's not ours to touch."] }
+  - { id: refused_03, speaker: adeng, bubbles: ["That's your private stuff. I won't look."] }
+
+serious_yes:
+  - { id: serious_yes_01, speaker: adeng, bubbles: ["Right, I'll do it."] }
+  - { id: serious_yes_02, speaker: adeng, bubbles: ["Got it. Doing it now."] }
+  - { id: serious_yes_03, speaker: adeng, bubbles: ["OK."] }
+
+serious_no:
+  - { id: serious_no_01, speaker: adeng, bubbles: ["Right, I'll leave it be.", "I'll find a way that doesn't need it."] }
+  - { id: serious_no_02, speaker: adeng, bubbles: ["OK, let's leave that for now."] }
+  - { id: serious_no_03, speaker: adeng, bubbles: ["Not doing it. I'll work around it."] }
+
+done:
+  - { id: done_day, speaker: adeng, when: daytime, bubbles: ["All done, it's on the table.", "See if it's what you had in mind."] }
+  - { id: done_dusk, speaker: adeng, when: dusk, bubbles: ["All done.", "Just as it's getting dark."] }
+  - { id: done_night, speaker: adeng, when: night, bubbles: ["All done.", "It's late. Have a look, then get some sleep."] }
+  - { id: done_xiaoju, speaker: xiaoju, bubbles: ["That's a wrap! Half the snacks are yours."] }
+  - { id: done_laoshi, speaker: laoshi, when: reviewed, bubbles: ["...It'll do."] }
+
+failed:
+  - { id: failed_01, speaker: adeng, bubbles: ["We didn't manage it this time. Sorry.", "We got stuck on {stuckAt}.", "I've written it in my notebook.", "Next time we can try another way."] }
+  - { id: failed_02, speaker: adeng, bubbles: ["Didn't work out.", "Stuck on {stuckAt}. I've noted it."] }
+  - { id: failed_03, speaker: adeng, bubbles: ["Let's call it a day.", "The problem's in my notebook."] }
+
+net_retry:
+  - { id: net_retry_01, speaker: adeng, bubbles: ["Power's out down the road. I'll try again."] }
+  - { id: net_retry_02, speaker: adeng, bubbles: ["The call didn't go through. Dialing again."] }
+  - { id: net_retry_03, speaker: adeng, bubbles: ["Nobody's answering. I'll knock again soon."] }
+
+cancelled:
+  - { id: cancelled_01, speaker: adeng, bubbles: ["Right, we'll put it aside."] }
+  - { id: cancelled_02, speaker: adeng, bubbles: ["Fine. What's done stays."] }
+  - { id: cancelled_03, speaker: adeng, bubbles: ["OK, stopping here."] }
+
+idle_mutter:
+  - { id: idle_adeng, speaker: adeng, bubbles: ["Another crack in this cup."] }
+  - { id: idle_xiaoju, speaker: xiaoju, bubbles: ["I want osmanthus cake tomorrow."] }
+  - { id: idle_laoshi, speaker: laoshi, bubbles: ["Mm."] }
+  - { id: idle_adeng_02, speaker: adeng, bubbles: ["Need to get new tea leaves tomorrow."] }
+  - { id: idle_xiaoju_02, speaker: xiaoju, bubbles: ["I've read this book three times now."] }
+  - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["...Crooked."] }
+
+# A meeting at the big table (the bell on the counter). Replies from someone out on an errand are left out.
+meeting_call:
+  - { id: meeting_call_01, speaker: adeng, bubbles: ["Over here, everyone, for a minute."], reply: { speaker: xiaoju, bubbles: ["A meeting?"] } }
+  - { id: meeting_call_02, speaker: adeng, bubbles: ["That's the bell. Let's pause."], reply: { speaker: laoshi, bubbles: ["Mm."] } }
+  - { id: meeting_call_03, speaker: xiaoju, bubbles: ["Coming, coming!"] }
+meeting_heard:
+  - { id: meeting_heard_01, speaker: adeng, bubbles: ["Right, noted.", "We'll change it like that."], reply: { speaker: laoshi, bubbles: ["Mm."] } }
+  - { id: meeting_heard_02, speaker: adeng, bubbles: ["Understood.", "Back to work."], reply: { speaker: xiaoju, bubbles: ["On it!"] } }
+  - { id: meeting_heard_03, speaker: adeng, bubbles: ["That's easy.", "I'll call you when it's changed."] }
+meeting_late:
+  - { id: meeting_late_01, speaker: adeng, bubbles: ["We just wrapped this one up.", "Next time, tell me at the start."] }
+  - { id: meeting_late_02, speaker: adeng, bubbles: ["Ah, it's already handed in.", "For changes, hand in a new slip."] }
+  - { id: meeting_late_03, speaker: adeng, bubbles: ["Just missed it.", "I'll remember to ask you first next time."] }
+
+# Long commissions (over 20 minutes): Wick says how it is going, at most every 10 minutes. Taken in turn.
+progress:
+  - { id: progress_01, speaker: adeng, bubbles: ["That's {minutes} minutes so far.", "{done} steps done, {left} to go."] }
+  - { id: progress_02, speaker: adeng, bubbles: ["Still {doing}.", "Haven't forgotten. Carry on with your day."] }
+  - { id: progress_03, speaker: adeng, bubbles: ["It's slow going.", "But it keeps moving forward."] }
+
+app_open:
+  - { id: open_01, speaker: adeng, bubbles: ["{name}, there you are."] }
+  - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}, there you are.", "How's the {lastCommission} working out?"] }
+  - { id: open_first, speaker: adeng, when: first_time, bubbles: ["Come in. What should I call you?"] }
+
+app_close:
+  - { id: close_01, speaker: adeng, bubbles: ["Right, let's tidy up."] }
+  - { id: close_02, speaker: adeng, bubbles: ["OK, see you next time."] }
+  - { id: close_03, speaker: adeng, bubbles: ["I'll turn half the lights off."] }

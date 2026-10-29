@@ -1,9 +1,9 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
-import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type Settings } from '../../shared/types';
+import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closePanel, replaceOpen } from './panels';
-import { el } from './dom';
+import { el, layer } from './dom';
 import { showNotebook } from './notebook';
 import { withPortrait } from './portraits';
 
@@ -144,6 +144,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
     const folder = () => page(
       withPortrait('adeng', 'happy', el('div.card-title', {}, S.folderTitle), el('div', {}, S.folderText)),
       folderRow(api, settings, (s) => { settings = s; }),
+      el('div.hint.legal-line', {}, S.legalLine, ' ', legalLink(api, 'terms'), ' \u00B7 ', legalLink(api, 'privacy')),
       el('div.actions', {}, el('button.default', { onclick: async () => {
         closePanel();
         resolve(await api.saveSettings({ name: name.value.trim(), onboarded: true }));
@@ -155,11 +156,26 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
   });
 }
 
-/** Shown instead of the commission form when something needed to start is missing. */
-export function showNotReady(api: LamplightApi, env: EnvStatus) {
+/**
+ * Shown instead of the commission form when something needed to start is missing. With `trial`, it also
+ * offers a replay of a recorded demo, so people can see the shop at work before setting anything up.
+ */
+export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => void) {
   replaceOpen(el('div.card.paper.notice-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     withPortrait('adeng', 'unsure', el('div.card-title', {}, S.notReadyTitle), envRows(api, env)),
+    trial ? el('div.trial-offer', {}, el('span', {}, S.trialOffer),
+      el('button.sticker', { type: 'button', onclick: () => { closePanel(); trial(); } }, S.trialButton)) : null,
+  ));
+}
+
+/** After the trial replay: what it was, and the way to the real thing. */
+export function showTrialEnd(setUp: () => void) {
+  replaceOpen(el('div.card.paper.trial-end', {},
+    withPortrait('adeng', 'happy', el('div.card-title', {}, S.trialEndTitle), el('div', {}, S.trialEndText)),
+    el('div.actions', {},
+      el('button', { onclick: closePanel }, S.trialDone),
+      el('button.default', { onclick: () => { closePanel(); setUp(); } }, S.trialSetUp)),
   ));
 }
 
@@ -198,6 +214,60 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
     el('div.hint', {}, S.budgetHint));
 }
 
+type LegalPage = 'privacy' | 'terms' | 'notices';
+const LEGAL_LABEL: Record<LegalPage, string> = { privacy: S.privacyLink, terms: S.termsLink, notices: S.noticesLink };
+
+const legalLink = (api: LamplightApi, which: LegalPage) =>
+  el('button.link', { type: 'button', onclick: () => void showLegal(api, which) }, LEGAL_LABEL[which]);
+
+/**
+ * Privacy note, terms of use or third-party licenses, read on a sheet laid over whatever is open,
+ * so closing it goes back there (the welcome card or settings).
+ */
+export async function showLegal(api: LamplightApi, which: LegalPage) {
+  document.getElementById('legal')?.remove();
+  let body: HTMLElement;
+  let title = LEGAL_LABEL[which];
+  if (which === 'notices') {
+    const text = await api.legalNotices();
+    body = el('pre.notices', {}, text ?? S.noticesMissing);
+  } else {
+    const paras = strings.legal[which];
+    title = paras[0].replace(/^#\s*/, '');
+    body = el('div.legal-text', {}, ...paras.slice(1).map((p) => (p.startsWith('#') ? el('h5', {}, p.replace(/^#\s*/, '')) : el('p', {}, p))));
+  }
+  const close = () => { sheet.remove(); window.removeEventListener('keydown', onKey, true); };
+  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  const back = el('button.default', { type: 'button', onclick: close }, S.legalBack) as HTMLButtonElement;
+  const sheet = el('div.legal-backdrop', { id: 'legal' },
+    el('div.card.paper.legal', { role: 'dialog', 'aria-label': title },
+      el('div.card-title', {}, title),
+      el('div.legal-body', {}, body),
+      el('div.actions', {}, back)));
+  window.addEventListener('keydown', onKey, true);
+  layer().append(sheet);
+  sfx('open');
+  back.focus();
+}
+
+/** The app's language. It changes on restart, which waits while a commission is running. */
+function languageRow(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  const choices: [LanguageChoice, string][] = [['system', S.languageSystem], ['zh-CN', S.languageZh], ['en', S.languageEn]];
+  const select = el('select', { 'aria-label': S.languageLabel }, ...choices.map(([id, label]) =>
+    el('option', { value: id, selected: id === settings.language }, label))) as HTMLSelectElement;
+  const note = el('div.hint');
+  const restart = el('button.sticker', { type: 'button', hidden: true }, S.languageRestartNow) as HTMLButtonElement;
+  select.addEventListener('change', async () => {
+    changed(await api.saveSettings({ language: select.value as LanguageChoice }));
+    note.textContent = S.languageRestart;
+    restart.hidden = false;
+  });
+  restart.addEventListener('click', async () => {
+    if (!(await api.relaunch())) note.textContent = S.languageBusy;
+  });
+  return el('div', {}, select, note, el('div.actions', {}, restart));
+}
+
 /** Export a diagnostics zip; says where it went. */
 function troubleRow(api: LamplightApi): HTMLElement {
   const said = el('div.hint');
@@ -222,6 +292,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     // Only the inside scrolls, so the paper behind it always covers the whole card.
     el('div.settings-body', {},
     el('section', {}, el('h4', {}, S.nameLabel), name),
+    el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
@@ -234,6 +305,9 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
     el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
     el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api)),
+    el('section', {}, el('h4', {}, S.legalLabel),
+      el('div.hint', {}, S.legalText),
+      el('div.legal-links', {}, legalLink(api, 'privacy'), legalLink(api, 'terms'), legalLink(api, 'notices'))),
     el('section.about', {},
       el('h4', {}, S.aboutLabel),
       el('div', {}, fill(S.version, { version })),

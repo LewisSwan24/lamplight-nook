@@ -239,11 +239,11 @@ export class Stage {
 }
 
 /** Replay events on their original timeline, sped up. Returns a cancel function. */
-export function replay(stage: Stage, events: AiEvent[], speed = 3, onEnd?: () => void): () => void {
+export function replay(stage: Stage, events: AiEvent[], speed = 3, onEnd?: () => void, tailMs = 3000): () => void {
   if (!events.length) return () => {};
   const t0 = events[0].t;
   stage.speed = speed;
   const handles = events.map((e) => setTimeout(() => stage.handle(e), (e.t - t0) / speed));
-  const end = setTimeout(() => onEnd?.(), (events.at(-1)!.t - t0) / speed + 3000);
+  const end = setTimeout(() => onEnd?.(), (events.at(-1)!.t - t0) / speed + tailMs);
   return () => { handles.forEach(clearTimeout); clearTimeout(end); };
 }

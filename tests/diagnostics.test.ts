@@ -45,7 +45,7 @@ describe('the diagnostics bundle', () => {
       os: { platform: 'win32', release: '10.0.26100', arch: 'x64' },
       hasClaude: true,
       keySource: 'stored',
-      settings: { name: 'Lewis', workRoot: `${home}/Documents/x`, onboarded: true, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: 3 },
+      settings: { name: 'Lewis', workRoot: `${home}/Documents/x`, onboarded: true, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: 3, language: 'system' },
       defaultWorkRoot: `${home}/Documents/default`,
       logDir,
       crashDir,

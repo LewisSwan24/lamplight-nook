@@ -1,6 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
-import type { ActorId, CommissionForm, CommissionResult } from '../../shared/types';
+import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, LamplightApi } from '../../shared/types';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
@@ -78,15 +78,73 @@ export function showParcel(actor: ActorId, summary: string) {
 }
 
 /** The commission form. Resolves with the form, or null if closed. */
-export function showCommissionForm(): Promise<CommissionForm | null> {
+const T = U.templates;
+const TEMPLATES: { id: CommissionTemplate | 'demo'; label: string; fill: string }[] = [
+  { id: 'demo', label: T.demo, fill: U.demoFill },
+  { id: 'page', label: T.page, fill: T.pageFill },
+  { id: 'research', label: T.research, fill: T.researchFill },
+  { id: 'edit', label: T.edit, fill: T.editFill },
+  { id: 'tidy', label: T.tidy, fill: T.tidyFill },
+];
+/** The blank in a template sentence (a Chinese or an English ellipsis), selected so typing replaces it. */
+const BLANK = /\u2026\u2026|\.\.\./;
+
+/**
+ * The commission form. A row of stickers fills in a ready-made kind of commission (the demo is picked to begin with);
+ * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
+ */
+export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     const details = el('input', { type: 'text' }) as HTMLInputElement;
     const audience = el('input', { type: 'text' }) as HTMLInputElement;
+    let chosen: (typeof TEMPLATES)[number] | null = TEMPLATES[0];
+    let source: { path: string; name: string } | null = null;
+    const sourceName = el('span.source-name');
+    const sourceHint = el('div.hint.source-hint');
+    const pickButton = el('button', { type: 'button', onclick: () => void pick() }) as HTMLButtonElement;
+    const sourceRow = el('div.source-row', {}, el('div.source-line', {}, pickButton, sourceName), sourceHint);
+    const chips = TEMPLATES.map((t) => el('button.template-chip', { type: 'button', onclick: () => choose(t) }, t.label) as HTMLButtonElement);
     const done = (form: CommissionForm | null) => { resolve(form); closePanel(); };
+
+    const needsSource = () => chosen?.id === 'edit' || chosen?.id === 'tidy';
+    const refresh = () => {
+      chips.forEach((c, i) => c.classList.toggle('on', TEMPLATES[i] === chosen));
+      sourceRow.hidden = !needsSource();
+      pickButton.textContent = chosen?.id === 'tidy' ? T.chooseFolder : T.chooseFile;
+      sourceName.textContent = source?.name ?? '';
+      sourceHint.textContent = chosen?.id === 'tidy' ? T.tidyHint : T.editHint;
+      sourceHint.classList.remove('warn');
+    };
+    // Picking a sticker again puts it back; text the user already wrote is only replaced if it was a template's.
+    const choose = (t: (typeof TEMPLATES)[number]) => {
+      const untouched = !want.value.trim() || TEMPLATES.some((x) => x.fill === want.value);
+      chosen = chosen === t ? null : t;
+      source = null;
+      if (untouched) want.value = chosen?.fill ?? '';
+      refresh();
+      want.focus();
+      const blank = BLANK.exec(want.value);
+      if (untouched && blank) want.setSelectionRange(blank.index, blank.index + blank[0].length);
+    };
+    const pick = async () => {
+      const r = await api.chooseSource(chosen?.id === 'tidy' ? 'tidy' : 'edit');
+      if (!r) return;
+      if ('error' in r) {
+        sourceHint.textContent = T.tooBig;
+        sourceHint.classList.add('warn');
+        return;
+      }
+      source = r;
+      refresh();
+    };
+
     const form = el('form.card.paper.commission', {},
       el('div.card-title', {}, U.commissionTitle),
+      el('div.hint', {}, T.label),
+      el('div.template-row', {}, ...chips),
       el('label', {}, U.want, want),
+      sourceRow,
       el('label', {}, U.details, details),
       el('label', {}, U.audience, audience),
       el('div.actions', {},
@@ -100,9 +158,24 @@ export function showCommissionForm(): Promise<CommissionForm | null> {
       e.preventDefault();
       const text = want.value.trim();
       if (!text) return;
-      done({ want: text, details: details.value.trim() || undefined, audience: audience.value.trim() || undefined, demo: text === U.demoFill });
+      if (needsSource() && !source) {
+        sourceHint.textContent = T.needSource;
+        sourceHint.classList.add('warn');
+        pickButton.focus();
+        return;
+      }
+      const template = chosen && chosen.id !== 'demo' ? chosen.id : undefined;
+      done({
+        want: text,
+        details: details.value.trim() || undefined,
+        audience: audience.value.trim() || undefined,
+        demo: chosen?.id === 'demo' && text === U.demoFill,
+        template,
+        source: template === 'edit' || template === 'tidy' ? source?.path : undefined,
+      });
     });
     want.value = U.demoFill;
+    refresh();
     replaceOpen(form);
     want.focus();
   });
@@ -118,7 +191,7 @@ export function showResult(result: CommissionResult, openOutput: (path: string, 
     el('div', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     el('div.actions', {},
-      result.main ? el('button.default', { onclick: () => openOutput(result.main!, 'open') }, U.openInBrowser) : null,
+      result.main ? el('button.default', { onclick: () => openOutput(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
       el('button', { onclick: () => openOutput(target, 'reveal') }, U.openFolder),
     ),
   ));

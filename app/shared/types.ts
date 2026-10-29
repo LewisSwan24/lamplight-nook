@@ -34,7 +34,10 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number };
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number; language: LanguageChoice };
+
+/** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
+export type LanguageChoice = 'system' | 'zh-CN' | 'en';
 
 /** The per-run caps offered in settings, in US dollars; 0 means no cap. */
 export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
@@ -55,6 +58,10 @@ export interface LamplightApi {
   openWorkRoot(): Promise<void>;
   openLink(link: ExternalLink): Promise<void>;
   appVersion(): Promise<string>;
+  /** The third-party license list built with the app; null if it is missing. */
+  legalNotices(): Promise<string | null>;
+  /** Restart the app (to switch language); false while a commission is running. */
+  relaunch(): Promise<boolean>;
   /** Check and save the user's API key (encrypted on this computer). */
   saveApiKey(key: string): Promise<KeySaveResult>;
   /** Forget the saved API key. */
@@ -66,6 +73,8 @@ export interface LamplightApi {
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
+  /** Pick the file to edit or the folder to tidy; null if cancelled. */
+  chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
   startCommission(form: CommissionForm): Promise<RunResult>;
   /** Run the last failed commission again, continuing its session; null if there is none. */
   retryCommission(): Promise<RunResult | null>;
@@ -93,8 +102,17 @@ export interface LamplightApi {
   onResult(cb: (r: CommissionResult) => void): () => void;
 }
 
-/** The commission form: what the user wants, any particulars, who it's for. */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean };
+/** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
+export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy';
+
+/**
+ * The commission form: what the user wants, any particulars, who it's for.
+ * source: the file to edit or the folder to tidy, as picked in the main process's dialog.
+ */
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string };
+
+/** A file or folder the user picked for a commission; error when it can't be used. */
+export type SourcePick = { path: string; name: string } | { error: 'too-big' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
@@ -132,6 +150,9 @@ export const IPC = {
   openWorkRoot: 'settings:open-work-root',
   openLink: 'app:open-link',
   appVersion: 'app:version',
+  locale: 'app:locale',
+  relaunch: 'app:relaunch',
+  legalNotices: 'app:legal-notices',
   saveApiKey: 'key:save',
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
@@ -140,6 +161,7 @@ export const IPC = {
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
+  chooseSource: 'commission:choose-source',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
   cancelCommission: 'commission:cancel',
