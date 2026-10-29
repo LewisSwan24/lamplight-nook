@@ -1,0 +1,98 @@
+# Small talk between the staff, in English (lines/chats.yaml is the Chinese set; the chats need not match).
+# Each turn is one bubble, same writing rules as lines/en/cafe.yaml.
+# when: idle = no commission running; waiting = a long command is running and everyone is waiting.
+# period (optional): only at this time of day (dawn, day, dusk, night).
+
+- id: sugar
+  when: idle
+  turns:
+    - xiaoju: Wick, I put another sugar in your tea.
+    - adeng: ...So that's why it's so good today.
+
+- id: mallet
+  when: idle
+  turns:
+    - laoshi: My mallet.
+    - xiaoju: Haven't seen it.
+    - laoshi: ...
+
+- id: sunset
+  when: idle
+  period: dusk
+  turns:
+    - xiaoju: The sunset looks like orange soda.
+    - laoshi: Looks like rust.
+    - xiaoju: You're no fun at all.
+
+- id: chair
+  when: idle
+  turns:
+    - laoshi: This chair wobbles again.
+    - adeng: Didn't you fix it last week?
+    - laoshi: Mm. So I fix it again.
+
+- id: scarf
+  when: idle
+  turns:
+    - laoshi: Scarf.
+    - xiaoju: Oh, did I drop it again?
+    - laoshi: It's on the back of the door.
+
+- id: notebook
+  when: idle
+  turns:
+    - xiaoju: Wick, what's in that notebook about me?
+    - adeng: That you owe me three biscuits.
+    - xiaoju: ...I borrowed them.
+
+- id: windowsill
+  when: idle
+  turns:
+    - xiaoju: Chestnut took the windowsill again.
+    - adeng: That's her spot.
+    - laoshi: So is my chair, apparently.
+
+- id: cold_tea
+  when: idle
+  turns:
+    - adeng: My tea's gone cold again.
+    - laoshi: Then make another pot.
+    - adeng: Watch the kettle for me?
+    - laoshi: Mm.
+
+- id: bakery
+  when: idle
+  period: day
+  turns:
+    - xiaoju: The bakery across the road has a new sign.
+    - adeng: What does it say now?
+    - xiaoju: Still "Bread". Just bigger.
+
+- id: table_leg
+  when: idle
+  turns:
+    - laoshi: This table leg is a millimeter short.
+    - xiaoju: How can you tell?
+    - laoshi: I tapped it.
+
+- id: biscuit
+  when: waiting
+  turns:
+    - adeng: A little while yet.
+    - xiaoju: Can I have a biscuit meanwhile?
+    - adeng: Go on. Save one for Flint.
+    - laoshi: No need.
+
+- id: kettle
+  when: waiting
+  turns:
+    - xiaoju: Is it still running?
+    - adeng: It is. Let's make tea.
+    - laoshi: I'll boil the water.
+
+- id: sketch
+  when: waiting
+  turns:
+    - adeng: This step takes a while.
+    - xiaoju: Then I'll draw Chestnut.
+    - laoshi: Make it look like her.

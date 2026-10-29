@@ -13,20 +13,40 @@ export type RawAgentEvent = {
   payload: unknown;
 };
 
-/** `debug` is true in development or with LAMPLIGHT_DEBUG=1; the debug panel and debug tasks need it. */
-export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean };
+/** Where the API key comes from: saved in the app, the ANTHROPIC_API_KEY variable, or a dev-only subscription. */
+export type KeySource = 'stored' | 'env' | 'subscription' | null;
+
+/**
+ * `debug` is true in development or with LAMPLIGHT_DEBUG=1; the debug panel and debug tasks need it.
+ * `keyHint` shows the saved key masked (sk-ant-...abcd); the key itself never leaves the main process.
+ */
+export type EnvStatus = {
+  hasApiKey: boolean; hasClaude: boolean; debug: boolean; keySource: KeySource; keyHint?: string;
+  /** The official install command for this OS, shown when Claude Code is missing. */
+  installCommand: string; platform: string;
+};
+
+/** Saving a pasted key: `verified` is false when Anthropic could not be reached to check it. */
+export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
 /**
  * What the user set up: how to address them, where commissions are saved, sound, and whether
  * the scene also shows what is really happening underneath (detailed mode).
  */
-/** volume is 0-100 and covers both effects and music. */
-export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean };
+/** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number; language: LanguageChoice };
+
+/** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
+export type LanguageChoice = 'system' | 'zh-CN' | 'en';
+
+/** The per-run caps offered in settings, in US dollars; 0 means no cap. */
+export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 
 /** Pages the renderer may open in the browser (install guides and credits). */
-export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
+export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string };
+/** costUsd is Claude Code's estimate of what the session has cost so far. */
+export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; /** The technical reason, for the log. */ detail?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export interface LamplightApi {
@@ -38,7 +58,23 @@ export interface LamplightApi {
   openWorkRoot(): Promise<void>;
   openLink(link: ExternalLink): Promise<void>;
   appVersion(): Promise<string>;
+  /** The third-party license list built with the app; null if it is missing. */
+  legalNotices(): Promise<string | null>;
+  /** Restart the app (to switch language); false while a commission is running. */
+  relaunch(): Promise<boolean>;
+  /** Check and save the user's API key (encrypted on this computer). */
+  saveApiKey(key: string): Promise<KeySaveResult>;
+  /** Forget the saved API key. */
+  clearApiKey(): Promise<void>;
+  /** Save a diagnostics zip where the user chooses; resolves with its path, or null if cancelled. */
+  exportDiagnostics(): Promise<string | null>;
+  /** Put the Claude Code install command on the clipboard. */
+  copyInstallCommand(): Promise<void>;
+  /** Estimated spend on commissions this calendar month, in US dollars. */
+  spendThisMonth(): Promise<number>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
+  /** Pick the file to edit or the folder to tidy; null if cancelled. */
+  chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
   startCommission(form: CommissionForm): Promise<RunResult>;
   /** Run the last failed commission again, continuing its session; null if there is none. */
   retryCommission(): Promise<RunResult | null>;
@@ -66,11 +102,21 @@ export interface LamplightApi {
   onResult(cb: (r: CommissionResult) => void): () => void;
 }
 
-/** The commission form: what the user wants, any particulars, who it's for. */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean };
+/** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
+export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy';
+
+/**
+ * The commission form: what the user wants, any particulars, who it's for.
+ * source: the file to edit or the folder to tidy, as picked in the main process's dialog.
+ */
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string };
+
+/** A file or folder the user picked for a commission; error when it can't be used. */
+export type SourcePick = { path: string; name: string } | { error: 'too-big' };
 
 /** Files produced by a finished commission. */
-export type CommissionResult = { ok: boolean; workDir: string; files: string[]; main?: string };
+/** costUsd: what this commission cost in all, as estimated (absent when unknown). */
+export type CommissionResult = { ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number };
 
 export type DecisionOption = { id: string; label: string; hint?: string };
 
@@ -104,9 +150,18 @@ export const IPC = {
   openWorkRoot: 'settings:open-work-root',
   openLink: 'app:open-link',
   appVersion: 'app:version',
+  locale: 'app:locale',
+  relaunch: 'app:relaunch',
+  legalNotices: 'app:legal-notices',
+  saveApiKey: 'key:save',
+  clearApiKey: 'key:clear',
+  spendThisMonth: 'spend:month',
+  copyInstallCommand: 'setup:copy-install',
+  exportDiagnostics: 'app:export-diagnostics',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
+  chooseSource: 'commission:choose-source',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
   cancelCommission: 'commission:cancel',
@@ -186,6 +241,8 @@ export type CommissionMemo = {
   /** Question -> the option the user picked. */
   choices: Record<string, string>;
   folder: string;
+  /** Estimated spend in US dollars, when known. */
+  costUsd?: number;
 };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };

@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
+import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
+import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
-import { fill, strings } from '../shared/i18n';
+import { fill, locale, shorten, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
@@ -15,9 +17,11 @@ import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
+import { formatUsd } from '../shared/money';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
-import { showNotReady, showWelcome } from './ui/setup';
+import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
@@ -26,6 +30,7 @@ declare global {
 }
 
 document.title = strings.app.title;
+document.documentElement.lang = locale();
 
 const scene = new CafeScene();
 const game = new Phaser.Game({
@@ -37,6 +42,8 @@ const game = new Phaser.Game({
   backgroundColor: '#1b1712',
   scene,
   scale: { mode: Phaser.Scale.NONE },
+  // Starts the frame limiter; the pacer below moves it between 30 and 15.
+  fps: { limit: ACTIVE_FPS },
 });
 
 // Integer zoom keeps pixels crisp; leftover space stays dark.
@@ -166,6 +173,15 @@ async function meeting() {
 }
 scene.onBellClick = () => void meeting();
 
+// Frame pacing: 30 a second while anything is going on, 15 once the shop has been quiet for a while.
+let lastInput = Date.now();
+for (const type of ['pointerdown', 'pointermove', 'keydown', 'wheel']) window.addEventListener(type, () => { lastInput = Date.now(); }, { passive: true, capture: true });
+const pace = () => {
+  const fps = framesPerSecond({ busy: running !== null, sinceInputMs: Date.now() - lastInput });
+  if (game.loop.fpsLimit !== fps) applyFps(game.loop as unknown as Loop, fps);
+};
+setInterval(pace, 5000);
+
 // Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
 const syncVisibility = () => { stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
@@ -193,7 +209,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     if (!r) return;
     sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
-    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()));
+    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.costUsd ?? 0) });
   } finally {
     running = null;
     scene.setFormWaiting(true);
@@ -204,8 +220,8 @@ async function newCommission() {
   if (running) return showRunning(window.lamplight, running);
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env);
-  const form = await showCommissionForm();
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial);
+  const form = await showCommissionForm(window.lamplight);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
@@ -214,8 +230,10 @@ async function newCommission() {
 
 /** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
 async function prepare(form: CommissionForm) {
-  const brief = form.demo ? strings.demo.brief : [...form.want].slice(0, 10).join('');
-  stage.setCommission({ brief, ...(await window.lamplight.recallForCommission(form)) });
+  const brief = form.demo ? strings.demo.brief : shorten(form.want);
+  const recall = await window.lamplight.recallForCommission(form);
+  // The demo's one question is the colour question, which has its own line.
+  stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
 }
 scene.onCounterClick = () => void newCommission();
 
@@ -279,14 +297,14 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   // Handles for driving the scene from dev tools and screenshot scripts.
   if (debug) {
     const api = window.lamplight;
-    const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm };
+    const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm: () => showCommissionForm(api) };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; scene.setFormWaiting(!on); scene.setBell(on); };
     Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning } });
   }
   const env = $('env');
   env.textContent = [
-    hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',
+    hasApiKey ? 'Credentials found (saved key, ANTHROPIC_API_KEY, or dev subscription).' : 'No credentials: paste a key in Settings, or set ANTHROPIC_API_KEY.',
     hasClaude ? 'Claude Code found.' : 'Claude Code not installed.',
   ].join(' ');
   env.classList.toggle('missing', !hasApiKey || !hasClaude);
@@ -345,3 +363,26 @@ function startReplay(speed = 3) {
   cancelReplay = replay(stage, events, speed, () => { setReplayBadge(false); replaying = false; });
 }
 $('replay').addEventListener('click', () => startReplay());
+
+/**
+ * The trial: a recorded demo commission played in the shop, for people without Claude Code or a key yet.
+ * It is marked as a replay throughout and spends nothing; at the end it points to setting up.
+ */
+const TRIAL_SPEED = 0.8;
+const TRIAL_WRAP_UP_MS = 6000;
+function startTrial() {
+  cancelReplay();
+  stage.setCommission({ brief: strings.demo.brief, flags: ['demo_color'] });
+  const trialText = locale() === 'en' ? enTrial : zhTrial;
+  const events = normalizeAll(trialText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l) as RawAgentEvent));
+  setReplayBadge(true);
+  replaying = true;
+  scene.setFormWaiting(false);
+  // A little slower than recorded, and the end card waits for the wrap-up lines to finish.
+  cancelReplay = replay(stage, events, TRIAL_SPEED, () => {
+    setReplayBadge(false);
+    replaying = false;
+    scene.setFormWaiting(true);
+    showTrialEnd(async () => showNotReady(window.lamplight, await window.lamplight.envStatus()));
+  }, TRIAL_WRAP_UP_MS);
+}

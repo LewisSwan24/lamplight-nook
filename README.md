@@ -4,7 +4,7 @@ A cozy pixel-art desktop app that turns a long-running AI task into the daily li
 The main agent and its subagents are played by characters who walk, work, get stuck, ask for help and wrap up
 according to real events from the Claude Agent SDK.
 
-The app's user-facing text is Simplified Chinese; all of it lives in `locales/zh-CN.json` and `lines/`.
+The app speaks Simplified Chinese and English, following the system language (switchable in settings). All user-facing text lives in `locales/` (`zh-CN.json`, `en.json`) and `lines/` (Chinese at the top level, English in `lines/en/`).
 
 ## Run on Windows (development)
 
@@ -38,8 +38,8 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 | `app/renderer` | Phaser scene, translator (rules -> commands), director (pacing), state machine |
 | `app/shared` | Types and i18n helpers shared by both processes |
 | `rules/` | Event -> character rules and animation fallbacks (YAML, hot-reloaded in dev) |
-| `lines/` | Dialogue library (YAML, linted by tests) |
-| `locales/` | User-facing strings |
+| `lines/` | Dialogue library per language (YAML, linted by tests) |
+| `locales/` | User-facing strings per language |
 | `demo/` | The demo commission's check script, and a real anonymized event recording used for replay and tests |
 
 ## Commands

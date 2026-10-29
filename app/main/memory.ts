@@ -29,7 +29,11 @@ export class MemoryStore {
     const date = now.toISOString().slice(0, 10);
     this.data.commissions.push({ ...memo, id: `c${now.getTime()}`, date });
     this.data.commissions = this.data.commissions.slice(-MAX_COMMISSIONS);
-    for (const note of new Set(stuck)) this.data.stuckNotes.push({ commission: memo.title, note, date });
+    for (const note of new Set(stuck)) {
+      // The same pit again on the same commission: keep one note, dated the latest time.
+      this.data.stuckNotes = this.data.stuckNotes.filter((n) => !(n.commission === memo.title && n.note === note));
+      this.data.stuckNotes.push({ commission: memo.title, note, date });
+    }
     this.data.stuckNotes = this.data.stuckNotes.slice(-MAX_NOTES);
     this.save();
   }
