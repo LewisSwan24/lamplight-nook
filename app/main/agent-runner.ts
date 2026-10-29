@@ -231,7 +231,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         resultText = JSON.stringify('errors' in message ? message.errors : message.result);
       }
     }
-    return ok ? { ok, recordingPath, workDir, costUsd } : { ok, recordingPath, workDir, costUsd, error: failureKind(apiError, resultText, resultSubtype) };
+    return ok ? { ok, recordingPath, workDir, costUsd } : { ok, recordingPath, workDir, costUsd, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {
@@ -239,7 +239,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
       return { ok: false, recordingPath, workDir, costUsd, error: 'cancelled' };
     }
     record({ source: 'runner', name: 'error', payload: { error } });
-    return { ok: false, recordingPath, workDir, costUsd, error: failureKind(apiError, `${error}\n${resultText}`, resultSubtype) };
+    return { ok: false, recordingPath, workDir, costUsd, error: failureKind(apiError, `${error}\n${resultText}`, resultSubtype), detail: error.slice(0, 500) };
   } finally {
     clearInterval(ticker);
     input.close();
