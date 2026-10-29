@@ -15,7 +15,9 @@ import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
+import { formatUsd } from '../shared/money';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showWelcome } from './ui/setup';
 import { emoteEl } from './ui/emotes';
@@ -37,6 +39,8 @@ const game = new Phaser.Game({
   backgroundColor: '#1b1712',
   scene,
   scale: { mode: Phaser.Scale.NONE },
+  // Starts the frame limiter; the pacer below moves it between 30 and 15.
+  fps: { limit: ACTIVE_FPS },
 });
 
 // Integer zoom keeps pixels crisp; leftover space stays dark.
@@ -166,6 +170,15 @@ async function meeting() {
 }
 scene.onBellClick = () => void meeting();
 
+// Frame pacing: 30 a second while anything is going on, 15 once the shop has been quiet for a while.
+let lastInput = Date.now();
+for (const type of ['pointerdown', 'pointermove', 'keydown', 'wheel']) window.addEventListener(type, () => { lastInput = Date.now(); }, { passive: true, capture: true });
+const pace = () => {
+  const fps = framesPerSecond({ busy: running !== null, sinceInputMs: Date.now() - lastInput });
+  if (game.loop.fpsLimit !== fps) applyFps(game.loop as unknown as Loop, fps);
+};
+setInterval(pace, 5000);
+
 // Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
 const syncVisibility = () => { stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
@@ -193,7 +206,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     if (!r) return;
     sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
-    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()));
+    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.costUsd ?? 0) });
   } finally {
     running = null;
     scene.setFormWaiting(true);
@@ -288,7 +301,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   }
   const env = $('env');
   env.textContent = [
-    hasApiKey ? 'Credentials found (API key or dev subscription).' : 'No credentials: set ANTHROPIC_API_KEY or LAMPLIGHT_DEV_SUBSCRIPTION=1.',
+    hasApiKey ? 'Credentials found (saved key, ANTHROPIC_API_KEY, or dev subscription).' : 'No credentials: paste a key in Settings, or set ANTHROPIC_API_KEY.',
     hasClaude ? 'Claude Code found.' : 'Claude Code not installed.',
   ].join(' ');
   env.classList.toggle('missing', !hasApiKey || !hasClaude);

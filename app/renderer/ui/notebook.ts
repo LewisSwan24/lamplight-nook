@@ -1,4 +1,5 @@
 import { fill, strings } from '../../shared/i18n';
+import { formatUsd } from '../../shared/money';
 import type { LamplightApi, Memory } from '../../shared/types';
 import { el } from './dom';
 import { closePanel, replaceOpen } from './panels';
@@ -10,7 +11,8 @@ function pages(memory: Memory): HTMLElement[] {
   if (!memory.commissions.length && !memory.stuckNotes.length) return [el('div.notebook-empty', {}, N.empty)];
   const commissions = [...memory.commissions].reverse().map((c) =>
     el('li', {},
-      el('div', {}, el('span.notebook-date', {}, c.date), ' ', el('b', {}, c.title), ' \u00B7 ', c.result === 'done' ? N.done : N.failed),
+      el('div', {}, el('span.notebook-date', {}, c.date), ' ', el('b', {}, c.title), ' \u00B7 ', c.result === 'done' ? N.done : N.failed,
+        c.costUsd ? ` \u00B7 ${fill(N.cost, { cost: formatUsd(c.costUsd) })}` : null),
       ...Object.entries(c.choices).map(([q, a]) => el('div.notebook-choice', {}, fill(N.choice, { q, a })))));
   const stuck = [...memory.stuckNotes].reverse().map((s) => el('li', {}, el('span.notebook-date', {}, s.date), ' ', fill(N.stuckLine, s)));
   return [

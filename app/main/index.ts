@@ -1,20 +1,32 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { arch, homedir, release } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
-import { DEBUG_PROMPTS, commissionDir, hasCredentials, runAgent } from './agent-runner';
-import { locateClaude } from './claude-locator';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
+import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
+import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
+import { installCommand, locateClaude } from './claude-locator';
 import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, snapshot } from './commission';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
-import { SettingsStore } from './settings';
+import { diagnosticsEntries } from './diagnostics';
+import { Log } from './log';
+import { SettingsStore, defaultWorkRoot } from './settings';
+import { SpendLedger } from './spend';
+import { zip } from './zip';
 import { ShopTray } from './tray';
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+// Crash dumps stay on this computer (userData/Crashpad); nothing is ever uploaded.
+crashReporter.start({ uploadToServer: false });
+let log: Log | undefined;
+process.on('uncaughtException', (err) => log?.error('uncaught exception', err));
+process.on('unhandledRejection', (reason) => log?.error('unhandled rejection', reason));
 let win: BrowserWindow | null = null;
 
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
@@ -31,6 +43,8 @@ let lastWorkDir: string | null = null;
 let settings: SettingsStore;
 let pending: PendingStore;
 let memory: MemoryStore;
+let keys: KeyStore;
+let spend: SpendLedger;
 /** The last commission that failed (offered as "try again"), and one left over from a crash. */
 let lastFailed: Job | null = null;
 let leftover: Job | null = null;
@@ -89,6 +103,12 @@ function createWindow() {
     quitting = true;
     pending.clear();
   });
+  win.webContents.on('render-process-gone', (_e, details) => log?.error('renderer gone', details));
+  win.webContents.on('console-message', (e) => {
+    // Electron passes the details on the event; only errors are worth keeping.
+    const { level, message } = e as unknown as { level?: string; message?: string };
+    if (level === 'error') log?.warn('renderer error', message);
+  });
   if (process.env.ELECTRON_RENDERER_URL) win.loadURL(process.env.ELECTRON_RENDERER_URL);
   else win.loadFile(join(here, '../renderer/index.html'));
 }
@@ -102,7 +122,46 @@ const emitters = {
 // The key is only read in the main process; the renderer just gets a boolean.
 // Debug tools are for development; a packaged build hides them unless LAMPLIGHT_DEBUG=1.
 const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1';
-ipcMain.handle(IPC.envStatus, (): EnvStatus => ({ hasApiKey: hasCredentials(), hasClaude: locateClaude() !== null, debug: debugEnabled() }));
+/** The key saved in the app wins over ANTHROPIC_API_KEY; a dev subscription only counts unpackaged. */
+const credentials = () => pickCredentials(keys.get(), process.env, app.isPackaged);
+ipcMain.handle(IPC.envStatus, (): EnvStatus => {
+  const creds = credentials();
+  return {
+    hasApiKey: creds !== null,
+    hasClaude: locateClaude() !== null,
+    debug: debugEnabled(),
+    keySource: creds?.source ?? null,
+    keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
+    installCommand: installCommand(process.platform),
+    platform: process.platform,
+  };
+});
+ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
+  if (!win || !log) return null;
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  const r = await dialog.showSaveDialog(win, { defaultPath: join(app.getPath('desktop'), `lamplight-diagnostics-${stamp}.zip`), filters: [{ name: 'Zip', extensions: ['zip'] }] });
+  if (r.canceled || !r.filePath) return null;
+  const creds = credentials();
+  writeFileSync(r.filePath, zip(diagnosticsEntries({
+    app: { version: app.getVersion(), packaged: app.isPackaged, electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, locale: app.getLocale() },
+    os: { platform: process.platform, release: release(), arch: arch() },
+    hasClaude: locateClaude() !== null,
+    keySource: creds?.source ?? null,
+    settings: settings.get(),
+    defaultWorkRoot: defaultWorkRoot(app.getPath('documents')),
+    logDir: log.dir,
+    crashDir: app.getPath('crashDumps'),
+    home: homedir(),
+  })));
+  log.info('diagnostics exported');
+  shell.showItemInFolder(r.filePath);
+  return r.filePath;
+});
+ipcMain.handle(IPC.copyInstallCommand, () => clipboard.writeText(installCommand(process.platform)));
+ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
+  saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
+ipcMain.handle(IPC.clearApiKey, () => keys.clear());
+ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth());
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => settings.update(patch));
@@ -122,7 +181,7 @@ ipcMain.handle(IPC.appVersion, () => app.getVersion());
 ipcMain.handle(IPC.runDebugTask, async (_e, kind: keyof typeof DEBUG_PROMPTS) => {
   if (!debugEnabled()) throw new Error('debug tasks are disabled');
   const workDir = commissionDir(settings.get().workRoot, fill(strings.app.debugCommission, { kind }));
-  return runAgent({ prompt: DEBUG_PROMPTS[kind], workDir, recordingPath: recordingFor(kind), ...emitters });
+  return runAgent({ prompt: DEBUG_PROMPTS[kind], workDir, recordingPath: recordingFor(kind), credentials: credentials(), ...emitters });
 });
 
 /**
@@ -134,6 +193,8 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   const abort = new AbortController();
   current = { workDir: job.workDir, abort };
   pending.save(job);
+  const started = Date.now();
+  log?.info('run start', { demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId) });
   // What goes in Adeng's notebook: the user's answers to questions, and where the work got stuck.
   const title = commissionTitle(job.form);
   const notes = memory.promptNotes(title);
@@ -153,14 +214,20 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker,
+      credentials: credentials(),
+      maxBudgetUsd: settings.get().budgetUsd || undefined,
       preexisting: before,
       abort,
       ...emitters,
       emitAi: (e) => { stuck.see(e); emitters.emitAi(e); },
     });
+    log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
+    // Money spent counts whatever the outcome, cancelled runs included.
+    spend.record(job.workDir, job.sessionId, result.costUsd);
+    const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
-      send(IPC.result, { ok: result.ok, workDir: job.workDir, ...collectOutputs(job.workDir, before) });
-      memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
+      send(IPC.result, { ok: result.ok, workDir: job.workDir, costUsd, ...collectOutputs(job.workDir, before) });
+      memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir, costUsd }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
     return result;
@@ -219,9 +286,15 @@ ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') 
 });
 
 app.whenReady().then(() => {
+  log = new Log(join(app.getPath('userData'), 'logs'));
+  log.prune();
+  log.info('app start', { version: app.getVersion(), packaged: app.isPackaged, platform: process.platform, release: release() });
+  app.on('child-process-gone', (_e, details) => log?.warn('child process gone', details));
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
+  keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
+  spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
   leftover = pending.load();
   createWindow();
   tray.create();
