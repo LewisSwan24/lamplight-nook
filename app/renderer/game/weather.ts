@@ -78,6 +78,14 @@ export function skyOn(date: Date): Sky {
   return sky;
 }
 
+/**
+ * Conditions for lines that fit today (lines/cafe.yaml `when`): sky_rain, sky_snow, sky_petals,
+ * sky_leaves, and holiday_halloween, holiday_christmas, holiday_new_year.
+ */
+export function outsideFlags(outside: { sky: Sky; holiday: Holiday | null }): string[] {
+  return [...(outside.sky === 'clear' ? [] : [`sky_${outside.sky}`]), ...(outside.holiday ? [`holiday_${outside.holiday}`] : [])];
+}
+
 /** A rainy or snowy day is greyer: the room a little cooler and the window glass overcast. */
 export function withWeather(look: Look, sky: Sky): Look {
   if (sky !== 'rain' && sky !== 'snow') return look;

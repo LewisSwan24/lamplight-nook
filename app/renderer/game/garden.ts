@@ -1,5 +1,8 @@
 import type { ActorId } from '../../shared/types';
+import type { Line } from '../translator/lines';
+import type { Period } from './daytime';
 import { AISLE_Y, CANVAS, type Facing } from './layout';
+import type { Sky } from './weather';
 
 /**
  * The back garden: a second room behind the shop, through the back door. When the shop is quiet the
@@ -66,6 +69,20 @@ function dedupe(points: Point[], from: Point): Point[] {
   return out;
 }
 
+/**
+ * Who would go out to the garden in this weather at this hour: nobody in the rain or after dark,
+ * and the cat stays in by the fire when it snows.
+ */
+export function outdoorsFor(free: ActorId[], sky: Sky, period: Period): ActorId[] {
+  if (sky === 'rain' || period === 'night') return [];
+  return sky === 'snow' ? free.filter((a) => a !== 'cat') : free;
+}
+
+/** Whether anyone goes out at all; when not, whoever is out there comes back in. */
+export function gardenOpen(sky: Sky, period: Period): boolean {
+  return sky !== 'rain' && period !== 'night';
+}
+
 /** How long a visit lasts, and how long the garden stays empty between visits. */
 export const VISIT_MS = [60_000, 150_000] as const;
 export const GAP_MS = [150_000, 360_000] as const;
@@ -114,6 +131,58 @@ export class GardenPlanner {
   }
 
   private between([lo, hi]: readonly [number, number]) {
+    return lo + this.rand() * (hi - lo);
+  }
+}
+
+/** Someone out in the garden says something now and then: every 25 to 50 seconds, one of them. */
+export const GARDEN_TALK_MS = [25_000, 50_000] as const;
+
+export type GardenSay = { actor: ActorId; line?: Line };
+
+/**
+ * What the people in the garden say (lines/cafe.yaml, group `garden`): each line is for a spot
+ * (`when: spot_veg`) or for a kind of weather (`when: sky_snow`), and weather lines come first while
+ * they are fresh. The cat has no lines; it just dozes (the caller shows a zzz). Pure, like the planner.
+ */
+export class GardenTalk {
+  private used = new Set<string>();
+  private nextAt: number;
+
+  constructor(now: number, private rand: () => number = Math.random) {
+    this.nextAt = now + this.between();
+  }
+
+  /** Someone just looked out: talk within a few seconds. */
+  soon(now: number) {
+    this.nextAt = Math.min(this.nextAt, now + 3000);
+  }
+
+  next(now: number, lines: Line[], visitors: { id: ActorId; spot: SpotId }[], sky: Sky): GardenSay | null {
+    if (!visitors.length) {
+      // Nobody out there: whoever goes out next settles in before saying anything.
+      this.nextAt = Math.max(this.nextAt, now + GARDEN_TALK_MS[0]);
+      return null;
+    }
+    if (now < this.nextAt) return null;
+    this.nextAt = now + this.between();
+    const who = visitors[Math.floor(this.rand() * visitors.length)];
+    if (who.id === 'cat') return { actor: 'cat' };
+    const mine = lines.filter((l) => l.speaker === who.id);
+    const fits = [...mine.filter((l) => l.when === `sky_${sky}`), ...mine.filter((l) => l.when === `spot_${who.spot}`)];
+    let fresh = fits.filter((l) => !this.used.has(l.id));
+    if (!fresh.length) {
+      for (const l of fits) this.used.delete(l.id);
+      fresh = fits;
+    }
+    const line = fresh.find((l) => l.when === `sky_${sky}`) ?? fresh[Math.floor(this.rand() * fresh.length)];
+    if (!line) return null;
+    this.used.add(line.id);
+    return { actor: who.id, line };
+  }
+
+  private between() {
+    const [lo, hi] = GARDEN_TALK_MS;
     return lo + this.rand() * (hi - lo);
   }
 }

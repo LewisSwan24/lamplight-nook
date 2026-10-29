@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { ActorId } from '../../shared/types';
-import { GARDEN_DOOR, GARDEN_DOOR_SPOT, GARDEN_X, type GardenSpot, pathInGarden } from './garden';
+import { GARDEN_DOOR, GARDEN_DOOR_SPOT, GARDEN_X, type GardenSpot, type SpotId, pathInGarden } from './garden';
 import { CANVAS } from './layout';
 import { WALK_SPEED } from './life';
 import { STAFF_ANIMS, animKey, facingTowards } from './sprites';
@@ -8,7 +8,7 @@ import { STAFF_ANIMS, animKey, facingTowards } from './sprites';
 /** One-off chores (picking, watering) are done again every few seconds. */
 const CHORE_EVERY_MS = [2500, 4500] as const;
 
-type Visitor = { id: ActorId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; spot: GardenSpot; chore?: Phaser.Time.TimerEvent; walk?: Phaser.Tweens.TweenChain };
+type Visitor = { id: ActorId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; spot: GardenSpot; settled?: boolean; chore?: Phaser.Time.TimerEvent; walk?: Phaser.Tweens.TweenChain };
 
 /**
  * The back garden's picture, its door and whoever is out there. Everything sits at GARDEN_X in the
@@ -43,6 +43,11 @@ export class GardenView {
     return this.visitors.has(actor);
   }
 
+  /** Who is out here and settled at a spot (not still walking over or heading in). */
+  settled(): { id: ActorId; spot: SpotId }[] {
+    return [...this.visitors.values()].filter((v) => v.settled).map((v) => ({ id: v.id, spot: v.spot.id }));
+  }
+
   /** Step out of the back door and walk over to a spot. */
   async arrive(actor: ActorId, spot: GardenSpot): Promise<void> {
     this.remove(actor);
@@ -66,6 +71,7 @@ export class GardenView {
   async leave(actor: ActorId, quick: boolean): Promise<void> {
     const v = this.visitors.get(actor);
     if (!v) return;
+    v.settled = false;
     v.chore?.remove();
     if (quick) return this.remove(actor);
     v.walk?.stop();
@@ -108,6 +114,7 @@ export class GardenView {
 
   /** Arrived: do what this spot is for. */
   private settle(v: Visitor) {
+    v.settled = true;
     v.sprite.setDepth(v.sprite.y);
     if (v.id === 'cat') {
       v.sprite.play('cat-lie', true);

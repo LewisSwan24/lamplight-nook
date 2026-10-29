@@ -25,7 +25,7 @@ import { GardenView } from './GardenView';
 import { StreetView } from './StreetView';
 import { HOLIDAYS, SKIES, WeatherLayer } from './WeatherLayer';
 import { INSET, VIEW } from './street';
-import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, pathToBackDoor } from './garden';
+import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -640,6 +640,11 @@ export class CafeScene extends Phaser.Scene {
     });
   }
 
+  /** Who is out in the garden and settled at a spot, for what they say out there. */
+  gardenVisitors(): { id: ActorId; spot: SpotId }[] {
+    return this.garden.settled().filter((v) => this.actors.get(v.id)?.inGarden);
+  }
+
   isInGarden(actorId: ActorId): boolean {
     return !!this.actors.get(actorId)?.inGarden;
   }
@@ -673,8 +678,9 @@ export class CafeScene extends Phaser.Scene {
 
   /** In from the garden: across the lawn if anyone is watching out there, then in through the back door. */
   private async backFromGarden(actor: Actor) {
-    // Already on the way in: nobody else needs to fetch them.
+    // Already on the way in: nobody else needs to fetch them. What they were saying out there stays out there.
     actor.inGarden = false;
+    this.speech.delete(actor.id);
     await this.garden.leave(actor.id, this.view !== 'garden');
     actor.sprite.setPosition(BACK_DOOR_SPOT.x, BACK_DOOR_SPOT.y - 8).setDepth(BACK_DOOR_SPOT.y);
     await this.throughBackDoor(actor, 'in');

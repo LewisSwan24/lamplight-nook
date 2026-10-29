@@ -21,7 +21,10 @@ writing:
   - { id: write_02, speaker: adeng, bubbles: ["这块写完了，下一块。"] }
   - { id: write_03, speaker: adeng, bubbles: ["先把架子搭起来。"] }
 
+# Lines with `when: sky_...` or `when: holiday_...` fit only on such a day (game/weather.ts) and come first then.
 sub_go_xiaoju:
+  - { id: go_xj_rain, speaker: adeng, when: sky_rain, bubbles: ["小橘，帮我去找找{topic}？"], reply: { speaker: xiaoju, bubbles: ["我拿把伞就去！"] } }
+  - { id: go_xj_snow, speaker: adeng, when: sky_snow, bubbles: ["小橘，帮我去找找{topic}？", "路滑，慢点走。"], reply: { speaker: xiaoju, bubbles: ["围巾围好了！"] } }
   - { id: go_xj_01, speaker: adeng, bubbles: ["小橘，帮我去找找{topic}？"], reply: { speaker: xiaoju, bubbles: ["我去去就回！"] } }
   - { id: go_xj_02, speaker: adeng, bubbles: ["你去找东西最快。", "别又带一堆零食回来。"], reply: { speaker: xiaoju, bubbles: ["那不行。"] } }
   - { id: go_xj_03, speaker: xiaoju, bubbles: ["我去去就回！"] }
@@ -37,6 +40,13 @@ sub_queue:
   - { id: sub_queue_03, speaker: adeng, bubbles: ["先放着，等{who}忙完这件。"] }
 
 sub_back_xiaoju:
+  - { id: back_xj_rain, speaker: xiaoju, when: sky_rain, bubbles: ["外面雨好大！", "资料揣在怀里，一张没湿。"] }
+  - { id: back_xj_snow, speaker: xiaoju, when: sky_snow, bubbles: ["回来啦，路上全是我的脚印。", "找到的都在这儿。"] }
+  - { id: back_xj_leaves, speaker: xiaoju, when: sky_leaves, bubbles: ["路上捡了片红叶子，给你夹书里。", "资料也找齐了。"] }
+  - { id: back_xj_petals, speaker: xiaoju, when: sky_petals, bubbles: ["我头上是不是全是花瓣？", "先看资料，再帮我摘。"] }
+  - { id: back_xj_halloween, speaker: xiaoju, when: holiday_halloween, bubbles: ["面包店在卖南瓜饼！", "我买了三个，一人一个。"] }
+  - { id: back_xj_christmas, speaker: xiaoju, when: holiday_christmas, bubbles: ["街上的彩灯全亮了！", "图书馆门口也有一棵树。"] }
+  - { id: back_xj_new_year, speaker: xiaoju, when: holiday_new_year, bubbles: ["街口在贴春联！", "邮局送了我一个红包袋。"] }
   - { id: back_xj_01, speaker: xiaoju, bubbles: ["找到了找到了！", "有{count}个能用的——", "还有这个，给你的。"] }
   - { id: back_xj_02, speaker: xiaoju, bubbles: ["外面好冷……", "然后，我找到一个特别好看的。"] }
   - { id: back_xj_03, speaker: xiaoju, bubbles: ["回来啦。先分零食。"] }
@@ -156,6 +166,11 @@ progress:
 
 app_open:
   - { id: open_01, speaker: adeng, bubbles: ["{name}，来啦。"] }
+  - { id: open_rain, speaker: adeng, when: sky_rain, bubbles: ["{name}，来啦。", "外面下雨，先擦擦。"] }
+  - { id: open_snow, speaker: adeng, when: sky_snow, bubbles: ["{name}，来啦。", "雪大，过来烤烤手。"] }
+  - { id: open_halloween, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "今天有南瓜汤。"] }
+  - { id: open_christmas, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，来啦。", "栗子把彩灯扯下来两回了。"] }
+  - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，新年好。", "门上的福是小橘贴的。"] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}，来啦。", "上次那个{lastCommission}还好用吗？"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["来啦。怎么称呼你？"] }
 
@@ -163,3 +178,29 @@ app_close:
   - { id: close_01, speaker: adeng, bubbles: ["好，那我们收拾一下。"] }
   - { id: close_02, speaker: adeng, bubbles: ["好，下次见。"] }
   - { id: close_03, speaker: adeng, bubbles: ["灯我先关一半。"] }
+
+# Out in the back garden (game/garden.ts): each line is for one spot (when: spot_veg, spot_flowers, spot_bench,
+# spot_lawn) or for a kind of weather (when: sky_snow, ...), said by whoever is out there. The cat just dozes.
+garden:
+  - { id: garden_veg_xiaoju, speaker: xiaoju, when: spot_veg, bubbles: ["这根萝卜比我胳膊还粗。"] }
+  - { id: garden_veg_xiaoju_02, speaker: xiaoju, when: spot_veg, bubbles: ["番茄红了一个。", "就尝一口。"] }
+  - { id: garden_veg_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["这一垄种歪了。"] }
+  - { id: garden_veg_laoshi_02, speaker: laoshi, when: spot_veg, bubbles: ["有虫。", "……放它走。"] }
+  - { id: garden_flowers_xiaoju, speaker: xiaoju, when: spot_flowers, bubbles: ["浇水浇水，快快长。"] }
+  - { id: garden_flowers_xiaoju_02, speaker: xiaoju, when: spot_flowers, bubbles: ["这朵给栗子闻闻。"] }
+  - { id: garden_flowers_adeng, speaker: adeng, when: spot_flowers, bubbles: ["明天剪几枝放柜台上。"] }
+  - { id: garden_flowers_adeng_02, speaker: adeng, when: spot_flowers, bubbles: ["这盆开得正好。"] }
+  - { id: garden_bench_adeng, speaker: adeng, when: spot_bench, bubbles: ["坐一会儿，就一会儿。"] }
+  - { id: garden_bench_adeng_02, speaker: adeng, when: spot_bench, bubbles: ["在这儿也听得见店里的铃。"] }
+  - { id: garden_bench_laoshi, speaker: laoshi, when: spot_bench, bubbles: ["这椅子该上油了。"] }
+  - { id: garden_bench_laoshi_02, speaker: laoshi, when: spot_bench, bubbles: ["……", "树长高了。"] }
+  - { id: garden_lawn_adeng, speaker: adeng, when: spot_lawn, bubbles: ["这本看到哪儿了……"] }
+  - { id: garden_lawn_adeng_02, speaker: adeng, when: spot_lawn, bubbles: ["这一页折过角。", "是小橘折的。"] }
+  - { id: garden_lawn_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["草地上看书最舒服了。"] }
+  - { id: garden_lawn_xiaoju_02, speaker: xiaoju, when: spot_lawn, bubbles: ["有只蚂蚁爬到书上了。"] }
+  - { id: garden_snow_xiaoju, speaker: xiaoju, when: sky_snow, bubbles: ["我堆了个小雪人，像老石。"] }
+  - { id: garden_snow_adeng, speaker: adeng, when: sky_snow, bubbles: ["雪落在菜叶上了。"] }
+  - { id: garden_snow_laoshi, speaker: laoshi, when: sky_snow, bubbles: ["地滑。"] }
+  - { id: garden_leaves_adeng, speaker: adeng, when: sky_leaves, bubbles: ["叶子又落了一地。"] }
+  - { id: garden_leaves_laoshi, speaker: laoshi, when: sky_leaves, bubbles: ["叶子。", "扫了也白扫。"] }
+  - { id: garden_petals_xiaoju, speaker: xiaoju, when: sky_petals, bubbles: ["花瓣掉进我茶里了。"] }

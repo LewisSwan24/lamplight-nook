@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LOOKS } from '../app/renderer/game/daytime';
-import { dayRoll, holidayOn, multiply, seasonOf, skyOn, weatherOn, withWeather } from '../app/renderer/game/weather';
+import { dayRoll, holidayOn, multiply, outsideFlags, seasonOf, skyOn, weatherOn, withWeather } from '../app/renderer/game/weather';
 
 const day = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h);
 
@@ -86,5 +86,13 @@ describe('the look of a grey day', () => {
   it('multiplies colours channel by channel', () => {
     expect(multiply(0xffffff, 0x123456)).toBe(0x123456);
     expect(multiply(0x808080, 0xff0000)).toBe(0x800000);
+  });
+});
+
+describe('lines that fit the day', () => {
+  it('names the weather and the holiday as line conditions', () => {
+    expect(outsideFlags({ sky: 'clear', holiday: null })).toEqual([]);
+    expect(outsideFlags({ sky: 'rain', holiday: null })).toEqual(['sky_rain']);
+    expect(outsideFlags({ sky: 'snow', holiday: 'christmas' })).toEqual(['sky_snow', 'holiday_christmas']);
   });
 });

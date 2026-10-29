@@ -1,5 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR_SPOT, GAP_MS, GardenPlanner, SPOTS, VISIT_MS, pathInGarden, pathToBackDoor } from '../app/renderer/game/garden';
+import {
+  BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR_SPOT, GARDEN_TALK_MS, GAP_MS, GardenPlanner, GardenTalk, SPOTS, VISIT_MS,
+  gardenOpen, outdoorsFor, pathInGarden, pathToBackDoor,
+} from '../app/renderer/game/garden';
+import { parseLines } from '../app/renderer/translator/lines';
 import { ACTORS, ANCHORS, CANVAS, ZONES, standPoint } from '../app/renderer/game/layout';
 
 /** Seeded random, so runs are repeatable. */
@@ -87,5 +92,79 @@ describe('garden visits', () => {
     const p = new GardenPlanner(0, seeded(4));
     expect(p.next(GAP_MS[1], true, []).go).toBeUndefined();
     expect(p.next(GAP_MS[1] + 5000, true, ['cat']).go?.actor).toBe('cat');
+  });
+});
+
+describe('the garden in different weather', () => {
+  const everyone = ['adeng', 'xiaoju', 'laoshi', 'cat'] as const;
+
+  it('stays empty in the rain and after dark', () => {
+    expect(outdoorsFor([...everyone], 'rain', 'day')).toEqual([]);
+    expect(outdoorsFor([...everyone], 'clear', 'night')).toEqual([]);
+    expect(gardenOpen('rain', 'dusk')).toBe(false);
+    expect(gardenOpen('clear', 'night')).toBe(false);
+  });
+
+  it('lets the staff out in the snow but keeps the cat in', () => {
+    expect(outdoorsFor([...everyone], 'snow', 'day')).toEqual(['adeng', 'xiaoju', 'laoshi']);
+    expect(gardenOpen('snow', 'day')).toBe(true);
+  });
+
+  it('is open to everyone on a dry day', () => {
+    for (const sky of ['clear', 'leaves', 'petals'] as const) {
+      expect(outdoorsFor([...everyone], sky, 'dawn')).toEqual([...everyone]);
+      expect(gardenOpen(sky, 'dusk')).toBe(true);
+    }
+  });
+
+  it('calls everyone back in when it gets dark', () => {
+    const planner = new GardenPlanner(0, seeded(5));
+    let out: string | undefined;
+    for (let t = 0; t < 10 * 60_000 && !out; t += 5000) out = planner.next(t, gardenOpen('clear', 'day'), ['adeng']).go?.actor;
+    expect(out).toBe('adeng');
+    expect(planner.next(11 * 60_000, gardenOpen('clear', 'night'), []).back).toEqual(['adeng']);
+  });
+});
+
+describe('what people say out in the garden', () => {
+  const lines = parseLines(readFileSync('lines/cafe.yaml', 'utf8')).garden;
+
+  it('has something to say for everyone at every spot they go to', () => {
+    for (const spot of SPOTS) {
+      for (const who of spot.who.filter((a) => a !== 'cat')) {
+        expect(lines.filter((l) => l.speaker === who && l.when === `spot_${spot.id}`).length, `${who} at ${spot.id}`).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  it('waits a while between lines, and says nothing with nobody out there', () => {
+    const talk = new GardenTalk(0, seeded(2));
+    expect(talk.next(GARDEN_TALK_MS[1], lines, [], 'clear')).toBeNull();
+    const out = [{ id: 'xiaoju' as const, spot: 'veg' as const }];
+    expect(talk.next(GARDEN_TALK_MS[1] + 1000, lines, out, 'clear')).toBeNull();
+    const at = 3 * GARDEN_TALK_MS[1];
+    expect(talk.next(at, lines, out, 'clear')?.line?.when).toBe('spot_veg');
+    expect(talk.next(at + 1000, lines, out, 'clear')).toBeNull();
+  });
+
+  it('talks soon after someone looks out', () => {
+    const talk = new GardenTalk(0, seeded(2));
+    talk.soon(1000);
+    expect(talk.next(4000, lines, [{ id: 'adeng', spot: 'bench' }], 'clear')?.line?.speaker).toBe('adeng');
+  });
+
+  it('brings up the weather first, then the spot, without repeating until all are said', () => {
+    const talk = new GardenTalk(0, seeded(3));
+    const out = [{ id: 'laoshi' as const, spot: 'veg' as const }];
+    const said: string[] = [];
+    for (let i = 1; i <= 3; i++) said.push(talk.next(i * GARDEN_TALK_MS[1], lines, out, 'snow')!.line!.id);
+    expect(said[0]).toBe('garden_snow_laoshi');
+    expect(new Set(said).size).toBe(3);
+    expect(said.slice(1).every((id) => id.startsWith('garden_veg_laoshi'))).toBe(true);
+  });
+
+  it('lets the cat doze instead of talking', () => {
+    const talk = new GardenTalk(0, seeded(4));
+    expect(talk.next(GARDEN_TALK_MS[1], lines, [{ id: 'cat', spot: 'sun' }], 'clear')).toEqual({ actor: 'cat' });
   });
 });

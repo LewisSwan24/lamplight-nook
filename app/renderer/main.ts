@@ -7,7 +7,8 @@ import { fill, locale, shorten, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
-import { GardenPlanner } from './game/garden';
+import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
+import { outsideFlags } from './game/weather';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
@@ -122,18 +123,51 @@ setInterval(() => {
   if (running && !blocked) sayProgress();
 }, 5000);
 
-// The back garden: when the shop is quiet someone wanders out now and then; work calls everyone back in.
+// The back garden: when the shop is quiet someone wanders out now and then; work calls everyone back in,
+// and so do rain and nightfall.
 const gardenPlanner = new GardenPlanner(Date.now());
 function tendGarden(quiet: boolean) {
-  const step = gardenPlanner.next(Date.now(), quiet, scene.freeForGarden());
+  const { sky } = scene.outside();
+  const open = gardenOpen(sky, scene.period);
+  const step = gardenPlanner.next(Date.now(), quiet && open, outdoorsFor(scene.freeForGarden(), sky, scene.period));
   for (const id of step.back) {
     const home = ACTORS.find((a) => a.id === id)!.home;
     // Someone a commission already sent for is on their way; only fetch whoever is still out there.
     if (scene.isInGarden(id)) void scene.walkTo(id, home);
   }
   if (step.go) void scene.visitGarden(step.go.actor, step.go.spot);
+  talkInGarden();
 }
-scene.onView = (v) => document.body.classList.toggle('garden-view', v === 'garden');
+
+// Out in the garden people say something about what they are doing, heard while you look out there.
+const gardenTalk = new GardenTalk(Date.now());
+function talkInGarden() {
+  const now = Date.now();
+  if (scene.view !== 'garden') return;
+  const say = gardenTalk.next(now, ruleBook().lines.garden ?? [], scene.gardenVisitors(), scene.outside().sky);
+  if (!say) return;
+  // Whoever comes back in leaves what they were saying out there (CafeScene clears it).
+  const hush = () => scene.isInGarden(say.actor) && scene.say(say.actor, null);
+  if (!say.line) {
+    scene.say(say.actor, null, 'zzz');
+    setTimeout(hush, 2500);
+    return;
+  }
+  const bubbles = say.line.bubbles;
+  void (async () => {
+    for (const text of bubbles) {
+      if (!scene.isInGarden(say.actor)) break;
+      scene.say(say.actor, text);
+      await new Promise((r) => setTimeout(r, 2000 + 150 * [...text].length));
+    }
+    hush();
+  })();
+}
+scene.onView = (v) => {
+  document.body.classList.toggle('garden-view', v === 'garden');
+  // Looking out: someone out there says something soon, instead of after a long silence.
+  if (v === 'garden') gardenTalk.soon(Date.now());
+};
 
 // Long commissions: now and then Adeng says how far along it is (from the blackboard).
 let runStartedAt = 0;
@@ -276,7 +310,7 @@ const greet = (text: string) => {
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
   const { flags, vars } = await window.lamplight.recallOnOpen();
-  const turns = pickLine(ruleBook().lines.app_open ?? [], flags, { ...vars, name });
+  const turns = pickLine(ruleBook().lines.app_open ?? [], [...flags, ...outsideFlags(scene.outside())], { ...vars, name });
   if (turns) void stage.talk(turns);
 }
 async function openShop() {
