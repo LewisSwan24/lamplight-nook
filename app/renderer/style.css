@@ -215,3 +215,6 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .key-status:empty { display: none; }
 .key-status { margin-top: 4px; color: var(--accent); }
 .key-said { margin-left: 1.2em; }
+.budget-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.budget-row select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
+.result-cost { margin-top: 2px; }

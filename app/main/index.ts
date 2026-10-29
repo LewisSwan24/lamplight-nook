@@ -13,6 +13,7 @@ import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
 import { SettingsStore } from './settings';
+import { SpendLedger } from './spend';
 import { ShopTray } from './tray';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,7 @@ let settings: SettingsStore;
 let pending: PendingStore;
 let memory: MemoryStore;
 let keys: KeyStore;
+let spend: SpendLedger;
 /** The last commission that failed (offered as "try again"), and one left over from a crash. */
 let lastFailed: Job | null = null;
 let leftover: Job | null = null;
@@ -118,6 +120,7 @@ ipcMain.handle(IPC.envStatus, (): EnvStatus => {
 ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
+ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth());
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => settings.update(patch));
@@ -169,14 +172,18 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker,
       credentials: credentials(),
+      maxBudgetUsd: settings.get().budgetUsd || undefined,
       preexisting: before,
       abort,
       ...emitters,
       emitAi: (e) => { stuck.see(e); emitters.emitAi(e); },
     });
+    // Money spent counts whatever the outcome, cancelled runs included.
+    spend.record(job.workDir, job.sessionId, result.costUsd);
+    const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
-      send(IPC.result, { ok: result.ok, workDir: job.workDir, ...collectOutputs(job.workDir, before) });
-      memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
+      send(IPC.result, { ok: result.ok, workDir: job.workDir, costUsd, ...collectOutputs(job.workDir, before) });
+      memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir, costUsd }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
     return result;
@@ -239,6 +246,7 @@ app.whenReady().then(() => {
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
+  spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
   leftover = pending.load();
   createWindow();
   tray.create();

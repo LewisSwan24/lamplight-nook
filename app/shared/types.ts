@@ -29,13 +29,17 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * What the user set up: how to address them, where commissions are saved, sound, and whether
  * the scene also shows what is really happening underneath (detailed mode).
  */
-/** volume is 0-100 and covers both effects and music. */
-export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean };
+/** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
+export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number };
+
+/** The per-run caps offered in settings, in US dollars; 0 means no cap. */
+export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
 
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string };
+/** costUsd is Claude Code's estimate of what the session has cost so far. */
+export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export interface LamplightApi {
@@ -51,6 +55,8 @@ export interface LamplightApi {
   saveApiKey(key: string): Promise<KeySaveResult>;
   /** Forget the saved API key. */
   clearApiKey(): Promise<void>;
+  /** Estimated spend on commissions this calendar month, in US dollars. */
+  spendThisMonth(): Promise<number>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   startCommission(form: CommissionForm): Promise<RunResult>;
   /** Run the last failed commission again, continuing its session; null if there is none. */
@@ -83,7 +89,8 @@ export interface LamplightApi {
 export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean };
 
 /** Files produced by a finished commission. */
-export type CommissionResult = { ok: boolean; workDir: string; files: string[]; main?: string };
+/** costUsd: what this commission cost in all, as estimated (absent when unknown). */
+export type CommissionResult = { ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number };
 
 export type DecisionOption = { id: string; label: string; hint?: string };
 
@@ -119,6 +126,7 @@ export const IPC = {
   appVersion: 'app:version',
   saveApiKey: 'key:save',
   clearApiKey: 'key:clear',
+  spendThisMonth: 'spend:month',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
@@ -201,6 +209,8 @@ export type CommissionMemo = {
   /** Question -> the option the user picked. */
   choices: Record<string, string>;
   folder: string;
+  /** Estimated spend in US dollars, when known. */
+  costUsd?: number;
 };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };
