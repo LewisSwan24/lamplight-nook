@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "小灯屋",
+    "tagline": "一间温馨的像素小店，店员们用 Claude 帮你把电脑上的活儿做好。",
     "commissionRoot": [
       "小灯屋",
       "委托"
