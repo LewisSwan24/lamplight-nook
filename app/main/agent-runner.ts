@@ -101,6 +101,8 @@ export type RunOptions = {
   onInput?: (add: (text: string) => boolean) => void;
   /** The API key (or dev subscription) to run with; null when there is none. */
   credentials: Credentials | null;
+  /** Stop once this run has spent this much (US dollars, Claude Code's estimate); absent means no cap. */
+  maxBudgetUsd?: number;
 };
 
 /** After a result, how long the session stays open in case the agent picks up a note sent just before. */
@@ -110,11 +112,12 @@ const WRAP_UP_GRACE_MS = 1500;
  * Why a run did not finish, as the user needs to hear it: the network, a busy or rate-limited service,
  * the account's billing, the key itself, or the work itself.
  */
-export type FailureKind = 'net' | 'busy' | 'billing' | 'auth' | 'failed';
+export type FailureKind = 'net' | 'busy' | 'billing' | 'auth' | 'budget' | 'failed';
 
 const NET_TEXT = /ECONN|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|network|fetch failed|socket hang up|connection error/i;
 
-export function failureKind(apiError: string | undefined, text: string): FailureKind {
+export function failureKind(apiError: string | undefined, text: string, subtype?: string): FailureKind {
+  if (subtype === 'error_max_budget_usd') return 'budget';
   if (apiError === 'billing_error' || apiError === 'account_on_hold') return 'billing';
   if (apiError === 'authentication_failed' || apiError === 'oauth_org_not_allowed' || apiError === 'verification_required') return 'auth';
   if (apiError === 'rate_limit' || apiError === 'overloaded' || apiError === 'server_error') return 'busy';
@@ -131,7 +134,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInput, credentials }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInput, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -181,6 +184,8 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   // The SDK may throw on an error result, so what it reported before that is kept outside the try.
   let apiError: string | undefined;
   let resultText = '';
+  let resultSubtype: string | undefined;
+  let costUsd: number | undefined;
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
   // Streaming input, so a meeting can add to the commission while it runs.
   const input = new InputQueue();
@@ -209,6 +214,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         canUseTool,
         pathToClaudeCodeExecutable: claude ?? undefined,
         env: agentEnv(credentials, process.env),
+        maxBudgetUsd,
         resume,
       },
     })) {
@@ -219,18 +225,21 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
       if (message.type === 'assistant' && message.error) apiError = message.error;
       if (message.type === 'result') {
         ok = message.subtype === 'success' && !message.is_error;
+        resultSubtype = message.subtype;
+        // A running total for the session; crash results may carry zeros, so keep the larger.
+        if (typeof message.total_cost_usd === 'number') costUsd = Math.max(costUsd ?? 0, message.total_cost_usd);
         resultText = JSON.stringify('errors' in message ? message.errors : message.result);
       }
     }
-    return ok ? { ok, recordingPath, workDir } : { ok, recordingPath, workDir, error: failureKind(apiError, resultText) };
+    return ok ? { ok, recordingPath, workDir, costUsd } : { ok, recordingPath, workDir, costUsd, error: failureKind(apiError, resultText, resultSubtype) };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {
       record({ source: 'runner', name: 'cancelled', payload: {} });
-      return { ok: false, recordingPath, workDir, error: 'cancelled' };
+      return { ok: false, recordingPath, workDir, costUsd, error: 'cancelled' };
     }
     record({ source: 'runner', name: 'error', payload: { error } });
-    return { ok: false, recordingPath, workDir, error: failureKind(apiError, `${error}\n${resultText}`) };
+    return { ok: false, recordingPath, workDir, costUsd, error: failureKind(apiError, `${error}\n${resultText}`, resultSubtype) };
   } finally {
     clearInterval(ticker);
     input.close();
