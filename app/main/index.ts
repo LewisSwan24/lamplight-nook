@@ -1,12 +1,12 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, strings } from '../shared/i18n';
 import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
-import { locateClaude } from './claude-locator';
+import { installCommand, locateClaude } from './claude-locator';
 import { collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, snapshot } from './commission';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
@@ -115,8 +115,11 @@ ipcMain.handle(IPC.envStatus, (): EnvStatus => {
     debug: debugEnabled(),
     keySource: creds?.source ?? null,
     keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
+    installCommand: installCommand(process.platform),
+    platform: process.platform,
   };
 });
+ipcMain.handle(IPC.copyInstallCommand, () => clipboard.writeText(installCommand(process.platform)));
 ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
