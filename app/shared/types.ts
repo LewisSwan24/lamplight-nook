@@ -43,7 +43,7 @@ export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu';
 
 /** costUsd is Claude Code's estimate of what the session has cost so far. */
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number };
+export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; /** The technical reason, for the log. */ detail?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export interface LamplightApi {
@@ -59,6 +59,8 @@ export interface LamplightApi {
   saveApiKey(key: string): Promise<KeySaveResult>;
   /** Forget the saved API key. */
   clearApiKey(): Promise<void>;
+  /** Save a diagnostics zip where the user chooses; resolves with its path, or null if cancelled. */
+  exportDiagnostics(): Promise<string | null>;
   /** Put the Claude Code install command on the clipboard. */
   copyInstallCommand(): Promise<void>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
@@ -134,6 +136,7 @@ export const IPC = {
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
   copyInstallCommand: 'setup:copy-install',
+  exportDiagnostics: 'app:export-diagnostics',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',

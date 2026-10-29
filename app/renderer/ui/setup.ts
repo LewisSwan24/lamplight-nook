@@ -198,6 +198,19 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
     el('div.hint', {}, S.budgetHint));
 }
 
+/** Export a diagnostics zip; says where it went. */
+function troubleRow(api: LamplightApi): HTMLElement {
+  const said = el('div.hint');
+  const button = el('button.sticker', { type: 'button' }, S.troubleExport) as HTMLButtonElement;
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    const path = await api.exportDiagnostics();
+    button.disabled = false;
+    said.textContent = path ? S.troubleDone : '';
+  });
+  return el('div', {}, el('div.hint', {}, S.troubleText), el('div.actions', {}, button), said);
+}
+
 /** Settings: name, work folder, sound, seeing and hearing, what is needed to start, and credits. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
   const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
@@ -220,6 +233,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
     el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
     el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
+    el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api)),
     el('section.about', {},
       el('h4', {}, S.aboutLabel),
       el('div', {}, fill(S.version, { version })),
