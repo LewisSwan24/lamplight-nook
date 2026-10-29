@@ -1,5 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
-import type { EnvStatus, LamplightApi, Settings } from '../../shared/types';
+import { formatUsd } from '../../shared/money';
+import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closePanel, replaceOpen } from './panels';
 import { el } from './dom';
@@ -153,9 +154,20 @@ function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings
   return el('div.access-rows', {}, ...rows.map(([key, text]) => toggle(key, text)));
 }
 
+/** What this month cost so far, and the most one run may spend. */
+function spendRows(api: LamplightApi, settings: Settings, month: number, changed: (s: Settings) => void): HTMLElement {
+  const select = el('select', { 'aria-label': S.budgetLabel }, ...BUDGET_CHOICES.map((usd) =>
+    el('option', { value: usd, selected: usd === settings.budgetUsd }, usd ? formatUsd(usd) : S.budgetNone))) as HTMLSelectElement;
+  select.addEventListener('change', async () => changed(await api.saveSettings({ budgetUsd: Number(select.value) })));
+  return el('div.spend-rows', {},
+    el('div', {}, fill(S.spendMonth, { cost: formatUsd(month) })),
+    el('label.budget-row', {}, S.budgetLabel, ' ', select),
+    el('div.hint', {}, S.budgetHint));
+}
+
 /** Settings: name, work folder, sound, seeing and hearing, what is needed to start, and credits. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
-  const [settings, env, version] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion()]);
+  const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name }) as HTMLInputElement;
   name.addEventListener('change', async () => onChange(await api.saveSettings({ name: name.value })));
   replaceOpen(el('div.card.paper.settings', {},
@@ -174,6 +186,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('div.hint', {}, strings.ui.notebook.sectionText),
       el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
     el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
+    el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
     el('section.about', {},
       el('h4', {}, S.aboutLabel),
       el('div', {}, fill(S.version, { version })),

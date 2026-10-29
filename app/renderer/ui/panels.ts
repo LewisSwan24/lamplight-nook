@@ -1,4 +1,5 @@
 import { fill, strings } from '../../shared/i18n';
+import { formatUsd } from '../../shared/money';
 import type { ActorId, CommissionForm, CommissionResult } from '../../shared/types';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -115,6 +116,7 @@ export function showResult(result: CommissionResult, openOutput: (path: string, 
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     el('div.card-title', {}, U.resultTitle),
     el('div', {}, target.split(/[\\/]/).pop()),
+    result.costUsd ? el('div.hint.result-cost', {}, fill(U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     el('div.actions', {},
       result.main ? el('button.default', { onclick: () => openOutput(result.main!, 'open') }, U.openInBrowser) : null,
       el('button', { onclick: () => openOutput(target, 'reveal') }, U.openFolder),

@@ -18,6 +18,7 @@ const api: LamplightApi = {
   appVersion: () => ipcRenderer.invoke(IPC.appVersion),
   saveApiKey: (key) => ipcRenderer.invoke(IPC.saveApiKey, key),
   clearApiKey: () => ipcRenderer.invoke(IPC.clearApiKey),
+  spendThisMonth: () => ipcRenderer.invoke(IPC.spendThisMonth),
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
   startCommission: (form) => ipcRenderer.invoke(IPC.startCommission, form),
   retryCommission: () => ipcRenderer.invoke(IPC.retryCommission),
