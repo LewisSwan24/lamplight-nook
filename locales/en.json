@@ -250,7 +250,9 @@
       "creditFont": "Handwriting font: LXGW WenKai (SIL Open Font License 1.1)",
       "volumeLabel": "Volume",
       "volumeHint": "For some quiet, click the little speaker at the top left.",
-      "creditSound": "Interface sounds: Andrea Baroni (Cyberleaf Studio), Modern UI SFX. The door bell, mallet and pencil sounds are made by Lamplight Nook itself"
+      "creditSound": "Interface sounds: Andrea Baroni (Cyberleaf Studio), Modern UI SFX. The door bell, mallet and pencil sounds are made by Lamplight Nook itself",
+      "creditMusic": "Background music: Alex Morgan, Jazz Study Sessions and Jazz Cafe & Coffee Shop (CC BY 4.0; converted to Ogg and evened out in volume)",
+      "creditMusicLink": "freemusicarchive.org"
     },
     "run": {
       "runningTitle": "Working on: {want}",
