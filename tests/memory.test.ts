@@ -43,6 +43,14 @@ describe('memory store', () => {
     expect(store.recallOnOpen().flags).toEqual([]);
   });
 
+  it('keeps one note when the same commission gets stuck in the same place again', () => {
+    const store = new MemoryStore(fresh());
+    store.remember(memo('ledger'), ['node check.js'], new Date('2026-10-22T10:00:00Z'));
+    store.remember(memo('ledger'), ['node check.js'], new Date('2026-10-29T10:00:00Z'));
+    expect(store.get().stuckNotes).toEqual([{ commission: 'ledger', note: 'node check.js', date: '2026-10-29' }]);
+    expect(store.promptNotes('ledger').match(/node check\.js/g)).toHaveLength(1);
+  });
+
   it('keeps only recent work', () => {
     const store = new MemoryStore(fresh());
     for (let i = 0; i < 25; i++) store.remember(memo(`job ${i}`), [`step ${i}`], new Date(2026, 9, 1, 0, i));
