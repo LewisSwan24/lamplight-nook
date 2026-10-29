@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
+import trialText from '../../demo/trial.zh-CN.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
@@ -19,7 +20,7 @@ import { formatUsd } from '../shared/money';
 import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
-import { showNotReady, showWelcome } from './ui/setup';
+import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
@@ -217,7 +218,7 @@ async function newCommission() {
   if (running) return showRunning(window.lamplight, running);
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env);
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial);
   const form = await showCommissionForm();
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
@@ -360,3 +361,25 @@ function startReplay(speed = 3) {
   cancelReplay = replay(stage, events, speed, () => { setReplayBadge(false); replaying = false; });
 }
 $('replay').addEventListener('click', () => startReplay());
+
+/**
+ * The trial: a recorded demo commission played in the shop, for people without Claude Code or a key yet.
+ * It is marked as a replay throughout and spends nothing; at the end it points to setting up.
+ */
+const TRIAL_SPEED = 0.8;
+const TRIAL_WRAP_UP_MS = 6000;
+function startTrial() {
+  cancelReplay();
+  stage.setCommission({ brief: strings.demo.brief, flags: ['demo_color'] });
+  const events = normalizeAll(trialText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l) as RawAgentEvent));
+  setReplayBadge(true);
+  replaying = true;
+  scene.setFormWaiting(false);
+  // A little slower than recorded, and the end card waits for the wrap-up lines to finish.
+  cancelReplay = replay(stage, events, TRIAL_SPEED, () => {
+    setReplayBadge(false);
+    replaying = false;
+    scene.setFormWaiting(true);
+    showTrialEnd(async () => showNotReady(window.lamplight, await window.lamplight.envStatus()));
+  }, TRIAL_WRAP_UP_MS);
+}

@@ -132,7 +132,7 @@ body.debug #debug { display: block; }
 .parcel { position: absolute; right: 24px; bottom: 24px; width: 260px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
 .parcel .parcel-body { max-height: 3em; overflow: hidden; }
 .parcel.expanded .parcel-body { max-height: none; }
-.replay-badge { position: absolute; left: 130px; top: 15px; background: rgba(0, 0, 0, 0.6); color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 13px; }
+.replay-badge { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(0, 0, 0, 0.6); color: #fff; padding: 3px 14px; border-radius: 10px; font-size: 14px; letter-spacing: 0.1em; pointer-events: none; }
 #debug summary { cursor: pointer; font-weight: bold; }
 
 /* Setup: welcome, settings, not-ready notice */
@@ -225,3 +225,4 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .install-line code { flex: 1; min-width: 0; word-break: break-all; padding: 4px 8px; border-radius: 6px; background: rgba(43, 33, 24, 0.86); color: #f6ead6; font-family: ui-monospace, Consolas, monospace; font-size: 13px; user-select: all; }
 .claude-steps .watching { opacity: 0.7; font-style: italic; }
 .notice-card { width: min(560px, 92vw); }
+.trial-offer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(122, 82, 54, 0.35); font-size: 14px; }
