@@ -10,19 +10,58 @@ const S = strings.ui.setup;
 const OK = '\u2713';
 const MISSING = '\u25CB';
 
-/** Two rows saying whether Claude Code and the API key are there, with a link when they are not. Re-checks in place. */
+/** The key row: where the key comes from (masked), or a box to paste one into. Calls back after a change. */
+function keyRow(api: LamplightApi, e: EnvStatus, changed: (said?: string) => void): HTMLElement {
+  const row = el(`div.env-row.${e.hasApiKey ? 'ok' : 'missing'}`, {}, el('span.mark', {}, e.hasApiKey ? OK : MISSING));
+  const status = el('div.key-status', { role: 'status' });
+  const pasteBox = () => {
+    const input = el('input', { type: 'password', placeholder: S.keyPlaceholder, autocomplete: 'off', spellcheck: 'false', 'aria-label': S.keyPlaceholder }) as HTMLInputElement;
+    const save = el('button.sticker', { type: 'submit' }, S.keySave) as HTMLButtonElement;
+    const form = el('form.key-form', {}, input, save);
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      if (!input.value.trim()) return;
+      save.disabled = true;
+      status.textContent = S.keyChecking;
+      const r = await api.saveApiKey(input.value);
+      save.disabled = false;
+      if (r.ok) {
+        input.value = '';
+        changed(r.verified ? S.keySaved : S.keyUnverified);
+        return;
+      }
+      status.textContent = { format: S.keyBadFormat, invalid: S.keyInvalid, storage: S.keyNoStorage }[r.reason];
+      input.select();
+    });
+    return form;
+  };
+  const body = el('div.key-body');
+  if (e.keySource === 'stored') {
+    body.append(fill(S.keyStored, { hint: e.keyHint ?? '' }), ' ',
+      el('button.link', { onclick: () => body.replaceChildren(pasteBox(), status) }, S.keyReplace), ' ',
+      el('button.link', { onclick: async () => { await api.clearApiKey(); changed(); } }, S.keyRemove));
+  } else if (e.keySource === 'env') {
+    body.append(fill(S.keyFromEnv, { hint: e.keyHint ?? '' }));
+  } else if (e.keySource === 'subscription') {
+    body.append(S.keySubscription);
+  } else {
+    body.append(S.keyMissing, ' ', el('button.link', { onclick: () => api.openLink('apiKeys') }, S.keyHow), pasteBox(), status);
+  }
+  row.append(body);
+  return row;
+}
+
+/** Whether Claude Code and the API key are there, with a way to fix what is missing. Re-checks in place. */
 function envRows(api: LamplightApi, env: EnvStatus): HTMLElement {
   const box = el('div.env-rows');
-  const render = (e: EnvStatus) => box.replaceChildren(...[
+  const render = (e: EnvStatus, said?: string) => box.replaceChildren(...[
     el(`div.env-row.${e.hasClaude ? 'ok' : 'missing'}`, {},
       el('span.mark', {}, e.hasClaude ? OK : MISSING),
       el('span', {}, e.hasClaude ? S.claudeOk : S.claudeMissing, ' ',
         e.hasClaude ? null : el('button.link', { onclick: () => api.openLink('claudeSetup') }, S.claudeHow))),
-    el(`div.env-row.${e.hasApiKey ? 'ok' : 'missing'}`, {},
-      el('span.mark', {}, e.hasApiKey ? OK : MISSING),
-      el('span', {}, e.hasApiKey ? S.keyOk : S.keyMissing, ' ',
-        e.hasApiKey ? null : el('button.link', { onclick: () => api.openLink('apiKeys') }, S.keyHow))),
-    e.hasClaude && e.hasApiKey ? null
+    keyRow(api, e, async (said) => render(await api.envStatus(), said)),
+    said ? el('div.hint.key-said', {}, said) : null,
+    e.hasClaude ? null
       : el('div.recheck', {}, el('button.link', { onclick: async () => render(await api.envStatus()) }, S.recheck)),
   ].filter((n): n is HTMLElement => n !== null));
   render(env);
@@ -122,6 +161,8 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
   replaceOpen(el('div.card.paper.settings', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     el('div.card-title', {}, S.settingsTitle),
+    // Only the inside scrolls, so the paper behind it always covers the whole card.
+    el('div.settings-body', {},
     el('section', {}, el('h4', {}, S.nameLabel), name),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
@@ -138,6 +179,6 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('div', {}, fill(S.version, { version })),
       el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
       el('div', {}, S.creditFont),
-      el('div', {}, S.creditSound)),
+      el('div', {}, S.creditSound))),
   ));
 }

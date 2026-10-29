@@ -3,6 +3,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from '../app/main/agent-runner';
+import { pickCredentials } from '../app/main/api-key';
 import { fill, strings } from '../app/shared/i18n';
 
 const kind = (process.argv[2] ?? 'subagents') as keyof typeof DEBUG_PROMPTS;
@@ -14,6 +15,7 @@ const result = await runAgent({
   workDir: commissionDir(join(homedir(), 'Documents'), fill(strings.app.debugCommission, { kind })),
   recordingPath: join(outDir, `${started}-${kind}.jsonl`),
   emit: (e) => console.log(`[${e.source}] ${e.name}`),
+  credentials: pickCredentials(null, process.env, false),
 });
 
 console.log(JSON.stringify({ ...result, seconds: Math.round((Date.now() - started) / 1000) }, null, 2));

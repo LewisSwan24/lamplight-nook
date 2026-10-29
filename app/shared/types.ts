@@ -13,8 +13,17 @@ export type RawAgentEvent = {
   payload: unknown;
 };
 
-/** `debug` is true in development or with LAMPLIGHT_DEBUG=1; the debug panel and debug tasks need it. */
-export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean };
+/** Where the API key comes from: saved in the app, the ANTHROPIC_API_KEY variable, or a dev-only subscription. */
+export type KeySource = 'stored' | 'env' | 'subscription' | null;
+
+/**
+ * `debug` is true in development or with LAMPLIGHT_DEBUG=1; the debug panel and debug tasks need it.
+ * `keyHint` shows the saved key masked (sk-ant-...abcd); the key itself never leaves the main process.
+ */
+export type EnvStatus = { hasApiKey: boolean; hasClaude: boolean; debug: boolean; keySource: KeySource; keyHint?: string };
+
+/** Saving a pasted key: `verified` is false when Anthropic could not be reached to check it. */
+export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
 /**
  * What the user set up: how to address them, where commissions are saved, sound, and whether
@@ -38,6 +47,10 @@ export interface LamplightApi {
   openWorkRoot(): Promise<void>;
   openLink(link: ExternalLink): Promise<void>;
   appVersion(): Promise<string>;
+  /** Check and save the user's API key (encrypted on this computer). */
+  saveApiKey(key: string): Promise<KeySaveResult>;
+  /** Forget the saved API key. */
+  clearApiKey(): Promise<void>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   startCommission(form: CommissionForm): Promise<RunResult>;
   /** Run the last failed commission again, continuing its session; null if there is none. */
@@ -104,6 +117,8 @@ export const IPC = {
   openWorkRoot: 'settings:open-work-root',
   openLink: 'app:open-link',
   appVersion: 'app:version',
+  saveApiKey: 'key:save',
+  clearApiKey: 'key:clear',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',

@@ -1,13 +1,15 @@
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { RawAgentEvent } from '../shared/types';
+import { redactSecrets } from './api-key';
 
 const MAX_TEXT = 2000;
 
-/** Truncate long strings so recordings don't fill up with whole command outputs. */
+/** Truncate long strings so recordings don't fill up with whole command outputs, and mask anything shaped like a key. */
 export function truncateDeep(value: unknown, depth = 0): unknown {
   if (typeof value === 'string') {
-    return value.length > MAX_TEXT ? `${value.slice(0, MAX_TEXT)}...[truncated ${value.length - MAX_TEXT} chars]` : value;
+    const text = redactSecrets(value);
+    return text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT)}...[truncated ${text.length - MAX_TEXT} chars]` : text;
   }
   if (depth > 8 || value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map((v) => truncateDeep(v, depth + 1));
