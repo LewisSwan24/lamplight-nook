@@ -1,5 +1,5 @@
 import { strings } from '../../shared/i18n';
-import type { ActorId } from '../../shared/types';
+import type { ActorId, GuestId, Speaker } from '../../shared/types';
 import { type Caption, CaptionLog } from './caption-log';
 import { el, layer } from './dom';
 import { closePanel, replaceOpen } from './panels';
@@ -10,11 +10,13 @@ const BAR_LINES = 2;
 const log = new CaptionLog();
 let bar: HTMLElement | null = null;
 
-const line = (c: Caption) => el('div.caption-line', {}, el('b', {}, `${strings.actors[c.who]}\uFF1A`), c.text);
+/** A staff member's or a neighbour's name. */
+const nameOf = (who: Speaker) => (who in strings.actors ? strings.actors[who as ActorId] : strings.guests[who as GuestId]);
+const line = (c: Caption) => el('div.caption-line', {}, el('b', {}, `${nameOf(c.who)}\uFF1A`), c.text);
 const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
 /** Keep a line someone said; the caption bar shows it straight away. */
-export function recordLine(who: ActorId, text: string) {
+export function recordLine(who: Speaker, text: string) {
   if (log.add(who, text, Date.now()) && bar) bar.replaceChildren(...log.latest(BAR_LINES).map(line));
 }
 
@@ -34,7 +36,7 @@ export function setCaptionBar(on: boolean) {
 export function showCaptionLog() {
   const lines = log.all();
   const list = el('div.caption-list', { tabindex: 0 },
-    ...(lines.length ? lines.map((c) => el('div.caption-line', {}, el('span.caption-time', {}, clock(c.at)), ' ', el('b', {}, `${strings.actors[c.who]}\uFF1A`), c.text)) : [A.captionsEmpty]));
+    ...(lines.length ? lines.map((c) => el('div.caption-line', {}, el('span.caption-time', {}, clock(c.at)), ' ', el('b', {}, `${nameOf(c.who)}\uFF1A`), c.text)) : [A.captionsEmpty]));
   replaceOpen(el('div.card.paper.caption-card', { role: 'dialog', 'aria-label': A.captionsTitle },
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     el('div.card-title', {}, A.captionsTitle),

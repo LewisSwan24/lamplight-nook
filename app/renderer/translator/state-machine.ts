@@ -21,7 +21,8 @@ const FROM_ANY: ActorState[] = ['serious', 'wrapping', 'low', 'idle'];
 const TRANSITIONS: Record<ActorState, ActorState[]> = {
   idle: ['ready', 'comfort'],
   ready: ['ready', 'out', ...BUSY],
-  working: BUSY,
+  // Qingdai finishing a design goes straight back to ready, like Laoshi after a check.
+  working: [...BUSY, 'ready'],
   thinking: BUSY,
   stuck: BUSY,
   waiting: BUSY,

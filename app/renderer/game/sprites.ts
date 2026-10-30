@@ -1,4 +1,4 @@
-import type { ActorId } from '../../shared/types';
+import type { ActorId, GuestId } from '../../shared/types';
 import type { Facing } from './layout';
 
 /**
@@ -35,10 +35,10 @@ export const STAFF_ANIMS: Record<string, StaffAnim> = {
   throw: { row: 12, frames: 14, fps: 12, repeat: 0, dirs: DIRECTIONS },
 };
 
-export const STAFF_IDS: ActorId[] = ['adeng', 'xiaoju', 'laoshi'];
+export const STAFF_IDS: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 
 /** Animation key for an actor, animation and facing. */
-export function animKey(actor: ActorId, anim: string, facing: Facing): string {
+export function animKey(actor: ActorId | GuestId, anim: string, facing: Facing): string {
   const def = STAFF_ANIMS[anim];
   if (!def || def.dirs === 'front') return `${actor}-${anim}`;
   return `${actor}-${anim}-${resolveFacing(def.dirs, facing)}`;

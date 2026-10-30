@@ -3,7 +3,11 @@
 /** Scene anchors: characters only move between these points. */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
 
-export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'cat';
+export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'cat';
+/** Neighbours who drop in now and then: Auntie Gui from the bakery and Axin the postman. */
+export type GuestId = 'baker' | 'postman';
+/** Anyone who can say something in the shop. */
+export type Speaker = ActorId | GuestId;
 
 /** A raw SDK message, hook call or permission callback, recorded as-is. */
 export type RawAgentEvent = {
@@ -198,7 +202,7 @@ export type AiEvent = {
   id: string;
   t: number;
   kind: AiEventKind;
-  agent: 'main' | 'researcher' | 'reviewer' | 'unknown';
+  agent: 'main' | 'researcher' | 'designer' | 'reviewer' | 'unknown';
   tool?: string;
   /** Human-readable target: file name, search query, host. Never a full path. */
   target?: string;

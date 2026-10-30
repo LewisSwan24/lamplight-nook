@@ -22,9 +22,10 @@ const SHIPPED_SEPARATELY = ['electron'];
 const ASSETS = `Art, sound, fonts and music
 ===========================
 
-Modern Interiors, Modern Exteriors (pixel art for the shop, the staff and the cat)
+Modern Interiors, Modern Exteriors, Modern Farm (pixel art for the shop, the street,
+the back garden, the staff and the cat)
   By LimeZu - https://limezu.itch.io/
-  Used under the license that comes with the packs: commercial use and changes allowed,
+  Used under the licenses that come with the packs: commercial use and changes allowed,
   the assets themselves may not be resold or redistributed. Credit to LimeZu is required.
 
 Modern UI SFX (interface sounds)

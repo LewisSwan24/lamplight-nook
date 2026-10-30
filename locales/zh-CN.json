@@ -16,7 +16,16 @@
     "adeng": "阿灯",
     "xiaoju": "小橘",
     "laoshi": "老石",
+    "qingdai": "青黛",
     "cat": "栗子"
+  },
+  "animals": {
+    "dog": "麦芽",
+    "hens": "母鸡"
+  },
+  "guests": {
+    "baker": "桂姨",
+    "postman": "阿信"
   },
   "zones": {
     "window": "窗台",
@@ -26,7 +35,9 @@
     "corner": "老石的角落",
     "counter": "柜台",
     "door": "门口",
-    "bell": "开会铃"
+    "bell": "开会铃",
+    "garden": "后院",
+    "shop": "回店里"
   },
   "events": {
     "session_start": "开始接活",
@@ -168,6 +179,7 @@
     "replayBadge": "回放",
     "board": {
       "research": "找参考",
+      "design": "定样子",
       "write": "动手做",
       "check": "检查"
     },
@@ -246,7 +258,7 @@
       "noticesMissing": "授权清单没找到，重新安装一下小灯屋应该就好了。",
       "aboutLabel": "关于",
       "version": "小灯屋 {version}",
-      "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》",
+      "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》《Modern Exteriors》《Modern Farm》",
       "creditLink": "limezu.itch.io",
       "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）",
       "volumeLabel": "声音大小",
@@ -301,7 +313,10 @@
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",
       "hotspotCat": "{name}：摸摸它",
-      "hotspotBell": "开会铃：叫大家到大桌边说两句"
+      "hotspotBell": "开会铃：叫大家到大桌边说两句",
+      "hotspotGarden": "后门：看看后院",
+      "hotspotShop": "后门：回店里",
+      "hotspotHens": "母鸡：撒把米"
     },
     "notebook": {
       "sectionLabel": "阿灯的小本子",

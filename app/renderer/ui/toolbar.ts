@@ -5,7 +5,7 @@ import { el, layer } from './dom';
 import { showSettings } from './setup';
 
 const T = strings.ui.toolbar;
-const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', reviewer: 'laoshi', unknown: 'xiaoju' };
+const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', designer: 'qingdai', reviewer: 'laoshi', unknown: 'xiaoju' };
 /** How many recent events the detail strip keeps. */
 const DETAIL_LINES = 3;
 

@@ -16,7 +16,16 @@
     "adeng": "Wick",
     "xiaoju": "Clem",
     "laoshi": "Flint",
+    "qingdai": "Iris",
     "cat": "Chestnut"
+  },
+  "animals": {
+    "dog": "Malt",
+    "hens": "The hens"
+  },
+  "guests": {
+    "baker": "Auntie Olive",
+    "postman": "Pip"
   },
   "zones": {
     "window": "the windowsill",
@@ -26,7 +35,9 @@
     "corner": "Flint's corner",
     "counter": "the counter",
     "door": "the door",
-    "bell": "the meeting bell"
+    "bell": "the meeting bell",
+    "garden": "the back garden",
+    "shop": "back inside"
   },
   "events": {
     "session_start": "took the job",
@@ -168,6 +179,7 @@
     "replayBadge": "Replay",
     "board": {
       "research": "Research",
+      "design": "Design",
       "write": "Make it",
       "check": "Check"
     },
@@ -246,7 +258,7 @@
       "noticesMissing": "The license list is missing. Reinstalling Lamplight Nook should bring it back.",
       "aboutLabel": "About",
       "version": "Lamplight Nook {version}",
-      "creditArt": "Pixel art for the shop and characters: LimeZu, Modern Interiors",
+      "creditArt": "Pixel art for the shop and characters: LimeZu, Modern Interiors, Modern Exteriors and Modern Farm",
       "creditLink": "limezu.itch.io",
       "creditFont": "Handwriting font: LXGW WenKai (SIL Open Font License 1.1)",
       "volumeLabel": "Volume",
@@ -301,7 +313,10 @@
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",
       "hotspotCat": "{name}: give her a pat",
-      "hotspotBell": "Meeting bell: call everyone to the big table"
+      "hotspotBell": "Meeting bell: call everyone to the big table",
+      "hotspotGarden": "Back door: look out at the garden",
+      "hotspotShop": "Back door: go back inside",
+      "hotspotHens": "The hens: toss them some grain"
     },
     "notebook": {
       "sectionLabel": "Wick's notebook",
