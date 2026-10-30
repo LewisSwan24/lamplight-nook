@@ -35,10 +35,10 @@ sub_go_laoshi:
   - { id: go_ls_03, speaker: laoshi, bubbles: ["拿来。"] }
 
 sub_go_qingdai:
-  - { id: go_qd_rain, speaker: qingdai, when: sky_rain, bubbles: ["下雨天，颜色想淡一点。", "我先在黑板上画个样子。"] }
-  - { id: go_qd_01, speaker: adeng, bubbles: ["青黛，先帮我定个样子。"], reply: { speaker: qingdai, bubbles: ["我去拿色卡。"] } }
-  - { id: go_qd_02, speaker: adeng, bubbles: ["这个要好看，你来配颜色。"], reply: { speaker: qingdai, bubbles: ["交给我。"] } }
-  - { id: go_qd_03, speaker: qingdai, bubbles: ["我先在黑板上画个样子。"] }
+  - { id: go_qd_rain, speaker: qingdai, when: sky_rain, bubbles: ["下雨天，颜色调淡一点。", "我先去黑板上画个底稿。"] }
+  - { id: go_qd_01, speaker: adeng, bubbles: ["青黛，先帮我们定个样。"], reply: { speaker: qingdai, bubbles: ["好，我去翻色卡。"] } }
+  - { id: go_qd_02, speaker: adeng, bubbles: ["这次要耐看点，你来配颜色。"], reply: { speaker: qingdai, bubbles: ["我挑挑看。"] } }
+  - { id: go_qd_03, speaker: qingdai, bubbles: ["我先去黑板上画几笔。"] }
 
 sub_queue:
   - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["等小橘回来再去。"] }
@@ -63,9 +63,9 @@ sub_back_laoshi:
   - { id: back_ls_ok2, speaker: laoshi, when: no_issues, bubbles: ["嗯。没毛病。"] }
 
 sub_back_qingdai:
-  - { id: back_qd_01, speaker: qingdai, bubbles: ["样子定好了。", "五个颜色，从上往下排。"], reply: { speaker: adeng, bubbles: ["好，照这个做。"] } }
-  - { id: back_qd_02, speaker: qingdai, bubbles: ["配色在这儿。", "暖一点，看着不累。"] }
-  - { id: back_qd_03, speaker: qingdai, bubbles: ["画好了，你看看。"], reply: { speaker: laoshi, bubbles: ["……字大点。"] } }
+  - { id: back_qd_01, speaker: qingdai, bubbles: ["样子定好了。", "五个颜色，从浅到深排。"], reply: { speaker: adeng, bubbles: ["好，我们就照这个做。"] } }
+  - { id: back_qd_02, speaker: qingdai, bubbles: ["色卡贴这儿了。", "偏暖一点，久看也不累。"] }
+  - { id: back_qd_03, speaker: qingdai, bubbles: ["画好了，你看看。"], reply: { speaker: laoshi, bubbles: ["……字小了。"] } }
 
 stuck:
   - { id: stuck_01, speaker: adeng, bubbles: ["嗯？这里对不上。", "我换个法子。"] }
@@ -154,7 +154,7 @@ idle_mutter:
   - { id: idle_adeng_02, speaker: adeng, bubbles: ["明天进点新茶叶。"] }
   - { id: idle_xiaoju_02, speaker: xiaoju, bubbles: ["这本书我看过三遍了。"] }
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["……歪了。"] }
-  - { id: idle_qingdai, speaker: qingdai, bubbles: ["这面墙要是浅绿就好了。"] }
+  - { id: idle_qingdai, speaker: qingdai, bubbles: ["这面墙刷成豆绿就好了。"] }
   - { id: idle_qingdai_02, speaker: qingdai, bubbles: ["粉笔又短了一截。"] }
 
 # A meeting at the big table (the bell on the counter). Replies from someone out on an errand are left out.
@@ -211,21 +211,21 @@ garden:
   - { id: garden_lawn_adeng_02, speaker: adeng, when: spot_lawn, bubbles: ["这一页折过角。", "是小橘折的。"] }
   - { id: garden_lawn_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["草地上看书最舒服了。"] }
   - { id: garden_lawn_xiaoju_02, speaker: xiaoju, when: spot_lawn, bubbles: ["有只蚂蚁爬到书上了。"] }
-  - { id: garden_flowers_qingdai, speaker: qingdai, when: spot_flowers, bubbles: ["这朵的颜色，我记下来。"] }
-  - { id: garden_flowers_qingdai_02, speaker: qingdai, when: spot_flowers, bubbles: ["花瓣边上那一点紫。", "调不出来。"] }
-  - { id: garden_lawn_qingdai, speaker: qingdai, when: spot_lawn, bubbles: ["在草地上画两笔。"] }
-  - { id: garden_lawn_qingdai_02, speaker: qingdai, when: spot_lawn, bubbles: ["天的颜色一直在变。"] }
-  - { id: garden_hens_xiaoju, speaker: xiaoju, when: spot_hens, bubbles: ["咕咕咕，开饭了。"] }
-  - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["今天下了两个蛋。", "一个给阿灯，一个给我。"] }
-  - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["一、二、三，都在。"] }
-  - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["别抢，人人有份。"] }
-  - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["麦芽，过来坐。"] }
-  - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["麦芽，别舔我的书。"] }
+  - { id: garden_flowers_qingdai, speaker: qingdai, when: spot_flowers, bubbles: ["这朵是灰紫色的，我记一下。"] }
+  - { id: garden_flowers_qingdai_02, speaker: qingdai, when: spot_flowers, bubbles: ["花瓣边上那一点紫。", "怎么都调不出来。"] }
+  - { id: garden_lawn_qingdai, speaker: qingdai, when: spot_lawn, bubbles: ["草叶背面的绿，比正面淡。"] }
+  - { id: garden_lawn_qingdai_02, speaker: qingdai, when: spot_lawn, bubbles: ["云一过，天的蓝就变了。"] }
+  - { id: garden_hens_xiaoju, speaker: xiaoju, when: spot_hens, bubbles: ["咕咕咕，开饭啦！"] }
+  - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["今天下了两个蛋！", "一个给阿灯，一个归我。"] }
+  - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["一、二、三，一只没少。"] }
+  - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["慢慢吃，都有份。"] }
+  - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["麦芽，来这儿坐。"] }
+  - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["麦芽！别舔我的画本。"] }
   - { id: garden_dog_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["麦芽。", "别刨。"] }
   - { id: garden_snow_xiaoju, speaker: xiaoju, when: sky_snow, bubbles: ["我堆了个小雪人，像老石。"] }
   - { id: garden_snow_adeng, speaker: adeng, when: sky_snow, bubbles: ["雪落在菜叶上了。"] }
   - { id: garden_snow_laoshi, speaker: laoshi, when: sky_snow, bubbles: ["地滑。"] }
-  - { id: garden_snow_qingdai, speaker: qingdai, when: sky_snow, bubbles: ["雪不是白的，是一点点蓝。"] }
+  - { id: garden_snow_qingdai, speaker: qingdai, when: sky_snow, bubbles: ["雪不是纯白的，阴影里带点蓝。"] }
   - { id: garden_leaves_adeng, speaker: adeng, when: sky_leaves, bubbles: ["叶子又落了一地。"] }
   - { id: garden_leaves_laoshi, speaker: laoshi, when: sky_leaves, bubbles: ["叶子。", "扫了也白扫。"] }
   - { id: garden_petals_xiaoju, speaker: xiaoju, when: sky_petals, bubbles: ["花瓣掉进我茶里了。"] }
