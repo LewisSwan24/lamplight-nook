@@ -96,3 +96,227 @@
     - adeng: 这一步要等一会儿。
     - xiaoju: 那我画一下栗子。
     - laoshi: 画得像一点。
+
+# Weather and holidays (sky: rain, snow, petals, leaves; holiday: halloween, christmas, new_year).
+# They come up before the everyday chats while they fit.
+- id: rain_umbrella
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: 下雨了，伞我放门口了。
+    - adeng: 待会儿出门记得拿上。
+
+- id: rain_fix
+  when: idle
+  sky: rain
+  turns:
+    - laoshi: 雨天，适合修东西。
+    - xiaoju: 你哪天不修东西？
+
+- id: snow_sill
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: 下雪了！窗台都白了。
+    - laoshi: 关好窗。
+    - adeng: 我去烧壶热水。
+
+- id: leaves_door
+  when: idle
+  sky: leaves
+  turns:
+    - xiaoju: 门口又吹进来几片叶子。
+    - laoshi: 留着。挺好看。
+
+- id: petals_tea
+  when: idle
+  sky: petals
+  turns:
+    - xiaoju: 花瓣飘进来了。
+    - adeng: 落进茶里也不错。
+
+- id: halloween_pumpkin
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaoju: 南瓜是我挑的，好看吧？
+    - laoshi: 那个在笑我。
+
+- id: christmas_star
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: 树顶的星星歪了。
+    - laoshi: 我来。
+    - adeng: 小心梯子。
+
+- id: new_year_fu
+  when: idle
+  holiday: new_year
+  turns:
+    - adeng: 福字倒着贴，福到了。
+    - xiaoju: 灯笼也挂好啦！
+    - laoshi: 红红火火。
+
+# Neighbours dropping in (game/guests.ts): guest: baker (Auntie Gui from the bakery) or postman (Axin).
+# The guest speaks first; turns from staff who are out or in the garden are left out.
+- id: baker_fresh
+  when: idle
+  guest: baker
+  period: dawn
+  turns:
+    - baker: 早，刚出炉的面包，留了两个。
+    - adeng: 桂姨又给我们带吃的。
+    - baker: 趁热吃。
+
+- id: baker_osmanthus
+  when: idle
+  guest: baker
+  turns:
+    - baker: 今天蒸了桂花糕。
+    - xiaoju: 我就知道！
+    - baker: 最大那块留给你了。
+
+- id: baker_butter
+  when: idle
+  guest: baker
+  turns:
+    - baker: 你们家栗子又跑我店里去了。
+    - adeng: ……它叼走什么了？
+    - baker: 一整块黄油。
+
+- id: baker_prices
+  when: idle
+  guest: baker
+  turns:
+    - baker: 阿灯，帮我瞅瞅这张价目表。
+    - adeng: 这两个价写反了。
+    - baker: 怪不得昨天算不平。
+
+- id: baker_rain
+  when: idle
+  guest: baker
+  sky: rain
+  turns:
+    - baker: 雨太大，进来歇会儿脚。
+    - adeng: 快坐，茶刚泡上。
+
+- id: baker_halloween
+  when: idle
+  guest: baker
+  holiday: halloween
+  turns:
+    - baker: 烤了南瓜饼，一人一个。
+    - xiaoju: 老石不吃甜的。
+    - laoshi: ……吃。
+
+- id: baker_christmas
+  when: idle
+  guest: baker
+  holiday: christmas
+  turns:
+    - baker: 姜饼人，烤焦了一个。
+    - xiaoju: 焦的归我！
+
+- id: baker_new_year
+  when: idle
+  guest: baker
+  holiday: new_year
+  turns:
+    - baker: 刚打的年糕，切片蒸着吃。
+    - adeng: 桂姨过年好。
+    - baker: 你们也好，开年顺顺当当。
+
+- id: postman_letter
+  when: idle
+  guest: postman
+  turns:
+    - postman: 小灯屋，有信。
+    - adeng: 辛苦了阿信。
+    - postman: 这周第三封了。
+
+- id: postman_parcel
+  when: idle
+  guest: postman
+  turns:
+    - postman: 老石的包裹，够沉的。
+    - laoshi: 木料。
+    - postman: 我就猜是。
+
+- id: postman_postcard
+  when: idle
+  guest: postman
+  turns:
+    - postman: 一张明信片，没落款。
+    - xiaoju: 上面画的是海！
+    - adeng: 贴黑板上吧。
+
+- id: postman_water
+  when: idle
+  guest: postman
+  turns:
+    - postman: 路过，讨杯水喝。
+    - adeng: 坐下喘口气。
+    - postman: 不了，还有一条街。
+
+- id: postman_rain
+  when: idle
+  guest: postman
+  sky: rain
+  turns:
+    - postman: 雨太急，信湿了一个角。
+    - adeng: 放炉子边烤干就行。
+
+- id: postman_snow
+  when: idle
+  guest: postman
+  sky: snow
+  turns:
+    - postman: 路太滑，刚摔了一跤。
+    - xiaoju: 信没事吧？
+    - postman: ……先关心下我啊。
+
+- id: postman_christmas
+  when: idle
+  guest: postman
+  holiday: christmas
+  turns:
+    - postman: 今天的信，装了满满一麻袋。
+    - xiaoju: 有我们的吗？
+    - postman: 夹着一张贺卡。
+
+- id: postman_new_year
+  when: idle
+  guest: postman
+  holiday: new_year
+  turns:
+    - postman: 邮局发的红包袋，一人分一个。
+    - xiaoju: 谢谢阿信！
+
+- id: swatch
+  when: idle
+  turns:
+    - qingdai: 小橘，你围巾的橘色很正。
+    - xiaoju: 是橘子色！
+    - qingdai: 借我比一下色卡。
+
+- id: pinned
+  when: idle
+  turns:
+    - laoshi: 黑板上那张，贴歪了。
+    - qingdai: 故意的。
+    - laoshi: ……
+
+- id: blue_cup
+  when: idle
+  turns:
+    - qingdai: 阿灯，杯子换个钴蓝的？
+    - adeng: 这个用了十年了。
+    - qingdai: 那就再用十年。
+
+- id: best_light
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: 这会儿的夕阳最好画。
+    - xiaoju: 那你先画我！

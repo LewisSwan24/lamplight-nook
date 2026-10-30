@@ -62,8 +62,20 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 The installer is not code-signed yet, so Windows SmartScreen asks for confirmation ("More info", then "Run anyway").
 The installer does not include Claude Code. The app uses the copy installed on the machine
 (native installer location, `PATH`, or a global npm install; `LAMPLIGHT_CLAUDE_PATH` overrides the lookup)
-and shows a notice when none is found. It also needs the same credentials as development:
-`ANTHROPIC_API_KEY`, or `LAMPLIGHT_DEV_SUBSCRIPTION=1` on a machine signed in to Claude Code.
+and shows a notice when none is found. Users paste their own Anthropic API key in the app
+(`ANTHROPIC_API_KEY` in the environment also works; `LAMPLIGHT_DEV_SUBSCRIPTION=1` only counts unpackaged).
+
+## Microsoft Store package
+
+`npm run msix` turns `dist/win-unpacked` (left by `npm run dist`) into an unsigned MSIX for the Store;
+the Store signs what it publishes. electron-builder only makes MSIX on Windows, so `scripts/msix.mjs`
+writes the package itself in the MSIX SDK layout (block map, content types, zip64).
+
+- Set `MSIX_IDENTITY_NAME`, `MSIX_PUBLISHER` (`CN=...`) and `MSIX_PUBLISHER_NAME` from Partner Center's
+  Product identity page to get `Lamplight-Nook-<version>.msix` for upload.
+- Without them it writes `Lamplight-Nook-<version>-test.msix` with a test publisher that Windows 11 installs
+  unsigned: `Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-<version>-test.msix` in PowerShell.
+- Tile images are in `assets/store/`, made from `assets/ui/icon.png`.
 
 ## Art and licenses
 

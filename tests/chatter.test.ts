@@ -62,4 +62,15 @@ describe('small talk', () => {
     expect(c.next('idle', CHAT_GAP_MS, 'day')).toBeNull();
     expect(c.next('idle', CHAT_GAP_MS, 'dusk')?.id).toBe('sunset');
   });
+
+  it('keeps weather and holiday chats to their days, and brings them up first', () => {
+    const quiet = run(30).map((t) => t.id);
+    for (const id of ['rain_umbrella', 'snow_sill', 'halloween_pumpkin']) expect(quiet).not.toContain(id);
+    const c = new Chatter(chats, [], 0, seeded(3));
+    const rainy = { sky: 'rain' as const, holiday: 'halloween' as const };
+    const first = [1, 2, 3].map((i) => c.next('idle', i * CHAT_GAP_MS, 'day', rainy)?.id);
+    expect(new Set(first)).toEqual(new Set(['rain_umbrella', 'rain_fix', 'halloween_pumpkin']));
+    // Then the everyday chats carry on as before.
+    expect(['rain_umbrella', 'rain_fix', 'halloween_pumpkin']).not.toContain(c.next('idle', 4 * CHAT_GAP_MS, 'day', rainy)?.id);
+  });
 });

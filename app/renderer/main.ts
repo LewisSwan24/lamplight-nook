@@ -7,6 +7,9 @@ import { fill, locale, shorten, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
+import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
+import { outsideFlags } from './game/weather';
+import { VisitPlanner, pickVisit } from './game/guests';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
@@ -115,10 +118,69 @@ setInterval(() => {
   const blocked = document.hidden || document.querySelector('.backdrop');
   const busy = running || replaying;
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
-  const talk = chatter.next(mood, Date.now(), scene.period);
+  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside());
   if (talk) void stage.talk(talk.turns);
+  tendGarden(!busy);
+  dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
 }, 5000);
+
+// The back garden: when the shop is quiet someone wanders out now and then; work calls everyone back in,
+// and so do rain and nightfall.
+const gardenPlanner = new GardenPlanner(Date.now());
+function tendGarden(quiet: boolean) {
+  const { sky } = scene.outside();
+  const open = gardenOpen(sky, scene.period);
+  const step = gardenPlanner.next(Date.now(), quiet && open, outdoorsFor(scene.freeForGarden(), sky, scene.period));
+  for (const id of step.back) {
+    const home = ACTORS.find((a) => a.id === id)!.home;
+    // Someone a commission already sent for is on their way; only fetch whoever is still out there.
+    if (scene.isInGarden(id)) void scene.walkTo(id, home);
+  }
+  if (step.go) void scene.visitGarden(step.go.actor, step.go.spot);
+  talkInGarden();
+}
+
+// Now and then a neighbour drops in for a word while the shop is quiet; work sends them on their way.
+const visits = new VisitPlanner(Date.now());
+const heardVisits = new Set<string>();
+function dropIn(quiet: boolean) {
+  const guest = visits.next(Date.now(), quiet && !scene.hasGuest(), scene.period);
+  if (!guest) return;
+  const present = (who: string) => scene.anchorOf(who as ActorId) !== null;
+  const chat = pickVisit(ruleBook().chats, guest, scene.outside(), scene.period, present, heardVisits);
+  if (chat) void scene.guestVisit(guest, chat.turns);
+}
+
+// Out in the garden people say something about what they are doing, heard while you look out there.
+const gardenTalk = new GardenTalk(Date.now());
+function talkInGarden() {
+  const now = Date.now();
+  if (scene.view !== 'garden') return;
+  const say = gardenTalk.next(now, ruleBook().lines.garden ?? [], scene.gardenVisitors(), scene.outside().sky);
+  if (!say) return;
+  // Whoever comes back in leaves what they were saying out there (CafeScene clears it).
+  const hush = () => scene.isInGarden(say.actor) && scene.say(say.actor, null);
+  if (!say.line) {
+    scene.say(say.actor, null, 'zzz');
+    setTimeout(hush, 2500);
+    return;
+  }
+  const bubbles = say.line.bubbles;
+  void (async () => {
+    for (const text of bubbles) {
+      if (!scene.isInGarden(say.actor)) break;
+      scene.say(say.actor, text);
+      await new Promise((r) => setTimeout(r, 2000 + 150 * [...text].length));
+    }
+    hush();
+  })();
+}
+scene.onView = (v) => {
+  document.body.classList.toggle('garden-view', v === 'garden');
+  // Looking out: someone out there says something soon, instead of after a long silence.
+  if (v === 'garden') gardenTalk.soon(Date.now());
+};
 
 // Long commissions: now and then Adeng says how far along it is (from the blackboard).
 let runStartedAt = 0;
@@ -142,7 +204,7 @@ function sayProgress() {
 
 // A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
 // says goes to the running commission. Nobody moves for the work while the meeting lasts.
-const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi'];
+const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 let meetingOpen = false;
 let meetingCount = 0;
 function sayFrom(group: string, k = 0) {
@@ -188,6 +250,7 @@ document.addEventListener('visibilitychange', syncVisibility);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 scene.onSound = sfx;
 scene.onSay = recordLine;
+scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 window.lamplight.onDecision(async (req) => {
@@ -200,6 +263,9 @@ window.lamplight.onResult((result) => showResult(result, (path, how) => void win
 let running: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  scene.showShop();
+  tendGarden(false);
+  scene.sendGuestAway();
   runStartedAt = Date.now();
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
@@ -258,7 +324,7 @@ const greet = (text: string) => {
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
   const { flags, vars } = await window.lamplight.recallOnOpen();
-  const turns = pickLine(ruleBook().lines.app_open ?? [], flags, { ...vars, name });
+  const turns = pickLine(ruleBook().lines.app_open ?? [], [...flags, ...outsideFlags(scene.outside())], { ...vars, name });
   if (turns) void stage.talk(turns);
 }
 async function openShop() {
@@ -360,6 +426,9 @@ function startReplay(speed = 3) {
   append(`replay: ${events.length} events at ${speed}x`);
   setReplayBadge(true);
   replaying = true;
+  scene.showShop();
+  tendGarden(false);
+  scene.sendGuestAway();
   cancelReplay = replay(stage, events, speed, () => { setReplayBadge(false); replaying = false; });
 }
 $('replay').addEventListener('click', () => startReplay());
@@ -377,6 +446,9 @@ function startTrial() {
   const events = normalizeAll(trialText.split('\n').filter(Boolean).map((l: string) => JSON.parse(l) as RawAgentEvent));
   setReplayBadge(true);
   replaying = true;
+  scene.showShop();
+  tendGarden(false);
+  scene.sendGuestAway();
   scene.setFormWaiting(false);
   // A little slower than recorded, and the end card waits for the wrap-up lines to finish.
   cancelReplay = replay(stage, events, TRIAL_SPEED, () => {

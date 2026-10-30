@@ -11,7 +11,7 @@ import type { AiEvent, AiEventKind, Choice, RawAgentEvent, Risk } from '../share
 type Agent = AiEvent['agent'];
 type Obj = Record<string, unknown>;
 
-const SUBAGENT_TYPES: Agent[] = ['researcher', 'reviewer'];
+const SUBAGENT_TYPES: Agent[] = ['researcher', 'designer', 'reviewer'];
 /** A plan step: a line starting with a number or a bullet (ASCII or CJK punctuation). */
 const STEP_LINE = /^\s*(?:\d+[.\u3001)\uff09]|[-*\u2022])\s+\S/;
 const PLAN_WORDS = pattern('planWords');

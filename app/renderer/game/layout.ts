@@ -40,7 +40,7 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
 export const AISLE_Y = 136;
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
-const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, cat: 0 };
+const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, cat: 0 };
 const SLOT_GAP = 12;
 
 /** `chair`: there is a chair here, so the character can sit. */
@@ -54,8 +54,13 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
   table: {
     adeng: { x: 196, y: 100, facing: 'left', chair: true },
     xiaoju: { x: 104, y: 100, facing: 'right', chair: true },
-    // No third chair fits; Laoshi stands at Adeng's shoulder.
+    // No third chair fits; Laoshi stands at Adeng's shoulder, Qingdai at Xiaoju's.
     laoshi: { x: 212, y: 114, facing: 'left' },
+    qingdai: { x: 90, y: 114, facing: 'right' },
+  },
+  // Qingdai's place by the blackboard, where she pins up her colour swatches, facing the room.
+  board: {
+    qingdai: { x: 114, y: 62, facing: 'down' },
   },
 };
 
@@ -114,5 +119,6 @@ export const ACTORS: { id: ActorId; name: string; home: AnchorId; height: number
   { id: 'adeng', name: A.adeng, home: 'counter', height: 30 },
   { id: 'xiaoju', name: A.xiaoju, home: 'shelf', height: 30 },
   { id: 'laoshi', name: A.laoshi, home: 'corner', height: 30 },
+  { id: 'qingdai', name: A.qingdai, home: 'board', height: 30 },
   { id: 'cat', name: A.cat, home: 'window', height: 12 },
 ];

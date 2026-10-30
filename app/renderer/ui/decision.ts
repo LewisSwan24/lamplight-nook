@@ -43,7 +43,7 @@ export function showDecision(req: DecisionRequest): Promise<string> {
 }
 
 function dialog(req: DecisionRequest, close: (id: string) => void) {
-  const actor = req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : 'adeng';
+  const actor = req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng';
   return el('div.dialog.paper', { role: 'dialog', 'aria-modal': 'true' },
     withPortrait(actor, 'unsure',
       el('div.who', {}, strings.actors[actor]),

@@ -41,7 +41,7 @@ describe('storyboard: every agent-driven step of the demo has its scene', () => 
   const at = (step: number) => out.get(step)!.map((c) => `${c.actor}:${c.state}${c.moveTo ? `@${c.moveTo}` : ''}${c.line ? `/${c.line.group}` : ''}`);
 
   const expected: Record<number, string[]> = {
-    2: ['adeng:ready@counter/opening', 'xiaoju:ready@shelf', 'laoshi:ready@corner'],
+    2: ['adeng:ready@counter/opening', 'xiaoju:ready@shelf', 'laoshi:ready@corner', 'qingdai:ready@board'],
     3: ['adeng:working@board/planning'],
     4: ['xiaoju:out@door/sub_go_xiaoju'],
     5: ['adeng:working@table/writing'],
@@ -55,7 +55,7 @@ describe('storyboard: every agent-driven step of the demo has its scene', () => 
     13: ['adeng:working@table', 'adeng:serious@counter/serious'],
     14: ['adeng:reacting/serious_no', 'laoshi:checking@table/sub_go_laoshi'],
     15: ['laoshi:ready@corner/sub_back_laoshi'],
-    16: ['adeng:wrapping@counter/done', 'xiaoju:idle@shelf', 'laoshi:idle@corner', 'cat:idle@window'],
+    16: ['adeng:wrapping@counter/done', 'xiaoju:idle@shelf', 'laoshi:idle@corner', 'qingdai:idle@board', 'cat:idle@window'],
   };
   for (const [step] of STEPS) {
     it(`step ${step}`, () => expect(at(step)).toEqual(expected[step]));

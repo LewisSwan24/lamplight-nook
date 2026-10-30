@@ -143,6 +143,10 @@ body.debug #debug { display: block; }
 .board .step.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }
 .parcel { position: absolute; right: 24px; bottom: 24px; width: 260px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
 .parcel .parcel-body { max-height: 3em; overflow: hidden; }
+/* While the street inset is open in the bottom right corner, what usually sits there makes room. */
+.street-open .parcel { top: 64px; bottom: auto; }
+/* Looking out at the garden: the chalk on the shop's blackboard stays in the shop. */
+.garden-view #board { visibility: hidden; }
 .parcel.expanded .parcel-body { max-height: none; }
 .replay-badge { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(0, 0, 0, 0.6); color: #fff; padding: 3px 14px; border-radius: 10px; font-size: 14px; letter-spacing: 0.1em; pointer-events: none; }
 #debug summary { cursor: pointer; font-weight: bold; }
@@ -182,6 +186,7 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .portrait-adeng { --tint: #b5653b; }
 .portrait-xiaoju { --tint: #e98a3a; }
 .portrait-laoshi { --tint: #6e747a; }
+.portrait-qingdai { --tint: #4a5a86; }
 .portrait-face { display: block; width: calc(16 * var(--pp)); height: calc(16 * var(--pp)); image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(80 * var(--pp)) calc(48 * var(--pp)); background-position: calc(-16 * var(--col) * var(--pp)) calc(-16 * var(--row) * var(--pp)); }
 .portrait .emote { position: absolute; right: -2px; top: -2px; --px: 2px; }
 
@@ -195,6 +200,7 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .caption-bar:empty { display: none; }
 /* Sits above the detail strip when both are showing (the strip is mounted first). */
 .detail-strip:not([hidden]):not(:empty) ~ .caption-bar { bottom: 92px; }
+.street-open .detail-strip, .street-open .caption-bar { left: 24px; transform: none; width: min(560px, 55vw); }
 .caption-line b { color: #8a4b2a; margin-right: 2px; }
 .caption-card { width: min(520px, 86vw); }
 .caption-list { max-height: 50vh; overflow-y: auto; font-family: var(--hand); font-size: 16px; line-height: 1.6; padding-right: 6px; }

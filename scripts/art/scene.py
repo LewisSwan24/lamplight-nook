@@ -55,6 +55,8 @@ FURNITURE = [
 
 # Top-left of the door (an animated sprite placed by the game at the same spot).
 DOOR = (288, 16)
+# The back door out to the garden (app/renderer/game/garden.ts, BACK_DOOR), another animated door.
+BACK_DOOR = (200, 16)
 
 # Chairs at the table seats (app/renderer/game/layout.ts, SEATS): a chair's 16x32 cell sits 8px below
 # the sitting character's frame, whose feet are at the seat point.
@@ -85,6 +87,9 @@ def build():
     # The doorway behind the animated door: daylight outside, seen when the door opens.
     door = (DOOR[0], DOOR[1])
     img.paste((205, 226, 222, 255), (door[0] + 1, door[1] + 12, door[0] + 15, door[1] + 32))
+    # Behind the back door: the green of the garden.
+    back = BACK_DOOR
+    img.paste((150, 200, 140, 255), (back[0] + 1, back[1] + 12, back[0] + 15, back[1] + 32))
     for _name, rect, pos in FURNITURE:
         img.alpha_composite(obj(*rect), pos)
     # Chairs are drawn top to bottom so a lower chair overlaps the one above it.

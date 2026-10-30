@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "Lamplight Nook",
+    "tagline": "A cozy pixel shop where a small team does computer jobs for you with Claude.",
     "commissionRoot": [
       "Lamplight Nook",
       "Commissions"
@@ -15,7 +16,16 @@
     "adeng": "Wick",
     "xiaoju": "Clem",
     "laoshi": "Flint",
+    "qingdai": "Iris",
     "cat": "Chestnut"
+  },
+  "animals": {
+    "dog": "Malt",
+    "hens": "The hens"
+  },
+  "guests": {
+    "baker": "Auntie Olive",
+    "postman": "Pip"
   },
   "zones": {
     "window": "the windowsill",
@@ -25,7 +35,9 @@
     "corner": "Flint's corner",
     "counter": "the counter",
     "door": "the door",
-    "bell": "the meeting bell"
+    "bell": "the meeting bell",
+    "garden": "the back garden",
+    "shop": "back inside"
   },
   "events": {
     "session_start": "took the job",
@@ -167,6 +179,7 @@
     "replayBadge": "Replay",
     "board": {
       "research": "Research",
+      "design": "Design",
       "write": "Make it",
       "check": "Check"
     },
@@ -245,7 +258,7 @@
       "noticesMissing": "The license list is missing. Reinstalling Lamplight Nook should bring it back.",
       "aboutLabel": "About",
       "version": "Lamplight Nook {version}",
-      "creditArt": "Pixel art for the shop and characters: LimeZu, Modern Interiors",
+      "creditArt": "Pixel art for the shop and characters: LimeZu, Modern Interiors, Modern Exteriors and Modern Farm",
       "creditLink": "limezu.itch.io",
       "creditFont": "Handwriting font: LXGW WenKai (SIL Open Font License 1.1)",
       "volumeLabel": "Volume",
@@ -300,7 +313,10 @@
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",
       "hotspotCat": "{name}: give her a pat",
-      "hotspotBell": "Meeting bell: call everyone to the big table"
+      "hotspotBell": "Meeting bell: call everyone to the big table",
+      "hotspotGarden": "Back door: look out at the garden",
+      "hotspotShop": "Back door: go back inside",
+      "hotspotHens": "The hens: toss them some grain"
     },
     "notebook": {
       "sectionLabel": "Wick's notebook",
@@ -383,7 +399,7 @@
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
       "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); a record of each commission; the last 7 days of the app's log; crash records.",
-      "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook). You can clear the notebook in Settings, and after uninstalling you can delete that folder to remove everything.",
+      "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook; the Microsoft Store version keeps it in the app's own storage, which Windows removes when you uninstall). You can clear the notebook in Settings. If you installed from the setup file, delete that folder after uninstalling to remove everything.",
       "What the staff make goes in the commission folder you chose, and it is yours.",
       "# What is sent to Anthropic",
       "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",

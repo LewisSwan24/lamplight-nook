@@ -20,6 +20,7 @@ export const REPLY_LANGUAGE = `Always reply in ${LANGUAGE}.`;
 const HOUSE_RULES = [
   'Work only inside the current folder.',
   'When looking things up would help, send the researcher subagent; do not research yourself.',
+  'Before building a page or anything else people will look at, send the designer subagent for the colours and layout, then follow its proposal.',
   'When a design choice is genuinely up to the user, ask with the AskUserQuestion tool instead of guessing.',
   'Before finishing, send the reviewer subagent to check the result.',
   `Write the user-facing page text in ${LANGUAGE}.`,
