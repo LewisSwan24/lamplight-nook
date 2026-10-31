@@ -152,6 +152,15 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Pro
         el('button.default', { type: 'submit' }, U.submit),
       ),
     );
+    // Enter in a one-line box moves on instead of handing the commission in; only the button starts the work.
+    const submitButton = form.querySelector<HTMLButtonElement>('button.default')!;
+    for (const [box, next] of [[details, audience], [audience, submitButton]] as const) {
+      box.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || e.isComposing) return;
+        e.preventDefault();
+        next.focus();
+      });
+    }
     // Closed some other way (Esc): same as the close button.
     form.addEventListener('panel-closed', () => resolve(null));
     form.addEventListener('submit', (e) => {
