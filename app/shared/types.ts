@@ -1,3 +1,4 @@
+import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
 
@@ -39,7 +40,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; budgetUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -121,6 +122,10 @@ export interface LamplightApi {
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
   onResult(cb: (r: CommissionResult) => void): () => void;
+  /** The corner window (plan.md R3): its current state, updates to it, and bringing the shop back. */
+  miniState(): Promise<MiniState>;
+  onMiniState(cb: (s: MiniState) => void): () => void;
+  showShop(): Promise<void>;
 }
 
 /** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
@@ -179,6 +184,9 @@ export type DecisionRequest = {
 export type DecisionAnswer = { id: string; choice: string };
 
 export const IPC = {
+  miniState: 'mini:get',
+  miniPush: 'mini:state',
+  showShop: 'mini:show-shop',
   envStatus: 'env:status',
   getSettings: 'settings:get',
   saveSettings: 'settings:save',

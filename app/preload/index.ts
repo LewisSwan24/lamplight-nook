@@ -50,6 +50,9 @@ const api: LamplightApi = {
   onAiEvent: (cb) => on(IPC.aiEvent, cb),
   onDecision: (cb) => on(IPC.decision, cb),
   onResult: (cb) => on(IPC.result, cb),
+  miniState: () => ipcRenderer.invoke(IPC.miniState),
+  onMiniState: (cb) => on(IPC.miniPush, cb),
+  showShop: () => ipcRenderer.invoke(IPC.showShop),
 };
 
 contextBridge.exposeInMainWorld('lamplight', api);

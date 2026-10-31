@@ -224,7 +224,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'notify' | 'closeToTray';
+type Switch = 'captions' | 'reducedMotion' | 'notify' | 'closeToTray' | 'mini';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -334,7 +334,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
       switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion]])),
     el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
-      switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle]])),
+      switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle], ['mini', strings.ui.mini.toggle]])),
     el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
       el('div.hint', {}, strings.ui.notebook.sectionText),
       el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),

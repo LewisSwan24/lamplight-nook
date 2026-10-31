@@ -420,6 +420,17 @@
       "revise": "Change it a bit",
       "rounds": "changed {n} times",
       "gone": "Can't find it; it may have been moved or deleted."
+    },
+    "mini": {
+      "toggle": "Keep a small window in the corner while the shop is out of sight",
+      "title": "Lamplight Nook mini",
+      "idle": "Quiet in the shop. Tea time.",
+      "working": "Busy: {what}",
+      "waiting": "Wick needs your call. Click to go back in.",
+      "serious": "⚠ A step needs your OK. Click to go back in.",
+      "done": "All done. Click to have a look.",
+      "failed": "Didn't work out. Click to go back in.",
+      "open": "Back to the shop"
     }
   },
   "states": {

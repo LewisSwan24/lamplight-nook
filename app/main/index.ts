@@ -22,6 +22,7 @@ import { SettingsStore, defaultWorkRoot } from './settings';
 import { SpendLedger } from './spend';
 import { zip } from './zip';
 import { ShopTray } from './tray';
+import { MiniWindow } from './mini';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +36,7 @@ let win: BrowserWindow | null = null;
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
 const broker = new DecisionBroker((req) => {
   send(IPC.decision, req);
+  mini.feed({ type: 'ask', serious: req.kind === 'serious' });
   tray.attention(req, settings.get().notify);
 });
 const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
@@ -43,6 +45,17 @@ const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.clo
 /** The commission currently running (one at a time), and the folder of the last one. */
 let current: { workDir: string; abort: AbortController; note?: (text: string) => boolean } | null = null;
 let lastWorkDir: string | null = null;
+/** The corner window shown while the shop is out of sight (plan.md R3). */
+const mini = new MiniWindow(join(here, '../preload/index.cjs'), (w) => {
+  if (process.env.ELECTRON_RENDERER_URL) w.loadURL(`${process.env.ELECTRON_RENDERER_URL}/mini.html`);
+  else w.loadFile(join(here, '../renderer/mini.html'));
+});
+/** Show the corner window exactly when the shop is out of sight and the user wants it. */
+function updateMini() {
+  const away = Boolean(win && !win.isDestroyed() && (!win.isVisible() || win.isMinimized()));
+  mini.setVisible(away && !leaving && !quitting && settings.get().mini);
+  if (!away) mini.feed({ type: 'seen' });
+}
 let settings: SettingsStore;
 let pending: PendingStore;
 let memory: MemoryStore;
@@ -107,6 +120,11 @@ function createWindow() {
     quitting = true;
     pending.clear();
   });
+  win.on('hide', updateMini);
+  win.on('show', updateMini);
+  win.on('minimize', updateMini);
+  win.on('restore', updateMini);
+  win.on('closed', () => mini.destroy());
   win.webContents.on('render-process-gone', (_e, details) => log?.error('renderer gone', details));
   win.webContents.on('console-message', (e) => {
     // Electron passes the details on the event; only errors are worth keeping.
@@ -120,7 +138,10 @@ function createWindow() {
 const recordingFor = (kind: string) => join(app.getPath('userData'), 'recordings', `${Date.now()}-${kind}.jsonl`);
 const emitters = {
   emit: (event: unknown) => send(IPC.rawEvent, event),
-  emitAi: (event: AiEvent) => send(IPC.aiEvent, { ...event, raw: undefined }),
+  emitAi: (event: AiEvent) => {
+    send(IPC.aiEvent, { ...event, raw: undefined });
+    mini.feed({ type: 'ai', event: { kind: event.kind, agent: event.agent, plain: event.plain } });
+  },
 };
 
 // The key is only read in the main process; the renderer just gets a boolean.
@@ -222,6 +243,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   const abort = new AbortController();
   current = { workDir: job.workDir, abort };
+  mini.feed({ type: 'run', running: true });
   pending.save(job);
   const started = Date.now();
   log?.info('run start', { demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId) });
@@ -283,6 +305,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     pending.clear();
     current = null;
     lastWorkDir = job.workDir;
+    mini.feed({ type: 'run', running: false });
   }
 }
 
@@ -367,7 +390,10 @@ ipcMain.handle(IPC.dropPending, () => {
 
 ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
   const ok = broker.answer(answer);
-  if (!broker.waiting) tray.calm();
+  if (!broker.waiting) {
+    tray.calm();
+    mini.feed({ type: 'answered' });
+  }
   return ok;
 });
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
@@ -415,8 +441,12 @@ app.whenReady().then(() => {
   tray.create();
   win?.on('focus', () => tray.calm());
 });
+// The corner window: what to show now, and a click on it brings the shop back.
+ipcMain.handle(IPC.miniState, () => mini.state);
+ipcMain.handle(IPC.showShop, () => tray.show());
 app.on('before-quit', () => {
   leaving = true;
+  mini.destroy();
   broker.cancelAll();
   current?.abort.abort();
 });

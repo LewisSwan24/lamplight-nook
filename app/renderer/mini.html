@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:" />
+    <title>Lamplight Nook</title>
+    <link rel="stylesheet" href="./mini.css" />
+  </head>
+  <body>
+    <div id="grip" aria-hidden="true"></div>
+    <button id="stage" type="button"><canvas id="view" width="96" height="60"></canvas></button>
+    <div id="status" role="status" aria-live="polite"></div>
+    <script type="module" src="./mini.ts"></script>
+  </body>
+</html>
