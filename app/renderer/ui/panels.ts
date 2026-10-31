@@ -1,6 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
-import { withoutColourCodes } from '../../shared/text';
+import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, LamplightApi } from '../../shared/types';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -72,7 +72,7 @@ export function showParcel(actor: ActorId, summary: string) {
   const parcel = el('div.parcel.paper', { tabindex: 0 },
     el('button.close', { 'aria-label': 'close', onclick: (e: Event) => { e.stopPropagation(); parcel.remove(); } }, '\u00D7'),
     el('div.card-title', {}, fill(U.parcelFrom, { who: strings.actors[actor] })),
-    el('div.parcel-body', {}, withoutColourCodes(plainText(summary))),
+    el('div.parcel-body', {}, withoutPathFolders(withoutColourCodes(plainText(summary)))),
   );
   parcel.addEventListener('click', () => parcel.classList.toggle('expanded'));
   document.querySelectorAll('.parcel').forEach((p) => p.remove());
