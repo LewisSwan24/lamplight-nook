@@ -17,7 +17,7 @@ planning:
   - { id: plan_03, speaker: adeng, bubbles: ["Three steps, I think."] }
 
 writing:
-  - { id: write_01, speaker: adeng, bubbles: ["Starting on {file}."] }
+  - { id: write_01, speaker: adeng, bubbles: ["Starting on the real thing."] }
   - { id: write_02, speaker: adeng, bubbles: ["That bit's done. On to the next."] }
   - { id: write_03, speaker: adeng, bubbles: ["Getting the frame up first."] }
 
@@ -90,7 +90,7 @@ ask:
   - { id: ask_02, speaker: adeng, bubbles: ["There are two ways to do this.", "Which would you rather?"] }
 
 react_adopted:
-  - { id: react_ad_adeng, speaker: adeng, bubbles: ["I had a feeling it'd be that one."] }
+  - { id: react_ad_adeng, speaker: adeng, bubbles: ["Right, we'll go with that."] }
   - { id: react_ad_laoshi, speaker: laoshi, bubbles: [] }
   - { id: react_ad_xiaoju, speaker: xiaoju, bubbles: ["I'll go find the stickers!"] }
 

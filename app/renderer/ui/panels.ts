@@ -1,5 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
+import { withoutColourCodes } from '../../shared/text';
 import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, LamplightApi } from '../../shared/types';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -58,7 +59,7 @@ export function showActorCard(actor: ActorId, info: ActorInfo, detailed = false)
       el('div.card-title', {}, `${strings.actors[actor]} - ${state}`),
       info.lastLine ? el('div.quote', {}, `\u201C${info.lastLine}\u201D`) : null),
     info.doing ? el('div', {}, el('b', {}, U.doingNow), info.doing) : null,
-    el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)),
+    info.stats.writes + info.stats.runs + info.stats.fails ? el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)) : null,
     info.raw.length ? el('details', { open: detailed }, el('summary', {}, U.raw), el('pre', {}, info.raw.slice(-30).join('\n'))) : null,
   ));
 }
@@ -71,7 +72,7 @@ export function showParcel(actor: ActorId, summary: string) {
   const parcel = el('div.parcel.paper', { tabindex: 0 },
     el('button.close', { 'aria-label': 'close', onclick: (e: Event) => { e.stopPropagation(); parcel.remove(); } }, '\u00D7'),
     el('div.card-title', {}, fill(U.parcelFrom, { who: strings.actors[actor] })),
-    el('div.parcel-body', {}, plainText(summary)),
+    el('div.parcel-body', {}, withoutColourCodes(plainText(summary))),
   );
   parcel.addEventListener('click', () => parcel.classList.toggle('expanded'));
   document.querySelectorAll('.parcel').forEach((p) => p.remove());

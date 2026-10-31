@@ -17,15 +17,15 @@ planning:
   - { id: plan_03, speaker: adeng, bubbles: ["分三步吧。"] }
 
 writing:
-  - { id: write_01, speaker: adeng, bubbles: ["开始写{file}了。"] }
+  - { id: write_01, speaker: adeng, bubbles: ["正式的开始写了。"] }
   - { id: write_02, speaker: adeng, bubbles: ["这块写完了，下一块。"] }
   - { id: write_03, speaker: adeng, bubbles: ["先把架子搭起来。"] }
 
 # Lines with `when: sky_...` or `when: holiday_...` fit only on such a day (game/weather.ts) and come first then.
 sub_go_xiaoju:
-  - { id: go_xj_rain, speaker: adeng, when: sky_rain, bubbles: ["小橘，帮我去找找{topic}？"], reply: { speaker: xiaoju, bubbles: ["我拿把伞就去！"] } }
-  - { id: go_xj_snow, speaker: adeng, when: sky_snow, bubbles: ["小橘，帮我去找找{topic}？", "路滑，慢点走。"], reply: { speaker: xiaoju, bubbles: ["围巾围好了！"] } }
-  - { id: go_xj_01, speaker: adeng, bubbles: ["小橘，帮我去找找{topic}？"], reply: { speaker: xiaoju, bubbles: ["我去去就回！"] } }
+  - { id: go_xj_rain, speaker: adeng, when: sky_rain, bubbles: ["小橘，帮我跑一趟：{topic}。"], reply: { speaker: xiaoju, bubbles: ["我拿把伞就去！"] } }
+  - { id: go_xj_snow, speaker: adeng, when: sky_snow, bubbles: ["小橘，帮我跑一趟：{topic}。", "路滑，慢点走。"], reply: { speaker: xiaoju, bubbles: ["围巾围好了！"] } }
+  - { id: go_xj_01, speaker: adeng, bubbles: ["小橘，帮我跑一趟：{topic}。"], reply: { speaker: xiaoju, bubbles: ["我去去就回！"] } }
   - { id: go_xj_02, speaker: adeng, bubbles: ["你去找东西最快。", "别又带一堆零食回来。"], reply: { speaker: xiaoju, bubbles: ["那不行。"] } }
   - { id: go_xj_03, speaker: xiaoju, bubbles: ["我去去就回！"] }
 
@@ -90,7 +90,7 @@ ask:
   - { id: ask_02, speaker: adeng, bubbles: ["这里有两种做法。", "你更想要哪种？"] }
 
 react_adopted:
-  - { id: react_ad_adeng, speaker: adeng, bubbles: ["我就觉得是这个。"] }
+  - { id: react_ad_adeng, speaker: adeng, bubbles: ["好，就照你说的。"] }
   - { id: react_ad_laoshi, speaker: laoshi, bubbles: [] }
   - { id: react_ad_xiaoju, speaker: xiaoju, bubbles: ["那我去把贴纸找出来！"] }
 

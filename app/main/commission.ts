@@ -33,7 +33,15 @@ const HOUSE_RULES = [
 ].join('\n');
 
 /** Short name of a commission: its folder name and how Adeng's notebook refers to it. */
-export const commissionTitle = (form: CommissionForm) => (form.demo ? strings.demo.brief : form.want.slice(0, 16).replace(/[\\/:*?"<>|\s]+/g, '-'));
+export const commissionTitle = (form: CommissionForm) => (form.demo ? strings.demo.brief : shortTitle(form.want));
+
+/** "帮我做一个家庭聚会签到的小网页。" → "做一个家庭聚会签到的小网页": no "please" in front, no punctuation, at most 16 characters, safe as a folder name. */
+export function shortTitle(want: string): string {
+  const core = want.trim().replace(/^(请|麻烦)?(帮我|给我|替我)/, '').replace(/^(please\s+|can you\s+|could you\s+)+/i, '');
+  const firstSentence = core.split(/[。！？!?\n]/)[0] || core;
+  const title = [...firstSentence].slice(0, 16).join('').replace(/[\\/:*?"<>|\s，,。.；;：]+/g, '-').replace(/^-+|-+$/g, '');
+  return title || [...want].slice(0, 16).join('').replace(/[\\/:*?"<>|\s]+/g, '-');
+}
 
 /** Add what the shop remembers about this user (may be empty) to a prompt. */
 const withNotes = (prompt: string, notes = '') => (notes ? `${prompt}\n\n${notes}` : prompt);
