@@ -164,6 +164,10 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
         next.focus();
       });
     }
+    // The demo only runs on its exact wording, so its sticker goes dark as soon as the user writes something else.
+    want.addEventListener('input', () => {
+      if (chosen?.id === 'demo' && want.value !== U.demoFill) { chosen = null; refresh(); }
+    });
     // Closed some other way (Esc): same as the close button.
     form.addEventListener('panel-closed', () => resolve(null));
     form.addEventListener('submit', (e) => {
