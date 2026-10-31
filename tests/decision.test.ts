@@ -138,3 +138,12 @@ describe('safety: dangerous calls never run without the user', () => {
   });
 });
 
+
+describe('Esc on a decision card', () => {
+  it('never counts as a pick: "not now" on permissions, "you decide" on questions', async () => {
+    const { escapeChoice } = await import('../app/shared/decision');
+    const question = { options: [{ id: '0', label: 'cream' }, { id: '1', label: 'mint' }, { id: 'delegate', label: 'you decide' }], defaultId: '0' };
+    expect(escapeChoice(question)).toBe('delegate');
+    expect(escapeChoice({ options: [{ id: 'allow', label: 'a' }, { id: 'deny', label: 'd' }], defaultId: 'allow' })).toBe('deny');
+  });
+});

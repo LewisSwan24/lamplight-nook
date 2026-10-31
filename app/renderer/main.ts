@@ -45,6 +45,8 @@ const game = new Phaser.Game({
   backgroundColor: '#1b1712',
   scene,
   scale: { mode: Phaser.Scale.NONE },
+  // Only clicks on the canvas itself reach the shop; a click on a card must not go through to whoever stands behind it.
+  input: { windowEvents: false },
   // Starts the frame limiter; the pacer below moves it between 30 and 15.
   fps: { limit: ACTIVE_FPS },
 });
@@ -253,9 +255,13 @@ scene.onSay = recordLine;
 scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
-window.lamplight.onDecision(async (req) => {
-  const choice = await showDecision(req);
-  await window.lamplight.answerDecision({ id: req.id, choice });
+// One at a time, in the order they came, so two cards never sit on top of each other.
+let decisions = Promise.resolve();
+window.lamplight.onDecision((req) => {
+  decisions = decisions.then(async () => {
+    const choice = await showDecision(req);
+    await window.lamplight.answerDecision({ id: req.id, choice });
+  }).catch((e) => append(`decision failed: ${e}`));
 });
 window.lamplight.onResult((result) => showResult(result, (path, how) => void window.lamplight.openOutput(path, how)));
 
