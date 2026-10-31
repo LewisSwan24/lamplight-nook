@@ -71,15 +71,17 @@ export function pickCredentials(stored: string | null, env: NodeJS.ProcessEnv, p
   return null;
 }
 
+/** Variables from a surrounding Claude session (login, organization, host, endpoint) that would override the key. */
+const HOST_SESSION_VAR = /^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$)/;
+
 /**
- * The environment Claude Code runs with. With an API key, any other way of signing in is removed,
- * so a user's own Claude login can never be picked up by a shipped build.
+ * The environment Claude Code runs with. With an API key, every other Anthropic or Claude Code setting is removed,
+ * so a user's own Claude login, or the session that launched the app, can never be picked up by a shipped build.
  */
 export function agentEnv(creds: Credentials, env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   if (!creds.apiKey) return { ...env };
-  const out: NodeJS.ProcessEnv = { ...env, ANTHROPIC_API_KEY: creds.apiKey };
-  delete out.ANTHROPIC_AUTH_TOKEN;
-  delete out.CLAUDE_CODE_OAUTH_TOKEN;
+  const out: NodeJS.ProcessEnv = Object.fromEntries(Object.entries(env).filter(([name]) => !HOST_SESSION_VAR.test(name)));
+  out.ANTHROPIC_API_KEY = creds.apiKey;
   return out;
 }
 

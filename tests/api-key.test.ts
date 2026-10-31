@@ -92,6 +92,18 @@ describe('which credentials a run uses', () => {
     const env = agentEnv({ source: 'stored', apiKey: KEY }, { PATH: '/bin', CLAUDE_CODE_OAUTH_TOKEN: 't', ANTHROPIC_AUTH_TOKEN: 'u' });
     expect(env).toEqual({ PATH: '/bin', ANTHROPIC_API_KEY: KEY });
   });
+
+  it('drops the login of a Claude session the app was launched from', () => {
+    const env = agentEnv({ source: 'stored', apiKey: KEY }, {
+      PATH: '/bin', CLAUDECODE: '1', CLAUDE_CODE_ENTRYPOINT: 'claude-desktop', CLAUDE_CODE_ORGANIZATION_UUID: 'o', CLAUDE_CODE_ACCOUNT_UUID: 'a',
+      CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH: '1', ANTHROPIC_BASE_URL: 'https://example.test', ANTHROPIC_API_KEY: 'sk-ant-other',
+    });
+    expect(env).toEqual({ PATH: '/bin', ANTHROPIC_API_KEY: KEY });
+  });
+
+  it('leaves the environment alone for a dev subscription', () => {
+    expect(agentEnv({ source: 'subscription' }, { PATH: '/bin', CLAUDE_CODE_ENTRYPOINT: 'cli' })).toEqual({ PATH: '/bin', CLAUDE_CODE_ENTRYPOINT: 'cli' });
+  });
 });
 
 describe('keys never reach recordings', () => {
