@@ -7,12 +7,13 @@ import { withPortrait } from './portraits';
 
 const N = strings.ui.notebook;
 
-function pages(memory: Memory): HTMLElement[] {
+function pages(api: LamplightApi, memory: Memory): HTMLElement[] {
   if (!memory.commissions.length && !memory.stuckNotes.length) return [el('div.notebook-empty', {}, N.empty)];
   const commissions = [...memory.commissions].reverse().map((c) =>
     el('li', {},
       el('div', {}, el('span.notebook-date', {}, c.date), ' ', el('b', {}, c.title), ' \u00B7 ', c.result === 'done' ? N.done : N.failed,
-        c.costUsd ? ` \u00B7 ${fill(N.cost, { cost: formatUsd(c.costUsd) })}` : null),
+        c.costUsd ? ` \u00B7 ${fill(N.cost, { cost: formatUsd(c.costUsd) })}` : null,
+        c.folder && c.result === 'done' ? el('button.link.notebook-open', { type: 'button', onclick: () => void api.openCommissionFolder(c.id) }, N.openFolder) : null),
       ...Object.entries(c.choices).map(([q, a]) => el('div.notebook-choice', {}, fill(N.choice, { q, a })))));
   const stuck = [...memory.stuckNotes].reverse().map((s) => el('li', {}, el('span.notebook-date', {}, s.date), ' ', fill(N.stuckLine, s)));
   return [
@@ -24,7 +25,7 @@ function pages(memory: Memory): HTMLElement[] {
 /** Adeng's notebook: everything the shop remembers, and a way to forget it all (asked twice). */
 export async function showNotebook(api: LamplightApi) {
   const memory = await api.getMemory();
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(memory));
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(api, memory));
   const actions = el('div.actions');
   const ask = () => actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));
   const confirm = () => {

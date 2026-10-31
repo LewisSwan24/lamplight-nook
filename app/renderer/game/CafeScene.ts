@@ -111,6 +111,7 @@ export class CafeScene extends Phaser.Scene {
   private door!: Phaser.GameObjects.Sprite;
   /** The blank commission form on the counter; it glows softly while it waits to be filled in. */
   private form!: Phaser.GameObjects.Graphics;
+  private counterHint?: Phaser.GameObjects.Graphics;
   private formGlow?: Phaser.Tweens.Tween;
   /** Time-of-day layers: a tint over the room, the sky in the window glass, and the lamp glows with their base strength. */
   private shade!: Phaser.GameObjects.Rectangle;
@@ -304,6 +305,22 @@ export class CafeScene extends Phaser.Scene {
     if (this.street) this.street.reducedMotion = on;
     this.weather?.setReducedMotion(on);
     if (this.form?.visible) this.setFormWaiting(true);
+  }
+
+  /** A small "!" bobbing over the form, for someone who hasn't found the counter yet. */
+  setCounterHint(on: boolean) {
+    this.counterHint?.destroy();
+    this.counterHint = undefined;
+    if (!on) return;
+    // 5x9: a white tag with an ink "!" and a little tail pointing at the form.
+    const TAG = ['wwwww', 'wwkww', 'wwkww', 'wwkww', 'wwwww', 'wwkww', 'wwwww', '.www.', '..w..'];
+    const g = this.add.graphics({ x: FORM_POS.x + 2, y: FORM_POS.y - 11 }).setDepth(3);
+    TAG.forEach((row, y) => [...row].forEach((c, x) => {
+      if (c === 'w') g.fillStyle(0xfbf6ec, 1).fillRect(x, y, 1, 1);
+      if (c === 'k') g.fillStyle(0xb5653b, 1).fillRect(x, y, 1, 1);
+    }));
+    if (!this.reducedMotion) this.tweens.add({ targets: g, y: g.y - 2, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.counterHint = g;
   }
 
   /** Show the blank form glowing on the counter (nothing running), or put it away (a commission is under way). */

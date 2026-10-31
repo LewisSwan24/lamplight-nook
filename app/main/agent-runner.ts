@@ -189,6 +189,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   // The SDK may throw on an error result, so what it reported before that is kept outside the try.
   let apiError: string | undefined;
   let resultText = '';
+  let summary: string | undefined;
   let resultSubtype: string | undefined;
   let costUsd: number | undefined;
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
@@ -234,9 +235,10 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         // A running total for the session; crash results may carry zeros, so keep the larger.
         if (typeof message.total_cost_usd === 'number') costUsd = Math.max(costUsd ?? 0, message.total_cost_usd);
         resultText = JSON.stringify('errors' in message ? message.errors : message.result);
+        if (message.subtype === 'success' && typeof message.result === 'string' && message.result.trim()) summary = message.result.trim();
       }
     }
-    return ok ? { ok, recordingPath, workDir, costUsd } : { ok, recordingPath, workDir, costUsd, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
+    return ok ? { ok, recordingPath, workDir, costUsd, summary } : { ok, recordingPath, workDir, costUsd, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {

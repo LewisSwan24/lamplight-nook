@@ -17,6 +17,10 @@ const LIST_MAX = 500;
 const LANGUAGE = strings.app.agentLanguage;
 export const REPLY_LANGUAGE = `Always reply in ${LANGUAGE}.`;
 
+/** The last reply is shown on the result card, to someone who doesn't write code. */
+export const SUMMARY_RULE = 'End with two or three plain sentences for the user, with no file names, code or colour codes: what you made, '
+  + 'how you followed what they asked (including anything said in a meeting), and anything you left out and why.';
+
 const HOUSE_RULES = [
   'Work only inside the current folder.',
   'When looking things up would help, send the researcher subagent; do not research yourself.',
@@ -24,6 +28,7 @@ const HOUSE_RULES = [
   'When a design choice is genuinely up to the user, ask with the AskUserQuestion tool instead of guessing.',
   'Before finishing, send the reviewer subagent to check the result.',
   `Write the user-facing page text in ${LANGUAGE}.`,
+  SUMMARY_RULE,
   REPLY_LANGUAGE,
 ].join('\n');
 
@@ -121,7 +126,7 @@ export function demoPrompt(form: CommissionForm, notes?: string): string {
     `5. Ask the user with the AskUserQuestion tool which main color they prefer, with exactly two options: "${strings.demo.colors[0]}" (cream white) and "${strings.demo.colors[1]}" (light mint). Apply the answer to index.html. If they leave it to you, pick one and say why.`,
     '6. Delete draft-1.html and draft-2.html with a single shell command.',
     '7. Send the reviewer subagent to check index.html. Fix anything it reports as a real problem.',
-    '8. Finish with two or three sentences on what you made.',
+    `8. ${SUMMARY_RULE}`,
     '',
     HOUSE_RULES,
   ].join('\n'), notes);

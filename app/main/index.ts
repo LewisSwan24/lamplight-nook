@@ -1,5 +1,5 @@
 import './locale-boot';
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -243,7 +243,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     spend.record(job.workDir, job.sessionId, result.costUsd);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
-      send(IPC.result, { ok: result.ok, workDir: job.workDir, costUsd, ...collectOutputs(job.workDir, before) });
+      send(IPC.result, { ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...collectOutputs(job.workDir, before) });
       memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir, costUsd }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
@@ -308,6 +308,12 @@ ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   return Boolean(clean && current?.note?.(clean));
 });
 ipcMain.handle(IPC.clearMemory, () => memory.clear());
+// Only folders the notebook itself recorded, looked up by id.
+ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
+  const folder = memory.get().commissions.find((c) => c.id === id)?.folder;
+  if (!folder || !existsSync(folder)) return false;
+  return (await shell.openPath(folder)) === '';
+});
 
 // Only files from the current or last commission folder can be opened from the renderer.
 ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') => {

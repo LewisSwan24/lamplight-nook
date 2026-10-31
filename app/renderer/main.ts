@@ -21,7 +21,7 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { clearWorkSigns, setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
@@ -251,7 +251,8 @@ const syncVisibility = () => { stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 scene.onSound = sfx;
-scene.onSay = recordLine;
+// Lines from a replay (the trial) are marked in the caption log, so they never pass for real work.
+scene.onSay = (who, text) => recordLine(who, replaying ? text + strings.ui.replayTag : text);
 scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
@@ -292,7 +293,7 @@ async function newCommission() {
   if (running) return showRunning(window.lamplight, running);
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial);
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission());
   const form = await showCommissionForm(window.lamplight);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
@@ -307,7 +308,10 @@ async function prepare(form: CommissionForm) {
   // The demo's one question is the colour question, which has its own line.
   stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
 }
-scene.onCounterClick = () => void newCommission();
+scene.onCounterClick = () => {
+  scene.setCounterHint(false);
+  void newCommission();
+};
 
 // Settings that change how the shop looks and sounds. Less motion also follows the system setting.
 const systemCalm = matchMedia('(prefers-reduced-motion: reduce)');
@@ -342,6 +346,9 @@ async function openShop() {
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());
     greet(fill(S.greet, { name: settings.name }));
+    // First visit: point at the counter until it has been opened once.
+    scene.setCounterHint(true);
+    setTimeout(() => greet(S.greetHint), 4000);
   } else if (settings.name) {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
@@ -461,6 +468,8 @@ function startTrial() {
     setReplayBadge(false);
     replaying = false;
     scene.setFormWaiting(true);
-    showTrialEnd(async () => showNotReady(window.lamplight, await window.lamplight.envStatus()));
+    // The trial leaves nothing behind: a clean blackboard and no parcel on the counter.
+    clearWorkSigns();
+    showTrialEnd(async () => showNotReady(window.lamplight, await window.lamplight.envStatus(), undefined, () => void newCommission()));
   }, TRIAL_WRAP_UP_MS);
 }

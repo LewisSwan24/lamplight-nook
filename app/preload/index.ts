@@ -38,6 +38,7 @@ const api: LamplightApi = {
   addNote: (text) => ipcRenderer.invoke(IPC.addNote, text),
   getMemory: () => ipcRenderer.invoke(IPC.getMemory),
   clearMemory: () => ipcRenderer.invoke(IPC.clearMemory),
+  openCommissionFolder: (id) => ipcRenderer.invoke(IPC.openCommissionFolder, id),
   onRawEvent: (cb) => on(IPC.rawEvent, cb),
   onAiEvent: (cb) => on(IPC.aiEvent, cb),
   onDecision: (cb) => on(IPC.decision, cb),

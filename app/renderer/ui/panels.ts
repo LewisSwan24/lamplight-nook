@@ -69,6 +69,7 @@ const plainText = (s: string) => s.replace(/[*#`]+/g, '').replace(/\s+/g, ' ').t
 /** A subagent's result handed over at the counter. */
 export function showParcel(actor: ActorId, summary: string) {
   const parcel = el('div.parcel.paper', { tabindex: 0 },
+    el('button.close', { 'aria-label': 'close', onclick: (e: Event) => { e.stopPropagation(); parcel.remove(); } }, '\u00D7'),
     el('div.card-title', {}, fill(U.parcelFrom, { who: strings.actors[actor] })),
     el('div.parcel-body', {}, plainText(summary)),
   );
@@ -194,16 +195,26 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Pro
 export function showResult(result: CommissionResult, openOutput: (path: string, how: 'open' | 'reveal') => void) {
   if (!result.main && !result.files.length) return;
   const target = result.main ?? result.files[0];
-  replaceOpen(el('div.card.paper.result-card', {},
+  const card = el('div.card.paper.result-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     el('div.card-title', {}, U.resultTitle),
-    el('div', {}, target.split(/[\\/]/).pop()),
+    result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
+    el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     el('div.actions', {},
       result.main ? el('button.default', { onclick: () => openOutput(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
       el('button', { onclick: () => openOutput(target, 'reveal') }, U.openFolder),
     ),
-  ));
+  );
+  // The work is handed over: once the card is put away, the blackboard and the parcels go too.
+  card.addEventListener('panel-closed', clearWorkSigns);
+  replaceOpen(card);
+}
+
+/** Wipe the blackboard and take the parcels off the counter: the work they belonged to is over. */
+export function clearWorkSigns() {
+  document.getElementById('board')?.replaceChildren();
+  document.querySelectorAll('.parcel').forEach((p) => p.remove());
 }
 
 /** The blackboard: up to five steps with a check mark when done. */
