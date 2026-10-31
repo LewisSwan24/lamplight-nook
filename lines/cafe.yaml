@@ -5,6 +5,11 @@
 
 # Lines that bring up memory come first, so they win whenever their condition holds (at most one per commission).
 opening:
+  # A round of changes to finished work (`revise`); `revise_again` when there was a round before it.
+  - { id: revise_again_01, speaker: adeng, when: revise_again, bubbles: ["上回改的是{lastAsk}。", "这回是{brief}，记下了。"], reply: { speaker: xiaoju, bubbles: ["我去把旧稿收起来！"] } }
+  - { id: revise_01, speaker: adeng, when: revise, bubbles: ["{brief}……嗯，记下了。", "就在原来那版上改。"], reply: { speaker: laoshi, bubbles: ["旧的留一份。"] } }
+  - { id: revise_02, speaker: adeng, when: revise, bubbles: ["回头再看，是该动一动。", "{brief}，这就改。"] }
+  - { id: revise_03, speaker: adeng, when: revise, bubbles: ["旧稿我先收好。", "{brief}，改完拿给你看。"] }
   - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["{brief}……嗯，好。", "上回在{stuckNote}卡过一次。", "这次我先盯着点。"] }
   - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["{brief}……嗯，好。", "上次你选了{lastChoice}。", "这次也先照这个来，不合适再说。"] }
   - { id: opening_01, speaker: adeng, bubbles: ["{brief}……嗯，好。", "小橘，老石，来活儿了。"] }

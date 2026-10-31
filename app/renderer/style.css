@@ -142,6 +142,10 @@ body.debug #debug { display: block; }
 .board .step { white-space: nowrap; overflow: hidden; }
 .board .step.todo { opacity: 0.55; }
 .board .step.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }
+.result-more { justify-content: flex-start; margin-top: 6px; }
+.result-more button { font-size: 0.92em; }
+.result-card .actions button { white-space: nowrap; }
+.result-restored:empty { display: none; }
 .result-summary { max-height: 9.5em; overflow-y: auto; margin: 4px 0 8px; line-height: 1.6; }
 .result-file { margin-bottom: 2px; }
 .parcel { position: absolute; right: 24px; bottom: 24px; width: 260px; padding: 10px 28px 10px 12px; font-size: 13px; cursor: pointer; }
@@ -232,7 +236,7 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .notebook-pages ul { margin: 0; padding-left: 18px; }
 .notebook-pages h4 { margin: 6px 0 2px; }
 .notebook-date { color: #9a8a76; font-size: 12px; }
-.notebook-open { margin-left: 10px; }
+.notebook-open, .notebook-revise { margin-left: 10px; }
 .notebook-choice { color: #6b5a48; font-size: 14px; padding-left: 4px; }
 .notebook-empty { color: #7a6a58; padding: 12px 0; }
 .notebook-warn { flex-basis: 100%; color: #8a3b2a; font-size: 14px; margin-bottom: 4px; }

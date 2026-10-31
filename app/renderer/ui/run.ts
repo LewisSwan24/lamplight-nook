@@ -37,6 +37,7 @@ const FAILURES: Record<string, Failure> = {
   busy: { title: R.busyTitle, text: R.busyText, retry: true, plain: false },
   billing: { title: R.billingTitle, text: R.billingText, link: ['billing', R.billingHow], retry: true, plain: true },
   auth: { title: R.authTitle, text: R.authText, link: ['apiKeys', R.authHow], retry: false, plain: true },
+  gone: { title: R.goneTitle, text: R.goneText, retry: false, plain: false },
   budget: { title: R.budgetTitle, text: R.budgetText, retry: true, plain: true, retryLabel: R.budgetRetry },
 };
 

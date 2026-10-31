@@ -175,6 +175,7 @@
     "demoFill": "帮我做一个记账小页面，能记下每天花了多少钱。",
     "resultTitle": "成品",
     "resultCost": "这次大约花了 {cost}。",
+    "resultCostTotal": "这单前后一共大约花了 {cost}。",
     "openInBrowser": "在浏览器里打开",
     "openFile": "打开",
     "openFolder": "打开所在文件夹",
@@ -318,7 +319,9 @@
       "drop": "不用了",
       "closeTitle": "委托还没做完",
       "closeText": "现在关的话，店员们会停下来。下次打开小灯屋可以接着做。",
-      "stopAndClose": "停下并关闭"
+      "stopAndClose": "停下并关闭",
+      "goneTitle": "那单的文件夹找不到了",
+      "goneText": "可能被挪走或删掉了。想要的话，重新递一张委托单吧。"
     },
     "toolbar": {
       "label": "店里的开关",
@@ -361,7 +364,9 @@
       "forgetConfirm": "真的全部忘掉吗？忘了就找不回来了。",
       "forgetYes": "忘掉",
       "keep": "留着",
-      "forgotten": "好，本子上的都划掉了。称呼还在设置里，想改随时改。"
+      "forgotten": "好，本子上的都划掉了。称呼还在设置里，想改随时改。",
+      "revise": "接着改",
+      "asked": "后来改过：{ask}"
     },
     "tray": {
       "sectionLabel": "不在眼前的时候",
@@ -387,7 +392,23 @@
       "listing": "文件清单.txt",
       "originalPrefix": "原稿-",
       "revisedPrefix": "修改版-"
-    }
+    },
+    "revise": {
+      "title": "再改改",
+      "text": "哪里不合适？说说看，我们在这版上接着改。",
+      "placeholder": "比如：颜色再浅一点，按钮大一点",
+      "keep": "改之前会把现在这版留一份，不喜欢还能换回来。",
+      "send": "交给阿灯",
+      "never": "先不改了",
+      "oldFolder": "「{title}」"
+    },
+    "resultRevise": "再改改",
+    "resultRestore": "换回上一版",
+    "resultRestoreBack": "换回改过的那版",
+    "resultRestored": "换好了，现在是上一版。",
+    "resultRestoredBack": "换好了，现在是改过的那版。",
+    "resultRestoreFailed": "没换成，文件夹可能被挪动过。",
+    "resultRound": "第 {n} 回改"
   },
   "states": {
     "idle": "闲着",

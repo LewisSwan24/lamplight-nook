@@ -25,6 +25,8 @@ import { clearWorkSigns, setReplayBadge, showActorCard, showCommissionForm, show
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
+import { onNotebookRevise } from './ui/notebook';
+import { showRevise } from './ui/revise';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
@@ -264,7 +266,11 @@ window.lamplight.onDecision((req) => {
     await window.lamplight.answerDecision({ id: req.id, choice });
   }).catch((e) => append(`decision failed: ${e}`));
 });
-window.lamplight.onResult((result) => showResult(result, (path, how) => void window.lamplight.openOutput(path, how)));
+window.lamplight.onResult((result) => showResult(result, {
+  open: (path, how) => void window.lamplight.openOutput(path, how),
+  revise: (id) => void revise(id),
+  restore: (id) => window.lamplight.restorePrevious(id),
+}));
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
 let running: string | null = null;
@@ -303,6 +309,23 @@ async function newCommission() {
   await prepare(form);
   await run(form.want, () => window.lamplight.startCommission(form));
 }
+
+/**
+ * "Change it a bit": what to change, in the user's words, then another round in the same folder.
+ * `title` is shown when the commission was picked from the notebook rather than the card just handed over.
+ */
+async function revise(id: string, title?: string) {
+  if (running) return showRunning(window.lamplight, running);
+  const env = await window.lamplight.envStatus();
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void revise(id, title));
+  const ask = await showRevise(current?.avatar, title);
+  if (!ask) return;
+  append(`revise ${id}: ${ask}`);
+  const { flags, vars } = await window.lamplight.recallForRevision(id);
+  stage.setCommission({ brief: shorten(ask), flags, vars });
+  await run(ask, () => window.lamplight.reviseCommission({ id, ask }));
+}
+onNotebookRevise((id, title) => void revise(id, title));
 
 /** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
 async function prepare(form: CommissionForm) {

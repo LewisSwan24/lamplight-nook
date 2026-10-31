@@ -47,4 +47,14 @@ describe('memory in the opening line', () => {
     expect(vars._id).toBe('opening_mem_02');
     expect(vars.stuckNote).toBe('node check.js');
   });
+
+  it('opens a round of changes with its own line, and brings up the last round', () => {
+    const s = store();
+    const first = s.remember({ title: 'sign-in', result: 'done', choices: { 'Main color?': 'mint' }, folder: '/w' }, []);
+    expect(opening(s.recallForRevision(first.id))._id).toBe('revise_01');
+    s.revise(first.id, 'lighter', { result: 'done', choices: {} }, []);
+    const vars = opening(s.recallForRevision(first.id));
+    expect(vars._id).toBe('revise_again_01');
+    expect(vars.lastAsk).toBe('lighter');
+  });
 });

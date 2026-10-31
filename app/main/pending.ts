@@ -11,6 +11,8 @@ export type Job = {
   /** SDK session to resume, once the run has reported it. */
   sessionId?: string;
   startedAt: number;
+  /** A round of changes to finished work: its notebook entry, what to change, the session to pick up. */
+  revise?: { id: string; ask: string; fromSession?: string; summary?: string; restored?: boolean };
 };
 
 /**

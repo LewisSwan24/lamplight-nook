@@ -5,6 +5,8 @@ import type { CommissionMemo, Memory, Recall } from '../shared/types';
 /** How much is kept: the shop remembers recent work, not everything. */
 const MAX_COMMISSIONS = 20;
 const MAX_NOTES = 10;
+/** Rounds of changes remembered per commission. */
+const MAX_ASKS = 10;
 
 const empty = (): Memory => ({ commissions: [], stuckNotes: [] });
 
@@ -24,18 +26,65 @@ export class MemoryStore {
     return structuredClone(this.data);
   }
 
-  /** Write down a finished (or failed) commission and what got stuck along the way. */
-  remember(memo: Omit<CommissionMemo, 'id' | 'date'>, stuck: string[], now = new Date()) {
+  /** Write down a finished (or failed) commission and what got stuck along the way. Returns its entry. */
+  remember(memo: Omit<CommissionMemo, 'id' | 'date'>, stuck: string[], now = new Date()): CommissionMemo {
     const date = now.toISOString().slice(0, 10);
-    this.data.commissions.push({ ...memo, id: `c${now.getTime()}`, date });
+    // Ids are c<time>; two entries in the same millisecond still get different ones.
+    let t = now.getTime();
+    while (this.data.commissions.some((c) => c.id === `c${t}`)) t++;
+    const entry: CommissionMemo = { ...memo, id: `c${t}`, date };
+    this.data.commissions.push(entry);
     this.data.commissions = this.data.commissions.slice(-MAX_COMMISSIONS);
+    this.note(memo.title, stuck, date);
+    this.save();
+    return structuredClone(entry);
+  }
+
+  /**
+   * Another round of changes to a commission already in the notebook: it moves to the top as the latest
+   * work, keeps its first choices unless answered again, and remembers what was asked. Null if it is gone.
+   */
+  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary'>>, stuck: string[], now = new Date()): CommissionMemo | null {
+    const at = this.data.commissions.findIndex((c) => c.id === id);
+    if (at < 0) return null;
+    const date = now.toISOString().slice(0, 10);
+    const [old] = this.data.commissions.splice(at, 1);
+    const entry: CommissionMemo = {
+      ...old,
+      date,
+      // A round that did not finish leaves the earlier work in place: it still counts as done.
+      result: old.result === 'done' ? 'done' : update.result,
+      choices: { ...old.choices, ...update.choices },
+      costUsd: update.costUsd ?? old.costUsd,
+      sessionId: update.sessionId ?? old.sessionId,
+      summary: update.summary ?? old.summary,
+      // Trying the same round again (after a network failure, say) is still one round.
+      asks: (old.asks?.at(-1)?.ask === ask ? old.asks : [...(old.asks ?? []), { ask, date }]).slice(-MAX_ASKS),
+    };
+    this.data.commissions.push(entry);
+    this.note(entry.title, stuck, date);
+    this.save();
+    return structuredClone(entry);
+  }
+
+  find(id: string): CommissionMemo | undefined {
+    const c = this.data.commissions.find((m) => m.id === id);
+    return c && structuredClone(c);
+  }
+
+  /** The most recent commission, for "change it a bit" on the card that just came back. */
+  latest(): CommissionMemo | undefined {
+    const c = this.data.commissions.at(-1);
+    return c && structuredClone(c);
+  }
+
+  private note(title: string, stuck: string[], date: string) {
     for (const note of new Set(stuck)) {
       // The same pit again on the same commission: keep one note, dated the latest time.
-      this.data.stuckNotes = this.data.stuckNotes.filter((n) => !(n.commission === memo.title && n.note === note));
-      this.data.stuckNotes.push({ commission: memo.title, note, date });
+      this.data.stuckNotes = this.data.stuckNotes.filter((n) => !(n.commission === title && n.note === note));
+      this.data.stuckNotes.push({ commission: title, note, date });
     }
     this.data.stuckNotes = this.data.stuckNotes.slice(-MAX_NOTES);
-    this.save();
   }
 
   /** Forget everything (the notebook's "clear" button). */
@@ -62,6 +111,17 @@ export class MemoryStore {
       vars.stuckNote = note.note;
     }
     return { flags, vars };
+  }
+
+  /**
+   * What Adeng may say as a round of changes starts: which work it is, and what was asked last time
+   * (shortened to fit a bubble).
+   */
+  recallForRevision(id: string, shorten: (s: string) => string = (x) => x): Recall {
+    const c = this.data.commissions.find((m) => m.id === id);
+    if (!c) return { flags: [], vars: {} };
+    const last = c.asks?.at(-1)?.ask;
+    return last ? { flags: ['revise', 'revise_again'], vars: { lastAsk: shorten(last) } } : { flags: ['revise'], vars: {} };
   }
 
   /**

@@ -197,19 +197,49 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
   });
 }
 
-/** The finished-work card: open the page in the browser, or show it in its folder. */
-export function showResult(result: CommissionResult, openOutput: (path: string, how: 'open' | 'reveal') => void) {
+/** What the result card can do besides opening the work: ask for changes, and swap back to the last version. */
+export type ResultActions = {
+  open: (path: string, how: 'open' | 'reveal') => void;
+  revise?: (id: string) => void;
+  restore?: (id: string) => Promise<boolean>;
+};
+
+/**
+ * The finished-work card: open the page in the browser, or show it in its folder; ask for changes;
+ * after a round of changes, swap between this version and the last one (nothing is lost either way).
+ */
+export function showResult(result: CommissionResult, actions: ResultActions) {
   if (!result.main && !result.files.length) return;
   const target = result.main ?? result.files[0];
+  const { id } = result;
+  const note = el('div.hint.result-restored', { role: 'status' });
+  let back = false;
+  const restore = id && result.canRestore && actions.restore
+    ? el('button.result-restore', { type: 'button' }, U.resultRestore) as HTMLButtonElement
+    : null;
+  restore?.addEventListener('click', async () => {
+    restore.disabled = true;
+    const ok = await actions.restore!(id!);
+    restore.disabled = false;
+    if (!ok) { note.textContent = U.resultRestoreFailed; return; }
+    back = !back;
+    note.textContent = back ? U.resultRestored : U.resultRestoredBack;
+    restore.textContent = back ? U.resultRestoreBack : U.resultRestore;
+  });
   const card = el('div.card.paper.result-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el('div.card-title', {}, U.resultTitle),
+    el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${fill(U.resultRound, { n: String(result.round) })}`) : null),
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
     el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
-    result.costUsd ? el('div.hint.result-cost', {}, fill(U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
+    result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
+    note,
+    // Changing the work sits apart from opening it: a quieter row on the left.
+    result.ok && id && actions.revise ? el('div.actions.result-more', {},
+      el('button.result-revise', { onclick: () => actions.revise!(id) }, U.resultRevise),
+      restore) : null,
     el('div.actions', {},
-      result.main ? el('button.default', { onclick: () => openOutput(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
-      el('button', { onclick: () => openOutput(target, 'reveal') }, U.openFolder),
+      result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
+      el('button', { onclick: () => actions.open(target, 'reveal') }, U.openFolder),
     ),
   );
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.

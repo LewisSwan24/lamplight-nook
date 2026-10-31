@@ -5,6 +5,11 @@
 
 # Lines that bring up memory come first, so they win whenever their condition holds (at most one per commission).
 opening:
+  # A round of changes to finished work (`revise`); `revise_again` when there was a round before it.
+  - { id: revise_again_01, speaker: adeng, when: revise_again, bubbles: ["Last time it was \"{lastAsk}\".", "This time, \"{brief}\". Noted."], reply: { speaker: xiaoju, bubbles: ["I'll put the old copy away!"] } }
+  - { id: revise_01, speaker: adeng, when: revise, bubbles: ["\"{brief}\". Noted.", "We'll work from the version you have."], reply: { speaker: laoshi, bubbles: ["Keep a copy of the old one."] } }
+  - { id: revise_02, speaker: adeng, when: revise, bubbles: ["Looking again, it could use a touch.", "\"{brief}\". On it."] }
+  - { id: revise_03, speaker: adeng, when: revise, bubbles: ["I'll tuck the old one away first.", "\"{brief}\". I'll show you when it's done."] }
   - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["\"{brief}\". Got it.", "Last time we got stuck on {stuckNote}.", "I'll keep an eye on that this time."] }
   - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["\"{brief}\". Got it.", "Last time you went with {lastChoice}.", "I'll start from that. Say if it's wrong."] }
   - { id: opening_01, speaker: adeng, bubbles: ["\"{brief}\". Got it.", "Clem, Flint, we've got work."] }
