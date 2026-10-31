@@ -23,6 +23,10 @@ export type Chat = {
   holiday?: Holiday;
   /** A neighbour's visit (game/guests.ts): played when they drop in, never as everyday small talk. */
   guest?: GuestId;
+  /** Only once the shop has finished this many commissions with the user (plan.md R2.3). */
+  after?: number;
+  /** A little story told only once, ever (remembered in Adeng's notebook). */
+  once?: boolean;
   turns: { speaker: Speaker; text: string }[];
 };
 
@@ -36,6 +40,8 @@ export function parseChats(text: string): Chat[] {
     ...(c.sky ? { sky: c.sky } : {}),
     ...(c.holiday ? { holiday: c.holiday } : {}),
     ...(c.guest ? { guest: c.guest } : {}),
+    ...(typeof c.after === 'number' ? { after: c.after } : {}),
+    ...(c.once ? { once: true } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
       return { speaker: speaker as Speaker, text: String(said) };

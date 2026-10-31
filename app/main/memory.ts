@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { CommissionMemo, Memory, Recall } from '../shared/types';
+import { grownBy, workIcon, type GrowthId } from '../shared/growth';
+import type { CommissionMemo, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
 /** How much is kept: the shop remembers recent work, not everything. */
 const MAX_COMMISSIONS = 20;
@@ -44,7 +45,7 @@ export class MemoryStore {
    * Another round of changes to a commission already in the notebook: it moves to the top as the latest
    * work, keeps its first choices unless answered again, and remembers what was asked. Null if it is gone.
    */
-  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary'>>, stuck: string[], now = new Date()): CommissionMemo | null {
+  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main'>>, stuck: string[], now = new Date()): CommissionMemo | null {
     const at = this.data.commissions.findIndex((c) => c.id === id);
     if (at < 0) return null;
     const date = now.toISOString().slice(0, 10);
@@ -58,6 +59,7 @@ export class MemoryStore {
       costUsd: update.costUsd ?? old.costUsd,
       sessionId: update.sessionId ?? old.sessionId,
       summary: update.summary ?? old.summary,
+      main: update.main ?? old.main,
       // Trying the same round again (after a network failure, say) is still one round.
       asks: (old.asks?.at(-1)?.ask === ask ? old.asks : [...(old.asks ?? []), { ask, date }]).slice(-MAX_ASKS),
     };
@@ -65,6 +67,43 @@ export class MemoryStore {
     this.note(entry.title, stuck, date);
     this.save();
     return structuredClone(entry);
+  }
+
+  /**
+   * A new commission finished together: the shop counts it, and gathers whatever that count brings
+   * (shared/growth.ts). Returns what is new in the shop, usually nothing.
+   */
+  finished(now = new Date()): GrowthId[] {
+    const shop = this.shop();
+    shop.done++;
+    const date = now.toISOString().slice(0, 10);
+    const have = new Set(shop.grown.map((g) => g.id));
+    const fresh = grownBy(shop.done).filter((id) => !have.has(id));
+    shop.grown.push(...fresh.map((id) => ({ id, date })));
+    this.data.shop = shop;
+    this.save();
+    return fresh;
+  }
+
+  /** A one-off story has been told. */
+  markTold(id: string) {
+    const shop = this.shop();
+    if (shop.told.includes(id)) return;
+    shop.told.push(id);
+    this.data.shop = shop;
+    this.save();
+  }
+
+  /** The shop's days and the works shelf: finished commissions, latest first. */
+  shopState(): ShopState {
+    const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
+      id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
+    }));
+    return { ...structuredClone(this.shop()), works };
+  }
+
+  private shop(): ShopDays {
+    return this.data.shop ?? { done: 0, grown: [], told: [] };
   }
 
   find(id: string): CommissionMemo | undefined {
@@ -153,6 +192,9 @@ export class MemoryStore {
         commissions: Array.isArray(m.commissions) ? m.commissions.filter((c) => c && typeof c.title === 'string' && c.choices && typeof c.choices === 'object') : [],
         stuckNotes: Array.isArray(m.stuckNotes) ? m.stuckNotes.filter((n) => n && typeof n.note === 'string' && typeof n.commission === 'string') : [],
         greeted: typeof m.greeted === 'string' ? m.greeted : undefined,
+        shop: m.shop && typeof m.shop.done === 'number'
+          ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [] }
+          : undefined,
       };
     } catch {
       return empty();

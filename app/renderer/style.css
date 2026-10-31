@@ -277,3 +277,10 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; line-height: 1.45; margin: 0; font-family: Consolas, 'Courier New', monospace; }
 .legal-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; }
 .legal-line { margin-top: 10px; }
+.shelf-card { width: min(480px, 88vw); }
+.works { list-style: none; margin: 10px 0 0; padding: 0; max-height: 46vh; overflow-y: auto; }
+.work { display: flex; align-items: center; gap: 12px; padding: 7px 2px; border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
+.work-icon { flex: none; image-rendering: pixelated; background-repeat: no-repeat; }
+.work-text { flex: 1; min-width: 0; }
+.work-actions { display: flex; gap: 10px; flex: none; }
+.notebook-days li { list-style: none; }

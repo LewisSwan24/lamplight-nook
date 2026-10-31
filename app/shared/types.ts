@@ -1,4 +1,5 @@
 // Types shared by the main and renderer processes.
+import type { GrowthId, WorkIcon } from './growth';
 
 /** Scene anchors: characters only move between these points. */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
@@ -106,6 +107,12 @@ export interface LamplightApi {
   clearMemory(): Promise<void>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
   openCommissionFolder(id: string): Promise<boolean>;
+  /** The shop's days and the works shelf. */
+  shopState(): Promise<ShopState>;
+  /** Open the main thing a finished commission made (or its folder); false if it is gone. */
+  openWork(id: string): Promise<boolean>;
+  /** A one-off story has been told; it won't come up again. */
+  markTold(id: string): Promise<void>;
   /** Change finished work in its own folder, continuing where the staff left off. */
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
@@ -136,6 +143,8 @@ export type CommissionResult = {
   summary?: string;
   /** The commission's entry in Adeng's notebook, for asking for changes afterwards. */
   id?: string;
+  /** What the shop gathered with this commission (a new commission done together), if anything. */
+  grew?: GrowthId[];
   /** Rounds of changes so far (0 for the first go). */
   round?: number;
   /** The work as it was before this round is kept and can be put back. */
@@ -208,6 +217,9 @@ export const IPC = {
   clearMemory: 'memory:clear',
   openCommissionFolder: 'memory:open-folder',
   reviseCommission: 'commission:revise',
+  shopState: 'shop:state',
+  openWork: 'shop:open-work',
+  markTold: 'shop:mark-told',
   restorePrevious: 'commission:restore-previous',
 } as const;
 
@@ -285,12 +297,25 @@ export type CommissionMemo = {
   summary?: string;
   /** Each round of changes the user asked for afterwards, oldest first. */
   asks?: { ask: string; date: string }[];
+  /** The main thing made, by name inside the folder (opened from the works shelf). */
+  main?: string;
 };
+
+/** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
+export type ShopDays = { done: number; grown: { id: GrowthId; date: string }[]; told: string[] };
+
+/** A finished piece of work on the works shelf. */
+export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean };
+
+/** What the shop looks like for this user: its days, and the finished works (latest first). */
+export type ShopState = ShopDays & { works: Work[] };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {
   commissions: CommissionMemo[];
   stuckNotes: StuckNote[];
+  /** Absent until the first commission is finished. */
+  shop?: ShopDays;
   /** Id of the last commission already brought up when the app opened. */
   greeted?: string;
 };

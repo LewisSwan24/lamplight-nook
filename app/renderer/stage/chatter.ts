@@ -17,7 +17,11 @@ const QUIET_AROUND_CHAT_MS = 30_000;
  */
 export type ShopMood = 'idle' | 'waiting' | 'working' | 'blocked';
 
-export type Talk = { kind: 'chat' | 'mutter'; id: string; turns: { speaker: ActorId; text: string }[] };
+export type Talk = { kind: 'chat' | 'mutter'; id: string; turns: { speaker: ActorId; text: string }[]; once?: boolean };
+
+/** How far the shop has come with the user: commissions finished together, and the one-off stories already told. */
+export type ShopProgress = { done: number; told: ReadonlySet<string> };
+const NEW_SHOP: ShopProgress = { done: 0, told: new Set() };
 
 /** Draws without repeats until every item has been used once, then starts a fresh round. */
 class Bag<T extends { id: string }> {
@@ -79,17 +83,19 @@ export class Chatter {
   /**
    * Something to say now, or null. `period` filters chats tied to a time of day, `outside` those tied to
    * the weather or a holiday; those come up before the everyday ones, since they only fit for a while.
+   * `shop` unlocks chats that need a few commissions done together; a one-off story not yet told comes first.
    */
-  next(mood: ShopMood, now: number, period: Period, outside: { sky: Sky; holiday: Holiday | null } = { sky: 'clear', holiday: null }): Talk | null {
+  next(mood: ShopMood, now: number, period: Period, outside: { sky: Sky; holiday: Holiday | null } = { sky: 'clear', holiday: null }, shop: ShopProgress = NEW_SHOP): Talk | null {
     if (mood === 'blocked' || mood === 'working') return null;
     if (now - this.lastChat >= CHAT_GAP_MS) {
       // Neighbours' visits are played when they drop in (game/guests.ts), not here.
       const fits = this.allChats.filter((c) => !c.guest && c.when === mood && (!c.period || c.period === period)
-        && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday));
-      const chat = this.chats.draw(fits, (c) => !!(c.sky || c.holiday));
+        && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday)
+        && (c.after === undefined || shop.done >= c.after) && !(c.once && shop.told.has(c.id)));
+      const chat = this.chats.draw(fits, (c) => !!(c.sky || c.holiday || c.once));
       if (chat) {
         this.lastChat = now;
-        return { kind: 'chat', id: chat.id, turns: chat.turns as Talk['turns'] };
+        return { kind: 'chat', id: chat.id, turns: chat.turns as Talk['turns'], ...(chat.once ? { once: true } : {}) };
       }
     }
     if (mood === 'idle' && now - this.lastMutter >= this.mutterGap && now - this.lastChat >= QUIET_AROUND_CHAT_MS

@@ -234,3 +234,14 @@ garden:
   - { id: garden_leaves_adeng, speaker: adeng, when: sky_leaves, bubbles: ["叶子又落了一地。"] }
   - { id: garden_leaves_laoshi, speaker: laoshi, when: sky_leaves, bubbles: ["叶子。", "扫了也白扫。"] }
   - { id: garden_petals_xiaoju, speaker: xiaoju, when: sky_petals, bubbles: ["花瓣掉进我茶里了。"] }
+
+# Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
+grow:
+  - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["墙上挂了幅小画。", "第一单做完那天买的。"] }
+  - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["柜台上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
+  - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["窗上挂了串小灯。", "晚上看，店里暖一点。"] }
+  - { id: grow_fruit, speaker: xiaoju, when: grow_fruit, bubbles: ["大桌上有水果了！", "橘子是我的。"] }
+  - { id: grow_guitar, speaker: laoshi, when: grow_guitar, bubbles: ["吉他修好了。", "弦是新换的。"] }
+  - { id: grow_bonsai, speaker: adeng, when: grow_bonsai, bubbles: ["书架上那盆是街坊送的。", "说我们太忙，该养盆慢的。"] }
+  - { id: grow_easel, speaker: qingdai, when: grow_easel, bubbles: ["我的画架搬过来了。", "有空就画两笔。"] }
+  - { id: grow_trophy, speaker: xiaoju, when: grow_trophy, bubbles: ["这个小奖杯是我做的！", "给做完二十单的我们。"], reply: { speaker: laoshi, bubbles: ["歪的。"] } }

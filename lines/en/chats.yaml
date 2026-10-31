@@ -320,3 +320,72 @@
   turns:
     - qingdai: This is the best light to paint in.
     - xiaoju: Paint me, then!
+
+# Coming as regulars (plan.md R2.3): `after: N` only once N commissions are finished with the user.
+# `once: true` is a little story told only once, ever; it comes up before everyday chats once unlocked.
+- id: regular_cup
+  when: idle
+  after: 3
+  turns:
+    - xiaoju: Your cup has its own spot on the shelf now.
+    - adeng: Regulars get their own cups.
+
+- id: regular_button
+  when: idle
+  after: 5
+  turns:
+    - laoshi: That last page. Buttons still too small.
+    - adeng: Mention it if they ask for changes.
+    - laoshi: Mm.
+
+- id: regular_notebook
+  when: idle
+  after: 8
+  turns:
+    - adeng: The notebook's nearly half full.
+    - xiaoju: Get the next one with a cat on it.
+
+- id: regular_shelf
+  when: waiting
+  after: 5
+  turns:
+    - qingdai: I dusted the works shelf while we wait.
+    - laoshi: Second frame's crooked.
+
+- id: story_chestnut
+  when: idle
+  after: 4
+  once: true
+  turns:
+    - xiaoju: Today's the day Chestnut turned up here.
+    - adeng: A year already?
+    - xiaoju: I saved her a bit of dried fish.
+    - laoshi: She's slept on my chair for a year.
+
+- id: story_snacks
+  when: idle
+  after: 7
+  once: true
+  turns:
+    - xiaoju: My snack list is on page four now.
+    - qingdai: Can I see?
+    - xiaoju: Look, but no crossing things out.
+
+- id: story_guitar
+  when: idle
+  after: 9
+  once: true
+  turns:
+    - laoshi: This guitar was my dad's.
+    - xiaoju: You can play?
+    - laoshi: One song.
+    - laoshi: Next time it's quiet.
+
+- id: story_first_drawing
+  when: idle
+  after: 10
+  once: true
+  turns:
+    - qingdai: The first thing I drew here? That board.
+    - adeng: I remember. Chalk all over your face.
+    - qingdai: That was on purpose.

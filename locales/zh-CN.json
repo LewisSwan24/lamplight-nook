@@ -344,7 +344,8 @@
       "hotspotBell": "开会铃：叫大家到大桌边说两句",
       "hotspotGarden": "后门：看看后院",
       "hotspotShop": "后门：回店里",
-      "hotspotHens": "母鸡：撒把米"
+      "hotspotHens": "母鸡：撒把米",
+      "hotspotWorks": "作品架：看看一起做过的东西"
     },
     "notebook": {
       "sectionLabel": "阿灯的小本子",
@@ -361,12 +362,15 @@
       "openFolder": "看看做好的东西",
       "stuckLine": "{commission}：{note} 卡过",
       "forget": "全部忘掉",
-      "forgetConfirm": "真的全部忘掉吗？忘了就找不回来了。",
+      "forgetConfirm": "真的全部忘掉吗？忘了就找不回来了，店里攒下的东西也会收起来。",
       "forgetYes": "忘掉",
       "keep": "留着",
       "forgotten": "好，本子上的都划掉了。称呼还在设置里，想改随时改。",
       "revise": "接着改",
-      "asked": "后来改过：{ask}"
+      "asked": "后来改过：{ask}",
+      "days": "店里的日子",
+      "doneCount": "一起做完了 {n} 单。",
+      "grewLine": "店里多了{item}"
     },
     "tray": {
       "sectionLabel": "不在眼前的时候",
@@ -408,7 +412,15 @@
     "resultRestored": "换好了，现在是上一版。",
     "resultRestoredBack": "换好了，现在是改过的那版。",
     "resultRestoreFailed": "没换成，文件夹可能被挪动过。",
-    "resultRound": "第 {n} 回改"
+    "resultRound": "第 {n} 回改",
+    "shelf": {
+      "title": "作品架",
+      "text": "一起做过的东西，都摆在这儿了。",
+      "open": "打开",
+      "revise": "接着改",
+      "rounds": "改过 {n} 回",
+      "gone": "找不到了，可能被挪走或删掉了。"
+    }
   },
   "states": {
     "idle": "闲着",
@@ -477,5 +489,15 @@
       "# 7. 退款和变更",
       "退款按 Microsoft Store 的政策办理。条款如有变更，会随新版本更新并改上面的日期；继续使用即表示接受新的条款。"
     ]
+  },
+  "growth": {
+    "painting": "一幅小风景画",
+    "plant": "一盆绿植",
+    "lights": "一串小灯",
+    "fruit": "一碗水果",
+    "guitar": "老石修好的吉他",
+    "bonsai": "一盆盆景",
+    "easel": "青黛的画架",
+    "trophy": "一个小奖杯"
   }
 }

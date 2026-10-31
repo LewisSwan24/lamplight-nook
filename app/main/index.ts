@@ -5,7 +5,7 @@ import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type Settings, type SourcePick } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -264,12 +264,16 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     if (result.error !== 'cancelled') {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
+      const outputs = collectOutputs(job.workDir, before);
+      const main = outputs.main ? basename(outputs.main) : undefined;
       const entry = r
-        ? memory.revise(r.id, r.ask, outcome, stuckHere)
-        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: job.preexisting }, stuckHere);
+        ? memory.revise(r.id, r.ask, { ...outcome, main }, stuckHere)
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: job.preexisting, main }, stuckHere);
+      // A new commission done together is one more for the shop; a round of changes is part of the same one.
+      const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
-        ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...collectOutputs(job.workDir, before),
-        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && versions.has(r.id)),
+        ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && versions.has(r.id)), grew,
       });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
@@ -325,6 +329,16 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
     form, workDir: memo.folder, preexisting, startedAt: Date.now(),
     revise: { id: memo.id, ask, fromSession: memo.sessionId, summary: memo.summary, restored },
   }, false);
+});
+ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState());
+ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
+// From the works shelf: the main thing a commission made, or its folder; only what the notebook recorded.
+ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  if (!memo?.folder || !existsSync(memo.folder)) return false;
+  const main = memo.main ? join(memo.folder, memo.main) : null;
+  if (main && isInside(memo.folder, main) && existsSync(main)) return (await shell.openPath(main)) === '';
+  return (await shell.openPath(memo.folder)) === '';
 });
 /** Commissions put back to their previous version since their last round (the next round is told). */
 const restoredSince = new Set<string>();

@@ -344,7 +344,8 @@
       "hotspotBell": "Meeting bell: call everyone to the big table",
       "hotspotGarden": "Back door: look out at the garden",
       "hotspotShop": "Back door: go back inside",
-      "hotspotHens": "The hens: toss them some grain"
+      "hotspotHens": "The hens: toss them some grain",
+      "hotspotWorks": "The works shelf: see what we made together"
     },
     "notebook": {
       "sectionLabel": "Wick's notebook",
@@ -361,12 +362,15 @@
       "openFolder": "See what was made",
       "stuckLine": "{commission}: got stuck on {note}",
       "forget": "Forget everything",
-      "forgetConfirm": "Really forget everything? It can't be brought back.",
+      "forgetConfirm": "Really forget everything? It can't be brought back, and what the shop gathered gets packed away too.",
       "forgetYes": "Forget",
       "keep": "Keep it",
       "forgotten": "OK, it's all crossed out. Your name is still in Settings; change it any time.",
       "revise": "Change it a bit",
-      "asked": "Changed later: {ask}"
+      "asked": "Changed later: {ask}",
+      "days": "Days at the shop",
+      "doneCount": "{n} commissions finished together.",
+      "grewLine": "the shop got {item}"
     },
     "tray": {
       "sectionLabel": "When you're away",
@@ -408,7 +412,15 @@
     "resultRestored": "Done, this is the last version again.",
     "resultRestoredBack": "Done, this is the changed version again.",
     "resultRestoreFailed": "Couldn't switch; the folder may have been moved.",
-    "resultRound": "Round {n} of changes"
+    "resultRound": "Round {n} of changes",
+    "shelf": {
+      "title": "The works shelf",
+      "text": "Everything we've made together ends up here.",
+      "open": "Open",
+      "revise": "Change it a bit",
+      "rounds": "changed {n} times",
+      "gone": "Can't find it; it may have been moved or deleted."
+    }
   },
   "states": {
     "idle": "idle",
@@ -477,5 +489,15 @@
       "# 7. Refunds and changes",
       "Refunds follow the Microsoft Store's policy. If these terms change, they are updated with a new version and the date above changes; using Lamplight Nook after that means you accept the new terms."
     ]
+  },
+  "growth": {
+    "painting": "a little landscape painting",
+    "plant": "a pot plant",
+    "lights": "a string of fairy lights",
+    "fruit": "a bowl of fruit",
+    "guitar": "the guitar Flint mended",
+    "bonsai": "a bonsai",
+    "easel": "Iris's easel",
+    "trophy": "a little trophy"
   }
 }

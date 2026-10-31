@@ -25,7 +25,9 @@ import { clearWorkSigns, setReplayBadge, showActorCard, showCommissionForm, show
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
-import { onNotebookRevise } from './ui/notebook';
+import { onNotebookForget, onNotebookRevise } from './ui/notebook';
+import { showShelf } from './ui/shelf';
+import type { GrowthId } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, view } from './ui/toolbar';
@@ -122,8 +124,13 @@ setInterval(() => {
   const blocked = document.hidden || document.querySelector('.backdrop');
   const busy = running || replaying;
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
-  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside());
+  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside(), shopDays);
   if (talk) void stage.talk(talk.turns);
+  // A one-off story is told once, ever.
+  if (talk?.once) {
+    shopDays.told.add(talk.id);
+    void window.lamplight.markTold(talk.id);
+  }
   tendGarden(!busy);
   dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
@@ -266,6 +273,33 @@ window.lamplight.onDecision((req) => {
     await window.lamplight.answerDecision({ id: req.id, choice });
   }).catch((e) => append(`decision failed: ${e}`));
 });
+// What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
+let shopDays: { done: number; told: Set<string> } = { done: 0, told: new Set() };
+async function refreshShop(fresh: GrowthId[] = []) {
+  const state = await window.lamplight.shopState();
+  // The scene builds its props on its first frame; wait for it when the shop has only just opened.
+  while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
+  scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
+  scene.growth.setWorks(state.works.map((w) => w.icon));
+  shopDays = { done: state.done, told: new Set(state.told) };
+}
+/** Something new in the shop: once the result card is seen to, someone says a word about it. */
+function noticeGrowth(ids: GrowthId[]) {
+  const id = ids.at(-1);
+  if (!id) return;
+  setTimeout(() => {
+    const turns = pickLine(ruleBook().lines.grow ?? [], [`grow_${id}`], {});
+    const present = (turns ?? []).filter((t) => scene.anchorOf(t.speaker) !== null);
+    if (present.length) void stage.talk(present);
+  }, GROWTH_LINE_DELAY_MS);
+}
+const GROWTH_LINE_DELAY_MS = 4000;
+scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
+onNotebookForget(() => void refreshShop());
+window.lamplight.onResult((result) => {
+  void refreshShop(result.grew ?? []);
+  noticeGrowth(result.grew ?? []);
+});
 window.lamplight.onResult((result) => showResult(result, {
   open: (path, how) => void window.lamplight.openOutput(path, how),
   revise: (id) => void revise(id),
@@ -367,6 +401,7 @@ async function greetBack(name: string) {
 }
 async function openShop() {
   const api = window.lamplight;
+  void refreshShop();
   let settings = await api.getSettings();
   mountToolbar(api, settings, applySettings);
   applySettings(settings);
