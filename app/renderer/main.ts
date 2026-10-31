@@ -294,7 +294,7 @@ async function newCommission() {
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
   if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission());
-  const form = await showCommissionForm(window.lamplight);
+  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);

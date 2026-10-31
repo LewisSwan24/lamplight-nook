@@ -6,7 +6,7 @@
 # Lines that bring up memory come first, so they win whenever their condition holds (at most one per commission).
 opening:
   - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["{brief}……嗯，好。", "上回在{stuckNote}卡过一次。", "这次我先盯着点。"] }
-  - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["{brief}……嗯，好。", "上次你选了{lastChoice}。", "这次也照这个来？"] }
+  - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["{brief}……嗯，好。", "上次你选了{lastChoice}。", "这次也先照这个来，不合适再说。"] }
   - { id: opening_01, speaker: adeng, bubbles: ["{brief}……嗯，好。", "小橘，老石，来活儿了。"] }
   - { id: opening_02, speaker: adeng, bubbles: ["是要{brief}吧？", "我先泡壶茶，你坐。", "我们从哪儿开始呢。"] }
   - { id: opening_xiaoju_01, speaker: xiaoju, bubbles: ["新委托？我先把围巾放下！"] }

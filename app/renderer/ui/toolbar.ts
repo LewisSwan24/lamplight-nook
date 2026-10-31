@@ -2,6 +2,7 @@ import { strings } from '../../shared/i18n';
 import type { ActorId, AiEvent, LamplightApi, Settings } from '../../shared/types';
 import { showCaptionLog } from './captions';
 import { el, layer } from './dom';
+import { showNotebook } from './notebook';
 import { showSettings } from './setup';
 
 const T = strings.ui.toolbar;
@@ -13,7 +14,7 @@ const DETAIL_LINES = 3;
 export const view = { detailed: false, muted: false };
 
 /**
- * Top-left buttons (the door, and its speech bubbles, take the top-right corner): settings, detailed mode, sound. Detailed mode adds a strip along the bottom
+ * Top-left buttons (the door, and its speech bubbles, take the top-right corner): detailed mode, sound, captions, Adeng's notebook, settings. Detailed mode adds a strip along the bottom
  * that says, in plain words, what the AI is really doing right now.
  */
 export function mountToolbar(api: LamplightApi, settings: Settings, onChange: (s: Settings) => void) {
@@ -34,6 +35,7 @@ export function mountToolbar(api: LamplightApi, settings: Settings, onChange: (s
       button(view.detailed ? T.detailedOff : T.detailedOn, '\u{1F50D}', () => void save({ detailed: !view.detailed }), view.detailed),
       button(view.muted ? T.unmute : T.mute, view.muted ? '\u{1F507}' : '\u{1F509}', () => void save({ muted: !view.muted }), view.muted),
       button(strings.ui.access.captionsButton, '\u{1F4DC}', showCaptionLog),
+      button(strings.ui.notebook.title, '\u{1F4D2}', () => void showNotebook(api)),
       button(T.settings, '\u2699', () => void showSettings(api, onChange)),
     );
     strip.hidden = !view.detailed;

@@ -94,11 +94,11 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * The commission form. A row of stickers fills in a ready-made kind of commission (the demo is picked to begin with);
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
-export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Promise<CommissionForm | null> {
+export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budgetUsd = 0): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
-    const details = el('input', { type: 'text' }) as HTMLInputElement;
-    const audience = el('input', { type: 'text' }) as HTMLInputElement;
+    const details = el('input', { type: 'text', placeholder: U.detailsPlaceholder }) as HTMLInputElement;
+    const audience = el('input', { type: 'text', placeholder: U.audiencePlaceholder }) as HTMLInputElement;
     let chosen: (typeof TEMPLATES)[number] | null = TEMPLATES[0];
     let source: { path: string; name: string } | null = null;
     const sourceName = el('span.source-name');
@@ -148,6 +148,7 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Pro
       sourceRow,
       el('label', {}, U.details, details),
       el('label', {}, U.audience, audience),
+      el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
       el('div.actions', {},
         el('button', { type: 'button', onclick: () => done(null) }, '\u00D7'),
         el('button.default', { type: 'submit' }, U.submit),
