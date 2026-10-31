@@ -54,6 +54,22 @@ GUESTS = {
     },
 }
 
+# The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as
+# assets/sprites/you-<n>.png. Only the rows up to `gift` are kept: the player stands, walks, sits and
+# hands over the commission slip, nothing more.
+PLAYERS = [
+    ['Bodies/16x16/Body_02.png', 'Outfits/16x16/Outfit_13_01.png', 'Hairstyles/16x16/Hairstyle_09_02.png'],
+    ['Bodies/16x16/Body_04.png', 'Outfits/16x16/Outfit_16_01.png', 'Hairstyles/16x16/Hairstyle_16_01.png'],
+    ['Bodies/16x16/Body_03.png', 'Outfits/16x16/Outfit_28_01.png', 'Hairstyles/16x16/Hairstyle_27_01.png'],
+    ['Bodies/16x16/Body_02.png', 'Outfits/16x16/Outfit_11_01.png', 'Hairstyles/16x16/Hairstyle_12_03.png'],
+    ['Bodies/16x16/Body_04.png', 'Outfits/16x16/Outfit_04_01.png', 'Hairstyles/16x16/Hairstyle_25_02.png'],
+    ['Bodies/16x16/Body_01.png', 'Outfits/16x16/Outfit_14_01.png', 'Hairstyles/16x16/Hairstyle_23_07.png'],
+    ['Bodies/16x16/Body_02.png', 'Outfits/16x16/Outfit_22_01.png', 'Hairstyles/16x16/Hairstyle_20_05.png'],
+    ['Bodies/16x16/Body_04.png', 'Outfits/16x16/Outfit_10_01.png', 'Hairstyles/16x16/Hairstyle_24_03.png'],
+]
+# Rows 0..10 of the generator sheet (gift is row 10, app/renderer/game/sprites.ts).
+PLAYER_ROWS = 11
+
 
 def hex_rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
@@ -146,3 +162,8 @@ if __name__ == '__main__':
         print('built', name)
     build_cat()
     print('built cat')
+    for n, layers in enumerate(PLAYERS, 1):
+        layers = [layers[0], 'Eyes/16x16/Eyes_01.png', *layers[1:]]
+        sheet = build(f'you-{n}', {'layers': layers})
+        sheet.crop((0, 0, SHEET_SIZE[0], PLAYER_ROWS * 32)).save(OUT / f'you-{n}.png', optimize=True)
+        print('built', f'you-{n}')

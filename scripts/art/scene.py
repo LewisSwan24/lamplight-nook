@@ -65,6 +65,9 @@ CHAIR_FACING_RIGHT = (7, 268)  # back on the left
 CHAIRS = [
     (CHAIR_FACING_LEFT, (196, 100)),
     (CHAIR_FACING_RIGHT, (104, 100)),
+    # The customer's chair by the lamp, where the player waits while their commission is made
+    # (app/renderer/game/you.ts, YOU_SEAT).
+    (CHAIR_FACING_LEFT, (262, 166)),
 ]
 
 # Animated props are played by the game, so they are copied as sheets rather than drawn in.

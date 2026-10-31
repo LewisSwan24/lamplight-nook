@@ -1,3 +1,4 @@
+import { plainOf } from '../../main/event-normalizer';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AiEvent, CharacterCommand } from '../../shared/types';
 import type { CafeScene } from '../game/CafeScene';
@@ -114,7 +115,8 @@ export class Stage {
     const info = this.info.get(actor) ?? emptyInfo();
     this.info.set(actor, info);
     info.raw.push(`${e.kind}${e.tool ? ` ${e.tool}` : ''}${e.target ? ` ${e.target}` : ''}`);
-    if (e.kind === 'tool_start') info.doing = e.plain;
+    // The card says what kind of thing is happening; the command itself is in the raw record and detailed mode.
+    if (e.kind === 'tool_start') info.doing = e.tool === 'Bash' || e.tool === 'PowerShell' ? plainOf(e.kind, e.tool) : e.plain;
     if (e.kind === 'tool_ok' && (e.tool === 'Write' || e.tool === 'Edit')) info.stats.writes++;
     if (e.kind === 'tool_start' && (e.tool === 'Bash' || e.tool === 'PowerShell')) info.stats.runs++;
     if (e.kind === 'tool_fail') info.stats.fails++;

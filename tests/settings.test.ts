@@ -9,13 +9,13 @@ const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-settings-')), 'se
 describe('settings store', () => {
   it('starts with the default work folder and no name', () => {
     const s = new SettingsStore(fresh(), '/docs').get();
-    expect(s).toEqual({ name: '', workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: 3, language: 'system' });
+    expect(s).toEqual({ name: '', avatar: 1, workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: 3, language: 'system' });
   });
 
   it('saves and reloads changes', () => {
     const file = fresh();
-    new SettingsStore(file, '/docs').update({ name: '  Lin  ', onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5, language: 'en' });
-    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5, language: 'en' });
+    new SettingsStore(file, '/docs').update({ name: '  Lin  ', avatar: 5, onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5, language: 'en' });
+    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', avatar: 5, workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, budgetUsd: 5, language: 'en' });
   });
 
   it('ignores empty folders and unknown fields', () => {
@@ -29,6 +29,14 @@ describe('settings store', () => {
     const s = new SettingsStore(fresh(), '/docs').update({ muted: 'yes', detailed: 1 } as never);
     expect(s.muted).toBe(false);
     expect(s.detailed).toBe(false);
+  });
+
+  it('only takes a look the shop has, and a broken one in the file means the first look', () => {
+    const file = fresh();
+    for (const bad of [0, 9, 2.5, '3', null]) expect(new SettingsStore(file, '/docs').update({ avatar: bad } as never).avatar).toBe(1);
+    expect(new SettingsStore(file, '/docs').update({ avatar: 8 }).avatar).toBe(8);
+    writeFileSync(file, JSON.stringify({ avatar: 'pink' }));
+    expect(new SettingsStore(file, '/docs').get().avatar).toBe(1);
   });
 
   it('only takes a known language, and a broken one in the file means the system language', () => {

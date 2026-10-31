@@ -38,7 +38,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -50,7 +50,7 @@ export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
 /** costUsd is Claude Code's estimate of what the session has cost so far. */
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; /** The technical reason, for the log. */ detail?: string };
+export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export interface LamplightApi {
@@ -74,6 +74,8 @@ export interface LamplightApi {
   exportDiagnostics(): Promise<string | null>;
   /** Put the Claude Code install command on the clipboard. */
   copyInstallCommand(): Promise<void>;
+  /** Run the official Claude Code installer; true once Claude Code can be found. */
+  installClaude(): Promise<boolean>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
@@ -100,6 +102,8 @@ export interface LamplightApi {
   getMemory(): Promise<Memory>;
   /** Forget everything in the notebook. */
   clearMemory(): Promise<void>;
+  /** Open the folder of a commission in the notebook; false if it is gone. */
+  openCommissionFolder(id: string): Promise<boolean>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -120,7 +124,7 @@ export type SourcePick = { path: string; name: string } | { error: 'too-big' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
-export type CommissionResult = { ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number };
+export type CommissionResult = { ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number; /** What the staff say they made, in their own words. */ summary?: string };
 
 export type DecisionOption = { id: string; label: string; hint?: string };
 
@@ -161,6 +165,7 @@ export const IPC = {
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
   copyInstallCommand: 'setup:copy-install',
+  installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
@@ -181,6 +186,7 @@ export const IPC = {
   getMemory: 'memory:get',
   addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
+  openCommissionFolder: 'memory:open-folder',
 } as const;
 
 // -- Translation layer --

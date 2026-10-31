@@ -22,6 +22,15 @@ import petalsUrl from '../../../assets/sprites/weather-petals.png';
 import rainUrl from '../../../assets/sprites/weather-rain.png';
 import snowUrl from '../../../assets/sprites/weather-snow.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
+import you1Url from '../../../assets/sprites/you-1.png';
+import you2Url from '../../../assets/sprites/you-2.png';
+import you3Url from '../../../assets/sprites/you-3.png';
+import you4Url from '../../../assets/sprites/you-4.png';
+import you5Url from '../../../assets/sprites/you-5.png';
+import you6Url from '../../../assets/sprites/you-6.png';
+import you7Url from '../../../assets/sprites/you-7.png';
+import you8Url from '../../../assets/sprites/you-8.png';
+import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
@@ -35,11 +44,14 @@ import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type
 import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_PATH, GUEST_SPEED } from './guests';
 import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
+import { HAND_OVER_MS, PATH_IN, PATH_OUT, PATH_TO_COUNTER, PATH_TO_SEAT, PICK_UP_MS, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
 const DECOR_URLS: Record<Holiday, string> = { halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
 const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl };
+/** The player's looks, in order (shared/avatars.ts). */
+const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
 const CORNER_PAUSE_MS = 90;
 /** Top-left of the door sprite; the doorway behind it is painted into cafe.png (scripts/art/scene.py, DOOR). */
@@ -64,6 +76,9 @@ const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff
 export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens';
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
+
+/** The player, in the shop while their commission is made (game/you.ts). `trip` is bumped to call a walk off. */
+type You = { sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; seated: boolean; hovered?: boolean; trip: number; arriving?: Promise<void>; leaving?: Promise<void> };
 
 type Actor = {
   id: ActorId;
@@ -101,6 +116,10 @@ export class CafeScene extends Phaser.Scene {
   private guest?: Guest;
   /** Bumped to send a guest on their way (a commission came in). */
   private guestTrip = 0;
+  /** The player, while in the shop; their look and the name they go by. */
+  private you?: You;
+  private youLook = DEFAULT_AVATAR;
+  youName = '';
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
   private hovered: Target | null = null;
   private bell!: Phaser.GameObjects.Graphics;
@@ -111,6 +130,7 @@ export class CafeScene extends Phaser.Scene {
   private door!: Phaser.GameObjects.Sprite;
   /** The blank commission form on the counter; it glows softly while it waits to be filled in. */
   private form!: Phaser.GameObjects.Graphics;
+  private counterHint?: Phaser.GameObjects.Graphics;
   private formGlow?: Phaser.Tweens.Tween;
   /** Time-of-day layers: a tint over the room, the sky in the window glass, and the lamp glows with their base strength. */
   private shade!: Phaser.GameObjects.Rectangle;
@@ -156,6 +176,7 @@ export class CafeScene extends Phaser.Scene {
     for (const h of HOLIDAYS) this.load.image(`decor-${h}`, DECOR_URLS[h]);
     for (const s of SKIES) this.load.image(`weather-${s}`, WEATHER_URLS[s]);
     for (const id of [...STAFF_IDS, ...GUEST_IDS]) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
+    YOU_SHEETS.slice(0, AVATAR_COUNT).forEach((url, i) => this.load.spritesheet(avatarKey(i + 1), url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height }));
     this.load.spritesheet('cat', SHEETS.cat, { frameWidth: CAT_FRAME.width, frameHeight: CAT_FRAME.height });
     this.load.spritesheet('clock', clockUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('cup', cupUrl, { frameWidth: 16, frameHeight: 32 });
@@ -210,6 +231,7 @@ export class CafeScene extends Phaser.Scene {
   }
 
   update() {
+    if (this.you) this.you.shadow.setPosition(this.you.sprite.x, this.you.sprite.y - 1).setDepth(this.you.sprite.depth - 0.5).setAlpha(0.28 * this.you.sprite.alpha);
     if (this.guest) this.guest.shadow.setPosition(this.guest.sprite.x, this.guest.sprite.y - 1).setDepth(this.guest.sprite.depth - 0.5).setAlpha(0.28 * this.guest.sprite.alpha);
     this.street.update();
     this.garden.update();
@@ -220,8 +242,11 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private createAnims() {
-    for (const id of [...STAFF_IDS, ...GUEST_IDS]) {
+    const looks = Array.from({ length: AVATAR_COUNT }, (_, i) => avatarKey(i + 1));
+    for (const id of [...STAFF_IDS, ...GUEST_IDS, ...looks]) {
       for (const [name, def] of Object.entries(STAFF_ANIMS)) {
+        // The player's sheets stop after the hand-over row (scripts/art/characters.py, PLAYER_ROWS).
+        if (id.startsWith('you-') && def.row > STAFF_ANIMS.gift.row) continue;
         const dirs = def.dirs === 'front' ? [DIRECTIONS[3]] : def.dirs;
         for (const facing of dirs) {
           this.anims.create({
@@ -304,6 +329,22 @@ export class CafeScene extends Phaser.Scene {
     if (this.street) this.street.reducedMotion = on;
     this.weather?.setReducedMotion(on);
     if (this.form?.visible) this.setFormWaiting(true);
+  }
+
+  /** A small "!" bobbing over the form, for someone who hasn't found the counter yet. */
+  setCounterHint(on: boolean) {
+    this.counterHint?.destroy();
+    this.counterHint = undefined;
+    if (!on) return;
+    // 5x9: a white tag with an ink "!" and a little tail pointing at the form.
+    const TAG = ['wwwww', 'wwkww', 'wwkww', 'wwkww', 'wwwww', 'wwkww', 'wwwww', '.www.', '..w..'];
+    const g = this.add.graphics({ x: FORM_POS.x + 2, y: FORM_POS.y - 11 }).setDepth(3);
+    TAG.forEach((row, y) => [...row].forEach((c, x) => {
+      if (c === 'w') g.fillStyle(0xfbf6ec, 1).fillRect(x, y, 1, 1);
+      if (c === 'k') g.fillStyle(0xb5653b, 1).fillRect(x, y, 1, 1);
+    }));
+    if (!this.reducedMotion) this.tweens.add({ targets: g, y: g.y - 2, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.counterHint = g;
   }
 
   /** Show the blank form glowing on the counter (nothing running), or put it away (a commission is under way). */
@@ -732,6 +773,126 @@ export class CafeScene extends Phaser.Scene {
     return !!this.guest;
   }
 
+  /** The player's look changed (settings): the shop shows it at once, even mid-walk. */
+  setYouLook(n: number) {
+    if (n === this.youLook) return;
+    this.youLook = n;
+    const y = this.you;
+    if (!y) return;
+    const anim = y.sprite.anims.currentAnim?.key;
+    const prefix = /^you-\d+-/;
+    y.sprite.setTexture(avatarKey(n), y.sprite.frame.name);
+    if (anim && prefix.test(anim)) y.sprite.play(anim.replace(prefix, `${avatarKey(n)}-`), true);
+  }
+
+  /**
+   * A commission starts: the player comes in at the front door, hands the slip over at the counter and
+   * sits down in the chair by the lamp to wait. Resolves once they are seated (or called off).
+   */
+  youArrive(): Promise<void> {
+    // Straight back with another slip (a retry): let them finish going out first, then come in again.
+    if (this.you?.leaving) return this.you.leaving.then(() => this.youArrive());
+    if (this.you) return this.you.arriving ?? Promise.resolve();
+    const key = avatarKey(this.youLook);
+    const sprite = this.add.sprite(YOU_DOOR.x, YOU_DOOR.y - 8, key).setOrigin(0.5, 1).setAlpha(0).setDepth(YOU_DOOR.y);
+    const shadow = this.add.ellipse(YOU_DOOR.x, YOU_DOOR.y, 11, 4, 0x3b2a1e, 0.28).setAlpha(0);
+    const y: You = { sprite, shadow, seated: false, trip: 0 };
+    this.you = y;
+    sprite.setInteractive({ useHandCursor: false, pixelPerfect: true })
+      .on('pointerover', () => (y.hovered = true))
+      .on('pointerout', () => (y.hovered = false));
+    const trip = y.trip;
+    const off = () => trip !== y.trip;
+    y.arriving = (async () => {
+      // A neighbour on the way out goes first, so two people never squeeze through the door at once.
+      for (let i = 0; i < 20 && this.guest; i++) await this.wait(200);
+      await this.openDoor();
+      sprite.play(this.youAnim('walk', 'down'), true);
+      await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: YOU_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
+      this.closeDoor();
+      if (!off()) await this.walkYou(y, PATH_IN);
+      if (off()) return;
+      this.faceGuest(true);
+      sprite.play(this.youAnim('gift', 'left'), true);
+      await this.wait(HAND_OVER_MS);
+      this.faceGuest(false);
+      if (!off()) await this.walkYou(y, PATH_TO_SEAT);
+      if (off()) return;
+      y.seated = true;
+      sprite.play(this.youAnim('sit', YOU_SEAT.facing), true);
+    })();
+    return y.arriving;
+  }
+
+  /** The commission is over: up from the chair, over to the counter for the result, and home through the front door. */
+  youLeave(): Promise<void> {
+    const y = this.you;
+    if (!y) return Promise.resolve();
+    y.leaving ??= this.leaveShop(y);
+    return y.leaving;
+  }
+
+  private async leaveShop(y: You): Promise<void> {
+    await y.arriving;
+    if (this.you !== y) return;
+    const trip = ++y.trip;
+    const off = () => trip !== y.trip;
+    y.seated = false;
+    await this.walkYou(y, PATH_TO_COUNTER);
+    if (off()) return;
+    this.faceGuest(true);
+    y.sprite.play(this.youAnim('idle', 'left'), true);
+    await this.wait(PICK_UP_MS);
+    this.faceGuest(false);
+    if (off()) return;
+    await this.walkYou(y, PATH_OUT);
+    if (off()) return;
+    await this.openDoor();
+    y.sprite.play(this.youAnim('walk', 'up'), true);
+    await new Promise<void>((r) => this.tweens.add({ targets: y.sprite, y: YOU_DOOR.y - 8, alpha: 0, duration: 420, onComplete: () => r() }));
+    this.closeDoor();
+    if (this.you === y) this.dropYou();
+  }
+
+  /** Take the player out of the shop at once (a replay was stopped part way). */
+  dropYou() {
+    const y = this.you;
+    if (!y) return;
+    y.trip++;
+    y.tween?.stop();
+    y.sprite.destroy();
+    y.shadow.destroy();
+    this.you = undefined;
+  }
+
+  /** Is the player in the shop, and are they sitting down? */
+  youState(): 'away' | 'about' | 'seated' {
+    return !this.you ? 'away' : this.you.seated ? 'seated' : 'about';
+  }
+
+  private youAnim(anim: string, facing: Facing) {
+    return animKey(avatarKey(this.youLook), anim, facing);
+  }
+
+  private wait(ms: number) {
+    return new Promise<void>((r) => this.time.delayedCall(ms, r));
+  }
+
+  /** Walk the player along points; a newer walk (the trip changed) stops this one where it is. */
+  private walkYou(y: You, points: { x: number; y: number }[]): Promise<void> {
+    const trip = y.trip;
+    return points.reduce((done, to) => done.then(() => new Promise<void>((r) => {
+      const from = { x: y.sprite.x, y: y.sprite.y };
+      const dist = Math.hypot(to.x - from.x, to.y - from.y);
+      if (dist < 1 || trip !== y.trip || !y.sprite.active) return r();
+      y.sprite.play(this.youAnim('walk', facingTowards(from, to)), true);
+      y.tween = this.tweens.add({
+        targets: y.sprite, x: to.x, y: to.y, duration: (dist / YOU_SPEED) * 1000,
+        onUpdate: () => y.sprite.setDepth(y.sprite.y), onComplete: () => r(), onStop: () => r(),
+      });
+    })), Promise.resolve());
+  }
+
   /** Walk a guest along points; sent away (the trip changed) part way, they stop where they are. */
   private walkGuest(g: Guest, points: { x: number; y: number }[]): Promise<void> {
     const trip = this.guestTrip;
@@ -880,7 +1041,10 @@ export class CafeScene extends Phaser.Scene {
       ...(g.hovered ? [{ key: `a-${g.id}`, text: strings.guests[g.id], x: g.sprite.x, y: g.sprite.y - 31, kind: 'actor' as const }] : []),
       ...(g.speech ? [{ key: `b-${g.id}`, text: g.speech, x: g.sprite.x, y: g.sprite.y - 32, kind: 'bubble' as const }] : []),
     ];
-    return [...zones, ...actors, ...bubbles, ...guest];
+    const you = this.you?.hovered
+      ? [{ key: 'a-you', text: this.youName || strings.you.label, x: this.you.sprite.x, y: this.you.sprite.y - (this.you.seated ? 26 : 31), kind: 'actor' as const }]
+      : [];
+    return [...zones, ...actors, ...bubbles, ...guest, ...you];
   }
 
   /** In the garden view: the door's name on hover, and what anyone out there says. */

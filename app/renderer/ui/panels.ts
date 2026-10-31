@@ -1,5 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
+import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, LamplightApi } from '../../shared/types';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -58,7 +59,7 @@ export function showActorCard(actor: ActorId, info: ActorInfo, detailed = false)
       el('div.card-title', {}, `${strings.actors[actor]} - ${state}`),
       info.lastLine ? el('div.quote', {}, `\u201C${info.lastLine}\u201D`) : null),
     info.doing ? el('div', {}, el('b', {}, U.doingNow), info.doing) : null,
-    el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)),
+    info.stats.writes + info.stats.runs + info.stats.fails ? el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)) : null,
     info.raw.length ? el('details', { open: detailed }, el('summary', {}, U.raw), el('pre', {}, info.raw.slice(-30).join('\n'))) : null,
   ));
 }
@@ -69,8 +70,9 @@ const plainText = (s: string) => s.replace(/[*#`]+/g, '').replace(/\s+/g, ' ').t
 /** A subagent's result handed over at the counter. */
 export function showParcel(actor: ActorId, summary: string) {
   const parcel = el('div.parcel.paper', { tabindex: 0 },
+    el('button.close', { 'aria-label': 'close', onclick: (e: Event) => { e.stopPropagation(); parcel.remove(); } }, '\u00D7'),
     el('div.card-title', {}, fill(U.parcelFrom, { who: strings.actors[actor] })),
-    el('div.parcel-body', {}, plainText(summary)),
+    el('div.parcel-body', {}, withoutPathFolders(withoutColourCodes(plainText(summary)))),
   );
   parcel.addEventListener('click', () => parcel.classList.toggle('expanded'));
   document.querySelectorAll('.parcel').forEach((p) => p.remove());
@@ -93,11 +95,11 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * The commission form. A row of stickers fills in a ready-made kind of commission (the demo is picked to begin with);
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
-export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Promise<CommissionForm | null> {
+export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budgetUsd = 0): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
-    const details = el('input', { type: 'text' }) as HTMLInputElement;
-    const audience = el('input', { type: 'text' }) as HTMLInputElement;
+    const details = el('input', { type: 'text', placeholder: U.detailsPlaceholder }) as HTMLInputElement;
+    const audience = el('input', { type: 'text', placeholder: U.audiencePlaceholder }) as HTMLInputElement;
     let chosen: (typeof TEMPLATES)[number] | null = TEMPLATES[0];
     let source: { path: string; name: string } | null = null;
     const sourceName = el('span.source-name');
@@ -147,11 +149,25 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Pro
       sourceRow,
       el('label', {}, U.details, details),
       el('label', {}, U.audience, audience),
+      el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
       el('div.actions', {},
         el('button', { type: 'button', onclick: () => done(null) }, '\u00D7'),
         el('button.default', { type: 'submit' }, U.submit),
       ),
     );
+    // Enter in a one-line box moves on instead of handing the commission in; only the button starts the work.
+    const submitButton = form.querySelector<HTMLButtonElement>('button.default')!;
+    for (const [box, next] of [[details, audience], [audience, submitButton]] as const) {
+      box.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || e.isComposing) return;
+        e.preventDefault();
+        next.focus();
+      });
+    }
+    // The demo only runs on its exact wording, so its sticker goes dark as soon as the user writes something else.
+    want.addEventListener('input', () => {
+      if (chosen?.id === 'demo' && want.value !== U.demoFill) { chosen = null; refresh(); }
+    });
     // Closed some other way (Esc): same as the close button.
     form.addEventListener('panel-closed', () => resolve(null));
     form.addEventListener('submit', (e) => {
@@ -185,16 +201,26 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>): Pro
 export function showResult(result: CommissionResult, openOutput: (path: string, how: 'open' | 'reveal') => void) {
   if (!result.main && !result.files.length) return;
   const target = result.main ?? result.files[0];
-  replaceOpen(el('div.card.paper.result-card', {},
+  const card = el('div.card.paper.result-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     el('div.card-title', {}, U.resultTitle),
-    el('div', {}, target.split(/[\\/]/).pop()),
+    result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
+    el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     el('div.actions', {},
       result.main ? el('button.default', { onclick: () => openOutput(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
       el('button', { onclick: () => openOutput(target, 'reveal') }, U.openFolder),
     ),
-  ));
+  );
+  // The work is handed over: once the card is put away, the blackboard and the parcels go too.
+  card.addEventListener('panel-closed', clearWorkSigns);
+  replaceOpen(card);
+}
+
+/** Wipe the blackboard and take the parcels off the counter: the work they belonged to is over. */
+export function clearWorkSigns() {
+  document.getElementById('board')?.replaceChildren();
+  document.querySelectorAll('.parcel').forEach((p) => p.remove());
 }
 
 /** The blackboard: up to five steps with a check mark when done. */

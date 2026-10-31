@@ -61,7 +61,7 @@ body.debug #debug { display: block; }
 }
 .card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, 90vw); padding: 16px 18px; font-size: 15px; line-height: 1.6; }
 .card-title { font-family: var(--hand); font-size: 21px; line-height: 1.3; margin-bottom: 6px; }
-.card .close { position: absolute; right: 8px; top: 6px; border: none; background: none; font-size: 20px; cursor: pointer; color: var(--ink); }
+.card .close, .parcel .close { position: absolute; right: 8px; top: 6px; border: none; background: none; font-size: 20px; cursor: pointer; color: var(--ink); }
 .card .quote { font-style: italic; margin: 4px 0 8px; }
 .card details pre { max-height: 160px; overflow: auto; font-size: 11px; background: #fff; padding: 6px; }
 .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
@@ -102,7 +102,8 @@ body.debug #debug { display: block; }
 .hint.warn { color: #a5452c; opacity: 1; }
 
 /* Decision dialog: background dimmed 40% */
-.backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; }
+.backdrop { position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; }
+/* Decisions sit above every other card (z-index 30), so a card opened later can never hide one. */
 .dialog { position: relative; width: min(520px, 92vw); padding: 20px 22px; }
 .dialog .who { font-family: var(--hand); font-size: 17px; color: var(--accent); }
 .dialog .question { font-family: var(--hand); font-size: 22px; line-height: 1.35; margin: 4px 0; }
@@ -141,7 +142,9 @@ body.debug #debug { display: block; }
 .board .step { white-space: nowrap; overflow: hidden; }
 .board .step.todo { opacity: 0.55; }
 .board .step.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }
-.parcel { position: absolute; right: 24px; bottom: 24px; width: 260px; padding: 10px 12px; font-size: 13px; cursor: pointer; }
+.result-summary { max-height: 9.5em; overflow-y: auto; margin: 4px 0 8px; line-height: 1.6; }
+.result-file { margin-bottom: 2px; }
+.parcel { position: absolute; right: 24px; bottom: 24px; width: 260px; padding: 10px 28px 10px 12px; font-size: 13px; cursor: pointer; }
 .parcel .parcel-body { max-height: 3em; overflow: hidden; }
 /* While the street inset is open in the bottom right corner, what usually sits there makes room. */
 .street-open .parcel { top: 64px; bottom: auto; }
@@ -179,7 +182,8 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .detail-line b { color: #ffd27a; font-weight: normal; }
 .detail-line.risky { color: #ffb4a8; }
 
-/* Portraits (assets/ui/portraits.png): the pixel face at x4 on a soft wash of the character's colour */
+/* Portraits (assets/ui/portraits.png): the pixel face at x4 on a soft wash of the character's colour.
+   The sheet's size comes from portraits.ts (--cols, --rows), so adding a character or an expression can't shift the faces. */
 .speaker { display: flex; gap: 14px; align-items: flex-start; }
 .speaker-body { flex: 1; min-width: 0; }
 .portrait { --pp: 4px; position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: calc(16 * var(--pp) + 14px); height: calc(16 * var(--pp) + 14px); border-radius: 50%; background: radial-gradient(circle at 42% 38%, color-mix(in srgb, var(--tint) 30%, #fff) 0%, color-mix(in srgb, var(--tint) 16%, transparent) 62%, transparent 71%); }
@@ -187,7 +191,15 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .portrait-xiaoju { --tint: #e98a3a; }
 .portrait-laoshi { --tint: #6e747a; }
 .portrait-qingdai { --tint: #4a5a86; }
-.portrait-face { display: block; width: calc(16 * var(--pp)); height: calc(16 * var(--pp)); image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(80 * var(--pp)) calc(48 * var(--pp)); background-position: calc(-16 * var(--col) * var(--pp)) calc(-16 * var(--row) * var(--pp)); }
+.portrait-face { display: block; width: calc(16 * var(--pp)); height: calc(16 * var(--pp)); image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(16 * var(--cols) * var(--pp)) calc(16 * var(--rows) * var(--pp)); background-position: calc(-16 * var(--col) * var(--pp)) calc(-16 * var(--row) * var(--pp)); }
+/* The player (assets/ui/you.png: one 16x32 front frame per look): the head, from row 9 like the staff portraits. */
+.portrait-you { --tint: #8a9a6a; }
+.you-face { background-size: calc(16 * var(--looks) * var(--pp)) calc(32 * var(--pp)); background-position: calc(-16 * (var(--look) - 1) * var(--pp)) calc(-9 * var(--pp)); }
+.look-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.look { --lp: 2px; padding: 4px 6px 2px; background: rgba(255, 253, 248, 0.6); border: 1px solid rgba(122, 82, 54, 0.3); border-radius: 10px; cursor: pointer; line-height: 0; }
+.look:hover { background: rgba(255, 253, 248, 0.95); }
+.look.picked { border-color: #b5653b; box-shadow: 0 0 0 2px rgba(181, 101, 59, 0.35); background: #fffdf8; }
+.look-figure { display: block; width: calc(16 * var(--lp)); height: calc(32 * var(--lp)); image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(16 * var(--looks) * var(--lp)) calc(32 * var(--lp)); background-position: calc(-16 * (var(--look) - 1) * var(--lp)) 0; }
 .portrait .emote { position: absolute; right: -2px; top: -2px; --px: 2px; }
 
 /* Waiting: the steaming cup from the counter, at x3 */
@@ -220,11 +232,15 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .notebook-pages ul { margin: 0; padding-left: 18px; }
 .notebook-pages h4 { margin: 6px 0 2px; }
 .notebook-date { color: #9a8a76; font-size: 12px; }
+.notebook-open { margin-left: 10px; }
 .notebook-choice { color: #6b5a48; font-size: 14px; padding-left: 4px; }
 .notebook-empty { color: #7a6a58; padding: 12px 0; }
 .notebook-warn { flex-basis: 100%; color: #8a3b2a; font-size: 14px; margin-bottom: 4px; }
 .notebook .actions { flex-wrap: wrap; align-items: center; }
 .meeting { width: min(460px, 86vw); }
+/* What the user writes sits beside their own portrait, on the right, like the other half of a talk. */
+.you-says { flex-direction: row-reverse; align-items: center; margin-top: 10px; }
+.you-says textarea { flex: 1; min-width: 0; }
 
 /* Pasting the API key */
 .key-form { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
@@ -237,8 +253,11 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .result-cost { margin-top: 2px; }
 
 /* Installing Claude Code */
-.claude-steps { margin: 6px 0 2px; padding-left: 1.3em; font-size: 14px; }
-.claude-steps li { margin: 3px 0; }
+.claude-steps, .key-steps { margin: 6px 0 2px; padding-left: 1.3em; font-size: 14px; }
+.claude-steps li, .key-steps li { margin: 3px 0; }
+.install-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; }
+.install-row .install-status { flex: 1; margin: 0; }
+.claude-manual summary { cursor: pointer; font-size: 13px; opacity: 0.8; }
 .install-line { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
 .install-line code { flex: 1; min-width: 0; word-break: break-all; padding: 4px 8px; border-radius: 6px; background: rgba(43, 33, 24, 0.86); color: #f6ead6; font-family: ui-monospace, Consolas, monospace; font-size: 13px; user-select: all; }
 .claude-steps .watching { opacity: 0.7; font-style: italic; }

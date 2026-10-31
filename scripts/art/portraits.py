@@ -107,6 +107,24 @@ def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     out.save(OUT)
     print('wrote', OUT.relative_to(ROOT))
+    write_players()
+
+
+# The player's looks (characters.py, PLAYERS): one front-facing 16x32 frame each, side by side, in
+# assets/ui/you.png. The look picker shows them whole; the player's portrait is the head, cropped
+# by CSS at the same TOP row as the staff portraits (app/renderer/ui/portraits.ts).
+PLAYER_COUNT = 8
+PLAYERS_OUT = ROOT / 'assets/ui/you.png'
+
+
+def write_players():
+    out = Image.new('RGBA', (16 * PLAYER_COUNT, 32))
+    fx, fy = FRAME
+    for n in range(PLAYER_COUNT):
+        sheet = Image.open(SPRITES / f'you-{n + 1}.png').convert('RGBA')
+        out.paste(sheet.crop((fx, fy, fx + 16, fy + 32)), (n * 16, 0))
+    out.save(PLAYERS_OUT)
+    print('wrote', PLAYERS_OUT.relative_to(ROOT))
 
 
 if __name__ == '__main__':

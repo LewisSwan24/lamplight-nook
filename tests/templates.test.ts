@@ -2,14 +2,27 @@ import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { collectOutputs, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
+import { SUMMARY_RULE, collectOutputs, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
 import { classify } from '../app/main/risk-classifier';
 import { strings } from '../app/shared/i18n';
 
 const F = strings.ui.files;
 const dir = (name = 'tpl-') => mkdtempSync(join(tmpdir(), name));
 
+describe('commission titles', () => {
+  it('drops the "please" and the punctuation, and stays short', () => {
+    expect(shortTitle('帮我做一个家庭聚会签到的小网页。')).toBe('做一个家庭聚会签到的小网页');
+    expect(shortTitle('Please make a sign-in page for the family party.')).toBe('make-a-sign-in-p');
+    expect(shortTitle('整理一下：下载/文件夹')).toBe('整理一下-下载-文件夹');
+    expect(shortTitle('？？')).toBe('？？');
+  });
+});
+
 describe('commission templates', () => {
+  it('asks every commission to end with a plain note for the result card', () => {
+    for (const template of [undefined, 'page', 'research'] as const) expect(commissionPrompt({ want: 'x', template })).toContain(SUMMARY_RULE);
+  });
+
   it('a plain request adds nothing beyond the house rules', () => {
     const p = commissionPrompt({ want: 'w' });
     expect(p).not.toMatch(/index\.html|research commission|tidying/);
