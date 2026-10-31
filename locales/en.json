@@ -369,7 +369,7 @@
       "revise": "Change it a bit",
       "asked": "Changed later: {ask}",
       "days": "Days at the shop",
-      "doneCount": "{n} commissions finished together.",
+      "doneCount": "Commissions finished together: {n}.",
       "grewLine": "the shop got {item}"
     },
     "tray": {
