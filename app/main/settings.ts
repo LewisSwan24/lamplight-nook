@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { DEFAULT_AVATAR, cleanAvatar } from '../shared/avatars';
 import { strings } from '../shared/i18n';
 import { BUDGET_CHOICES, type LanguageChoice, type Settings } from '../shared/types';
 
@@ -23,12 +24,13 @@ export class SettingsStore {
   private data: Settings;
 
   constructor(private file: string, documentsDir: string) {
-    const defaults: Settings = { name: '', workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: DEFAULT_BUDGET, language: 'system' };
+    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: DEFAULT_BUDGET, language: 'system' };
     this.data = { ...defaults, ...this.read() };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
     this.data.volume = cleanVolume(this.data.volume) ?? DEFAULT_VOLUME;
     this.data.budgetUsd = cleanBudget(this.data.budgetUsd) ?? DEFAULT_BUDGET;
     this.data.language = cleanLanguage(this.data.language) ?? 'system';
+    this.data.avatar = cleanAvatar(this.data.avatar) ?? DEFAULT_AVATAR;
   }
 
   get(): Settings {
@@ -42,6 +44,8 @@ export class SettingsStore {
     for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'notify', 'closeToTray'] as const) {
       if (typeof patch[flag] === 'boolean') clean[flag] = patch[flag];
     }
+    const avatar = cleanAvatar(patch.avatar);
+    if (avatar !== undefined) clean.avatar = avatar;
     const volume = cleanVolume(patch.volume);
     if (volume !== undefined) clean.volume = volume;
     const budget = cleanBudget(patch.budgetUsd);

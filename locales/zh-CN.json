@@ -27,6 +27,9 @@
     "baker": "桂姨",
     "postman": "阿信"
   },
+  "you": {
+    "label": "你"
+  },
   "zones": {
     "window": "窗台",
     "board": "小黑板",
@@ -192,6 +195,7 @@
       "welcomeTitle": "欢迎光临小灯屋",
       "welcomeText": "我是阿灯，这家店的店长。我们怎么称呼你？",
       "namePlaceholder": "比如：小林",
+      "welcomeLook": "再挑一个你来店里时的样子：",
       "next": "下一步",
       "checkTitle": "开工前看一眼",
       "claudeOk": "Claude Code 已经装好了。",
@@ -248,6 +252,9 @@
       "trialDone": "好",
       "settingsTitle": "设置",
       "nameLabel": "称呼",
+      "lookLabel": "你的样子",
+      "lookHint": "你来店里下委托时，就是这个样子。",
+      "lookN": "样子 {n}",
       "folderLabel": "委托放在",
       "checkLabel": "开工条件",
       "spendLabel": "花费",

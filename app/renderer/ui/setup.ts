@@ -5,7 +5,7 @@ import { setMix, sfx } from '../audio/sound';
 import { closePanel, replaceOpen } from './panels';
 import { el, layer } from './dom';
 import { showNotebook } from './notebook';
-import { withPortrait } from './portraits';
+import { lookPicker, withPortrait } from './portraits';
 
 const S = strings.ui.setup;
 const OK = '\u2713';
@@ -144,6 +144,8 @@ function folderRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
 export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatus): Promise<Settings> {
   return new Promise((resolve) => {
     const name = el('input', { type: 'text', maxlength: 10, placeholder: S.namePlaceholder, value: settings.name }) as HTMLInputElement;
+    let look = settings.avatar;
+    const looks = lookPicker(look, (n) => { look = n; });
     const card = el('div.card.paper.welcome');
     const page = (...children: (Node | null)[]) => card.replaceChildren(...children.filter((c): c is Node => c !== null));
 
@@ -151,6 +153,8 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
       const form = el('form', {},
         withPortrait('adeng', 'calm', el('div.card-title', {}, S.welcomeTitle), el('div', {}, S.welcomeText)),
         name,
+        el('div.hint.welcome-look', {}, S.welcomeLook),
+        looks,
         el('div.actions', {}, el('button.default', { type: 'submit' }, S.next)));
       form.addEventListener('submit', (e) => { e.preventDefault(); if (name.value.trim()) check(); });
       page(form);
@@ -171,7 +175,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
       el('div.hint.legal-line', {}, S.legalLine, ' ', legalLink(api, 'terms'), ' \u00B7 ', legalLink(api, 'privacy')),
       el('div.actions', {}, el('button.default', { onclick: async () => {
         closePanel();
-        resolve(await api.saveSettings({ name: name.value.trim(), onboarded: true }));
+        resolve(await api.saveSettings({ name: name.value.trim(), avatar: look, onboarded: true }));
       } }, S.openShop)),
     );
 
@@ -322,6 +326,8 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     // Only the inside scrolls, so the paper behind it always covers the whole card.
     el('div.settings-body', {},
     el('section', {}, el('h4', {}, S.nameLabel), name),
+    el('section', {}, el('h4', {}, S.lookLabel), el('div.hint', {}, S.lookHint),
+      lookPicker(settings.avatar, async (avatar) => onChange(await api.saveSettings({ avatar })))),
     el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),

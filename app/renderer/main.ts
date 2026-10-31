@@ -225,7 +225,7 @@ async function meeting() {
   void sayFrom('meeting_call', meetingCount);
   // The card opens straight away; everyone gathers at the table meanwhile.
   const gathered = Promise.all(here.map((a) => scene.walkTo(a, 'table')));
-  const note = await showMeeting();
+  const note = await showMeeting(current?.avatar);
   await gathered;
   const heard = note ? await window.lamplight.addNote(note) : false;
   if (note) void sayFrom(heard ? 'meeting_heard' : 'meeting_late', meetingCount);
@@ -273,6 +273,8 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   scene.showShop();
   tendGarden(false);
   scene.sendGuestAway();
+  // You come in with the slip and wait by the lamp while it is made.
+  void scene.youArrive();
   runStartedAt = Date.now();
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
@@ -287,6 +289,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     running = null;
     scene.setFormWaiting(true);
     scene.setBell(false);
+    void scene.youLeave();
   }
 }
 async function newCommission() {
@@ -323,6 +326,8 @@ function applySettings(s: Settings) {
   const calm = s.reducedMotion || systemCalm.matches;
   document.body.classList.toggle('reduce-motion', calm);
   scene.setReducedMotion(calm);
+  scene.setYouLook(s.avatar);
+  scene.youName = s.name;
 }
 systemCalm.addEventListener('change', () => current && applySettings(current));
 
@@ -345,6 +350,8 @@ async function openShop() {
   const S = strings.ui.setup;
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());
+    // The name and look just picked show in the shop at once.
+    applySettings(settings);
     greet(fill(S.greet, { name: settings.name }));
     // First visit: point at the counter until it has been opened once.
     scene.setCounterHint(true);
@@ -462,12 +469,14 @@ function startTrial() {
   scene.showShop();
   tendGarden(false);
   scene.sendGuestAway();
+  void scene.youArrive();
   scene.setFormWaiting(false);
   // A little slower than recorded, and the end card waits for the wrap-up lines to finish.
   cancelReplay = replay(stage, events, TRIAL_SPEED, () => {
     setReplayBadge(false);
     replaying = false;
     scene.setFormWaiting(true);
+    void scene.youLeave();
     // The trial leaves nothing behind: a clean blackboard and no parcel on the counter.
     clearWorkSigns();
     showTrialEnd(async () => showNotReady(window.lamplight, await window.lamplight.envStatus(), undefined, () => void newCommission()));
