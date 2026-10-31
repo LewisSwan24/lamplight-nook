@@ -2,10 +2,8 @@ import portraitsUrl from '../../../assets/ui/portraits.png';
 import type { ActorId } from '../../shared/types';
 import { el } from './dom';
 import { emoteEl } from './emotes';
-import { EXPRESSIONS, EXPRESSION_BADGE, type Expression } from './expression';
+import { EXPRESSIONS, EXPRESSION_BADGE, PORTRAIT_STAFF as STAFF, type Expression } from './expression';
 
-/** Staff in the order of the rows on assets/ui/portraits.png; the cat has no portrait (she doesn't talk). */
-const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 
 /** A round portrait: the pixel face on a soft wash of the character's colour, plus the expression's bubble. */
 export function portraitEl(actor: ActorId, expression: Expression = 'calm'): HTMLElement | null {
@@ -15,6 +13,8 @@ export function portraitEl(actor: ActorId, expression: Expression = 'calm'): HTM
   face.style.backgroundImage = `url(${portraitsUrl})`;
   face.style.setProperty('--col', String(EXPRESSIONS.indexOf(expression)));
   face.style.setProperty('--row', String(row));
+  face.style.setProperty('--cols', String(EXPRESSIONS.length));
+  face.style.setProperty('--rows', String(STAFF.length));
   const badge = EXPRESSION_BADGE[expression];
   return el(`span.portrait.portrait-${actor}`, { 'aria-hidden': 'true' }, face, badge ? emoteEl(badge) : null);
 }

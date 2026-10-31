@@ -179,7 +179,8 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .detail-line b { color: #ffd27a; font-weight: normal; }
 .detail-line.risky { color: #ffb4a8; }
 
-/* Portraits (assets/ui/portraits.png): the pixel face at x4 on a soft wash of the character's colour */
+/* Portraits (assets/ui/portraits.png): the pixel face at x4 on a soft wash of the character's colour.
+   The sheet's size comes from portraits.ts (--cols, --rows), so adding a character or an expression can't shift the faces. */
 .speaker { display: flex; gap: 14px; align-items: flex-start; }
 .speaker-body { flex: 1; min-width: 0; }
 .portrait { --pp: 4px; position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: calc(16 * var(--pp) + 14px); height: calc(16 * var(--pp) + 14px); border-radius: 50%; background: radial-gradient(circle at 42% 38%, color-mix(in srgb, var(--tint) 30%, #fff) 0%, color-mix(in srgb, var(--tint) 16%, transparent) 62%, transparent 71%); }
@@ -187,7 +188,7 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .portrait-xiaoju { --tint: #e98a3a; }
 .portrait-laoshi { --tint: #6e747a; }
 .portrait-qingdai { --tint: #4a5a86; }
-.portrait-face { display: block; width: calc(16 * var(--pp)); height: calc(16 * var(--pp)); image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(80 * var(--pp)) calc(48 * var(--pp)); background-position: calc(-16 * var(--col) * var(--pp)) calc(-16 * var(--row) * var(--pp)); }
+.portrait-face { display: block; width: calc(16 * var(--pp)); height: calc(16 * var(--pp)); image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(16 * var(--cols) * var(--pp)) calc(16 * var(--rows) * var(--pp)); background-position: calc(-16 * var(--col) * var(--pp)) calc(-16 * var(--row) * var(--pp)); }
 .portrait .emote { position: absolute; right: -2px; top: -2px; --px: 2px; }
 
 /* Waiting: the steaming cup from the counter, at x3 */
