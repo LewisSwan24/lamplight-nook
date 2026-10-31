@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { Director, PRIORITY } from '../app/renderer/translator/director';
-import { type Line, lintLines, parseLines, pickLine, toLineBook } from '../app/renderer/translator/lines';
+import { type Line, lintLines, openingTurns, parseLines, pickLine, toLineBook } from '../app/renderer/translator/lines';
 
 describe('dialogue library', () => {
   const lib = parseLines(readFileSync('lines/cafe.yaml', 'utf8'));
@@ -58,6 +58,15 @@ describe('lines for the day outside', () => {
     expect(pickLine(lib.app_open, ['has_memory', 'sky_rain'], vars)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_rain')!.bubbles[1]);
     expect(pickLine(lib.app_open, ['has_memory', 'holiday_halloween'], vars)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_halloween')!.bubbles[1]);
     expect(pickLine(lib.app_open, ['has_memory'], vars)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_mem')!.bubbles[1].replace('{lastCommission}', 'ledger'));
+  });
+
+  it('still brings up the last commission after the weather or holiday line, saying hello once', () => {
+    const say = (memory: string[], outside: string[]) => openingTurns(lib.app_open, memory, outside, vars)?.map((t) => t.text);
+    const mem = lib.app_open.find((l) => l.id === 'open_mem')!.bubbles[1].replace('{lastCommission}', 'ledger');
+    const halloween = lib.app_open.find((l) => l.id === 'open_halloween')!.bubbles;
+    expect(say(['has_memory'], ['holiday_halloween'])).toEqual([halloween[0].replace('{name}', 'Lin'), halloween[1], mem]);
+    expect(say(['has_memory'], [])).toEqual(['Lin，来啦。', mem]);
+    expect(say([], ['holiday_halloween'])).toEqual([halloween[0].replace('{name}', 'Lin'), halloween[1]]);
   });
 
   it("has Xiaoju come back talking about the weather or the holiday, once, then as usual", () => {

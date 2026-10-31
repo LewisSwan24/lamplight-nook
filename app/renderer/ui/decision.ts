@@ -1,4 +1,5 @@
 import { strings } from '../../shared/i18n';
+import { escapeChoice } from '../../shared/decision';
 import type { DecisionRequest } from '../../shared/types';
 import { setSerious, sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -23,12 +24,16 @@ export function showDecision(req: DecisionRequest): Promise<string> {
       resolve(choice);
     };
     const onKey = (e: KeyboardEvent) => {
+      // Only the card on top listens; the keys never reach the cards underneath.
+      const all = document.querySelectorAll('.backdrop');
+      if (all[all.length - 1] !== backdrop) return;
       if (e.key === 'Escape') {
         e.preventDefault();
-        // Esc always means the safe answer: "not now" on permissions, the default on questions.
-        close(req.options.some((o) => o.id === 'deny') ? 'deny' : req.defaultId);
+        e.stopPropagation();
+        close(escapeChoice(req));
       } else if (req.kind !== 'serious' && /^[1-4]$/.test(e.key) && req.options[Number(e.key) - 1]) {
         // Number keys pick an option in the dialog (never on the serious card).
+        e.stopPropagation();
         close(req.options[Number(e.key) - 1].id);
       }
     };

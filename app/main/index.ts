@@ -1,5 +1,5 @@
 import './locale-boot';
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +8,7 @@ import { fill, locale, strings } from '../shared/i18n';
 import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings, type SourcePick } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
-import { installCommand, locateClaude } from './claude-locator';
+import { installCommand, locateClaude, runInstaller } from './claude-locator';
 import { EDITABLE, MAX_EDIT_BYTES, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, snapshot } from './commission';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
@@ -159,6 +159,16 @@ ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
   return r.filePath;
 });
 ipcMain.handle(IPC.copyInstallCommand, () => clipboard.writeText(installCommand(process.platform)));
+// "Install it for me": the official installer, run once at a time; the setup card notices when Claude Code lands.
+let installing: Promise<boolean> | null = null;
+ipcMain.handle(IPC.installClaude, (): Promise<boolean> => {
+  installing ??= runInstaller().then(({ ok, output }) => {
+    log?.info('claude install', { ok, found: locateClaude() !== null, output });
+    installing = null;
+    return ok && locateClaude() !== null;
+  });
+  return installing;
+});
 ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
@@ -243,7 +253,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     spend.record(job.workDir, job.sessionId, result.costUsd);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
-      send(IPC.result, { ok: result.ok, workDir: job.workDir, costUsd, ...collectOutputs(job.workDir, before) });
+      send(IPC.result, { ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...collectOutputs(job.workDir, before) });
       memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir, costUsd }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
@@ -308,6 +318,12 @@ ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   return Boolean(clean && current?.note?.(clean));
 });
 ipcMain.handle(IPC.clearMemory, () => memory.clear());
+// Only folders the notebook itself recorded, looked up by id.
+ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
+  const folder = memory.get().commissions.find((c) => c.id === id)?.folder;
+  if (!folder || !existsSync(folder)) return false;
+  return (await shell.openPath(folder)) === '';
+});
 
 // Only files from the current or last commission folder can be opened from the renderer.
 ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') => {

@@ -78,6 +78,17 @@ export function pickLine(lines: Line[], flags: string[], vars: Record<string, st
   return [...say(pick.speaker, pick.bubbles), ...(pick.reply ? say(pick.reply.speaker, pick.reply.bubbles) : [])];
 }
 
+/**
+ * The greeting as the shop opens: the weather or holiday line, then (once) the question about the last
+ * commission, without saying hello twice. The memory question is asked only once, so it is never dropped.
+ */
+export function openingTurns(lines: Line[], memoryFlags: string[], outside: string[], vars: Record<string, string>) {
+  const hello = pickLine(lines, outside, vars);
+  const memory = memoryFlags.length ? pickLine(lines, memoryFlags, vars) : null;
+  if (!memory) return hello;
+  return hello ? [...hello, ...memory.slice(1)] : memory;
+}
+
 /** Character count excluding {variables}. */
 const visibleLength = (s: string) => [...s.replace(/\{[^}]*\}/g, '')].length;
 

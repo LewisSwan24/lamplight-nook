@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findClaude, installCommand } from '../app/main/claude-locator';
+import { findClaude, installCommand, installerProcess } from '../app/main/claude-locator';
 
 const home = join('/home', 'lewis');
 const nativeBin = join(home, '.local', 'bin', 'claude');
@@ -39,6 +39,14 @@ describe('installing Claude Code', () => {
   it('offers the official one-line installer for the OS', () => {
     expect(installCommand('win32')).toBe('irm https://claude.ai/install.ps1 | iex');
     expect(installCommand('darwin')).toBe('curl -fsSL https://claude.ai/install.sh | bash');
+  });
+
+  it('can run that same installer itself, without a window', () => {
+    const win = installerProcess('win32');
+    expect(win.file).toBe('powershell.exe');
+    expect(win.args.at(-1)).toBe(installCommand('win32'));
+    expect(win.args).toContain('-NonInteractive');
+    expect(installerProcess('darwin')).toEqual({ file: '/bin/bash', args: ['-c', installCommand('darwin')] });
   });
 
   it('finds a fresh native install without a restart, even before PATH is updated', () => {

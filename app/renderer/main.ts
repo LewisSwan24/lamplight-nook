@@ -14,14 +14,14 @@ import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layou
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
-import { pickLine } from './translator/lines';
+import { openingTurns, pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { clearWorkSigns, setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
@@ -45,6 +45,8 @@ const game = new Phaser.Game({
   backgroundColor: '#1b1712',
   scene,
   scale: { mode: Phaser.Scale.NONE },
+  // Only clicks on the canvas itself reach the shop; a click on a card must not go through to whoever stands behind it.
+  input: { windowEvents: false },
   // Starts the frame limiter; the pacer below moves it between 30 and 15.
   fps: { limit: ACTIVE_FPS },
 });
@@ -249,13 +251,18 @@ const syncVisibility = () => { stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
 scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
 scene.onSound = sfx;
-scene.onSay = recordLine;
+// Lines from a replay (the trial) are marked in the caption log, so they never pass for real work.
+scene.onSay = (who, text) => recordLine(who, replaying ? text + strings.ui.replayTag : text);
 scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
-window.lamplight.onDecision(async (req) => {
-  const choice = await showDecision(req);
-  await window.lamplight.answerDecision({ id: req.id, choice });
+// One at a time, in the order they came, so two cards never sit on top of each other.
+let decisions = Promise.resolve();
+window.lamplight.onDecision((req) => {
+  decisions = decisions.then(async () => {
+    const choice = await showDecision(req);
+    await window.lamplight.answerDecision({ id: req.id, choice });
+  }).catch((e) => append(`decision failed: ${e}`));
 });
 window.lamplight.onResult((result) => showResult(result, (path, how) => void window.lamplight.openOutput(path, how)));
 
@@ -286,8 +293,8 @@ async function newCommission() {
   if (running) return showRunning(window.lamplight, running);
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial);
-  const form = await showCommissionForm(window.lamplight);
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission());
+  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
@@ -301,7 +308,10 @@ async function prepare(form: CommissionForm) {
   // The demo's one question is the colour question, which has its own line.
   stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
 }
-scene.onCounterClick = () => void newCommission();
+scene.onCounterClick = () => {
+  scene.setCounterHint(false);
+  void newCommission();
+};
 
 // Settings that change how the shop looks and sounds. Less motion also follows the system setting.
 const systemCalm = matchMedia('(prefers-reduced-motion: reduce)');
@@ -324,7 +334,7 @@ const greet = (text: string) => {
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
   const { flags, vars } = await window.lamplight.recallOnOpen();
-  const turns = pickLine(ruleBook().lines.app_open ?? [], [...flags, ...outsideFlags(scene.outside())], { ...vars, name });
+  const turns = openingTurns(ruleBook().lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name });
   if (turns) void stage.talk(turns);
 }
 async function openShop() {
@@ -336,6 +346,9 @@ async function openShop() {
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());
     greet(fill(S.greet, { name: settings.name }));
+    // First visit: point at the counter until it has been opened once.
+    scene.setCounterHint(true);
+    setTimeout(() => greet(S.greetHint), 4000);
   } else if (settings.name) {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
@@ -455,6 +468,8 @@ function startTrial() {
     setReplayBadge(false);
     replaying = false;
     scene.setFormWaiting(true);
-    showTrialEnd(async () => showNotReady(window.lamplight, await window.lamplight.envStatus()));
+    // The trial leaves nothing behind: a clean blackboard and no parcel on the counter.
+    clearWorkSigns();
+    showTrialEnd(async () => showNotReady(window.lamplight, await window.lamplight.envStatus(), undefined, () => void newCommission()));
   }, TRIAL_WRAP_UP_MS);
 }

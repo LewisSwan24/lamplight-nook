@@ -46,7 +46,12 @@ function keyRow(api: LamplightApi, e: EnvStatus, changed: (said?: string) => voi
   } else if (e.keySource === 'subscription') {
     body.append(S.keySubscription);
   } else {
-    body.append(S.keyMissing, ' ', el('button.link', { onclick: () => api.openLink('apiKeys') }, S.keyHow), pasteBox(), status);
+    body.append(S.keyMissing,
+      el('ol.key-steps', {},
+        el('li', {}, S.keyStep1, ' ', el('button.link', { type: 'button', onclick: () => api.openLink('apiKeys') }, S.keyOpenConsole)),
+        el('li', {}, S.keyStep2, ' ', el('button.link', { type: 'button', onclick: () => api.openLink('billing') }, S.keyOpenBilling)),
+        el('li', {}, S.keyStep3)),
+      pasteBox(), status);
   }
   row.append(body);
   return row;
@@ -60,10 +65,26 @@ function claudeSteps(api: LamplightApi, e: EnvStatus): HTMLElement {
     copy.textContent = S.claudeCopied;
     setTimeout(() => { copy.textContent = S.claudeCopy; }, 2000);
   });
-  return el('ol.claude-steps', {},
-    el('li', {}, e.platform === 'win32' ? S.claudeStep1 : S.claudeStep1Mac),
-    el('li', {}, S.claudeStep2, el('div.install-line', {}, el('code', {}, e.installCommand), copy)),
-    el('li', {}, S.claudeStep3, ' ', el('span.watching', {}, S.claudeWatching)));
+  const manual = el('details.claude-manual', {},
+    el('summary', {}, S.claudeManual),
+    el('ol.claude-steps', {},
+      el('li', {}, e.platform === 'win32' ? S.claudeStep1 : S.claudeStep1Mac),
+      el('li', {}, S.claudeStep2, el('div.install-line', {}, el('code', {}, e.installCommand), copy)),
+      el('li', {}, S.claudeStep3, ' ', el('span.watching', {}, S.claudeWatching))),
+    el('button.link', { type: 'button', onclick: () => api.openLink('claudeSetup') }, S.claudeHow)) as HTMLDetailsElement;
+  // The easy way first: the app runs the official installer; the card turns green when it lands.
+  const status = el('div.hint.install-status', { role: 'status' }, S.claudeInstallHint);
+  const install = el('button.sticker', { type: 'button' }, S.claudeInstall) as HTMLButtonElement;
+  install.addEventListener('click', async () => {
+    install.disabled = true;
+    status.textContent = S.claudeInstalling;
+    const ok = await api.installClaude();
+    if (ok) return;
+    install.disabled = false;
+    status.textContent = S.claudeInstallFailed;
+    manual.open = true;
+  });
+  return el('div.claude-install', {}, el('div.install-row', {}, install, status), manual);
 }
 
 /** How often to look for Claude Code while the user is installing it. */
@@ -73,19 +94,19 @@ const WATCH_MS = 3000;
  * Whether Claude Code and the API key are there, with a way to fix what is missing. While Claude Code is
  * missing and the rows are on screen it keeps looking, so the row turns green once the install finishes.
  */
-function envRows(api: LamplightApi, env: EnvStatus): HTMLElement {
+function envRows(api: LamplightApi, env: EnvStatus, onChange?: (e: EnvStatus) => void): HTMLElement {
   const box = el('div.env-rows');
   let watch: ReturnType<typeof setInterval> | undefined;
   const render = (e: EnvStatus, said?: string) => {
     box.replaceChildren(...[
       el(`div.env-row.${e.hasClaude ? 'ok' : 'missing'}`, {},
         el('span.mark', {}, e.hasClaude ? OK : MISSING),
-        el('div', {}, e.hasClaude ? S.claudeOk : S.claudeMissing, ' ',
-          e.hasClaude ? null : el('button.link', { onclick: () => api.openLink('claudeSetup') }, S.claudeHow),
+        el('div', {}, e.hasClaude ? S.claudeOk : S.claudeMissing,
           e.hasClaude ? null : claudeSteps(api, e))),
       keyRow(api, e, async (next) => render(await api.envStatus(), next)),
       said ? el('div.hint.key-said', {}, said) : null,
     ].filter((n): n is HTMLElement => n !== null));
+    onChange?.(e);
     if (e.hasClaude && watch) {
       clearInterval(watch);
       watch = undefined;
@@ -135,12 +156,15 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
       page(form);
       name.focus();
     };
-    const check = () => page(
-      el('div.card-title', {}, S.checkTitle),
-      envRows(api, env),
-      env.hasClaude && env.hasApiKey ? null : el('div.hint', {}, S.laterHint),
-      el('div.actions', {}, el('button.default', { onclick: folder }, S.next)),
-    );
+    const check = () => {
+      const later = el('div.hint', {}, S.laterHint);
+      page(
+        el('div.card-title', {}, S.checkTitle),
+        envRows(api, env, (e) => { later.hidden = e.hasClaude && e.hasApiKey; }),
+        later,
+        el('div.actions', {}, el('button.default', { onclick: folder }, S.next)),
+      );
+    };
     const folder = () => page(
       withPortrait('adeng', 'happy', el('div.card-title', {}, S.folderTitle), el('div', {}, S.folderText)),
       folderRow(api, settings, (s) => { settings = s; }),
@@ -160,13 +184,19 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
  * Shown instead of the commission form when something needed to start is missing. With `trial`, it also
  * offers a replay of a recorded demo, so people can see the shop at work before setting anything up.
  */
-export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => void) {
-  replaceOpen(el('div.card.paper.notice-card', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    withPortrait('adeng', 'unsure', el('div.card-title', {}, S.notReadyTitle), envRows(api, env)),
-    trial ? el('div.trial-offer', {}, el('span', {}, S.trialOffer),
-      el('button.sticker', { type: 'button', onclick: () => { closePanel(); trial(); } }, S.trialButton)) : null,
-  ));
+export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => void, start?: () => void) {
+  const close = el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7');
+  const card = el('div.card.paper.notice-card');
+  // Once both are there, the card says so and leads straight to the commission slip.
+  const ready = () => card.replaceChildren(close,
+    withPortrait('adeng', 'happy', el('div.card-title', {}, S.readyTitle), el('div', {}, S.readyText)),
+    el('div.actions', {}, el('button.default', { type: 'button', onclick: () => { closePanel(); start?.(); } }, S.readyStart)));
+  card.append(close,
+    withPortrait('adeng', 'unsure', el('div.card-title', {}, S.notReadyTitle),
+      envRows(api, env, (e) => { if (e.hasClaude && e.hasApiKey && start) setTimeout(ready, 1200); })),
+    ...(trial ? [el('div.trial-offer', {}, el('span', {}, S.trialOffer),
+      el('button.sticker', { type: 'button', onclick: () => { closePanel(); trial(); } }, S.trialButton))] : []));
+  replaceOpen(card);
 }
 
 /** After the trial replay: what it was, and the way to the real thing. */
