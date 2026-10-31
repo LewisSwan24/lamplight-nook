@@ -14,7 +14,7 @@ import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layou
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
-import { pickLine } from './translator/lines';
+import { openingTurns, pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar } from './ui/captions';
 import { showDecision } from './ui/decision';
@@ -334,7 +334,7 @@ const greet = (text: string) => {
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
   const { flags, vars } = await window.lamplight.recallOnOpen();
-  const turns = pickLine(ruleBook().lines.app_open ?? [], [...flags, ...outsideFlags(scene.outside())], { ...vars, name });
+  const turns = openingTurns(ruleBook().lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name });
   if (turns) void stage.talk(turns);
 }
 async function openShop() {
