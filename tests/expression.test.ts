@@ -33,5 +33,8 @@ describe('parcel text', () => {
     const { withoutColourCodes } = await import('../app/shared/text');
     expect(withoutColourCodes('配色：奶油白 FBF6EC 底，墨绿 2F5D50 主色。')).toBe('配色：奶油白底，墨绿主色。');
     expect(withoutColourCodes('Cream (#FBF6EC) background, a decade, 123456 words')).toBe('Cream background, a decade, 123456 words');
+    const { withoutPathFolders } = await import('../app/shared/text');
+    expect(withoutPathFolders('文件：C:\\Users\\Lewis\\Documents\\小灯屋\\委托\\自我介绍.txt。')).toBe('文件：自我介绍.txt。');
+    expect(withoutPathFolders('Saved to /home/me/work/notes.md, see https://example.com/a/b')).toBe('Saved to notes.md, see https://example.com/a/b');
   });
 });

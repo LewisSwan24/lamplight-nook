@@ -19,7 +19,7 @@ export const REPLY_LANGUAGE = `Always reply in ${LANGUAGE}.`;
 
 /** The last reply is shown on the result card, to someone who doesn't write code. */
 export const SUMMARY_RULE = 'End with two or three plain sentences for the user, with no file names, code or colour codes: what you made, '
-  + 'how you followed what they asked (including anything said in a meeting), and anything you left out and why.';
+  + 'and how you followed what they asked (including anything said in a meeting). Mention something you left out only if they asked for it. Say nothing about how the shop worked: helpers, research, design or review.';
 
 const HOUSE_RULES = [
   'Work only inside the current folder.',
