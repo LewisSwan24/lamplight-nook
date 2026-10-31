@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
@@ -54,4 +55,24 @@ export function locateClaude(): string | undefined | null {
 /** The official one-line installer (code.claude.com/docs/en/setup); no administrator rights needed. */
 export function installCommand(platform: NodeJS.Platform): string {
   return platform === 'win32' ? 'irm https://claude.ai/install.ps1 | iex' : 'curl -fsSL https://claude.ai/install.sh | bash';
+}
+
+/** The same official installer, as a program and its arguments, so the app can run it for people who'd rather not. */
+export function installerProcess(platform: NodeJS.Platform): { file: string; args: string[] } {
+  return platform === 'win32'
+    ? { file: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', installCommand(platform)] }
+    : { file: '/bin/bash', args: ['-c', installCommand(platform)] };
+}
+
+/** How long the installer may take before we give up and point at the manual steps. */
+const INSTALL_TIMEOUT_MS = 10 * 60_000;
+
+/** Run the official installer out of sight. Resolves with whether it exited cleanly, and the tail of its output for the log. */
+export function runInstaller(platform: NodeJS.Platform = process.platform): Promise<{ ok: boolean; output: string }> {
+  const { file, args } = installerProcess(platform);
+  return new Promise((resolve) => {
+    execFile(file, args, { windowsHide: true, timeout: INSTALL_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 }, (err, stdout, stderr) => {
+      resolve({ ok: !err, output: `${stdout}\n${stderr}\n${err?.message ?? ''}`.trim().slice(-2000) });
+    });
+  });
 }

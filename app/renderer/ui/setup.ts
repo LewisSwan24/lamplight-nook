@@ -46,7 +46,12 @@ function keyRow(api: LamplightApi, e: EnvStatus, changed: (said?: string) => voi
   } else if (e.keySource === 'subscription') {
     body.append(S.keySubscription);
   } else {
-    body.append(S.keyMissing, ' ', el('button.link', { onclick: () => api.openLink('apiKeys') }, S.keyHow), pasteBox(), status);
+    body.append(S.keyMissing,
+      el('ol.key-steps', {},
+        el('li', {}, S.keyStep1, ' ', el('button.link', { type: 'button', onclick: () => api.openLink('apiKeys') }, S.keyOpenConsole)),
+        el('li', {}, S.keyStep2, ' ', el('button.link', { type: 'button', onclick: () => api.openLink('billing') }, S.keyOpenBilling)),
+        el('li', {}, S.keyStep3)),
+      pasteBox(), status);
   }
   row.append(body);
   return row;
@@ -60,10 +65,26 @@ function claudeSteps(api: LamplightApi, e: EnvStatus): HTMLElement {
     copy.textContent = S.claudeCopied;
     setTimeout(() => { copy.textContent = S.claudeCopy; }, 2000);
   });
-  return el('ol.claude-steps', {},
-    el('li', {}, e.platform === 'win32' ? S.claudeStep1 : S.claudeStep1Mac),
-    el('li', {}, S.claudeStep2, el('div.install-line', {}, el('code', {}, e.installCommand), copy)),
-    el('li', {}, S.claudeStep3, ' ', el('span.watching', {}, S.claudeWatching)));
+  const manual = el('details.claude-manual', {},
+    el('summary', {}, S.claudeManual),
+    el('ol.claude-steps', {},
+      el('li', {}, e.platform === 'win32' ? S.claudeStep1 : S.claudeStep1Mac),
+      el('li', {}, S.claudeStep2, el('div.install-line', {}, el('code', {}, e.installCommand), copy)),
+      el('li', {}, S.claudeStep3, ' ', el('span.watching', {}, S.claudeWatching))),
+    el('button.link', { type: 'button', onclick: () => api.openLink('claudeSetup') }, S.claudeHow)) as HTMLDetailsElement;
+  // The easy way first: the app runs the official installer; the card turns green when it lands.
+  const status = el('div.hint.install-status', { role: 'status' }, S.claudeInstallHint);
+  const install = el('button.sticker', { type: 'button' }, S.claudeInstall) as HTMLButtonElement;
+  install.addEventListener('click', async () => {
+    install.disabled = true;
+    status.textContent = S.claudeInstalling;
+    const ok = await api.installClaude();
+    if (ok) return;
+    install.disabled = false;
+    status.textContent = S.claudeInstallFailed;
+    manual.open = true;
+  });
+  return el('div.claude-install', {}, el('div.install-row', {}, install, status), manual);
 }
 
 /** How often to look for Claude Code while the user is installing it. */
@@ -80,8 +101,7 @@ function envRows(api: LamplightApi, env: EnvStatus, onChange?: (e: EnvStatus) =>
     box.replaceChildren(...[
       el(`div.env-row.${e.hasClaude ? 'ok' : 'missing'}`, {},
         el('span.mark', {}, e.hasClaude ? OK : MISSING),
-        el('div', {}, e.hasClaude ? S.claudeOk : S.claudeMissing, ' ',
-          e.hasClaude ? null : el('button.link', { onclick: () => api.openLink('claudeSetup') }, S.claudeHow),
+        el('div', {}, e.hasClaude ? S.claudeOk : S.claudeMissing,
           e.hasClaude ? null : claudeSteps(api, e))),
       keyRow(api, e, async (next) => render(await api.envStatus(), next)),
       said ? el('div.hint.key-said', {}, said) : null,

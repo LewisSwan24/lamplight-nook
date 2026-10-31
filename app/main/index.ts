@@ -8,7 +8,7 @@ import { fill, locale, strings } from '../shared/i18n';
 import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings, type SourcePick } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
-import { installCommand, locateClaude } from './claude-locator';
+import { installCommand, locateClaude, runInstaller } from './claude-locator';
 import { EDITABLE, MAX_EDIT_BYTES, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, snapshot } from './commission';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
@@ -159,6 +159,16 @@ ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
   return r.filePath;
 });
 ipcMain.handle(IPC.copyInstallCommand, () => clipboard.writeText(installCommand(process.platform)));
+// "Install it for me": the official installer, run once at a time; the setup card notices when Claude Code lands.
+let installing: Promise<boolean> | null = null;
+ipcMain.handle(IPC.installClaude, (): Promise<boolean> => {
+  installing ??= runInstaller().then(({ ok, output }) => {
+    log?.info('claude install', { ok, found: locateClaude() !== null, output });
+    installing = null;
+    return ok && locateClaude() !== null;
+  });
+  return installing;
+});
 ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());

@@ -74,6 +74,8 @@ export interface LamplightApi {
   exportDiagnostics(): Promise<string | null>;
   /** Put the Claude Code install command on the clipboard. */
   copyInstallCommand(): Promise<void>;
+  /** Run the official Claude Code installer; true once Claude Code can be found. */
+  installClaude(): Promise<boolean>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
@@ -163,6 +165,7 @@ export const IPC = {
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
   copyInstallCommand: 'setup:copy-install',
+  installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
