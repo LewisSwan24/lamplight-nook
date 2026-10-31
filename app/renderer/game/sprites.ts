@@ -38,7 +38,7 @@ export const STAFF_ANIMS: Record<string, StaffAnim> = {
 export const STAFF_IDS: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 
 /** Animation key for an actor, animation and facing. */
-export function animKey(actor: ActorId | GuestId, anim: string, facing: Facing): string {
+export function animKey(actor: ActorId | GuestId | `you-${number}`, anim: string, facing: Facing): string {
   const def = STAFF_ANIMS[anim];
   if (!def || def.dirs === 'front') return `${actor}-${anim}`;
   return `${actor}-${anim}-${resolveFacing(def.dirs, facing)}`;

@@ -27,6 +27,9 @@
     "baker": "Auntie Olive",
     "postman": "Pip"
   },
+  "you": {
+    "label": "You"
+  },
   "zones": {
     "window": "the windowsill",
     "board": "the blackboard",
@@ -192,6 +195,7 @@
       "welcomeTitle": "Welcome to Lamplight Nook",
       "welcomeText": "I'm Wick, I run this shop. What should we call you?",
       "namePlaceholder": "e.g. Sam",
+      "welcomeLook": "And pick how you look when you drop by:",
       "next": "Next",
       "checkTitle": "Before we open",
       "claudeOk": "Claude Code is installed.",
@@ -248,6 +252,9 @@
       "trialDone": "OK",
       "settingsTitle": "Settings",
       "nameLabel": "Your name",
+      "lookLabel": "How you look",
+      "lookHint": "This is how you'll look when you drop by with a commission.",
+      "lookN": "Look {n}",
       "folderLabel": "Commissions go in",
       "checkLabel": "Ready to work?",
       "spendLabel": "Spending",
