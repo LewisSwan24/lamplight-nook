@@ -10,7 +10,7 @@ import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
 import { VisitPlanner, pickVisit } from './game/guests';
-import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
+import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
@@ -58,6 +58,7 @@ const game = new Phaser.Game({
 // Integer zoom keeps pixels crisp; leftover space stays dark.
 function fit() {
   game.scale.setZoom(integerScale(window.innerWidth, window.innerHeight));
+  document.documentElement.style.setProperty('--ui', String(uiScale(window.innerWidth, window.innerHeight)));
 }
 window.addEventListener('resize', fit);
 fit();

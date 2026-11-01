@@ -27,7 +27,7 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
       workIconEl(w.icon),
       el('div.work-text', {},
         el('div', {}, el('b', {}, w.title)),
-        el('div.hint', {}, w.date, w.rounds ? ` · ${fill(W.rounds, { n: String(w.rounds) })}` : ''),
+        el('div.hint', {}, w.date, w.rounds ? ` · ${w.rounds === 1 ? W.roundsOne : fill(W.rounds, { n: String(w.rounds) })}` : ''),
         note),
       el('div.work-actions', {},
         el('button.link', { type: 'button', onclick: async () => { if (!(await api.openWork(w.id))) note.textContent = W.gone; } }, W.open),

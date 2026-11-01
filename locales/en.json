@@ -165,6 +165,7 @@
       "tooBig": "That file is a bit big (over 1 MB) for the staff to read in one go. Try a smaller one."
     },
     "want": "What would you like?",
+    "wantMissing": "Write a line about what you'd like first.",
     "details": "Anything particular?",
     "audience": "Who is it for?",
     "detailsPlaceholder": "e.g. works on a phone too, large text",
@@ -412,13 +413,15 @@
     "resultRestored": "Done, this is the last version again.",
     "resultRestoredBack": "Done, this is the changed version again.",
     "resultRestoreFailed": "Couldn't switch; the folder may have been moved.",
-    "resultRound": "Round {n} of changes",
+    "resultRound": "after {n} rounds of changes",
+    "resultRoundOne": "after one round of changes",
     "shelf": {
       "title": "The works shelf",
       "text": "Everything we've made together ends up here.",
       "open": "Open",
       "revise": "Change it a bit",
       "rounds": "changed {n} times",
+      "roundsOne": "changed once",
       "gone": "Can't find it; it may have been moved or deleted."
     },
     "mini": {

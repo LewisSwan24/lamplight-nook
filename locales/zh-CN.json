@@ -165,6 +165,7 @@
       "tooBig": "这个文件有点大（超过 1MB），店员们一次看不完，换个小一点的吧。"
     },
     "want": "想做什么",
+    "wantMissing": "先写一句想做什么。",
     "details": "有什么讲究",
     "audience": "给谁用",
     "detailsPlaceholder": "比如：手机上也要好用，字大一点",
@@ -412,13 +413,15 @@
     "resultRestored": "换好了，现在是上一版。",
     "resultRestoredBack": "换好了，现在是改过的那版。",
     "resultRestoreFailed": "没换成，文件夹可能被挪动过。",
-    "resultRound": "第 {n} 回改",
+    "resultRound": "改过 {n} 回",
+    "resultRoundOne": "改过 1 回",
     "shelf": {
       "title": "作品架",
       "text": "一起做过的东西，都摆在这儿了。",
       "open": "打开",
       "revise": "接着改",
       "rounds": "改过 {n} 回",
+      "roundsOne": "改过 1 回",
       "gone": "找不到了，可能被挪走或删掉了。"
     },
     "mini": {

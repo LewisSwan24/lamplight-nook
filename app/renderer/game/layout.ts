@@ -112,6 +112,15 @@ export function integerScale(viewW: number, viewH: number): number {
   return Math.max(1, Math.floor(Math.min(viewW / CANVAS.width, viewH / CANVAS.height)));
 }
 
+/**
+ * How much the cards and text grow on a big window: 1 up to 1280x720, then with the window, in steps of
+ * 0.05, up to 1.75 (a full-screen 4K window at 100% scaling). Small windows keep 1 so text stays readable.
+ */
+export function uiScale(viewW: number, viewH: number): number {
+  const s = Math.min(viewW / 1280, viewH / 720);
+  return Math.min(1.75, Math.max(1, Math.floor(s * 20) / 20));
+}
+
 const A = strings.actors;
 
 /** `height` is how tall the visible sprite is above the feet, for placing name labels and bubbles. */

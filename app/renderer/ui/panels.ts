@@ -98,6 +98,9 @@ const BLANK = /\u2026\u2026|\.\.\./;
 export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budgetUsd = 0): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
+    // The empty-box reminder in the shop's own words (and language), not the browser's.
+    want.addEventListener('invalid', () => want.setCustomValidity(U.wantMissing));
+    want.addEventListener('input', () => want.setCustomValidity(''));
     const details = el('input', { type: 'text', placeholder: U.detailsPlaceholder }) as HTMLInputElement;
     const audience = el('input', { type: 'text', placeholder: U.audiencePlaceholder }) as HTMLInputElement;
     let chosen: (typeof TEMPLATES)[number] | null = TEMPLATES[0];
@@ -228,7 +231,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   });
   const card = el('div.card.paper.result-card', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${fill(U.resultRound, { n: String(result.round) })}`) : null),
+    el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${result.round === 1 ? U.resultRoundOne : fill(U.resultRound, { n: String(result.round) })}`) : null),
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
     el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,

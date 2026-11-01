@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AISLE_Y, ANCHORS, CANVAS, ZONES, integerScale, pathBetween, standPoint } from '../app/renderer/game/layout';
+import { AISLE_Y, ANCHORS, CANVAS, ZONES, integerScale, pathBetween, uiScale, standPoint } from '../app/renderer/game/layout';
 
 describe('scene layout', () => {
   it('all 7 zones fit on the canvas and have anchors', () => {
@@ -44,5 +44,15 @@ describe('scene layout', () => {
 
   it('no movement when already there', () => {
     expect(pathBetween(ANCHORS.door, 'door')).toEqual([]);
+  });
+});
+
+describe('card and text size', () => {
+  it('stays at 1 up to 1280x720 and grows with bigger windows, within limits', () => {
+    expect(uiScale(960, 540)).toBe(1);
+    expect(uiScale(1280, 720)).toBe(1);
+    expect(uiScale(1920, 1080)).toBe(1.5);
+    expect(uiScale(1920, 600)).toBe(1);
+    expect(uiScale(3840, 2160)).toBe(1.75);
   });
 });
