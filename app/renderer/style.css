@@ -8,10 +8,10 @@ body.debug #debug { display: block; }
 #debug pre { white-space: pre-wrap; max-height: 260px; overflow: auto; font-size: 11px; background: #fff; padding: 4px; }
 #env.missing { color: #c8322b; font-weight: bold; }
 #labels { position: absolute; inset: 0; pointer-events: none; }
-.label { position: absolute; white-space: nowrap; font-size: 13px; line-height: 1; }
-.label.zone { color: #222; font-weight: bold; transform: translate(-50%, -100%); background: rgba(251, 246, 236, 0.8); padding: 1px 4px; border-radius: 3px; }
-.label.actor { color: #222; font-weight: bold; transform: translate(-50%, -100%); background: rgba(251, 246, 236, 0.8); padding: 1px 4px; border-radius: 3px; }
-.label.bubble { color: #2e2219; transform: translate(-50%, -100%); background: #fffdf7; border: 1px solid #8a6a4a; padding: 3px 8px; border-radius: 10px 12px 10px 4px; font-family: var(--hand); font-size: 16px; box-shadow: 0 2px 0 rgba(59, 42, 30, 0.25); display: flex; align-items: center; gap: 4px; }
+.label { position: absolute; white-space: nowrap; font-size: 13px; line-height: 1; transform-origin: 50% 100%; }
+.label.zone { color: #222; font-weight: bold; transform: translate(-50%, -100%) scale(var(--ui, 1)); background: rgba(251, 246, 236, 0.8); padding: 1px 4px; border-radius: 3px; }
+.label.actor { color: #222; font-weight: bold; transform: translate(-50%, -100%) scale(var(--ui, 1)); background: rgba(251, 246, 236, 0.8); padding: 1px 4px; border-radius: 3px; }
+.label.bubble { color: #2e2219; transform: translate(-50%, -100%) scale(var(--ui, 1)); background: #fffdf7; border: 1px solid #8a6a4a; padding: 3px 8px; border-radius: 10px 12px 10px 4px; font-family: var(--hand); font-size: 16px; box-shadow: 0 2px 0 rgba(59, 42, 30, 0.25); display: flex; align-items: center; gap: 4px; }
 .label.bubble.icon-only { background: none; border: none; padding: 0; }
 /* Pixel mood bubbles (assets/ui/emotes.png): a 16x16 window; the strip behind it alternates two frames and pops in. */
 .emote { --px: var(--emote-px-small); display: inline-block; width: calc(16 * var(--px)); height: calc(16 * var(--px)); overflow: hidden; flex: none; animation: emote-pop 220ms ease-out; transform-origin: 50% 100%; }
@@ -59,7 +59,7 @@ body.debug #debug { display: block; }
   box-shadow: inset 0 0 18px rgba(181, 101, 59, 0.16), inset 0 0 3px rgba(122, 82, 54, 0.25);
   filter: url(#wc-edge) drop-shadow(0 8px 18px rgba(0, 0, 0, 0.28));
 }
-.card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, 90vw); padding: 16px 18px; font-size: 15px; line-height: 1.6; }
+.card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(90vw / var(--ui, 1))); padding: 16px 18px; font-size: 15px; line-height: 1.6; }
 .card-title { font-family: var(--hand); font-size: 21px; line-height: 1.3; margin-bottom: 6px; }
 .card .close, .parcel .close { position: absolute; right: 8px; top: 6px; border: none; background: none; font-size: 20px; cursor: pointer; color: var(--ink); }
 .card .quote { font-style: italic; margin: 4px 0 8px; }
@@ -89,7 +89,7 @@ body.debug #debug { display: block; }
 .commission textarea:focus, .commission input:focus, .meeting textarea:focus, .welcome input:focus, .settings input:focus { outline: none; border-bottom-color: var(--accent) !important; background: rgba(255, 253, 248, 0.95) !important; }
 .commission textarea, .commission input, .meeting textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 6px; border-radius: 8px; border: 1px solid #c9b79f; background: #fffdf8; }
 /* Template stickers on the commission form: small, and the picked one is tinted like the default button. */
-.commission { width: min(480px, 92vw); }
+.commission { width: min(480px, calc(92vw / var(--ui, 1))); }
 .template-row { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 4px 0 2px; }
 .commission button.template-chip { font-size: 15px; padding: 3px 11px; }
 .commission button.template-chip.on { color: #fff; }
@@ -104,7 +104,7 @@ body.debug #debug { display: block; }
 /* Decision dialog: background dimmed 40% */
 .backdrop { position: absolute; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; }
 /* Decisions sit above every other card (z-index 30), so a card opened later can never hide one. */
-.dialog { position: relative; width: min(520px, 92vw); padding: 20px 22px; }
+.dialog { position: relative; width: min(520px, calc(92vw / var(--ui, 1))); padding: 20px 22px; }
 .dialog .who { font-family: var(--hand); font-size: 17px; color: var(--accent); }
 .dialog .question { font-family: var(--hand); font-size: 22px; line-height: 1.35; margin: 4px 0; }
 .dialog .reason { font-size: 13px; opacity: 0.8; }
@@ -118,7 +118,7 @@ body.debug #debug { display: block; }
 .sticker.default::before { box-shadow: inset 0 0 0 2px rgba(181, 101, 59, 0.55), inset 0 0 6px rgba(122, 82, 54, 0.28), 0 2px 0 rgba(59, 42, 30, 0.18); }
 
 /* Serious card: deliberately plain and flat, not watercolor */
-.serious { width: min(480px, 92vw); background: #fff; color: #111; border: 2px solid var(--serious); border-radius: 4px; padding: 18px 20px; font-size: 15px; }
+.serious { width: min(480px, calc(92vw / var(--ui, 1))); background: #fff; color: #111; border: 2px solid var(--serious); border-radius: 4px; padding: 18px 20px; font-size: 15px; }
 .serious-title { font-weight: bold; color: var(--serious); font-size: 17px; margin-bottom: 10px; }
 .serious dl { margin: 0; }
 .serious dt { font-weight: bold; margin-top: 6px; }
@@ -142,6 +142,10 @@ body.debug #debug { display: block; }
 .board .step { white-space: nowrap; overflow: hidden; }
 .board .step.todo { opacity: 0.55; }
 .board .step.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }
+.result-more { justify-content: flex-start; margin-top: 6px; }
+.result-more button { font-size: 0.92em; }
+.result-card .actions button { white-space: nowrap; }
+.result-restored:empty { display: none; }
 .result-summary { max-height: 9.5em; overflow-y: auto; margin: 4px 0 8px; line-height: 1.6; }
 .result-file { margin-bottom: 2px; }
 .parcel { position: absolute; right: 24px; bottom: 24px; width: 260px; padding: 10px 28px 10px 12px; font-size: 13px; cursor: pointer; }
@@ -167,8 +171,8 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .folder-row .actions { margin-top: 6px; }
 .volume-row input[type=range] { width: 100%; accent-color: #b5653a; margin: 6px 0 2px; }
 .volume-row .hint { font-size: 12px; color: #7a6a58; }
-.settings { width: min(480px, 92vw); }
-.settings-body { max-height: calc(86vh - 70px); overflow: auto; padding-right: 6px; }
+.settings { width: min(480px, calc(92vw / var(--ui, 1))); }
+.settings-body { max-height: calc((86vh / var(--ui, 1)) - 70px); overflow: auto; padding-right: 6px; }
 .settings section { margin-top: 10px; }
 .settings h4 { margin: 0 0 2px; font-family: var(--hand); font-weight: normal; font-size: 17px; opacity: 0.85; }
 .settings .about { font-size: 13px; }
@@ -176,7 +180,7 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .tool-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(59, 42, 30, 0.4); background: rgba(251, 244, 230, 0.75); color: var(--ink); font-size: 16px; line-height: 1; cursor: pointer; opacity: 0.6; padding: 0; }
 .tool-btn:hover, .tool-btn:focus-visible, .tool-btn[aria-pressed="true"] { opacity: 1; }
 .tool-btn[aria-pressed="true"] { background: #fff3e2; border-color: var(--accent); }
-.detail-strip { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(640px, 80vw); padding: 6px 12px; background: rgba(27, 23, 18, 0.72); color: #f1ede0; border-radius: 8px; font-size: 13px; line-height: 1.5; pointer-events: none; }
+.detail-strip { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(640px, calc(80vw / var(--ui, 1))); padding: 6px 12px; background: rgba(27, 23, 18, 0.72); color: #f1ede0; border-radius: 8px; font-size: 13px; line-height: 1.5; pointer-events: none; }
 .detail-strip:empty { display: none; }
 .detail-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail-line b { color: #ffd27a; font-weight: normal; }
@@ -208,14 +212,14 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 @keyframes teacup { to { background-position-x: -288px; } }
 
 /* Accessibility (design 9): caption bar and log, keyboard hotspots over the scene, less motion. */
-.caption-bar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(640px, 80vw); padding: 6px 14px; background: rgba(251, 246, 236, 0.94); color: #2e2219; border: 1px solid #8a6a4a; border-radius: 8px; font-family: var(--hand); font-size: 17px; line-height: 1.5; pointer-events: none; }
+.caption-bar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(640px, calc(80vw / var(--ui, 1))); padding: 6px 14px; background: rgba(251, 246, 236, 0.94); color: #2e2219; border: 1px solid #8a6a4a; border-radius: 8px; font-family: var(--hand); font-size: 17px; line-height: 1.5; pointer-events: none; }
 .caption-bar:empty { display: none; }
 /* Sits above the detail strip when both are showing (the strip is mounted first). */
 .detail-strip:not([hidden]):not(:empty) ~ .caption-bar { bottom: 92px; }
-.street-open .detail-strip, .street-open .caption-bar { left: 24px; transform: none; width: min(560px, 55vw); }
+.street-open .detail-strip, .street-open .caption-bar { left: 24px; transform: none; width: min(560px, calc(55vw / var(--ui, 1))); }
 .caption-line b { color: #8a4b2a; margin-right: 2px; }
-.caption-card { width: min(520px, 86vw); }
-.caption-list { max-height: 50vh; overflow-y: auto; font-family: var(--hand); font-size: 16px; line-height: 1.6; padding-right: 6px; }
+.caption-card { width: min(520px, calc(86vw / var(--ui, 1))); }
+.caption-list { max-height: calc(50vh / var(--ui, 1)); overflow-y: auto; font-family: var(--hand); font-size: 16px; line-height: 1.6; padding-right: 6px; }
 .caption-time { color: #9a8a76; font-family: inherit; font-size: 12px; }
 .hotspots { pointer-events: none !important; }
 .hotspot { position: fixed; padding: 0; margin: 0; background: transparent; border: none; opacity: 0; pointer-events: none; }
@@ -226,18 +230,18 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }
 
 /* Adeng's notebook (M3.2): lined pages of what the shop remembers. */
-.notebook { width: min(560px, 88vw); }
-.notebook-pages { max-height: 46vh; overflow-y: auto; margin: 8px 0; padding: 4px 10px; font-family: var(--hand); font-size: 16px; line-height: 1.7;
+.notebook { width: min(560px, calc(88vw / var(--ui, 1))); }
+.notebook-pages { max-height: calc(46vh / var(--ui, 1)); overflow-y: auto; margin: 8px 0; padding: 4px 10px; font-family: var(--hand); font-size: 16px; line-height: 1.7;
   background-image: repeating-linear-gradient(transparent 0 26px, rgba(138, 106, 74, 0.18) 26px 27px); }
 .notebook-pages ul { margin: 0; padding-left: 18px; }
 .notebook-pages h4 { margin: 6px 0 2px; }
 .notebook-date { color: #9a8a76; font-size: 12px; }
-.notebook-open { margin-left: 10px; }
+.notebook-open, .notebook-revise { margin-left: 10px; }
 .notebook-choice { color: #6b5a48; font-size: 14px; padding-left: 4px; }
 .notebook-empty { color: #7a6a58; padding: 12px 0; }
 .notebook-warn { flex-basis: 100%; color: #8a3b2a; font-size: 14px; margin-bottom: 4px; }
 .notebook .actions { flex-wrap: wrap; align-items: center; }
-.meeting { width: min(460px, 86vw); }
+.meeting { width: min(460px, calc(86vw / var(--ui, 1))); }
 /* What the user writes sits beside their own portrait, on the right, like the other half of a talk. */
 .you-says { flex-direction: row-reverse; align-items: center; margin-top: 10px; }
 .you-says textarea { flex: 1; min-width: 0; }
@@ -261,15 +265,41 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .install-line { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
 .install-line code { flex: 1; min-width: 0; word-break: break-all; padding: 4px 8px; border-radius: 6px; background: rgba(43, 33, 24, 0.86); color: #f6ead6; font-family: ui-monospace, Consolas, monospace; font-size: 13px; user-select: all; }
 .claude-steps .watching { opacity: 0.7; font-style: italic; }
-.notice-card { width: min(560px, 92vw); }
+.notice-card { width: min(560px, calc(92vw / var(--ui, 1))); }
 .trial-offer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(122, 82, 54, 0.35); font-size: 14px; }
 /* Privacy, terms and licenses: a reading sheet over whatever card is open. */
 .legal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: 20; }
-.card.legal { width: min(600px, 92vw); }
-.legal-body { max-height: calc(80vh - 110px); overflow: auto; padding-right: 8px; }
+.card.legal { width: min(600px, calc(92vw / var(--ui, 1))); }
+.legal-body { max-height: calc((80vh / var(--ui, 1)) - 110px); overflow: auto; padding-right: 8px; }
 .legal-text p { margin: 0 0 8px; font-size: 14px; }
 .legal-text h5 { margin: 12px 0 4px; font-family: var(--hand); font-size: 17px; font-weight: normal; }
 .legal-text p:first-child { opacity: 0.7; font-size: 12px; }
 pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; line-height: 1.45; margin: 0; font-family: Consolas, 'Courier New', monospace; }
 .legal-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; }
 .legal-line { margin-top: 10px; }
+.shelf-card { width: min(480px, calc(88vw / var(--ui, 1))); }
+.works { list-style: none; margin: 10px 0 0; padding: 0; max-height: calc(46vh / var(--ui, 1)); overflow-y: auto; }
+.work { display: flex; align-items: center; gap: 12px; padding: 7px 2px; border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
+.work-icon { flex: none; image-rendering: pixelated; background-repeat: no-repeat; }
+.work-text { flex: 1; min-width: 0; }
+.work-actions { display: flex; gap: 10px; flex: none; }
+.notebook-days li { list-style: none; }
+
+/* Where the shop is (ui/scenes.ts): two little pictures of the rooms. */
+.scene-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.scene-choice { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 4px 3px; background: rgba(255, 253, 248, 0.6); border: 1px solid rgba(122, 82, 54, 0.3); border-radius: 10px; cursor: pointer; font: inherit; color: inherit; }
+.scene-choice:hover { background: rgba(255, 253, 248, 0.95); }
+.scene-choice.picked { border-color: #b5653b; box-shadow: 0 0 0 2px rgba(181, 101, 59, 0.35); background: #fffdf8; }
+.scene-picture { display: block; width: 160px; height: 90px; image-rendering: pixelated; border-radius: 6px; }
+.scene-name { font-size: 0.9em; }
+/* The staff carrying boxes to the other room, just before the page reloads. */
+.moving { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 18px 22px; z-index: 50; pointer-events: auto; animation: emote-pop 220ms ease-out; }
+
+/* On a big window the cards, toolbar and notes grow with the scene (main.ts sets --ui from the window size),
+   so text keeps its size relative to the pixel art. Labels over the scene scale the same way (above). */
+.card, .dialog, .serious, .toolbar, .parcel, .detail-strip, .caption-bar, .moving { zoom: var(--ui, 1); }
+/* Cards with a long list never run off a small window: the card stops at the window's height and only its
+   list scrolls (the paper behind it keeps covering the whole card). */
+.notebook, .settings, .shelf-card, .caption-card, .card.legal { display: flex; flex-direction: column; box-sizing: border-box; max-height: calc(94vh / var(--ui, 1)); }
+.notebook > *, .settings > *, .shelf-card > *, .caption-card > *, .card.legal > * { flex-shrink: 0; }
+.notebook > .notebook-pages, .settings > .settings-body, .shelf-card > .works, .caption-card > .caption-list, .card.legal > .legal-body { flex: 0 1 auto; min-height: 0; }

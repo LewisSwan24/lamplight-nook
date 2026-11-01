@@ -165,6 +165,7 @@
       "tooBig": "That file is a bit big (over 1 MB) for the staff to read in one go. Try a smaller one."
     },
     "want": "What would you like?",
+    "wantMissing": "Write a line about what you'd like first.",
     "details": "Anything particular?",
     "audience": "Who is it for?",
     "detailsPlaceholder": "e.g. works on a phone too, large text",
@@ -175,6 +176,7 @@
     "demoFill": "Make me a little expense tracker page where I can note what I spend each day.",
     "resultTitle": "All done",
     "resultCost": "This one cost about {cost}.",
+    "resultCostTotal": "All rounds together cost about {cost}.",
     "openInBrowser": "Open in browser",
     "openFile": "Open",
     "openFolder": "Show in folder",
@@ -318,7 +320,9 @@
       "drop": "No thanks",
       "closeTitle": "A commission is still going",
       "closeText": "If you close now the staff will stop. You can carry on next time you open Lamplight Nook.",
-      "stopAndClose": "Stop and close"
+      "stopAndClose": "Stop and close",
+      "goneTitle": "Can't find that commission's folder",
+      "goneText": "It may have been moved or deleted. If you still want it, hand in a new commission."
     },
     "toolbar": {
       "label": "Shop switches",
@@ -341,7 +345,8 @@
       "hotspotBell": "Meeting bell: call everyone to the big table",
       "hotspotGarden": "Back door: look out at the garden",
       "hotspotShop": "Back door: go back inside",
-      "hotspotHens": "The hens: toss them some grain"
+      "hotspotHens": "The hens: toss them some grain",
+      "hotspotWorks": "The works shelf: see what we made together"
     },
     "notebook": {
       "sectionLabel": "Wick's notebook",
@@ -358,10 +363,15 @@
       "openFolder": "See what was made",
       "stuckLine": "{commission}: got stuck on {note}",
       "forget": "Forget everything",
-      "forgetConfirm": "Really forget everything? It can't be brought back.",
+      "forgetConfirm": "Really forget everything? It can't be brought back, and what the shop gathered gets packed away too.",
       "forgetYes": "Forget",
       "keep": "Keep it",
-      "forgotten": "OK, it's all crossed out. Your name is still in Settings; change it any time."
+      "forgotten": "OK, it's all crossed out. Your name is still in Settings; change it any time.",
+      "revise": "Change it a bit",
+      "asked": "Changed later: {ask}",
+      "days": "Days at the shop",
+      "doneCount": "Commissions finished together: {n}.",
+      "grewLine": "the shop got {item}"
     },
     "tray": {
       "sectionLabel": "When you're away",
@@ -387,6 +397,54 @@
       "listing": "file-list.txt",
       "originalPrefix": "original-",
       "revisedPrefix": "revised-"
+    },
+    "revise": {
+      "title": "Change it a bit",
+      "text": "What's not quite right? Tell us and we'll work from this version.",
+      "placeholder": "e.g. a lighter colour, bigger buttons",
+      "keep": "We'll keep a copy of this version first, so you can go back to it.",
+      "send": "Hand it to Wick",
+      "never": "Leave it as is",
+      "oldFolder": "\"{title}\""
+    },
+    "resultRevise": "Change it a bit",
+    "resultRestore": "Go back to the last version",
+    "resultRestoreBack": "Go back to the changed version",
+    "resultRestored": "Done, this is the last version again.",
+    "resultRestoredBack": "Done, this is the changed version again.",
+    "resultRestoreFailed": "Couldn't switch; the folder may have been moved.",
+    "resultRound": "after {n} rounds of changes",
+    "resultRoundOne": "after one round of changes",
+    "shelf": {
+      "title": "The works shelf",
+      "text": "Everything we've made together ends up here.",
+      "open": "Open",
+      "revise": "Change it a bit",
+      "rounds": "changed {n} times",
+      "roundsOne": "changed once",
+      "gone": "Can't find it; it may have been moved or deleted."
+    },
+    "mini": {
+      "toggle": "Keep a small window in the corner while the shop is out of sight",
+      "title": "Lamplight Nook mini",
+      "idle": "Quiet in the shop. Tea time.",
+      "working": "Busy: {what}",
+      "waiting": "Wick needs your call. Click to go back in.",
+      "serious": "⚠ A step needs your OK. Click to go back in.",
+      "done": "All done. Click to have a look.",
+      "failed": "Didn't work out. Click to go back in.",
+      "open": "Back to the shop"
+    },
+    "scene": {
+      "label": "Where the shop is",
+      "cafe": "The corner shop",
+      "study": "The study at home",
+      "cafeAbout": "A little café on the street: counter, blackboard and big worktable.",
+      "studyAbout": "Moved into the study at home: desk, bookcase and reading table, the street below the window.",
+      "here": "You're here",
+      "move": "Move there",
+      "moving": "Everyone's moving house. Just a moment…",
+      "busy": "A commission is under way. Move once it's done."
     }
   },
   "states": {
@@ -456,5 +514,38 @@
       "# 7. Refunds and changes",
       "Refunds follow the Microsoft Store's policy. If these terms change, they are updated with a new version and the date above changes; using Lamplight Nook after that means you accept the new terms."
     ]
+  },
+  "growth": {
+    "painting": "a little landscape painting",
+    "plant": "a pot plant",
+    "lights": "a string of fairy lights",
+    "fruit": "a bowl of fruit",
+    "guitar": "the guitar Flint mended",
+    "bonsai": "a bonsai",
+    "easel": "Iris's easel",
+    "trophy": "a little trophy"
+  },
+  "sceneText": {
+    "study": {
+      "zones": {
+        "window": "the windowsill",
+        "shelf": "the bookcase",
+        "table": "the reading table",
+        "corner": "Flint's workbench",
+        "counter": "the desk",
+        "door": "the door",
+        "shop": "back to the study"
+      },
+      "ui": {
+        "setup": {
+          "laterHint": "Not ready? That's fine, come in anyway. Click the desk to watch a trial run.",
+          "greetHint": "Need something? Write it on the slip at the desk."
+        },
+        "access": {
+          "hotspotCounter": "Desk: hand in a commission",
+          "hotspotShop": "Back door: to the study"
+        }
+      }
+    }
   }
 }

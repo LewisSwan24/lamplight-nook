@@ -96,6 +96,43 @@ export function commissionPrompt(form: CommissionForm, notes?: string): string {
   return withNotes(`${body}\n\n${HOUSE_RULES}`, notes);
 }
 
+/** How a round of changes ends: what changed, in plain words. */
+export const REVISE_SUMMARY_RULE = 'End with two or three plain sentences for the user, with no file names, code or colour codes: what you changed '
+  + 'and how it follows what they asked. Say nothing about how the shop worked: helpers, research, design or review.';
+
+/** House rules for a round of changes: lighter than a new commission, no fresh design pass for a small tweak. */
+const REVISE_RULES = [
+  'Work only inside the current folder.',
+  'Change the existing files rather than starting over, and keep their names. Leave alone anything the change does not need.',
+  'When looking things up would help, send the researcher subagent; do not research yourself.',
+  'If the change reshapes how it looks (a new layout or colour scheme, not a small tweak), send the designer subagent first and follow its proposal.',
+  'When a choice is genuinely up to the user, ask with the AskUserQuestion tool instead of guessing.',
+  'If the change is more than a small tweak, send the reviewer subagent to check the result before finishing.',
+  `Write the user-facing page text in ${LANGUAGE}.`,
+  REVISE_SUMMARY_RULE,
+  REPLY_LANGUAGE,
+].join('\n');
+
+/** A round of changes: the user's words, what the work was, and whether the folder was rolled back since. */
+export type Revision = { ask: string; form: CommissionForm; summary?: string; restored?: boolean };
+
+/**
+ * Prompt for changing finished work. With the earlier session resumed the agent remembers the work;
+ * without it (the session is gone, or it is an old entry), it is told what the work was and finds it in the folder.
+ */
+export function revisePrompt(r: Revision, resumed: boolean, notes?: string): string {
+  const ask = `The user has looked at the finished work and asks for a change: "${r.ask}"`;
+  const restored = r.restored ? ['Since your last round the user went back to the previous version of the files: work from the folder as it is now.'] : [];
+  if (resumed) return [ask, ...restored, '', REVISE_RULES].join('\n');
+  const before = [`Earlier the shop made this for the user. Their original request: ${r.form.demo ? strings.demo.brief : r.form.want}`];
+  if (r.form.details) before.push(`Particulars: ${r.form.details}`);
+  if (r.form.audience) before.push(`Who it is for: ${r.form.audience}`);
+  if (r.summary) before.push(`What the shop said it made: ${r.summary}`);
+  before.push('The files are in this folder: look at them first.');
+  const steps = r.form.template && r.form.template !== 'research' ? templateSteps(r.form) : [];
+  return withNotes([...before, ...steps, '', ask, '', REVISE_RULES].join('\n'), notes);
+}
+
 /** What the user said in a meeting, sent to the running commission. */
 export function meetingNote(text: string): string {
   return [
@@ -110,9 +147,9 @@ export function meetingNote(text: string): string {
  * Prompt for a commission that stopped part-way (network failure, crash, app closed).
  * With the earlier session resumed the agent has its own history; without it, it starts over from the folder.
  */
-export function continuePrompt(form: CommissionForm, resumed: boolean, notes?: string): string {
+export function continuePrompt(form: CommissionForm, resumed: boolean, notes?: string, revision?: Revision): string {
   if (resumed) return `The commission stopped part-way. Continue from where you left off and finish it.\n${REPLY_LANGUAGE}`;
-  const original = form.demo ? demoPrompt(form, notes) : commissionPrompt(form, notes);
+  const original = revision ? revisePrompt(revision, false, notes) : form.demo ? demoPrompt(form, notes) : commissionPrompt(form, notes);
   return `${original}\n\nAn earlier attempt was interrupted. Files it made may already be in this folder: look at them first and continue from them instead of starting over.`;
 }
 

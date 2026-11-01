@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
-import { pickLocale, setLocale } from '../shared/i18n';
+import { locale, pickLocale, setLocale } from '../shared/i18n';
 
 /** The language chosen in settings, read straight from the file (the settings store isn't up yet). */
 function chosen(): unknown {
@@ -22,3 +22,6 @@ function systemLanguages(): string[] {
 
 // LAMPLIGHT_LANG overrides everything, for screenshots and tests.
 setLocale(pickLocale(process.env.LAMPLIGHT_LANG ?? chosen(), systemLanguages()));
+
+// Chromium's own bits of text (a form's "please fill out this field", the text-box menu) in the same language.
+app.commandLine.appendSwitch('lang', locale());

@@ -5,6 +5,11 @@
 
 # Lines that bring up memory come first, so they win whenever their condition holds (at most one per commission).
 opening:
+  # A round of changes to finished work (`revise`); `revise_again` when there was a round before it.
+  - { id: revise_again_01, speaker: adeng, when: revise_again, bubbles: ["上回改的是{lastAsk}。", "这回是{brief}，记下了。"], reply: { speaker: xiaoju, bubbles: ["我去把旧稿收起来！"] } }
+  - { id: revise_01, speaker: adeng, when: revise, bubbles: ["{brief}……嗯，记下了。", "就在原来那版上改。"], reply: { speaker: laoshi, bubbles: ["旧的留一份。"] } }
+  - { id: revise_02, speaker: adeng, when: revise, bubbles: ["回头再看，是该动一动。", "{brief}，这就改。"] }
+  - { id: revise_03, speaker: adeng, when: revise, bubbles: ["旧稿我先收好。", "{brief}，改完拿给你看。"] }
   - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["{brief}……嗯，好。", "上回在{stuckNote}卡过一次。", "这次我先盯着点。"] }
   - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["{brief}……嗯，好。", "上次你选了{lastChoice}。", "这次也先照这个来，不合适再说。"] }
   - { id: opening_01, speaker: adeng, bubbles: ["{brief}……嗯，好。", "小橘，老石，来活儿了。"] }
@@ -156,6 +161,11 @@ idle_mutter:
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["……歪了。"] }
   - { id: idle_qingdai, speaker: qingdai, bubbles: ["这面墙刷成豆绿就好了。"] }
   - { id: idle_qingdai_02, speaker: qingdai, bubbles: ["粉笔又短了一截。"] }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: idle_adeng, scene: study, speaker: adeng, bubbles: ["书桌抽屉又卡住了。"] }
+  - { id: idle_study_xiaoju, scene: study, speaker: xiaoju, bubbles: ["沙发比店里的椅子软多了。"] }
+  - { id: idle_study_laoshi, scene: study, speaker: laoshi, bubbles: ["这块地板会响。"] }
+  - { id: idle_study_qingdai, scene: study, speaker: qingdai, bubbles: ["书按颜色排才好看。"] }
 
 # A meeting at the big table (the bell on the counter). Replies from someone out on an errand are left out.
 meeting_call:
@@ -186,6 +196,8 @@ app_open:
   - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，新年好。", "门上的福是小橘贴的。"] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}，来啦。", "上次那个{lastCommission}还好用吗？"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["来啦。怎么称呼你？"] }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: open_01, scene: study, speaker: adeng, bubbles: ["{name}，来啦。", "随便坐，这儿是家里。"] }
 
 app_close:
   - { id: close_01, speaker: adeng, bubbles: ["好，那我们收拾一下。"] }
@@ -229,3 +241,19 @@ garden:
   - { id: garden_leaves_adeng, speaker: adeng, when: sky_leaves, bubbles: ["叶子又落了一地。"] }
   - { id: garden_leaves_laoshi, speaker: laoshi, when: sky_leaves, bubbles: ["叶子。", "扫了也白扫。"] }
   - { id: garden_petals_xiaoju, speaker: xiaoju, when: sky_petals, bubbles: ["花瓣掉进我茶里了。"] }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: garden_flowers_adeng, scene: study, speaker: adeng, when: spot_flowers, bubbles: ["明天剪几枝放书桌上。"] }
+
+# Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
+grow:
+  - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["墙上挂了幅小画。", "第一单做完那天买的。"] }
+  - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["柜台上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
+  - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["窗上挂了串小灯。", "晚上看，店里暖一点。"] }
+  - { id: grow_fruit, speaker: xiaoju, when: grow_fruit, bubbles: ["大桌上有水果了！", "橘子是我的。"] }
+  - { id: grow_guitar, speaker: laoshi, when: grow_guitar, bubbles: ["吉他修好了。", "弦是新换的。"] }
+  - { id: grow_bonsai, speaker: adeng, when: grow_bonsai, bubbles: ["书架上那盆是街坊送的。", "说我们太忙，该养盆慢的。"] }
+  - { id: grow_easel, speaker: qingdai, when: grow_easel, bubbles: ["我的画架搬过来了。", "有空就画两笔。"] }
+  - { id: grow_trophy, speaker: xiaoju, when: grow_trophy, bubbles: ["这个小奖杯是我做的！", "给做完二十单的我们。"], reply: { speaker: laoshi, bubbles: ["歪的。"] } }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
+  - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["阅读桌上有水果了！", "橘子是我的。"] }

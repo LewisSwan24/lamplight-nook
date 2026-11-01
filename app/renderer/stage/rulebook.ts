@@ -7,17 +7,20 @@ import zhChats from '../../../lines/chats.yaml?raw';
 import enLines from '../../../lines/en/cafe.yaml?raw';
 import enChats from '../../../lines/en/chats.yaml?raw';
 import { locale } from '../../shared/i18n';
-import { type Chat, type LineLibrary, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
+import { currentScene } from '../../shared/scenes';
+import { type Chat, type LineLibrary, chatsForScene, linesForScene, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
 import { parseAnimTable, parseRules, type AnimTable, type Rule } from '../translator/translator';
 
 export type RuleBook = { rules: Rule[]; anims: AnimTable; lines: LineLibrary; chats: Chat[] };
 
 function build(r: string, a: string, l: string, c: string): RuleBook {
-  const lines = parseLines(l);
-  const chats = parseChats(c);
-  const problems = [...lintLines(lines), ...lintChats(chats)];
+  const allLines = parseLines(l);
+  const allChats = parseChats(c);
+  const problems = [...lintLines(allLines), ...lintChats(allChats)];
   if (problems.length) console.warn(`Dialogue lint:\n${problems.join('\n')}`);
-  return { rules: parseRules(r), anims: parseAnimTable(a), lines, chats };
+  // Only what fits the room the shop is in (shared/scenes.ts).
+  const scene = currentScene();
+  return { rules: parseRules(r), anims: parseAnimTable(a), lines: linesForScene(allLines, scene), chats: chatsForScene(allChats, scene) };
 }
 
 const english = locale() === 'en';

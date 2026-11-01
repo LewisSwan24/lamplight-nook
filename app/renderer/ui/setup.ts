@@ -6,6 +6,8 @@ import { closePanel, replaceOpen } from './panels';
 import { el, layer } from './dom';
 import { showNotebook } from './notebook';
 import { lookPicker, withPortrait } from './portraits';
+import { moveTo, scenePicker, sceneRow } from './scenes';
+import { currentScene, type SceneId } from '../../shared/scenes';
 
 const S = strings.ui.setup;
 const OK = '\u2713';
@@ -169,13 +171,19 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
         el('div.actions', {}, el('button.default', { onclick: folder }, S.next)),
       );
     };
+    let scene: SceneId = currentScene();
     const folder = () => page(
       withPortrait('adeng', 'happy', el('div.card-title', {}, S.folderTitle), el('div', {}, S.folderText)),
       folderRow(api, settings, (s) => { settings = s; }),
+      el('div.hint.welcome-look', {}, strings.ui.scene.label),
+      scenePicker(scene, (id) => { scene = id; }),
       el('div.hint.legal-line', {}, S.legalLine, ' ', legalLink(api, 'terms'), ' \u00B7 ', legalLink(api, 'privacy')),
       el('div.actions', {}, el('button.default', { onclick: async () => {
         closePanel();
-        resolve(await api.saveSettings({ name: name.value.trim(), avatar: look, onboarded: true }));
+        const saved = await api.saveSettings({ name: name.value.trim(), avatar: look, onboarded: true });
+        // Picking the study moves the shop there before it opens (the page reloads into the new room).
+        if (scene !== currentScene() && (await moveTo(api, scene))) return;
+        resolve(saved);
       } }, S.openShop)),
     );
 
@@ -224,7 +232,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'notify' | 'closeToTray';
+type Switch = 'captions' | 'reducedMotion' | 'notify' | 'closeToTray' | 'mini';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -328,13 +336,14 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     el('section', {}, el('h4', {}, S.nameLabel), name),
     el('section', {}, el('h4', {}, S.lookLabel), el('div.hint', {}, S.lookHint),
       lookPicker(settings.avatar, async (avatar) => onChange(await api.saveSettings({ avatar })))),
+    el('section', {}, el('h4', {}, strings.ui.scene.label), sceneRow(api)),
     el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
     el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
       switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion]])),
     el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
-      switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle]])),
+      switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle], ['mini', strings.ui.mini.toggle]])),
     el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
       el('div.hint', {}, strings.ui.notebook.sectionText),
       el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),

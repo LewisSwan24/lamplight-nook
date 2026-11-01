@@ -320,3 +320,113 @@
   turns:
     - qingdai: 这会儿的夕阳最好画。
     - xiaoju: 那你先画我！
+
+# Coming as regulars (plan.md R2.3): `after: N` only once N commissions are finished with the user.
+# `once: true` is a little story told only once, ever; it comes up before everyday chats once unlocked.
+- id: regular_cup
+  when: idle
+  after: 3
+  turns:
+    - xiaoju: 你的杯子，我单独放了一格。
+    - adeng: 常来的人，都有自己的杯子。
+
+- id: regular_button
+  when: idle
+  after: 5
+  turns:
+    - laoshi: 上回那页面，按钮还是偏小。
+    - adeng: 下回要改，你提一句。
+    - laoshi: 嗯。
+
+- id: regular_notebook
+  when: idle
+  after: 8
+  turns:
+    - adeng: 小本子快写满一半了。
+    - xiaoju: 再买一本，要猫的封面。
+
+- id: regular_shelf
+  when: waiting
+  after: 5
+  turns:
+    - qingdai: 等的时候，我把作品架擦了擦。
+    - laoshi: 第二格的框歪了。
+
+- id: story_chestnut
+  when: idle
+  after: 4
+  once: true
+  turns:
+    - xiaoju: 今天是栗子来店里的日子。
+    - adeng: 一年了？
+    - xiaoju: 我给它留了块鱼干。
+    - laoshi: 它在我椅子上睡了一年。
+
+- id: story_snacks
+  when: idle
+  after: 7
+  once: true
+  turns:
+    - xiaoju: 我的零食清单写到第四页了。
+    - qingdai: 能给我看看吗？
+    - xiaoju: 看可以，不许划掉。
+
+- id: story_guitar
+  when: idle
+  after: 9
+  once: true
+  turns:
+    - laoshi: 这吉他是我爸的。
+    - xiaoju: 你会弹？
+    - laoshi: 会一首。
+    - laoshi: 下回没活的时候。
+
+- id: story_first_drawing
+  when: idle
+  after: 10
+  once: true
+  turns:
+    - qingdai: 我在店里画的第一张，是这块黑板。
+    - adeng: 我记得，粉笔灰抹了一脸。
+    - qingdai: 那是故意的。
+
+# In the study at home (shared/scenes.ts): `scene: study` chats come up only there, before everyday ones.
+- id: move_in
+  when: idle
+  scene: study
+  once: true
+  turns:
+    - xiaoju: 搬家的箱子还剩两个没拆。
+    - laoshi: 书架钉牢了。
+    - adeng: 以后就在这儿干活。
+
+- id: study_sofa
+  when: idle
+  scene: study
+  turns:
+    - xiaoju: 这沙发谁挑的？太软了。
+    - laoshi: 我。
+    - xiaoju: ……难怪你总坐着不起来。
+
+- id: study_window
+  when: idle
+  scene: study
+  turns:
+    - qingdai: 楼下花店换了橱窗。
+    - adeng: 下回出门带一束回来。
+
+- id: study_lamp
+  when: idle
+  scene: study
+  period: night
+  turns:
+    - adeng: 这盏台灯比店里的暖。
+    - qingdai: 黄一点，画画正合适。
+
+- id: study_books
+  when: waiting
+  scene: study
+  turns:
+    - xiaoju: 等的时候，我把书架理了一遍。
+    - laoshi: 按高矮排的？
+    - xiaoju: 按我喜欢的排。

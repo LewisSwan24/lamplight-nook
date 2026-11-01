@@ -40,12 +40,24 @@ const api: LamplightApi = {
   getMemory: () => ipcRenderer.invoke(IPC.getMemory),
   clearMemory: () => ipcRenderer.invoke(IPC.clearMemory),
   openCommissionFolder: (id) => ipcRenderer.invoke(IPC.openCommissionFolder, id),
+  recallForRevision: (id) => ipcRenderer.invoke(IPC.recallForRevision, id),
+  shopState: () => ipcRenderer.invoke(IPC.shopState),
+  openWork: (id) => ipcRenderer.invoke(IPC.openWork, id),
+  markTold: (id) => ipcRenderer.invoke(IPC.markTold, id),
+  reviseCommission: (req) => ipcRenderer.invoke(IPC.reviseCommission, req),
+  restorePrevious: (id) => ipcRenderer.invoke(IPC.restorePrevious, id),
   onRawEvent: (cb) => on(IPC.rawEvent, cb),
   onAiEvent: (cb) => on(IPC.aiEvent, cb),
   onDecision: (cb) => on(IPC.decision, cb),
   onResult: (cb) => on(IPC.result, cb),
+  miniState: () => ipcRenderer.invoke(IPC.miniState),
+  onMiniState: (cb) => on(IPC.miniPush, cb),
+  showShop: () => ipcRenderer.invoke(IPC.showShop),
+  moveScene: (scene) => ipcRenderer.invoke(IPC.moveScene, scene),
 };
 
 contextBridge.exposeInMainWorld('lamplight', api);
 // The app's language, needed before any page script runs (shared/i18n.ts reads it as it loads).
 contextBridge.exposeInMainWorld('lamplightLocale', ipcRenderer.sendSync(IPC.locale));
+// Where the shop is, also fixed for the page's life (shared/scenes.ts reads it as it loads).
+contextBridge.exposeInMainWorld('lamplightScene', ipcRenderer.sendSync(IPC.scene));

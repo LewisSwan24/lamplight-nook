@@ -16,6 +16,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve('app/renderer'),
-    build: { rollupOptions: { input: resolve('app/renderer/index.html') } },
+    // The shop, and the small corner window shown while the shop is out of sight.
+    build: { rollupOptions: { input: { index: resolve('app/renderer/index.html'), mini: resolve('app/renderer/mini.html') } } },
   },
 });
