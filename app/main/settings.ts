@@ -1,3 +1,4 @@
+import { DEFAULT_SCENE, cleanScene } from '../shared/scenes';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DEFAULT_AVATAR, cleanAvatar } from '../shared/avatars';
@@ -24,13 +25,14 @@ export class SettingsStore {
   private data: Settings;
 
   constructor(private file: string, documentsDir: string) {
-    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, budgetUsd: DEFAULT_BUDGET, language: 'system' };
+    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, scene: DEFAULT_SCENE, budgetUsd: DEFAULT_BUDGET, language: 'system' };
     this.data = { ...defaults, ...this.read() };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
     this.data.volume = cleanVolume(this.data.volume) ?? DEFAULT_VOLUME;
     this.data.budgetUsd = cleanBudget(this.data.budgetUsd) ?? DEFAULT_BUDGET;
     this.data.language = cleanLanguage(this.data.language) ?? 'system';
     this.data.avatar = cleanAvatar(this.data.avatar) ?? DEFAULT_AVATAR;
+    this.data.scene = cleanScene(this.data.scene) ?? DEFAULT_SCENE;
   }
 
   get(): Settings {
@@ -41,7 +43,7 @@ export class SettingsStore {
     const clean: Partial<Settings> = {};
     if (typeof patch.name === 'string') clean.name = patch.name.trim().slice(0, 20);
     if (typeof patch.workRoot === 'string' && patch.workRoot.trim()) clean.workRoot = patch.workRoot.trim();
-    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'notify', 'closeToTray'] as const) {
+    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'notify', 'closeToTray', 'mini'] as const) {
       if (typeof patch[flag] === 'boolean') clean[flag] = patch[flag];
     }
     const avatar = cleanAvatar(patch.avatar);
@@ -50,6 +52,8 @@ export class SettingsStore {
     if (volume !== undefined) clean.volume = volume;
     const budget = cleanBudget(patch.budgetUsd);
     if (budget !== undefined) clean.budgetUsd = budget;
+    const scene = cleanScene(patch.scene);
+    if (scene) clean.scene = scene;
     const language = cleanLanguage(patch.language);
     if (language) clean.language = language;
     this.data = { ...this.data, ...clean };

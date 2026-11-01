@@ -320,3 +320,113 @@
   turns:
     - qingdai: This is the best light to paint in.
     - xiaoju: Paint me, then!
+
+# Coming as regulars (plan.md R2.3): `after: N` only once N commissions are finished with the user.
+# `once: true` is a little story told only once, ever; it comes up before everyday chats once unlocked.
+- id: regular_cup
+  when: idle
+  after: 3
+  turns:
+    - xiaoju: Your cup has its own spot on the shelf now.
+    - adeng: Regulars get their own cups.
+
+- id: regular_button
+  when: idle
+  after: 5
+  turns:
+    - laoshi: That last page. Buttons still too small.
+    - adeng: Mention it if they ask for changes.
+    - laoshi: Mm.
+
+- id: regular_notebook
+  when: idle
+  after: 8
+  turns:
+    - adeng: The notebook's nearly half full.
+    - xiaoju: Get the next one with a cat on it.
+
+- id: regular_shelf
+  when: waiting
+  after: 5
+  turns:
+    - qingdai: I dusted the works shelf while we wait.
+    - laoshi: Second frame's crooked.
+
+- id: story_chestnut
+  when: idle
+  after: 4
+  once: true
+  turns:
+    - xiaoju: Today's the day Chestnut turned up here.
+    - adeng: A year already?
+    - xiaoju: I saved her a bit of dried fish.
+    - laoshi: She's slept on my chair for a year.
+
+- id: story_snacks
+  when: idle
+  after: 7
+  once: true
+  turns:
+    - xiaoju: My snack list is on page four now.
+    - qingdai: Can I see?
+    - xiaoju: Look, but no crossing things out.
+
+- id: story_guitar
+  when: idle
+  after: 9
+  once: true
+  turns:
+    - laoshi: This guitar was my dad's.
+    - xiaoju: You can play?
+    - laoshi: One song.
+    - laoshi: Next time it's quiet.
+
+- id: story_first_drawing
+  when: idle
+  after: 10
+  once: true
+  turns:
+    - qingdai: The first thing I drew here? That board.
+    - adeng: I remember. Chalk all over your face.
+    - qingdai: That was on purpose.
+
+# In the study at home (shared/scenes.ts): `scene: study` chats come up only there, before everyday ones.
+- id: move_in
+  when: idle
+  scene: study
+  once: true
+  turns:
+    - xiaoju: Two moving boxes still to unpack.
+    - laoshi: The bookcase is fixed to the wall.
+    - adeng: This is where we work now.
+
+- id: study_sofa
+  when: idle
+  scene: study
+  turns:
+    - xiaoju: Who picked this sofa? It's so soft.
+    - laoshi: Me.
+    - xiaoju: ...That's why you never get up.
+
+- id: study_window
+  when: idle
+  scene: study
+  turns:
+    - qingdai: The flower shop downstairs has a new window.
+    - adeng: Bring a bunch back next time you're out.
+
+- id: study_lamp
+  when: idle
+  scene: study
+  period: night
+  turns:
+    - adeng: This desk lamp is warmer than the shop's.
+    - qingdai: A touch yellow. Just right for drawing.
+
+- id: study_books
+  when: waiting
+  scene: study
+  turns:
+    - xiaoju: While we wait, I sorted the bookcase.
+    - laoshi: By height?
+    - xiaoju: By how much I like them.

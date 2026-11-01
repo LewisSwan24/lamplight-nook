@@ -1,0 +1,14 @@
+/* The corner window (plan.md R3): the counter corner of the shop at 3x, and one line of status. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1712; font: 12px/1.4 system-ui, 'Microsoft YaHei', sans-serif; color: #f3e6cf; user-select: none; }
+/* A strip across the top to drag the window by; it shows itself on hover. */
+#grip { position: fixed; inset: 0 0 auto 0; height: 22px; -webkit-app-region: drag; z-index: 2; background: linear-gradient(#0008, transparent); opacity: 0; transition: opacity 150ms; }
+body:hover #grip { opacity: 1; }
+#stage { display: block; width: 288px; height: 180px; padding: 0; border: 0; background: none; cursor: pointer; }
+#stage:focus-visible { outline: 2px solid #f0b85a; outline-offset: -2px; }
+#view { display: block; width: 288px; height: 180px; image-rendering: pixelated; }
+#status { height: 20px; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #2a2219; border-top: 1px solid #4a3a28; line-height: 20px; cursor: pointer; }
+body[data-status='waiting'] #status { background: #6b4a1c; }
+body[data-status='serious'] #status { background: #7a2a1e; font-weight: 600; }
+body[data-status='done'] #status { background: #3d5a2e; }

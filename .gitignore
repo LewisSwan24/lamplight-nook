@@ -6,3 +6,4 @@ dist/
 .env
 smoke-shots/
 assets/vendor/
+__pycache__/

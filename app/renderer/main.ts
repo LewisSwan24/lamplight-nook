@@ -10,7 +10,7 @@ import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
 import { VisitPlanner, pickVisit } from './game/guests';
-import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale } from './game/layout';
+import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
@@ -25,6 +25,10 @@ import { clearWorkSigns, setReplayBadge, showActorCard, showCommissionForm, show
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
+import { onNotebookForget, onNotebookRevise } from './ui/notebook';
+import { showShelf } from './ui/shelf';
+import type { GrowthId } from '../shared/growth';
+import { showRevise } from './ui/revise';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
@@ -54,6 +58,7 @@ const game = new Phaser.Game({
 // Integer zoom keeps pixels crisp; leftover space stays dark.
 function fit() {
   game.scale.setZoom(integerScale(window.innerWidth, window.innerHeight));
+  document.documentElement.style.setProperty('--ui', String(uiScale(window.innerWidth, window.innerHeight)));
 }
 window.addEventListener('resize', fit);
 fit();
@@ -120,8 +125,13 @@ setInterval(() => {
   const blocked = document.hidden || document.querySelector('.backdrop');
   const busy = running || replaying;
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
-  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside());
+  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside(), shopDays);
   if (talk) void stage.talk(talk.turns);
+  // A one-off story is told once, ever.
+  if (talk?.once) {
+    shopDays.told.add(talk.id);
+    void window.lamplight.markTold(talk.id);
+  }
   tendGarden(!busy);
   dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
@@ -264,7 +274,38 @@ window.lamplight.onDecision((req) => {
     await window.lamplight.answerDecision({ id: req.id, choice });
   }).catch((e) => append(`decision failed: ${e}`));
 });
-window.lamplight.onResult((result) => showResult(result, (path, how) => void window.lamplight.openOutput(path, how)));
+// What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
+let shopDays: { done: number; told: Set<string> } = { done: 0, told: new Set() };
+async function refreshShop(fresh: GrowthId[] = []) {
+  const state = await window.lamplight.shopState();
+  // The scene builds its props on its first frame; wait for it when the shop has only just opened.
+  while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
+  scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
+  scene.growth.setWorks(state.works.map((w) => w.icon));
+  shopDays = { done: state.done, told: new Set(state.told) };
+}
+/** Something new in the shop: once the result card is seen to, someone says a word about it. */
+function noticeGrowth(ids: GrowthId[]) {
+  const id = ids.at(-1);
+  if (!id) return;
+  setTimeout(() => {
+    const turns = pickLine(ruleBook().lines.grow ?? [], [`grow_${id}`], {});
+    const present = (turns ?? []).filter((t) => scene.anchorOf(t.speaker) !== null);
+    if (present.length) void stage.talk(present);
+  }, GROWTH_LINE_DELAY_MS);
+}
+const GROWTH_LINE_DELAY_MS = 4000;
+scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
+onNotebookForget(() => void refreshShop());
+window.lamplight.onResult((result) => {
+  void refreshShop(result.grew ?? []);
+  noticeGrowth(result.grew ?? []);
+});
+window.lamplight.onResult((result) => showResult(result, {
+  open: (path, how) => void window.lamplight.openOutput(path, how),
+  revise: (id) => void revise(id),
+  restore: (id) => window.lamplight.restorePrevious(id),
+}));
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
 let running: string | null = null;
@@ -303,6 +344,23 @@ async function newCommission() {
   await prepare(form);
   await run(form.want, () => window.lamplight.startCommission(form));
 }
+
+/**
+ * "Change it a bit": what to change, in the user's words, then another round in the same folder.
+ * `title` is shown when the commission was picked from the notebook rather than the card just handed over.
+ */
+async function revise(id: string, title?: string) {
+  if (running) return showRunning(window.lamplight, running);
+  const env = await window.lamplight.envStatus();
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void revise(id, title));
+  const ask = await showRevise(current?.avatar, title);
+  if (!ask) return;
+  append(`revise ${id}: ${ask}`);
+  const { flags, vars } = await window.lamplight.recallForRevision(id);
+  stage.setCommission({ brief: shorten(ask), flags, vars });
+  await run(ask, () => window.lamplight.reviseCommission({ id, ask }));
+}
+onNotebookRevise((id, title) => void revise(id, title));
 
 /** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
 async function prepare(form: CommissionForm) {
@@ -344,6 +402,7 @@ async function greetBack(name: string) {
 }
 async function openShop() {
   const api = window.lamplight;
+  void refreshShop();
   let settings = await api.getSettings();
   mountToolbar(api, settings, applySettings);
   applySettings(settings);

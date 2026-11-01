@@ -4,12 +4,14 @@ import { arch, homedir, release } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
-import { fill, locale, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type RunResult, type Settings, type SourcePick } from '../shared/types';
+import { fill, locale, shorten, strings } from '../shared/i18n';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { EDITABLE, MAX_EDIT_BYTES, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, snapshot } from './commission';
+import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot } from './commission';
+import { sessionExists } from './sessions';
+import { VersionStore } from './versions';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
@@ -20,6 +22,8 @@ import { SettingsStore, defaultWorkRoot } from './settings';
 import { SpendLedger } from './spend';
 import { zip } from './zip';
 import { ShopTray } from './tray';
+import { MiniWindow } from './mini';
+import { cleanScene } from '../shared/scenes';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -33,6 +37,7 @@ let win: BrowserWindow | null = null;
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
 const broker = new DecisionBroker((req) => {
   send(IPC.decision, req);
+  mini.feed({ type: 'ask', serious: req.kind === 'serious' });
   tray.attention(req, settings.get().notify);
 });
 const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
@@ -41,9 +46,21 @@ const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.clo
 /** The commission currently running (one at a time), and the folder of the last one. */
 let current: { workDir: string; abort: AbortController; note?: (text: string) => boolean } | null = null;
 let lastWorkDir: string | null = null;
+/** The corner window shown while the shop is out of sight (plan.md R3). */
+const mini = new MiniWindow(join(here, '../preload/index.cjs'), (w) => {
+  if (process.env.ELECTRON_RENDERER_URL) w.loadURL(`${process.env.ELECTRON_RENDERER_URL}/mini.html`);
+  else w.loadFile(join(here, '../renderer/mini.html'));
+});
+/** Show the corner window exactly when the shop is out of sight and the user wants it. */
+function updateMini() {
+  const away = Boolean(win && !win.isDestroyed() && (!win.isVisible() || win.isMinimized()));
+  mini.setVisible(away && !leaving && !quitting && settings.get().mini);
+  if (!away) mini.feed({ type: 'seen' });
+}
 let settings: SettingsStore;
 let pending: PendingStore;
 let memory: MemoryStore;
+let versions: VersionStore;
 let keys: KeyStore;
 let spend: SpendLedger;
 /** The last commission that failed (offered as "try again"), and one left over from a crash. */
@@ -104,6 +121,11 @@ function createWindow() {
     quitting = true;
     pending.clear();
   });
+  win.on('hide', updateMini);
+  win.on('show', updateMini);
+  win.on('minimize', updateMini);
+  win.on('restore', updateMini);
+  win.on('closed', () => mini.destroy());
   win.webContents.on('render-process-gone', (_e, details) => log?.error('renderer gone', details));
   win.webContents.on('console-message', (e) => {
     // Electron passes the details on the event; only errors are worth keeping.
@@ -117,7 +139,10 @@ function createWindow() {
 const recordingFor = (kind: string) => join(app.getPath('userData'), 'recordings', `${Date.now()}-${kind}.jsonl`);
 const emitters = {
   emit: (event: unknown) => send(IPC.rawEvent, event),
-  emitAi: (event: AiEvent) => send(IPC.aiEvent, { ...event, raw: undefined }),
+  emitAi: (event: AiEvent) => {
+    send(IPC.aiEvent, { ...event, raw: undefined });
+    mini.feed({ type: 'ai', event: { kind: event.kind, agent: event.agent, plain: event.plain } });
+  },
 };
 
 // The key is only read in the main process; the renderer just gets a boolean.
@@ -189,6 +214,16 @@ ipcMain.handle(IPC.openWorkRoot, async () => {
 ipcMain.handle(IPC.openLink, (_e, link: ExternalLink) => (LINKS[link] ? shell.openExternal(LINKS[link]) : undefined));
 ipcMain.handle(IPC.appVersion, () => app.getVersion());
 ipcMain.on(IPC.locale, (e) => { e.returnValue = locale(); });
+ipcMain.on(IPC.scene, (e) => { e.returnValue = settings.get().scene; });
+// Moving waits while a commission runs: reloading the page would lose the stage that acts it out.
+ipcMain.handle(IPC.moveScene, (_e, scene: unknown): boolean => {
+  const next = cleanScene(scene);
+  if (!next || current || !win) return false;
+  settings.update({ scene: next });
+  mini.destroy();
+  win.webContents.reload();
+  return true;
+});
 // Built by scripts/notices.mjs next to the compiled app.
 ipcMain.handle(IPC.legalNotices, (): string | null => {
   try {
@@ -219,6 +254,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   const abort = new AbortController();
   current = { workDir: job.workDir, abort };
+  mini.feed({ type: 'run', running: true });
   pending.save(job);
   const started = Date.now();
   log?.info('run start', { demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId) });
@@ -231,11 +267,17 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     const picked = req.kind === 'question' ? req.options.find((o) => o.id === choice && o.id !== 'delegate') : undefined;
     if (picked) choices[req.title] = picked.label;
   };
+  const r = job.revise;
+  const revision: Revision | undefined = r && { ask: r.ask, form: job.form, summary: r.summary, restored: r.restored };
+  // A round of changes picks up the earlier session when Claude Code still has it; otherwise it starts afresh from the folder.
+  const pickUp = !again && r?.fromSession && sessionExists(r.fromSession) ? r.fromSession : undefined;
   try {
     const before = new Set(job.preexisting);
     const result = await runAgent({
-      prompt: again ? continuePrompt(job.form, Boolean(job.sessionId), notes) : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes),
-      resume: again ? job.sessionId : undefined,
+      prompt: again ? continuePrompt(job.form, Boolean(job.sessionId), notes, revision)
+        : revision ? revisePrompt(revision, Boolean(pickUp), notes)
+        : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes),
+      resume: again ? job.sessionId : pickUp,
       onSession: (id) => { job.sessionId = id; pending.save(job); },
       onInput: (add) => { if (current) current.note = (text) => add(meetingNote(text)); },
       workDir: job.workDir,
@@ -253,8 +295,19 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     spend.record(job.workDir, job.sessionId, result.costUsd);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
-      send(IPC.result, { ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...collectOutputs(job.workDir, before) });
-      memory.remember({ title, result: result.ok ? 'done' : 'failed', choices, folder: job.workDir, costUsd }, result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved]);
+      const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
+      const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
+      const outputs = collectOutputs(job.workDir, before);
+      const main = outputs.main ? basename(outputs.main) : undefined;
+      const entry = r
+        ? memory.revise(r.id, r.ask, { ...outcome, main }, stuckHere)
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: job.preexisting, main }, stuckHere);
+      // A new commission done together is one more for the shop; a round of changes is part of the same one.
+      const grew = result.ok && !r ? memory.finished() : [];
+      send(IPC.result, {
+        ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && versions.has(r.id)), grew,
+      });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
     return result;
@@ -263,6 +316,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     pending.clear();
     current = null;
     lastWorkDir = job.workDir;
+    mini.feed({ type: 'run', running: false });
   }
 }
 
@@ -290,6 +344,47 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
   return runJob({ form, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
 });
 
+/**
+ * Another round on finished work, in the same folder: what the shop made so far is kept aside first
+ * (the "previous version"), then the staff pick up where they left off.
+ */
+ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<RunResult> => {
+  if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
+  const ask = typeof req?.ask === 'string' ? req.ask.trim().slice(0, 2000) : '';
+  const memo = typeof req?.id === 'string' ? memory.find(req.id) : memory.latest();
+  if (!memo || !ask) return { ok: false, recordingPath: '', workDir: '', error: 'gone' };
+  if (!memo.folder || !existsSync(memo.folder)) return { ok: false, recordingPath: '', workDir: memo.folder ?? '', error: 'gone' };
+  const preexisting = memo.preexisting ?? [];
+  const restored = restoredSince.has(memo.id);
+  restoredSince.delete(memo.id);
+  versions.save(memo.id, memo.folder, new Set(preexisting));
+  const form = memo.form ?? { want: memo.title };
+  return runJob({
+    form, workDir: memo.folder, preexisting, startedAt: Date.now(),
+    revise: { id: memo.id, ask, fromSession: memo.sessionId, summary: memo.summary, restored },
+  }, false);
+});
+ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState());
+ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
+// From the works shelf: the main thing a commission made, or its folder; only what the notebook recorded.
+ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  if (!memo?.folder || !existsSync(memo.folder)) return false;
+  const main = memo.main ? join(memo.folder, memo.main) : null;
+  if (main && isInside(memo.folder, main) && existsSync(main)) return (await shell.openPath(main)) === '';
+  return (await shell.openPath(memo.folder)) === '';
+});
+/** Commissions put back to their previous version since their last round (the next round is told). */
+const restoredSince = new Set<string>();
+ipcMain.handle(IPC.restorePrevious, (_e, id: string): boolean => {
+  if (current || typeof id !== 'string') return false;
+  const memo = memory.find(id);
+  if (!memo?.folder || !versions.has(id)) return false;
+  const ok = versions.restore(id, memo.folder, new Set(memo.preexisting ?? []));
+  if (ok) restoredSince.add(id);
+  log?.info('restore previous', { ok });
+  return ok;
+});
 ipcMain.handle(IPC.retryCommission, async (): Promise<RunResult | null> => (lastFailed ? runJob(lastFailed, true) : null));
 ipcMain.handle(IPC.cancelCommission, () => current?.abort.abort());
 // A commission left over from a crash or an unexpected quit: offered once at startup.
@@ -306,18 +401,25 @@ ipcMain.handle(IPC.dropPending, () => {
 
 ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
   const ok = broker.answer(answer);
-  if (!broker.waiting) tray.calm();
+  if (!broker.waiting) {
+    tray.calm();
+    mini.feed({ type: 'answered' });
+  }
   return ok;
 });
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
 ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
+ipcMain.handle(IPC.recallForRevision, (_e, id: string): Recall => memory.recallForRevision(id, shorten));
 ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
 // A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
 ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
   return Boolean(clean && current?.note?.(clean));
 });
-ipcMain.handle(IPC.clearMemory, () => memory.clear());
+ipcMain.handle(IPC.clearMemory, () => {
+  memory.clear();
+  versions.clear();
+});
 // Only folders the notebook itself recorded, looked up by id.
 ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
   const folder = memory.get().commissions.find((c) => c.id === id)?.folder;
@@ -342,6 +444,7 @@ app.whenReady().then(() => {
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
+  versions = new VersionStore(join(app.getPath('userData'), 'versions'));
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
   leftover = pending.load();
@@ -349,8 +452,12 @@ app.whenReady().then(() => {
   tray.create();
   win?.on('focus', () => tray.calm());
 });
+// The corner window: what to show now, and a click on it brings the shop back.
+ipcMain.handle(IPC.miniState, () => mini.state);
+ipcMain.handle(IPC.showShop, () => tray.show());
 app.on('before-quit', () => {
   leaving = true;
+  mini.destroy();
   broker.cancelAll();
   current?.abort.abort();
 });

@@ -4,6 +4,7 @@
 // (main/locale-boot.ts), and the renderer reads it from the preload. Changing it in settings restarts the app.
 import zh from '../../locales/zh-CN.json';
 import en from '../../locales/en.json';
+import { currentScene, type SceneId } from './scenes';
 
 export type Strings = typeof zh;
 export type Locale = 'zh-CN' | 'en';
@@ -28,15 +29,28 @@ export function pickLocale(choice: unknown, system: readonly string[]): Locale {
 const boot = (globalThis as { lamplightLocale?: unknown }).lamplightLocale;
 let lang: Locale = isLocale(boot) ? boot : 'zh-CN';
 
+/** Strings with a scene's own wording laid over them (`sceneText.<scene>`: the names of the spots, hints that mention them). */
+export function withScene(S: Strings, scene: SceneId): Strings {
+  const over = (S.sceneText as Record<string, unknown>)[scene];
+  if (!over) return S;
+  const merge = (base: unknown, top: unknown): unknown => {
+    if (typeof top !== 'object' || top === null || typeof base !== 'object' || base === null) return top;
+    const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+    for (const [k, v] of Object.entries(top)) out[k] = merge(out[k], v);
+    return out;
+  };
+  return merge(S, over) as Strings;
+}
+
 /** The strings of the current language. Modules may keep a reference to a part of it: it never changes after start-up. */
-export let strings: Strings = LOCALES[lang];
+export let strings: Strings = withScene(LOCALES[lang], currentScene());
 
 export const locale = () => lang;
 
 /** Only for start-up (and tests): later changes would not reach parts other modules already hold. */
 export function setLocale(next: Locale) {
   lang = next;
-  strings = LOCALES[next];
+  strings = withScene(LOCALES[next], currentScene());
 }
 
 /** Fill `{name}` placeholders. Unknown placeholders are left as-is. */

@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CHAT_GAP_MS, Chatter, type ShopMood, type Talk } from '../app/renderer/stage/chatter';
-import { lintChats, parseChats, parseLines } from '../app/renderer/translator/lines';
+import { chatsForScene, lintChats, parseChats, parseLines } from '../app/renderer/translator/lines';
 
-const chats = parseChats(readFileSync('lines/chats.yaml', 'utf8'));
+const allChats = parseChats(readFileSync('lines/chats.yaml', 'utf8'));
+// The cafe's chats, as the app has them there (study-only chats drop out).
+const chats = chatsForScene(allChats, 'cafe');
 const mutters = parseLines(readFileSync('lines/cafe.yaml', 'utf8')).idle_mutter;
 
 /** Seeded random, so runs are repeatable. */
@@ -25,7 +27,7 @@ function run(minutes: number, mood: (t: number) => ShopMood = () => 'idle', seed
 
 describe('small talk', () => {
   it('passes the writing rules', () => {
-    expect(lintChats(chats)).toEqual([]);
+    expect(lintChats(allChats)).toEqual([]);
     expect(chats.filter((c) => c.when === 'idle').length).toBeGreaterThanOrEqual(10);
   });
 

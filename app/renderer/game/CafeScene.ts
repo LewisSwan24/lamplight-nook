@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import adengUrl from '../../../assets/sprites/adeng.png';
 import cafeUrl from '../../../assets/sprites/cafe.png';
+import studyUrl from '../../../assets/sprites/study.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
 import dogUrl from '../../../assets/sprites/dog.png';
 import dogSleepUrl from '../../../assets/sprites/dog-sleep.png';
@@ -33,12 +34,14 @@ import you8Url from '../../../assets/sprites/you-8.png';
 import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
+import { currentScene } from '../../shared/scenes';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { GardenView } from './GardenView';
 import { StreetView } from './StreetView';
 import { HOLIDAYS, SKIES, WeatherLayer } from './WeatherLayer';
+import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
 import { INSET, VIEW } from './street';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { DOG_FRAME, HEN_FRAME } from './animals';
@@ -65,6 +68,9 @@ const DAYLIGHT_MS = 4000;
 /** Weather in the garden falls over the lawn, under the garden's light and shade. */
 const GARDEN_WEATHER_DEPTH = 0.6;
 const VIEW_FADE_MS = 180;
+const SCENE = currentScene();
+/** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
+const CUP_POS = SCENE === 'study' ? { x: 232, y: 46 } : { x: 256, y: 48 };
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FORM_POS = { x: 224, y: 57 };
 /** The meeting bell at the left end of the counter (top-left corner, canvas pixels); shown while a commission runs. */
@@ -73,7 +79,7 @@ const BELL_POS = { x: 216, y: 57 };
 const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
-export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens';
+export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'works';
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -155,6 +161,10 @@ export class CafeScene extends Phaser.Scene {
   onCounterClick: () => void = () => {};
   /** The meeting bell on the counter was rung. */
   onBellClick: () => void = () => {};
+  /** The works shelf on the wall was clicked. */
+  onWorksClick: () => void = () => {};
+  /** What the shop has gathered, and the works shelf. */
+  growth!: ShopGrowth;
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
   /** The street inset opened or closed (the page moves what sits in that corner). */
@@ -167,7 +177,8 @@ export class CafeScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('cafe', cafeUrl);
+    // The room itself: the cafe or the study; both share the floor plan in layout.ts.
+    this.load.image('cafe', SCENE === 'study' ? studyUrl : cafeUrl);
     this.load.image('street', streetUrl);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
@@ -181,12 +192,15 @@ export class CafeScene extends Phaser.Scene {
     this.load.spritesheet('clock', clockUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('cup', cupUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('door', doorUrl, { frameWidth: 16, frameHeight: 32 });
+    preloadGrowth(this.load);
   }
 
   create() {
     this.add.image(0, 0, 'cafe').setOrigin(0);
     this.createAnims();
     this.addProps();
+    this.growth = new ShopGrowth(this, () => {});
+    this.growth.onShelfClick = () => this.activate('works');
     const counter = ZONES.find((z) => z.id === 'counter')!;
     this.add
       .zone(counter.x, counter.y, counter.w, counter.h)
@@ -268,7 +282,7 @@ export class CafeScene extends Phaser.Scene {
   /** Small animated things that make the room feel lived in. */
   private addProps() {
     this.add.sprite(180, 14, 'clock').setOrigin(0).play('clock');
-    this.add.sprite(256, 48, 'cup').setOrigin(0).setDepth(1).play('cup');
+    this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(1).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
     // The back door: click it to look out at the garden.
     this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'door', 0).setOrigin(0).setDepth(1);
@@ -502,7 +516,7 @@ export class CafeScene extends Phaser.Scene {
   highlight(target: Target | null) {
     if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
     this.glow = undefined;
-    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor', 'dog', 'hens'].includes(target) ? this.actors.get(target as ActorId) : undefined;
+    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor', 'dog', 'hens', 'works'].includes(target) ? this.actors.get(target as ActorId) : undefined;
     if (actor?.outside || actor?.inGarden) target = null;
     this.hovered = target;
     const fx = actor && target ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
@@ -512,6 +526,7 @@ export class CafeScene extends Phaser.Scene {
   /** Click (or Enter on) the counter or a character. */
   activate(target: Target) {
     if (target === 'counter') return this.onCounterClick();
+    if (target === 'works') return this.growth.hasWorks ? this.onWorksClick() : undefined;
     if (target === 'backdoor') return this.showGarden();
     if (target === 'shopdoor') return this.showShop();
     if (target === 'dog') return this.garden.animals.pat();
@@ -541,7 +556,8 @@ export class CafeScene extends Phaser.Scene {
     const bell = this.bell.visible ? [{ id: 'bell' as const, x: BELL_POS.x - 1, y: BELL_POS.y - 2, w: 9, h: 9 }] : [];
     const out = this.street.open && this.street.who ? [{ id: this.street.who, x: INSET.x, y: INSET.y, w: INSET.w, h: INSET.h }] : [];
     const back = { id: 'backdoor' as const, x: BACK_DOOR.x, y: BACK_DOOR.y, w: 16, h: 32 };
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...people, ...out];
+    const works = this.growth.hasWorks ? [{ id: 'works' as const, ...SHELF }] : [];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...works, ...people, ...out];
   }
 
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */

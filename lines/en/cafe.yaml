@@ -5,6 +5,11 @@
 
 # Lines that bring up memory come first, so they win whenever their condition holds (at most one per commission).
 opening:
+  # A round of changes to finished work (`revise`); `revise_again` when there was a round before it.
+  - { id: revise_again_01, speaker: adeng, when: revise_again, bubbles: ["Last time it was \"{lastAsk}\".", "This time, \"{brief}\". Noted."], reply: { speaker: xiaoju, bubbles: ["I'll put the old copy away!"] } }
+  - { id: revise_01, speaker: adeng, when: revise, bubbles: ["\"{brief}\". Noted.", "We'll work from the version you have."], reply: { speaker: laoshi, bubbles: ["Keep a copy of the old one."] } }
+  - { id: revise_02, speaker: adeng, when: revise, bubbles: ["Looking again, it could use a touch.", "\"{brief}\". On it."] }
+  - { id: revise_03, speaker: adeng, when: revise, bubbles: ["I'll tuck the old one away first.", "\"{brief}\". I'll show you when it's done."] }
   - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["\"{brief}\". Got it.", "Last time we got stuck on {stuckNote}.", "I'll keep an eye on that this time."] }
   - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["\"{brief}\". Got it.", "Last time you went with {lastChoice}.", "I'll start from that. Say if it's wrong."] }
   - { id: opening_01, speaker: adeng, bubbles: ["\"{brief}\". Got it.", "Clem, Flint, we've got work."] }
@@ -156,6 +161,11 @@ idle_mutter:
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["...Crooked."] }
   - { id: idle_qingdai, speaker: qingdai, bubbles: ["That wall wants to be pale green."] }
   - { id: idle_qingdai_02, speaker: qingdai, bubbles: ["This chalk keeps getting shorter."] }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: idle_adeng, scene: study, speaker: adeng, bubbles: ["The desk drawer's stuck again."] }
+  - { id: idle_study_xiaoju, scene: study, speaker: xiaoju, bubbles: ["This sofa beats the shop chairs."] }
+  - { id: idle_study_laoshi, scene: study, speaker: laoshi, bubbles: ["This floorboard creaks."] }
+  - { id: idle_study_qingdai, scene: study, speaker: qingdai, bubbles: ["Books look best sorted by colour."] }
 
 # A meeting at the big table (the bell on the counter). Replies from someone out on an errand are left out.
 meeting_call:
@@ -186,6 +196,8 @@ app_open:
   - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}, a good new year to you.", "Clem put the luck sign on the door."] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}, there you are.", "How's the {lastCommission} working out?"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["Come in. What should I call you?"] }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: open_01, scene: study, speaker: adeng, bubbles: ["{name}, there you are.", "Sit anywhere. It's home here."] }
 
 app_close:
   - { id: close_01, speaker: adeng, bubbles: ["Right, let's tidy up."] }
@@ -229,3 +241,19 @@ garden:
   - { id: garden_leaves_adeng, speaker: adeng, when: sky_leaves, bubbles: ["Leaves everywhere again."] }
   - { id: garden_leaves_laoshi, speaker: laoshi, when: sky_leaves, bubbles: ["Leaves.", "No point sweeping."] }
   - { id: garden_petals_xiaoju, speaker: xiaoju, when: sky_petals, bubbles: ["A petal fell in my tea."] }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: garden_flowers_adeng, scene: study, speaker: adeng, when: spot_flowers, bubbles: ["I'll cut a few for the desk."] }
+
+# Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
+grow:
+  - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["There's a little painting on the wall.", "Bought it the day we finished the first job."] }
+  - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the counter!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
+  - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["Fairy lights over the windows.", "The shop looks warmer at night."] }
+  - { id: grow_fruit, speaker: xiaoju, when: grow_fruit, bubbles: ["Fruit on the big table!", "The tangerines are mine."] }
+  - { id: grow_guitar, speaker: laoshi, when: grow_guitar, bubbles: ["Guitar's fixed.", "New strings."] }
+  - { id: grow_bonsai, speaker: adeng, when: grow_bonsai, bubbles: ["A neighbour gave us that bonsai.", "Said we're busy and need something slow."] }
+  - { id: grow_easel, speaker: qingdai, when: grow_easel, bubbles: ["I've brought my easel over.", "I'll paint a bit when it's quiet."] }
+  - { id: grow_trophy, speaker: xiaoju, when: grow_trophy, bubbles: ["I made this little trophy!", "For the twenty jobs we've done."], reply: { speaker: laoshi, bubbles: ["It's crooked."] } }
+  # In the study (shared/scenes.ts): the same moments, said to fit the room.
+  - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
+  - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["Fruit on the reading table!", "The tangerines are mine."] }

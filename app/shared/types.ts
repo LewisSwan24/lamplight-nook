@@ -1,4 +1,7 @@
+import type { SceneId } from './scenes';
+import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
+import type { GrowthId, WorkIcon } from './growth';
 
 /** Scene anchors: characters only move between these points. */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
@@ -38,7 +41,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; budgetUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -94,6 +97,8 @@ export interface LamplightApi {
   openOutput(path: string, how: 'open' | 'reveal'): Promise<boolean>;
   /** What Adeng may bring up as this commission starts (from earlier commissions). */
   recallForCommission(form: CommissionForm): Promise<Recall>;
+  /** What Adeng may bring up as a round of changes starts (what was asked last time). */
+  recallForRevision(id: string): Promise<Recall>;
   /** What Adeng may bring up as the shop opens; each past commission is brought up only once. */
   recallOnOpen(): Promise<Recall>;
   /** Add a note from a meeting to the running commission; false if none is running or it has wrapped up. */
@@ -104,10 +109,26 @@ export interface LamplightApi {
   clearMemory(): Promise<void>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
   openCommissionFolder(id: string): Promise<boolean>;
+  /** The shop's days and the works shelf. */
+  shopState(): Promise<ShopState>;
+  /** Open the main thing a finished commission made (or its folder); false if it is gone. */
+  openWork(id: string): Promise<boolean>;
+  /** A one-off story has been told; it won't come up again. */
+  markTold(id: string): Promise<void>;
+  /** Change finished work in its own folder, continuing where the staff left off. */
+  reviseCommission(req: ReviseRequest): Promise<RunResult>;
+  /** Put back the work as it was before the last round of changes; false if there is no such copy. */
+  restorePrevious(id: string): Promise<boolean>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
   onResult(cb: (r: CommissionResult) => void): () => void;
+  /** The corner window (plan.md R3): its current state, updates to it, and bringing the shop back. */
+  miniState(): Promise<MiniState>;
+  onMiniState(cb: (s: MiniState) => void): () => void;
+  showShop(): Promise<void>;
+  /** Move the shop to another scene: saves it and reloads the page; false while a commission runs. */
+  moveScene(scene: SceneId): Promise<boolean>;
 }
 
 /** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
@@ -124,7 +145,22 @@ export type SourcePick = { path: string; name: string } | { error: 'too-big' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
-export type CommissionResult = { ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number; /** What the staff say they made, in their own words. */ summary?: string };
+export type CommissionResult = {
+  ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number;
+  /** What the staff say they made, in their own words. */
+  summary?: string;
+  /** The commission's entry in Adeng's notebook, for asking for changes afterwards. */
+  id?: string;
+  /** What the shop gathered with this commission (a new commission done together), if anything. */
+  grew?: GrowthId[];
+  /** Rounds of changes so far (0 for the first go). */
+  round?: number;
+  /** The work as it was before this round is kept and can be put back. */
+  canRestore?: boolean;
+};
+
+/** Asking for changes to finished work: the notebook entry (the last commission when absent) and what to change. */
+export type ReviseRequest = { id?: string; ask: string };
 
 export type DecisionOption = { id: string; label: string; hint?: string };
 
@@ -151,6 +187,9 @@ export type DecisionRequest = {
 export type DecisionAnswer = { id: string; choice: string };
 
 export const IPC = {
+  miniState: 'mini:get',
+  miniPush: 'mini:state',
+  showShop: 'mini:show-shop',
   envStatus: 'env:status',
   getSettings: 'settings:get',
   saveSettings: 'settings:save',
@@ -159,6 +198,8 @@ export const IPC = {
   openLink: 'app:open-link',
   appVersion: 'app:version',
   locale: 'app:locale',
+  scene: 'app:scene',
+  moveScene: 'app:move-scene',
   relaunch: 'app:relaunch',
   legalNotices: 'app:legal-notices',
   saveApiKey: 'key:save',
@@ -183,10 +224,16 @@ export const IPC = {
   answer: 'decision:answer',
   recallForCommission: 'memory:recall-commission',
   recallOnOpen: 'memory:recall-open',
+  recallForRevision: 'memory:recall-revision',
   getMemory: 'memory:get',
   addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
   openCommissionFolder: 'memory:open-folder',
+  reviseCommission: 'commission:revise',
+  shopState: 'shop:state',
+  openWork: 'shop:open-work',
+  markTold: 'shop:mark-told',
+  restorePrevious: 'commission:restore-previous',
 } as const;
 
 // -- Translation layer --
@@ -251,14 +298,37 @@ export type CommissionMemo = {
   /** Question -> the option the user picked. */
   choices: Record<string, string>;
   folder: string;
-  /** Estimated spend in US dollars, when known. */
+  /** Estimated spend in US dollars, when known (all rounds of changes included). */
   costUsd?: number;
+  /** What was asked for, so the work can be picked up again ("change it a bit"). Absent on old entries. */
+  form?: CommissionForm;
+  /** The SDK session of the last round, resumed when the user asks for changes. */
+  sessionId?: string;
+  /** Entries in the folder before the shop started (the user's own); never overwritten or rolled back. */
+  preexisting?: string[];
+  /** What the staff said they made, last round. */
+  summary?: string;
+  /** Each round of changes the user asked for afterwards, oldest first. */
+  asks?: { ask: string; date: string }[];
+  /** The main thing made, by name inside the folder (opened from the works shelf). */
+  main?: string;
 };
+
+/** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
+export type ShopDays = { done: number; grown: { id: GrowthId; date: string }[]; told: string[] };
+
+/** A finished piece of work on the works shelf. */
+export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean };
+
+/** What the shop looks like for this user: its days, and the finished works (latest first). */
+export type ShopState = ShopDays & { works: Work[] };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {
   commissions: CommissionMemo[];
   stuckNotes: StuckNote[];
+  /** Absent until the first commission is finished. */
+  shop?: ShopDays;
   /** Id of the last commission already brought up when the app opened. */
   greeted?: string;
 };
