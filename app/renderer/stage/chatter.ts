@@ -92,7 +92,7 @@ export class Chatter {
       const fits = this.allChats.filter((c) => !c.guest && c.when === mood && (!c.period || c.period === period)
         && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday)
         && (c.after === undefined || shop.done >= c.after) && !(c.once && shop.told.has(c.id)));
-      const chat = this.chats.draw(fits, (c) => !!(c.sky || c.holiday || c.once));
+      const chat = this.chats.draw(fits, (c) => !!(c.sky || c.holiday || c.once || c.scene));
       if (chat) {
         this.lastChat = now;
         return { kind: 'chat', id: chat.id, turns: chat.turns as Talk['turns'], ...(chat.once ? { once: true } : {}) };

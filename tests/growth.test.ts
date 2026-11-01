@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../app/main/memory';
 import { GROWTH, grownBy, workIcon } from '../app/shared/growth';
 import { Chatter, CHAT_GAP_MS } from '../app/renderer/stage/chatter';
-import { parseChats, parseLines, pickLine } from '../app/renderer/translator/lines';
+import { chatsForScene, parseChats, parseLines, pickLine } from '../app/renderer/translator/lines';
 
 const fresh = () => new MemoryStore(join(mkdtempSync(join(tmpdir(), 'lamplight-growth-')), 'memory.json'));
 const memo = (title: string, extra = {}) => ({ title, result: 'done' as const, choices: {}, folder: `/w/${title}`, ...extra });
@@ -52,7 +52,7 @@ describe('the shop grows with the commissions done together', () => {
 });
 
 describe('chats for regulars', () => {
-  const chats = parseChats(readFileSync('lines/chats.yaml', 'utf8'));
+  const chats = chatsForScene(parseChats(readFileSync('lines/chats.yaml', 'utf8')), 'cafe');
   const heard = (shop: { done: number; told: Set<string> }, rounds = 60) => {
     const c = new Chatter(chats, [], 0, () => 0.5);
     const ids: string[] = [];

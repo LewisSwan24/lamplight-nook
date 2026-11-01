@@ -389,3 +389,44 @@
     - qingdai: The first thing I drew here? That board.
     - adeng: I remember. Chalk all over your face.
     - qingdai: That was on purpose.
+
+# In the study at home (shared/scenes.ts): `scene: study` chats come up only there, before everyday ones.
+- id: move_in
+  when: idle
+  scene: study
+  once: true
+  turns:
+    - xiaoju: Two moving boxes still to unpack.
+    - laoshi: The bookcase is fixed to the wall.
+    - adeng: This is where we work now.
+
+- id: study_sofa
+  when: idle
+  scene: study
+  turns:
+    - xiaoju: Who picked this sofa? It's so soft.
+    - laoshi: Me.
+    - xiaoju: ...That's why you never get up.
+
+- id: study_window
+  when: idle
+  scene: study
+  turns:
+    - qingdai: The flower shop downstairs has a new window.
+    - adeng: Bring a bunch back next time you're out.
+
+- id: study_lamp
+  when: idle
+  scene: study
+  period: night
+  turns:
+    - adeng: This desk lamp is warmer than the shop's.
+    - qingdai: A touch yellow. Just right for drawing.
+
+- id: study_books
+  when: waiting
+  scene: study
+  turns:
+    - xiaoju: While we wait, I sorted the bookcase.
+    - laoshi: By height?
+    - xiaoju: By how much I like them.

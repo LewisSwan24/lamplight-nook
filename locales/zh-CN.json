@@ -431,6 +431,17 @@
       "done": "做好了，点我去看看",
       "failed": "没做成，点我回店里看看",
       "open": "回到店里"
+    },
+    "scene": {
+      "label": "店开在哪",
+      "cafe": "街角的小店",
+      "study": "家里的小书房",
+      "cafeAbout": "临街的咖啡小店，柜台、黑板和大工作桌。",
+      "studyAbout": "搬回家里的书房，书桌、书架和阅读桌，窗外是楼下的街。",
+      "here": "现在在这儿",
+      "move": "搬过去",
+      "moving": "大家在搬家，稍等一下……",
+      "busy": "有委托在做，做完再搬。"
     }
   },
   "states": {
@@ -510,5 +521,28 @@
     "bonsai": "一盆盆景",
     "easel": "青黛的画架",
     "trophy": "一个小奖杯"
+  },
+  "sceneText": {
+    "study": {
+      "zones": {
+        "window": "窗台",
+        "shelf": "书架",
+        "table": "阅读桌",
+        "corner": "老石的工作台",
+        "counter": "书桌",
+        "door": "房门",
+        "shop": "回书房"
+      },
+      "ui": {
+        "setup": {
+          "laterHint": "没准备好也没关系，先进来坐。点书桌可以看一段试营业。",
+          "greetHint": "有事就写在书桌那张单子上。"
+        },
+        "access": {
+          "hotspotCounter": "书桌：递一张委托",
+          "hotspotShop": "后门：回书房"
+        }
+      }
+    }
   }
 }

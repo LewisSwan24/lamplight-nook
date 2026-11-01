@@ -431,6 +431,17 @@
       "done": "All done. Click to have a look.",
       "failed": "Didn't work out. Click to go back in.",
       "open": "Back to the shop"
+    },
+    "scene": {
+      "label": "Where the shop is",
+      "cafe": "The corner shop",
+      "study": "The study at home",
+      "cafeAbout": "A little café on the street: counter, blackboard and big worktable.",
+      "studyAbout": "Moved into the study at home: desk, bookcase and reading table, the street below the window.",
+      "here": "You're here",
+      "move": "Move there",
+      "moving": "Everyone's moving house. Just a moment…",
+      "busy": "A commission is under way. Move once it's done."
     }
   },
   "states": {
@@ -510,5 +521,28 @@
     "bonsai": "a bonsai",
     "easel": "Iris's easel",
     "trophy": "a little trophy"
+  },
+  "sceneText": {
+    "study": {
+      "zones": {
+        "window": "the windowsill",
+        "shelf": "the bookcase",
+        "table": "the reading table",
+        "corner": "Flint's workbench",
+        "counter": "the desk",
+        "door": "the door",
+        "shop": "back to the study"
+      },
+      "ui": {
+        "setup": {
+          "laterHint": "Not ready? That's fine, come in anyway. Click the desk to watch a trial run.",
+          "greetHint": "Need something? Write it on the slip at the desk."
+        },
+        "access": {
+          "hotspotCounter": "Desk: hand in a commission",
+          "hotspotShop": "Back door: to the study"
+        }
+      }
+    }
   }
 }

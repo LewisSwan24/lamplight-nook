@@ -2,6 +2,7 @@ import { parse } from 'yaml';
 import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
 import type { Holiday, Sky } from '../game/weather';
+import { SCENES, forScene, type SceneId } from '../../shared/scenes';
 import type { LineBook } from './director';
 
 export type Line = {
@@ -10,6 +11,8 @@ export type Line = {
   bubbles: string[];
   when?: string;
   reply?: { speaker: ActorId; bubbles: string[] };
+  /** Said only in this scene; replaces the line with the same id there (shared/scenes.ts). */
+  scene?: SceneId;
 };
 export type LineLibrary = Record<string, Line[]>;
 
@@ -27,6 +30,8 @@ export type Chat = {
   after?: number;
   /** A little story told only once, ever (remembered in Adeng's notebook). */
   once?: boolean;
+  /** Only in this scene (shared/scenes.ts); replaces the chat with the same id there. */
+  scene?: SceneId;
   turns: { speaker: Speaker; text: string }[];
 };
 
@@ -42,6 +47,7 @@ export function parseChats(text: string): Chat[] {
     ...(c.guest ? { guest: c.guest } : {}),
     ...(typeof c.after === 'number' ? { after: c.after } : {}),
     ...(c.once ? { once: true } : {}),
+    ...(c.scene ? { scene: c.scene } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
       return { speaker: speaker as Speaker, text: String(said) };
@@ -52,6 +58,13 @@ export function parseChats(text: string): Chat[] {
 export function parseLines(text: string): LineLibrary {
   return parse(text) as LineLibrary;
 }
+
+/** The lines and chats for one scene: entries marked for another scene drop out, its own replace their twins. */
+export function linesForScene(lib: LineLibrary, scene: SceneId): LineLibrary {
+  return Object.fromEntries(Object.entries(lib).map(([group, lines]) => [group, forScene(lines, scene)]));
+}
+export const chatsForScene = (chats: Chat[], scene: SceneId) => forScene(chats, scene);
+export const knownScene = (scene: unknown) => scene === undefined || SCENES.includes(scene as SceneId);
 
 /** Line library -> the Director's line book (bubbles joined by newlines; a reply keeps its own speaker). */
 export function toLineBook(lib: LineLibrary): LineBook {
@@ -111,8 +124,10 @@ export function lintLines(lib: LineLibrary, S: Strings = strings): string[] {
     if (lines.length < 3) problems.push(fill(L.tooFew, { group }));
     for (const line of lines) {
       const id = line.id;
-      if (ids.has(id)) problems.push(fill(L.duplicateId, { id }));
-      ids.add(id);
+      // A scene's own version of a line shares its id on purpose.
+      const key = `${line.scene ?? ''}:${id}`;
+      if (ids.has(key) || !knownScene(line.scene)) problems.push(fill(L.duplicateId, { id }));
+      ids.add(key);
       const all = [{ speaker: line.speaker, bubbles: line.bubbles }, ...(line.reply ? [line.reply] : [])];
       for (const { speaker, bubbles } of all) for (const text of bubbles) checkBubble(id, speaker, text, problems, rules);
     }
@@ -126,14 +141,15 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
   const problems: string[] = [];
   const ids = new Set<string>();
   for (const chat of chats) {
-    if (ids.has(chat.id)) problems.push(fill(L.duplicateId, { id: chat.id }));
-    ids.add(chat.id);
+    const key = `${chat.scene ?? ''}:${chat.id}`;
+    if (ids.has(key)) problems.push(fill(L.duplicateId, { id: chat.id }));
+    ids.add(key);
     const badSky = chat.sky && !['rain', 'snow', 'petals', 'leaves'].includes(chat.sky);
     const badHoliday = chat.holiday && !['halloween', 'christmas', 'new_year'].includes(chat.holiday);
     // A visit opens with the guest, and only that guest comes along.
     const guests = chat.turns.map((t) => t.speaker).filter((s) => s === 'baker' || s === 'postman');
     const badGuest = chat.guest ? !['baker', 'postman'].includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
-    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday || badGuest) problems.push(fill(L.badChat, { id: chat.id }));
+    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;

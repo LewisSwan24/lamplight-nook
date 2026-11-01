@@ -389,3 +389,44 @@
     - qingdai: 我在店里画的第一张，是这块黑板。
     - adeng: 我记得，粉笔灰抹了一脸。
     - qingdai: 那是故意的。
+
+# In the study at home (shared/scenes.ts): `scene: study` chats come up only there, before everyday ones.
+- id: move_in
+  when: idle
+  scene: study
+  once: true
+  turns:
+    - xiaoju: 搬家的箱子还剩两个没拆。
+    - laoshi: 书架钉牢了。
+    - adeng: 以后就在这儿干活。
+
+- id: study_sofa
+  when: idle
+  scene: study
+  turns:
+    - xiaoju: 这沙发谁挑的？太软了。
+    - laoshi: 我。
+    - xiaoju: ……难怪你总坐着不起来。
+
+- id: study_window
+  when: idle
+  scene: study
+  turns:
+    - qingdai: 楼下花店换了橱窗。
+    - adeng: 下回出门带一束回来。
+
+- id: study_lamp
+  when: idle
+  scene: study
+  period: night
+  turns:
+    - adeng: 这盏台灯比店里的暖。
+    - qingdai: 黄一点，画画正合适。
+
+- id: study_books
+  when: waiting
+  scene: study
+  turns:
+    - xiaoju: 等的时候，我把书架理了一遍。
+    - laoshi: 按高矮排的？
+    - xiaoju: 按我喜欢的排。

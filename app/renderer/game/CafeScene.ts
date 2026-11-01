@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import adengUrl from '../../../assets/sprites/adeng.png';
 import cafeUrl from '../../../assets/sprites/cafe.png';
+import studyUrl from '../../../assets/sprites/study.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
 import dogUrl from '../../../assets/sprites/dog.png';
 import dogSleepUrl from '../../../assets/sprites/dog-sleep.png';
@@ -33,6 +34,7 @@ import you8Url from '../../../assets/sprites/you-8.png';
 import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
+import { currentScene } from '../../shared/scenes';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
@@ -66,6 +68,9 @@ const DAYLIGHT_MS = 4000;
 /** Weather in the garden falls over the lawn, under the garden's light and shade. */
 const GARDEN_WEATHER_DEPTH = 0.6;
 const VIEW_FADE_MS = 180;
+const SCENE = currentScene();
+/** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
+const CUP_POS = SCENE === 'study' ? { x: 232, y: 46 } : { x: 256, y: 48 };
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FORM_POS = { x: 224, y: 57 };
 /** The meeting bell at the left end of the counter (top-left corner, canvas pixels); shown while a commission runs. */
@@ -172,7 +177,8 @@ export class CafeScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('cafe', cafeUrl);
+    // The room itself: the cafe or the study; both share the floor plan in layout.ts.
+    this.load.image('cafe', SCENE === 'study' ? studyUrl : cafeUrl);
     this.load.image('street', streetUrl);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
@@ -276,7 +282,7 @@ export class CafeScene extends Phaser.Scene {
   /** Small animated things that make the room feel lived in. */
   private addProps() {
     this.add.sprite(180, 14, 'clock').setOrigin(0).play('clock');
-    this.add.sprite(256, 48, 'cup').setOrigin(0).setDepth(1).play('cup');
+    this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(1).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
     // The back door: click it to look out at the garden.
     this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'door', 0).setOrigin(0).setDepth(1);

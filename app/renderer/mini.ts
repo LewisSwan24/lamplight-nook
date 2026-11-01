@@ -1,8 +1,10 @@
 import cafeUrl from '../../assets/sprites/cafe.png';
+import studyUrl from '../../assets/sprites/study.png';
 import adengUrl from '../../assets/sprites/adeng.png';
 import catUrl from '../../assets/sprites/cat.png';
 import emotesUrl from '../../assets/ui/emotes.png';
 import { fill, strings } from '../shared/i18n';
+import { currentScene } from '../shared/scenes';
 import { MINI_IDLE, type MiniState } from '../shared/mini';
 import { CAT_FRAME, STAFF_ANIMS, STAFF_FRAME, staffFrames } from './game/sprites';
 import { EMOTES } from './ui/emotes';
@@ -47,7 +49,7 @@ function show(next: MiniState) {
 }
 
 async function start() {
-  const [cafe, adeng, cat, emotes] = await Promise.all([load(cafeUrl), load(adengUrl), load(catUrl), load(emotesUrl)]);
+  const [cafe, adeng, cat, emotes] = await Promise.all([load(currentScene() === 'study' ? studyUrl : cafeUrl), load(adengUrl), load(catUrl), load(emotesUrl)]);
   const draw = () => {
     ctx.clearRect(0, 0, VIEW.w, VIEW.h);
     ctx.drawImage(cafe, VIEW.x, VIEW.y, VIEW.w, VIEW.h, 0, 0, VIEW.w, VIEW.h);

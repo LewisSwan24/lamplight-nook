@@ -1,3 +1,4 @@
+import type { SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
@@ -40,7 +41,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; budgetUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -126,6 +127,8 @@ export interface LamplightApi {
   miniState(): Promise<MiniState>;
   onMiniState(cb: (s: MiniState) => void): () => void;
   showShop(): Promise<void>;
+  /** Move the shop to another scene: saves it and reloads the page; false while a commission runs. */
+  moveScene(scene: SceneId): Promise<boolean>;
 }
 
 /** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
@@ -195,6 +198,8 @@ export const IPC = {
   openLink: 'app:open-link',
   appVersion: 'app:version',
   locale: 'app:locale',
+  scene: 'app:scene',
+  moveScene: 'app:move-scene',
   relaunch: 'app:relaunch',
   legalNotices: 'app:legal-notices',
   saveApiKey: 'key:save',

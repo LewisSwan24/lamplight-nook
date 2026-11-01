@@ -53,8 +53,11 @@ const api: LamplightApi = {
   miniState: () => ipcRenderer.invoke(IPC.miniState),
   onMiniState: (cb) => on(IPC.miniPush, cb),
   showShop: () => ipcRenderer.invoke(IPC.showShop),
+  moveScene: (scene) => ipcRenderer.invoke(IPC.moveScene, scene),
 };
 
 contextBridge.exposeInMainWorld('lamplight', api);
 // The app's language, needed before any page script runs (shared/i18n.ts reads it as it loads).
 contextBridge.exposeInMainWorld('lamplightLocale', ipcRenderer.sendSync(IPC.locale));
+// Where the shop is, also fixed for the page's life (shared/scenes.ts reads it as it loads).
+contextBridge.exposeInMainWorld('lamplightScene', ipcRenderer.sendSync(IPC.scene));

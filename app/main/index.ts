@@ -23,6 +23,7 @@ import { SpendLedger } from './spend';
 import { zip } from './zip';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
+import { cleanScene } from '../shared/scenes';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -213,6 +214,16 @@ ipcMain.handle(IPC.openWorkRoot, async () => {
 ipcMain.handle(IPC.openLink, (_e, link: ExternalLink) => (LINKS[link] ? shell.openExternal(LINKS[link]) : undefined));
 ipcMain.handle(IPC.appVersion, () => app.getVersion());
 ipcMain.on(IPC.locale, (e) => { e.returnValue = locale(); });
+ipcMain.on(IPC.scene, (e) => { e.returnValue = settings.get().scene; });
+// Moving waits while a commission runs: reloading the page would lose the stage that acts it out.
+ipcMain.handle(IPC.moveScene, (_e, scene: unknown): boolean => {
+  const next = cleanScene(scene);
+  if (!next || current || !win) return false;
+  settings.update({ scene: next });
+  mini.destroy();
+  win.webContents.reload();
+  return true;
+});
 // Built by scripts/notices.mjs next to the compiled app.
 ipcMain.handle(IPC.legalNotices, (): string | null => {
   try {
