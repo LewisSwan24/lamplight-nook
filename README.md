@@ -89,6 +89,8 @@ and this repository must stay private. LimeZu requires credit: https://limezu.it
 # Unzip the Modern Interiors pack into assets/vendor/ first (1_Interiors/, 2_Characters/, 3_Animated_objects/).
 python3 scripts/art/characters.py   # the three staff from generator layers, recoloured; the chestnut shop cat
 python3 scripts/art/scene.py        # the 320x180 cafe background
+python3 scripts/art/furnish.py      # wall, curtain and rug colour choices for each scene (needs only the backgrounds)
+python3 scripts/art/growth.py --icons  # the works-shelf icons alone (without --icons it also needs the pack)
 ```
 
 Character sheets keep the generator layout: 16x32 frames, 56 per row, directional animations in

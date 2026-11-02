@@ -12,6 +12,12 @@ opening:
   - { id: revise_03, speaker: adeng, when: revise, bubbles: ["I'll tuck the old one away first.", "\"{brief}\". I'll show you when it's done."] }
   - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["\"{brief}\". Got it.", "Last time we got stuck on {stuckNote}.", "I'll keep an eye on that this time."] }
   - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["\"{brief}\". Got it.", "Last time you went with {lastChoice}.", "I'll start from that. Say if it's wrong."] }
+  # What kind of commission it is (`tpl_<template>`), and files handed over with it (`handed`).
+  - { id: tpl_album_01, speaker: adeng, when: tpl_album, bubbles: ["I'll take the photos, thanks.", "Let me look through them first."], reply: { speaker: qingdai, bubbles: ["I'll pick the page colour."] } }
+  - { id: tpl_letter_01, speaker: adeng, when: tpl_letter, bubbles: ["A letter. Let me find a good pen.", "\"{brief}\". First, how to begin."] }
+  - { id: tpl_sheet_01, speaker: adeng, when: tpl_sheet, bubbles: ["A table. Straight lines first."], reply: { speaker: laoshi, bubbles: ["I'll check the totals."] } }
+  - { id: tpl_plan_01, speaker: adeng, when: tpl_plan, bubbles: ["A good plan leaves some room.", "Pack a day too full and the next one stalls."] }
+  - { id: handed_01, speaker: adeng, when: handed, bubbles: ["Thanks, I'll have a look at these first.", "\"{brief}\". Got it."], reply: { speaker: xiaoju, bubbles: ["I'll make copies!"] } }
   - { id: opening_01, speaker: adeng, bubbles: ["\"{brief}\". Got it.", "Clem, Flint, we've got work."] }
   - { id: opening_02, speaker: adeng, bubbles: ["So, \"{brief}\"?", "Let me put the kettle on. Have a seat.", "Now, where do we start."] }
   - { id: opening_xiaoju_01, speaker: xiaoju, bubbles: ["A new job? Let me hang up my scarf!"] }

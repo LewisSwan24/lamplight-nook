@@ -1,4 +1,5 @@
 import { DEFAULT_SCENE, cleanScene } from '../shared/scenes';
+import { cleanFurnishing, cleanFurnishings } from '../shared/furnish';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DEFAULT_AVATAR, cleanAvatar } from '../shared/avatars';
@@ -25,7 +26,7 @@ export class SettingsStore {
   private data: Settings;
 
   constructor(private file: string, documentsDir: string) {
-    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, scene: DEFAULT_SCENE, budgetUsd: DEFAULT_BUDGET, language: 'system' };
+    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), budgetUsd: DEFAULT_BUDGET, language: 'system' };
     this.data = { ...defaults, ...this.read() };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
     this.data.volume = cleanVolume(this.data.volume) ?? DEFAULT_VOLUME;
@@ -33,6 +34,7 @@ export class SettingsStore {
     this.data.language = cleanLanguage(this.data.language) ?? 'system';
     this.data.avatar = cleanAvatar(this.data.avatar) ?? DEFAULT_AVATAR;
     this.data.scene = cleanScene(this.data.scene) ?? DEFAULT_SCENE;
+    this.data.furnish = cleanFurnishings(this.data.furnish);
   }
 
   get(): Settings {
@@ -54,6 +56,12 @@ export class SettingsStore {
     if (budget !== undefined) clean.budgetUsd = budget;
     const scene = cleanScene(patch.scene);
     if (scene) clean.scene = scene;
+    // Furnishing is saved one scene at a time; the other scene keeps its own.
+    if (patch.furnish && typeof patch.furnish === 'object') {
+      const next = { ...this.data.furnish };
+      for (const s of ['cafe', 'study'] as const) if (s in patch.furnish) next[s] = cleanFurnishing((patch.furnish as Record<string, unknown>)[s]);
+      clean.furnish = next;
+    }
     const language = cleanLanguage(patch.language);
     if (language) clean.language = language;
     this.data = { ...this.data, ...clean };

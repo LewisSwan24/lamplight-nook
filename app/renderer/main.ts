@@ -1,3 +1,4 @@
+import { currentScene } from '../shared/scenes';
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
@@ -21,7 +22,7 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { clearWorkSigns, setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { boardSteps, clearWorkSigns, commissionFormOpen, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
@@ -276,6 +277,8 @@ window.lamplight.onDecision((req) => {
 });
 // What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
 let shopDays: { done: number; told: Set<string> } = { done: 0, told: new Set() };
+/** How many works were on the shelf before this result came back (the shelf only shows from the first). */
+let worksKept = 0;
 async function refreshShop(fresh: GrowthId[] = []) {
   const state = await window.lamplight.shopState();
   // The scene builds its props on its first frame; wait for it when the shop has only just opened.
@@ -283,6 +286,7 @@ async function refreshShop(fresh: GrowthId[] = []) {
   scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
   scene.growth.setWorks(state.works.map((w) => w.icon));
   shopDays = { done: state.done, told: new Set(state.told) };
+  worksKept = state.works.length;
 }
 /** Something new in the shop: once the result card is seen to, someone says a word about it. */
 function noticeGrowth(ids: GrowthId[]) {
@@ -295,6 +299,8 @@ function noticeGrowth(ids: GrowthId[]) {
   }, GROWTH_LINE_DELAY_MS);
 }
 const GROWTH_LINE_DELAY_MS = 4000;
+scene.boardInUse = () => boardSteps().length > 0;
+scene.onBoardClick = () => showPlan(boardSteps());
 scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
 onNotebookForget(() => void refreshShop());
 window.lamplight.onResult((result) => {
@@ -305,6 +311,7 @@ window.lamplight.onResult((result) => showResult(result, {
   open: (path, how) => void window.lamplight.openOutput(path, how),
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
+  firstWork: worksKept === 0,
 }));
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
@@ -333,12 +340,16 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     void scene.youLeave();
   }
 }
-async function newCommission() {
-  if (running) return showRunning(window.lamplight, running);
+async function newCommission(dropped: string[] = []) {
+  if (running) {
+    if (dropped.length) return greet(strings.ui.materials.busy);
+    return showRunning(window.lamplight, running);
+  }
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission());
-  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd);
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped));
+  const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
+  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
@@ -367,8 +378,26 @@ async function prepare(form: CommissionForm) {
   const brief = form.demo ? strings.demo.brief : shorten(form.want);
   const recall = await window.lamplight.recallForCommission(form);
   // The demo's one question is the colour question, which has its own line.
-  stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
+  const kind = [...(form.template ? [`tpl_${form.template}`] : []), ...(form.materials?.length ? ['handed'] : [])];
+  stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : []), ...kind] });
 }
+// Files dragged onto the shop are handed to Adeng: onto an open commission form, or a new one at the counter.
+// Never let a dropped file open in the window itself.
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  if (e.dataTransfer?.types.includes('Files')) document.body.classList.add('drop-ready');
+});
+document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) document.body.classList.remove('drop-ready'); });
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('drop-ready');
+  const paths = window.lamplight.pathsOf(Array.from(e.dataTransfer?.files ?? []));
+  if (!paths.length || document.querySelector('.backdrop')) return;
+  const form = commissionFormOpen();
+  if (form) return void form.add(paths);
+  scene.setCounterHint(false);
+  void newCommission(paths);
+});
 scene.onCounterClick = () => {
   scene.setCounterHint(false);
   void newCommission();
@@ -385,6 +414,7 @@ function applySettings(s: Settings) {
   document.body.classList.toggle('reduce-motion', calm);
   scene.setReducedMotion(calm);
   scene.setYouLook(s.avatar);
+  scene.setFurnishing(s.furnish[currentScene()]);
   scene.youName = s.name;
 }
 systemCalm.addEventListener('change', () => current && applySettings(current));

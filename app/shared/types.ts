@@ -1,3 +1,5 @@
+import type { Furnishings } from './furnish';
+import type { Todo } from './board';
 import type { SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
@@ -41,7 +43,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -84,6 +86,10 @@ export interface LamplightApi {
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
   chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
+  /** Files dragged onto the counter or the form (paths from pathsOf), or picked in a dialog when none are given. */
+  handOver(paths: string[] | null, already: Material[]): Promise<HandOver>;
+  /** The paths of files dropped on the page (the preload reads them; the page can't). */
+  pathsOf(files: File[]): string[];
   startCommission(form: CommissionForm): Promise<RunResult>;
   /** Run the last failed commission again, continuing its session; null if there is none. */
   retryCommission(): Promise<RunResult | null>;
@@ -132,13 +138,19 @@ export interface LamplightApi {
 }
 
 /** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
-export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy';
+export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy' | 'letter' | 'sheet' | 'plan' | 'album';
 
 /**
  * The commission form: what the user wants, any particulars, who it's for.
  * source: the file to edit or the folder to tidy, as picked in the main process's dialog.
+ * materials: files the user handed over (dropped or picked); copies go into the commission folder.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string };
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[] };
+
+/** A file handed over with a commission. */
+export type Material = { path: string; name: string; size: number };
+/** What could be handed over, and what not and why. */
+export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
 export type SourcePick = { path: string; name: string } | { error: 'too-big' };
@@ -212,6 +224,7 @@ export const IPC = {
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
+  handOver: 'commission:hand-over',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
   cancelCommission: 'commission:cancel',
@@ -241,7 +254,7 @@ export const IPC = {
 export type Risk = 'safe' | 'ask' | 'serious' | 'blocked';
 
 export type AiEventKind =
-  | 'session_start' | 'plan' | 'thinking'
+  | 'session_start' | 'plan' | 'progress' | 'thinking'
   | 'tool_start' | 'tool_ok' | 'tool_fail'
   | 'long_wait'
   | 'subagent_start' | 'subagent_stop'
@@ -266,6 +279,8 @@ export type AiEvent = {
   choice?: Choice;
   /** Consecutive failures for this agent so far. */
   failStreak?: number;
+  /** For `plan` and `progress` events from Claude's own to-do list: the whole list as it stands. */
+  todos?: Todo[];
   raw?: unknown;
 };
 

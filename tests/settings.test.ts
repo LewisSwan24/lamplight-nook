@@ -1,3 +1,4 @@
+import { cleanFurnishings } from '../app/shared/furnish';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,13 +10,13 @@ const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-settings-')), 'se
 describe('settings store', () => {
   it('starts with the default work folder and no name', () => {
     const s = new SettingsStore(fresh(), '/docs').get();
-    expect(s).toEqual({ name: '', avatar: 1, workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, scene: 'cafe', budgetUsd: 3, language: 'system' });
+    expect(s).toEqual({ name: '', avatar: 1, workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, scene: 'cafe', furnish: cleanFurnishings(undefined), budgetUsd: 3, language: 'system' });
   });
 
   it('saves and reloads changes', () => {
     const file = fresh();
     new SettingsStore(file, '/docs').update({ name: '  Lin  ', avatar: 5, onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, mini: false, scene: 'study', budgetUsd: 5, language: 'en' });
-    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', avatar: 5, workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, mini: false, scene: 'study', budgetUsd: 5, language: 'en' });
+    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', avatar: 5, workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, mini: false, scene: 'study', furnish: cleanFurnishings(undefined), budgetUsd: 5, language: 'en' });
   });
 
   it('ignores empty folders and unknown fields', () => {
@@ -65,5 +66,19 @@ describe('settings store', () => {
     const file = fresh();
     writeFileSync(file, '{not json');
     expect(new SettingsStore(file, '/docs').get().onboarded).toBe(false);
+  });
+});
+
+describe('furnishing', () => {
+  it('keeps each scene\'s own choices and drops unknown ones', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'furnish-')), 'settings.json');
+    const store = new SettingsStore(file, '/docs');
+    store.update({ furnish: { cafe: { wall: 'sage', curtain: 'nope', rug: 'plum' }, study: { wall: 'rose', curtain: 'blue', rug: 'default' } } as never });
+    store.update({ furnish: { cafe: { wall: 'sky', curtain: 'green', rug: 'blue' } } as never });
+    expect(new SettingsStore(file, '/docs').get().furnish).toEqual({
+      cafe: { wall: 'sky', curtain: 'green', rug: 'blue' },
+      study: { wall: 'rose', curtain: 'blue', rug: 'default' },
+    });
+    expect(cleanFurnishings('junk').cafe).toEqual({ wall: 'default', curtain: 'default', rug: 'default' });
   });
 });

@@ -23,7 +23,7 @@ export function grownBy(done: number): GrowthId[] {
 }
 
 /** Icons on the works shelf, in the order of assets/sprites/works.png (8x8 each). */
-export const WORK_ICONS = ['page', 'research', 'edit', 'tidy', 'demo'] as const;
+export const WORK_ICONS = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album'] as const;
 export type WorkIcon = (typeof WORK_ICONS)[number];
 export const workIcon = (form?: { demo?: boolean; template?: CommissionTemplate }): WorkIcon =>
   form?.demo ? 'demo' : form?.template && form.template !== 'page' ? form.template : 'page';

@@ -37,7 +37,10 @@ let state: MiniState = MINI_IDLE;
 let frame = 0;
 
 function line(s: MiniState): string {
-  if (s.status === 'working') return s.what ? fill(M.working, { what: s.what }) : fill(M.working, { what: '…' });
+  if (s.status === 'working') {
+    const busy = fill(M.working, { what: s.what || '…' });
+    return s.step ? `${fill(M.step, { n: String(s.step.n), total: String(s.step.total) })} \u00B7 ${busy}` : busy;
+  }
   return M[s.status];
 }
 
