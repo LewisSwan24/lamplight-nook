@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, lstatSync, readdirSync, writeFileSync } from 
 import { basename, join } from 'node:path';
 import { strings } from '../shared/i18n';
 import type { CommissionForm } from '../shared/types';
+import { materialsSteps } from './materials';
 
 const F = strings.ui.files;
 
@@ -91,7 +92,7 @@ export function commissionPrompt(form: CommissionForm, notes?: string): string {
   const lines = [`The user's request: ${form.want}`];
   if (form.details) lines.push(`Particulars: ${form.details}`);
   if (form.audience) lines.push(`Who it is for: ${form.audience}`);
-  const steps = templateSteps(form);
+  const steps = [...templateSteps(form), ...materialsSteps(form.materials)];
   const body = steps.length ? `${lines.join('\n')}\n\n${steps.join('\n')}` : lines.join('\n');
   return withNotes(`${body}\n\n${HOUSE_RULES}`, notes);
 }

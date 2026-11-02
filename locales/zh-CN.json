@@ -165,6 +165,7 @@
       "needSource": "先选一下要处理的文件或文件夹。",
       "tooBig": "这个文件有点大（超过 1MB），店员们一次看不完，换个小一点的吧。"
     },
+    "materials": {"label": "递过来的东西", "add": "递材料…", "hint": "截图、表格、稿子都行，也可以直接拖到这张单子或柜台上。店员们用的是复制件，原文件不动。", "remove": "拿掉 {name}", "folder": "「{name}」是个文件夹。要整理文件夹，请用上面的「整理文件夹」。", "tooBig": "「{name}」太大了（一次最多 20MB，合计 50MB）。", "tooMany": "一次最多递 10 个，「{name}」先放一放。", "missing": "「{name}」找不到了。", "busy": "店里正忙着这一单，等做完再递新的吧。", "drop": "松手就递给阿灯"},
     "want": "想做什么",
     "wantMissing": "先写一句想做什么。",
     "details": "有什么讲究",
@@ -403,6 +404,7 @@
       "summary": "总结.md",
       "tidyPlan": "整理方案.md",
       "listing": "文件清单.txt",
+      "materials": "材料",
       "originalPrefix": "原稿-",
       "revisedPrefix": "修改版-"
     },

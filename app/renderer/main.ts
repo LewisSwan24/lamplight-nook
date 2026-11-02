@@ -21,7 +21,7 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { boardSteps, clearWorkSigns, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { boardSteps, clearWorkSigns, commissionFormOpen, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
@@ -339,12 +339,16 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     void scene.youLeave();
   }
 }
-async function newCommission() {
-  if (running) return showRunning(window.lamplight, running);
+async function newCommission(dropped: string[] = []) {
+  if (running) {
+    if (dropped.length) return greet(strings.ui.materials.busy);
+    return showRunning(window.lamplight, running);
+  }
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission());
-  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd);
+  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped));
+  const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
+  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
@@ -375,6 +379,23 @@ async function prepare(form: CommissionForm) {
   // The demo's one question is the colour question, which has its own line.
   stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
 }
+// Files dragged onto the shop are handed to Adeng: onto an open commission form, or a new one at the counter.
+// Never let a dropped file open in the window itself.
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  if (e.dataTransfer?.types.includes('Files')) document.body.classList.add('drop-ready');
+});
+document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) document.body.classList.remove('drop-ready'); });
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('drop-ready');
+  const paths = window.lamplight.pathsOf(Array.from(e.dataTransfer?.files ?? []));
+  if (!paths.length || document.querySelector('.backdrop')) return;
+  const form = commissionFormOpen();
+  if (form) return void form.add(paths);
+  scene.setCounterHint(false);
+  void newCommission(paths);
+});
 scene.onCounterClick = () => {
   scene.setCounterHint(false);
   void newCommission();

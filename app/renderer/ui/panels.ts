@@ -2,7 +2,7 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, LamplightApi } from '../../shared/types';
+import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
@@ -96,7 +96,20 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * The commission form. A row of stickers fills in a ready-made kind of commission (the demo is picked to begin with);
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
-export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budgetUsd = 0): Promise<CommissionForm | null> {
+/** What the commission form needs from the main process. */
+export type FormApi = Pick<LamplightApi, 'chooseSource' | 'handOver' | 'pathsOf'>;
+
+/** Why something couldn't be handed over, in the shop's words. */
+export function refusalText(r: HandOver['refused'][number]): string {
+  const key = r.why === 'too-big' ? 'tooBig' : r.why === 'too-many' ? 'tooMany' : r.why;
+  return fill(U.materials[key], { name: r.name });
+}
+
+/** The commission form currently open, so files dropped anywhere on the shop land on it. */
+let openForm: { add: (paths: string[] | null) => Promise<void> } | null = null;
+export const commissionFormOpen = () => openForm;
+
+export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     // The empty-box reminder in the shop's own words (and language), not the browser's.
@@ -111,7 +124,31 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
     const pickButton = el('button', { type: 'button', onclick: () => void pick() }) as HTMLButtonElement;
     const sourceRow = el('div.source-row', {}, el('div.source-line', {}, pickButton, sourceName), sourceHint);
     const chips = TEMPLATES.map((t) => el('button.template-chip', { type: 'button', onclick: () => choose(t) }, t.label) as HTMLButtonElement);
-    const done = (form: CommissionForm | null) => { resolve(form); closePanel(); };
+    const done = (form: CommissionForm | null) => { openForm = null; resolve(form); closePanel(); };
+
+    // Files handed over with the commission: a row of name tags, each can be taken back.
+    let materials: Material[] = [];
+    const tags = el('div.material-tags');
+    const materialNote = el('div.hint.material-note', { role: 'status' });
+    const showMaterials = (refused: HandOver['refused'] = []) => {
+      tags.replaceChildren(...materials.map((m) => el('span.material-tag', {}, m.name,
+        el('button.material-remove', { type: 'button', 'aria-label': fill(U.materials.remove, { name: m.name }), onclick: () => {
+          materials = materials.filter((x) => x !== m);
+          showMaterials();
+        } }, '\u00D7'))));
+      materialNote.textContent = refused.map(refusalText).join(' ');
+      materialNote.classList.toggle('warn', refused.length > 0);
+    };
+    const add = async (paths: string[] | null) => {
+      const r = await api.handOver(paths, materials);
+      materials = [...materials, ...r.items];
+      showMaterials(r.refused);
+      if (r.items.length) sfx('open');
+    };
+    const materialRow = el('div.material-row', {},
+      el('div.material-head', {}, el('span.material-label', {}, U.materials.label),
+        el('button.link.material-add', { type: 'button', onclick: () => void add(null) }, U.materials.add)),
+      tags, materialNote, el('div.hint', {}, U.materials.hint));
 
     const needsSource = () => chosen?.id === 'edit' || chosen?.id === 'tidy';
     const refresh = () => {
@@ -151,6 +188,7 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
       el('div.template-row', {}, ...chips),
       el('label', {}, U.want, want),
       sourceRow,
+      materialRow,
       el('label', {}, U.details, details),
       el('label', {}, U.audience, audience),
       el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
@@ -173,7 +211,18 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
       if (chosen?.id === 'demo' && want.value !== U.demoFill) { chosen = null; refresh(); }
     });
     // Closed some other way (Esc): same as the close button.
-    form.addEventListener('panel-closed', () => resolve(null));
+    form.addEventListener('panel-closed', () => { openForm = null; resolve(null); });
+    // Files dragged over the slip: it lights up; let go and they are handed over.
+    form.addEventListener('dragover', (e) => { e.preventDefault(); form.classList.add('dropping'); });
+    form.addEventListener('dragleave', (e) => { if (!form.contains((e as DragEvent).relatedTarget as Node)) form.classList.remove('dropping'); });
+    form.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      form.classList.remove('dropping');
+      void add(api.pathsOf(Array.from((e as DragEvent).dataTransfer?.files ?? [])));
+    });
+    form.dataset.drop = U.materials.drop;
+    openForm = { add };
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = want.value.trim();
@@ -192,9 +241,13 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
         demo: chosen?.id === 'demo' && text === U.demoFill,
         template,
         source: template === 'edit' || template === 'tidy' ? source?.path : undefined,
+        materials: chosen?.id === 'demo' ? undefined : materials.map((m) => m.path),
       });
     });
-    want.value = U.demoFill;
+    // Files dropped on the counter come in with the form; the demo has its own fixed material, so start blank.
+    materials = [...handed.items];
+    showMaterials(handed.refused);
+    if (materials.length) { chosen = null; want.value = ''; } else want.value = U.demoFill;
     refresh();
     replaceOpen(form);
     want.focus();

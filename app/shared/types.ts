@@ -85,6 +85,10 @@ export interface LamplightApi {
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
   chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
+  /** Files dragged onto the counter or the form (paths from pathsOf), or picked in a dialog when none are given. */
+  handOver(paths: string[] | null, already: Material[]): Promise<HandOver>;
+  /** The paths of files dropped on the page (the preload reads them; the page can't). */
+  pathsOf(files: File[]): string[];
   startCommission(form: CommissionForm): Promise<RunResult>;
   /** Run the last failed commission again, continuing its session; null if there is none. */
   retryCommission(): Promise<RunResult | null>;
@@ -138,8 +142,14 @@ export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy';
 /**
  * The commission form: what the user wants, any particulars, who it's for.
  * source: the file to edit or the folder to tidy, as picked in the main process's dialog.
+ * materials: files the user handed over (dropped or picked); copies go into the commission folder.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string };
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[] };
+
+/** A file handed over with a commission. */
+export type Material = { path: string; name: string; size: number };
+/** What could be handed over, and what not and why. */
+export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
 export type SourcePick = { path: string; name: string } | { error: 'too-big' };
@@ -213,6 +223,7 @@ export const IPC = {
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
+  handOver: 'commission:hand-over',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
   cancelCommission: 'commission:cancel',

@@ -165,6 +165,7 @@
       "needSource": "Choose the file or folder first.",
       "tooBig": "That file is a bit big (over 1 MB) for the staff to read in one go. Try a smaller one."
     },
+    "materials": {"label": "Handed over", "add": "Hand over files…", "hint": "Screenshots, spreadsheets, drafts: anything helps. You can also drag files onto this slip or the counter. The staff work from copies; your files stay as they are.", "remove": "Take back {name}", "folder": "“{name}” is a folder. To sort out a folder, use “Tidy a folder” above.", "tooBig": "“{name}” is too big (20 MB each, 50 MB in all).", "tooMany": "Ten files at most; “{name}” will have to wait.", "missing": "“{name}” can't be found.", "busy": "The shop is busy with this one. Hand it over when it's done.", "drop": "Let go to hand it to Wick"},
     "want": "What would you like?",
     "wantMissing": "Write a line about what you'd like first.",
     "details": "Anything particular?",
@@ -403,6 +404,7 @@
       "summary": "summary.md",
       "tidyPlan": "tidy-plan.md",
       "listing": "file-list.txt",
+      "materials": "materials",
       "originalPrefix": "original-",
       "revisedPrefix": "revised-"
     },

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { IPC, type LamplightApi } from '../shared/types';
 
 /** Subscribe to a main -> renderer channel; returns an unsubscribe function. */
@@ -26,6 +26,8 @@ const api: LamplightApi = {
   exportDiagnostics: () => ipcRenderer.invoke(IPC.exportDiagnostics),
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
   chooseSource: (kind) => ipcRenderer.invoke(IPC.chooseSource, kind),
+  handOver: (paths, already) => ipcRenderer.invoke(IPC.handOver, paths, already),
+  pathsOf: (files) => files.map((f) => { try { return webUtils.getPathForFile(f); } catch { return ''; } }).filter(Boolean),
   startCommission: (form) => ipcRenderer.invoke(IPC.startCommission, form),
   retryCommission: () => ipcRenderer.invoke(IPC.retryCommission),
   cancelCommission: () => ipcRenderer.invoke(IPC.cancelCommission),

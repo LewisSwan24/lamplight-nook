@@ -143,6 +143,18 @@ body.debug #debug { display: block; }
 .board .step.todo { opacity: 0.55; }
 .board .step.more { opacity: 0.55; font-size: 0.9em; }
 .board .step.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }
+.material-row { margin: 6px 0 2px; }
+.material-head { display: flex; align-items: baseline; gap: 10px; }
+.material-label { font-family: var(--hand); font-size: 16px; }
+.material-tags { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 4px 0 2px; }
+.material-tags:empty { display: none; }
+.material-tag { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; background: rgba(233, 184, 114, 0.25); border: 1px solid rgba(122, 82, 54, 0.3); border-radius: 3px 8px 3px 8px; padding: 1px 2px 1px 8px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.material-remove { border: none; background: none; box-shadow: none; padding: 0 5px; font-size: 15px; line-height: 1; cursor: pointer; color: #7a6a58; }
+.material-note:empty { display: none; }
+.material-note.warn { color: #8a3b2a; }
+.commission.dropping { outline: 2.5px dashed var(--accent); outline-offset: -8px; }
+.commission.dropping::after { content: attr(data-drop); position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-family: var(--hand); font-size: 18px; color: var(--accent); pointer-events: none; }
+body.drop-ready #game { filter: brightness(1.04); }
 .plan-card { width: min(420px, calc(88vw / var(--ui, 1))); }
 .plan-list { margin: 8px 0 4px; padding-left: 22px; font-family: var(--hand); font-size: 16px; line-height: 1.7; max-height: calc(60vh / var(--ui, 1)); overflow-y: auto; }
 .plan-list li.done { color: #9a8a76; text-decoration: line-through; text-decoration-thickness: 1px; }
