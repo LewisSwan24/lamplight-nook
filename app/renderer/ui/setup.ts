@@ -7,6 +7,7 @@ import { el, layer } from './dom';
 import { showNotebook } from './notebook';
 import { lookPicker, withPortrait } from './portraits';
 import { moveTo, scenePicker, sceneRow } from './scenes';
+import { FURNISH_CHOICES, FURNISH_PARTS, SWATCHES, type Furnishing } from '../../shared/furnish';
 import { currentScene, type SceneId } from '../../shared/scenes';
 
 const S = strings.ui.setup;
@@ -323,10 +324,41 @@ function troubleRow(api: LamplightApi): HTMLElement {
   return el('div', {}, el('div.hint', {}, S.troubleText), el('div.actions', {}, button), said);
 }
 
-export const SETTINGS_TABS = ['basics', 'sight', 'work', 'about'] as const;
+export const SETTINGS_TABS = ['basics', 'furnish', 'sight', 'work', 'about'] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 /** The tab settings opened on last time, so a second visit lands where the first one left off. */
 let lastTab: SettingsTab = 'basics';
+
+/** Furnishing the scene the shop is in: a row of colour swatches for the walls, the curtains and the rug. */
+function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement[] {
+  const F = strings.ui.furnish;
+  const here = currentScene();
+  let mine: Furnishing = { ...settings.furnish[here] };
+  return [
+    el('div.hint', {}, fill(F.hint, { scene: strings.ui.scene[here] })),
+    ...FURNISH_PARTS.map((part) => {
+      const names = F.choices[part] as Record<string, string>;
+      const buttons = FURNISH_CHOICES[part].map((choice) => el('button.swatch', {
+        type: 'button', title: names[choice], 'aria-label': `${F[part]}: ${names[choice]}`,
+        style: `--swatch:${SWATCHES[here][part][choice]}`, 'data-choice': choice,
+      }) as HTMLButtonElement);
+      const name = el('span.swatch-name');
+      const show = () => {
+        for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.choice === mine[part]));
+        name.textContent = names[mine[part]];
+      };
+      buttons.forEach((b) => b.addEventListener('click', async () => {
+        mine = { ...mine, [part]: b.dataset.choice } as Furnishing;
+        show();
+        const s = await api.saveSettings({ furnish: { ...settings.furnish, [here]: mine } });
+        settings = s;
+        changed(s);
+      }));
+      show();
+      return el('section', {}, el('h4', {}, F[part]), el('div.swatches', {}, ...buttons, name));
+    }),
+  ];
+}
 
 /** Settings: name, work folder, sound, seeing and hearing, what is needed to start, and credits. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
@@ -342,6 +374,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
       el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     ],
+    furnish: furnishRows(api, settings, onChange),
     sight: [
       el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
       el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),

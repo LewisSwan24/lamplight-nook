@@ -1,3 +1,4 @@
+import { DEFAULT_FURNISHING, FURNISH_CHOICES, FURNISH_PARTS, type FurnishPart, type Furnishing } from '../../shared/furnish';
 import Phaser from 'phaser';
 import adengUrl from '../../../assets/sprites/adeng.png';
 import cafeUrl from '../../../assets/sprites/cafe.png';
@@ -69,6 +70,11 @@ const DAYLIGHT_MS = 4000;
 const GARDEN_WEATHER_DEPTH = 0.6;
 const VIEW_FADE_MS = 180;
 const SCENE = currentScene();
+/** Furnishing overlays for every scene (scripts/art/furnish.py); only this scene's are loaded. */
+const FURNISH_URLS = import.meta.glob<string>('../../../assets/sprites/furnish-*.png', { eager: true, query: '?url', import: 'default' });
+const furnishUrl = (part: FurnishPart, choice: string) => FURNISH_URLS[`../../../assets/sprites/furnish-${SCENE}-${part}-${choice}.png`];
+/** Over the room, under the window glass and everything in it. */
+const FURNISH_DEPTH = 0.2;
 /** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
 const CUP_POS = SCENE === 'study' ? { x: 232, y: 46 } : { x: 256, y: 48 };
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
@@ -176,6 +182,9 @@ export class CafeScene extends Phaser.Scene {
   /** Every line said out loud, for the caption log. */
   onSay?: (who: Speaker, text: string) => void;
 
+  private furnishing: Furnishing = DEFAULT_FURNISHING;
+  private furnishLayers = new Map<FurnishPart, Phaser.GameObjects.Image>();
+
   constructor() {
     super('cafe');
   }
@@ -197,10 +206,31 @@ export class CafeScene extends Phaser.Scene {
     this.load.spritesheet('cup', cupUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('door', doorUrl, { frameWidth: 16, frameHeight: 32 });
     preloadGrowth(this.load);
+    for (const part of FURNISH_PARTS) {
+      for (const choice of FURNISH_CHOICES[part]) {
+        const url = furnishUrl(part, choice);
+        if (url) this.load.image(`furnish-${part}-${choice}`, url);
+      }
+    }
+  }
+
+  /** Recolour the wall, the curtains and the rug; `default` shows the room as drawn. Safe before create(). */
+  setFurnishing(f: Furnishing) {
+    this.furnishing = f;
+    if (!this.furnishLayers.size) return;
+    for (const part of FURNISH_PARTS) {
+      const layer = this.furnishLayers.get(part)!;
+      const key = `furnish-${part}-${f[part]}`;
+      const on = f[part] !== 'default' && this.textures.exists(key);
+      if (on) layer.setTexture(key);
+      layer.setVisible(on);
+    }
   }
 
   create() {
     this.add.image(0, 0, 'cafe').setOrigin(0);
+    for (const part of FURNISH_PARTS) this.furnishLayers.set(part, this.add.image(0, 0, 'cafe').setOrigin(0).setDepth(FURNISH_DEPTH).setVisible(false));
+    this.setFurnishing(this.furnishing);
     this.createAnims();
     this.addProps();
     this.growth = new ShopGrowth(this, () => {});

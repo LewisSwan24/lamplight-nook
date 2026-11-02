@@ -1,3 +1,4 @@
+import { currentScene } from '../shared/scenes';
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
@@ -413,6 +414,7 @@ function applySettings(s: Settings) {
   document.body.classList.toggle('reduce-motion', calm);
   scene.setReducedMotion(calm);
   scene.setYouLook(s.avatar);
+  scene.setFurnishing(s.furnish[currentScene()]);
   scene.youName = s.name;
 }
 systemCalm.addEventListener('change', () => current && applySettings(current));
