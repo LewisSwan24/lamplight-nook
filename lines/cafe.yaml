@@ -12,6 +12,12 @@ opening:
   - { id: revise_03, speaker: adeng, when: revise, bubbles: ["旧稿我先收好。", "{brief}，改完拿给你看。"] }
   - { id: opening_mem_02, speaker: adeng, when: has_stuck_note, bubbles: ["{brief}……嗯，好。", "上回在{stuckNote}卡过一次。", "这次我先盯着点。"] }
   - { id: opening_mem_01, speaker: adeng, when: has_memory, bubbles: ["{brief}……嗯，好。", "上次你选了{lastChoice}。", "这次也先照这个来，不合适再说。"] }
+  # What kind of commission it is (`tpl_<template>`), and files handed over with it (`handed`).
+  - { id: tpl_album_01, speaker: adeng, when: tpl_album, bubbles: ["照片我收下了。", "先一张张看看，再排顺序。"], reply: { speaker: qingdai, bubbles: ["相册的底色我来挑。"] } }
+  - { id: tpl_letter_01, speaker: adeng, when: tpl_letter, bubbles: ["写信啊，我去拿支好写的笔。", "{brief}，先想想开头。"] }
+  - { id: tpl_sheet_01, speaker: adeng, when: tpl_sheet, bubbles: ["做表格，先把格子画齐。"], reply: { speaker: laoshi, bubbles: ["合计那栏我来对。"] } }
+  - { id: tpl_plan_01, speaker: adeng, when: tpl_plan, bubbles: ["排计划要留点空。", "一天塞太满，第二天就不想动了。"] }
+  - { id: handed_01, speaker: adeng, when: handed, bubbles: ["东西我收下了，先看看。", "{brief}……嗯，好。"], reply: { speaker: xiaoju, bubbles: ["我去复印一份！"] } }
   - { id: opening_01, speaker: adeng, bubbles: ["{brief}……嗯，好。", "小橘，老石，来活儿了。"] }
   - { id: opening_02, speaker: adeng, bubbles: ["是要{brief}吧？", "我先泡壶茶，你坐。", "我们从哪儿开始呢。"] }
   - { id: opening_xiaoju_01, speaker: xiaoju, bubbles: ["新委托？我先把围巾放下！"] }

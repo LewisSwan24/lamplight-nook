@@ -377,7 +377,8 @@ async function prepare(form: CommissionForm) {
   const brief = form.demo ? strings.demo.brief : shorten(form.want);
   const recall = await window.lamplight.recallForCommission(form);
   // The demo's one question is the colour question, which has its own line.
-  stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : [])] });
+  const kind = [...(form.template ? [`tpl_${form.template}`] : []), ...(form.materials?.length ? ['handed'] : [])];
+  stage.setCommission({ brief, ...recall, flags: [...recall.flags, ...(form.demo ? ['demo_color'] : []), ...kind] });
 }
 // Files dragged onto the shop are handed to Adeng: onto an open commission form, or a new one at the counter.
 // Never let a dropped file open in the window itself.

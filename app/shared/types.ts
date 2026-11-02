@@ -137,7 +137,7 @@ export interface LamplightApi {
 }
 
 /** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
-export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy';
+export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy' | 'letter' | 'sheet' | 'plan' | 'album';
 
 /**
  * The commission form: what the user wants, any particulars, who it's for.

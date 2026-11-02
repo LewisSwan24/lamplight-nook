@@ -82,6 +82,36 @@ function templateSteps(form: CommissionForm): string[] {
         'and anything that looks like a duplicate, an old version or a leftover worth a look.',
         'Do not move, rename or delete anything: the user carries out the plan themselves.',
       ];
+    case 'letter':
+      return [
+        'This is a letter or an email: do not make a web page.',
+        `Write it as "${F.letter}" in ${LANGUAGE}, as plain text the user can copy straight into an email or onto paper.`,
+        'If it is an email, put a short subject line first, marked as the subject. Match the tone to who it is for; keep it warm and to the point.',
+        'Where you need a fact you do not have (a date, a name, an amount), leave a clear blank in square brackets instead of making it up.',
+        'Do not send it anywhere: the user sends it themselves.',
+      ];
+    case 'sheet':
+      return [
+        'This is a table: do not make a web page.',
+        `Write it as "${F.sheet}": a CSV file in UTF-8 with a byte order mark, so it opens correctly in Excel and other spreadsheet apps.`,
+        'Put the column names in the first row. Leave rows for the user to fill in where that is the point of the table.',
+        'Where a total or a sum helps, use spreadsheet formulas such as =SUM(B2:B20) so it updates as the user fills it in.',
+        `Write the column names and any example rows in ${LANGUAGE}.`,
+      ];
+    case 'plan':
+      return [
+        'This is a plan: do not make a web page.',
+        `Write it as "${F.plan}" in ${LANGUAGE}: one line on the goal first, then the plan as a table by day or by week (whichever fits),`,
+        'then a short checklist of what to prepare. Keep each step small enough to do in one sitting, and leave some slack for missed days.',
+        'If something depends on the user (their free time, a budget, a level), say what you assumed in one line at the top.',
+      ];
+    case 'album':
+      return [
+        `Make a little photo album as a single self-contained page named "index.html", using the photos in the folder "${strings.ui.files.materials}".`,
+        `Show the photos straight from that folder with relative paths (for example "${strings.ui.files.materials}/photo.jpg"); do not copy, resize or change them.`,
+        'Look at each photo first so the order, the captions and the title fit what is in them. Keep captions short and kind; do not guess names of people.',
+        'CSS and JavaScript inline, no build step; it must work when opened straight from disk. Clicking a photo shows it large.',
+      ];
     default:
       return [];
   }
@@ -229,13 +259,15 @@ export function snapshot(dir: string): Set<string> {
 
 /**
  * What the commission produced, for the result card. The main output is index.html if present,
- * else an edited document, else any page, else a Markdown write-up (a research summary or a tidy plan).
+ * else an edited document, else any page, else a Markdown write-up (a research summary, a tidy plan or a plan),
+ * else a table or a letter.
  */
 export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string } {
   const files = [...snapshot(workDir)].filter((f) => !before.has(f));
   const main = files.find((f) => /index\.html$/i.test(f))
     ?? files.find((f) => basename(f).startsWith(F.revisedPrefix))
     ?? files.find((f) => /\.html?$/i.test(f))
-    ?? files.find((f) => /\.md$/i.test(f));
+    ?? files.find((f) => /\.md$/i.test(f))
+    ?? files.find((f) => /\.(csv|txt)$/i.test(f));
   return { files, main };
 }
