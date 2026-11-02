@@ -276,6 +276,8 @@ window.lamplight.onDecision((req) => {
 });
 // What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
 let shopDays: { done: number; told: Set<string> } = { done: 0, told: new Set() };
+/** How many works were on the shelf before this result came back (the shelf only shows from the first). */
+let worksKept = 0;
 async function refreshShop(fresh: GrowthId[] = []) {
   const state = await window.lamplight.shopState();
   // The scene builds its props on its first frame; wait for it when the shop has only just opened.
@@ -283,6 +285,7 @@ async function refreshShop(fresh: GrowthId[] = []) {
   scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
   scene.growth.setWorks(state.works.map((w) => w.icon));
   shopDays = { done: state.done, told: new Set(state.told) };
+  worksKept = state.works.length;
 }
 /** Something new in the shop: once the result card is seen to, someone says a word about it. */
 function noticeGrowth(ids: GrowthId[]) {
@@ -305,6 +308,7 @@ window.lamplight.onResult((result) => showResult(result, {
   open: (path, how) => void window.lamplight.openOutput(path, how),
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
+  firstWork: worksKept === 0,
 }));
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.

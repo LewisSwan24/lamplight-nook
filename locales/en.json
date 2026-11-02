@@ -252,6 +252,7 @@
       "trialEndText": "That was a recorded sample: the staff took an \"expense tracker\" commission. Install Claude Code and add an API key, and you can hand in your own.",
       "trialSetUp": "Get set up",
       "trialDone": "OK",
+      "settingsTabs": { "basics": "Basics", "sight": "Sight and sound", "work": "Work", "about": "About" },
       "settingsTitle": "Settings",
       "nameLabel": "Your name",
       "lookLabel": "How you look",
@@ -408,6 +409,7 @@
       "oldFolder": "\"{title}\""
     },
     "resultRevise": "Change it a bit",
+    "resultShelf": "Finished work goes on the shelf by the wall. Click it any time to find this again or change it.",
     "resultRestore": "Go back to the last version",
     "resultRestoreBack": "Go back to the changed version",
     "resultRestored": "Done, this is the last version again.",

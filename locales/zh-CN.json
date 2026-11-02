@@ -252,6 +252,7 @@
       "trialEndText": "刚才是一段录好的示范：店员们接了一张\"记账小页面\"的委托。装好 Claude Code、填上 API Key，就能递你自己的委托了。",
       "trialSetUp": "去准备",
       "trialDone": "好",
+      "settingsTabs": { "basics": "基本", "sight": "画面和声音", "work": "干活", "about": "关于" },
       "settingsTitle": "设置",
       "nameLabel": "称呼",
       "lookLabel": "你的样子",
@@ -408,6 +409,7 @@
       "oldFolder": "「{title}」"
     },
     "resultRevise": "再改改",
+    "resultShelf": "做好的东西会摆上墙边的作品架，以后点它就能找回来、接着改。",
     "resultRestore": "换回上一版",
     "resultRestoreBack": "换回改过的那版",
     "resultRestored": "换好了，现在是上一版。",

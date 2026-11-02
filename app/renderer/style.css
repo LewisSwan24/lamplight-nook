@@ -152,6 +152,8 @@ body.debug #debug { display: block; }
 .parcel .parcel-body { max-height: 3em; overflow: hidden; }
 /* While the street inset is open in the bottom right corner, what usually sits there makes room. */
 .street-open .parcel { top: 64px; bottom: auto; }
+/* The inset's top edge is at about 64% of the window: an opened note scrolls instead of reaching down over it. */
+.street-open .parcel.expanded { max-height: calc(58vh / var(--ui, 1) - 64px); overflow-y: auto; box-sizing: border-box; }
 /* Looking out at the garden: the chalk on the shop's blackboard stays in the shop. */
 .garden-view #board { visibility: hidden; }
 .parcel.expanded .parcel-body { max-height: none; }
@@ -174,6 +176,15 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .settings { width: min(480px, calc(92vw / var(--ui, 1))); }
 .settings-body { max-height: calc((86vh / var(--ui, 1)) - 70px); overflow: auto; padding-right: 6px; }
 .settings section { margin-top: 10px; }
+.settings .tabs { display: flex; flex-wrap: wrap; gap: 2px 6px; margin: 6px 0 4px; border-bottom: 1.5px solid rgba(122, 82, 54, 0.25); }
+.settings .tab { background: none; border: none; border-bottom: 2.5px solid transparent; border-radius: 0; margin-bottom: -1.5px; padding: 4px 8px; font-family: var(--hand); font-size: 17px; color: #7a6a58; cursor: pointer; box-shadow: none; }
+.settings .tab:hover { color: #4a3a2c; }
+.settings .tab.on { color: #4a3a2c; border-bottom-color: var(--accent); }
+.settings .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.settings-body > section:first-child { margin-top: 4px; }
+/* Every tab gets the same height, so the card does not jump about when switching. */
+.settings .settings-body { height: min(420px, calc((86vh / var(--ui, 1)) - 110px)); }
+
 .settings h4 { margin: 0 0 2px; font-family: var(--hand); font-weight: normal; font-size: 17px; opacity: 0.85; }
 .settings .about { font-size: 13px; }
 .toolbar { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; }

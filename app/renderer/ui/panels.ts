@@ -205,6 +205,8 @@ export type ResultActions = {
   open: (path: string, how: 'open' | 'reveal') => void;
   revise?: (id: string) => void;
   restore?: (id: string) => Promise<boolean>;
+  /** The first piece of work ever: say once that it will be kept on the shelf, which only appears now. */
+  firstWork?: boolean;
 };
 
 /**
@@ -236,6 +238,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     note,
+    result.ok && actions.firstWork ? el('div.hint.result-shelf', {}, U.resultShelf) : null,
     // Changing the work sits apart from opening it: a quieter row on the left.
     result.ok && id && actions.revise ? el('div.actions.result-more', {},
       el('button.result-revise', { onclick: () => actions.revise!(id) }, U.resultRevise),

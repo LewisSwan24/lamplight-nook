@@ -323,42 +323,84 @@ function troubleRow(api: LamplightApi): HTMLElement {
   return el('div', {}, el('div.hint', {}, S.troubleText), el('div.actions', {}, button), said);
 }
 
+export const SETTINGS_TABS = ['basics', 'sight', 'work', 'about'] as const;
+export type SettingsTab = (typeof SETTINGS_TABS)[number];
+/** The tab settings opened on last time, so a second visit lands where the first one left off. */
+let lastTab: SettingsTab = 'basics';
+
 /** Settings: name, work folder, sound, seeing and hearing, what is needed to start, and credits. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
   const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name }) as HTMLInputElement;
   name.addEventListener('change', async () => onChange(await api.saveSettings({ name: name.value })));
+  const groups: Record<SettingsTab, (HTMLElement | null)[]> = {
+    basics: [
+      el('section', {}, el('h4', {}, S.nameLabel), name),
+      el('section', {}, el('h4', {}, S.lookLabel), el('div.hint', {}, S.lookHint),
+        lookPicker(settings.avatar, async (avatar) => onChange(await api.saveSettings({ avatar })))),
+      el('section', {}, el('h4', {}, strings.ui.scene.label), sceneRow(api)),
+      el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
+      el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
+    ],
+    sight: [
+      el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
+      el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
+        switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion]])),
+      el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
+        switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle], ['mini', strings.ui.mini.toggle]])),
+    ],
+    work: [
+      el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
+      el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
+      el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
+        el('div.hint', {}, strings.ui.notebook.sectionText),
+        el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
+      el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api)),
+    ],
+    about: [
+      el('section', {}, el('h4', {}, S.legalLabel),
+        el('div.hint', {}, S.legalText),
+        el('div.legal-links', {}, legalLink(api, 'privacy'), legalLink(api, 'terms'), legalLink(api, 'notices'))),
+      el('section.about', {},
+        el('h4', {}, S.aboutLabel),
+        el('div', {}, fill(S.version, { version })),
+        el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
+        el('div', {}, S.creditFont),
+        el('div', {}, S.creditSound),
+        el('div', {}, S.creditMusic, ' ', el('button.link', { onclick: () => api.openLink('music') }, S.creditMusicLink))),
+    ],
+  };
+  // Only the inside scrolls, so the paper behind it always covers the whole card.
+  const body = el('div.settings-body', { role: 'tabpanel' });
+  const tabs = SETTINGS_TABS.map((id) => el('button.tab', { role: 'tab', 'data-tab': id }, S.settingsTabs[id]) as HTMLButtonElement);
+  const pick = (id: SettingsTab) => {
+    lastTab = id;
+    for (const t of tabs) {
+      const on = t.dataset.tab === id;
+      t.classList.toggle('on', on);
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+    }
+    body.replaceChildren(...groups[id].filter((n): n is HTMLElement => !!n));
+    body.scrollTop = 0;
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => pick(SETTINGS_TABS[i]));
+    // Arrow keys move between tabs, as in any tab list.
+    t.addEventListener('keydown', (e) => {
+      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      const next = (i + step + tabs.length) % tabs.length;
+      pick(SETTINGS_TABS[next]);
+      tabs[next].focus();
+    });
+  });
+  pick(lastTab);
   replaceOpen(el('div.card.paper.settings', {},
     el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
     el('div.card-title', {}, S.settingsTitle),
-    // Only the inside scrolls, so the paper behind it always covers the whole card.
-    el('div.settings-body', {},
-    el('section', {}, el('h4', {}, S.nameLabel), name),
-    el('section', {}, el('h4', {}, S.lookLabel), el('div.hint', {}, S.lookHint),
-      lookPicker(settings.avatar, async (avatar) => onChange(await api.saveSettings({ avatar })))),
-    el('section', {}, el('h4', {}, strings.ui.scene.label), sceneRow(api)),
-    el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
-    el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
-    el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
-    el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
-      switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion]])),
-    el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
-      switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle], ['mini', strings.ui.mini.toggle]])),
-    el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
-      el('div.hint', {}, strings.ui.notebook.sectionText),
-      el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
-    el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
-    el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
-    el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api)),
-    el('section', {}, el('h4', {}, S.legalLabel),
-      el('div.hint', {}, S.legalText),
-      el('div.legal-links', {}, legalLink(api, 'privacy'), legalLink(api, 'terms'), legalLink(api, 'notices'))),
-    el('section.about', {},
-      el('h4', {}, S.aboutLabel),
-      el('div', {}, fill(S.version, { version })),
-      el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
-      el('div', {}, S.creditFont),
-      el('div', {}, S.creditSound),
-      el('div', {}, S.creditMusic, ' ', el('button.link', { onclick: () => api.openLink('music') }, S.creditMusicLink)))),
+    el('div.tabs', { role: 'tablist' }, ...tabs),
+    body,
   ));
 }
