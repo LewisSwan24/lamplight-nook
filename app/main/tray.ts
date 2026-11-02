@@ -15,6 +15,7 @@ export class ShopTray {
   private tray: Tray | null = null;
   private plain = nativeImage.createEmpty();
   private glow = nativeImage.createEmpty();
+  private step?: { n: number; total: number };
   private flicker?: ReturnType<typeof setInterval>;
   private notified = new Set<string>();
 
@@ -74,12 +75,22 @@ export class ShopTray {
     }
   }
 
+  /** Where Claude's to-do list is, on the lamp's tooltip; none when the work is over. */
+  setStep(step?: { n: number; total: number }) {
+    this.step = step;
+    if (!this.flicker) this.tray?.setToolTip(this.restingTip());
+  }
+
+  private restingTip() {
+    return this.step ? fill(T.tooltipStep, { n: String(this.step.n), total: String(this.step.total) }) : T.tooltip;
+  }
+
   /** Nothing is waiting any more (answered, or the user came back). */
   calm() {
     clearInterval(this.flicker);
     this.flicker = undefined;
     this.tray?.setImage(this.plain);
-    this.tray?.setToolTip(T.tooltip);
+    this.tray?.setToolTip(this.restingTip());
     this.window()?.flashFrame(false);
   }
 }

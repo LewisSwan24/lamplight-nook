@@ -21,7 +21,7 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { clearWorkSigns, setReplayBadge, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { boardSteps, clearWorkSigns, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
@@ -298,6 +298,8 @@ function noticeGrowth(ids: GrowthId[]) {
   }, GROWTH_LINE_DELAY_MS);
 }
 const GROWTH_LINE_DELAY_MS = 4000;
+scene.boardInUse = () => boardSteps().length > 0;
+scene.onBoardClick = () => showPlan(boardSteps());
 scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
 onNotebookForget(() => void refreshShop());
 window.lamplight.onResult((result) => {

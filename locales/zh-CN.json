@@ -44,6 +44,7 @@
   },
   "events": {
     "session_start": "开始接活",
+    "progress": "划掉了一件",
     "plan": "列了个计划",
     "planSteps": "{n} 步",
     "thinking": "在想",
@@ -191,6 +192,10 @@
       "research": "找参考",
       "design": "定样子",
       "write": "动手做",
+      "title": "黑板上的计划",
+      "count": "做完 {done} 件，共 {total} 件。这是阿灯自己列的，做的时候可能会改。",
+      "now": "正在做",
+      "more": "还有 {n} 件",
       "check": "检查"
     },
     "setup": {
@@ -347,6 +352,7 @@
       "hotspotGarden": "后门：看看后院",
       "hotspotShop": "后门：回店里",
       "hotspotHens": "母鸡：撒把米",
+      "hotspotBoard": "黑板：看看整张计划",
       "hotspotWorks": "作品架：看看一起做过的东西"
     },
     "notebook": {
@@ -379,6 +385,7 @@
       "notifyToggle": "需要你决定时，弹一次系统通知",
       "closeToTrayToggle": "关窗口时缩到托盘，店继续开着",
       "tooltip": "小灯屋",
+      "tooltipStep": "小灯屋：在做第 {n} 件，共 {total} 件",
       "tooltipWaiting": "小灯屋：有事等你决定",
       "show": "打开小灯屋",
       "quit": "关店退出",
@@ -431,6 +438,7 @@
       "title": "小灯屋小窗",
       "idle": "店里没活，喝茶中",
       "working": "在忙：{what}",
+      "step": "第 {n} 件 / 共 {total} 件",
       "waiting": "阿灯在等你拿主意，点我回店里",
       "serious": "⚠ 有一步要你确认，点我回店里",
       "done": "做好了，点我去看看",

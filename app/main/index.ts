@@ -23,6 +23,7 @@ import { SpendLedger } from './spend';
 import { zip } from './zip';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
+import { stepCount } from '../shared/board';
 import { cleanScene } from '../shared/scenes';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -141,7 +142,9 @@ const emitters = {
   emit: (event: unknown) => send(IPC.rawEvent, event),
   emitAi: (event: AiEvent) => {
     send(IPC.aiEvent, { ...event, raw: undefined });
-    mini.feed({ type: 'ai', event: { kind: event.kind, agent: event.agent, plain: event.plain } });
+    mini.feed({ type: 'ai', event: { kind: event.kind, agent: event.agent, plain: event.plain, todos: event.todos } });
+    if (event.agent === 'main' && event.todos) tray.setStep(stepCount(event.todos));
+    if (event.kind === 'done' || event.kind === 'failed' || event.kind === 'cancelled' || event.kind === 'session_start') tray.setStep(undefined);
   },
 };
 

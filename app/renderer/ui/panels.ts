@@ -1,5 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
+import { type BoardStep, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, LamplightApi } from '../../shared/types';
 import { sfx } from '../audio/sound';
@@ -256,19 +257,39 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
 /** Wipe the blackboard and take the parcels off the counter: the work they belonged to is over. */
 export function clearWorkSigns() {
   document.getElementById('board')?.replaceChildren();
+  chalked = [];
   document.querySelectorAll('.parcel').forEach((p) => p.remove());
 }
 
-/** The blackboard: up to five steps with a check mark when done. */
-export type BoardStep = { key: string; label: string; status: 'todo' | 'doing' | 'done' };
+/** The blackboard: up to five lines with a check mark when done; a long plan shows where the work is. */
+export type { BoardStep };
+/** What is on the blackboard now, for the card that shows the whole list. */
+let chalked: BoardStep[] = [];
+export const boardSteps = () => chalked;
 export function renderBoard(steps: BoardStep[]) {
+  chalked = steps.map((s) => ({ ...s }));
   let board = document.getElementById('board');
   if (!board) {
     board = el('div.board', { id: 'board' });
     layer().append(board);
   }
-  board.replaceChildren(...steps.slice(0, 5).map((s) =>
-    el(`div.step.${s.status}`, {}, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`)));
+  const { shown, more } = boardWindow(steps);
+  board.replaceChildren(...shown.map((s) =>
+    el(`div.step.${s.status}`, { title: s.label }, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`)),
+  ...(more ? [el('div.step.more', {}, `\u2026 ${fill(U.board.more, { n: String(more) })}`)] : []));
+}
+
+/** The blackboard up close: every line of the plan, with where the work is. */
+export function showPlan(steps: BoardStep[]) {
+  if (!steps.length) return;
+  const done = steps.filter((s) => s.status === 'done').length;
+  replaceOpen(el('div.card.paper.plan-card', {},
+    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    el('div.card-title', {}, U.board.title),
+    el('div.hint', {}, fill(U.board.count, { done: String(done), total: String(steps.length) })),
+    el('ol.plan-list', {}, ...steps.map((s) => el(`li.${s.status}`, {}, s.label,
+      s.status === 'doing' ? el('span.plan-now', {}, ` \u00B7 ${U.board.now}`) : null))),
+  ));
 }
 
 /** Corner badge shown while a recording is replaying, so a replay never passes for a live run. */

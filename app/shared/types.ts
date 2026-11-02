@@ -1,3 +1,4 @@
+import type { Todo } from './board';
 import type { SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
@@ -241,7 +242,7 @@ export const IPC = {
 export type Risk = 'safe' | 'ask' | 'serious' | 'blocked';
 
 export type AiEventKind =
-  | 'session_start' | 'plan' | 'thinking'
+  | 'session_start' | 'plan' | 'progress' | 'thinking'
   | 'tool_start' | 'tool_ok' | 'tool_fail'
   | 'long_wait'
   | 'subagent_start' | 'subagent_stop'
@@ -266,6 +267,8 @@ export type AiEvent = {
   choice?: Choice;
   /** Consecutive failures for this agent so far. */
   failStreak?: number;
+  /** For `plan` and `progress` events from Claude's own to-do list: the whole list as it stands. */
+  todos?: Todo[];
   raw?: unknown;
 };
 

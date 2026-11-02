@@ -79,7 +79,7 @@ const BELL_POS = { x: 216, y: 57 };
 const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
-export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'works';
+export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'works' | 'board';
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -163,6 +163,10 @@ export class CafeScene extends Phaser.Scene {
   onBellClick: () => void = () => {};
   /** The works shelf on the wall was clicked. */
   onWorksClick: () => void = () => {};
+  /** The blackboard was clicked while it holds a plan: show the whole list. */
+  onBoardClick: () => void = () => {};
+  /** Whether the blackboard has something chalked on it (the page knows). */
+  boardInUse: () => boolean = () => false;
   /** What the shop has gathered, and the works shelf. */
   growth!: ShopGrowth;
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
@@ -201,6 +205,12 @@ export class CafeScene extends Phaser.Scene {
     this.addProps();
     this.growth = new ShopGrowth(this, () => {});
     this.growth.onShelfClick = () => this.activate('works');
+    const slate = ZONES.find((z) => z.id === 'board')!;
+    this.add
+      .zone(slate.x, slate.y, slate.w, slate.h)
+      .setOrigin(0)
+      .setInteractive({ useHandCursor: false })
+      .on('pointerdown', () => this.activate('board'));
     const counter = ZONES.find((z) => z.id === 'counter')!;
     this.add
       .zone(counter.x, counter.y, counter.w, counter.h)
@@ -516,7 +526,7 @@ export class CafeScene extends Phaser.Scene {
   highlight(target: Target | null) {
     if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
     this.glow = undefined;
-    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor', 'dog', 'hens', 'works'].includes(target) ? this.actors.get(target as ActorId) : undefined;
+    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor', 'dog', 'hens', 'works', 'board'].includes(target) ? this.actors.get(target as ActorId) : undefined;
     if (actor?.outside || actor?.inGarden) target = null;
     this.hovered = target;
     const fx = actor && target ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
@@ -527,6 +537,7 @@ export class CafeScene extends Phaser.Scene {
   activate(target: Target) {
     if (target === 'counter') return this.onCounterClick();
     if (target === 'works') return this.growth.hasWorks ? this.onWorksClick() : undefined;
+    if (target === 'board') return this.boardInUse() && this.view === 'shop' ? this.onBoardClick() : undefined;
     if (target === 'backdoor') return this.showGarden();
     if (target === 'shopdoor') return this.showShop();
     if (target === 'dog') return this.garden.animals.pat();
@@ -557,7 +568,9 @@ export class CafeScene extends Phaser.Scene {
     const out = this.street.open && this.street.who ? [{ id: this.street.who, x: INSET.x, y: INSET.y, w: INSET.w, h: INSET.h }] : [];
     const back = { id: 'backdoor' as const, x: BACK_DOOR.x, y: BACK_DOOR.y, w: 16, h: 32 };
     const works = this.growth.hasWorks ? [{ id: 'works' as const, ...SHELF }] : [];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...works, ...people, ...out];
+    const slate = ZONES.find((z) => z.id === 'board')!;
+    const board = this.boardInUse() ? [{ id: 'board' as const, x: slate.x, y: slate.y, w: slate.w, h: slate.h }] : [];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...works, ...board, ...people, ...out];
   }
 
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */
