@@ -102,6 +102,8 @@ export type RunOptions = {
   resume?: string;
   /** Called once the SDK reports the session id, so the run can be resumed later. */
   onSession?: (sessionId: string) => void;
+  /** What Claude Code said about itself as the run started (for the log; never shown to the user). */
+  onInit?: (info: { claudeCodeVersion?: string; model?: string }) => void;
   /** Hands over a way to add to the running commission (a meeting note); it returns false once it is too late. */
   onInput?: (add: (text: string) => boolean) => void;
   /** The API key (or dev subscription) to run with; null when there is none. */
@@ -139,7 +141,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInput, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInit, onInput, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -227,7 +229,10 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
       record({ source: 'message', name: message.type, payload: message });
       if (message.type === 'result') input.closeSoon(WRAP_UP_GRACE_MS);
       else input.stay();
-      if (message.type === 'system' && message.subtype === 'init') onSession?.(message.session_id);
+      if (message.type === 'system' && message.subtype === 'init') {
+        onSession?.(message.session_id);
+        onInit?.({ claudeCodeVersion: message.claude_code_version, model: message.model });
+      }
       if (message.type === 'assistant' && message.error) apiError = message.error;
       if (message.type === 'result') {
         ok = message.subtype === 'success' && !message.is_error;

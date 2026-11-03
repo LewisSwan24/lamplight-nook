@@ -65,9 +65,9 @@ export function onboarded(lang, extra = {}) {
 /**
  * Start the app. Options: lang, home (from freshHome), size, scenario and speed for the stand-in Claude,
  * key (false for "no key"), debug (show the debug panel), appDir (another built checkout of the app,
- * such as an older version; its own locales are used).
+ * such as an older version; its own locales are used), simEnv (more SIM_* settings for the stand-in Claude).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {} } = {}) {
   const env = {
     PATH: process.env.PATH,
     HOME: home.home,
@@ -79,6 +79,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
     SIM_STATE_DIR: join(home.home, '.sim'),
     ...(key ? { ANTHROPIC_API_KEY: FAKE_KEY } : {}),
     ...(debug ? { LAMPLIGHT_DEBUG: '1' } : {}),
+    ...Object.fromEntries(Object.entries(simEnv).filter(([k]) => k.startsWith('SIM_'))),
     ...(process.env.XAUTHORITY ? { XAUTHORITY: process.env.XAUTHORITY } : {}),
   };
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];

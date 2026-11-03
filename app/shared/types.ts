@@ -31,6 +31,11 @@ export type KeySource = 'stored' | 'env' | 'subscription' | null;
  */
 export type EnvStatus = {
   hasApiKey: boolean; hasClaude: boolean; debug: boolean; keySource: KeySource; keyHint?: string;
+  /**
+   * The installed Claude Code's version, and how it compares with the one the shop was tried with
+   * (app/main/claude-version.ts): `old` is worth an update, anything else is fine to use.
+   */
+  claudeVersion?: string; claudeCompat?: 'ok' | 'old' | 'newer' | 'unknown'; claudeTested?: string;
   /** The official install command for this OS, shown when Claude Code is missing. */
   installCommand: string; platform: string;
 };

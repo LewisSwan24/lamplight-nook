@@ -96,6 +96,8 @@ body.debug #debug { display: block; }
 .commission button.template-chip.on::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
 .commission button:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .source-row[hidden] { display: none; }
+.actions[hidden] { display: none; }
+.claude-version { margin-top: 2px; }
 .source-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .source-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .source-hint { margin-top: 2px; }

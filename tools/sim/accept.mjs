@@ -438,6 +438,39 @@ const SCENARIOS = {
     }
   },
 
+  /**
+   * An old Claude Code: the counter says so and offers the update, the settings show the version, and the
+   * user can still go ahead. A current one shows its version and asks nothing.
+   */
+  async oldclaude(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    let shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CLAUDE_VERSION: '2.0.14' } });
+    try {
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      const card = await shop.maybe('.notice-card', 5000);
+      check(card, 'no card for an old Claude Code');
+      const text = await card.innerText();
+      check(text.includes('2.0.14') && text.includes(shop.L.ui.setup.claudeUpdate), `old version not explained: ${JSON.stringify(text.slice(0, 200))}`);
+      await shop.shot(join(out, 'oldclaude-card.png'));
+      await shop.page.locator('.notice-card .keep-old button').click();
+      await shop.page.waitForSelector('form.commission', { timeout: 5000 });
+      await shop.page.keyboard.press('Escape');
+      await sleep(400);
+      // Waved through once: the next commission goes straight to the slip.
+      check((await runOne(shop, { template: 'letter', want: W[lang].letter })).ok, 'did not finish with the old version');
+    } finally { await shop.close(); }
+    shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await shop.openSettings('work');
+      const rows = await shop.page.locator('.settings .env-rows').innerText();
+      check(rows.includes('2.1.306'), `current version not shown: ${JSON.stringify(rows.slice(0, 200))}`);
+      await shop.shot(join(out, 'oldclaude-settings.png'));
+      await shop.page.keyboard.press('Escape');
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      check(await shop.maybe('form.commission', 5000), 'a current Claude Code was questioned');
+    } finally { await shop.close(); }
+  },
+
   /** No key yet: the trial replay plays without spending anything. */
   async trial(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
