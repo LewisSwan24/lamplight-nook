@@ -6,12 +6,15 @@
 //
 // The key is read from LAMPLIGHT_TEST_KEY, never from ANTHROPIC_API_KEY, so a key meant for this test is not
 // picked up by anything else running in the same shell. The app starts with a clean environment and a
-// throwaway home, with the spending cap set to $1 (the lowest the app offers). Questions get the second
+// throwaway home, with the spending cap set to $1 (the lowest the app offers). --cap <usd> (default 0.40) lowers
+// it further for the test: Claude Code is reached through a small wrapper that passes a smaller
+// --max-budget-usd to the Agent SDK's own copy, so the app itself is not changed. Questions get the second
 // option and the serious delete is declined, as in the simulated demo. --sim runs it against the stand-in.
 //
 // Output: real-out/<lang>/ with screenshots every few seconds, the result, and summary.json.
 
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { freshHome, launch, onboarded, sleep, ROOT, FAKE_CLAUDE } from '../sim/shop.mjs';
 
@@ -23,11 +26,36 @@ if (!key) {
   console.error('Set LAMPLIGHT_TEST_KEY to an Anthropic API key with a spending limit. Nothing was run.');
   process.exit(1);
 }
+const CAP = args.includes('--cap') ? Number(args[args.indexOf('--cap') + 1]) : 0.4;
+if (!(CAP > 0 && CAP <= 1)) {
+  console.error('--cap takes a number of dollars above 0 and at most 1. Nothing was run.');
+  process.exit(1);
+}
 const OUT = join(ROOT, SIM ? 'real-out-sim' : 'real-out', LANG);
 mkdirSync(OUT, { recursive: true });
 
+/** The Agent SDK's own Claude Code behind a wrapper that never lets a run spend more than CAP. */
+function cappedClaude() {
+  if (process.platform === 'win32') throw new Error('The capped wrapper is a shell script; run this on Linux or macOS.');
+  const sdk = createRequire(join(ROOT, 'package.json')).resolve('@anthropic-ai/claude-agent-sdk');
+  const real = join(sdk, '..', '..', `claude-agent-sdk-${process.platform}-${process.arch}`, 'claude');
+  const wrapper = join(OUT, 'claude-capped');
+  writeFileSync(wrapper, `#!/bin/sh
+# Passes everything to the Agent SDK's Claude Code, with --max-budget-usd lowered to ${CAP}.
+n=$#; prev=
+while [ "$n" -gt 0 ]; do
+  a=$1; shift; n=$((n - 1))
+  [ "$prev" = "--max-budget-usd" ] && a=${CAP}
+  set -- "$@" "$a"; prev=$a
+done
+exec '${real}' "$@"
+`);
+  chmodSync(wrapper, 0o755);
+  return wrapper;
+}
+
 const home = freshHome({ 'settings.json': onboarded(LANG, { budgetUsd: 1 }) });
-const shop = await launch({ lang: LANG, home, key, claudePath: SIM ? FAKE_CLAUDE : 'sdk', speed: SIM ? 300 : 0, size: 'large' });
+const shop = await launch({ lang: LANG, home, key, claudePath: SIM ? FAKE_CLAUDE : cappedClaude(), speed: SIM ? 300 : 0, size: 'large' });
 const t0 = Date.now();
 const seen = [];
 let shots = 0;
@@ -68,7 +96,7 @@ walk(home.home, 0);
 const folder = folders.sort().at(-1);
 const memory = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
 const summary = {
-  sim: SIM, lang: LANG, seconds: Math.round((Date.now() - t0) / 1000), ok: Boolean(result?.ok), stopped: result?.stopped ?? null,
+  sim: SIM, lang: LANG, capUsd: SIM ? null : CAP, seconds: Math.round((Date.now() - t0) / 1000), ok: Boolean(result?.ok), stopped: result?.stopped ?? null,
   cards: seen.map((c) => ({ at: c.at, serious: c.serious, title: c.text.split('\n').slice(0, 2).join(' / ') })),
   files: folder ? readdirSync(folder) : [],
   costUsd: memory.commissions.at(-1)?.costUsd ?? null,

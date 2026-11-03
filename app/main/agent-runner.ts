@@ -138,7 +138,8 @@ export function failureKind(apiError: string | undefined, text: string, subtype?
 export { isInside };
 
 /** Built-in tools available to the agents. Everything else (workflows, cron, MCP...) is off. */
-export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite'];
+/** TodoWrite is Claude's to-do list up to Claude Code 2.1.2xx; later versions keep it with the Task* tools instead. */
+export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
 export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInit, onInput, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {

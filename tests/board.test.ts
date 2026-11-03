@@ -75,6 +75,61 @@ describe('normalizer: TodoWrite', () => {
   });
 });
 
+describe('normalizer: TaskCreate and TaskUpdate (Claude Code 2.1.3xx)', () => {
+  let t = 0;
+  const pre = (tool: string, input: object, id: string, agent?: string): RawAgentEvent => ({
+    t: ++t * 1000, source: 'hook', name: 'PreToolUse',
+    payload: { hook_event_name: 'PreToolUse', tool_name: tool, tool_use_id: id, tool_input: input, ...(agent ? { agent_type: agent } : {}) },
+  });
+  const post = (tool: string, response: object, id: string): RawAgentEvent => ({
+    t: ++t * 1000, source: 'hook', name: 'PostToolUse',
+    payload: { hook_event_name: 'PostToolUse', tool_name: tool, tool_use_id: id, tool_input: {}, tool_response: response },
+  });
+
+  it('builds the plan item by item and ticks items off by id', () => {
+    const n = new EventNormalizer();
+    const [first] = n.push(pre('TaskCreate', { subject: 'Write the page', description: 'index.html' }, 'c1'));
+    expect(first.kind).toBe('plan');
+    expect(first.todos).toEqual([{ text: 'Write the page', status: 'pending' }]);
+    expect(n.push(post('TaskCreate', { task: { id: '7', subject: 'Write the page' } }, 'c1'))).toEqual([]);
+    const [second] = n.push(pre('TaskCreate', { subject: 'Check it' }, 'c2'));
+    expect(second.kind).toBe('progress');
+    expect(second.todos?.map((x) => x.text)).toEqual(['Write the page', 'Check it']);
+    const [doing] = n.push(pre('TaskUpdate', { taskId: '7', status: 'in_progress' }, 'u1'));
+    expect(doing.todos?.map((x) => x.status)).toEqual(['in_progress', 'pending']);
+    expect(n.push(post('TaskUpdate', { success: true, taskId: '7' }, 'u1'))).toEqual([]);
+    // The create result for the second item was not seen: Claude Code's numbering stands in.
+    const [done] = n.push(pre('TaskUpdate', { taskId: '2', status: 'completed' }, 'u2'));
+    expect(done.todos?.map((x) => x.status)).toEqual(['in_progress', 'completed']);
+    const [gone] = n.push(pre('TaskUpdate', { taskId: '7', status: 'deleted' }, 'u3'));
+    expect(gone.todos).toEqual([{ text: 'Check it', status: 'completed' }]);
+  });
+
+  it('says nothing for lookups, unknown ids, or a helper\'s own list', () => {
+    const n = new EventNormalizer();
+    expect(n.push(pre('TaskList', {}, 'l1'))).toEqual([]);
+    expect(n.push(post('TaskList', { tasks: [] }, 'l1'))).toEqual([]);
+    expect(n.push(pre('TaskUpdate', { taskId: '3', status: 'completed' }, 'u1'))).toEqual([]);
+    expect(n.push(pre('TaskCreate', { subject: 'Look things up' }, 'c1', 'researcher'))).toEqual([]);
+  });
+});
+
+describe('normalizer: helpers sent off in the background', () => {
+  const base = { t: 0 };
+  const ev = (source: 'hook' | 'message', name: string, payload: object, t: number): RawAgentEvent => ({ ...base, t, source, name, payload });
+
+  it('keeps a helper out until its notification, and waits for the last result', () => {
+    const n = new EventNormalizer();
+    const kinds = (e: RawAgentEvent) => n.push(e).map((x) => `${x.kind}:${x.agent}`);
+    kinds(ev('hook', 'PreToolUse', { hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_use_id: 'a1', tool_input: { subagent_type: 'designer', description: 'Pick colours' } }, 1000));
+    expect(kinds(ev('hook', 'SubagentStart', { hook_event_name: 'SubagentStart', agent_type: 'designer', agent_id: 'x' }, 1100))).toEqual(['subagent_start:designer']);
+    expect(kinds(ev('hook', 'PostToolUse', { hook_event_name: 'PostToolUse', tool_name: 'Agent', tool_use_id: 'a1', tool_response: { isAsync: true, status: 'async_launched' } }, 1200))).toEqual([]);
+    expect(kinds(ev('message', 'result', { type: 'result', subtype: 'success', is_error: false }, 2000))).toEqual([]);
+    expect(kinds(ev('message', 'system', { type: 'system', subtype: 'task_notification', tool_use_id: 'a1', summary: 'Mint it is' }, 3000))).toEqual(['subagent_stop:designer']);
+    expect(kinds(ev('message', 'result', { type: 'result', subtype: 'success', is_error: false }, 4000))).toEqual(['done:main']);
+  });
+});
+
 describe('corner window: step n of total', () => {
   const ai = (kind: string, todos?: object[]): MiniEvent => ({ type: 'ai', event: { kind, agent: 'main', plain: '', todos: todos && todosOf({ todos }) } as never });
 
