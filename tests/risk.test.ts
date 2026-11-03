@@ -1,9 +1,10 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { classify } from '../app/main/risk-classifier';
+import { classify, simpleCommands } from '../app/main/risk-classifier';
 import { strings } from '../app/shared/i18n';
 
-const home = '/home/u';
+// resolve: on Windows this gets a drive letter, as real folders there have.
+const home = resolve('/home/u');
 const workDir = join(home, 'Documents', 'Lamplight', 'commissions', 'demo');
 const ctx = { workDir, home, preexisting: new Set([join(workDir, 'old.html')]) };
 const r = (tool: string, input: Record<string, unknown>) => classify(tool, input, ctx).risk;
@@ -46,6 +47,9 @@ describe('risk classifier', () => {
     expect(classify('Bash', { command: "cat > draft-1.html <<'EOF'\n<p>hi</p>\nEOF" }, ctx).reason).toBe(strings.risk.write);
     expect(r('Bash', { command: 'echo "a;b" > notes.txt' })).toBe('safe');
     expect(r('Bash', { command: 'grep -n "x" index.html | head -5' })).toBe('safe');
+    // Backslashes in double quotes stay as written, so a Windows folder reads as itself.
+    expect(simpleCommands('cd "C:\\Users\\me\\Lamplight" && ls')?.[0].words).toEqual(['cd', 'C:\\Users\\me\\Lamplight']);
+    expect(simpleCommands('echo "a \\"b\\" \\$x"')?.[0].words).toEqual(['echo', 'a "b" $x']);
   });
 
   it('still serious when a part of the line is', () => {

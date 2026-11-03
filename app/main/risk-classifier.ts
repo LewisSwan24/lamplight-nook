@@ -110,7 +110,8 @@ export function simpleCommands(cmd: string): Simple[] | null {
     } else if (c === '"') {
       let j = i + 1;
       for (; j < cmd.length && cmd[j] !== '"'; j++) {
-        if (cmd[j] === '\\') { word += cmd[++j] ?? ''; continue; }
+        // In double quotes a backslash only escapes $ ` " \ and a new line; C:\Users stays as written.
+        if (cmd[j] === '\\' && '$`"\\\n'.includes(cmd[j + 1] ?? '')) { word += cmd[++j]; continue; }
         if (cmd[j] === '$' || cmd[j] === '`') return null;
         word += cmd[j];
       }
