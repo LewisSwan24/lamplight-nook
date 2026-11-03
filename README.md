@@ -51,6 +51,8 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 | `npm run typecheck` | Type check |
 | `npm run smoke` | Build and capture screenshots |
 | `npm run record -- <hello\|subagents> <folder>` | Run a debug task headlessly and record its events |
+| `npm run accept` | Simulated acceptance run in Chinese and English, against a stand-in for Claude Code (no API calls; see `tools/README.md`) |
+| `npm run store-shots` | Store screenshots, website pictures and the trailer (Linux with Xvfb and ffmpeg) |
 
 ## Windows installer
 

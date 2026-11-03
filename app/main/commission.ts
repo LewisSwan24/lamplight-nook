@@ -36,10 +36,32 @@ const HOUSE_RULES = [
 /** Short name of a commission: its folder name and how Adeng's notebook refers to it. */
 export const commissionTitle = (form: CommissionForm) => (form.demo ? strings.demo.brief : shortTitle(form.want));
 
-/** "帮我做一个家庭聚会签到的小网页。" → "做一个家庭聚会签到的小网页": no "please" in front, no punctuation, at most 16 characters, safe as a folder name. */
+/** Little words a short English title should not end on ("Write a letter to my" -> "Write a letter"). */
+const TRAILING_WORDS = new Set(['a', 'an', 'the', 'to', 'for', 'of', 'and', 'or', 'with', 'my', 'our', 'your', 'about', 'on', 'in', 'at', 'as', 'that', 'which', 'who']);
+/** Longest English title, in characters; words are never cut. */
+const MAX_WORDS_TITLE = 48;
+
+/**
+ * "帮我做一个家庭聚会签到的小网页。" → "做一个家庭聚会签到的小网页": no "please" in front, no punctuation, at most 16 characters, safe as a folder name.
+ * Requests written in words with spaces between them keep whole words instead, up to 48 characters:
+ * "Please make me a sign-in page for the family party." → "Make a sign-in page for the family party".
+ */
 export function shortTitle(want: string): string {
   const core = want.trim().replace(/^(请|麻烦)?(帮我|给我|替我)/, '').replace(/^(please\s+|can you\s+|could you\s+)+/i, '');
   const firstSentence = core.split(/[。！？!?\n]/)[0] || core;
+  if (/\s/.test(firstSentence.trim()) && !/[\u3000-\u9fff\uff00-\uffef]/.test(firstSentence)) {
+    // "Make me a page" -> "Make a page": the "me" says nothing on a shelf label.
+    const plain = firstSentence.replace(/^(\w+)\s+me\s+/i, '$1 ');
+    const words = plain.replace(/[\\/:*?"<>|]+/g, ' ').split(/\s+/).map((w) => w.replace(/[,.;]+$/, '')).filter(Boolean);
+    const kept: string[] = [];
+    for (const w of words) {
+      if ([...kept, w].join(' ').length > MAX_WORDS_TITLE) break;
+      kept.push(w);
+    }
+    while (kept.length > 1 && TRAILING_WORDS.has(kept[kept.length - 1].toLowerCase())) kept.pop();
+    const title = kept.join(' ');
+    if (title) return title[0].toUpperCase() + title.slice(1);
+  }
   const title = [...firstSentence].slice(0, 16).join('').replace(/[\\/:*?"<>|\s，,。.；;：]+/g, '-').replace(/^-+|-+$/g, '');
   return title || [...want].slice(0, 16).join('').replace(/[\\/:*?"<>|\s]+/g, '-');
 }
