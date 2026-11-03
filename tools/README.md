@@ -42,8 +42,10 @@ Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handi
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080), `trial`,
 `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),
 `oldclaude` (the stand-in claims an old Claude Code version), `feedback` ("Write to us" and reporting
-what the staff made: the mail program and the save dialog are caught, nothing is sent), and `store`
-(the Microsoft Store build without Claude Code: steps only, no installer run by the app).
+what the staff made: the mail program and the save dialog are caught, nothing is sent), `store`
+(the Microsoft Store build without Claude Code: steps only, no installer run by the app), and `firstrun`
+(a new user from nothing: welcome, the trial, Claude Code appearing, the key pasted in the app, the first
+commission on the shelf; the key check's request to Anthropic is caught and answered in the test).
 
 `launch()` options worth knowing: `store` plays the Store build (`LAMPLIGHT_STORE=1`); `claudePath`
 other than the stand-in, such as a path that does not exist, also gives the app a PATH with no `claude`
@@ -76,4 +78,17 @@ git worktree add --detach ../old/0.5.0 fca49e9 && ln -s "$PWD/node_modules" ../o
 (cd ../old/0.5.0 && npx electron-vite build)
 # likewise ../old/0.6.1 at 157ad2f and ../old/0.7.0 at 176ac64
 npm run build && node tools/sim/legacy.mjs --old ../old --fixtures
+```
+
+## Real-Claude check (`real/check.ts`)
+
+Runs three small commissions (a page that usually keeps a to-do list, a letter with a handed-over file, and
+the demo) through the app's own runner and prompts, against the Claude Code installed on the computer,
+with the user's key from `ANTHROPIC_API_KEY`. Each stops at $0.40 and no new one starts after $1.20.
+It writes `lamplight-real-check-<time>/report.zip` (summary, event shapes, recordings; no key, home
+folder replaced) to compare with the stand-in. `--sim` runs the same thing against the stand-in, free.
+
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+npx tsx tools/real/check.ts
 ```
