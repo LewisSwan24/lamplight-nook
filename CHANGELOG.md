@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.8.0 (2026-11-03)
+## 0.8.1 (2026-11-03)
+
+- English titles of commissions keep whole words on the works shelf and in Wick's notebook
+  ("Write a letter to my landlord about moving out" rather than "Write-a-letter-t"). Chinese titles are unchanged.
+- Wick's greeting quotes the last commission as a name ("How's “Make a pomodoro timer page” working out?"),
+  in both languages, so a title that starts with a verb still reads naturally.
+- The Furnish tab in English reads "Now furnishing: The corner shop." instead of "Furnishing The corner shop."
+- Tooling: `tools/` has a stand-in for Claude Code and scripts for the simulated acceptance run, the store
+  screenshots and the trailer (see `tools/README.md`).
+
+## 0.8.0 (2026-11-02)
 
 Long jobs you can follow, things you can hand over, and a shop you can furnish.
 
@@ -21,8 +31,6 @@ Long jobs you can follow, things you can hand over, and a shop you can furnish.
 - **Settings in tabs:** Basics, Furnish, Sight and sound, Work, About. Arrow keys move between them.
 - The first finished result says that work goes on the works shelf. An expanded note no longer covers the
   street view.
-- Tooling: `tools/` has a stand-in for Claude Code and scripts for the simulated acceptance run, the store
-  screenshots and the trailer (see `tools/README.md`).
 
 ## 0.7.0 (2026-11-01)
 
