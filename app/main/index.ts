@@ -13,6 +13,7 @@ import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionProm
 import { sessionExists } from './sessions';
 import { VersionStore } from './versions';
 import { migrate } from './migrate';
+import { claudeVersion } from './claude-version';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
@@ -152,14 +153,25 @@ const emitters = {
 
 // The key is only read in the main process; the renderer just gets a boolean.
 // Debug tools are for development; a packaged build hides them unless LAMPLIGHT_DEBUG=1.
+/** The last Claude Code version written to the log as unusual, so it is noted once rather than on every check. */
+let lastNotedVersion: string | undefined;
 const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1';
 /** The key saved in the app wins over ANTHROPIC_API_KEY; a dev subscription only counts unpackaged. */
 const credentials = () => pickCredentials(keys.get(), process.env, app.isPackaged);
-ipcMain.handle(IPC.envStatus, (): EnvStatus => {
+ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
   const creds = credentials();
+  const claude = locateClaude();
+  const found = claude === null ? null : await claudeVersion(claude);
+  if (found && found.compat !== 'ok' && found.version !== lastNotedVersion) {
+    lastNotedVersion = found.version;
+    log?.info('claude code version', found);
+  }
   return {
     hasApiKey: creds !== null,
-    hasClaude: locateClaude() !== null,
+    hasClaude: claude !== null,
+    claudeVersion: found?.version,
+    claudeCompat: found?.compat,
+    claudeTested: found?.tested,
     debug: debugEnabled(),
     keySource: creds?.source ?? null,
     keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
@@ -177,6 +189,7 @@ ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
     app: { version: app.getVersion(), packaged: app.isPackaged, electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, locale: app.getLocale() },
     os: { platform: process.platform, release: release(), arch: arch() },
     hasClaude: locateClaude() !== null,
+    claude: locateClaude() === null ? null : await claudeVersion(locateClaude()!).catch(() => null),
     keySource: creds?.source ?? null,
     settings: settings.get(),
     defaultWorkRoot: defaultWorkRoot(app.getPath('documents')),
@@ -284,6 +297,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
         : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes),
       resume: again ? job.sessionId : pickUp,
       onSession: (id) => { job.sessionId = id; pending.save(job); },
+      onInit: (info) => log?.info('run session', info),
       onInput: (add) => { if (current) current.note = (text) => add(meetingNote(text)); },
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),

@@ -9,8 +9,13 @@
   the folder. English titles from before 0.8.1 read as words again ("Make me a small" rather than
   "Make-me-a-small-").
 - Clearing the notebook also clears the copy kept aside by an upgrade.
+- **Claude Code's version is checked.** The app asks the installed Claude Code its version and compares it
+  with the one the shop was tried with (the version the Agent SDK was built for). An older copy is
+  explained at the counter, with "Update it for me" (the same official installer) or "Use it as it is";
+  a newer one is only written to the log. Settings show the version, and the log and the diagnostics
+  bundle record it for every run.
 - Tooling: `tools/sim/legacy.mjs` builds a shop's real data with 0.5.0, 0.6.1 and 0.7.0; the `upgrade`
-  acceptance scenario opens it with the current version.
+  acceptance scenario opens it with the current version. The `oldclaude` scenario plays an old Claude Code.
 
 ## 0.8.1 (2026-11-03)
 
