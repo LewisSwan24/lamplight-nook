@@ -6,7 +6,7 @@
 //
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
 
@@ -78,6 +78,19 @@ function latestCommission(home) {
   };
   walk(home.home, 0);
   return found.sort().at(-1);
+}
+
+/** Copy a legacy-out snapshot into a fresh home, pointing every stored path at the new place. */
+function restoreHome(snap) {
+  const home = freshHome();
+  rmSync(home.home, { recursive: true, force: true });
+  cpSync(join(snap, 'home'), home.home, { recursive: true });
+  const old = readFileSync(join(snap, 'home.txt'), 'utf8').trim();
+  for (const f of readdirSync(home.data).filter((n) => n.endsWith('.json'))) {
+    const p = join(home.data, f);
+    writeFileSync(p, readFileSync(p, 'utf8').split(old).join(home.home));
+  }
+  return home;
 }
 
 const check = (cond, why) => { if (!cond) throw new Error(why); };
@@ -371,6 +384,58 @@ const SCENARIOS = {
         await sleep(300);
       }
     } finally { await shop.close(); }
+  },
+
+  /**
+   * Upgrading: the data folders a shop had under 0.5.0, 0.6.1 and 0.7.0 (made by tools/sim/legacy.mjs into
+   * legacy-out/) are opened by this version. Everything finished is still on the shelf and in the notebook,
+   * the shop counts it, an old commission can be changed again, and 0.7.0's unfinished commission carries on.
+   */
+  async upgrade(lang, out) {
+    for (const version of ['0.5.0', '0.6.1', '0.7.0']) {
+      const snap = join(ROOT, 'legacy-out', lang, version);
+      check(existsSync(join(snap, 'home.txt')), `no ${version} data: run tools/sim/legacy.mjs first`);
+      const home = restoreHome(snap);
+      const before = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+      const finished = before.commissions.filter((c) => c.result === 'done');
+      const shop = await launch({ lang, home, speed: SPEED });
+      try {
+        if (version === '0.7.0') {
+          const resume = await shop.maybe('.pending-card button.default', 8000);
+          check(resume, '0.7.0: the unfinished commission was not offered');
+          await shop.shot(join(out, `upgrade-${version}-pending.png`));
+          await resume.click();
+          check((await shop.workUntilDone()).ok, '0.7.0: the unfinished commission did not finish');
+          await shop.page.keyboard.press('Escape');
+          await sleep(1500);
+        } else {
+          await sleep(3000);
+          await shop.page.keyboard.press('Escape');
+        }
+        check(existsSync(join(home.data, 'data-version.json')), `${version}: data folder not marked`);
+        check(readdirSync(join(home.data, 'backup')).length === 1, `${version}: no backup of the old data`);
+        const memory = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+        for (const c of before.commissions) check(memory.commissions.some((m) => m.id === c.id), `${version}: lost ${c.title}`);
+        check(memory.shop.done >= finished.length, `${version}: the shop counts ${memory.shop.done} of ${finished.length} finished`);
+        const dashed = memory.commissions.find((c) => /^[\x21-\x7e]+$/.test(c.title) && c.title.includes('-'));
+        check(!dashed, `${version}: title still dashed: ${dashed?.title}`);
+
+        await shop.hotspot(shop.L.ui.access.hotspotWorks);
+        const works = await shop.page.locator('.shelf-card li.work').count();
+        check(works >= finished.length, `${version}: shelf shows ${works} of ${finished.length}`);
+        await shop.shot(join(out, `upgrade-${version}-shelf.png`));
+        // Change the oldest piece of work again, from the shelf: same folder, one more round.
+        const oldest = finished[0];
+        await shop.page.locator('.shelf-card li.work').last().locator('button.link').last().click();
+        await shop.page.waitForSelector('form.revise textarea');
+        await shop.page.fill('form.revise textarea', W[lang].ask);
+        await shop.page.locator('form.revise button.default').click();
+        check((await shop.workUntilDone()).ok, `${version}: changing old work did not finish`);
+        const again = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.find((c) => c.id === oldest.id);
+        check(again?.asks?.length === 1, `${version}: the round on old work was not noted`);
+        check(readdirSync(oldest.folder).length > 0, `${version}: old folder is empty`);
+      } finally { await shop.close(); }
+    }
   },
 
   /** No key yet: the trial replay plays without spending anything. */

@@ -38,7 +38,8 @@ node tools/sim/accept.mjs --lang en --only demo,board
 Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
 `templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart),
-`study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080), `trial`.
+`study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080), `trial`,
+and `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below).
 Screenshots go to `sim-out/<lang>/` (git-ignored).
 
 ## Store and website pictures (`sim/store.mjs`)
@@ -52,3 +53,19 @@ Grows a shop by finishing eight commissions, then takes each picture at 1920x108
 Store PNGs go to `store-out/<lang>/`; 1280x720 JPEGs for the website go to `store-out/site/`, named the way
 the site expects (copy them into the site repository's `img/`). `sim/trailer.mjs` records the 30-second
 trailer from the same kind of run.
+
+## Upgrades (`sim/legacy.mjs`)
+
+One shop used the way a long-time user would: a few commissions with 0.5.0, then 0.6.1, then 0.7.0 (which
+goes down halfway through one), then this checkout. A copy of the whole home is kept after each version in
+`legacy-out/<lang>/<version>/` (git-ignored), which the `upgrade` scenario opens with the current build.
+With `--fixtures` the Chinese run also refreshes `tests/fixtures/userdata/`, the data files the migration
+tests start from.
+
+```bash
+# each old version in its own checkout, sharing node_modules (the dependencies have not changed)
+git worktree add --detach ../old/0.5.0 fca49e9 && ln -s "$PWD/node_modules" ../old/0.5.0/node_modules
+(cd ../old/0.5.0 && npx electron-vite build)
+# likewise ../old/0.6.1 at 157ad2f and ../old/0.7.0 at 176ac64
+npm run build && node tools/sim/legacy.mjs --old ../old --fixtures
+```
