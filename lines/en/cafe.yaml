@@ -200,7 +200,7 @@ app_open:
   - { id: open_halloween, speaker: adeng, when: holiday_halloween, bubbles: ["{name}, there you are.", "There's pumpkin soup today."] }
   - { id: open_christmas, speaker: adeng, when: holiday_christmas, bubbles: ["{name}, there you are.", "Chestnut's pulled the lights down twice."] }
   - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}, a good new year to you.", "Clem put the luck sign on the door."] }
-  - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}, there you are.", "How's the {lastCommission} working out?"] }
+  - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}, there you are.", "How's “{lastCommission}” working out?"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["Come in. What should I call you?"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: open_01, scene: study, speaker: adeng, bubbles: ["{name}, there you are.", "Sit anywhere. It's home here."] }

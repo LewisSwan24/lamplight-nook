@@ -12,7 +12,11 @@ const dir = (name = 'tpl-') => mkdtempSync(join(tmpdir(), name));
 describe('commission titles', () => {
   it('drops the "please" and the punctuation, and stays short', () => {
     expect(shortTitle('帮我做一个家庭聚会签到的小网页。')).toBe('做一个家庭聚会签到的小网页');
-    expect(shortTitle('Please make a sign-in page for the family party.')).toBe('make-a-sign-in-p');
+    expect(shortTitle('Please make me a sign-in page for the family party.')).toBe('Make a sign-in page for the family party');
+    expect(shortTitle('Write a letter to my landlord about moving out at the end of next month.')).toBe('Write a letter to my landlord about moving out');
+    expect(shortTitle('Make me a small web page that works as a pomodoro timer.')).toBe('Make a small web page that works as a pomodoro');
+    expect(shortTitle('Tidy: downloads/old stuff')).toBe('Tidy downloads old stuff');
+    expect(shortTitle('Supercalifragilisticexpialidocious-and-more-and-more words')).toBe('Supercalifragili');
     expect(shortTitle('整理一下：下载/文件夹')).toBe('整理一下-下载-文件夹');
     expect(shortTitle('？？')).toBe('？？');
   });
