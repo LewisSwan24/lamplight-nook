@@ -79,9 +79,11 @@ const HOST_SESSION_VAR = /^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$)/;
  * so a user's own Claude login, or the session that launched the app, can never be picked up by a shipped build.
  */
 export function agentEnv(creds: Credentials, env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  if (!creds.apiKey) return { ...env };
-  const out: NodeJS.ProcessEnv = Object.fromEntries(Object.entries(env).filter(([name]) => !HOST_SESSION_VAR.test(name)));
-  out.ANTHROPIC_API_KEY = creds.apiKey;
+  const out: NodeJS.ProcessEnv = creds.apiKey ? Object.fromEntries(Object.entries(env).filter(([name]) => !HOST_SESSION_VAR.test(name))) : { ...env };
+  if (creds.apiKey) out.ANTHROPIC_API_KEY = creds.apiKey;
+  // Helpers and commands run while the staff wait for them: one commission, one result at the end.
+  // Newer Claude Code may otherwise send a helper off in the background and report "done" before it is back.
+  out.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS = '1';
   return out;
 }
 

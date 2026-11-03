@@ -2,6 +2,22 @@
 
 ## Unreleased (0.9.0)
 
+Checked against a real Claude Code (2.1.306, the Agent SDK's own, and 2.1.317) for the first time since 0.8,
+and ready for the Microsoft Store.
+
+- **The real plan on the blackboard works with today's Claude Code.** Claude Code no longer has TodoWrite; it keeps
+  its to-do list with TaskCreate and TaskUpdate, one item at a time. The blackboard, the corner window and the tray
+  now follow those (and still TodoWrite, for older copies). Before this, a real run never showed its plan.
+- **No warning card for everyday commands.** A command line is now read part by part: `node check.js 2>&1 | tail -30`,
+  `node check.js; ls`, `cd` into the commission folder first, or writing a file with a here-document run like their
+  parts would. A line with a delete, a write outside the folder or over a file that was there before, or anything
+  the shop can't read (`$(...)`, variables, background jobs) still waits for you. `find` with `-delete` or `-exec`
+  now asks too. In real runs, a plain re-run of the check came up as "serious", and the default "not now" stopped it.
+- **One commission, one result.** Helpers and long commands are no longer sent off in the background, which newer
+  Claude Code may do; a run could otherwise say "done" while a helper was still out, then carry on. A helper sent
+  off anyway is shown out until it reports back.
+- The English welcome said "hand it to Adeng"; it is Wick.
+
 - **Upgrades keep everything.** The data folder now has a version, and older data is brought up to date
   when the app starts, with a copy of the old files kept in `backup/` first. A shop used since 0.5 or 0.6 now
   counts the commissions finished back then (0.7 started counting from zero), and grows accordingly.
@@ -27,7 +43,9 @@
   acceptance scenario opens it with the current version. The `oldclaude` scenario plays an old Claude Code,
   `store` the Store build, and `firstrun` a new user from the welcome card to the first piece of work.
   `tools/real/check.ts` runs three small commissions against a real Claude Code with a capped budget
-  and writes a report to compare with the stand-in.
+  and writes a report to compare with the stand-in; `tools/real/ui.mjs` runs the demo in the real window, capped
+  at $0.40. The stand-in now keeps its to-do list with TaskCreate / TaskUpdate (`SIM_TODOS=todowrite` for the old
+  way) and uses the shell the way real runs do.
 
 ## 0.8.1 (2026-11-03)
 

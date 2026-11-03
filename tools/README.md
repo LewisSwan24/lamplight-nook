@@ -19,6 +19,11 @@ It never touches the network.
 | `SIM_STATE_DIR` | where sessions are kept for `--resume` |
 | `SIM_LOG` | log every protocol message to this file |
 | `SIM_CLAUDE_VERSION` | the version it claims, in `--version` and the init message (default 2.1.306) |
+| `SIM_TODOS` | `todowrite`: keep the to-do list with TodoWrite, as Claude Code did before TaskCreate / TaskUpdate |
+
+It plays what real runs showed (O5, Claude Code 2.1.306 and 2.1.317): the to-do list one item at a time with
+TaskCreate and TaskUpdate, the init listing the Agent tool as `Task`, a draft written from the shell with a
+here-document, and the check run again as `node check.js 2>&1 | tail -30`.
 
 The app uses it when `LAMPLIGHT_CLAUDE_PATH` points at it.
 
@@ -85,7 +90,7 @@ npm run build && node tools/sim/legacy.mjs --old ../old --fixtures
 Runs three small commissions (a page that usually keeps a to-do list, a letter with a handed-over file, and
 the demo) through the app's own runner and prompts, against the Claude Code installed on the computer,
 with a key from `LAMPLIGHT_TEST_KEY` (never `ANTHROPIC_API_KEY`, which a surrounding Claude session may
-have set). Each stops at $0.40 and no new one starts after $1.20.
+have set). Each stops at $0.40 and no new one starts after $1.20. `--only page,demo` runs some of them.
 It writes `lamplight-real-check-<time>/report.zip` (summary, event shapes, recordings; no key, home
 folder replaced) to compare with the stand-in. `--sim` runs the same thing against the stand-in, free.
 
@@ -94,6 +99,14 @@ $env:LAMPLIGHT_TEST_KEY = "sk-ant-..."
 npx tsx tools/real/check.ts
 ```
 
+In a container where a Claude session runs, start it with nothing from that session's environment, so only the
+test key can be used:
+
+```bash
+env -i PATH="$PATH" HOME="$(mktemp -d)" LANG=C.UTF-8 LAMPLIGHT_TEST_KEY="$LAMPLIGHT_TEST_KEY" npx tsx tools/real/check.ts
+```
+
 `real/ui.mjs` runs the demo commission through the real app window (Xvfb in a container) against the
-Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY` and the app's lowest cap ($1), taking a
-screenshot every few seconds into `real-out/`. `--sim` runs it against the stand-in.
+Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY`, taking a screenshot every few seconds into
+`real-out/`. The app's lowest cap is $1; `--cap` (default 0.40) lowers it for the test through a small wrapper
+around the SDK's Claude Code, so the app is unchanged (Linux and macOS). `--sim` runs it against the stand-in.

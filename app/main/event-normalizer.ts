@@ -1,5 +1,5 @@
 import { fill, pattern, strings } from '../shared/i18n';
-import { todosOf } from '../shared/board';
+import { plainTodo, todosOf, type Todo } from '../shared/board';
 import type { AiEvent, AiEventKind, Choice, RawAgentEvent, Risk } from '../shared/types';
 
 /**
@@ -18,6 +18,8 @@ const STEP_LINE = /^\s*(?:\d+[.\u3001)\uff09]|[-*\u2022])\s+\S/;
 const PLAN_WORDS = pattern('planWords');
 const NET_ERROR = /ECONN|ETIMEDOUT|ENOTFOUND|network|fetch failed|socket hang up|overloaded|529|503/i;
 const E = strings.events;
+/** Claude's to-do list as separate items (Claude Code 2.1.2xx and later; TodoWrite before). */
+const TASK_TOOLS = new Set(['TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet']);
 
 export type NormalizerOptions = {
   /** Idle time with no tool running before we infer "thinking" (fallback; thinking_tokens is preferred). */
@@ -106,7 +108,7 @@ export class EventNormalizer {
   private thinkingInferred = false;
   private running = new Map<string, Running>();
   /** Agent tool_use_id -> subagent type / description / final summary. */
-  private agentCalls = new Map<string, { type: Agent; description?: string; summary?: string; stopped: boolean }>();
+  private agentCalls = new Map<string, { type: Agent; description?: string; summary?: string; stopped: boolean; background?: boolean }>();
   /** agent_id from SubagentStart -> subagent type (permission callbacks only carry agent_id). */
   private agentIds = new Map<string, Agent>();
   private failStreak = new Map<Agent, number>();
@@ -119,6 +121,8 @@ export class EventNormalizer {
   private workStarted = false;
   /** The main agent has written its to-do list once: later writes only tick items off. */
   private planned = false;
+  /** The to-do list built from TaskCreate / TaskUpdate, in the order the items were made. */
+  private tasks: { id?: string; useId?: string; text: string; status: Todo['status'] }[] = [];
   private readonly thinkingGapMs: number;
   private readonly longWaitMs: number;
   private readonly thinkingMergeMs: number;
@@ -201,6 +205,13 @@ export class EventNormalizer {
         const target = targetOf(tool, p.tool_input);
         if (id) this.running.set(id, { tool, agent, target, startedAt: t, longWaitSent: false });
         if (tool === 'AskUserQuestion') return; // the permission callback produces ask_user
+        if (TASK_TOOLS.has(tool)) {
+          if (agent === 'main' && this.onTask(tool, obj(p.tool_input), id)) {
+            emit(this.planned ? 'progress' : 'plan', agent, { tool, todos: this.taskTodos(), target: fill(E.planSteps, { n: this.tasks.length }) });
+            this.planned = true;
+          }
+          return;
+        }
         if (tool === 'TodoWrite' && agent === 'main') {
           // Claude's own to-do list is the real plan: the blackboard shows it and follows it item by item.
           const todos = todosOf(p.tool_input);
@@ -215,12 +226,20 @@ export class EventNormalizer {
       }
       case 'PostToolUse': {
         if (tool === 'Agent' || tool === 'Task') {
-          this.stopSubagent(id, emit);
+          // A helper sent off in the background is not back yet: its task_notification says when it is.
+          const call = id ? this.agentCalls.get(id) : undefined;
+          if (call && str(obj(p.tool_response).status) === 'async_launched') call.background = true;
+          else this.stopSubagent(id, emit);
           return;
         }
         const r = id ? this.running.get(id) : undefined;
         if (id) this.running.delete(id);
-        if (!tool || tool === 'AskUserQuestion' || tool === 'TodoWrite') return;
+        if (tool === 'TaskCreate' && agent === 'main') {
+          const made = str(obj(obj(p.tool_response).task).id);
+          const item = this.tasks.find((t) => t.useId === id);
+          if (item && made) item.id = made;
+        }
+        if (!tool || tool === 'AskUserQuestion' || tool === 'TodoWrite' || TASK_TOOLS.has(tool)) return;
         if (id && this.failedIds.has(id)) return;
         this.failStreak.set(agent, 0);
         emit('tool_ok', agent, { tool, target: r?.target ?? targetOf(tool, p.tool_input), failStreak: 0 });
@@ -228,7 +247,7 @@ export class EventNormalizer {
       }
       case 'PostToolUseFailure': {
         if (id) this.running.delete(id);
-        if (!tool || (id && this.failedIds.has(id))) return;
+        if (!tool || TASK_TOOLS.has(tool) || (id && this.failedIds.has(id))) return;
         if (id) this.failedIds.add(id);
         this.fail(agent, tool, targetOf(tool, p.tool_input), emit);
         return;
@@ -267,6 +286,7 @@ export class EventNormalizer {
       } else if (subtype === 'task_notification') {
         const call = this.agentCalls.get(str(p.tool_use_id) ?? '');
         if (call) call.summary = str(p.summary);
+        if (call?.background) this.stopSubagent(str(p.tool_use_id), emit);
       }
       return;
     }
@@ -303,6 +323,8 @@ export class EventNormalizer {
       return;
     }
     if (type === 'result') {
+      // Helpers still out in the background: Claude Code carries on when they report back, and a later result ends it.
+      if (subtype === 'success' && [...this.agentCalls.values()].some((c) => c.background && !c.stopped)) return;
       this.finish();
       if (subtype === 'success' && p.is_error !== true) emit('done', 'main');
       else {
@@ -332,6 +354,37 @@ export class EventNormalizer {
     emit('decision', agentId ? (this.agentIds.get(agentId) ?? 'unknown') : 'main', {
       tool, choice: str(p.choice) as Choice, risk: str(p.risk) as Risk, target: str(p.label),
     });
+  }
+
+  /** Apply one Task tool call to the to-do list; true when the list changed. */
+  private onTask(tool: string, input: Obj, useId: string | undefined): boolean {
+    const status = (v: unknown): Todo['status'] => (v === 'completed' || v === 'in_progress' ? v : 'pending');
+    if (tool === 'TaskCreate') {
+      const text = plainTodo(str(input.subject) ?? str(input.description) ?? '');
+      if (!text) return false;
+      this.tasks.push({ useId, text, status: 'pending' });
+      return true;
+    }
+    if (tool !== 'TaskUpdate') return false;
+    const id = str(input.taskId) ?? (typeof input.taskId === 'number' ? String(input.taskId) : undefined);
+    if (!id) return false;
+    // Claude Code numbers tasks 1, 2, 3...: if the create result was missed, the position stands in for the id.
+    const i = this.tasks.findIndex((t) => t.id === id);
+    const at = i >= 0 ? i : /^\d+$/.test(id) && !this.tasks[Number(id) - 1]?.id ? Number(id) - 1 : -1;
+    const item = this.tasks[at];
+    if (!item) return false;
+    if (input.status === 'deleted') {
+      this.tasks.splice(at, 1);
+      return true;
+    }
+    const before = `${item.text}|${item.status}`;
+    if (str(input.subject)) item.text = plainTodo(str(input.subject)!) || item.text;
+    if (input.status !== undefined) item.status = status(input.status);
+    return `${item.text}|${item.status}` !== before;
+  }
+
+  private taskTodos(): Todo[] {
+    return this.tasks.map((t) => ({ text: t.text, status: t.status }));
   }
 
   private stopSubagent(id: string | undefined, emit: EmitFn) {

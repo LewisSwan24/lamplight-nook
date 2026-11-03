@@ -93,6 +93,7 @@
     "outsideFolder": "要写到委托文件夹外面",
     "overwrite": "会覆盖原来就有的「{name}」",
     "ask": "想问问你的意见",
+    "plan": "记下要做的事",
     "delegate": "派帮手去做事",
     "webRead": "上网查资料（只读）",
     "read": "读文件",

@@ -4,7 +4,8 @@
  * the stand-in Claude (tools/sim).
  *
  *   $env:LAMPLIGHT_TEST_KEY = "sk-ant-..."    # PowerShell; LAMPLIGHT_TEST_KEY=... in a shell
- *   npx tsx tools/real/check.ts               # add --lang en for English, --sim to try it with the stand-in
+ *   npx tsx tools/real/check.ts               # add --lang en for English, --sim to try it with the stand-in,
+ *                                             # --only page,demo to run some of the three
  *
  * The key is read from LAMPLIGHT_TEST_KEY only, never ANTHROPIC_API_KEY, so a key that happens to be set for
  * something else (a Claude session the shell runs in, say) is never used or billed by this check.
@@ -25,6 +26,7 @@ const args = process.argv.slice(2);
 const SIM = args.includes('--sim');
 const LANG = (args[args.indexOf('--lang') + 1] === 'en' && args.includes('--lang') ? 'en' : 'zh-CN') as 'en' | 'zh-CN';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ONLY = args.includes('--only') ? new Set(args[args.indexOf('--only') + 1].split(',')) : null;
 const PER_RUN_USD = 0.4;
 const STOP_AT_USD = 1.2;
 
@@ -62,7 +64,7 @@ if (claudePath === null) {
 process.env.LAMPLIGHT_CLAUDE_PATH = claudePath;
 const version = await claudeVersion(claudePath);
 
-const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
 const OUT = resolve(`lamplight-real-check-${stamp}${SIM ? '-sim' : ''}`);
 mkdirSync(OUT, { recursive: true });
 
@@ -101,6 +103,7 @@ const shapes: Record<string, string[]> = {};
 let total = 0;
 
 for (const c of COMMISSIONS) {
+  if (ONLY && !ONLY.has(c.name)) continue;
   if (total >= STOP_AT_USD) {
     console.log(`Stopping before ${c.name}: $${total.toFixed(2)} spent so far.`);
     break;
@@ -142,6 +145,9 @@ for (const c of COMMISSIONS) {
     finished: result.ok,
     'claude reported its version': Boolean(initVersion),
     'a subagent went out and came back': has('subagent_start') && has('subagent_stop'),
+    // Helpers sent off in the background would end a turn early and report done twice.
+    'one result, at the end': events.filter((e) => e.kind === 'done').length === 1 && events.at(-1)?.kind === 'done',
+    'no ordinary step needed a serious card': !decisions.some((d) => d.startsWith('serious:') && !/(rm|del|delete|删除)/i.test(d)),
   };
   // The demo states its plan in words; the other two are free to keep a to-do list, and the page usually does.
   if (c.name !== 'demo') {
