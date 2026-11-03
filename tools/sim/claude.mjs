@@ -12,6 +12,7 @@
 //   SIM_COST       dollars charged per tool call (default 0.018)
 //   SIM_STATE_DIR  where sessions are kept so --resume can continue them (default <tmp>/lamplight-sim)
 //   SIM_LOG        append every message in and out to this file
+//   SIM_CLAUDE_VERSION  the version to claim (default 2.1.306, the one the SDK was built for)
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -29,6 +30,12 @@ const argOf = (name) => {
   if (i < 0) return undefined;
   return argv[i].includes('=') ? argv[i].slice(argv[i].indexOf('=') + 1) : argv[i + 1];
 };
+/** The version it claims to be (`--version`, and the init message); SIM_CLAUDE_VERSION plays an old or new copy. */
+const VERSION = env.SIM_CLAUDE_VERSION ?? '2.1.306';
+if (argv.includes('--version')) {
+  process.stdout.write(`${VERSION} (Claude Code)\n`);
+  process.exit(0);
+}
 const budget = argOf('--max-budget-usd') ? Number(argOf('--max-budget-usd')) : undefined;
 const resumeId = argOf('--resume');
 
@@ -262,7 +269,7 @@ async function run(prompt) {
   state.play = play.name;
   saveState(state);
   out({
-    type: 'system', subtype: 'init', session_id: state.session, cwd: process.cwd(), model: 'sim', permissionMode: 'default',
+    type: 'system', subtype: 'init', session_id: state.session, cwd: process.cwd(), model: 'sim', permissionMode: 'default', claude_code_version: VERSION,
     tools: ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite'], uuid: nextId('u'),
   });
   const stage = makeStage(state);

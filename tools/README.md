@@ -18,6 +18,7 @@ It never touches the network.
 | `SIM_COST` | dollars per tool call (default 0.018) |
 | `SIM_STATE_DIR` | where sessions are kept for `--resume` |
 | `SIM_LOG` | log every protocol message to this file |
+| `SIM_CLAUDE_VERSION` | the version it claims, in `--version` and the init message (default 2.1.306) |
 
 The app uses it when `LAMPLIGHT_CLAUDE_PATH` points at it.
 
@@ -39,7 +40,8 @@ Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handi
 `templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080), `trial`,
-and `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below).
+`upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),
+and `oldclaude` (the stand-in claims an old Claude Code version).
 Screenshots go to `sim-out/<lang>/` (git-ignored).
 
 ## Store and website pictures (`sim/store.mjs`)
