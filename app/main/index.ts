@@ -12,6 +12,7 @@ import { installCommand, locateClaude, runInstaller } from './claude-locator';
 import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore } from './versions';
+import { migrate } from './migrate';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
@@ -461,6 +462,9 @@ app.whenReady().then(() => {
   log.prune();
   log.info('app start', { version: app.getVersion(), packaged: app.isPackaged, platform: process.platform, release: release() });
   app.on('child-process-gone', (_e, details) => log?.warn('child process gone', details));
+  // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
+  const migrated = migrate(app.getPath('userData'));
+  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', migrated);
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
