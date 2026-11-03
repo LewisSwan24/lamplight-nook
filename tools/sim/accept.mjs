@@ -513,6 +513,32 @@ const SCENARIOS = {
       await row.locator('button.write-us').click();
       await sleep(600);
       check((await shop.app.evaluate(() => globalThis.__mail)).length === 2, 'a letter opened although the save was cancelled');
+      await shop.page.keyboard.press('Escape');
+
+      // Something the staff made is not right: the result card has its own letter (Store policy 11.16).
+      check((await runOne(shop, { template: 'letter', want: W[lang].letter })).ok, 'commission did not finish');
+      await shop.page.locator('.result-card .result-report').click();
+      await sleep(600);
+      mail = await shop.app.evaluate(() => globalThis.__mail);
+      const report = decodeURIComponent(mail.at(-1));
+      check(mail.length === 3 && report.includes(shop.L.ui.setup.reportPrompt) && report.includes(W[lang].letter.slice(0, 8)), `no content report: ${report.slice(0, 200)}`);
+      await shop.shot(join(out, 'feedback-report.png'));
+    } finally { await shop.close(); }
+  },
+
+  /** The Microsoft Store build: Claude Code missing, the steps are shown and the app offers no installer of its own. */
+  async store(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, store: true, claudePath: join(home.home, 'no-claude-here') });
+    try {
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      const card = await shop.maybe('.notice-card', 5000);
+      check(card, 'no setup card without Claude Code');
+      const text = await card.innerText();
+      check(text.includes(shop.L.ui.setup.claudeStoreHint), 'the store hint is missing');
+      check(!text.includes(shop.L.ui.setup.claudeInstall), 'the store build offers to run the installer');
+      check(await shop.page.locator('.notice-card details.claude-manual[open]').count() === 1, 'the steps are not open');
+      await shop.shot(join(out, 'store-steps.png'));
     } finally { await shop.close(); }
   },
 

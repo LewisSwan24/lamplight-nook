@@ -6,9 +6,9 @@
 
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -63,27 +63,48 @@ export function onboarded(lang, extra = {}) {
 }
 
 /**
+ * A PATH on which no Claude Code can be found, for "not installed": folders holding a `claude` are left out,
+ * and node (which may live next to it) comes from a folder of its own.
+ */
+function pathWithoutClaude(home) {
+  const shim = join(home.home, '.sim-bin');
+  mkdirSync(shim, { recursive: true });
+  const node = join(shim, process.platform === 'win32' ? 'node.exe' : 'node');
+  if (!existsSync(node)) symlinkSync(process.execPath, node);
+  const dirs = (process.env.PATH ?? '').split(delimiter).filter((d) => d && !['claude', 'claude.exe', 'claude.cmd'].some((n) => existsSync(join(d, n))));
+  return [shim, ...dirs].join(delimiter);
+}
+
+/**
  * Start the app. Options: lang, home (from freshHome), size, scenario and speed for the stand-in Claude,
  * key (false for "no key"), debug (show the debug panel), appDir (another built checkout of the app,
- * such as an older version; its own locales are used), simEnv (more SIM_* settings for the stand-in Claude).
+ * such as an older version; its own locales are used), simEnv (more SIM_* settings for the stand-in Claude),
+ * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {} } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE } = {}) {
   const env = {
-    PATH: process.env.PATH,
+    PATH: claudePath === FAKE_CLAUDE ? process.env.PATH : pathWithoutClaude(home),
     HOME: home.home,
     DISPLAY: await display(),
     LAMPLIGHT_LANG: lang,
-    LAMPLIGHT_CLAUDE_PATH: FAKE_CLAUDE,
+    LAMPLIGHT_CLAUDE_PATH: claudePath,
     SIM_SPEED: String(speed),
     SIM_SCENARIO: scenario,
     SIM_STATE_DIR: join(home.home, '.sim'),
     ...(key ? { ANTHROPIC_API_KEY: FAKE_KEY } : {}),
     ...(debug ? { LAMPLIGHT_DEBUG: '1' } : {}),
+    ...(store ? { LAMPLIGHT_STORE: '1' } : {}),
     ...Object.fromEntries(Object.entries(simEnv).filter(([k]) => k.startsWith('SIM_'))),
     ...(process.env.XAUTHORITY ? { XAUTHORITY: process.env.XAUTHORITY } : {}),
   };
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
-  const app = await electron.launch({ executablePath: ELECTRON, args: [appDir, '--no-sandbox'], env, cwd: appDir });
+  // Electron now and then fails to start right after another one quit; one more try is enough.
+  const start = () => electron.launch({ executablePath: ELECTRON, args: [appDir, '--no-sandbox'], env, cwd: appDir });
+  const app = await start().catch(async (err) => {
+    if (!/failed to launch/i.test(String(err?.message))) throw err;
+    await sleep(2000);
+    return start();
+  });
   const page = await app.firstWindow();
   // A development build always has the debug panel; keep it out of pictures and recordings unless asked for.
   if (!debug) {

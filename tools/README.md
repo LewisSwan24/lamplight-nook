@@ -41,8 +41,13 @@ Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handi
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080), `trial`,
 `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),
-`oldclaude` (the stand-in claims an old Claude Code version), and `feedback` ("Write to us": the mail
-program and the save dialog are caught, nothing is sent).
+`oldclaude` (the stand-in claims an old Claude Code version), `feedback` ("Write to us" and reporting
+what the staff made: the mail program and the save dialog are caught, nothing is sent), and `store`
+(the Microsoft Store build without Claude Code: steps only, no installer run by the app).
+
+`launch()` options worth knowing: `store` plays the Store build (`LAMPLIGHT_STORE=1`); `claudePath`
+other than the stand-in, such as a path that does not exist, also gives the app a PATH with no `claude`
+on it, since a real Claude Code may sit next to node.
 Screenshots go to `sim-out/<lang>/` (git-ignored).
 
 ## Store and website pictures (`sim/store.mjs`)
