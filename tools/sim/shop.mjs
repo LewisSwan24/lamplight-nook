@@ -79,20 +79,23 @@ function pathWithoutClaude(home) {
  * Start the app. Options: lang, home (from freshHome), size, scenario and speed for the stand-in Claude,
  * key (false for "no key"), debug (show the debug panel), appDir (another built checkout of the app,
  * such as an older version; its own locales are used), simEnv (more SIM_* settings for the stand-in Claude),
- * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed),
+ * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed;
+ * 'sdk' the Agent SDK's own copy, for real runs),
  * args (more Electron switches).
  */
 export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [] } = {}) {
   const env = {
-    PATH: claudePath === FAKE_CLAUDE ? process.env.PATH : pathWithoutClaude(home),
+    PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(home),
     HOME: home.home,
     DISPLAY: await display(),
     LAMPLIGHT_LANG: lang,
-    LAMPLIGHT_CLAUDE_PATH: claudePath,
+    // 'sdk': no override, so a development build runs the Agent SDK's own Claude Code (the tested version).
+    ...(claudePath === 'sdk' ? {} : { LAMPLIGHT_CLAUDE_PATH: claudePath }),
     SIM_SPEED: String(speed),
     SIM_SCENARIO: scenario,
     SIM_STATE_DIR: join(home.home, '.sim'),
-    ...(key ? { ANTHROPIC_API_KEY: FAKE_KEY } : {}),
+    // true: the fake key; a string: that key (tools/real/ui.mjs, never from this shell's own variables).
+    ...(key ? { ANTHROPIC_API_KEY: typeof key === 'string' ? key : FAKE_KEY } : {}),
     ...(debug ? { LAMPLIGHT_DEBUG: '1' } : {}),
     ...(store ? { LAMPLIGHT_STORE: '1' } : {}),
     ...Object.fromEntries(Object.entries(simEnv).filter(([k]) => k.startsWith('SIM_'))),

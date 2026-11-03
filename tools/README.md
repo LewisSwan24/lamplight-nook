@@ -84,11 +84,16 @@ npm run build && node tools/sim/legacy.mjs --old ../old --fixtures
 
 Runs three small commissions (a page that usually keeps a to-do list, a letter with a handed-over file, and
 the demo) through the app's own runner and prompts, against the Claude Code installed on the computer,
-with the user's key from `ANTHROPIC_API_KEY`. Each stops at $0.40 and no new one starts after $1.20.
+with a key from `LAMPLIGHT_TEST_KEY` (never `ANTHROPIC_API_KEY`, which a surrounding Claude session may
+have set). Each stops at $0.40 and no new one starts after $1.20.
 It writes `lamplight-real-check-<time>/report.zip` (summary, event shapes, recordings; no key, home
 folder replaced) to compare with the stand-in. `--sim` runs the same thing against the stand-in, free.
 
 ```powershell
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
+$env:LAMPLIGHT_TEST_KEY = "sk-ant-..."
 npx tsx tools/real/check.ts
 ```
+
+`real/ui.mjs` runs the demo commission through the real app window (Xvfb in a container) against the
+Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY` and the app's lowest cap ($1), taking a
+screenshot every few seconds into `real-out/`. `--sim` runs it against the stand-in.

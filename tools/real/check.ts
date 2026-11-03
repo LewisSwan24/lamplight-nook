@@ -3,8 +3,11 @@
  * normalizer against the Claude Code installed on this computer, then writes a report to compare with
  * the stand-in Claude (tools/sim).
  *
- *   $env:ANTHROPIC_API_KEY = "sk-ant-..."     # PowerShell; the key is only read from the environment
+ *   $env:LAMPLIGHT_TEST_KEY = "sk-ant-..."    # PowerShell; LAMPLIGHT_TEST_KEY=... in a shell
  *   npx tsx tools/real/check.ts               # add --lang en for English, --sim to try it with the stand-in
+ *
+ * The key is read from LAMPLIGHT_TEST_KEY only, never ANTHROPIC_API_KEY, so a key that happens to be set for
+ * something else (a Claude session the shell runs in, say) is never used or billed by this check.
  *
  * Spending: each commission stops at $0.40 (the SDK's own cap), and no new one starts once the total
  * reaches $1.20, so the whole check stays under about $1.60. Questions get the first option, ordinary
@@ -40,9 +43,9 @@ const { zip } = await import('../../app/main/zip');
 type Form = import('../../app/shared/types').CommissionForm;
 type Raw = import('../../app/shared/types').RawAgentEvent;
 
-const key = SIM ? 'sk-ant-api03-simulated-0000000000000000000000000000000000000000' : process.env.ANTHROPIC_API_KEY;
+const key = SIM ? 'sk-ant-api03-simulated-0000000000000000000000000000000000000000' : process.env.LAMPLIGHT_TEST_KEY;
 if (!key) {
-  console.error('Set ANTHROPIC_API_KEY first (PowerShell: $env:ANTHROPIC_API_KEY = "sk-ant-..."). Nothing was run.');
+  console.error('Set LAMPLIGHT_TEST_KEY first (PowerShell: $env:LAMPLIGHT_TEST_KEY = "sk-ant-..."). Nothing was run.');
   process.exit(1);
 }
 if (SIM) {
