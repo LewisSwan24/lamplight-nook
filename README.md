@@ -59,7 +59,7 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 `.github/workflows/release.yml` builds the installer on a Windows runner (typecheck, tests, `npm run dist`).
 
 - Run the workflow from the Actions tab, or push a tag such as `v0.1.0`.
-- It creates a GitHub release with `Lamplight-Nook-Setup-<version>.exe` attached, tagged with the pushed tag or with the version in `package.json`. Bump the version before each release.
+- It creates a GitHub release with `Lamplight-Nook-Setup-<version>.exe` and the Store test package attached, tagged with the pushed tag or with the version in `package.json`. Bump the version before each release.
 
 The installer is not code-signed yet, so Windows SmartScreen asks for confirmation ("More info", then "Run anyway").
 The installer does not include Claude Code. The app uses the copy installed on the machine
@@ -78,6 +78,11 @@ writes the package itself in the MSIX SDK layout (block map, content types, zip6
 - Without them it writes `Lamplight-Nook-<version>-test.msix` with a test publisher that Windows 11 installs
   unsigned: `Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-<version>-test.msix` in PowerShell.
 - Tile images are in `assets/store/`, made from `assets/ui/icon.png`.
+- The listing text (both languages) is in `store/listing.md`.
+- The release workflow attaches the test package next to the installer.
+
+On Linux the installer can be built too, with Wine on the PATH (electron-builder uses it to stamp the icon and
+version into the exe): `npm run build && npx electron-builder --win nsis --publish never`, then `npm run msix`.
 
 ## Art and licenses
 

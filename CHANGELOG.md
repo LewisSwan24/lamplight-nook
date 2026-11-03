@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.9.0)
+## 0.9.0 (2026-11-03)
 
 Checked against a real Claude Code (2.1.306, the Agent SDK's own, and 2.1.317) for the first time since 0.8,
 and ready for the Microsoft Store.
@@ -12,12 +12,16 @@ and ready for the Microsoft Store.
   `node check.js; ls`, `cd` into the commission folder first, or writing a file with a here-document run like their
   parts would. A line with a delete, a write outside the folder or over a file that was there before, or anything
   the shop can't read (`$(...)`, variables, background jobs) still waits for you. `find` with `-delete` or `-exec`
-  now asks too. In real runs, a plain re-run of the check came up as "serious", and the default "not now" stopped it.
+  now asks too. In real runs, a re-run of the check came up as "serious", and the default "not now" stopped it.
+  The delete button names only the files really deleted (not "&&" and "ls" from `rm a b && ls`).
 - **One commission, one result.** Helpers and long commands are no longer sent off in the background, which newer
   Claude Code may do; a run could otherwise say "done" while a helper was still out, then carry on. A helper sent
   off anyway is shown out until it reports back.
 - The English welcome said "hand it to Adeng"; it is Wick.
-
+- The Store listing text is in `store/listing.md`, including that the monthly Claude API credits of a Max or Team
+  plan can be used with the shop.
+- The release run attaches the Store test package (`Lamplight-Nook-<version>-test.msix`) next to the installer,
+  and uses the notes in `release-notes/<tag>.md` when there are some.
 - **Upgrades keep everything.** The data folder now has a version, and older data is brought up to date
   when the app starts, with a copy of the old files kept in `backup/` first. A shop used since 0.5 or 0.6 now
   counts the commissions finished back then (0.7 started counting from zero), and grows accordingly.
