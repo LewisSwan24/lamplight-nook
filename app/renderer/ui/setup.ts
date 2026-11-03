@@ -81,6 +81,11 @@ function claudeSteps(api: LamplightApi, e: EnvStatus, update = false): HTMLEleme
       el('li', {}, S.claudeStep2, el('div.install-line', {}, el('code', {}, e.installCommand), copy)),
       el('li', {}, S.claudeStep3, ' ', el('span.watching', {}, S.claudeWatching))),
     el('button.link', { type: 'button', onclick: () => api.openLink('claudeSetup') }, S.claudeHow)) as HTMLDetailsElement;
+  // The Store build never runs the installer itself: the steps are the way, opened.
+  if (e.store) {
+    manual.open = true;
+    return el('div.claude-install', {}, el('div.hint', {}, update ? S.claudeStoreUpdate : S.claudeStoreHint), manual);
+  }
   // The easy way first: the app runs the official installer; the card turns green when it lands.
   const status = el('div.hint.install-status', { role: 'status' }, S.claudeInstallHint);
   const install = el('button.sticker', { type: 'button' }, update ? S.claudeUpdate : S.claudeInstall) as HTMLButtonElement;
@@ -356,7 +361,7 @@ function writeRow(api: LamplightApi, version: string, platform: string): HTMLEle
   const button = el('button.sticker.write-us', { type: 'button' }, S.writeButton) as HTMLButtonElement;
   button.addEventListener('click', async () => {
     button.disabled = true;
-    const r = await api.writeToUs(withDiag.checked);
+    const r = await api.writeToUs({ about: 'problem', diagnostics: withDiag.checked });
     button.disabled = false;
     said.textContent = r.cancelled ? '' : r.opened ? (r.file ? S.writeOpenedDiag : S.writeOpened) : fill(S.writeFailed, { email: SUPPORT_EMAIL });
   });

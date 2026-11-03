@@ -312,12 +312,16 @@ window.lamplight.onResult((result) => showResult(result, {
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
   firstWork: worksKept === 0,
+  report: () => void window.lamplight.writeToUs({ about: 'content', title: lastWant ?? undefined }),
 }));
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
 let running: string | null = null;
+/** What the last commission (or round of changes) was, for a report about what came back. */
+let lastWant: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  lastWant = want;
   scene.showShop();
   tendGarden(false);
   scene.sendGuestAway();

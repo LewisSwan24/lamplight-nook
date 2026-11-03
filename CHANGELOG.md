@@ -18,6 +18,11 @@
   (our address, a subject, a last line with the app version and system), then opens the user's own mail
   program with it. The diagnostics file is exported only when ticked, and only its name goes in the letter;
   attaching it and sending are the user's own steps. The app sends nothing.
+- **Reporting what the staff made.** The result card has "Something not right in this? Tell us", a
+  letter about that commission in the same way (Microsoft Store policy 11.16 on live generative AI).
+- **The Microsoft Store build never runs an installer script.** In the MSIX package the app shows the
+  official steps and the copy button, opened, instead of "Install it for me" / "Update it for me"
+  (Store policies 10.2.2 and 10.2.3). The setup file from the website keeps the button.
 - Tooling: `tools/sim/legacy.mjs` builds a shop's real data with 0.5.0, 0.6.1 and 0.7.0; the `upgrade`
   acceptance scenario opens it with the current version. The `oldclaude` scenario plays an old Claude Code.
 

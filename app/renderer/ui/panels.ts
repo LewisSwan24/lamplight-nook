@@ -279,6 +279,8 @@ export type ResultActions = {
   restore?: (id: string) => Promise<boolean>;
   /** The first piece of work ever: say once that it will be kept on the shelf, which only appears now. */
   firstWork?: boolean;
+  /** Something in it is not right (Store policy 11.16): a letter to us about what the staff made. */
+  report?: () => void;
 };
 
 /**
@@ -315,6 +317,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     result.ok && id && actions.revise ? el('div.actions.result-more', {},
       el('button.result-revise', { onclick: () => actions.revise!(id) }, U.resultRevise),
       restore) : null,
+    actions.report ? el('button.link.result-report', { type: 'button', onclick: actions.report }, U.resultReport) : null,
     el('div.actions', {},
       result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
       el('button', { onclick: () => actions.open(target, 'reveal') }, U.openFolder),

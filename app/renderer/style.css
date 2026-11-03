@@ -168,6 +168,8 @@ body.drop-ready #game { filter: brightness(1.04); }
 .plan-now { font-weight: normal; color: var(--accent); font-size: 14px; }
 .result-more { justify-content: flex-start; margin-top: 6px; }
 .result-more button { font-size: 0.92em; }
+.result-report { display: block; margin-top: 8px; font-size: 0.82em; opacity: 0.75; }
+.result-report:hover, .result-report:focus-visible { opacity: 1; }
 .result-card .actions button { white-space: nowrap; }
 .result-restored:empty { display: none; }
 .result-summary { max-height: 9.5em; overflow-y: auto; margin: 4px 0 8px; line-height: 1.6; }

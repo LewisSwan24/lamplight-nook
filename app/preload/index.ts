@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { IPC, type LamplightApi } from '../shared/types';
+import { IPC, type LamplightApi, type Letter } from '../shared/types';
 
 /** Subscribe to a main -> renderer channel; returns an unsubscribe function. */
 function on<T>(channel: string, cb: (payload: T) => void) {
@@ -24,7 +24,7 @@ const api: LamplightApi = {
   copyInstallCommand: () => ipcRenderer.invoke(IPC.copyInstallCommand),
   installClaude: () => ipcRenderer.invoke(IPC.installClaude),
   exportDiagnostics: () => ipcRenderer.invoke(IPC.exportDiagnostics),
-  writeToUs: (withDiagnostics: boolean) => ipcRenderer.invoke(IPC.writeToUs, withDiagnostics),
+  writeToUs: (letter: Letter) => ipcRenderer.invoke(IPC.writeToUs, letter),
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
   chooseSource: (kind) => ipcRenderer.invoke(IPC.chooseSource, kind),
   handOver: (paths, already) => ipcRenderer.invoke(IPC.handOver, paths, already),

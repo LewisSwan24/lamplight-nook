@@ -31,4 +31,12 @@ describe('write to us', () => {
     expect(osName('win32', '10.0.22631')).toBe('Windows 10.0.22631');
     expect(osName('darwin', '24.1.0')).toBe('macOS 24.1.0');
   });
+
+  it('reports something the staff made under its own subject, naming the commission', () => {
+    const mail = feedbackMail({ version: '0.9.0', os: 'Windows 10', about: 'content', title: 'make a sign-in page' });
+    expect(mail.subject).not.toBe(feedbackMail({ version: '0.9.0', os: 'Windows 10' }).subject);
+    expect(mail.subject).toContain('0.9.0');
+    expect(mail.body.startsWith(strings.ui.setup.reportPrompt)).toBe(true);
+    expect(mail.body).toContain('make a sign-in page');
+  });
 });

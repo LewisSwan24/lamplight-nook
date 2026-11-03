@@ -10,6 +10,9 @@ export type FeedbackFacts = {
   os: string;
   /** The diagnostics file the user exported for this letter, if any; only its name goes in the letter. */
   diagnostics?: string;
+  /** A report about something the staff made (Store policy 11.16), and which commission it was. */
+  about?: 'problem' | 'content';
+  title?: string;
 };
 
 /**
@@ -19,10 +22,13 @@ export type FeedbackFacts = {
  */
 export function feedbackMail(f: FeedbackFacts): { to: string; subject: string; body: string } {
   const S = strings.ui.setup;
-  const lines = [S.mailPrompt, '', '', '——', fill(S.mailFooter, { version: f.version, os: f.os, lang: strings.app.languageName })];
+  const content = f.about === 'content';
+  const lines = [content ? S.reportPrompt : S.mailPrompt];
+  if (content && f.title) lines.push(fill(S.reportCommission, { title: f.title }));
+  lines.push('', '', '——', fill(S.mailFooter, { version: f.version, os: f.os, lang: strings.app.languageName }));
   // The file name only: the folder above it usually carries the person's name (either separator, any system).
   if (f.diagnostics) lines.push(fill(S.mailDiag, { file: f.diagnostics.split(/[\\/]/).pop() ?? '' }));
-  return { to: SUPPORT_EMAIL, subject: fill(S.mailSubject, { version: f.version }), body: lines.join('\n') };
+  return { to: SUPPORT_EMAIL, subject: fill(content ? S.reportSubject : S.mailSubject, { version: f.version }), body: lines.join('\n') };
 }
 
 /** A mailto: link for that letter. Line breaks become CRLF, as RFC 6068 asks. */

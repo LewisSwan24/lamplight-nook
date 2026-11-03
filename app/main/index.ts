@@ -5,7 +5,7 @@ import { basename, dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -154,6 +154,12 @@ const emitters = {
 
 // The key is only read in the main process; the renderer just gets a boolean.
 // Debug tools are for development; a packaged build hides them unless LAMPLIGHT_DEBUG=1.
+/**
+ * The Microsoft Store build (an MSIX package). Store policy 10.2.2/10.2.3 rules out running a downloaded
+ * installer script from the app, so there the app only shows the official steps. LAMPLIGHT_STORE=1 plays
+ * the Store build in development.
+ */
+const storeBuild = () => process.windowsStore === true || (!app.isPackaged && process.env.LAMPLIGHT_STORE === '1');
 /** The last Claude Code version written to the log as unusual, so it is noted once rather than on every check. */
 let lastNotedVersion: string | undefined;
 const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1';
@@ -173,6 +179,7 @@ ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
     claudeVersion: found?.version,
     claudeCompat: found?.compat,
     claudeTested: found?.tested,
+    store: storeBuild(),
     debug: debugEnabled(),
     keySource: creds?.source ?? null,
     keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
@@ -210,16 +217,18 @@ ipcMain.handle(IPC.exportDiagnostics, (): Promise<string | null> => exportDiagno
  * Nothing is sent from here. With `diagnostics`, the zip is exported first (they attach it themselves);
  * cancelling that save cancels the letter too.
  */
-ipcMain.handle(IPC.writeToUs, async (_e, withDiagnostics: unknown): Promise<WriteResult> => {
+ipcMain.handle(IPC.writeToUs, async (_e, letter: Partial<Letter> | undefined): Promise<WriteResult> => {
+  const about = letter?.about === 'content' ? 'content' : 'problem';
+  const title = typeof letter?.title === 'string' ? letter.title.slice(0, 80) : undefined;
   let file: string | null = null;
-  if (withDiagnostics === true) {
+  if (letter?.diagnostics === true) {
     file = await exportDiagnostics();
     if (!file) return { opened: false, cancelled: true };
   }
-  const mail = feedbackMail({ version: app.getVersion(), os: osName(process.platform, release()), diagnostics: file ?? undefined });
+  const mail = feedbackMail({ version: app.getVersion(), os: osName(process.platform, release()), diagnostics: file ?? undefined, about, title });
   try {
     await shell.openExternal(mailtoUrl(mail));
-    log?.info('feedback mail opened', { diagnostics: Boolean(file) });
+    log?.info('feedback mail opened', { about, diagnostics: Boolean(file) });
     return { opened: true, file: file ?? undefined };
   } catch (err) {
     log?.warn('feedback mail not opened', { error: String(err) });
@@ -230,6 +239,7 @@ ipcMain.handle(IPC.copyInstallCommand, () => clipboard.writeText(installCommand(
 // "Install it for me": the official installer, run once at a time; the setup card notices when Claude Code lands.
 let installing: Promise<boolean> | null = null;
 ipcMain.handle(IPC.installClaude, (): Promise<boolean> => {
+  if (storeBuild()) return Promise.resolve(false);
   installing ??= runInstaller().then(({ ok, output }) => {
     log?.info('claude install', { ok, found: locateClaude() !== null, output });
     installing = null;
