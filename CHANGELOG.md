@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.9.0 (2026-11-03)
+
+Checked against a real Claude Code (2.1.306, the Agent SDK's own, and 2.1.317) for the first time since 0.8,
+and ready for the Microsoft Store.
+
+- **The real plan on the blackboard works with today's Claude Code.** Claude Code no longer has TodoWrite; it keeps
+  its to-do list with TaskCreate and TaskUpdate, one item at a time. The blackboard, the corner window and the tray
+  now follow those (and still TodoWrite, for older copies). Before this, a real run never showed its plan.
+- **No warning card for everyday commands.** A command line is now read part by part: `node check.js 2>&1 | tail -30`,
+  `node check.js; ls`, `cd` into the commission folder first, or writing a file with a here-document run like their
+  parts would. A line with a delete, a write outside the folder or over a file that was there before, or anything
+  the shop can't read (`$(...)`, variables, background jobs) still waits for you. `find` with `-delete` or `-exec`
+  now asks too. In real runs, a re-run of the check came up as "serious", and the default "not now" stopped it.
+  The delete button names only the files really deleted (not "&&" and "ls" from `rm a b && ls`).
+- **One commission, one result.** Helpers and long commands are no longer sent off in the background, which newer
+  Claude Code may do; a run could otherwise say "done" while a helper was still out, then carry on. A helper sent
+  off anyway is shown out until it reports back.
+- The English welcome said "hand it to Adeng"; it is Wick.
+- The Store listing text is in `store/listing.md`, including that the monthly Claude API credits of a Max or Team
+  plan can be used with the shop.
+- The release run attaches the Store test package (`Lamplight-Nook-<version>-test.msix`) next to the installer,
+  and uses the notes in `release-notes/<tag>.md` when there are some.
+- **Upgrades keep everything.** The data folder now has a version, and older data is brought up to date
+  when the app starts, with a copy of the old files kept in `backup/` first. A shop used since 0.5 or 0.6 now
+  counts the commissions finished back then (0.7 started counting from zero), and grows accordingly.
+  Notebook entries from before 0.7 know which file is the work, so the works shelf opens it rather than
+  the folder. English titles from before 0.8.1 read as words again ("Make me a small" rather than
+  "Make-me-a-small-").
+- Clearing the notebook also clears the copy kept aside by an upgrade.
+- **Claude Code's version is checked.** The app asks the installed Claude Code its version and compares it
+  with the one the shop was tried with (the version the Agent SDK was built for). An older copy is
+  explained at the counter, with "Update it for me" (the same official installer) or "Use it as it is";
+  a newer one is only written to the log. Settings show the version, and the log and the diagnostics
+  bundle record it for every run.
+- **Write to us.** Settings → Work → "If something goes wrong" lists exactly what the letter will hold
+  (our address, a subject, a last line with the app version and system), then opens the user's own mail
+  program with it. The diagnostics file is exported only when ticked, and only its name goes in the letter;
+  attaching it and sending are the user's own steps. The app sends nothing.
+- **Reporting what the staff made.** The result card has "Something not right in this? Tell us", a
+  letter about that commission in the same way (Microsoft Store policy 11.16 on live generative AI).
+- **The Microsoft Store build never runs an installer script.** In the MSIX package the app shows the
+  official steps and the copy button, opened, instead of "Install it for me" / "Update it for me"
+  (Store policies 10.2.2 and 10.2.3). The setup file from the website keeps the button.
+- Tooling: `tools/sim/legacy.mjs` builds a shop's real data with 0.5.0, 0.6.1 and 0.7.0; the `upgrade`
+  acceptance scenario opens it with the current version. The `oldclaude` scenario plays an old Claude Code,
+  `store` the Store build, and `firstrun` a new user from the welcome card to the first piece of work.
+  `tools/real/check.ts` runs three small commissions against a real Claude Code with a capped budget
+  and writes a report to compare with the stand-in; `tools/real/ui.mjs` runs the demo in the real window, capped
+  at $0.40. The stand-in now keeps its to-do list with TaskCreate / TaskUpdate (`SIM_TODOS=todowrite` for the old
+  way) and uses the shell the way real runs do.
+
 ## 0.8.1 (2026-11-03)
 
 - English titles of commissions keep whole words on the works shelf and in Wick's notebook

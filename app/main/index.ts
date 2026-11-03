@@ -5,13 +5,16 @@ import { basename, dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
 import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore } from './versions';
+import { migrate } from './migrate';
+import { claudeVersion } from './claude-version';
+import { feedbackMail, mailtoUrl, osName } from './feedback';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
@@ -151,14 +154,32 @@ const emitters = {
 
 // The key is only read in the main process; the renderer just gets a boolean.
 // Debug tools are for development; a packaged build hides them unless LAMPLIGHT_DEBUG=1.
+/**
+ * The Microsoft Store build (an MSIX package). Store policy 10.2.2/10.2.3 rules out running a downloaded
+ * installer script from the app, so there the app only shows the official steps. LAMPLIGHT_STORE=1 plays
+ * the Store build in development.
+ */
+const storeBuild = () => process.windowsStore === true || (!app.isPackaged && process.env.LAMPLIGHT_STORE === '1');
+/** The last Claude Code version written to the log as unusual, so it is noted once rather than on every check. */
+let lastNotedVersion: string | undefined;
 const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1';
 /** The key saved in the app wins over ANTHROPIC_API_KEY; a dev subscription only counts unpackaged. */
 const credentials = () => pickCredentials(keys.get(), process.env, app.isPackaged);
-ipcMain.handle(IPC.envStatus, (): EnvStatus => {
+ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
   const creds = credentials();
+  const claude = locateClaude();
+  const found = claude === null ? null : await claudeVersion(claude);
+  if (found && found.compat !== 'ok' && found.version !== lastNotedVersion) {
+    lastNotedVersion = found.version;
+    log?.info('claude code version', found);
+  }
   return {
     hasApiKey: creds !== null,
-    hasClaude: locateClaude() !== null,
+    hasClaude: claude !== null,
+    claudeVersion: found?.version,
+    claudeCompat: found?.compat,
+    claudeTested: found?.tested,
+    store: storeBuild(),
     debug: debugEnabled(),
     keySource: creds?.source ?? null,
     keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
@@ -166,16 +187,19 @@ ipcMain.handle(IPC.envStatus, (): EnvStatus => {
     platform: process.platform,
   };
 });
-ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
+/** Write the diagnostics zip where the user picks (the desktop by default) and show it; null if they cancel. */
+async function exportDiagnostics(): Promise<string | null> {
   if (!win || !log) return null;
   const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
   const r = await dialog.showSaveDialog(win, { defaultPath: join(app.getPath('desktop'), `lamplight-diagnostics-${stamp}.zip`), filters: [{ name: 'Zip', extensions: ['zip'] }] });
   if (r.canceled || !r.filePath) return null;
   const creds = credentials();
+  const claude = locateClaude();
   writeFileSync(r.filePath, zip(diagnosticsEntries({
     app: { version: app.getVersion(), packaged: app.isPackaged, electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, locale: app.getLocale() },
     os: { platform: process.platform, release: release(), arch: arch() },
-    hasClaude: locateClaude() !== null,
+    hasClaude: claude !== null,
+    claude: claude === null ? null : await claudeVersion(claude).catch(() => null),
     keySource: creds?.source ?? null,
     settings: settings.get(),
     defaultWorkRoot: defaultWorkRoot(app.getPath('documents')),
@@ -186,11 +210,36 @@ ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
   log.info('diagnostics exported');
   shell.showItemInFolder(r.filePath);
   return r.filePath;
+}
+ipcMain.handle(IPC.exportDiagnostics, (): Promise<string | null> => exportDiagnostics());
+/**
+ * "Write to us": opens the user's own mail program with our address, a subject and a short footer filled in.
+ * Nothing is sent from here. With `diagnostics`, the zip is exported first (they attach it themselves);
+ * cancelling that save cancels the letter too.
+ */
+ipcMain.handle(IPC.writeToUs, async (_e, letter: Partial<Letter> | undefined): Promise<WriteResult> => {
+  const about = letter?.about === 'content' ? 'content' : 'problem';
+  const title = typeof letter?.title === 'string' ? letter.title.slice(0, 80) : undefined;
+  let file: string | null = null;
+  if (letter?.diagnostics === true) {
+    file = await exportDiagnostics();
+    if (!file) return { opened: false, cancelled: true };
+  }
+  const mail = feedbackMail({ version: app.getVersion(), os: osName(process.platform, release()), diagnostics: file ?? undefined, about, title });
+  try {
+    await shell.openExternal(mailtoUrl(mail));
+    log?.info('feedback mail opened', { about, diagnostics: Boolean(file) });
+    return { opened: true, file: file ?? undefined };
+  } catch (err) {
+    log?.warn('feedback mail not opened', { error: String(err) });
+    return { opened: false, file: file ?? undefined };
+  }
 });
 ipcMain.handle(IPC.copyInstallCommand, () => clipboard.writeText(installCommand(process.platform)));
 // "Install it for me": the official installer, run once at a time; the setup card notices when Claude Code lands.
 let installing: Promise<boolean> | null = null;
 ipcMain.handle(IPC.installClaude, (): Promise<boolean> => {
+  if (storeBuild()) return Promise.resolve(false);
   installing ??= runInstaller().then(({ ok, output }) => {
     log?.info('claude install', { ok, found: locateClaude() !== null, output });
     installing = null;
@@ -283,6 +332,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
         : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes),
       resume: again ? job.sessionId : pickUp,
       onSession: (id) => { job.sessionId = id; pending.save(job); },
+      onInit: (info) => log?.info('run session', info),
       onInput: (add) => { if (current) current.note = (text) => add(meetingNote(text)); },
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
@@ -461,6 +511,9 @@ app.whenReady().then(() => {
   log.prune();
   log.info('app start', { version: app.getVersion(), packaged: app.isPackaged, platform: process.platform, release: release() });
   app.on('child-process-gone', (_e, details) => log?.warn('child process gone', details));
+  // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
+  const migrated = migrate(app.getPath('userData'));
+  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', migrated);
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));

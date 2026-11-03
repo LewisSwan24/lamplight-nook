@@ -6,9 +6,9 @@
 //
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
+import { FAKE_CLAUDE, freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : def; };
@@ -78,6 +78,19 @@ function latestCommission(home) {
   };
   walk(home.home, 0);
   return found.sort().at(-1);
+}
+
+/** Copy a legacy-out snapshot into a fresh home, pointing every stored path at the new place. */
+function restoreHome(snap) {
+  const home = freshHome();
+  rmSync(home.home, { recursive: true, force: true });
+  cpSync(join(snap, 'home'), home.home, { recursive: true });
+  const old = readFileSync(join(snap, 'home.txt'), 'utf8').trim();
+  for (const f of readdirSync(home.data).filter((n) => n.endsWith('.json'))) {
+    const p = join(home.data, f);
+    writeFileSync(p, readFileSync(p, 'utf8').split(old).join(home.home));
+  }
+  return home;
 }
 
 const check = (cond, why) => { if (!cond) throw new Error(why); };
@@ -370,6 +383,233 @@ const SCENARIOS = {
         await shop.page.keyboard.press('Escape');
         await sleep(300);
       }
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Upgrading: the data folders a shop had under 0.5.0, 0.6.1 and 0.7.0 (made by tools/sim/legacy.mjs into
+   * legacy-out/) are opened by this version. Everything finished is still on the shelf and in the notebook,
+   * the shop counts it, an old commission can be changed again, and 0.7.0's unfinished commission carries on.
+   */
+  async upgrade(lang, out) {
+    for (const version of ['0.5.0', '0.6.1', '0.7.0']) {
+      const snap = join(ROOT, 'legacy-out', lang, version);
+      check(existsSync(join(snap, 'home.txt')), `no ${version} data: run tools/sim/legacy.mjs first`);
+      const home = restoreHome(snap);
+      const before = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+      const finished = before.commissions.filter((c) => c.result === 'done');
+      const shop = await launch({ lang, home, speed: SPEED });
+      try {
+        if (version === '0.7.0') {
+          const resume = await shop.maybe('.pending-card button.default', 8000);
+          check(resume, '0.7.0: the unfinished commission was not offered');
+          await shop.shot(join(out, `upgrade-${version}-pending.png`));
+          await resume.click();
+          check((await shop.workUntilDone()).ok, '0.7.0: the unfinished commission did not finish');
+          await shop.page.keyboard.press('Escape');
+          await sleep(1500);
+        } else {
+          await sleep(3000);
+          await shop.page.keyboard.press('Escape');
+        }
+        check(existsSync(join(home.data, 'data-version.json')), `${version}: data folder not marked`);
+        check(readdirSync(join(home.data, 'backup')).length === 1, `${version}: no backup of the old data`);
+        const memory = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+        for (const c of before.commissions) check(memory.commissions.some((m) => m.id === c.id), `${version}: lost ${c.title}`);
+        check(memory.shop.done >= finished.length, `${version}: the shop counts ${memory.shop.done} of ${finished.length} finished`);
+        const dashed = memory.commissions.find((c) => /^[\x21-\x7e]+$/.test(c.title) && c.title.includes('-'));
+        check(!dashed, `${version}: title still dashed: ${dashed?.title}`);
+
+        await shop.hotspot(shop.L.ui.access.hotspotWorks);
+        const works = await shop.page.locator('.shelf-card li.work').count();
+        check(works >= finished.length, `${version}: shelf shows ${works} of ${finished.length}`);
+        await shop.shot(join(out, `upgrade-${version}-shelf.png`));
+        // Change the oldest piece of work again, from the shelf: same folder, one more round.
+        const oldest = finished[0];
+        await shop.page.locator('.shelf-card li.work').last().locator('button.link').last().click();
+        await shop.page.waitForSelector('form.revise textarea');
+        await shop.page.fill('form.revise textarea', W[lang].ask);
+        await shop.page.locator('form.revise button.default').click();
+        check((await shop.workUntilDone()).ok, `${version}: changing old work did not finish`);
+        const again = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.find((c) => c.id === oldest.id);
+        check(again?.asks?.length === 1, `${version}: the round on old work was not noted`);
+        check(readdirSync(oldest.folder).length > 0, `${version}: old folder is empty`);
+      } finally { await shop.close(); }
+    }
+  },
+
+  /**
+   * An old Claude Code: the counter says so and offers the update, the settings show the version, and the
+   * user can still go ahead. A current one shows its version and asks nothing.
+   */
+  async oldclaude(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    let shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CLAUDE_VERSION: '2.0.14' } });
+    try {
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      const card = await shop.maybe('.notice-card', 5000);
+      check(card, 'no card for an old Claude Code');
+      const text = await card.innerText();
+      check(text.includes('2.0.14') && text.includes(shop.L.ui.setup.claudeUpdate), `old version not explained: ${JSON.stringify(text.slice(0, 200))}`);
+      await shop.shot(join(out, 'oldclaude-card.png'));
+      await shop.page.locator('.notice-card .keep-old button').click();
+      await shop.page.waitForSelector('form.commission', { timeout: 5000 });
+      await shop.page.keyboard.press('Escape');
+      await sleep(400);
+      // Waved through once: the next commission goes straight to the slip.
+      check((await runOne(shop, { template: 'letter', want: W[lang].letter })).ok, 'did not finish with the old version');
+    } finally { await shop.close(); }
+    shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await shop.openSettings('work');
+      const rows = await shop.page.locator('.settings .env-rows').innerText();
+      check(rows.includes('2.1.306'), `current version not shown: ${JSON.stringify(rows.slice(0, 200))}`);
+      await shop.shot(join(out, 'oldclaude-settings.png'));
+      await shop.page.keyboard.press('Escape');
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      check(await shop.maybe('form.commission', 5000), 'a current Claude Code was questioned');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Write to us: the card says what the mail will hold, the user's mail program is asked to open (caught
+   * here), the diagnostics file is exported only when ticked, and cancelling that save opens nothing.
+   */
+  async feedback(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const zipAt = join(home.home, 'diag.zip');
+    try {
+      await shop.app.evaluate(({ shell, dialog }, zipAt) => {
+        globalThis.__mail = [];
+        globalThis.__save = zipAt;
+        shell.openExternal = async (url) => { globalThis.__mail.push(url); };
+        shell.showItemInFolder = () => {};
+        dialog.showSaveDialog = async () => (globalThis.__save ? { canceled: false, filePath: globalThis.__save } : { canceled: true });
+      }, zipAt);
+      await shop.openSettings('work');
+      const row = shop.page.locator('.settings .write-us-row');
+      await row.scrollIntoViewIfNeeded();
+      const text = await row.innerText();
+      check(text.includes('24kplo@gmail.com'), 'the address is not shown before writing');
+      await shop.shot(join(out, 'feedback.png'));
+
+      await row.locator('button.write-us').click();
+      await sleep(600);
+      let mail = await shop.app.evaluate(() => globalThis.__mail);
+      check(mail.length === 1 && mail[0].startsWith('mailto:24kplo@gmail.com?subject='), `no letter opened: ${JSON.stringify(mail)}`);
+      check(!existsSync(zipAt), 'diagnostics exported without being asked for');
+
+      await row.locator('.write-diag input[type=checkbox]').check();
+      await row.locator('button.write-us').click();
+      await sleep(1200);
+      mail = await shop.app.evaluate(() => globalThis.__mail);
+      check(mail.length === 2 && existsSync(zipAt), 'diagnostics not exported for the second letter');
+      const body = decodeURIComponent(mail[1].split('body=')[1]);
+      check(body.includes('diag.zip') && !body.includes(home.home) && !/sk-ant/.test(body), `letter body leaks or lacks the file: ${JSON.stringify(body)}`);
+      check((await row.locator('.write-said').innerText()) === shop.L.ui.setup.writeOpenedDiag, 'no word that the letter is open');
+
+      await shop.app.evaluate(() => { globalThis.__save = null; });
+      await row.locator('button.write-us').click();
+      await sleep(600);
+      check((await shop.app.evaluate(() => globalThis.__mail)).length === 2, 'a letter opened although the save was cancelled');
+      await shop.page.keyboard.press('Escape');
+
+      // Something the staff made is not right: the result card has its own letter (Store policy 11.16).
+      check((await runOne(shop, { template: 'letter', want: W[lang].letter })).ok, 'commission did not finish');
+      await shop.page.locator('.result-card .result-report').click();
+      await sleep(600);
+      mail = await shop.app.evaluate(() => globalThis.__mail);
+      const report = decodeURIComponent(mail.at(-1));
+      check(mail.length === 3 && report.includes(shop.L.ui.setup.reportPrompt) && report.includes(W[lang].letter.slice(0, 8)), `no content report: ${report.slice(0, 200)}`);
+      await shop.shot(join(out, 'feedback-report.png'));
+    } finally { await shop.close(); }
+  },
+
+  /** The Microsoft Store build: Claude Code missing, the steps are shown and the app offers no installer of its own. */
+  async store(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, store: true, claudePath: join(home.home, 'no-claude-here') });
+    try {
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      const card = await shop.maybe('.notice-card', 5000);
+      check(card, 'no setup card without Claude Code');
+      const text = await card.innerText();
+      check(text.includes(shop.L.ui.setup.claudeStoreHint), 'the store hint is missing');
+      check(!text.includes(shop.L.ui.setup.claudeInstall), 'the store build offers to run the installer');
+      check(await shop.page.locator('.notice-card details.claude-manual[open]').count() === 1, 'the steps are not open');
+      await shop.shot(join(out, 'store-steps.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A new user from nothing: no settings, no Claude Code, no key. Welcome (name, look, what is missing,
+   * the work folder), the free trial replay, then Claude Code "lands" (the stand-in appears where the app
+   * looks), the key is pasted in the app, and the first commission ends up on the works shelf.
+   * Checking the key would call Anthropic, so the main process's fetch is caught and answers 200.
+   */
+  async firstrun(lang, out) {
+    const home = freshHome();
+    const claudeAt = join(home.home, '.local', 'bin', 'claude');
+    // Linux test machines have no keyring; the basic store lets the app encrypt the key as it would on Windows.
+    const shop = await launch({ lang, home, speed: SPEED, key: false, claudePath: claudeAt, args: ['--password-store=basic'] });
+    const S = shop.L.ui.setup;
+    try {
+      const welcome = await shop.maybe('.welcome input[type=text]', 8000);
+      check(welcome, 'no welcome card on a first start');
+      await shop.shot(join(out, 'firstrun-1-welcome.png'));
+      await welcome.fill(lang === 'en' ? 'Sam' : '小林');
+      await shop.page.locator('.welcome button.default').click();
+      await shop.page.waitForSelector('.welcome .env-rows');
+      const rows = await shop.page.locator('.welcome .env-rows').innerText();
+      check(rows.includes(S.claudeMissing.slice(0, 12)), 'Claude Code not reported missing');
+      await shop.shot(join(out, 'firstrun-2-check.png'));
+      await shop.page.locator('.welcome .actions button.default').last().click();
+      await sleep(400);
+      await shop.shot(join(out, 'firstrun-3-folder.png'));
+      await shop.page.locator('.welcome .actions button.default').last().click();
+      await sleep(1500);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).onboarded === true, 'not marked as welcomed');
+
+      // The counter: nothing is ready, so the card offers the free trial.
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      await shop.page.waitForSelector('.notice-card .trial-offer button');
+      await shop.page.locator('.notice-card .trial-offer button').click();
+      const end = await shop.maybe('.trial-end', 240_000);
+      check(end, 'the trial replay did not end with its card');
+      await shop.shot(join(out, 'firstrun-4-trial-end.png'));
+      await shop.page.locator('.trial-end button.default').click();
+      await shop.page.waitForSelector('.notice-card .env-rows');
+
+      // Claude Code is installed (the stand-in appears where the app looks): the row turns green by itself.
+      mkdirSync(join(claudeAt, '..'), { recursive: true });
+      symlinkSync(FAKE_CLAUDE, claudeAt);
+      await shop.page.waitForSelector('.notice-card .env-row.ok', { timeout: 15_000 });
+
+      // The key, pasted in the app; the check with Anthropic is caught here and says yes.
+      await shop.app.evaluate(({ net, safeStorage }) => {
+        net.fetch = async () => new Response('{}', { status: 200 });
+        // Test machines only: Linux without a keyring has nothing to encrypt with; Windows always has DPAPI.
+        if (process.platform === 'linux') safeStorage.setUsePlainTextEncryption(true);
+      });
+      await shop.page.fill('.notice-card .key-form input', 'sk-ant-api03-simulated-1111111111111111111111111111111111111111');
+      await shop.page.locator('.notice-card .key-form button').click();
+      const ready = await shop.maybe('.notice-card button.default', 10_000);
+      const keyText = await shop.page.locator('.notice-card').innerText();
+      check(ready, `the shop did not get ready after the key: ${JSON.stringify(keyText.slice(0, 300))}`);
+      check(existsSync(join(home.data, 'api-key.bin')), 'the key was not stored');
+      await shop.shot(join(out, 'firstrun-5-ready.png'));
+      await ready.click();
+
+      await shop.page.waitForSelector('form.commission');
+      await shop.page.keyboard.press('Escape');
+      check((await runOne(shop, { template: 'page', want: W[lang].page })).ok, 'the first commission did not finish');
+      check(await shop.page.locator('.result-card .result-shelf').count() === 1, 'the first result does not mention the works shelf');
+      await shop.shot(join(out, 'firstrun-6-first-result.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(1200);
+      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      check(await shop.page.locator('.shelf-card li.work').count() === 1, 'the first work is not on the shelf');
     } finally { await shop.close(); }
   },
 

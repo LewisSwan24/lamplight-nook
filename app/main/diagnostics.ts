@@ -8,6 +8,8 @@ export type DiagnosticsInput = {
   app: { version: string; packaged: boolean; electron: string; chrome: string; node: string; locale: string };
   os: { platform: string; release: string; arch: string };
   hasClaude: boolean;
+  /** Claude Code's version and how it compares with the one the shop was tried with, when it could be read. */
+  claude?: { version?: string; compat: string; tested?: string } | null;
   keySource: KeySource;
   settings: Settings;
   defaultWorkRoot: string;
@@ -52,6 +54,7 @@ export function diagnosticsEntries(input: DiagnosticsInput): ZipEntry[] {
     app: input.app,
     os: input.os,
     claudeCode: input.hasClaude ? 'found' : 'missing',
+    claudeCodeVersion: input.claude ?? undefined,
     apiKey: input.keySource ?? 'none',
     settings: {
       ...settings,

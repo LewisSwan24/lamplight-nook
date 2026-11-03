@@ -5,7 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -312,12 +312,16 @@ window.lamplight.onResult((result) => showResult(result, {
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
   firstWork: worksKept === 0,
+  report: () => void window.lamplight.writeToUs({ about: 'content', title: lastWant ?? undefined }),
 }));
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
 let running: string | null = null;
+/** What the last commission (or round of changes) was, for a report about what came back. */
+let lastWant: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  lastWant = want;
   scene.showShop();
   tendGarden(false);
   scene.sendGuestAway();
@@ -340,6 +344,11 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     void scene.youLeave();
   }
 }
+/** The user chose to go ahead with an old Claude Code; not asked again until the app restarts. */
+let oldClaudeOk = false;
+/** What the shop needs before a commission: Claude Code, a key, and (unless waved through) a recent enough Claude Code. */
+const notReady = (env: EnvStatus) => !env.hasClaude || !env.hasApiKey || (env.claudeCompat === 'old' && !oldClaudeOk);
+
 async function newCommission(dropped: string[] = []) {
   if (running) {
     if (dropped.length) return greet(strings.ui.materials.busy);
@@ -347,7 +356,7 @@ async function newCommission(dropped: string[] = []) {
   }
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped));
+  if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped), () => { oldClaudeOk = true; void newCommission(dropped); });
   const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
   const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed);
   if (!form) return;
@@ -363,7 +372,7 @@ async function newCommission(dropped: string[] = []) {
 async function revise(id: string, title?: string) {
   if (running) return showRunning(window.lamplight, running);
   const env = await window.lamplight.envStatus();
-  if (!env.hasClaude || !env.hasApiKey) return showNotReady(window.lamplight, env, startTrial, () => void revise(id, title));
+  if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void revise(id, title), () => { oldClaudeOk = true; void revise(id, title); });
   const ask = await showRevise(current?.avatar, title);
   if (!ask) return;
   append(`revise ${id}: ${ask}`);

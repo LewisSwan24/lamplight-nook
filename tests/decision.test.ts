@@ -112,6 +112,12 @@ describe('permission policy', () => {
     expect(describeAction('Write', { file_path: '/a/b/index.html' })).toBe(fill(strings.decision.writeFile, { name: 'index.html' }));
     expect(describeAction('Bash', { command: 'python x.py' })).toBe(fill(strings.decision.runCommand, { command: 'python x.py' }));
   });
+
+  it('names only the files a chained delete removes', () => {
+    const files = ['draft-1.html', 'draft-2.html'].join(strings.app.listSeparator);
+    expect(describeAction('Bash', { command: 'rm draft-1.html draft-2.html && ls' })).toBe(fill(strings.decision.deleteFiles, { files }));
+    expect(describeAction('Bash', { command: 'rm -f "draft-1.html" draft-2.html; ls' })).toBe(fill(strings.decision.deleteFiles, { files }));
+  });
 });
 
 describe('safety: dangerous calls never run without the user', () => {

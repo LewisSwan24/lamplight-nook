@@ -12,6 +12,8 @@
 //   SIM_COST       dollars charged per tool call (default 0.018)
 //   SIM_STATE_DIR  where sessions are kept so --resume can continue them (default <tmp>/lamplight-sim)
 //   SIM_LOG        append every message in and out to this file
+//   SIM_CLAUDE_VERSION  the version to claim (default 2.1.306, the one the SDK was built for)
+//   SIM_TODOS           todowrite: keep the to-do list with TodoWrite, as Claude Code did before the Task* tools
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -29,6 +31,15 @@ const argOf = (name) => {
   if (i < 0) return undefined;
   return argv[i].includes('=') ? argv[i].slice(argv[i].indexOf('=') + 1) : argv[i + 1];
 };
+/** The version it claims to be (`--version`, and the init message); SIM_CLAUDE_VERSION plays an old or new copy. */
+const VERSION = env.SIM_CLAUDE_VERSION ?? '2.1.306';
+/** The tools for Claude's own to-do list: TaskCreate / TaskUpdate since 2.1.2xx (seen in real runs of 2.1.306 and 2.1.317). */
+const TODOS = env.SIM_TODOS === 'todowrite' ? 'todowrite' : 'tasks';
+const PLAN_TOOLS = ['TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
+if (argv.includes('--version')) {
+  process.stdout.write(`${VERSION} (Claude Code)\n`);
+  process.exit(0);
+}
 const budget = argOf('--max-budget-usd') ? Number(argOf('--max-budget-usd')) : undefined;
 const resumeId = argOf('--resume');
 
@@ -157,7 +168,7 @@ function makeStage(state) {
     assistant([{ type: 'tool_use', id, name, input }], parent);
     await hook('PreToolUse', { tool_name: name, tool_input: input, tool_use_id: id, ...who });
     let finalInput = input;
-    if (!['Read', 'Glob', 'Grep', 'TodoWrite', 'Agent', 'Task'].includes(name)) {
+    if (!['Read', 'Glob', 'Grep', 'Agent', 'Task', ...PLAN_TOOLS].includes(name)) {
       const r = await request({ subtype: 'can_use_tool', tool_name: name, input, tool_use_id: id, ...(opts.agent ? { agent_id: opts.agent.id } : {}) });
       const verdict = r.response ?? {};
       if (verdict.behavior !== 'allow') {
@@ -174,12 +185,12 @@ function makeStage(state) {
     } catch (err) {
       res = { text: String(err?.message ?? err), error: true };
     }
-    charge();
+    charge(PLAN_TOOLS.includes(name) ? 0.2 : 1); // ticking a to-do off is a short call
     if (res.error) {
       await hook('PostToolUseFailure', { tool_name: name, tool_input: finalInput, tool_use_id: id, error: res.text, ...who });
       userResult(id, res.text, true, parent);
     } else {
-      await hook('PostToolUse', { tool_name: name, tool_input: finalInput, tool_response: res.text, tool_use_id: id, ...who });
+      await hook('PostToolUse', { tool_name: name, tool_input: finalInput, tool_response: res.response ?? res.text, tool_use_id: id, ...who });
       userResult(id, res.text, false, parent);
     }
     return { ...res, input: finalInput };
@@ -234,9 +245,36 @@ function makeStage(state) {
     return options.some((o) => o.label === answer) ? answer : null;
   };
 
-  const todo = (items, current) => tool('TodoWrite', {
-    todos: items.map((content, i) => ({ content, activeForm: content, status: i < current ? 'completed' : i === current ? 'in_progress' : 'pending' })),
-  }, { effect: () => ({ text: 'Todos have been modified successfully.' }) });
+  /**
+   * Keep the to-do list at "items before current are done, current is under way". Real Claude Code makes each
+   * item with TaskCreate (numbered 1, 2, 3...) and moves them along with TaskUpdate; SIM_TODOS=todowrite plays
+   * the older TodoWrite, which rewrites the whole list each time.
+   */
+  let tasks = null;
+  const todo = async (items, current) => {
+    const want = (i) => (i < current ? 'completed' : i === current ? 'in_progress' : 'pending');
+    if (TODOS === 'todowrite') {
+      return tool('TodoWrite', { todos: items.map((content, i) => ({ content, activeForm: content, status: want(i) })) },
+        { effect: () => ({ text: 'Todos have been modified successfully.' }) });
+    }
+    if (!tasks) {
+      tasks = [];
+      for (const [i, subject] of items.entries()) {
+        const id = String(i + 1);
+        await tool('TaskCreate', { subject, description: subject, activeForm: subject }, { slow: 0.3, effect: () => (
+          { text: `Task #${id} created successfully: ${subject}`, response: { task: { id, subject } } }) });
+        tasks.push({ id, status: 'pending' });
+      }
+    }
+    for (const [i, t] of tasks.entries()) {
+      if (t.status === want(i)) continue;
+      const from = t.status;
+      t.status = want(i);
+      await tool('TaskUpdate', { taskId: t.id, status: t.status }, { slow: 0.3, effect: () => (
+        { text: `Updated task #${t.id} status`, response: { success: true, taskId: t.id, updatedFields: ['status'], statusChange: { from, to: t.status } } }) });
+    }
+    return undefined;
+  };
 
   const say = async (text) => { assistant([{ type: 'text', text }]); await pause(0.5); };
   const think = async (steps = 1) => {
@@ -262,8 +300,10 @@ async function run(prompt) {
   state.play = play.name;
   saveState(state);
   out({
-    type: 'system', subtype: 'init', session_id: state.session, cwd: process.cwd(), model: 'sim', permissionMode: 'default',
-    tools: ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite'], uuid: nextId('u'),
+    type: 'system', subtype: 'init', session_id: state.session, cwd: process.cwd(), model: 'sim', permissionMode: 'default', claude_code_version: VERSION,
+    // As a real init lists them: the Agent tool under its old name Task, and the to-do tools of this version.
+    tools: ['Task', 'AskUserQuestion', 'Bash', 'Edit', 'Glob', 'Grep', 'Read', 'WebFetch', 'WebSearch', 'Write',
+      ...(TODOS === 'todowrite' ? ['TodoWrite'] : ['TaskCreate', 'TaskGet', 'TaskList', 'TaskUpdate'])], uuid: nextId('u'),
   });
   const stage = makeStage(state);
   try {

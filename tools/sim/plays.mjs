@@ -2,7 +2,7 @@
 // the app sends, in the language the prompt asks for. Every play writes real files, so the result card,
 // the works shelf and "change it again" all have something to work with.
 
-import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -247,10 +247,16 @@ export const plays = {
       await researcher(s, t, lang === 'zh' ? '记账页面通常有哪些部分' : 'What expense pages usually have');
       await twist(s, t, scenario);
       await s.step(() => s.write('draft-1.html', '<!-- draft 1: stacked -->\n'));
-      await s.step(() => s.write('draft-2.html', '<!-- draft 2: cards -->\n'));
+      // Real Claude Code often writes a file from the shell with a here-document and lists the folder after it.
+      await s.step(() => s.tool('Bash', { command: "cat > draft-2.html <<'EOF'\n<!-- draft 2: cards -->\nEOF\nls", description: 'Write the second draft' }, { effect: () => {
+        writeFileSync(join(s.cwd, 'draft-2.html'), '<!-- draft 2: cards -->\n');
+        return { text: readdirSync(s.cwd).join('\n') };
+      } }));
       await takeNotes(s, t);
       await s.step(() => s.write('index.html', pageHtml(t, lang === 'zh' ? '记账小页面' : 'Expense tracker', lang, s.state.notes).replace(' data-ledger-version="1"', '')));
-      const check = () => s.tool('Bash', { command: 'node check.js', description: 'check' }, { effect: () => {
+      // As real runs do: the check on its own, then again with its output trimmed (a pipe, so the exit code is tail's).
+      let checks = 0;
+      const check = () => s.tool('Bash', { command: checks++ ? 'node check.js 2>&1 | tail -30' : 'node check.js', description: 'Run the acceptance check' }, { effect: () => {
         try {
           return { text: execFileSync(process.execPath, ['check.js'], { cwd: s.cwd, encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } }) };
         } catch (err) {

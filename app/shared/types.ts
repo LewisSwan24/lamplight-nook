@@ -31,9 +31,22 @@ export type KeySource = 'stored' | 'env' | 'subscription' | null;
  */
 export type EnvStatus = {
   hasApiKey: boolean; hasClaude: boolean; debug: boolean; keySource: KeySource; keyHint?: string;
+  /**
+   * The installed Claude Code's version, and how it compares with the one the shop was tried with
+   * (app/main/claude-version.ts): `old` is worth an update, anything else is fine to use.
+   */
+  claudeVersion?: string; claudeCompat?: 'ok' | 'old' | 'newer' | 'unknown'; claudeTested?: string;
+  /** The Microsoft Store build: the app does not run the remote installer itself, it only shows the steps. */
+  store?: boolean;
   /** The official install command for this OS, shown when Claude Code is missing. */
   installCommand: string; platform: string;
 };
+
+/** What a letter to us is about: a problem with the app, or something the staff (the AI) made. */
+export type Letter = { about: 'problem' | 'content'; diagnostics?: boolean; title?: string };
+
+/** "Write to us": whether the mail program opened, the diagnostics file exported for it, or that the user cancelled the save. */
+export type WriteResult = { opened: boolean; file?: string; cancelled?: boolean };
 
 /** Saving a pasted key: `verified` is false when Anthropic could not be reached to check it. */
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
@@ -77,6 +90,11 @@ export interface LamplightApi {
   clearApiKey(): Promise<void>;
   /** Save a diagnostics zip where the user chooses; resolves with its path, or null if cancelled. */
   exportDiagnostics(): Promise<string | null>;
+  /**
+   * Open the user's mail program with a letter to us. `diagnostics` exports the zip first; `about: 'content'`
+   * reports something the staff (the AI) made, naming the commission.
+   */
+  writeToUs(letter: Letter): Promise<WriteResult>;
   /** Put the Claude Code install command on the clipboard. */
   copyInstallCommand(): Promise<void>;
   /** Run the official Claude Code installer; true once Claude Code can be found. */
@@ -220,6 +238,7 @@ export const IPC = {
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',
+  writeToUs: 'app:write-to-us',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',

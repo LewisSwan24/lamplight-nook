@@ -1,4 +1,5 @@
 import { fill, strings } from '../../shared/i18n';
+import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
 import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
@@ -11,6 +12,8 @@ import { FURNISH_CHOICES, FURNISH_PARTS, SWATCHES, type Furnishing } from '../..
 import { currentScene, type SceneId } from '../../shared/scenes';
 
 const S = strings.ui.setup;
+/** Where people write to; the same address as on the website and the store page. */
+const SUPPORT_EMAIL = SUPPORT;
 const OK = '\u2713';
 const MISSING = '\u25CB';
 
@@ -60,8 +63,11 @@ function keyRow(api: LamplightApi, e: EnvStatus, changed: (said?: string) => voi
   return row;
 }
 
-/** Claude Code is missing: three steps with the official install command and a copy button. */
-function claudeSteps(api: LamplightApi, e: EnvStatus): HTMLElement {
+/**
+ * Claude Code is missing (or too old): three steps with the official install command and a copy button.
+ * The same official installer updates an old copy, so `update` only changes the wording.
+ */
+function claudeSteps(api: LamplightApi, e: EnvStatus, update = false): HTMLElement {
   const copy = el('button.sticker', { type: 'button' }, S.claudeCopy) as HTMLButtonElement;
   copy.addEventListener('click', async () => {
     await api.copyInstallCommand();
@@ -75,16 +81,21 @@ function claudeSteps(api: LamplightApi, e: EnvStatus): HTMLElement {
       el('li', {}, S.claudeStep2, el('div.install-line', {}, el('code', {}, e.installCommand), copy)),
       el('li', {}, S.claudeStep3, ' ', el('span.watching', {}, S.claudeWatching))),
     el('button.link', { type: 'button', onclick: () => api.openLink('claudeSetup') }, S.claudeHow)) as HTMLDetailsElement;
+  // The Store build never runs the installer itself: the steps are the way, opened.
+  if (e.store) {
+    manual.open = true;
+    return el('div.claude-install', {}, el('div.hint', {}, update ? S.claudeStoreUpdate : S.claudeStoreHint), manual);
+  }
   // The easy way first: the app runs the official installer; the card turns green when it lands.
   const status = el('div.hint.install-status', { role: 'status' }, S.claudeInstallHint);
-  const install = el('button.sticker', { type: 'button' }, S.claudeInstall) as HTMLButtonElement;
+  const install = el('button.sticker', { type: 'button' }, update ? S.claudeUpdate : S.claudeInstall) as HTMLButtonElement;
   install.addEventListener('click', async () => {
     install.disabled = true;
-    status.textContent = S.claudeInstalling;
+    status.textContent = update ? S.claudeUpdating : S.claudeInstalling;
     const ok = await api.installClaude();
     if (ok) return;
     install.disabled = false;
-    status.textContent = S.claudeInstallFailed;
+    status.textContent = update ? S.claudeUpdateFailed : S.claudeInstallFailed;
     manual.open = true;
   });
   return el('div.claude-install', {}, el('div.install-row', {}, install, status), manual);
@@ -101,24 +112,30 @@ function envRows(api: LamplightApi, env: EnvStatus, onChange?: (e: EnvStatus) =>
   const box = el('div.env-rows');
   let watch: ReturnType<typeof setInterval> | undefined;
   const render = (e: EnvStatus, said?: string) => {
+    const old = e.hasClaude && e.claudeCompat === 'old';
+    const fine = e.hasClaude && !old;
     box.replaceChildren(...[
-      el(`div.env-row.${e.hasClaude ? 'ok' : 'missing'}`, {},
-        el('span.mark', {}, e.hasClaude ? OK : MISSING),
-        el('div', {}, e.hasClaude ? S.claudeOk : S.claudeMissing,
-          e.hasClaude ? null : claudeSteps(api, e))),
+      el(`div.env-row.${fine ? 'ok' : 'missing'}`, {},
+        el('span.mark', {}, fine ? OK : MISSING),
+        el('div', {},
+          old ? fill(S.claudeOld, { version: e.claudeVersion ?? '?', tested: e.claudeTested ?? '?' }) : e.hasClaude ? S.claudeOk : S.claudeMissing,
+          fine && e.claudeVersion ? el('div.hint.claude-version', {}, fill(S.claudeVersion, { version: e.claudeVersion })) : null,
+          fine ? null : claudeSteps(api, e, old))),
       keyRow(api, e, async (next) => render(await api.envStatus(), next)),
       said ? el('div.hint.key-said', {}, said) : null,
     ].filter((n): n is HTMLElement => n !== null));
     onChange?.(e);
-    if (e.hasClaude && watch) {
+    // While Claude Code is missing or too old, keep looking: the row turns green once it is installed or updated.
+    const needed = (x: EnvStatus) => !x.hasClaude || x.claudeCompat === 'old';
+    if (!needed(e) && watch) {
       clearInterval(watch);
       watch = undefined;
       sfx('success');
-    } else if (!e.hasClaude && !watch) {
+    } else if (needed(e) && !watch) {
       watch = setInterval(async () => {
         if (!box.isConnected) { clearInterval(watch); watch = undefined; return; }
         const next = await api.envStatus();
-        if (next.hasClaude) render(next);
+        if (!needed(next)) render(next);
       }, WATCH_MS);
     }
   };
@@ -197,16 +214,24 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
  * Shown instead of the commission form when something needed to start is missing. With `trial`, it also
  * offers a replay of a recorded demo, so people can see the shop at work before setting anything up.
  */
-export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => void, start?: () => void) {
+export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => void, start?: () => void, useOld?: () => void) {
   const close = el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7');
   const card = el('div.card.paper.notice-card');
   // Once both are there, the card says so and leads straight to the commission slip.
   const ready = () => card.replaceChildren(close,
     withPortrait('adeng', 'happy', el('div.card-title', {}, S.readyTitle), el('div', {}, S.readyText)),
     el('div.actions', {}, el('button.default', { type: 'button', onclick: () => { closePanel(); start?.(); } }, S.readyStart)));
+  // Only an old Claude Code in the way: it may still work, so going ahead is the user's call.
+  const keepOld = el('div.actions.keep-old', {}, el('button', { type: 'button', onclick: () => { closePanel(); useOld?.(); } }, S.claudeKeepOld));
+  const onlyOld = (e: EnvStatus) => e.hasClaude && e.hasApiKey && e.claudeCompat === 'old';
+  keepOld.hidden = !useOld || !onlyOld(env);
   card.append(close,
-    withPortrait('adeng', 'unsure', el('div.card-title', {}, S.notReadyTitle),
-      envRows(api, env, (e) => { if (e.hasClaude && e.hasApiKey && start) setTimeout(ready, 1200); })),
+    withPortrait('adeng', 'unsure', el('div.card-title', {}, onlyOld(env) ? S.oldTitle : S.notReadyTitle),
+      envRows(api, env, (e) => {
+        keepOld.hidden = !useOld || !onlyOld(e);
+        if (e.hasClaude && e.hasApiKey && e.claudeCompat !== 'old' && start) setTimeout(ready, 1200);
+      })),
+    keepOld,
     ...(trial ? [el('div.trial-offer', {}, el('span', {}, S.trialOffer),
       el('button.sticker', { type: 'button', onclick: () => { closePanel(); trial(); } }, S.trialButton))] : []));
   replaceOpen(card);
@@ -312,8 +337,8 @@ function languageRow(api: LamplightApi, settings: Settings, changed: (s: Setting
 }
 
 /** Export a diagnostics zip; says where it went. */
-function troubleRow(api: LamplightApi): HTMLElement {
-  const said = el('div.hint');
+function troubleRow(api: LamplightApi, version: string, platform: string): HTMLElement {
+  const said = el('div.hint', { role: 'status' });
   const button = el('button.sticker', { type: 'button' }, S.troubleExport) as HTMLButtonElement;
   button.addEventListener('click', async () => {
     button.disabled = true;
@@ -321,7 +346,34 @@ function troubleRow(api: LamplightApi): HTMLElement {
     button.disabled = false;
     said.textContent = path ? S.troubleDone : '';
   });
-  return el('div', {}, el('div.hint', {}, S.troubleText), el('div.actions', {}, button), said);
+  return el('div', {}, el('div.hint', {}, S.troubleText), el('div.actions', {}, button), said, writeRow(api, version, platform));
+}
+
+/**
+ * "Write to us": says exactly what the user's mail program will open with, then opens it. The app sends
+ * nothing; attaching the diagnostics file and pressing send are the user's own steps.
+ */
+function writeRow(api: LamplightApi, version: string, platform: string): HTMLElement {
+  const os = platform === 'win32' ? 'Windows' : platform === 'darwin' ? 'macOS' : platform === 'linux' ? 'Linux' : platform;
+  const footer = fill(S.mailFooter, { version, os, lang: strings.app.languageName });
+  const withDiag = el('input', { type: 'checkbox' }) as HTMLInputElement;
+  const said = el('div.hint.write-said', { role: 'status' });
+  const button = el('button.sticker.write-us', { type: 'button' }, S.writeButton) as HTMLButtonElement;
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    const r = await api.writeToUs({ about: 'problem', diagnostics: withDiag.checked });
+    button.disabled = false;
+    said.textContent = r.cancelled ? '' : r.opened ? (r.file ? S.writeOpenedDiag : S.writeOpened) : fill(S.writeFailed, { email: SUPPORT_EMAIL });
+  });
+  return el('div.write-us-row', {},
+    el('div.hint', {}, S.writeText),
+    el('ul.write-lines', {},
+      el('li', {}, fill(S.writeTo, { email: SUPPORT_EMAIL })),
+      el('li', {}, fill(S.writeSubject, { subject: fill(S.mailSubject, { version }) })),
+      el('li', {}, fill(S.writeBody, { footer }))),
+    el('div.access-rows.write-diag', {}, el('label.toggle', {}, withDiag, S.writeDiag)),
+    el('div.actions', {}, button),
+    said);
 }
 
 export const SETTINGS_TABS = ['basics', 'furnish', 'sight', 'work', 'about'] as const;
@@ -388,7 +440,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
         el('div.hint', {}, strings.ui.notebook.sectionText),
         el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
-      el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api)),
+      el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api, version, env.platform)),
     ],
     about: [
       el('section', {}, el('h4', {}, S.legalLabel),

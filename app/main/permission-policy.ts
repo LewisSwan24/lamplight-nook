@@ -26,7 +26,8 @@ type Question = { question: string; header?: string; options: { label: string; d
 function deletedFiles(command: string): string[] {
   const m = command.match(/(?:^|[\s;&|])(?:rm|del|erase|Remove-Item)\s+(.+)$/i);
   if (!m) return [];
-  return m[1].split(/\s+/).filter((a) => a && !a.startsWith('-'));
+  // Only this command's own arguments: stop at the next ; && || | or new line ("rm a b && ls" deletes a and b).
+  return m[1].split(/[;&|\n<>]/)[0].split(/\s+/).map((a) => a.replace(/^(['"])(.*)\1$/, '$2')).filter((a) => a && !a.startsWith('-'));
 }
 
 /** A specific, plain description of the action, used as the confirm button label. Never just "OK". */
