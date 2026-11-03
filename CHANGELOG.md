@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.9.1 (2026-11-03)
+
+A safety fix.
 
 - **`node -e` no longer runs unasked.** `node` was on the list of safe commands so that `node check.js` runs,
   which also let `node -e "..."`, `node -p`, `node -r` and a script piped or given through a here-document run
