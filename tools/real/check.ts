@@ -5,7 +5,9 @@
  *
  *   $env:LAMPLIGHT_TEST_KEY = "sk-ant-..."    # PowerShell; LAMPLIGHT_TEST_KEY=... in a shell
  *   npx tsx tools/real/check.ts               # add --lang en for English, --sim to try it with the stand-in,
- *                                             # --only page,demo to run some of the three
+ *                                             # --only page,demo to run some of the three,
+ *                                             # --budget 1 to start no commission that could pass $1 in all,
+ *                                             # --out <folder> to write there (compare with tools/real/compare.mjs)
  *
  * The key is read from LAMPLIGHT_TEST_KEY only, never ANTHROPIC_API_KEY, so a key that happens to be set for
  * something else (a Claude session the shell runs in, say) is never used or billed by this check.
@@ -29,6 +31,12 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ONLY = args.includes('--only') ? new Set(args[args.indexOf('--only') + 1].split(',')) : null;
 const PER_RUN_USD = 0.4;
 const STOP_AT_USD = 1.2;
+/** With --budget, a commission starts only if the total stays under it even when that one spends its whole cap. */
+const BUDGET_USD = args.includes('--budget') ? Number(args[args.indexOf('--budget') + 1]) : null;
+if (BUDGET_USD !== null && !(BUDGET_USD > 0)) {
+  console.error('--budget takes a number of dollars above 0. Nothing was run.');
+  process.exit(1);
+}
 
 const { setLocale } = await import('../../app/shared/i18n');
 setLocale(LANG);
@@ -65,7 +73,7 @@ process.env.LAMPLIGHT_CLAUDE_PATH = claudePath;
 const version = await claudeVersion(claudePath);
 
 const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
-const OUT = resolve(`lamplight-real-check-${stamp}${SIM ? '-sim' : ''}`);
+const OUT = args.includes('--out') ? resolve(args[args.indexOf('--out') + 1]) : resolve(`lamplight-real-check-${stamp}${SIM ? '-sim' : ''}`);
 mkdirSync(OUT, { recursive: true });
 
 const zh = LANG === 'zh-CN';
@@ -96,6 +104,8 @@ const COMMISSIONS: { name: string; form: Form; prepare?: (dir: string) => void; 
 
 type Outcome = {
   name: string; ok: boolean; error?: string; costUsd?: number; seconds: number;
+  /** The tools Claude Code offered (init) and the ones it used, to spot new or renamed tools. */
+  initTools: string[]; toolsUsed: string[];
   claudeCodeVersion?: string; kinds: Record<string, number>; checks: Record<string, boolean>; decisions: string[];
 };
 const outcomes: Outcome[] = [];
@@ -104,7 +114,7 @@ let total = 0;
 
 for (const c of COMMISSIONS) {
   if (ONLY && !ONLY.has(c.name)) continue;
-  if (total >= STOP_AT_USD) {
+  if (BUDGET_USD !== null ? total + PER_RUN_USD > BUDGET_USD + 1e-9 : total >= STOP_AT_USD) {
     console.log(`Stopping before ${c.name}: $${total.toFixed(2)} spent so far.`);
     break;
   }
@@ -137,6 +147,10 @@ for (const c of COMMISSIONS) {
     shapes[kind] = [...new Set([...(shapes[kind] ?? []), ...Object.keys(p)])].sort();
   }
   const events = normalizeAll(raw);
+  const init = raw.find((e) => e.source === 'message' && (e.payload as Record<string, unknown>)?.subtype === 'init');
+  const initTools = (((init?.payload as { tools?: string[] } | undefined)?.tools) ?? []).filter((t) => !t.startsWith('mcp__')).sort();
+  const toolsUsed = [...new Set(raw.filter((e) => e.source === 'hook' && e.name === 'PreToolUse')
+    .map((e) => String((e.payload as Record<string, unknown>).tool_name)))].sort();
   const kinds: Record<string, number> = {};
   for (const e of events) kinds[`${e.kind}${e.agent !== 'main' ? `@${e.agent}` : ''}`] = (kinds[`${e.kind}${e.agent !== 'main' ? `@${e.agent}` : ''}`] ?? 0) + 1;
   const has = (k: string) => events.some((e) => e.kind === k);
@@ -147,7 +161,9 @@ for (const c of COMMISSIONS) {
     'a subagent went out and came back': has('subagent_start') && has('subagent_stop'),
     // Helpers sent off in the background would end a turn early and report done twice.
     'one result, at the end': events.filter((e) => e.kind === 'done').length === 1 && events.at(-1)?.kind === 'done',
-    'no ordinary step needed a serious card': !decisions.some((d) => d.startsWith('serious:') && !/(rm|del|delete|删除)/i.test(d)),
+    // A command line the shop could not read at all, so it asked; python or a delete asking is meant to happen.
+    'every command line could be read': !raw.some((e) => e.source === 'permission'
+      && (e.payload as Record<string, unknown>)?.reason === strings.risk.complexCommand),
   };
   // The demo states its plan in words; the other two are free to keep a to-do list, and the page usually does.
   if (c.name !== 'demo') {
@@ -166,7 +182,7 @@ for (const c of COMMISSIONS) {
   }
   outcomes.push({
     name: c.name, ok: result.ok, error: result.ok ? undefined : `${result.error ?? ''} ${result.detail ?? ''}`.trim(),
-    costUsd: result.costUsd, seconds: Math.round((Date.now() - t0) / 1000), claudeCodeVersion: initVersion, kinds, checks, decisions,
+    costUsd: result.costUsd, seconds: Math.round((Date.now() - t0) / 1000), initTools, toolsUsed, claudeCodeVersion: initVersion, kinds, checks, decisions,
   });
   console.log(`  ${result.ok ? 'done' : 'stopped'}, about $${(result.costUsd ?? 0).toFixed(2)}`);
 }
