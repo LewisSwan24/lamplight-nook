@@ -34,6 +34,7 @@ export async function display() {
   if (!xvfb) {
     const n = 90 + Math.floor(Math.random() * 9);
     xvfb = { proc: spawn('Xvfb', [`:${n}`, '-screen', '0', '2560x1600x24', '-nolisten', 'tcp'], { stdio: 'ignore' }), display: `:${n}` };
+    xvfb.proc.unref(); // the display must not keep the script running
     process.on('exit', () => xvfb?.proc.kill());
     await sleep(800);
   }
@@ -82,6 +83,16 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
   const app = await electron.launch({ executablePath: ELECTRON, args: [ROOT, '--no-sandbox'], env, cwd: ROOT });
   const page = await app.firstWindow();
+  // A development build always has the debug panel; keep it out of pictures and recordings unless asked for.
+  if (!debug) {
+    const hide = () => {
+      const style = document.createElement('style');
+      style.textContent = '#debug { display: none !important; }';
+      (document.head ?? document.documentElement).append(style);
+    };
+    await page.addInitScript(hide);
+    await page.evaluate(hide).catch(() => {});
+  }
   const shop = new Shop(app, page, lang, home);
   await shop.resize(size);
   await page.waitForSelector('#game canvas', { timeout: 30_000 });
@@ -112,7 +123,12 @@ export class Shop {
   /** Screenshot of the window, without the debug panel. */
   async shot(path) {
     mkdirSync(dirname(path), { recursive: true });
-    await this.page.evaluate(() => document.body.classList.remove('debug'));
+    await this.page.evaluate(() => {
+      document.body.classList.remove('debug');
+      // A toolbar button or hotspot pressed by the script would show its focus ring.
+      const a = document.activeElement;
+      if (a instanceof HTMLElement && a.matches('.tool-btn, .hotspot')) a.blur();
+    });
     await this.page.screenshot({ path });
     return path;
   }

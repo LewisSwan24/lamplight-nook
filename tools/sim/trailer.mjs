@@ -22,12 +22,12 @@ const MUSIC = join(ROOT, 'assets', 'audio', 'music', '05-sunny-cafe-quiet.ogg');
 function cut(m) {
   return [
     [m.start, m.submit + 0.8, 1], // the shop, the slip, handing it in
-    [m.submit + 0.8, m.question - 0.3, (m.question - m.submit) / 9], // the work, fast: errands, blackboard, the failed check
+    [m.submit + 0.8, m.question - 0.3, (m.question - m.submit) / 8], // the work, fast: errands, blackboard, the failed check
     [m.question - 0.3, m.question + 2.6, 1], // Wick asks about the colour
-    [m.question + 2.6, m.result - 0.3, Math.max(1, (m.result - m.question - 2.9) / 6)], // the serious card, the review
+    [m.question + 2.6, m.result - 0.3, Math.max(1, (m.result - m.question - 2.9) / 4.5)], // the serious card, the review
     [m.result - 0.3, m.result + 3.2, 1], // the finished work and what it cost
     [m.shelf, m.shelf + 2.6, 1], // the works shelf
-    [m.garden, m.garden + 3.6, 1], // the back garden
+    [m.garden, m.garden + 3.2, 1], // the back garden
   ];
 }
 

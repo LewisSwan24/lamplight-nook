@@ -10,7 +10,7 @@
 // Candidates for the busy blackboard are kept as <out>/<lang>/candidates/02-board-*.png.
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, cpSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
 
@@ -39,7 +39,7 @@ const W = {
   },
   en: {
     page: 'Make me a small web page for a family reunion sign-in.',
-    pageDetails: 'Names and how many are coming with them, and a running total.',
+    pageDetails: 'Names, how many are coming, and a total.',
     album: 'Make a little album of these photos: our autumn trip.',
     photos: ['ginkgo-avenue.png', 'lakeside-picnic.png', 'walk-home.png'],
     grow: [
@@ -135,10 +135,24 @@ async function shots(lang, grown) {
         const r = await shop.workUntilDone({ onTick: async (ms) => {
           if (ms > 4000 + n * 2500 && n < 14) {
             n++;
-            await shop.shot(join(cand, `02-board-${String(n).padStart(2, '0')}.png`));
+            const tag = String(n).padStart(2, '0');
+            await shop.shot(join(cand, `02-board-${tag}.png`));
+            // The whole plan, as the blackboard's card shows it, while the work goes on.
+            if (await shop.page.locator('button.hotspot[aria-label="' + shop.L.ui.access.hotspotBoard + '"]').count()) {
+              await shop.hotspot(shop.L.ui.access.hotspotBoard).catch(() => {});
+              await sleep(500);
+              if (await shop.page.locator('.plan-card').isVisible()) {
+                await shop.shot(join(cand, `02-plan-${tag}.png`));
+                // Close this card only: by now the result card may have taken its place.
+                await shop.page.locator('.plan-card button.close').click({ timeout: 1000 }).catch(() => {});
+              }
+            }
           }
         } });
         if (!r.ok) throw new Error('the page commission did not finish');
+        // The store picture: the plan card halfway through, some items done and one under way.
+        const plans = readdirSync(cand).filter((f) => f.startsWith('02-plan-')).sort();
+        if (plans.length) copyFileSync(join(cand, plans[Math.floor(plans.length / 2)]), join(out, '02-board.png'));
         await sleep(2500);
         await shop.shot(join(out, '05-result.png'));
         await closeCards(shop);
@@ -198,11 +212,10 @@ async function shots(lang, grown) {
       await shop.order({ template: 'research', want: W[lang].grow[6][1] });
       await shop.submit();
       await sleep(9000);
-      await shop.shot(join(cand, '10-mini-back.png'));
       const mini = await shop.away();
       if (!mini) throw new Error('no corner window');
       await mini.screenshot({ path: join(cand, '10-mini-window.png') });
-      composeMini(join(cand, '10-mini-back.png'), join(cand, '10-mini-window.png'), join(out, '10-mini.png'));
+      composeMini(join(cand, '10-mini-window.png'), join(out, '10-mini.png'));
     } finally { await shop.close(); }
   }
 
@@ -227,7 +240,8 @@ async function shots(lang, grown) {
       if (pick('study')) {
         await shop.openSettings('basics');
         await shop.page.locator('.settings .scene-picker button.scene-choice').last().click();
-        await sleep(9000);
+        await shop.page.locator('.settings button.sticker', { hasText: shop.L.ui.scene.move }).click();
+        await sleep(10000);
         await closeCards(shop);
         await sleep(3000);
         await shop.shot(join(out, '09-study.png'));
@@ -236,10 +250,9 @@ async function shots(lang, grown) {
   }
 }
 
-/** The corner window as it sits on a desktop: the shop dimmed behind, the small window bottom right. */
-function composeMini(back, win, to) {
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', back, '-i', win, '-filter_complex',
-    '[0]eq=brightness=-0.18:saturation=0.6,boxblur=6[b];[1]scale=iw*2:ih*2:flags=neighbor[m];[b][m]overlay=W-w-48:H-h-48', to]);
+/** The corner window as it sits on a desktop (tools/sim/desktop.py draws the desktop). */
+function composeMini(win, to) {
+  execFileSync('python3', [join(ROOT, 'tools', 'sim', 'desktop.py'), win, to]);
 }
 
 /** Website copies: 1280x720 JPEGs named <zh|en>-NN-name.jpg. */
@@ -253,10 +266,17 @@ function siteCopies(lang) {
   }
 }
 
+mkdirSync(OUT, { recursive: true });
 for (const lang of LANGS) {
-  console.log(`${lang}: growing a shop...`);
-  const grown = await grownShop(lang);
-  writeFileSync(join(OUT, `${lang}-home.txt`), grown.home);
+  // A shop grown by an earlier run is reused unless --fresh is given.
+  const saved = join(OUT, `${lang}-home.txt`);
+  let grown = !args.includes('--fresh') && existsSync(saved) && existsSync(readFileSync(saved, 'utf8').trim())
+    ? { home: readFileSync(saved, 'utf8').trim() } : null;
+  if (!grown) {
+    console.log(`${lang}: growing a shop...`);
+    grown = await grownShop(lang);
+    writeFileSync(saved, grown.home);
+  }
   console.log(`${lang}: taking pictures...`);
   await shots(lang, grown);
   siteCopies(lang);
