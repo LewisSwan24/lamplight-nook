@@ -22,7 +22,7 @@ function homeFrom(version: string, missing: string[] = []) {
   const data = join(home, 'data');
   mkdirSync(data);
   for (const f of readdirSync(join(FIXTURES, version))) {
-    writeFileSync(join(data, f), readFileSync(join(FIXTURES, version, f), 'utf8').split('{HOME}').join(home));
+    writeFileSync(join(data, f), readFileSync(join(FIXTURES, version, f), 'utf8').split('{HOME}').join(JSON.stringify(home).slice(1, -1)));
   }
   const memory = JSON.parse(readFileSync(join(data, 'memory.json'), 'utf8')) as Memory;
   for (const c of memory.commissions) {

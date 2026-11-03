@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { findClaude, installCommand, installerProcess } from '../app/main/claude-locator';
 
@@ -6,7 +6,7 @@ const home = join('/home', 'lewis');
 const nativeBin = join(home, '.local', 'bin', 'claude');
 const lookup = (found: string[], extra: Partial<Parameters<typeof findClaude>[0]> = {}) => ({
   platform: 'linux' as NodeJS.Platform,
-  env: { PATH: ['/usr/bin', '/opt/tools'].join(':') },
+  env: { PATH: ['/usr/bin', '/opt/tools'].join(delimiter) },
   home,
   exists: (p: string) => found.includes(p),
   sdkBinary: false,
@@ -23,7 +23,8 @@ describe('installed Claude Code', () => {
   });
 
   it('falls back to a claude binary on PATH', () => {
-    expect(findClaude(lookup(['/opt/tools/claude']))).toBe('/opt/tools/claude');
+    const onPath = join('/opt/tools', 'claude');
+    expect(findClaude(lookup([onPath]))).toBe(onPath);
   });
 
   it('honors an explicit path even when the SDK binary is present', () => {
