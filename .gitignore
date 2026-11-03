@@ -7,3 +7,5 @@ dist/
 smoke-shots/
 assets/vendor/
 __pycache__/
+sim-out/
+store-out/

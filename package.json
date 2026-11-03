@@ -15,7 +15,9 @@
     "smoke": "npm run build && electron scripts/smoke.cjs smoke-shots",
     "record": "tsx scripts/record.ts",
     "dist": "electron-vite build && node scripts/notices.mjs && electron-builder --win nsis --publish never",
-    "msix": "node scripts/msix.mjs"
+    "msix": "node scripts/msix.mjs",
+    "accept": "npm run build && node tools/sim/accept.mjs",
+    "store-shots": "npm run build && node tools/sim/store.mjs && node tools/sim/trailer.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
