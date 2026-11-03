@@ -18,7 +18,7 @@ and ready for the Microsoft Store.
   Claude Code may do; a run could otherwise say "done" while a helper was still out, then carry on. A helper sent
   off anyway is shown out until it reports back.
 - The English welcome said "hand it to Adeng"; it is Wick.
-- The Store listing text is in `store/listing.md`, including that the monthly Claude API credits of a Max or Team
+- The Store listing text is in `store/listing.md`, including that the monthly Claude API credits of a Max, Ultra or Team
   plan can be used with the shop.
 - The release run attaches the Store test package (`Lamplight-Nook-<version>-test.msix`) next to the installer,
   and uses the notes in `release-notes/<tag>.md` when there are some.

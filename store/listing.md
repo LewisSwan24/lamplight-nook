@@ -30,7 +30,7 @@ Text for Partner Center (Store listings, one per language). Keep both languages 
 
 - 电脑上装好 Claude Code（小灯屋会一步步带你装）。
 - 一把你自己的 Anthropic API Key，在应用里粘贴即可，加密保存在这台电脑上。费用按你自己的 Key 计费，小灯屋不另外收费。
-- 订阅了 Claude Max 或 Team 的话，方案每月附带的 Claude API 赠送额度也可以用在小灯屋：在 claude.ai 的账单设置里把额度关联到一个 Claude Console 组织，再用这个组织创建的 API Key 就行。
+- 订阅了 Claude Max、Ultra 或 Team 的话，方案每月附带的 Claude API 赠送额度也可以用在小灯屋：在 claude.ai 的账单设置里把额度关联到一个 Claude Console 组织，再用这个组织创建的 API Key 就行。
 
 ### 隐私
 
@@ -64,7 +64,7 @@ undone, such as deleting files, always waits for you, and the default is "not no
 
 - Claude Code installed on the computer (the shop walks you through it).
 - Your own Anthropic API key, pasted in the app and stored encrypted on this computer. Usage is billed to your key; Lamplight Nook charges nothing extra.
-- On Claude Max or Team? The monthly Claude API credits that come with your plan work in Lamplight Nook too: link them to a Claude Console organization in your claude.ai billing settings, then use an API key from that organization.
+- On Claude Max, Ultra or Team? The monthly Claude API credits that come with your plan work in Lamplight Nook too: link them to a Claude Console organization in your claude.ai billing settings, then use an API key from that organization.
 
 ### Privacy
 
