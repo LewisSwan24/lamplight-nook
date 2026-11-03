@@ -29,6 +29,8 @@ const SYSTEM_DIRS = ['C:\\Windows', 'C:\\Program Files', 'C:\\Program Files (x86
 
 // Read-only commands with no side effects (by command name).
 const SAFE_COMMANDS = new Set(['ls', 'dir', 'cat', 'type', 'head', 'tail', 'pwd', 'echo', 'wc', 'find', 'grep', 'node', 'npx', 'tree']);
+/** node options that run nothing but the script (or nothing at all): anything else may run code given on the spot. */
+const NODE_PLAIN = new Set(['-v', '--version', '-c', '--check', '--no-warnings', '--trace-warnings', '--enable-source-maps']);
 const INSTALL = /\b(npm|pnpm|yarn)\s+(i|install|add)\b|\bpip3?\s+install\b/;
 const DELETE = /(^|[\s;&|])(rm|rmdir|del|erase|rd|Remove-Item|mv|move|shred|truncate)(\s|$)/i;
 const NETWORK_SEND = /\bgit\s+push\b|\b(curl|wget|Invoke-WebRequest|iwr)\b.*(-X\s*(POST|PUT|PATCH|DELETE)|--data|-d\s|--upload|-T\s|-Method\s+(Post|Put))|\bscp\b|\brsync\b|\bftp\b/i;
@@ -198,12 +200,33 @@ function classifyBash(cmd: string, ctx: RiskContext): RiskVerdict {
     }
     if (!SAFE_COMMANDS.has(name)) return worse(verdict, { risk: 'serious', reason: fill(R.unknownCommand, { name }) });
     if (name === 'find' && args.some((a) => FIND_ACTION.test(a))) return worse(verdict, { risk: 'serious', reason: R.complexCommand });
+    const run = runVerdict(name, args);
+    if (run?.risk === 'serious') return worse(verdict, run);
+    if (run) verdict = worse(verdict, run);
     for (const arg of args) {
       if (arg.startsWith('-')) continue;
       verdict = worse(verdict, readVerdict(ctx, cwd, arg));
     }
   }
   return verdict.risk === 'safe' && wrote ? { risk: 'safe', reason: R.write } : verdict;
+}
+
+/**
+ * node and npx are on the safe list for "node check.js", but each can run anything: node -e / -p / -r / a script
+ * from standard input, and npx fetches and runs a package. Returns a verdict for those, or null for a plain
+ * script run (whose path is then checked like any other argument).
+ */
+function runVerdict(name: string, args: string[]): RiskVerdict | null {
+  if (name === 'npx') return { risk: 'ask', reason: R.npx };
+  if (name !== 'node') return null;
+  let version = false;
+  for (const a of args) {
+    if (!a.startsWith('-')) return null; // the script; what follows is its own arguments
+    if (!NODE_PLAIN.has(a)) return { risk: 'serious', reason: R.inlineCode };
+    if (a === '-v' || a === '--version') version = true;
+  }
+  // No script: node reads its program from standard input (node - <<'EOF', or a pipe), unless it only says its version.
+  return version ? null : { risk: 'serious', reason: R.inlineCode };
 }
 
 /** A path a command reads: blocked or outside the folder as for the Read tool, otherwise nothing to say. */
@@ -266,6 +289,8 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
     if (INSTALL.test(cmd)) return { risk: 'ask', reason: R.install };
     const name = cmd.split(/\s+/)[0];
     if (SAFE_COMMANDS.has(name)) {
+      const run = runVerdict(name, cmd.split(/\s+/).slice(1));
+      if (run) return run;
       for (const arg of cmd.split(/\s+/).slice(1)) {
         if (arg.startsWith('-')) continue;
         const v = pathVerdict(ctx, arg, false);

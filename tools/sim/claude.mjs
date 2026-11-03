@@ -169,6 +169,7 @@ function makeStage(state) {
     await hook('PreToolUse', { tool_name: name, tool_input: input, tool_use_id: id, ...who });
     let finalInput = input;
     if (!['Read', 'Glob', 'Grep', 'Agent', 'Task', ...PLAN_TOOLS].includes(name)) {
+      await hook('PermissionRequest', { tool_name: name, tool_input: input, permission_suggestions: [], ...who });
       const r = await request({ subtype: 'can_use_tool', tool_name: name, input, tool_use_id: id, ...(opts.agent ? { agent_id: opts.agent.id } : {}) });
       const verdict = r.response ?? {};
       if (verdict.behavior !== 'allow') {
@@ -221,13 +222,16 @@ function makeStage(state) {
     const input = { description, prompt, subagent_type: type };
     assistant([{ type: 'tool_use', id, name: 'Agent', input }]);
     await hook('PreToolUse', { tool_name: 'Agent', tool_input: input, tool_use_id: id });
-    out({ type: 'system', subtype: 'task_started', task_id: agentRef.id, tool_use_id: id, description, subagent_type: type, session_id: session, uuid: nextId('u') });
+    out({ type: 'system', subtype: 'task_started', task_id: agentRef.id, tool_use_id: id, description, subagent_type: type, is_backgrounded: false, task_type: 'local_agent', session_id: session, uuid: nextId('u') });
     await hook('SubagentStart', { agent_id: agentRef.id, agent_type: type });
     out({ type: 'user', parent_tool_use_id: id, session_id: session, uuid: nextId('u'), message: { role: 'user', content: [{ type: 'text', text: prompt }] } });
     await pause(1);
     await work({ parent: id, agent: agentRef });
+    out({ type: 'system', subtype: 'task_progress', task_id: agentRef.id, tool_use_id: id, description, subagent_type: type,
+      usage: { tool_uses: 1, duration_ms: 1000 }, last_tool_name: 'Read', session_id: session, uuid: nextId('u') });
     await pause(1);
-    await hook('SubagentStop', { agent_id: agentRef.id, agent_type: type });
+    await hook('SubagentStop', { agent_id: agentRef.id, agent_type: type, stop_hook_active: false, last_assistant_message: summary });
+    out({ type: 'system', subtype: 'task_updated', task_id: agentRef.id, patch: { status: 'completed', end_time: Date.now() }, session_id: session, uuid: nextId('u') });
     out({ type: 'system', subtype: 'task_notification', task_id: agentRef.id, tool_use_id: id, status: 'completed', summary, session_id: session, uuid: nextId('u') });
     await hook('PostToolUse', { tool_name: 'Agent', tool_input: input, tool_response: summary, tool_use_id: id });
     userResult(id, [{ type: 'text', text: summary }], false);
@@ -285,7 +289,11 @@ function makeStage(state) {
   return {
     cwd, state, step, tool, write, edit, read, agent, ask, todo, say, think, notes, pause, charge,
     get spent() { return spent; },
-    finish: (text) => { assistant([{ type: 'text', text }]); result('success', { is_error: false, result: text }); },
+    finish: async (text) => {
+      assistant([{ type: 'text', text }]);
+      await hook('Stop', { stop_hook_active: false, last_assistant_message: text, background_tasks: [] });
+      result('success', { is_error: false, result: text });
+    },
     fail: (text) => { saveState(state); result('error_during_execution', { is_error: true, errors: [text] }); throw new Stopped(); },
   };
 }

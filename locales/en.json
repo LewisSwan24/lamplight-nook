@@ -103,6 +103,8 @@
     "delete": "deletes or moves files, and that can't be undone",
     "networkSend": "sends data out",
     "complexCommand": "this command is complicated and I can't be sure what it does",
+    "inlineCode": "runs code written on the spot; I can't tell what it will do",
+    "npx": "downloads and runs a package",
     "install": "installs packages",
     "readOutside": "reads something outside the commission folder",
     "safeCommand": "runs a read-only command in the commission folder",

@@ -282,7 +282,7 @@ export const plays = {
       });
       await s.step(() => s.agent('reviewer', t.reviewDesc, t.reviewDemo, async (a) => { await s.read('index.html', a); }, t.reviewSummary));
       await takeNotes(s, t);
-      s.finish(t.demoDone(s.state.vars.color));
+      await s.finish(t.demoDone(s.state.vars.color));
     },
   },
 
@@ -314,7 +314,7 @@ export const plays = {
       await takeNotes(s, t);
       if (s.state.notes.length) await s.step(() => s.write('index.html', pageHtml(t, w.slice(0, 30), s.state.lang, s.state.notes)));
       await p.end();
-      s.finish(t.pageDone(w));
+      await s.finish(t.pageDone(w));
     },
   },
 
@@ -338,7 +338,7 @@ export const plays = {
       await p.next();
       await reviewer(s, t, s.state.vars.out);
       await p.end();
-      s.finish(t.researchDone(w));
+      await s.finish(t.researchDone(w));
     },
   },
 
@@ -359,7 +359,7 @@ export const plays = {
       await p.next();
       await reviewer(s, t, s.state.vars.out);
       await p.end();
-      s.finish(t.editDone);
+      await s.finish(t.editDone);
     },
   },
 
@@ -379,7 +379,7 @@ export const plays = {
       await p.next();
       await reviewer(s, t, s.state.vars.out);
       await p.end();
-      s.finish(t.tidyDone);
+      await s.finish(t.tidyDone);
     },
   },
 
@@ -409,7 +409,7 @@ export const plays = {
       await p.next();
       await reviewer(s, t, 'index.html');
       await p.end();
-      s.finish(t.albumDone(photos.length));
+      await s.finish(t.albumDone(photos.length));
     },
   },
 
@@ -438,7 +438,7 @@ export const plays = {
       await p.next();
       if (main) await reviewer(s, t, main);
       await p.end();
-      s.finish(t.reviseDone(ask));
+      await s.finish(t.reviseDone(ask));
     },
   },
 
@@ -446,7 +446,7 @@ export const plays = {
   carryOn: {
     name: 'carryOn',
     async run(s) {
-      s.finish(T[s.state.lang].reviseDone(''));
+      await s.finish(T[s.state.lang].reviseDone(''));
     },
   },
 };
@@ -473,7 +473,7 @@ function simpleText(name, body, done) {
       await p.next();
       await reviewer(s, t, s.state.vars.out);
       await p.end();
-      s.finish(done(t));
+      await s.finish(done(t));
     },
   };
 }
