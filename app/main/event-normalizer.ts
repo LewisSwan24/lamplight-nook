@@ -1,4 +1,5 @@
 import { fill, pattern, strings } from '../shared/i18n';
+import { todosOf } from '../shared/board';
 import type { AiEvent, AiEventKind, Choice, RawAgentEvent, Risk } from '../shared/types';
 
 /**
@@ -116,6 +117,8 @@ export class EventNormalizer {
   private waitingForUser = false;
   /** The main agent has started working (used a tool or sent someone out). */
   private workStarted = false;
+  /** The main agent has written its to-do list once: later writes only tick items off. */
+  private planned = false;
   private readonly thinkingGapMs: number;
   private readonly longWaitMs: number;
   private readonly thinkingMergeMs: number;
@@ -198,6 +201,15 @@ export class EventNormalizer {
         const target = targetOf(tool, p.tool_input);
         if (id) this.running.set(id, { tool, agent, target, startedAt: t, longWaitSent: false });
         if (tool === 'AskUserQuestion') return; // the permission callback produces ask_user
+        if (tool === 'TodoWrite' && agent === 'main') {
+          // Claude's own to-do list is the real plan: the blackboard shows it and follows it item by item.
+          const todos = todosOf(p.tool_input);
+          if (todos.length) {
+            emit(this.planned ? 'progress' : 'plan', agent, { tool, todos, target: fill(E.planSteps, { n: todos.length }) });
+            this.planned = true;
+            return;
+          }
+        }
         emit(tool === 'TodoWrite' ? 'plan' : 'tool_start', agent, { tool, target });
         return;
       }

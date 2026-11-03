@@ -9,7 +9,7 @@ let box: HTMLElement | null = null;
 
 const PLACES: Partial<Record<Target, string>> = {
   counter: A.hotspotCounter, bell: A.hotspotBell, backdoor: A.hotspotGarden, shopdoor: A.hotspotShop,
-  dog: fill(A.hotspotCat, { name: strings.animals.dog }), hens: A.hotspotHens, works: A.hotspotWorks,
+  dog: fill(A.hotspotCat, { name: strings.animals.dog }), hens: A.hotspotHens, works: A.hotspotWorks, board: A.hotspotBoard,
 };
 const label = (id: Target) => PLACES[id] ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
 

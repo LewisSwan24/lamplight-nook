@@ -1,11 +1,11 @@
 import './locale-boot';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -23,6 +23,8 @@ import { SpendLedger } from './spend';
 import { zip } from './zip';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
+import { copyMaterials, sortHandOver } from './materials';
+import { stepCount } from '../shared/board';
 import { cleanScene } from '../shared/scenes';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -141,7 +143,9 @@ const emitters = {
   emit: (event: unknown) => send(IPC.rawEvent, event),
   emitAi: (event: AiEvent) => {
     send(IPC.aiEvent, { ...event, raw: undefined });
-    mini.feed({ type: 'ai', event: { kind: event.kind, agent: event.agent, plain: event.plain } });
+    mini.feed({ type: 'ai', event: { kind: event.kind, agent: event.agent, plain: event.plain, todos: event.todos } });
+    if (event.agent === 'main' && event.todos) tray.setStep(stepCount(event.todos));
+    if (event.kind === 'done' || event.kind === 'failed' || event.kind === 'cancelled' || event.kind === 'session_start') tray.setStep(undefined);
   },
 };
 
@@ -334,13 +338,29 @@ ipcMain.handle(IPC.chooseSource, async (_e, kind: 'edit' | 'tidy'): Promise<Sour
   return { path, name: basename(path) };
 });
 
+// Files handed over (dropped on the shop or picked): checked here, and only these may be copied in.
+ipcMain.handle(IPC.handOver, async (_e, paths: string[] | null, already: Material[]): Promise<HandOver> => {
+  let list = Array.isArray(paths) ? paths.filter((p) => typeof p === 'string' && isAbsolute(p)) : null;
+  if (!list) {
+    if (!win) return { items: [], refused: [] };
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'] });
+    list = r.canceled ? [] : r.filePaths;
+  }
+  const sorted = sortHandOver(list, Array.isArray(already) ? already.filter((m) => picked.has(m.path)) : []);
+  for (const m of sorted.items) picked.add(m.path);
+  return sorted;
+});
+
 ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<RunResult> => {
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   if (form.source && !picked.has(form.source)) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
+  if (form.materials?.some((m) => !picked.has(m))) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
+  if (form.demo) form = { ...form, materials: undefined };
   const workDir = commissionDir(settings.get().workRoot, commissionTitle(form));
   mkdirSync(workDir, { recursive: true });
   if (form.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
   prepareSource(workDir, form);
+  try { copyMaterials(workDir, form.materials ?? []); } catch (e) { return { ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
   return runJob({ form, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
 });
 

@@ -146,3 +146,43 @@ describe('the main output', () => {
     expect(collectOutputs(work, before)).toEqual({ files: [join(work, F.tidyPlan)], main: join(work, F.tidyPlan) });
   });
 });
+
+describe('phase 6 templates', () => {
+  it('a letter is plain text with blanks for missing facts, never sent', () => {
+    const p = commissionPrompt({ want: 'w', template: 'letter' });
+    expect(p).toContain(`"${F.letter}"`);
+    expect(p).toMatch(/square brackets/);
+    expect(p).toMatch(/Do not send it anywhere/);
+  });
+
+  it('a table is a CSV that opens in Excel, with formulas for totals', () => {
+    const p = commissionPrompt({ want: 'w', template: 'sheet' });
+    expect(p).toContain(`"${F.sheet}"`);
+    expect(p).toMatch(/byte order mark/);
+    expect(p).toMatch(/=SUM\(/);
+  });
+
+  it('a plan is a table by day or week with some slack', () => {
+    const p = commissionPrompt({ want: 'w', template: 'plan' });
+    expect(p).toContain(`"${F.plan}"`);
+    expect(p).toMatch(/slack/);
+  });
+
+  it('an album is one page showing the handed-over photos by relative path, untouched', () => {
+    const p = commissionPrompt({ want: 'w', template: 'album', materials: ['/p/a.jpg'] });
+    expect(p).toMatch(/named "index\.html"/);
+    expect(p).toContain(`"${F.materials}/photo.jpg"`);
+    expect(p).toMatch(/do not copy, resize or change them/);
+  });
+
+  it('a table or a letter is the main result when nothing else was made', () => {
+    const d = dir();
+    const before = snapshot(d);
+    writeFileSync(join(d, F.sheet), '﻿a,b\n');
+    expect(collectOutputs(d, before).main).toBe(join(d, F.sheet));
+    const e = dir();
+    const none = snapshot(e);
+    writeFileSync(join(e, F.letter), 'Dear');
+    expect(collectOutputs(e, none).main).toBe(join(e, F.letter));
+  });
+});

@@ -1,7 +1,8 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
+import { type BoardStep, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, LamplightApi } from '../../shared/types';
+import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
@@ -87,7 +88,13 @@ const TEMPLATES: { id: CommissionTemplate | 'demo'; label: string; fill: string 
   { id: 'research', label: T.research, fill: T.researchFill },
   { id: 'edit', label: T.edit, fill: T.editFill },
   { id: 'tidy', label: T.tidy, fill: T.tidyFill },
+  { id: 'letter', label: T.letter, fill: T.letterFill },
+  { id: 'sheet', label: T.sheet, fill: T.sheetFill },
+  { id: 'plan', label: T.plan, fill: T.planFill },
+  { id: 'album', label: T.album, fill: T.albumFill },
 ];
+/** Pictures an album can show. */
+const PHOTO = /\.(jpe?g|png|gif|webp|bmp|avif)$/i;
 /** The blank in a template sentence (a Chinese or an English ellipsis), selected so typing replaces it. */
 const BLANK = /\u2026\u2026|\.\.\./;
 
@@ -95,7 +102,20 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * The commission form. A row of stickers fills in a ready-made kind of commission (the demo is picked to begin with);
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
-export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budgetUsd = 0): Promise<CommissionForm | null> {
+/** What the commission form needs from the main process. */
+export type FormApi = Pick<LamplightApi, 'chooseSource' | 'handOver' | 'pathsOf'>;
+
+/** Why something couldn't be handed over, in the shop's words. */
+export function refusalText(r: HandOver['refused'][number]): string {
+  const key = r.why === 'too-big' ? 'tooBig' : r.why === 'too-many' ? 'tooMany' : r.why;
+  return fill(U.materials[key], { name: r.name });
+}
+
+/** The commission form currently open, so files dropped anywhere on the shop land on it. */
+let openForm: { add: (paths: string[] | null) => Promise<void> } | null = null;
+export const commissionFormOpen = () => openForm;
+
+export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     // The empty-box reminder in the shop's own words (and language), not the browser's.
@@ -110,7 +130,36 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
     const pickButton = el('button', { type: 'button', onclick: () => void pick() }) as HTMLButtonElement;
     const sourceRow = el('div.source-row', {}, el('div.source-line', {}, pickButton, sourceName), sourceHint);
     const chips = TEMPLATES.map((t) => el('button.template-chip', { type: 'button', onclick: () => choose(t) }, t.label) as HTMLButtonElement);
-    const done = (form: CommissionForm | null) => { resolve(form); closePanel(); };
+    const done = (form: CommissionForm | null) => { openForm = null; resolve(form); closePanel(); };
+
+    const materialHint = el('div.hint', {}, U.materials.hint);
+    // Files handed over with the commission: a row of name tags, each can be taken back.
+    let materials: Material[] = [];
+    const tags = el('div.material-tags');
+    const materialNote = el('div.hint.material-note', { role: 'status' });
+    const showMaterials = (refused: HandOver['refused'] = []) => {
+      tags.replaceChildren(...materials.map((m) => el('span.material-tag', {}, m.name,
+        el('button.material-remove', { type: 'button', 'aria-label': fill(U.materials.remove, { name: m.name }), onclick: () => {
+          materials = materials.filter((x) => x !== m);
+          showMaterials();
+        } }, '\u00D7'))));
+      materialNote.textContent = refused.map(refusalText).join(' ');
+      materialNote.classList.toggle('warn', refused.length > 0);
+    };
+    const add = async (paths: string[] | null) => {
+      const r = await api.handOver(paths, materials);
+      materials = [...materials, ...r.items];
+      showMaterials(r.refused);
+      if (!r.items.length) return;
+      sfx('open');
+      // A reminder to hand something over has been answered.
+      materialHint.textContent = chosen?.id === 'album' ? T.albumHint : U.materials.hint;
+      materialHint.classList.remove('warn');
+    };
+    const materialRow = el('div.material-row', {},
+      el('div.material-head', {}, el('span.material-label', {}, U.materials.label),
+        el('button.link.material-add', { type: 'button', onclick: () => void add(null) }, U.materials.add)),
+      tags, materialNote, materialHint);
 
     const needsSource = () => chosen?.id === 'edit' || chosen?.id === 'tidy';
     const refresh = () => {
@@ -120,6 +169,8 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
       sourceName.textContent = source?.name ?? '';
       sourceHint.textContent = chosen?.id === 'tidy' ? T.tidyHint : T.editHint;
       sourceHint.classList.remove('warn');
+      materialHint.textContent = chosen?.id === 'album' ? T.albumHint : U.materials.hint;
+      materialHint.classList.remove('warn');
     };
     // Picking a sticker again puts it back; text the user already wrote is only replaced if it was a template's.
     const choose = (t: (typeof TEMPLATES)[number]) => {
@@ -150,6 +201,7 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
       el('div.template-row', {}, ...chips),
       el('label', {}, U.want, want),
       sourceRow,
+      materialRow,
       el('label', {}, U.details, details),
       el('label', {}, U.audience, audience),
       el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
@@ -172,7 +224,18 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
       if (chosen?.id === 'demo' && want.value !== U.demoFill) { chosen = null; refresh(); }
     });
     // Closed some other way (Esc): same as the close button.
-    form.addEventListener('panel-closed', () => resolve(null));
+    form.addEventListener('panel-closed', () => { openForm = null; resolve(null); });
+    // Files dragged over the slip: it lights up; let go and they are handed over.
+    form.addEventListener('dragover', (e) => { e.preventDefault(); form.classList.add('dropping'); });
+    form.addEventListener('dragleave', (e) => { if (!form.contains((e as DragEvent).relatedTarget as Node)) form.classList.remove('dropping'); });
+    form.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      form.classList.remove('dropping');
+      void add(api.pathsOf(Array.from((e as DragEvent).dataTransfer?.files ?? [])));
+    });
+    form.dataset.drop = U.materials.drop;
+    openForm = { add };
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = want.value.trim();
@@ -183,6 +246,11 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
         pickButton.focus();
         return;
       }
+      if (chosen?.id === 'album' && !materials.some((m) => PHOTO.test(m.name))) {
+        materialHint.textContent = T.needPhotos;
+        materialHint.classList.add('warn');
+        return;
+      }
       const template = chosen && chosen.id !== 'demo' ? chosen.id : undefined;
       done({
         want: text,
@@ -191,9 +259,13 @@ export function showCommissionForm(api: Pick<LamplightApi, 'chooseSource'>, budg
         demo: chosen?.id === 'demo' && text === U.demoFill,
         template,
         source: template === 'edit' || template === 'tidy' ? source?.path : undefined,
+        materials: chosen?.id === 'demo' ? undefined : materials.map((m) => m.path),
       });
     });
-    want.value = U.demoFill;
+    // Files dropped on the counter come in with the form; the demo has its own fixed material, so start blank.
+    materials = [...handed.items];
+    showMaterials(handed.refused);
+    if (materials.length) { chosen = null; want.value = ''; } else want.value = U.demoFill;
     refresh();
     replaceOpen(form);
     want.focus();
@@ -205,6 +277,8 @@ export type ResultActions = {
   open: (path: string, how: 'open' | 'reveal') => void;
   revise?: (id: string) => void;
   restore?: (id: string) => Promise<boolean>;
+  /** The first piece of work ever: say once that it will be kept on the shelf, which only appears now. */
+  firstWork?: boolean;
 };
 
 /**
@@ -236,6 +310,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     note,
+    result.ok && actions.firstWork ? el('div.hint.result-shelf', {}, U.resultShelf) : null,
     // Changing the work sits apart from opening it: a quieter row on the left.
     result.ok && id && actions.revise ? el('div.actions.result-more', {},
       el('button.result-revise', { onclick: () => actions.revise!(id) }, U.resultRevise),
@@ -253,19 +328,39 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
 /** Wipe the blackboard and take the parcels off the counter: the work they belonged to is over. */
 export function clearWorkSigns() {
   document.getElementById('board')?.replaceChildren();
+  chalked = [];
   document.querySelectorAll('.parcel').forEach((p) => p.remove());
 }
 
-/** The blackboard: up to five steps with a check mark when done. */
-export type BoardStep = { key: string; label: string; status: 'todo' | 'doing' | 'done' };
+/** The blackboard: up to five lines with a check mark when done; a long plan shows where the work is. */
+export type { BoardStep };
+/** What is on the blackboard now, for the card that shows the whole list. */
+let chalked: BoardStep[] = [];
+export const boardSteps = () => chalked;
 export function renderBoard(steps: BoardStep[]) {
+  chalked = steps.map((s) => ({ ...s }));
   let board = document.getElementById('board');
   if (!board) {
     board = el('div.board', { id: 'board' });
     layer().append(board);
   }
-  board.replaceChildren(...steps.slice(0, 5).map((s) =>
-    el(`div.step.${s.status}`, {}, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`)));
+  const { shown, more } = boardWindow(steps);
+  board.replaceChildren(...shown.map((s) =>
+    el(`div.step.${s.status}`, { title: s.label }, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`)),
+  ...(more ? [el('div.step.more', {}, `\u2026 ${fill(U.board.more, { n: String(more) })}`)] : []));
+}
+
+/** The blackboard up close: every line of the plan, with where the work is. */
+export function showPlan(steps: BoardStep[]) {
+  if (!steps.length) return;
+  const done = steps.filter((s) => s.status === 'done').length;
+  replaceOpen(el('div.card.paper.plan-card', {},
+    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    el('div.card-title', {}, U.board.title),
+    el('div.hint', {}, fill(U.board.count, { done: String(done), total: String(steps.length) })),
+    el('ol.plan-list', {}, ...steps.map((s) => el(`li.${s.status}`, {}, s.label,
+      s.status === 'doing' ? el('span.plan-now', {}, ` \u00B7 ${U.board.now}`) : null))),
+  ));
 }
 
 /** Corner badge shown while a recording is replaying, so a replay never passes for a live run. */

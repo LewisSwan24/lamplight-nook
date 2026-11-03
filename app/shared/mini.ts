@@ -1,14 +1,16 @@
+import { stepCount } from './board';
 import type { AiEvent, Bubble } from './types';
 
 /** What the small corner window shows: Adeng at the counter, a mood bubble, and one line of status. */
 export type MiniStatus = 'idle' | 'working' | 'waiting' | 'serious' | 'done' | 'failed';
 export type MiniPose = 'idle' | 'read';
-export type MiniState = { status: MiniStatus; pose: MiniPose; bubble?: Bubble; what?: string };
+/** step: where Claude's own to-do list is (item n of total), when it keeps one. */
+export type MiniState = { status: MiniStatus; pose: MiniPose; bubble?: Bubble; what?: string; step?: { n: number; total: number } };
 
 /** What the main process tells the corner window about. */
 export type MiniEvent =
   | { type: 'run'; running: boolean }
-  | { type: 'ai'; event: Pick<AiEvent, 'kind' | 'agent' | 'plain'> }
+  | { type: 'ai'; event: Pick<AiEvent, 'kind' | 'agent' | 'plain' | 'todos'> }
   | { type: 'ask'; serious: boolean }
   | { type: 'answered' }
   /** The user came back to the shop: what was finished has been seen. */
@@ -38,10 +40,15 @@ export function nextMini(s: MiniState, ev: MiniEvent): MiniState {
       if (e.kind === 'done') return { status: 'done', pose: 'idle', bubble: 'heart' };
       if (e.kind === 'failed') return { status: 'failed', pose: 'idle', bubble: 'sweat' };
       if (e.kind === 'cancelled') return MINI_IDLE;
+      // The to-do list moved on: remember where it is, whatever else is showing.
+      const step = (e.kind === 'plan' || e.kind === 'progress') && e.agent === 'main' && e.todos ? stepCount(e.todos) : undefined;
+      if (step) s = { ...s, step };
       // A card is waiting for the user: keep saying so until it is answered.
       if (busy) return s;
-      if (e.kind === 'session_start' || e.kind === 'plan' || e.kind === 'thinking') return { ...s, status: 'working', pose: 'idle', bubble: 'dots' };
-      if (e.kind === 'tool_start') return { status: 'working', pose: e.agent === 'main' ? 'read' : s.pose, bubble: undefined, what: e.plain || s.what };
+      if (e.kind === 'progress') return { ...s, status: 'working' };
+      if (e.kind === 'session_start') return { status: 'working', pose: 'idle', bubble: 'dots' };
+      if (e.kind === 'plan' || e.kind === 'thinking') return { ...s, status: 'working', pose: 'idle', bubble: 'dots' };
+      if (e.kind === 'tool_start') return { ...s, status: 'working', pose: e.agent === 'main' ? 'read' : s.pose, bubble: undefined, what: e.plain || s.what };
       if (e.kind === 'subagent_start') return { ...s, status: 'working', bubble: 'idea', what: e.plain || s.what };
       if (e.kind === 'long_wait') return { ...s, status: 'working', pose: 'idle', bubble: 'tea' };
       if (e.kind === 'tool_fail' || e.kind === 'net_error' || e.kind === 'net_retry') return { ...s, status: 'working', bubble: 'sweat' };

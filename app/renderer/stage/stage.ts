@@ -6,7 +6,8 @@ import { outsideFlags } from '../game/weather';
 import { Director } from '../translator/director';
 import { toLineBook } from '../translator/lines';
 import { type TranslateContext, Translator } from '../translator/translator';
-import { type ActorInfo, type BoardStep, renderBoard, showParcel } from '../ui/panels';
+import { type ActorInfo, renderBoard, showParcel } from '../ui/panels';
+import { type BoardStep, stepsOf } from '../../shared/board';
 import { onRuleBookChange, ruleBook } from './rulebook';
 
 /** How long each bubble of a line stays up, and how long a silent action takes. */
@@ -41,6 +42,8 @@ export class Stage {
   private owner = new Map<ActorId, ActorId>();
   private info = new Map<ActorId, ActorInfo>();
   private board: BoardStep[] = [];
+  /** The board shows Claude's own to-do list: the guessed three steps stop following events. */
+  private realPlan = false;
   /** The window is hidden or minimized: skip the acting and keep the shop's state current (see skip). */
   catchingUp = false;
   /** Playback speed multiplier (replays run faster). */
@@ -90,6 +93,7 @@ export class Stage {
       this.director.resetCommission();
       this.info.clear();
       const B = strings.ui.board;
+      this.realPlan = false;
       this.board = [
         { key: 'research', label: B.research, status: 'todo' },
         { key: 'write', label: B.write, status: 'todo' },
@@ -121,7 +125,12 @@ export class Stage {
     if (e.kind === 'tool_start' && (e.tool === 'Bash' || e.tool === 'PowerShell')) info.stats.runs++;
     if (e.kind === 'tool_fail') info.stats.fails++;
 
+    if ((e.kind === 'plan' || e.kind === 'progress') && e.agent === 'main' && e.todos?.length) {
+      this.board = stepsOf(e.todos);
+      this.realPlan = true;
+    }
     const step = (key: string, status: BoardStep['status']) => {
+      if (this.realPlan) return;
       const s = this.board.find((b) => b.key === key);
       if (s && !(s.status === 'done' && status === 'doing')) s.status = status;
     };
@@ -129,7 +138,7 @@ export class Stage {
     if (e.kind === 'subagent_stop' && e.agent === 'researcher') step('research', 'done');
     // Qingdai's step only appears on the board once she is asked for a design.
     if (e.kind === 'subagent_start' && e.agent === 'designer') {
-      if (!this.board.some((b) => b.key === 'design')) {
+      if (!this.realPlan && !this.board.some((b) => b.key === 'design')) {
         this.board.splice(this.board.findIndex((b) => b.key === 'write'), 0, { key: 'design', label: strings.ui.board.design, status: 'todo' });
       }
       step('design', 'doing');
