@@ -41,7 +41,8 @@ Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handi
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080), `trial`,
 `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),
-and `oldclaude` (the stand-in claims an old Claude Code version).
+`oldclaude` (the stand-in claims an old Claude Code version), and `feedback` ("Write to us": the mail
+program and the save dialog are caught, nothing is sent).
 Screenshots go to `sim-out/<lang>/` (git-ignored).
 
 ## Store and website pictures (`sim/store.mjs`)
