@@ -24,14 +24,19 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run dist
+      # The Store test package (unsigned, test publisher) from the same unpacked app.
+      - run: npm run msix
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/*.msix
       - name: Publish release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then tag="$GITHUB_REF_NAME"; else tag="v$(node -p "require('./package.json').version")"; fi
-          gh release create "$tag" dist/*.exe --target "$GITHUB_SHA" --title "Lamplight Nook $tag" --generate-notes
+          if [[ -f "release-notes/$tag.md" ]]; then notes=(--notes-file "release-notes/$tag.md"); else notes=(--generate-notes); fi
+          gh release create "$tag" dist/*.exe dist/*.msix --target "$GITHUB_SHA" --title "Lamplight Nook $tag" "${notes[@]}"
