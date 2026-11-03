@@ -37,19 +37,22 @@ const HOUSE_RULES = [
 export const commissionTitle = (form: CommissionForm) => (form.demo ? strings.demo.brief : shortTitle(form.want));
 
 /** Little words a short English title should not end on ("Write a letter to my" -> "Write a letter"). */
-const TRAILING_WORDS = new Set(['a', 'an', 'the', 'to', 'for', 'of', 'and', 'or', 'with', 'my', 'our', 'your', 'about', 'on', 'in', 'at', 'that', 'which']);
+const TRAILING_WORDS = new Set(['a', 'an', 'the', 'to', 'for', 'of', 'and', 'or', 'with', 'my', 'our', 'your', 'about', 'on', 'in', 'at', 'as', 'that', 'which', 'who']);
 /** Longest English title, in characters; words are never cut. */
-const MAX_WORDS_TITLE = 32;
+const MAX_WORDS_TITLE = 48;
 
 /**
  * "帮我做一个家庭聚会签到的小网页。" → "做一个家庭聚会签到的小网页": no "please" in front, no punctuation, at most 16 characters, safe as a folder name.
- * Requests written in words with spaces between them keep whole words instead: "Please make a sign-in page for the family party." → "Make a sign-in page".
+ * Requests written in words with spaces between them keep whole words instead, up to 48 characters:
+ * "Please make me a sign-in page for the family party." → "Make a sign-in page for the family party".
  */
 export function shortTitle(want: string): string {
   const core = want.trim().replace(/^(请|麻烦)?(帮我|给我|替我)/, '').replace(/^(please\s+|can you\s+|could you\s+)+/i, '');
   const firstSentence = core.split(/[。！？!?\n]/)[0] || core;
   if (/\s/.test(firstSentence.trim()) && !/[\u3000-\u9fff\uff00-\uffef]/.test(firstSentence)) {
-    const words = firstSentence.replace(/[\\/:*?"<>|]+/g, ' ').split(/\s+/).map((w) => w.replace(/[,.;]+$/, '')).filter(Boolean);
+    // "Make me a page" -> "Make a page": the "me" says nothing on a shelf label.
+    const plain = firstSentence.replace(/^(\w+)\s+me\s+/i, '$1 ');
+    const words = plain.replace(/[\\/:*?"<>|]+/g, ' ').split(/\s+/).map((w) => w.replace(/[,.;]+$/, '')).filter(Boolean);
     const kept: string[] = [];
     for (const w of words) {
       if ([...kept, w].join(' ').length > MAX_WORDS_TITLE) break;
