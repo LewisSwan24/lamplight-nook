@@ -79,9 +79,10 @@ function pathWithoutClaude(home) {
  * Start the app. Options: lang, home (from freshHome), size, scenario and speed for the stand-in Claude,
  * key (false for "no key"), debug (show the debug panel), appDir (another built checkout of the app,
  * such as an older version; its own locales are used), simEnv (more SIM_* settings for the stand-in Claude),
- * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed).
+ * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed),
+ * args (more Electron switches).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [] } = {}) {
   const env = {
     PATH: claudePath === FAKE_CLAUDE ? process.env.PATH : pathWithoutClaude(home),
     HOME: home.home,
@@ -99,7 +100,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
   };
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
   // Electron now and then fails to start right after another one quit; one more try is enough.
-  const start = () => electron.launch({ executablePath: ELECTRON, args: [appDir, '--no-sandbox'], env, cwd: appDir });
+  const start = () => electron.launch({ executablePath: ELECTRON, args: [appDir, '--no-sandbox', ...args], env, cwd: appDir });
   const app = await start().catch(async (err) => {
     if (!/failed to launch/i.test(String(err?.message))) throw err;
     await sleep(2000);

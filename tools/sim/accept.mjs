@@ -6,9 +6,9 @@
 //
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
+import { FAKE_CLAUDE, freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : def; };
@@ -539,6 +539,77 @@ const SCENARIOS = {
       check(!text.includes(shop.L.ui.setup.claudeInstall), 'the store build offers to run the installer');
       check(await shop.page.locator('.notice-card details.claude-manual[open]').count() === 1, 'the steps are not open');
       await shop.shot(join(out, 'store-steps.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A new user from nothing: no settings, no Claude Code, no key. Welcome (name, look, what is missing,
+   * the work folder), the free trial replay, then Claude Code "lands" (the stand-in appears where the app
+   * looks), the key is pasted in the app, and the first commission ends up on the works shelf.
+   * Checking the key would call Anthropic, so the main process's fetch is caught and answers 200.
+   */
+  async firstrun(lang, out) {
+    const home = freshHome();
+    const claudeAt = join(home.home, '.local', 'bin', 'claude');
+    // Linux test machines have no keyring; the basic store lets the app encrypt the key as it would on Windows.
+    const shop = await launch({ lang, home, speed: SPEED, key: false, claudePath: claudeAt, args: ['--password-store=basic'] });
+    const S = shop.L.ui.setup;
+    try {
+      const welcome = await shop.maybe('.welcome input[type=text]', 8000);
+      check(welcome, 'no welcome card on a first start');
+      await shop.shot(join(out, 'firstrun-1-welcome.png'));
+      await welcome.fill(lang === 'en' ? 'Sam' : '小林');
+      await shop.page.locator('.welcome button.default').click();
+      await shop.page.waitForSelector('.welcome .env-rows');
+      const rows = await shop.page.locator('.welcome .env-rows').innerText();
+      check(rows.includes(S.claudeMissing.slice(0, 12)), 'Claude Code not reported missing');
+      await shop.shot(join(out, 'firstrun-2-check.png'));
+      await shop.page.locator('.welcome .actions button.default').last().click();
+      await sleep(400);
+      await shop.shot(join(out, 'firstrun-3-folder.png'));
+      await shop.page.locator('.welcome .actions button.default').last().click();
+      await sleep(1500);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).onboarded === true, 'not marked as welcomed');
+
+      // The counter: nothing is ready, so the card offers the free trial.
+      await shop.hotspot(shop.L.ui.access.hotspotCounter);
+      await shop.page.waitForSelector('.notice-card .trial-offer button');
+      await shop.page.locator('.notice-card .trial-offer button').click();
+      const end = await shop.maybe('.trial-end', 240_000);
+      check(end, 'the trial replay did not end with its card');
+      await shop.shot(join(out, 'firstrun-4-trial-end.png'));
+      await shop.page.locator('.trial-end button.default').click();
+      await shop.page.waitForSelector('.notice-card .env-rows');
+
+      // Claude Code is installed (the stand-in appears where the app looks): the row turns green by itself.
+      mkdirSync(join(claudeAt, '..'), { recursive: true });
+      symlinkSync(FAKE_CLAUDE, claudeAt);
+      await shop.page.waitForSelector('.notice-card .env-row.ok', { timeout: 15_000 });
+
+      // The key, pasted in the app; the check with Anthropic is caught here and says yes.
+      await shop.app.evaluate(({ net, safeStorage }) => {
+        net.fetch = async () => new Response('{}', { status: 200 });
+        // Test machines only: Linux without a keyring has nothing to encrypt with; Windows always has DPAPI.
+        if (process.platform === 'linux') safeStorage.setUsePlainTextEncryption(true);
+      });
+      await shop.page.fill('.notice-card .key-form input', 'sk-ant-api03-simulated-1111111111111111111111111111111111111111');
+      await shop.page.locator('.notice-card .key-form button').click();
+      const ready = await shop.maybe('.notice-card button.default', 10_000);
+      const keyText = await shop.page.locator('.notice-card').innerText();
+      check(ready, `the shop did not get ready after the key: ${JSON.stringify(keyText.slice(0, 300))}`);
+      check(existsSync(join(home.data, 'api-key.bin')), 'the key was not stored');
+      await shop.shot(join(out, 'firstrun-5-ready.png'));
+      await ready.click();
+
+      await shop.page.waitForSelector('form.commission');
+      await shop.page.keyboard.press('Escape');
+      check((await runOne(shop, { template: 'page', want: W[lang].page })).ok, 'the first commission did not finish');
+      check(await shop.page.locator('.result-card .result-shelf').count() === 1, 'the first result does not mention the works shelf');
+      await shop.shot(join(out, 'firstrun-6-first-result.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(1200);
+      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      check(await shop.page.locator('.shelf-card li.work').count() === 1, 'the first work is not on the shelf');
     } finally { await shop.close(); }
   },
 

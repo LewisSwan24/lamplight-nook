@@ -24,7 +24,10 @@
   official steps and the copy button, opened, instead of "Install it for me" / "Update it for me"
   (Store policies 10.2.2 and 10.2.3). The setup file from the website keeps the button.
 - Tooling: `tools/sim/legacy.mjs` builds a shop's real data with 0.5.0, 0.6.1 and 0.7.0; the `upgrade`
-  acceptance scenario opens it with the current version. The `oldclaude` scenario plays an old Claude Code.
+  acceptance scenario opens it with the current version. The `oldclaude` scenario plays an old Claude Code,
+  `store` the Store build, and `firstrun` a new user from the welcome card to the first piece of work.
+  `tools/real/check.ts` runs three small commissions against a real Claude Code with a capped budget
+  and writes a report to compare with the stand-in.
 
 ## 0.8.1 (2026-11-03)
 
