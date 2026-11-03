@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.1 (2026-11-03)
+
+A safety fix.
+
+- **`node -e` no longer runs unasked.** `node` was on the list of safe commands so that `node check.js` runs,
+  which also let `node -e "..."`, `node -p`, `node -r` and a script piped or given through a here-document run
+  without a word. Now only a script file in the commission folder runs as before; code written on the spot waits
+  for you like any other serious step. `npx`, which downloads and runs a package, asks first like an install.
+- Tooling: a weekly real-Claude check (`.github/workflows/real-check.yml`): the three small commissions against
+  the latest Claude Code with a test key and a $1 budget, compared with the stand-in by `tools/real/compare.mjs`.
+  The stand-in now also sends the PermissionRequest and Stop hooks and a helper's task progress and update, as
+  real runs do.
+
 ## 0.9.0 (2026-11-03)
 
 Checked against a real Claude Code (2.1.306, the Agent SDK's own, and 2.1.317) for the first time since 0.8,
@@ -18,7 +31,7 @@ and ready for the Microsoft Store.
   Claude Code may do; a run could otherwise say "done" while a helper was still out, then carry on. A helper sent
   off anyway is shown out until it reports back.
 - The English welcome said "hand it to Adeng"; it is Wick.
-- The Store listing text is in `store/listing.md`, including that the monthly Claude API credits of a Max or Team
+- The Store listing text is in `store/listing.md`, including that the monthly Claude API credits of a Max, Ultra or Team
   plan can be used with the shop.
 - The release run attaches the Store test package (`Lamplight-Nook-<version>-test.msix`) next to the installer,
   and uses the notes in `release-notes/<tag>.md` when there are some.

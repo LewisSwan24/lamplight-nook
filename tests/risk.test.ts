@@ -75,6 +75,25 @@ describe('risk classifier', () => {
     expect(r('PowerShell', { command: 'Get-ChildItem | Select-Object Name' })).toBe('serious');
   });
 
+  it('node runs a script from the folder, not code written on the spot; npx asks', () => {
+    expect(r('Bash', { command: 'node check.js --verbose' })).toBe('safe');
+    expect(r('Bash', { command: 'node --version' })).toBe('safe');
+    expect(r('Bash', { command: 'node --check index.js' })).toBe('safe');
+    expect(r('Bash', { command: `node -e "require('fs').rmSync('..', { recursive: true })"` })).toBe('serious');
+    expect(classify('Bash', { command: 'node -e "1"' }, ctx).reason).toBe(strings.risk.inlineCode);
+    expect(r('Bash', { command: 'node -p "process.env"' })).toBe('serious');
+    expect(r('Bash', { command: 'node --eval=1' })).toBe('serious');
+    expect(r('Bash', { command: 'node -r ./hook.js check.js' })).toBe('serious');
+    expect(r('Bash', { command: "node - <<'EOF'\nrequire('fs').rmSync('..', { recursive: true })\nEOF" })).toBe('serious');
+    expect(r('Bash', { command: 'cat x.js | node' })).toBe('serious');
+    expect(r('Bash', { command: 'node ../elsewhere/x.js' })).toBe('serious');
+    expect(r('Bash', { command: 'npx serve .' })).toBe('ask');
+    expect(r('Bash', { command: 'ls; npx serve .' })).toBe('ask');
+    expect(r('PowerShell', { command: 'node -e 1' })).toBe('serious');
+    expect(r('PowerShell', { command: 'node check.js' })).toBe('safe');
+    expect(r('PowerShell', { command: 'npx serve .' })).toBe('ask');
+  });
+
   it("Claude's own to-do list never asks", () => {
     for (const tool of ['TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet']) expect(r(tool, {})).toBe('safe');
   });

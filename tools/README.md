@@ -90,9 +90,11 @@ npm run build && node tools/sim/legacy.mjs --old ../old --fixtures
 Runs three small commissions (a page that usually keeps a to-do list, a letter with a handed-over file, and
 the demo) through the app's own runner and prompts, against the Claude Code installed on the computer,
 with a key from `LAMPLIGHT_TEST_KEY` (never `ANTHROPIC_API_KEY`, which a surrounding Claude session may
-have set). Each stops at $0.40 and no new one starts after $1.20. `--only page,demo` runs some of them.
+have set). Each stops at $0.40 and no new one starts after $1.20; with `--budget 1` none starts that could take
+the total past $1. `--only page,demo` runs some of them.
 It writes `lamplight-real-check-<time>/report.zip` (summary, event shapes, recordings; no key, home
-folder replaced) to compare with the stand-in. `--sim` runs the same thing against the stand-in, free.
+folder replaced), or into `--out <folder>`, to compare with the stand-in. `--sim` runs the same thing against
+the stand-in, free.
 
 ```powershell
 $env:LAMPLIGHT_TEST_KEY = "sk-ant-..."
@@ -105,6 +107,31 @@ test key can be used:
 ```bash
 env -i PATH="$PATH" HOME="$(mktemp -d)" LANG=C.UTF-8 LAMPLIGHT_TEST_KEY="$LAMPLIGHT_TEST_KEY" npx tsx tools/real/check.ts
 ```
+
+### Comparing with the stand-in (`real/compare.mjs`), every week
+
+```bash
+npx tsx tools/real/check.ts --sim --out real-check/sim
+npx tsx tools/real/check.ts --budget 1 --out real-check/real
+node tools/real/compare.mjs real-check/real real-check/sim
+```
+
+It prints a Markdown summary and fails when:
+
+- something the shop relies on did not hold in the real run (finished, one result at the end, the handed-over
+  file read, the colour question, the delete asked and declined, the check failing then passing, every command
+  line readable). A to-do list or a helper sent out is Claude's own choice: shown, never a failure;
+- the stand-in failed a check (our own bug);
+- Claude Code showed an event kind or a tool name that neither the stand-in nor `real/baseline.json` knows.
+  Teach the stand-in (`tools/sim/claude.mjs`), check the app reads it, then run the comparison again with
+  `--update-baseline` for whatever needs no change.
+
+Fields that only the real run has are listed for reading; the app uses few of them, so they never fail it.
+
+`.github/workflows/real-check.yml` does all this every Monday against the latest Claude Code from the official
+installer, with the repository secret `LAMPLIGHT_TEST_KEY` and a $1 budget (any amount when run by hand from the
+Actions tab). Without the secret only the stand-in part runs. A failed run emails the repository owner; the job
+summary has the table, and the report zips are kept as the run's artifact.
 
 `real/ui.mjs` runs the demo commission through the real app window (Xvfb in a container) against the
 Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY`, taking a screenshot every few seconds into
