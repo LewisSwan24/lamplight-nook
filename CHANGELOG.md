@@ -14,6 +14,10 @@
   explained at the counter, with "Update it for me" (the same official installer) or "Use it as it is";
   a newer one is only written to the log. Settings show the version, and the log and the diagnostics
   bundle record it for every run.
+- **Write to us.** Settings → Work → "If something goes wrong" lists exactly what the letter will hold
+  (our address, a subject, a last line with the app version and system), then opens the user's own mail
+  program with it. The diagnostics file is exported only when ticked, and only its name goes in the letter;
+  attaching it and sending are the user's own steps. The app sends nothing.
 - Tooling: `tools/sim/legacy.mjs` builds a shop's real data with 0.5.0, 0.6.1 and 0.7.0; the `upgrade`
   acceptance scenario opens it with the current version. The `oldclaude` scenario plays an old Claude Code.
 

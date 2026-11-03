@@ -5,7 +5,7 @@ import { basename, dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material } from '../shared/types';
+import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -14,6 +14,7 @@ import { sessionExists } from './sessions';
 import { VersionStore } from './versions';
 import { migrate } from './migrate';
 import { claudeVersion } from './claude-version';
+import { feedbackMail, mailtoUrl, osName } from './feedback';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
 import { DecisionBroker } from './decision-broker';
@@ -179,17 +180,19 @@ ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
     platform: process.platform,
   };
 });
-ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
+/** Write the diagnostics zip where the user picks (the desktop by default) and show it; null if they cancel. */
+async function exportDiagnostics(): Promise<string | null> {
   if (!win || !log) return null;
   const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
   const r = await dialog.showSaveDialog(win, { defaultPath: join(app.getPath('desktop'), `lamplight-diagnostics-${stamp}.zip`), filters: [{ name: 'Zip', extensions: ['zip'] }] });
   if (r.canceled || !r.filePath) return null;
   const creds = credentials();
+  const claude = locateClaude();
   writeFileSync(r.filePath, zip(diagnosticsEntries({
     app: { version: app.getVersion(), packaged: app.isPackaged, electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, locale: app.getLocale() },
     os: { platform: process.platform, release: release(), arch: arch() },
-    hasClaude: locateClaude() !== null,
-    claude: locateClaude() === null ? null : await claudeVersion(locateClaude()!).catch(() => null),
+    hasClaude: claude !== null,
+    claude: claude === null ? null : await claudeVersion(claude).catch(() => null),
     keySource: creds?.source ?? null,
     settings: settings.get(),
     defaultWorkRoot: defaultWorkRoot(app.getPath('documents')),
@@ -200,6 +203,28 @@ ipcMain.handle(IPC.exportDiagnostics, async (): Promise<string | null> => {
   log.info('diagnostics exported');
   shell.showItemInFolder(r.filePath);
   return r.filePath;
+}
+ipcMain.handle(IPC.exportDiagnostics, (): Promise<string | null> => exportDiagnostics());
+/**
+ * "Write to us": opens the user's own mail program with our address, a subject and a short footer filled in.
+ * Nothing is sent from here. With `diagnostics`, the zip is exported first (they attach it themselves);
+ * cancelling that save cancels the letter too.
+ */
+ipcMain.handle(IPC.writeToUs, async (_e, withDiagnostics: unknown): Promise<WriteResult> => {
+  let file: string | null = null;
+  if (withDiagnostics === true) {
+    file = await exportDiagnostics();
+    if (!file) return { opened: false, cancelled: true };
+  }
+  const mail = feedbackMail({ version: app.getVersion(), os: osName(process.platform, release()), diagnostics: file ?? undefined });
+  try {
+    await shell.openExternal(mailtoUrl(mail));
+    log?.info('feedback mail opened', { diagnostics: Boolean(file) });
+    return { opened: true, file: file ?? undefined };
+  } catch (err) {
+    log?.warn('feedback mail not opened', { error: String(err) });
+    return { opened: false, file: file ?? undefined };
+  }
 });
 ipcMain.handle(IPC.copyInstallCommand, () => clipboard.writeText(installCommand(process.platform)));
 // "Install it for me": the official installer, run once at a time; the setup card notices when Claude Code lands.

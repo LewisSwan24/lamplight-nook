@@ -24,6 +24,7 @@ const api: LamplightApi = {
   copyInstallCommand: () => ipcRenderer.invoke(IPC.copyInstallCommand),
   installClaude: () => ipcRenderer.invoke(IPC.installClaude),
   exportDiagnostics: () => ipcRenderer.invoke(IPC.exportDiagnostics),
+  writeToUs: (withDiagnostics: boolean) => ipcRenderer.invoke(IPC.writeToUs, withDiagnostics),
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
   chooseSource: (kind) => ipcRenderer.invoke(IPC.chooseSource, kind),
   handOver: (paths, already) => ipcRenderer.invoke(IPC.handOver, paths, already),

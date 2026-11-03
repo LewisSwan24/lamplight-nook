@@ -40,6 +40,9 @@ export type EnvStatus = {
   installCommand: string; platform: string;
 };
 
+/** "Write to us": whether the mail program opened, the diagnostics file exported for it, or that the user cancelled the save. */
+export type WriteResult = { opened: boolean; file?: string; cancelled?: boolean };
+
 /** Saving a pasted key: `verified` is false when Anthropic could not be reached to check it. */
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
@@ -82,6 +85,8 @@ export interface LamplightApi {
   clearApiKey(): Promise<void>;
   /** Save a diagnostics zip where the user chooses; resolves with its path, or null if cancelled. */
   exportDiagnostics(): Promise<string | null>;
+  /** Open the user's mail program with a letter to us; with true, export the diagnostics zip first. */
+  writeToUs(withDiagnostics: boolean): Promise<WriteResult>;
   /** Put the Claude Code install command on the clipboard. */
   copyInstallCommand(): Promise<void>;
   /** Run the official Claude Code installer; true once Claude Code can be found. */
@@ -225,6 +230,7 @@ export const IPC = {
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',
+  writeToUs: 'app:write-to-us',
   runDebugTask: 'debug:run-task',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',

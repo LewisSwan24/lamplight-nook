@@ -471,6 +471,51 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * Write to us: the card says what the mail will hold, the user's mail program is asked to open (caught
+   * here), the diagnostics file is exported only when ticked, and cancelling that save opens nothing.
+   */
+  async feedback(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const zipAt = join(home.home, 'diag.zip');
+    try {
+      await shop.app.evaluate(({ shell, dialog }, zipAt) => {
+        globalThis.__mail = [];
+        globalThis.__save = zipAt;
+        shell.openExternal = async (url) => { globalThis.__mail.push(url); };
+        shell.showItemInFolder = () => {};
+        dialog.showSaveDialog = async () => (globalThis.__save ? { canceled: false, filePath: globalThis.__save } : { canceled: true });
+      }, zipAt);
+      await shop.openSettings('work');
+      const row = shop.page.locator('.settings .write-us-row');
+      await row.scrollIntoViewIfNeeded();
+      const text = await row.innerText();
+      check(text.includes('24kplo@gmail.com'), 'the address is not shown before writing');
+      await shop.shot(join(out, 'feedback.png'));
+
+      await row.locator('button.write-us').click();
+      await sleep(600);
+      let mail = await shop.app.evaluate(() => globalThis.__mail);
+      check(mail.length === 1 && mail[0].startsWith('mailto:24kplo@gmail.com?subject='), `no letter opened: ${JSON.stringify(mail)}`);
+      check(!existsSync(zipAt), 'diagnostics exported without being asked for');
+
+      await row.locator('.write-diag input[type=checkbox]').check();
+      await row.locator('button.write-us').click();
+      await sleep(1200);
+      mail = await shop.app.evaluate(() => globalThis.__mail);
+      check(mail.length === 2 && existsSync(zipAt), 'diagnostics not exported for the second letter');
+      const body = decodeURIComponent(mail[1].split('body=')[1]);
+      check(body.includes('diag.zip') && !body.includes(home.home) && !/sk-ant/.test(body), `letter body leaks or lacks the file: ${JSON.stringify(body)}`);
+      check((await row.locator('.write-said').innerText()) === shop.L.ui.setup.writeOpenedDiag, 'no word that the letter is open');
+
+      await shop.app.evaluate(() => { globalThis.__save = null; });
+      await row.locator('button.write-us').click();
+      await sleep(600);
+      check((await shop.app.evaluate(() => globalThis.__mail)).length === 2, 'a letter opened although the save was cancelled');
+    } finally { await shop.close(); }
+  },
+
   /** No key yet: the trial replay plays without spending anything. */
   async trial(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });

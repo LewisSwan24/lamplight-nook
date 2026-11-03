@@ -1,4 +1,5 @@
 import { fill, strings } from '../../shared/i18n';
+import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
 import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
@@ -11,6 +12,8 @@ import { FURNISH_CHOICES, FURNISH_PARTS, SWATCHES, type Furnishing } from '../..
 import { currentScene, type SceneId } from '../../shared/scenes';
 
 const S = strings.ui.setup;
+/** Where people write to; the same address as on the website and the store page. */
+const SUPPORT_EMAIL = SUPPORT;
 const OK = '\u2713';
 const MISSING = '\u25CB';
 
@@ -329,8 +332,8 @@ function languageRow(api: LamplightApi, settings: Settings, changed: (s: Setting
 }
 
 /** Export a diagnostics zip; says where it went. */
-function troubleRow(api: LamplightApi): HTMLElement {
-  const said = el('div.hint');
+function troubleRow(api: LamplightApi, version: string, platform: string): HTMLElement {
+  const said = el('div.hint', { role: 'status' });
   const button = el('button.sticker', { type: 'button' }, S.troubleExport) as HTMLButtonElement;
   button.addEventListener('click', async () => {
     button.disabled = true;
@@ -338,7 +341,34 @@ function troubleRow(api: LamplightApi): HTMLElement {
     button.disabled = false;
     said.textContent = path ? S.troubleDone : '';
   });
-  return el('div', {}, el('div.hint', {}, S.troubleText), el('div.actions', {}, button), said);
+  return el('div', {}, el('div.hint', {}, S.troubleText), el('div.actions', {}, button), said, writeRow(api, version, platform));
+}
+
+/**
+ * "Write to us": says exactly what the user's mail program will open with, then opens it. The app sends
+ * nothing; attaching the diagnostics file and pressing send are the user's own steps.
+ */
+function writeRow(api: LamplightApi, version: string, platform: string): HTMLElement {
+  const os = platform === 'win32' ? 'Windows' : platform === 'darwin' ? 'macOS' : platform === 'linux' ? 'Linux' : platform;
+  const footer = fill(S.mailFooter, { version, os, lang: strings.app.languageName });
+  const withDiag = el('input', { type: 'checkbox' }) as HTMLInputElement;
+  const said = el('div.hint.write-said', { role: 'status' });
+  const button = el('button.sticker.write-us', { type: 'button' }, S.writeButton) as HTMLButtonElement;
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    const r = await api.writeToUs(withDiag.checked);
+    button.disabled = false;
+    said.textContent = r.cancelled ? '' : r.opened ? (r.file ? S.writeOpenedDiag : S.writeOpened) : fill(S.writeFailed, { email: SUPPORT_EMAIL });
+  });
+  return el('div.write-us-row', {},
+    el('div.hint', {}, S.writeText),
+    el('ul.write-lines', {},
+      el('li', {}, fill(S.writeTo, { email: SUPPORT_EMAIL })),
+      el('li', {}, fill(S.writeSubject, { subject: fill(S.mailSubject, { version }) })),
+      el('li', {}, fill(S.writeBody, { footer }))),
+    el('div.access-rows.write-diag', {}, el('label.toggle', {}, withDiag, S.writeDiag)),
+    el('div.actions', {}, button),
+    said);
 }
 
 export const SETTINGS_TABS = ['basics', 'furnish', 'sight', 'work', 'about'] as const;
@@ -405,7 +435,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
         el('div.hint', {}, strings.ui.notebook.sectionText),
         el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
-      el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api)),
+      el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api, version, env.platform)),
     ],
     about: [
       el('section', {}, el('h4', {}, S.legalLabel),

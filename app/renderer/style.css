@@ -98,6 +98,9 @@ body.debug #debug { display: block; }
 .source-row[hidden] { display: none; }
 .actions[hidden] { display: none; }
 .claude-version { margin-top: 2px; }
+.write-us-row { margin-top: 14px; }
+.write-lines { margin: 6px 0; padding-left: 1.2em; font-size: 0.9em; }
+.write-diag { margin-top: 6px; }
 .source-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .source-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .source-hint { margin-top: 2px; }
