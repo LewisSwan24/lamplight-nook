@@ -1,0 +1,11 @@
+{
+  "form": {
+    "want": "帮我查一查阳台种番茄要注意什么，写一份简短的总结。",
+    "demo": false,
+    "template": "research"
+  },
+  "workDir": "{HOME}/小灯屋/委托/2026-11-03-124238-查一查阳台种番茄要注意什么-写一",
+  "preexisting": [],
+  "startedAt": 1793709758259,
+  "sessionId": "sim-mw0oh7cn"
+}

@@ -1,5 +1,5 @@
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId } from '../shared/growth';
 import type { CommissionMemo, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
@@ -126,10 +126,16 @@ export class MemoryStore {
     this.data.stuckNotes = this.data.stuckNotes.slice(-MAX_NOTES);
   }
 
-  /** Forget everything (the notebook's "clear" button). */
+  /**
+   * Forget everything (the notebook's "clear" button), including the copies kept aside when the data
+   * folder was upgraded (backup/<date>-v<n>/memory.json, see migrate.ts).
+   */
   clear() {
     this.data = empty();
     rmSync(this.file, { force: true });
+    const backups = join(dirname(this.file), 'backup');
+    if (!existsSync(backups)) return;
+    for (const dir of readdirSync(backups)) rmSync(join(backups, dir, basename(this.file)), { force: true });
   }
 
   /**

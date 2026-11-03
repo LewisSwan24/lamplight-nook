@@ -21,7 +21,7 @@ export const FAKE_CLAUDE = join(ROOT, 'tools', 'sim', 'claude.mjs');
 const FAKE_KEY = 'sk-ant-api03-simulated-0000000000000000000000000000000000000000';
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-export const locale = (lang) => JSON.parse(readFileSync(join(ROOT, 'locales', `${lang}.json`), 'utf8'));
+export const locale = (lang, appDir = ROOT) => JSON.parse(readFileSync(join(appDir, 'locales', `${lang}.json`), 'utf8'));
 
 /** The window sizes the walk checks: a small laptop, a common desktop, and a wide one. */
 export const SIZES = { small: [1280, 720], medium: [1600, 900], large: [1920, 1080] };
@@ -64,9 +64,10 @@ export function onboarded(lang, extra = {}) {
 
 /**
  * Start the app. Options: lang, home (from freshHome), size, scenario and speed for the stand-in Claude,
- * key (false for "no key"), debug (show the debug panel).
+ * key (false for "no key"), debug (show the debug panel), appDir (another built checkout of the app,
+ * such as an older version; its own locales are used).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT } = {}) {
   const env = {
     PATH: process.env.PATH,
     HOME: home.home,
@@ -81,7 +82,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
     ...(process.env.XAUTHORITY ? { XAUTHORITY: process.env.XAUTHORITY } : {}),
   };
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
-  const app = await electron.launch({ executablePath: ELECTRON, args: [ROOT, '--no-sandbox'], env, cwd: ROOT });
+  const app = await electron.launch({ executablePath: ELECTRON, args: [appDir, '--no-sandbox'], env, cwd: appDir });
   const page = await app.firstWindow();
   // A development build always has the debug panel; keep it out of pictures and recordings unless asked for.
   if (!debug) {
@@ -93,7 +94,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
     await page.addInitScript(hide);
     await page.evaluate(hide).catch(() => {});
   }
-  const shop = new Shop(app, page, lang, home);
+  const shop = new Shop(app, page, lang, home, appDir);
   await shop.resize(size);
   await page.waitForSelector('#game canvas', { timeout: 30_000 });
   await sleep(1500);
@@ -101,12 +102,12 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
 }
 
 export class Shop {
-  constructor(app, page, lang, home) {
+  constructor(app, page, lang, home, appDir = ROOT) {
     this.app = app;
     this.page = page;
     this.lang = lang;
     this.home = home;
-    this.L = locale(lang);
+    this.L = locale(lang, appDir);
   }
 
   async resize(size) {

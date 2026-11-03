@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased (0.9.0)
+
+- **Upgrades keep everything.** The data folder now has a version, and older data is brought up to date
+  when the app starts, with a copy of the old files kept in `backup/` first. A shop used since 0.5 or 0.6 now
+  counts the commissions finished back then (0.7 started counting from zero), and grows accordingly.
+  Notebook entries from before 0.7 know which file is the work, so the works shelf opens it rather than
+  the folder. English titles from before 0.8.1 read as words again ("Make me a small" rather than
+  "Make-me-a-small-").
+- Clearing the notebook also clears the copy kept aside by an upgrade.
+- Tooling: `tools/sim/legacy.mjs` builds a shop's real data with 0.5.0, 0.6.1 and 0.7.0; the `upgrade`
+  acceptance scenario opens it with the current version.
+
 ## 0.8.1 (2026-11-03)
 
 - English titles of commissions keep whole words on the works shelf and in Wick's notebook
