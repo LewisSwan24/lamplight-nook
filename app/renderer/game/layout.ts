@@ -153,6 +153,14 @@ export function uiScale(viewW: number, viewH: number): number {
   return Math.min(1.75, Math.max(1, Math.floor(s * 20) / 20));
 }
 
+/**
+ * How many CSS pixels one pixel of a toolbar icon takes: twice the window's scale, rounded so that it is always a
+ * whole number of real pixels, whatever the display scale. Anything else would make the pixels uneven.
+ */
+export function toolIconPx(ui: number, dpr: number): number {
+  return Math.round(2 * ui * dpr) / dpr;
+}
+
 const A = strings.actors;
 
 /** `height` is how tall the visible sprite is above the feet, for placing name labels and bubbles. */

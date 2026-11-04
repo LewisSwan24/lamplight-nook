@@ -50,7 +50,11 @@ Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handi
 `templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
-slip holding twelve long-named files), `trial`,
+slip holding twelve long-named files), `menus` (the toolbar's six buttons, labels and icon pixels, and what sits on each
+settings tab), `cards` (every kind of card at the three sizes through the debug handles, with long sample text: inside the
+window, nothing spilling over the paper, one of three widths, the close button and Esc only where a card may be put away, the
+main button last and focused; leaves `cards-<size>-<kind>.png`), `firstuse` (the "!" marks on the counter, bell and blackboard,
+in both rooms; slow on purpose, so the first commission is still going when Adeng speaks), `trial`,
 `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),
 `oldclaude` (the stand-in claims an old Claude Code version), `feedback` ("Write to us" and reporting
 what the staff made: the mail program and the save dialog are caught, nothing is sent), `store`

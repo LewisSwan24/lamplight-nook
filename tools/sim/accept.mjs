@@ -792,6 +792,382 @@ const SCENARIOS = {
   },
 
   /**
+   * The toolbar and settings as docs/information-structure.md lays them out: six buttons in order, labels that
+   * show at once on hover and keyboard focus, pixel icons at whole real pixels, and the five settings tabs.
+   */
+  async menus(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang, { muted: false }) });
+    const shop = await launch({ lang, home, speed: SPEED, debug: true });
+    const { page, L } = shop;
+    const S = L.ui.setup;
+    const buttons = page.locator('.toolbar button.tool-btn');
+    const tip = (i) => buttons.nth(i).getAttribute('data-tip');
+    const tipShown = (i) => buttons.nth(i).evaluate((b) => getComputedStyle(b, '::after').opacity === '1');
+    const settingsFile = () => JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8'));
+    try {
+      const want = [L.ui.toolbar.order, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.settings];
+      check(await buttons.count() === 6, `the toolbar has ${await buttons.count()} buttons`);
+      for (const [i, label] of want.entries()) {
+        check(await tip(i) === label, `button ${i} says ${await tip(i)}, not ${label}`);
+        check(await buttons.nth(i).getAttribute('aria-label') === label, `button ${i} has no spoken name`);
+        check(await buttons.nth(i).getAttribute('title') === null, `button ${i} leans on the slow native tooltip`);
+        await page.mouse.move(800, 500);
+        check(!(await tipShown(i)), `button ${i} shows its label without being pointed at`);
+        await buttons.nth(i).hover();
+        check(await tipShown(i), `button ${i} does not show its label at once on hover`);
+      }
+      await page.mouse.move(800, 500);
+      await buttons.nth(1).focus();
+      await page.keyboard.press('Shift+Tab');
+      check(await tipShown(0), 'the first button shows no label on keyboard focus');
+      await page.evaluate(() => document.activeElement.blur());
+      await buttons.nth(5).hover();
+      await shop.shot(join(out, 'menus-toolbar-tip.png'));
+
+      // Whole real pixels at every window size.
+      for (const size of ['small', 'medium', 'large']) {
+        await shop.resize(size);
+        const px = await page.locator('.tool-icon').first().evaluate((n) => n.getBoundingClientRect().width / 16 * devicePixelRatio);
+        check(Math.abs(px - Math.round(px)) < 0.01, `${size}: an icon pixel is ${px} real pixels`);
+        await page.locator('.toolbar').screenshot({ path: join(out, `menus-toolbar-${size}.png`) });
+      }
+      await shop.resize('medium');
+
+      // Commission: the same as the counter, in both states, and the word follows the work.
+      await buttons.nth(0).click();
+      check(await shop.maybe('form.commission', 3000), 'the commission button opens no slip');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await page.evaluate(() => window.lamplightDebug.pretendRunning(true));
+      await sleep(200);
+      check(await tip(0) === L.ui.toolbar.progress, `while working the first button says ${await tip(0)}`);
+      await buttons.nth(0).click();
+      check(await shop.maybe('.running-card', 3000), 'while working the first button opens no progress card');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await page.evaluate(() => window.lamplightDebug.pretendRunning(false));
+      await sleep(200);
+      check(await tip(0) === L.ui.toolbar.order, 'the first button did not go back after the work');
+
+      // The shelf has words of its own when empty.
+      await buttons.nth(1).click();
+      const shelf = await shop.maybe('.shelf-card', 3000);
+      check(shelf, 'the works button opens no shelf');
+      check((await shelf.innerText()).includes(L.ui.shelf.empty), 'an empty shelf says nothing about being empty');
+      await shop.shot(join(out, 'menus-shelf-empty.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await buttons.nth(2).click();
+      check(await shop.maybe('.notebook', 3000), 'the notebook button opens no notebook');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await buttons.nth(3).click();
+      check(await shop.maybe('.caption-card', 3000), 'the captions button opens no record');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      // Sound: keyboard focus stays on the button when it changes.
+      await buttons.nth(4).click();
+      await sleep(300);
+      check(settingsFile().muted === true, 'the sound button did not mute');
+      check(await tip(4) === L.ui.toolbar.unmute, 'the sound button did not change its word');
+      check(await buttons.nth(4).evaluate((b) => b === document.activeElement), 'the sound button lost focus when it changed');
+      await buttons.nth(4).click();
+      await sleep(300);
+
+      // Settings: what sits on each tab.
+      const has = async (selector, what, yes = true) => check((await page.locator(`.settings ${selector}`).count() > 0) === yes, `${what} ${yes ? 'missing from' : 'still on'} this tab`);
+      const body = () => page.locator('.settings-body').innerText();
+      await shop.openSettings('basics');
+      check(await page.locator('.settings button.tab[data-tab="furnish"]').innerText() === S.settingsTabs.furnish, 'furnish tab label');
+      check(await page.locator('.settings button.tab[data-tab="work"]').innerText() === S.settingsTabs.work, 'work tab label');
+      await has('input[type=text]', 'basics: name');
+      await has('.look-picker', 'basics: look');
+      await has('select', 'basics: language');
+      await has('.scene-picker', 'basics: scene', false);
+      await has('.folder-row', 'basics: folder', false);
+      await shop.openSettings('furnish');
+      await has('.scene-picker', 'furnish: scene');
+      await has('.swatches', 'furnish: furnishing');
+      await shop.shot(join(out, 'menus-settings-furnish.png'));
+      await shop.openSettings('sight');
+      await has('input[type=range]', 'sight: volume');
+      check((await body()).includes(L.ui.access.captionsToggle), 'sight: captions');
+      check((await body()).includes(L.ui.access.reduceMotion), 'sight: less motion');
+      check((await body()).includes(L.ui.access.detailedToggle), 'sight: what the staff are doing');
+      check(!(await body()).includes(L.ui.tray.notifyToggle), 'sight: notifications still here');
+      await shop.shot(join(out, 'menus-settings-sight.png'));
+      // The strip under the scene answers the switch at once.
+      const strip = page.locator('.detail-strip');
+      check(await strip.evaluate((n) => n.hidden), 'the detail strip shows before it is asked for');
+      await page.locator('.settings label.toggle', { hasText: L.ui.access.detailedToggle }).locator('input').check();
+      await sleep(300);
+      check(!(await strip.evaluate((n) => n.hidden)), 'the switch did not bring the detail strip');
+      check(settingsFile().detailed === true, 'the switch was not saved');
+      check(await page.evaluate(() => window.lamplightDebug.view.detailed), 'the switch did not reach the shop');
+      await page.locator('.settings label.toggle', { hasText: L.ui.access.detailedToggle }).locator('input').uncheck();
+      await sleep(300);
+      check(await strip.evaluate((n) => n.hidden), 'the switch did not hide the detail strip');
+      await shop.openSettings('work');
+      await has('.env-rows', 'work: what is needed');
+      await has('.folder-row', 'work: folder');
+      await has('.spend-rows', 'work: spend');
+      for (const word of [L.ui.tray.notifyToggle, L.ui.tray.closeToTrayToggle, L.ui.mini.toggle]) check((await body()).includes(word), `work: ${word}`);
+      check(!(await body()).includes(L.ui.notebook.sectionText), 'work: the notebook entry is still here');
+      await has('.write-us-row', 'work: writing to us', false);
+      await shop.shot(join(out, 'menus-settings-work.png'));
+      await shop.openSettings('about');
+      await has('.legal-links', 'about: legal');
+      await has('.about', 'about: credits');
+      check((await body()).includes(S.troubleText), 'about: trouble');
+      await has('.write-us-row', 'about: writing to us');
+      await shop.shot(join(out, 'menus-settings-about.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Every kind of card, at three window sizes: inside the window, nothing spilling over its paper, one of three
+   * widths, a close button and Esc exactly where it may be put away, and the main button last on the right.
+   * These open through the debug handles with long sample text; the real routes to them are in the other scenarios.
+   */
+  async cards(lang, out) {
+    const memory = {
+      commissions: Array.from({ length: 16 }, (_, i) => ({
+        id: `c${1000 + i}`, title: W[lang].letter, date: '2026-10-20', result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: W[lang].letter, template: 'letter' },
+      })),
+      stuckNotes: [], greeted: 'c1015',
+      shop: { done: 16, told: [], grown: [] },
+    };
+    const shopHome = () => freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) });
+    const home = shopHome();
+    const shop = await launch({ lang, home, speed: SPEED, debug: true });
+    const { page, L } = shop;
+    const long = (W[lang].page + ' ').repeat(8);
+    const env = { hasApiKey: false, hasClaude: false, debug: false, keySource: 'none', installCommand: 'irm https://claude.ai/install.ps1 | iex', platform: 'win32' };
+    const sample = { long, env };
+    const TOKEN = { small: 460, form: 500, reading: 600 };
+
+    /** What makes a card: how it opens, what it is called on the page, how wide, and how it goes away. */
+    const CARDS = [
+      { name: 'slip', sel: 'form.commission', w: 'form', open: () => window.lamplightDebug.ui.showCommissionForm() },
+      { name: 'actor', sel: '.actor-card', w: 'small', open: ({ long }) => window.lamplightDebug.ui.showActorCard('adeng', { state: 'working', lastLine: long, doing: long, stats: { writes: 3, runs: 2, fails: 1 }, raw: Array.from({ length: 30 }, (_, i) => `event ${i}`) }, true) },
+      { name: 'plan', sel: '.plan-card', w: 'small', open: ({ long }) => window.lamplightDebug.ui.showPlan(Array.from({ length: 24 }, (_, i) => ({ label: `${i + 1} ${long.slice(0, 30)}`, status: i < 5 ? 'done' : i === 5 ? 'doing' : 'todo' }))) },
+      { name: 'result', sel: '.result-card', w: 'small', open: ({ long }) => window.lamplightDebug.ui.showResult({ ok: true, workDir: 'C:/w', files: ['C:/w/page.html'], main: 'C:/w/page.html', costUsd: 0.42, summary: long.repeat(3), id: 'c1015', round: 2, canRestore: true }) },
+      { name: 'running', sel: '.running-card', w: 'small', open: ({ long }) => {
+        const d = window.lamplightDebug;
+        d.pretendRunning(true);
+        d.ui.renderBoard(Array.from({ length: 24 }, (_, i) => ({ label: `${i + 1} ${long.slice(0, 30)}`, status: i < 5 ? 'done' : i === 5 ? 'doing' : 'todo' })));
+        document.querySelector('.toolbar button.tool-btn').click();
+      }, after: () => { window.lamplightDebug.pretendRunning(false); window.lamplightDebug.ui.renderBoard([]); } },
+      { name: 'running-stop', sel: '.running-card', w: 'small', open: () => {
+        window.lamplightDebug.pretendRunning(true);
+        document.querySelector('.toolbar button.tool-btn').click();
+        setTimeout(() => document.querySelector('.running-card .progress-cancel').click(), 100);
+      }, after: () => window.lamplightDebug.pretendRunning(false) },
+      { name: 'failure', sel: '#ui > .card', w: 'small', open: () => window.lamplightDebug.ui.showFailure('net') },
+      { name: 'failure-money', sel: '.card.serious', w: 'form', open: () => window.lamplightDebug.ui.showFailure('budget') },
+      { name: 'notice', sel: '.notice-card', w: 'reading', open: ({ env }) => {
+        window.lamplightDebug.ui.showNotReady(env);
+        document.querySelector('.notice-card details.claude-manual').open = true;
+      } },
+      { name: 'trial-end', sel: '.trial-end', w: 'small', open: () => window.lamplightDebug.ui.showTrialEnd() },
+      { name: 'meeting', sel: 'form.meeting', w: 'form', open: () => window.lamplightDebug.ui.showMeeting() },
+      { name: 'revise', sel: 'form.meeting.revise', w: 'form', open: ({ long }) => window.lamplightDebug.ui.showRevise(long.slice(0, 20)) },
+      { name: 'shelf', sel: '.shelf-card', w: 'form', open: () => window.lamplightDebug.ui.showShelf() },
+      { name: 'notebook', sel: '.notebook', w: 'reading', open: () => window.lamplightDebug.ui.showNotebook() },
+      { name: 'captions', sel: '.caption-card', w: 'reading', open: () => window.lamplightDebug.ui.showCaptionLog() },
+      ...['basics', 'furnish', 'sight', 'work', 'about'].map((tab) => ({ name: `settings-${tab}`, sel: '.card.settings', w: 'form', tab })),
+      { name: 'legal-terms', sel: '.card.legal', w: 'reading', open: () => window.lamplightDebug.ui.showLegal('terms') },
+      { name: 'legal-notices', sel: '.card.legal', w: 'reading', open: () => window.lamplightDebug.ui.showLegal('notices') },
+      // Cards that must be answered: no close button, and Esc does not put them away.
+      { name: 'pending', sel: '.pending-card', w: 'small', must: true, open: ({ long }) => window.lamplightDebug.ui.showPending({ want: long }), answer: '.pending-card button.default' },
+      { name: 'decision', sel: '.dialog', w: 'form', must: 'esc-answers', open: ({ long }) => void window.lamplightDebug.ui.showDecision({ id: 'q', kind: 'question', agent: 'main', tool: 'AskUserQuestion', title: long, defaultId: '0', options: [0, 1, 2, 3].map((i) => ({ id: String(i), label: long.slice(0, 18), hint: long.slice(0, 40) })) }) },
+      { name: 'serious', sel: '.serious', w: 'form', must: 'esc-answers', open: ({ long }) => void window.lamplightDebug.ui.showDecision({ id: 's', kind: 'serious', agent: 'main', tool: 'Bash', title: long, reason: long, detail: long, defaultId: 'deny', options: [{ id: 'deny', label: 'no' }, { id: 'allow', label: long.slice(0, 16) }] }) },
+    ];
+
+    // Everything wrong at once, rather than one card at a time.
+    const problems = [];
+    const check = (ok, why) => { if (!ok) problems.push(why); };
+    const look = async (c, size, on = page) => {
+      const what = `${size} ${c.name}`;
+      const found = await on.evaluate(({ sel }) => {
+        const n = document.querySelector(sel);
+        if (!n) return null;
+        const r = n.getBoundingClientRect();
+        const row = [...n.querySelectorAll('.actions')].filter((a) => a.querySelector('button.default') && !a.closest('.serious'))
+          .map((a) => { const shown = [...a.querySelectorAll('button')].filter((b) => !b.hidden); return shown.at(-1).classList.contains('default'); });
+        const close = n.querySelector(':scope > button.close');
+        const cr = close?.getBoundingClientRect();
+        return {
+          x: r.x, y: r.y, w: r.width, h: r.height,
+          spill: n.scrollHeight - n.clientHeight, spillX: n.scrollWidth - n.clientWidth,
+          focusOnMain: n.querySelector('textarea, input') || !n.querySelector('.actions button.default') || document.activeElement?.matches('button.default'),
+          mainLast: row, closes: n.querySelectorAll(':scope > button.close').length, closeLabel: close?.getAttribute('aria-label'),
+          closeAt: cr && { right: r.right - cr.right, top: cr.top - r.top },
+          vw: innerWidth, vh: innerHeight, ui: Number(getComputedStyle(document.documentElement).getPropertyValue('--ui')) || 1,
+        };
+      }, { sel: c.sel });
+      if (!found) return check(false, `${what}: not shown`);
+      check(found.x >= 0 && found.y >= 0 && found.x + found.w <= found.vw + 1 && found.y + found.h <= found.vh + 1, `${what} does not fit ${found.vw}x${found.vh}: ${JSON.stringify(found)}`);
+      check(found.spill <= 1 && found.spillX <= 1, `${what}: its words spill over the paper by ${found.spill}px down, ${found.spillX}px across`);
+      const width = Math.min(TOKEN[c.w] * found.ui, found.vw * 0.92);
+      check(Math.abs(found.w - width) <= 2, `${what}: ${found.w}px wide, expected ${width} (${c.w})`);
+      check(found.mainLast.every(Boolean), `${what}: the main button is not last`);
+      // What Enter does on a card that has just opened must be the safe thing.
+      check(found.focusOnMain, `${what}: keyboard focus is not on the main button`);
+      if (c.must) check(found.closes === 0, `${what}: must be answered, yet has a close button`);
+      else {
+        check(found.closes === 1, `${what}: no close button`);
+        check(found.closeLabel === L.ui.closeLabel, `${what}: close button says ${found.closeLabel}`);
+        check(found.closeAt.right < 24 && found.closeAt.top < 24, `${what}: close button is not top right: ${JSON.stringify(found.closeAt)}`);
+      }
+    };
+
+    try {
+      for (const size of ['small', 'medium', 'large']) {
+        await shop.resize(size);
+        for (const c of CARDS) {
+          if (c.tab) await shop.openSettings(c.tab);
+          // A string, so a card whose promise waits for an answer does not hold the script up.
+          else await page.evaluate(`void (${c.open})(${JSON.stringify(sample)})`);
+          await sleep(c.name === 'running-stop' ? 500 : 350);
+          await look(c, size);
+          await shop.shot(join(out, `cards-${size}-${c.name}.png`));
+          await page.keyboard.press('Escape');
+          await sleep(300);
+          const left = await page.locator(c.sel).count();
+          if (c.must === true) {
+            check(left === 1, `${size} ${c.name}: Esc put away a card that must be answered`);
+            await page.locator(c.answer).click();
+            await sleep(300);
+          } else check(left === 0, `${size} ${c.name}: Esc did not put it away`);
+          if (c.after) await page.evaluate(c.after);
+          await sleep(100);
+          check(await page.locator(`#ui > .card, #ui > form.card, .backdrop, .legal-backdrop`).count() === 0, `${size} ${c.name}: something stayed open`);
+        }
+      }
+
+      // The close button does what Esc does, on the two that are forms.
+      await page.evaluate('void window.lamplightDebug.ui.showCommissionForm()');
+      await sleep(300);
+      await page.locator('form.commission > button.close').click();
+      await sleep(300);
+      check(await page.locator('form.commission').count() === 0, 'the slip stays after its close button');
+    } finally { await shop.close(); }
+
+    // Welcome: three pages, no way past it but through it; and nothing else can push it aside.
+    const fresh = freshHome();
+    const w = await launch({ lang, home: fresh, speed: SPEED, debug: true });
+    try {
+      check(await w.maybe('.welcome input[type=text]', 8000), 'no welcome card');
+      check(await w.page.locator('.toolbar').count() === 0, 'the toolbar shows before the welcome is done');
+      const pages = ['name', 'check', 'folder'];
+      for (const [i, name] of pages.entries()) {
+        for (const size of ['small', 'medium', 'large']) {
+          await w.resize(size);
+          await look({ name: `welcome-${name}`, sel: '.welcome', w: 'form', must: true }, size, w.page);
+          await w.shot(join(out, `cards-${size}-welcome-${name}.png`));
+          await w.page.keyboard.press('Escape');
+          await sleep(200);
+          check(await w.page.locator('.welcome').count() === 1, 'Esc put away the welcome');
+        }
+        // A click on the counter behind it changes nothing.
+        await w.page.evaluate(() => { window.lamplightDebug.scene.onCounterClick(); });
+        await sleep(500);
+        check(await w.page.locator('.welcome').count() === 1, 'the counter pushed the welcome aside');
+        if (i === 0) await w.page.locator('.welcome input[type=text]').fill(lang === 'en' ? 'Sam' : '小林');
+        if (i < pages.length - 1) await w.page.locator('.welcome .actions button.default').last().click();
+        await sleep(300);
+      }
+    } finally { await w.close(); }
+    if (problems.length) throw new Error(`${problems.length} problems: ${problems.join(' | ')}`);
+  },
+
+  /**
+   * A newcomer finds the counter, then the bell and the blackboard: each gets a small "!" the first time it matters,
+   * Adeng says what they are for, and the mark goes when it has been used.
+   */
+  async firstuse(lang, out) {
+    const home = freshHome();
+    // Slow enough that the first commission is still going when Adeng speaks up.
+    const shop = await launch({ lang, home, speed: 1500, debug: true });
+    const { page, L } = shop;
+    const hints = () => page.evaluate(() => window.lamplightDebug.scene.hints());
+    const places = () => page.evaluate(() => window.lamplightDebug.scene.hotspots().map((h) => h.id));
+    const said = async (text) => {
+      await page.locator('.toolbar button.tool-btn').nth(3).click();
+      await page.waitForSelector('.caption-card');
+      const log = await page.locator('.caption-card').innerText();
+      const has = log.includes(text);
+      await page.keyboard.press('Escape');
+      await sleep(200);
+      return has;
+    };
+    try {
+      await shop.maybe('.welcome input[type=text]', 8000);
+      await page.locator('.welcome input[type=text]').fill(lang === 'en' ? 'Sam' : '小林');
+      await page.locator('.welcome .actions button.default').last().click();
+      await sleep(300);
+      await page.locator('.welcome .actions button.default').last().click();
+      await sleep(300);
+      await page.locator('.welcome .actions button.default').last().click();
+      await sleep(1500);
+      check(await page.locator('.toolbar button.tool-btn').count() === 6, 'no toolbar after the welcome');
+      check((await hints()).join() === 'counter', `after the welcome the marks are on ${await hints()}`);
+      check((await places()).includes('counter') && (await places()).includes('board'), 'the counter or the blackboard cannot be reached');
+      await shop.shot(join(out, 'firstuse-1-counter.png'));
+      await sleep(4500);
+      check(await said(L.ui.setup.greetHint), 'Adeng never points at the counter');
+
+      await shop.order({ template: 'letter', want: W[lang].letter });
+      check(!(await hints()).includes('counter'), 'the mark stays on the counter after opening it');
+      await shop.submit();
+      await sleep(800);
+      check((await places()).includes('bell'), 'no bell to press while working');
+      const up = await hints();
+      check(up.includes('bell') && up.includes('board'), `during the first commission the marks are on ${up}`);
+      await shop.shot(join(out, 'firstuse-2-bell-board.png'));
+      await sleep(6500);
+      check(await said(L.ui.run.firstHint), 'Adeng never says what the bell and the blackboard are for');
+      await shop.hotspot(L.ui.access.hotspotBoard);
+      await sleep(300);
+      check(!(await hints()).includes('board'), 'the mark stays on the blackboard after looking at it');
+      await page.keyboard.press('Escape');
+      const r = await shop.workUntilDone();
+      check(r.ok, 'the first commission did not finish');
+      check((await hints()).length === 0, `after the first commission the marks are still on ${await hints()}`);
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      // The second commission is not led by the hand.
+      await shop.order({ template: 'letter', want: W[lang].letter });
+      await shop.submit();
+      await sleep(800);
+      check((await hints()).length === 0, `the second commission has marks on ${await hints()}`);
+      await shop.workUntilDone();
+    } finally { await shop.close(); }
+
+    // In the study the same marks sit on the desk and its board.
+    const study = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang, { scene: 'study' }) }), speed: SPEED, debug: true });
+    try {
+      await study.page.evaluate(() => {
+        const d = window.lamplightDebug;
+        d.pretendRunning(true);
+        for (const spot of ['bell', 'board']) d.scene.setHint(spot, true);
+      });
+      await sleep(300);
+      await study.shot(join(out, 'firstuse-3-study.png'));
+      await study.page.evaluate(() => {
+        const d = window.lamplightDebug;
+        d.pretendRunning(false);
+        d.scene.setHint('bell', false);
+        d.scene.setHint('counter', true);
+      });
+      await sleep(300);
+      await study.shot(join(out, 'firstuse-4-study-counter.png'));
+    } finally { await study.close(); }
+  },
+
+  /**
    * Write to us: the card says what the mail will hold, the user's mail program is asked to open (caught
    * here), the diagnostics file is exported only when ticked, and cancelling that save opens nothing.
    */
@@ -807,7 +1183,7 @@ const SCENARIOS = {
         shell.showItemInFolder = () => {};
         dialog.showSaveDialog = async () => (globalThis.__save ? { canceled: false, filePath: globalThis.__save } : { canceled: true });
       }, zipAt);
-      await shop.openSettings('work');
+      await shop.openSettings('about');
       const row = shop.page.locator('.settings .write-us-row');
       await row.scrollIntoViewIfNeeded();
       const text = await row.innerText();
@@ -970,7 +1346,7 @@ for (const lang of LANGS) {
       clearTimeout(timer);
       results.push([lang, name, 'PASS', '']);
     } catch (err) {
-      results.push([lang, name, 'FAIL', String(err?.message ?? err).slice(0, 300)]);
+      results.push([lang, name, 'FAIL', String(err?.message ?? err).slice(0, 2000)]);
     }
     const [, , status, why] = results.at(-1);
     console.log(`${status} ${lang} ${name} (${Math.round((Date.now() - t0) / 1000)}s) ${why}`);

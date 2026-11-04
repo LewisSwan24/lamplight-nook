@@ -3,7 +3,7 @@ import { fill, strings } from '../../shared/i18n';
 import { capLine, elapsedLine, planLine } from '../../shared/progress';
 import type { ActorId, CommissionForm, ExternalLink, LamplightApi } from '../../shared/types';
 import { el } from './dom';
-import { closePanel, replaceOpen } from './panels';
+import { closeButton, closePanel, replaceOpen } from './panels';
 import { portraitEl, withPortrait } from './portraits';
 
 const R = strings.ui.run;
@@ -47,17 +47,18 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   });
   let confirming = false;
   const ask = () => actions.replaceChildren(
-    el('button.default', { onclick: closePanel }, R.keepGoing),
-    el('button.progress-meet', { onclick: act.meet }, R.progressMeet),
     el('button.progress-cancel', { onclick: sure }, R.cancel),
+    el('button.progress-meet', { onclick: act.meet }, R.progressMeet),
+    el('button.default', { onclick: closePanel }, R.keepGoing),
   );
   const sure = () => {
     confirming = true;
     now.textContent = R.cancelConfirm;
     actions.replaceChildren(
-      el('button.default', { onclick: closePanel }, R.keepGoing),
       el('button.progress-cancel', { onclick: () => { closePanel(); void api.cancelCommission(); } }, R.cancel),
+      el('button.default', { onclick: closePanel }, R.keepGoing),
     );
+    actions.querySelector<HTMLElement>('button.default')!.focus();
   };
   const draw = () => {
     const v = view();
@@ -73,7 +74,7 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
     });
   };
   const card = el('div.card.paper.running-card.plan-card', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    closeButton(),
     withPortrait('adeng', 'calm', el('div.card-title.progress-title', { title: first.want }, fill(R.runningTitle, { want: first.want })), meta, el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), now)),
     heading,
     list,
@@ -109,7 +110,7 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void, 
   const f = FAILURES[kind];
   if (!f) return false;
   replaceOpen(el(f.plain ? 'div.card.serious' : 'div.card.paper', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    closeButton(),
     // Money and key problems stay plain, without a character; the rest is Adeng telling you.
     ...(f.plain
       ? [el('div.serious-title', {}, f.title), el('div', {}, fill(f.text, vars))]
@@ -123,7 +124,7 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void, 
 
 /** At startup: a commission was left unfinished last time. */
 export function showPending(api: LamplightApi, form: CommissionForm, resume: () => void) {
-  replaceOpen(el('div.card.paper.pending-card', {},
+  replaceOpen(el('div.card.paper.pending-card.must-answer', {},
     withPortrait('adeng', 'calm', el('div.card-title', {}, R.pendingTitle), el('div', {}, fill(R.pendingText, { want: form.want }))),
     el('div.actions', {},
       el('button', { onclick: () => { closePanel(); void api.dropPending(); } }, R.drop),

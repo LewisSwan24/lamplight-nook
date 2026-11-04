@@ -4,6 +4,17 @@
 
 The running card and the road to 1.0.
 
+- **Six buttons, in the order you reach for them.** Commission (Progress while one is running), the works shelf, the
+  notebook, captions, sound and settings, in pixel icons drawn for the shop that look the same on every computer. Each
+  says what it is the moment you point at it or tab to it.
+- **Settings sort themselves out.** Who you are, the shop (where it is and how it is furnished), sight and sound, getting
+  to work, and about, with the trouble and write-to-us rows there. Detailed mode is now a switch under sight and sound:
+  "Show what the staff are doing at the bottom of the window".
+- **Every card behaves the same.** A card you can put away has a x at the top right and answers Esc; a card that needs an
+  answer has neither and cannot be pushed aside. The main button is always last on the right and takes the keyboard focus,
+  so Enter is safe. Three widths instead of a dozen, and long words scroll inside the paper.
+- **A newcomer gets shown round.** A small "!" over the counter, then over the bell and the blackboard during the first
+  commission, with a word from Adeng about what they are for. The works shelf says so when it is empty.
 - **One card for work under way.** The counter and the blackboard now open the same card: how long it has taken,
   the limit for this round, what is happening now, every step of the plan, who on the staff is doing what, and three
   buttons (keep going, say something, call it off). It keeps up while it is open. Steps that are only Adeng's guess

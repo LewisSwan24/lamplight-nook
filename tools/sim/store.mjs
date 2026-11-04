@@ -165,7 +165,7 @@ async function shots(lang, grown) {
         await closeCards(shop);
       }
       if (pick('notebook')) {
-        await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
+        await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
         await sleep(800);
         await shop.shot(join(out, '06-notebook.png'));
         await closeCards(shop);
@@ -238,7 +238,7 @@ async function shots(lang, grown) {
         await shop.shot(join(out, '11-furnish.png'));
       }
       if (pick('study')) {
-        await shop.openSettings('basics');
+        await shop.openSettings('furnish');
         await shop.page.locator('.settings .scene-picker button.scene-choice').last().click();
         await shop.page.locator('.settings button.sticker', { hasText: shop.L.ui.scene.move }).click();
         await sleep(10000);

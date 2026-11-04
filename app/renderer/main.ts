@@ -5,35 +5,35 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
 import { VisitPlanner, pickVisit, welcomeGuests } from './game/guests';
-import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, uiScale } from './game/layout';
+import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, toolIconPx, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { openingTurns, pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
-import { recordLine, setCaptionBar } from './ui/captions';
+import { recordLine, setCaptionBar, showCaptionLog } from './ui/captions';
 import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { boardSteps, clearWorkSigns, commissionFormOpen, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { boardSteps, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { closeRunning, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
-import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
-import { onNotebookForget, onNotebookRevise } from './ui/notebook';
+import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
+import { onNotebookForget, onNotebookRevise, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
 import { type GrowthId, type Made, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
-import { mountToolbar, noteEvent, view } from './ui/toolbar';
+import { mountToolbar, noteEvent, setWorking, syncToolbar, view } from './ui/toolbar';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -61,7 +61,9 @@ const game = new Phaser.Game({
 // Integer zoom keeps pixels crisp; leftover space stays dark.
 function fit() {
   game.scale.setZoom(integerScale(window.innerWidth, window.innerHeight));
-  document.documentElement.style.setProperty('--ui', String(uiScale(window.innerWidth, window.innerHeight)));
+  const ui = uiScale(window.innerWidth, window.innerHeight);
+  document.documentElement.style.setProperty('--ui', String(ui));
+  document.documentElement.style.setProperty('--tool-px', String(toolIconPx(ui, window.devicePixelRatio)));
 }
 window.addEventListener('resize', fit);
 fit();
@@ -251,6 +253,7 @@ function sayFrom(group: string, k = 0) {
 }
 async function meeting() {
   if (!running || meetingOpen) return;
+  scene.setHint('bell', false);
   meetingOpen = true;
   sfx('ding');
   stage.holdStill();
@@ -344,7 +347,11 @@ function clickObject(id: ObjectId) {
 scene.onObjectClick = clickObject;
 scene.onYouClick = () => void stage.answer('adeng', strings.ui.objects.you);
 scene.boardInUse = () => running !== null || boardSteps().length > 0;
-scene.onBoardClick = () => (running ? openProgress() : showPlan(boardSteps()));
+scene.onBoardClick = () => {
+  scene.setHint('board', false);
+  if (running) openProgress();
+  else showPlan(boardSteps());
+};
 scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
 onNotebookForget(() => void refreshShop());
 window.lamplight.onResult((result) => {
@@ -361,10 +368,13 @@ window.lamplight.onResult((result) => showResult(result, {
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
 let running: string | null = null;
+/** How long into the first commission Adeng says what the bell and the blackboard are for. */
+const FIRST_HINT_MS = 5000;
 /** What the last commission (or round of changes) was, for a report about what came back. */
 let lastWant: string | null = null;
 async function run(want: string, start: () => Promise<RunResult | null>) {
   running = want;
+  setWorking(true);
   lastWant = want;
   scene.showShop();
   tendGarden(false);
@@ -376,6 +386,12 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
   scene.setBell(true);
+  // The very first commission: show what the bell and the blackboard are for, once they are there to be seen.
+  if (worksKept === 0) {
+    scene.setHint('bell', true);
+    scene.setHint('board', true);
+    setTimeout(() => { if (running === want) greet(strings.ui.run.firstHint); }, FIRST_HINT_MS);
+  }
   try {
     const r = await start();
     if (!r) return;
@@ -385,6 +401,9 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   } finally {
     closeRunning();
     running = null;
+    setWorking(false);
+    scene.setHint('bell', false);
+    scene.setHint('board', false);
     runMaterials = [];
     scene.setFormWaiting(true);
     scene.setBell(false);
@@ -465,11 +484,11 @@ document.addEventListener('drop', (e) => {
   if (!paths.length || document.querySelector('.backdrop')) return;
   const form = commissionFormOpen();
   if (form) return void form.add(paths);
-  scene.setCounterHint(false);
+  scene.setHint('counter', false);
   void newCommission(paths);
 });
 scene.onCounterClick = () => {
-  scene.setCounterHint(false);
+  scene.setHint('counter', false);
   void newCommission();
 };
 
@@ -486,6 +505,7 @@ function applySettings(s: Settings) {
   scene.setYouLook(s.avatar);
   scene.setFurnishing(s.furnish[currentScene()]);
   scene.youName = s.name;
+  syncToolbar(s);
 }
 systemCalm.addEventListener('change', () => current && applySettings(current));
 
@@ -504,7 +524,6 @@ async function openShop() {
   const api = window.lamplight;
   void refreshShop();
   let settings = await api.getSettings();
-  mountToolbar(api, settings, applySettings);
   applySettings(settings);
   const S = strings.ui.setup;
   if (!settings.onboarded) {
@@ -513,11 +532,14 @@ async function openShop() {
     applySettings(settings);
     greet(fill(S.greet, { name: settings.name }));
     // First visit: point at the counter until it has been opened once.
-    scene.setCounterHint(true);
+    scene.setHint('counter', true);
     setTimeout(() => greet(S.greetHint), 4000);
   } else if (settings.name) {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
+  // After the welcome, so that nothing on it can be pushed aside; the same two the scene opens.
+  mountToolbar(api, applySettings, { order: scene.onCounterClick, shelf: scene.onWorksClick });
+  syncToolbar(settings);
   // A commission left unfinished when the app last closed.
   const left = await api.pendingCommission();
   if (left) showPending(api, left, () => void prepare(left).then(() => run(left.want, () => api.resumePending())));
@@ -542,10 +564,23 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   // Handles for driving the scene from dev tools and screenshot scripts.
   if (debug) {
     const api = window.lamplight;
-    const ui = { showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm: () => showCommissionForm(api) };
+    const ui = {
+      showFailure: (kind: string) => showFailure(api, kind, () => {}, { cost: formatUsd(0.5) }),
+      showCommissionForm: () => showCommissionForm(api),
+      showActorCard, showPlan, renderBoard, showDecision, showLegal: (which: 'privacy' | 'terms' | 'notices') => showLegal(api, which),
+      showResult: (r: CommissionResult) => showResult(r, { open: () => {}, revise: () => {}, restore: async () => true, firstWork: true, report: () => {} }),
+      showNotReady: (env: EnvStatus) => showNotReady(api, env, () => {}),
+      showTrialEnd: () => showTrialEnd(() => {}),
+      showMeeting: () => showMeeting(),
+      showRevise: (title?: string) => showRevise(undefined, title),
+      showShelf: () => showShelf(api, () => {}),
+      showNotebook: () => showNotebook(api),
+      showCaptionLog,
+      showPending: (form: CommissionForm) => showPending(api, form, () => {}),
+    };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
-    const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; scene.setFormWaiting(!on); scene.setBell(on); };
-    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning, welcome } });
+    const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
+    Object.assign(window, { lamplightDebug: { scene, stage, ui, view, replay: startReplay, pretendRunning, welcome } });
   }
   const env = $('env');
   env.textContent = [

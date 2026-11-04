@@ -242,6 +242,7 @@
     "statsLine": "wrote files {writes} times, ran things {runs} times, {fails} failed",
     "raw": "Raw log",
     "replayBadge": "Replay",
+    "closeLabel": "Close",
     "replayTag": " (replay)",
     "board": {
       "research": "Research",
@@ -320,7 +321,7 @@
       "trialSetUp": "Get set up",
       "trialDone": "OK",
       "settingsTabs": {
-        "furnish": "Furnish",
+        "furnish": "The shop",
         "basics": "Basics",
         "sight": "Sight and sound",
         "work": "Work",
@@ -521,11 +522,12 @@
       "progressMinutes": "{n} min so far",
       "progressHours": "{h} h {m} min so far",
       "progressCap": "This round stops at {cap}",
-      "progressThinking": "Adeng is working out the plan",
+      "progressThinking": "Wick is working out the plan",
       "progressNoPlan": "No plan yet",
-      "progressGuess": "Adeng's rough guess, not a real plan yet",
+      "progressGuess": "Wick's rough guess, not a real plan yet",
       "progressPlanCount": "Plan · {done} of {total} done",
       "progressMeet": "Say something",
+      "firstHint": "Ring the bell if you have more to say. The plan goes on the blackboard.",
       "retry": "Try again",
       "netTitle": "Looks like the internet is down",
       "netText": "Tried a few times and couldn't reach Anthropic. Carry on once you're back online; nothing done so far is lost.",
@@ -553,8 +555,8 @@
     "toolbar": {
       "label": "Shop switches",
       "settings": "Settings",
-      "detailedOn": "Detailed mode: show what the AI is really doing",
-      "detailedOff": "Turn off detailed mode",
+      "order": "Commission",
+      "progress": "Progress",
       "mute": "Mute",
       "unmute": "Unmute"
     },
@@ -565,6 +567,7 @@
       "sectionLabel": "Seeing and hearing",
       "captionsToggle": "Always show the latest line at the bottom",
       "reduceMotion": "Less motion (no hops or flashes, lights change at once)",
+      "detailedToggle": "Show what the staff are doing at the bottom of the window",
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",
       "hotspotCat": "{name}: give her a pat",
@@ -576,9 +579,7 @@
       "hotspotWorks": "The works shelf: see what we made together"
     },
     "notebook": {
-      "sectionLabel": "Wick's notebook",
       "sectionText": "Wick notes down past commissions, the choices you made and where things got stuck. Only that, never your conversations.",
-      "open": "Have a look",
       "title": "Wick's notebook",
       "commissions": "Past commissions",
       "stuck": "Snags we hit together",
@@ -656,7 +657,8 @@
       "revise": "Change it a bit",
       "rounds": "changed {n} times",
       "roundsOne": "changed once",
-      "gone": "Can't find it; it may have been moved or deleted."
+      "gone": "Can't find it; it may have been moved or deleted.",
+      "empty": "The shelf is still empty. The first thing we finish goes right here."
     },
     "mini": {
       "toggle": "Keep a small window in the corner while the shop is out of sight",

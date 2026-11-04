@@ -242,6 +242,7 @@
     "statsLine": "写了 {writes} 次文件、试运行 {runs} 次、失败 {fails} 次",
     "raw": "看原始记录",
     "replayBadge": "回放",
+    "closeLabel": "关闭",
     "replayTag": "（回放）",
     "board": {
       "research": "找参考",
@@ -320,10 +321,10 @@
       "trialSetUp": "去准备",
       "trialDone": "好",
       "settingsTabs": {
-        "furnish": "布置",
+        "furnish": "店面",
         "basics": "基本",
         "sight": "画面和声音",
-        "work": "干活",
+        "work": "开工",
         "about": "关于"
       },
       "settingsTitle": "设置",
@@ -526,6 +527,7 @@
       "progressGuess": "这几步是阿灯估的，还不算正式计划",
       "progressPlanCount": "计划 · 做完 {done} 件，共 {total} 件",
       "progressMeet": "插句话",
+      "firstHint": "有话想补充就按铃，计划都写在黑板上。",
       "retry": "再试一次",
       "netTitle": "外面好像断网了",
       "netText": "试了几次都连不上 Anthropic。网络好了以后可以接着做，已经做好的部分不会丢。",
@@ -553,8 +555,8 @@
     "toolbar": {
       "label": "店里的开关",
       "settings": "设置",
-      "detailedOn": "详细模式：显示 AI 实际在做什么",
-      "detailedOff": "关闭详细模式",
+      "order": "委托",
+      "progress": "进度",
       "mute": "静音",
       "unmute": "打开声音"
     },
@@ -565,6 +567,7 @@
       "sectionLabel": "看和听",
       "captionsToggle": "在画面下方一直显示刚说的话",
       "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
+      "detailedToggle": "在画面下方显示店员在做什么",
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",
       "hotspotCat": "{name}：摸摸它",
@@ -576,9 +579,7 @@
       "hotspotWorks": "作品架：看看一起做过的东西"
     },
     "notebook": {
-      "sectionLabel": "阿灯的小本子",
       "sectionText": "阿灯会记下做过的委托、你做的选择和卡住过的地方，只记这些，不记聊天内容。",
-      "open": "翻开看看",
       "title": "阿灯的小本子",
       "commissions": "做过的委托",
       "stuck": "一起踩过的坑",
@@ -656,7 +657,8 @@
       "revise": "再改改",
       "rounds": "改过 {n} 回",
       "roundsOne": "改过 1 回",
-      "gone": "找不到了，可能被挪走或删掉了。"
+      "gone": "找不到了，可能被挪走或删掉了。",
+      "empty": "架子还空着。做好第一件，就摆在这儿。"
     },
     "mini": {
       "toggle": "店藏起来时，桌面角落留个小窗",

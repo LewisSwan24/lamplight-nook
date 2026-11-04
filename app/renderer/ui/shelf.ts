@@ -3,7 +3,7 @@ import { WORK_ICONS, type WorkIcon } from '../../shared/growth';
 import { fill, strings } from '../../shared/i18n';
 import type { LamplightApi } from '../../shared/types';
 import { el } from './dom';
-import { closePanel, replaceOpen } from './panels';
+import { closeButton, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
 
 const W = strings.ui.shelf;
@@ -34,8 +34,8 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
         el('button.link', { type: 'button', onclick: () => revise(w.id, w.title) }, W.revise)));
   });
   replaceOpen(el('div.card.paper.shelf-card', { role: 'dialog', 'aria-label': W.title },
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '×'),
-    withPortrait('adeng', 'happy', el('div.card-title', {}, W.title), el('div', {}, W.text)),
-    el('ul.works', { tabindex: 0 }, ...rows),
+    closeButton(),
+    withPortrait('adeng', 'happy', el('div.card-title', {}, W.title), el('div', {}, rows.length ? W.text : W.empty)),
+    rows.length ? el('ul.works', { tabindex: 0 }, ...rows) : null,
   ));
 }

@@ -3,9 +3,8 @@ import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
 import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
-import { closePanel, replaceOpen } from './panels';
+import { closeButton, closePanel, replaceOpen } from './panels';
 import { el, layer } from './dom';
-import { showNotebook } from './notebook';
 import { lookPicker, withPortrait } from './portraits';
 import { moveTo, scenePicker, sceneRow } from './scenes';
 import { FURNISH_CHOICES, FURNISH_PARTS, SWATCHES, type Furnishing } from '../../shared/furnish';
@@ -169,8 +168,12 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
     const name = el('input', { type: 'text', maxlength: 10, placeholder: S.namePlaceholder, value: settings.name }) as HTMLInputElement;
     let look = settings.avatar;
     const looks = lookPicker(look, (n) => { look = n; });
-    const card = el('div.card.paper.welcome');
-    const page = (...children: (Node | null)[]) => card.replaceChildren(...children.filter((c): c is Node => c !== null));
+    const card = el('div.card.paper.welcome.must-answer');
+    const page = (...children: (Node | null)[]) => {
+      card.replaceChildren(...children.filter((c): c is Node => c !== null));
+      // Enter goes on to the next page, as it does on the first.
+      card.querySelector<HTMLElement>('button.default')?.focus();
+    };
 
     const askName = () => {
       const form = el('form', {},
@@ -218,7 +221,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
  * offers a replay of a recorded demo, so people can see the shop at work before setting anything up.
  */
 export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => void, start?: () => void, useOld?: () => void) {
-  const close = el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7');
+  const close = closeButton();
   const card = el('div.card.paper.notice-card');
   // Once both are there, the card says so and leads straight to the commission slip.
   const ready = () => card.replaceChildren(close,
@@ -243,6 +246,7 @@ export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => vo
 /** After the trial replay: what it was, and the way to the real thing. */
 export function showTrialEnd(setUp: () => void) {
   replaceOpen(el('div.card.paper.trial-end', {},
+    closeButton(),
     withPortrait('adeng', 'happy', el('div.card-title', {}, S.trialEndTitle), el('div', {}, S.trialEndText)),
     el('div.actions', {},
       el('button', { onclick: closePanel }, S.trialDone),
@@ -261,7 +265,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'notify' | 'closeToTray' | 'mini';
+type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'mini';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -312,6 +316,7 @@ export async function showLegal(api: LamplightApi, which: LegalPage) {
   const back = el('button.default', { type: 'button', onclick: close }, S.legalBack) as HTMLButtonElement;
   const sheet = el('div.legal-backdrop', { id: 'legal' },
     el('div.card.paper.legal', { role: 'dialog', 'aria-label': title },
+      closeButton(close),
       el('div.card-title', {}, title),
       el('div.legal-body', {}, body),
       el('div.actions', {}, back)));
@@ -415,7 +420,7 @@ function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Setting
   ];
 }
 
-/** Settings: name, work folder, sound, seeing and hearing, what is needed to start, and credits. */
+/** Settings, in the five tabs of docs/information-structure.md: who you are, the shop, sight and sound, working, and about. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
   const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name }) as HTMLInputElement;
@@ -425,25 +430,23 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section', {}, el('h4', {}, S.nameLabel), name),
       el('section', {}, el('h4', {}, S.lookLabel), el('div.hint', {}, S.lookHint),
         lookPicker(settings.avatar, async (avatar) => onChange(await api.saveSettings({ avatar })))),
-      el('section', {}, el('h4', {}, strings.ui.scene.label), sceneRow(api)),
       el('section', {}, el('h4', {}, S.languageLabel), languageRow(api, settings, onChange)),
-      el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
     ],
-    furnish: furnishRows(api, settings, onChange),
+    furnish: [
+      el('section', {}, el('h4', {}, strings.ui.scene.label), sceneRow(api)),
+      ...furnishRows(api, settings, onChange),
+    ],
     sight: [
       el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
       el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
-        switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion]])),
-      el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
-        switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle], ['mini', strings.ui.mini.toggle]])),
+        switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion], ['detailed', strings.ui.access.detailedToggle]])),
     ],
     work: [
       el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
+      el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
       el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
-      el('section', {}, el('h4', {}, strings.ui.notebook.sectionLabel),
-        el('div.hint', {}, strings.ui.notebook.sectionText),
-        el('div.actions', {}, el('button', { onclick: () => void showNotebook(api) }, strings.ui.notebook.open))),
-      el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api, version, env.platform)),
+      el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
+        switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle], ['mini', strings.ui.mini.toggle]])),
     ],
     about: [
       el('section', {}, el('h4', {}, S.legalLabel),
@@ -456,13 +459,14 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
         el('div', {}, S.creditFont),
         el('div', {}, S.creditSound),
         el('div', {}, S.creditMusic, ' ', el('button.link', { onclick: () => api.openLink('music') }, S.creditMusicLink))),
+      el('section', {}, el('h4', {}, S.troubleLabel), troubleRow(api, version, env.platform)),
     ],
   };
   // Only the inside scrolls, so the paper behind it always covers the whole card.
   const body = el('div.settings-body', { role: 'tabpanel' });
   const tabs = SETTINGS_TABS.map((id) => el('button.tab', { role: 'tab', 'data-tab': id }, S.settingsTabs[id]) as HTMLButtonElement);
   const card = el('div.card.paper.settings', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '×'),
+    closeButton(),
     el('div.card-title', {}, S.settingsTitle),
     el('div.tabs', { role: 'tablist' }, ...tabs),
     body,

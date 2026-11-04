@@ -35,6 +35,13 @@ describe('the English locale', () => {
     expect(left).toEqual([]);
   });
 
+  it('calls the staff by their English names, in the app and in what they say', () => {
+    const inside = /\b(Adeng|Xiaoju|Laoshi|Qingdai)\b/;
+    const shown = [...b].filter(([k, v]) => k !== 'lineLint.laoshiParticle' && inside.test(JSON.stringify(v))).map(([k]) => k);
+    expect(shown).toEqual([]);
+    for (const file of ['lines/en/cafe.yaml', 'lines/en/chats.yaml']) expect(readFileSync(file, 'utf8')).not.toMatch(inside);
+  });
+
   it('keeps file names safe on Windows', () => {
     for (const name of Object.values(en.ui.files)) expect(name).not.toMatch(/[\\/:*?"<>|]/);
   });

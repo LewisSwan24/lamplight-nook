@@ -97,6 +97,7 @@ const BELL_POS = { x: 216, y: 78 };
 const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
+export type HintSpot = 'counter' | 'bell' | 'board';
 export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'works' | 'guest' | 'you';
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
@@ -165,7 +166,7 @@ export class CafeScene extends Phaser.Scene {
   private door!: Phaser.GameObjects.Sprite;
   /** The blank commission form on the counter; it glows softly while it waits to be filled in. */
   private form!: Phaser.GameObjects.Graphics;
-  private counterHint?: Phaser.GameObjects.Graphics;
+  private hintMarks = new Map<HintSpot, Phaser.GameObjects.Graphics>();
   private formGlow?: Phaser.Tweens.Tween;
   /** Time-of-day layers: a tint over the room, the sky in the window glass, and the lamp glows with their base strength. */
   private shade!: Phaser.GameObjects.Rectangle;
@@ -464,20 +465,27 @@ export class CafeScene extends Phaser.Scene {
     if (this.form?.visible) this.setFormWaiting(true);
   }
 
-  /** A small "!" bobbing over the form, for someone who hasn't found the counter yet. */
-  setCounterHint(on: boolean) {
-    this.counterHint?.destroy();
-    this.counterHint = undefined;
+  /** Where a small "!" is bobbing just now. */
+  hints(): HintSpot[] {
+    return [...this.hintMarks.keys()];
+  }
+
+  /** A small "!" bobbing over the form, the bell or the blackboard, for someone who hasn't found them yet. */
+  setHint(spot: HintSpot, on: boolean) {
+    this.hintMarks.get(spot)?.destroy();
+    this.hintMarks.delete(spot);
     if (!on) return;
+    const slate = ZONES.find((z) => z.id === 'board')!;
+    const at = { counter: { x: FORM_POS.x - 7, y: FORM_POS.y - 11 }, bell: { x: BELL_POS.x + 1, y: BELL_POS.y - 11 }, board: { x: slate.x + slate.w - 3, y: slate.y - 6 } }[spot];
     // 5x9: a white tag with an ink "!" and a little tail pointing at the form.
     const TAG = ['wwwww', 'wwkww', 'wwkww', 'wwkww', 'wwwww', 'wwkww', 'wwwww', '.www.', '..w..'];
-    const g = this.add.graphics({ x: FORM_POS.x + 2, y: FORM_POS.y - 11 }).setDepth(COUNTER_TOP + 0.2);
+    const g = this.add.graphics(at).setDepth(COUNTER_TOP + 0.2);
     TAG.forEach((row, y) => [...row].forEach((c, x) => {
       if (c === 'w') g.fillStyle(0xfbf6ec, 1).fillRect(x, y, 1, 1);
       if (c === 'k') g.fillStyle(0xb5653b, 1).fillRect(x, y, 1, 1);
     }));
     if (!this.reducedMotion) this.tweens.add({ targets: g, y: g.y - 2, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.counterHint = g;
+    this.hintMarks.set(spot, g);
   }
 
   /** Show the blank form glowing on the counter (nothing running), or put it away (a commission is under way). */

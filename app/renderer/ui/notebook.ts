@@ -2,7 +2,7 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import type { LamplightApi, Memory } from '../../shared/types';
 import { el } from './dom';
-import { closePanel, replaceOpen } from './panels';
+import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
 
 const N = strings.ui.notebook;
@@ -49,8 +49,8 @@ export async function showNotebook(api: LamplightApi) {
   const confirm = () => {
     actions.replaceChildren(
       el('div.notebook-warn', {}, N.forgetConfirm),
-      el('button.default', { onclick: ask }, N.keep),
-      el('button', { onclick: forget }, N.forgetYes));
+      el('button', { onclick: forget }, N.forgetYes),
+      el('button.default', { onclick: ask }, N.keep));
     actions.querySelector<HTMLButtonElement>('button.default')?.focus();
   };
   const forget = async () => {
@@ -60,7 +60,7 @@ export async function showNotebook(api: LamplightApi) {
     actions.replaceChildren(el('button.default', { onclick: closePanel }, '\u2713'));
   };
   replaceOpen(el('div.card.paper.notebook', { role: 'dialog', 'aria-label': N.title },
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    closeButton(),
     withPortrait('adeng', 'calm', el('div.card-title', {}, N.title), el('div', {}, N.sectionText)),
     body,
     actions,

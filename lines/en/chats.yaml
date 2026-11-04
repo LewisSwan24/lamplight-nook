@@ -557,7 +557,7 @@
   when: idle
   guest: mechanic
   turns:
-    - mechanic: Xiaoju's brakes need tightening.
+    - mechanic: Clem's brakes need tightening.
     - xiaoju: So that's why I keep not stopping!
 
 - id: zhou_rain

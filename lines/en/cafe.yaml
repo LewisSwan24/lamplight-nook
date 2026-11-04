@@ -262,7 +262,7 @@ grow:
   - { id: grow_trophy, speaker: xiaoju, when: grow_trophy, bubbles: ["I made this little trophy!", "For the twenty jobs we've done."], reply: { speaker: laoshi, bubbles: ["It's crooked."] } }
   - { id: grow_portrait, speaker: qingdai, when: grow_portrait, bubbles: ["Painted us a little portrait. It's up."] }
   - { id: grow_sunset, speaker: qingdai, when: grow_sunset, bubbles: ["That sunset took me ages."] }
-  - { id: grow_star, speaker: adeng, when: grow_star, bubbles: ["Fifty commissions.", "Xiaoju cut out that star."] }
+  - { id: grow_star, speaker: adeng, when: grow_star, bubbles: ["Fifty commissions.", "Clem cut out that star."] }
   - { id: grow_album, speaker: qingdai, when: grow_album, bubbles: ["An album stays on the table now."] }
   - { id: grow_calendar, speaker: adeng, when: grow_calendar, bubbles: ["A calendar went up.", "The days fit better now."] }
   - { id: grow_globe, speaker: adeng, when: grow_globe, bubbles: ["A globe on the bookcase.", "Good for looking things up."] }
