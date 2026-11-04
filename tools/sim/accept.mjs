@@ -170,7 +170,18 @@ const SCENARIOS = {
       await sleep(500);
       await notebook();
       check((await shop.page.locator('.notebook-days').innerText()).includes(N.metLine.replace('{name}', locale(lang).guests.postman)), 'the postman is not in the days');
-      await shop.page.keyboard.press('Escape');
+      // Keep and Forget take away the button that was pressed: the keyboard must not fall out of the card.
+      const focused = () => shop.page.evaluate(() => document.activeElement?.textContent ?? '');
+      await shop.page.locator('.notebook .actions button').click();
+      check(await focused() === N.keep, 'asking to forget does not put the focus on Keep');
+      await shop.page.keyboard.press('Enter');
+      check(await focused() === N.forget, 'Keep leaves the keyboard nowhere');
+      await shop.page.keyboard.press('Enter');
+      await shop.page.locator('.notebook .actions button', { hasText: N.forgetYes }).click();
+      await shop.page.waitForSelector('.notebook-empty');
+      check(await focused() === '\u2713', 'Forget leaves the keyboard nowhere');
+      await shop.page.keyboard.press('Enter');
+      await shop.page.waitForSelector('.notebook', { state: 'detached', timeout: 3000 });
     } finally {
       await shop.close();
     }

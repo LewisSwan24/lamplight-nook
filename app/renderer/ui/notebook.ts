@@ -46,7 +46,10 @@ export async function showNotebook(api: LamplightApi) {
   const memory = await api.getMemory();
   const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(api, memory, reviseOld));
   const actions = el('div.actions');
-  const ask = () => actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));
+  const ask = () => {
+    actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));
+    actions.querySelector('button')?.focus();
+  };
   const confirm = () => {
     actions.replaceChildren(
       el('div.notebook-warn', {}, N.forgetConfirm),
@@ -59,6 +62,7 @@ export async function showNotebook(api: LamplightApi) {
     forgotten?.();
     body.replaceChildren(el('div.notebook-empty', {}, N.forgotten));
     actions.replaceChildren(el('button.default', { onclick: closePanel }, '\u2713'));
+    actions.querySelector('button')?.focus();
   };
   replaceOpen(el('div.card.paper.notebook', { role: 'dialog', 'aria-label': N.title },
     closeButton(),

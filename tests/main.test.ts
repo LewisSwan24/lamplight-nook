@@ -46,7 +46,7 @@ describe('interim permissions', () => {
   });
 
   it('names commission folders by date and time', () => {
-    const d = commissionDir('/work', 'ledger', new Date('2026-10-21T10:30:05Z'));
+    const d = commissionDir('/work', 'ledger', new Date(2026, 9, 21, 10, 30, 5));
     expect(d).toBe(join('/work', '2026-10-21-103005-ledger'));
   });
 });

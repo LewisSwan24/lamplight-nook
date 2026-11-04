@@ -1,5 +1,6 @@
-import { bedNews, shortWork } from './growth';
+import { bedNews } from './growth';
 import { fill, strings } from './i18n';
+import { localDay } from './localday';
 import type { Memory } from './types';
 
 /** Works worth their own line in the shop's days. */
@@ -9,7 +10,7 @@ export type DayEntry = { date: string; text: string };
 
 /** Ids are c<time made>: the day and the order a work was first finished, whatever changes came after. */
 const madeAt = (id: string) => Number(id.slice(1));
-const dayOf = (time: number) => new Date(time).toISOString().slice(0, 10);
+const dayOf = (time: number) => localDay(new Date(time));
 
 /**
  * What has happened to this shop, newest first, read only from what it already remembers: works by name at the first and
@@ -27,13 +28,14 @@ export function shopTimeline(memory: Memory): DayEntry[] {
   works.forEach((w, i) => {
     const n = before + i + 1;
     const date = dayOf(madeAt(w.id));
-    if (n === 1) entries.push({ date, text: fill(N.firstWork, { title: shortWork(w.title) }) });
-    if (ROUND_NUMBERS.has(n)) entries.push({ date, text: fill(N.nthWork, { n: String(n), title: shortWork(w.title) }) });
+    if (n === 1) entries.push({ date, text: fill(N.firstWork, { title: w.title }) });
+    if (ROUND_NUMBERS.has(n)) entries.push({ date, text: fill(N.nthWork, { n: String(n), title: w.title }) });
     const news = bedNews(n - 1, n);
     if (news) entries.push({ date, text: beds[news] });
   });
   for (const g of shop.grown) entries.push({ date: g.date, text: fill(N.grewLine, { item: strings.growth[g.id] }) });
-  for (const m of shop.met ?? []) entries.push({ date: m.date, text: fill(N.metLine, { name: strings.guests[m.id] }) });
-  // Oldest first with a stable sort, then turned round, so that within a day the later thing comes first too.
+  // A neighbour with no date was already coming before the shop kept count: not news.
+  for (const m of (shop.met ?? []).filter((x) => x.date)) entries.push({ date: m.date, text: fill(N.metLine, { name: strings.guests[m.id] }) });
+  // Oldest first with a stable sort, then turned round. Only the day is known for what grew and who came, so within a day this is not the order it happened in.
   return entries.sort((a, b) => a.date.localeCompare(b.date)).reverse();
 }

@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
+import { localDay } from '../shared/localday';
 import type { CommissionMemo, GuestId, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
-/** How much is kept: the shop remembers recent work, not everything. */
 /** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
 const RECENT_FOR_NOTES = 20;
 const MAX_NOTES = 10;
@@ -30,7 +30,7 @@ export class MemoryStore {
 
   /** Write down a finished (or failed) commission and what got stuck along the way. Returns its entry. */
   remember(memo: Omit<CommissionMemo, 'id' | 'date'>, stuck: string[], now = new Date()): CommissionMemo {
-    const date = now.toISOString().slice(0, 10);
+    const date = localDay(now);
     // Ids are c<time>; two entries in the same millisecond still get different ones.
     let t = now.getTime();
     while (this.data.commissions.some((c) => c.id === `c${t}`)) t++;
@@ -53,7 +53,7 @@ export class MemoryStore {
   revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main'>>, stuck: string[], now = new Date()): CommissionMemo | null {
     const at = this.data.commissions.findIndex((c) => c.id === id);
     if (at < 0) return null;
-    const date = now.toISOString().slice(0, 10);
+    const date = localDay(now);
     const [old] = this.data.commissions.splice(at, 1);
     const entry: CommissionMemo = {
       ...old,
@@ -81,7 +81,7 @@ export class MemoryStore {
   finished(now = new Date()): GrowthId[] {
     const shop = this.shop();
     shop.done++;
-    const date = now.toISOString().slice(0, 10);
+    const date = localDay(now);
     const have = new Set(shop.grown.map((g) => g.id));
     const works = this.data.commissions.filter((c) => c.result === 'done').map((c) => ({ icon: workIcon(c.form) }));
     const fresh = grownBy(shop.done, madeOf(works)).filter((id) => !have.has(id));
@@ -95,7 +95,7 @@ export class MemoryStore {
   markMet(id: GuestId, now = new Date()) {
     const shop = this.shop();
     if (shop.met?.some((m) => m.id === id)) return;
-    shop.met = [...(shop.met ?? []), { id, date: now.toISOString().slice(0, 10) }];
+    shop.met = [...(shop.met ?? []), { id, date: localDay(now) }];
     this.data.shop = shop;
     this.save();
   }

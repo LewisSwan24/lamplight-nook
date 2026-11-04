@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **Dates are the ones on your wall.** Works, the shop's days, commission folders and the monthly spend used Greenwich
+  time, so a job finished on a morning in Brisbane was filed under yesterday.
 - **Six buttons, in the order you reach for them.** Commission (Progress while one is running), the works shelf, the
   notebook, captions, sound and settings, in pixel icons drawn for the shop that look the same on every computer. Each
   says what it is the moment you point at it or tab to it.

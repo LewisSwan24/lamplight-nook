@@ -22,6 +22,15 @@ describe('the days of the shop', () => {
     expect(texts(memory([work(1)]))).toContain(N.firstWork.replace('{title}', 'work 1'));
   });
 
+  it('keeps the whole name: this page has room for it', () => {
+    const long = 'Look into why the bakery loses money in winter';
+    expect(texts(memory([work(1, { title: long })]))).toContain(N.firstWork.replace('{title}', long));
+  });
+
+  it('leaves out neighbours who were already coming before the shop kept count', () => {
+    expect(texts(memory([], { met: [{ id: 'baker', date: '' }] }))).toEqual([]);
+  });
+
   it('marks round numbers of works, and only those', () => {
     const lines = texts(memory(Array.from({ length: 12 }, (_, i) => work(i + 1))));
     expect(lines).toContain(N.nthWork.replace('{n}', '10').replace('{title}', 'work 10'));
@@ -67,8 +76,4 @@ describe('the days of the shop', () => {
     expect(all).toContain(N.bedSprout);
   });
 
-  it('shortens a very long title', () => {
-    const line = texts(memory([work(1, { title: '很长'.repeat(100) })]))[0];
-    expect([...line].length).toBeLessThan(80);
-  });
 });

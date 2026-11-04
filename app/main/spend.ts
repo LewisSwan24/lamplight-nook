@@ -1,3 +1,4 @@
+import { localMonth } from '../shared/localday';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -5,7 +6,7 @@ import { dirname } from 'node:path';
 type Entry = { key: string; usd: number; month: string };
 
 const MAX_ENTRIES = 500;
-const month = (d: Date) => d.toISOString().slice(0, 7);
+const month = localMonth;
 
 /**
  * What the commissions cost, from the totals Claude Code reports (an estimate, not Anthropic's bill).
