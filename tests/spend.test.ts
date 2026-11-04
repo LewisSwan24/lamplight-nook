@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -52,6 +52,40 @@ describe('what commissions cost', () => {
     again.record('/w/b', 's2', 0.1, nov);
     expect(again.thisMonth(oct)).toBeCloseTo(0.4);
     expect(again.thisMonth(nov)).toBeCloseTo(0.1);
+  });
+
+  it('leaves a month as it was when a work is changed again in a later one', () => {
+    const ledger = new SpendLedger(join(dir(), 'spend.json'));
+    ledger.record('/w/a', 's1', 0.5, oct);
+    expect(ledger.record('/w/a', 's1', 0.8, nov)).toBeCloseTo(0.3);
+    expect(ledger.thisMonth(oct)).toBeCloseTo(0.5);
+    expect(ledger.thisMonth(nov)).toBeCloseTo(0.3);
+    expect(ledger.forCommission('/w/a')).toBeCloseTo(0.8);
+    ledger.record('/w/a', 's1', 1, nov);
+    expect(ledger.thisMonth(nov)).toBeCloseTo(0.5);
+    expect(ledger.forCommission('/w/a')).toBeCloseTo(1);
+  });
+
+  it('keeps every run: nothing old drops out of a month', () => {
+    const file = join(dir(), 'spend.json');
+    const old = Array.from({ length: 620 }, (_, i) => ({ key: `/w/${i}|s`, usd: 0.01, month: i < 100 ? '2026-10' : '2026-11' }));
+    writeFileSync(file, JSON.stringify(old));
+    new SpendLedger(file).record('/w/new', 's', 0.01, nov);
+    const ledger = new SpendLedger(file);
+    expect(ledger.thisMonth(oct)).toBeCloseTo(1);
+    expect(ledger.forCommission('/w/0')).toBeCloseTo(0.01);
+  });
+
+  it('adds up each month, newest first, and how many commissions it was', () => {
+    const ledger = new SpendLedger(join(dir(), 'spend.json'));
+    ledger.record('/w/a', 's1', 0.5, oct);
+    ledger.record('/w/a', 's2', 0.25, oct);
+    ledger.record('/w/b', 's3', 1, nov);
+    ledger.record('/w/a', 's1', 0.75, nov);
+    expect(ledger.months()).toEqual([
+      { month: '2026-11', usd: 1.25, commissions: 2 },
+      { month: '2026-10', usd: 0.75, commissions: 1 },
+    ]);
   });
 
   it('reads money the way people do', () => {

@@ -101,6 +101,8 @@ export interface LamplightApi {
   installClaude(): Promise<boolean>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
+  /** Every month that cost anything, newest first. */
+  spendMonths(): Promise<{ month: string; usd: number; commissions: number }[]>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
   chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
@@ -236,6 +238,7 @@ export const IPC = {
   saveApiKey: 'key:save',
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
+  spendMonths: 'spend:months',
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',

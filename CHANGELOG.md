@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **Month by month.** Settings shows what each month cost and on how many commissions. A work changed again in a later
+  month no longer moves what it cost earlier, and nothing old drops out of the ledger.
 - **Find anything on the works shelf.** Search by name, by what you asked for or by month, or look at one kind of work.
   Works sit under their months and come in as you ask for them, so a thousand of them open as fast as eight.
 - **Things said once are heard once.** What the shop says about something new waits until the result card is put away and

@@ -251,6 +251,7 @@ ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
 ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth());
+ipcMain.handle(IPC.spendMonths, () => spend.months());
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {

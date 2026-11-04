@@ -1,4 +1,5 @@
-import { fill, strings } from '../../shared/i18n';
+import { fill, locale, strings } from '../../shared/i18n';
+import { monthName } from '../../shared/localday';
 import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
 import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
@@ -283,8 +284,21 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
   const select = el('select', { 'aria-label': S.budgetLabel }, ...BUDGET_CHOICES.map((usd) =>
     el('option', { value: usd, selected: usd === settings.budgetUsd }, usd ? formatUsd(usd) : S.budgetNone))) as HTMLSelectElement;
   select.addEventListener('change', async () => changed(await api.saveSettings({ budgetUsd: Number(select.value) })));
+  const book = el('table.spend-book');
+  const months = el('details.spend-months', { ontoggle: async () => {
+    if (!months.open || book.childElementCount) return;
+    const list = await api.spendMonths();
+    const total = list.reduce((sum, m) => sum + m.usd, 0);
+    book.append(...list.map((m) => el('tr', {},
+      el('th', { scope: 'row' }, monthName(m.month, locale())),
+      el('td', {}, m.commissions === 1 ? S.spendBookOne : fill(S.spendBookCount, { n: String(m.commissions) })),
+      el('td', {}, formatUsd(m.usd)))),
+    el('tr.spend-total', {}, el('th', { scope: 'row', colspan: 2 }, S.spendBookTotal), el('td', {}, formatUsd(total))));
+    if (!list.length) book.replaceChildren(el('tr', {}, el('td', {}, S.spendBookEmpty)));
+  } }, el('summary', {}, S.spendBook), book) as HTMLDetailsElement;
   return el('div.spend-rows', {},
     el('div', {}, fill(S.spendMonth, { cost: formatUsd(month) })),
+    months,
     el('label.budget-row', {}, S.budgetLabel, ' ', select),
     el('div.hint', {}, S.budgetHint));
 }

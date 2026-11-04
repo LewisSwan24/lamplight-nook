@@ -58,7 +58,7 @@ node tools/sim/accept.mjs                      # every scenario, Chinese and Eng
 node tools/sim/accept.mjs --lang en --only demo,board
 ```
 
-Scenarios: `thousand` (1000 works: how fast the shop, shelf and notebook open, finding one, one more commission),
+Scenarios: `ledger` (fourteen months of spending and more runs than used to be kept), `thousand` (1000 works: how fast the shop, shelf and notebook open, finding one, one more commission),
 `grownline` (the line about what grew waits for its speaker), `crash` (the plug pulled mid-commission and with the result open, half-written files, the folder emptied or
 gone, Claude Code falling over), `keyboard` (a whole commission, the shelf, the garden and settings without the mouse),
 `passers` (people seen through the windows on their way to the door), `beds` (the vegetable beds at 0, 1, 4, 12, 25 and 60 works), `days` (thirty works: all on the shelf, the shop's days in the notebook), `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),

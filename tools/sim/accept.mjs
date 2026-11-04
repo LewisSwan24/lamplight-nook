@@ -127,6 +127,40 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Fourteen months and more runs than the ledger used to keep: each month and the sum are right. */
+  async ledger(lang, out) {
+    const month = (i) => `20${25 + Math.floor((i + 9) / 12)}-${String((i + 9) % 12 + 1).padStart(2, '0')}`;
+    const spend = Array.from({ length: 14 * 50 }, (_, i) => ({ key: `C:/w/${i}|s`, usd: 0.1, month: month(Math.floor(i / 50)) }));
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang), 'spend.json': JSON.stringify(spend) }), debug: true, size: 'small' });
+    try {
+      await sleep(1500);
+      await shop.openSettings('work');
+      await shop.page.locator('.spend-months summary').click();
+      await shop.page.waitForSelector('.spend-book tr');
+      await sleep(200);
+      const rows = await shop.page.locator('.spend-book tr').allInnerTexts();
+      check(rows.length === 15, `${rows.length} rows in the ledger`);
+      check(rows.slice(0, 14).every((r) => r.includes('$5.00') && r.includes('50')), `a month reads wrong: ${rows[0]}`);
+      check(rows[14].includes('$70.00'), `the sum reads ${rows[14]}`);
+      await shop.page.locator('.spend-months').scrollIntoViewIfNeeded();
+      const spills = await shop.page.locator('.card.settings').evaluate((c) => c.scrollWidth > c.clientWidth + 1);
+      check(!spills, 'the ledger pushes the settings sideways');
+      await shop.shot(join(out, 'ledger.png'));
+    } finally {
+      await shop.close();
+    }
+    const empty = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), debug: true, size: 'small' });
+    try {
+      await sleep(1500);
+      await empty.openSettings('work');
+      await empty.page.locator('.spend-months summary').click();
+      await sleep(300);
+      check(await empty.page.locator('.spend-book tr').count() === 1, 'an empty ledger has rows');
+    } finally {
+      await empty.close();
+    }
+  },
+
   /** A shop that has made a thousand things: still opens quickly, and anything on the shelf can be found. */
   async thousand(lang, out) {
     const S = locale(lang).ui.shelf;

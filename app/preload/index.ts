@@ -21,6 +21,7 @@ const api: LamplightApi = {
   saveApiKey: (key) => ipcRenderer.invoke(IPC.saveApiKey, key),
   clearApiKey: () => ipcRenderer.invoke(IPC.clearApiKey),
   spendThisMonth: () => ipcRenderer.invoke(IPC.spendThisMonth),
+  spendMonths: () => ipcRenderer.invoke(IPC.spendMonths),
   copyInstallCommand: () => ipcRenderer.invoke(IPC.copyInstallCommand),
   installClaude: () => ipcRenderer.invoke(IPC.installClaude),
   exportDiagnostics: () => ipcRenderer.invoke(IPC.exportDiagnostics),

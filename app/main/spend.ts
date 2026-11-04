@@ -5,7 +5,6 @@ import { dirname } from 'node:path';
 /** One run's spend as Claude Code estimated it. A resumed session reports its running total, so it replaces. */
 type Entry = { key: string; usd: number; month: string };
 
-const MAX_ENTRIES = 500;
 const month = localMonth;
 
 /**
@@ -24,16 +23,15 @@ export class SpendLedger {
   record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date()): number {
     if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return 0;
     const key = `${workDir}|${sessionId ?? ''}`;
-    const old = this.entries.find((e) => e.key === key);
-    const added = old && usd > old.usd ? usd - old.usd : usd;
-    if (old) {
-      // Running totals only grow; a crash result may carry zeros and must not shrink what was spent.
-      old.usd = Math.max(old.usd, usd);
-      old.month = month(now);
-    } else {
-      this.entries.push({ key, usd, month: month(now) });
-    }
-    this.entries = this.entries.slice(-MAX_ENTRIES);
+    const earlier = this.entries.filter((e) => e.key === key);
+    const reported = earlier.reduce((sum, e) => sum + e.usd, 0);
+    const added = earlier.length && usd > reported ? usd - reported : usd;
+    // Running totals only grow; a crash result may carry zeros and must not shrink what was spent.
+    // What is new goes to this month: what a session cost last month stays last month's.
+    const grew = earlier.length ? Math.max(0, usd - reported) : usd;
+    const here = earlier.find((e) => e.month === month(now));
+    if (here) here.usd += grew;
+    else if (grew > 0) this.entries.push({ key, usd: grew, month: month(now) });
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(`${this.file}.tmp`, JSON.stringify(this.entries));
     renameSync(`${this.file}.tmp`, this.file);
@@ -48,6 +46,15 @@ export class SpendLedger {
   thisMonth(now = new Date()): number {
     const m = month(now);
     return this.entries.filter((e) => e.month === m).reduce((sum, e) => sum + e.usd, 0);
+  }
+
+  /** Each month that cost anything, newest first, and how many commissions it went on. */
+  months(): { month: string; usd: number; commissions: number }[] {
+    const months = new Set(this.entries.map((e) => e.month));
+    return [...months].sort().reverse().map((m) => {
+      const here = this.entries.filter((e) => e.month === m);
+      return { month: m, usd: here.reduce((sum, e) => sum + e.usd, 0), commissions: new Set(here.map((e) => e.key.slice(0, e.key.lastIndexOf('|')))).size };
+    });
   }
 
   private read(): Entry[] {
