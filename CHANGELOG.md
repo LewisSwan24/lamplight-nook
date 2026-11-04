@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **Forget everything means everything.** Records of runs are deleted and the spending ledger no longer says what the money
+  went on; before, both kept the names of your commissions. Records of runs are also kept to the last 50.
 - **Month by month.** Settings shows what each month cost and on how many commissions. A work changed again in a later
   month no longer moves what it cost earlier, and nothing old drops out of the ledger.
 - **Find anything on the works shelf.** Search by name, by what you asked for or by month, or look at one kind of work.

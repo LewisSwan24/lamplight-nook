@@ -142,6 +142,11 @@ const SCENARIOS = {
       check(rows.length === 15, `${rows.length} rows in the ledger`);
       check(rows.slice(0, 14).every((r) => r.includes('$5.00') && r.includes('50')), `a month reads wrong: ${rows[0]}`);
       check(rows[14].includes('$70.00'), `the sum reads ${rows[14]}`);
+      // Closed and opened again: read afresh, no rows twice.
+      await shop.page.locator('.spend-months summary').click();
+      await shop.page.locator('.spend-months summary').click();
+      await sleep(300);
+      check(await shop.page.locator('.spend-book tr').count() === 15, 'opening the ledger again repeats its rows');
       await shop.page.locator('.spend-months').scrollIntoViewIfNeeded();
       const spills = await shop.page.locator('.card.settings').evaluate((c) => c.scrollWidth > c.clientWidth + 1);
       check(!spills, 'the ledger pushes the settings sideways');
@@ -367,6 +372,7 @@ const SCENARIOS = {
     shop = await launch({ lang, home: freshHome(seed(0)), debug: true, speed: 100 });
     try {
       await finishOne(shop);
+      const { title } = JSON.parse(readFileSync(join(shop.home.data, 'memory.json'), 'utf8')).commissions[0];
       await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
       await shop.page.waitForSelector('.notebook');
       await shop.page.locator('.notebook .actions button').click();
@@ -375,6 +381,10 @@ const SCENARIOS = {
       await shop.page.keyboard.press('Enter');
       await sleep(16_000);
       check(!(await heard(shop, painting[0])), 'the painting was mentioned after everything was forgotten');
+      // And it is really gone from the disk: what was asked for, in any file the shop wrote.
+      const written = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? written(join(dir, e.name)) : [join(dir, e.name)]));
+      const left = written(shop.home.data).filter((f) => /\.(json|jsonl|log)$/.test(f) && readFileSync(f, 'utf8').includes(title));
+      check(left.length === 0, `still holding the title after forgetting: ${left.join(', ')}`);
     } finally {
       await shop.close();
     }
@@ -427,6 +437,7 @@ const SCENARIOS = {
       const focused = () => shop.page.evaluate(() => document.activeElement?.textContent ?? '');
       await shop.page.locator('.notebook .actions button').click();
       check(await focused() === N.keep, 'asking to forget does not put the focus on Keep');
+      await shop.shot(join(out, 'forget.png'));
       await shop.page.keyboard.press('Enter');
       check(await focused() === N.forget, 'Keep leaves the keyboard nowhere');
       await shop.page.keyboard.press('Enter');

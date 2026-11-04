@@ -22,6 +22,7 @@ import { isInside } from './paths';
 import { diagnosticsEntries } from './diagnostics';
 import { Log } from './log';
 import { SettingsStore, defaultWorkRoot } from './settings';
+import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
 import { zip } from './zip';
 import { ShopTray } from './tray';
@@ -499,6 +500,8 @@ ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
 ipcMain.handle(IPC.clearMemory, () => {
   memory.clear();
   versions.clear();
+  spend.forget();
+  pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
 });
 // Only folders the notebook itself recorded, looked up by id.
 ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
@@ -561,6 +564,7 @@ app.whenReady().then(() => {
   versions = new VersionStore(join(app.getPath('userData'), 'versions'));
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
+  pruneRecordings(join(app.getPath('userData'), 'recordings'));
   leftover = pending.load();
   createWindow();
   tray.create();

@@ -1,16 +1,16 @@
 import { localMonth } from '../shared/localday';
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 
-/** One run's spend as Claude Code estimated it. A resumed session reports its running total, so it replaces. */
+/** What a session cost in one month, as Claude Code estimated it. A session spanning months has one entry for each. */
 type Entry = { key: string; usd: number; month: string };
 
 const month = localMonth;
 
 /**
  * What the commissions cost, from the totals Claude Code reports (an estimate, not Anthropic's bill).
- * Keyed by folder and session: a retry or a resume of the same session reports a running total and
- * replaces the earlier figure; a fresh session in the same folder adds to it.
+ * Keyed by folder and session: a retry or a resume of the same session reports a running total, and only what
+ * that adds counts; a fresh session in the same folder adds to the commission.
  */
 export class SpendLedger {
   private entries: Entry[];
@@ -26,16 +26,36 @@ export class SpendLedger {
     const earlier = this.entries.filter((e) => e.key === key);
     const reported = earlier.reduce((sum, e) => sum + e.usd, 0);
     const added = earlier.length && usd > reported ? usd - reported : usd;
-    // Running totals only grow; a crash result may carry zeros and must not shrink what was spent.
-    // What is new goes to this month: what a session cost last month stays last month's.
-    const grew = earlier.length ? Math.max(0, usd - reported) : usd;
-    const here = earlier.find((e) => e.month === month(now));
-    if (here) here.usd += grew;
-    else if (grew > 0) this.entries.push({ key, usd: grew, month: month(now) });
+    // Running totals only grow: a lower figure never shrinks what was spent. What is new goes to this month, and what
+    // a session cost last month stays last month's. Under a millionth of a dollar is only the rounding of the sum.
+    const grew = earlier.length ? usd - reported : usd;
+    if (grew > 0.000001) {
+      const here = earlier.find((e) => e.month === month(now));
+      if (here) here.usd += grew;
+      else this.entries.push({ key, usd: grew, month: month(now) });
+    }
+    this.save();
+    return added;
+  }
+
+  /** Forgetting everything: the money was spent and stays in its months, but folder names say what it was spent on. */
+  forget() {
+    const anonymous = new Map<string, number>();
+    this.entries = this.entries.map((e) => {
+      const folder = e.key.slice(0, e.key.lastIndexOf('|'));
+      if (!anonymous.has(folder)) anonymous.set(folder, anonymous.size + 1);
+      return { ...e, key: `${anonymous.get(folder)}|` };
+    });
+    this.save();
+    const backups = join(dirname(this.file), 'backup');
+    if (!existsSync(backups)) return;
+    for (const dir of readdirSync(backups)) rmSync(join(backups, dir, basename(this.file)), { force: true });
+  }
+
+  private save() {
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(`${this.file}.tmp`, JSON.stringify(this.entries));
     renameSync(`${this.file}.tmp`, this.file);
-    return added;
   }
 
   /** What one commission folder has cost across all its sessions. */

@@ -286,15 +286,15 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
   select.addEventListener('change', async () => changed(await api.saveSettings({ budgetUsd: Number(select.value) })));
   const book = el('table.spend-book');
   const months = el('details.spend-months', { ontoggle: async () => {
-    if (!months.open || book.childElementCount) return;
+    if (!months.open) return;
     const list = await api.spendMonths();
     const total = list.reduce((sum, m) => sum + m.usd, 0);
-    book.append(...list.map((m) => el('tr', {},
+    book.replaceChildren(...list.map((m) => el('tr', {},
       el('th', { scope: 'row' }, monthName(m.month, locale())),
       el('td', {}, m.commissions === 1 ? S.spendBookOne : fill(S.spendBookCount, { n: String(m.commissions) })),
       el('td', {}, formatUsd(m.usd)))),
     el('tr.spend-total', {}, el('th', { scope: 'row', colspan: 2 }, S.spendBookTotal), el('td', {}, formatUsd(total))));
-    if (!list.length) book.replaceChildren(el('tr', {}, el('td', {}, S.spendBookEmpty)));
+    if (!list.length) book.replaceChildren(el('tr', {}, el('th', {}, S.spendBookEmpty)));
   } }, el('summary', {}, S.spendBook), book) as HTMLDetailsElement;
   return el('div.spend-rows', {},
     el('div', {}, fill(S.spendMonth, { cost: formatUsd(month) })),

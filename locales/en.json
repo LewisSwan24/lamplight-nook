@@ -606,7 +606,7 @@
       "openFolder": "See what was made",
       "stuckLine": "{commission}: got stuck on {note}",
       "forget": "Forget everything",
-      "forgetConfirm": "Really forget everything? It can't be brought back, and what the shop gathered gets packed away too.",
+      "forgetConfirm": "Really forget everything? It can't be brought back, and what the shop gathered gets packed away too. What each month cost stays, but no longer says which commission it went on.",
       "forgetYes": "Forget",
       "keep": "Keep it",
       "forgotten": "OK, it's all crossed out. Your name is still in Settings; change it any time.",
@@ -754,10 +754,10 @@
   "legal": {
     "privacy": [
       "# Privacy",
-      "Last updated: October 29, 2026",
+      "Last updated: November 5, 2026",
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
-      "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); a record of each commission; the last 7 days of the app's log; crash records.",
+      "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records.",
       "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook; the Microsoft Store version keeps it in the app's own storage, which Windows removes when you uninstall). You can clear the notebook in Settings. If you installed from the setup file, delete that folder after uninstalling to remove everything.",
       "What the staff make goes in the commission folder you chose, and it is yours.",
       "# What is sent to Anthropic",

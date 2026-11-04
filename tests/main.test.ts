@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { commissionDir, interimPermission, isInside } from '../app/main/agent-runner';
-import { Recorder, truncateDeep } from '../app/main/recorder';
+import { MAX_RECORDINGS, pruneRecordings, Recorder, truncateDeep } from '../app/main/recorder';
 import { strings } from '../app/shared/i18n';
 
 describe('recorder', () => {
@@ -21,6 +21,22 @@ describe('recorder', () => {
     r.write({ t: 2, source: 'message', name: 'B', payload: {} });
     const lines = readFileSync(p, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     expect(lines.map((l) => l.name)).toEqual(['A', 'B']);
+  });
+});
+
+describe('records of runs', () => {
+  it('keeps the newest ones and lets the rest go', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lamplight-rec-'));
+    for (let i = 10; i < 70; i++) writeFileSync(join(dir, `17000000000${i}-commission.jsonl`), '{}');
+    pruneRecordings(dir);
+    const left = readdirSync(dir).sort();
+    expect(left).toHaveLength(MAX_RECORDINGS);
+    expect(left.at(-1)).toBe('1700000000069-commission.jsonl');
+    expect(left[0]).toBe(`17000000000${70 - MAX_RECORDINGS}-commission.jsonl`);
+  });
+
+  it('has nothing to do when there are none yet', () => {
+    expect(() => pruneRecordings(join(tmpdir(), 'lamplight-no-such-folder'))).not.toThrow();
   });
 });
 
