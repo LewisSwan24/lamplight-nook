@@ -4,8 +4,8 @@
 // The copies are what upgrades have to cope with; tests/fixtures/userdata/ holds their data files.
 //
 //   # build the old versions first, each in its own checkout sharing node_modules:
-//   git worktree add --detach ../old/0.5.0 fca49e9 && ln -s "$PWD/node_modules" ../old/0.5.0/node_modules
-//   (cd ../old/0.5.0 && npx electron-vite build)          # likewise 0.6.1 (157ad2f) and 0.7.0 (176ac64)
+//   git worktree add --detach ../old/0.5.0 c8d0f30 && ln -s "$PWD/node_modules" ../old/0.5.0/node_modules
+//   (cd ../old/0.5.0 && npx electron-vite build)          # likewise 0.6.1 (0b3fbdc) and 0.7.0 (a0b70a8)
 //   npm run build && node tools/sim/legacy.mjs --old ../old [--lang zh-CN,en] [--out legacy-out] [--fixtures]
 //
 // --fixtures also writes the data files of the Chinese run to tests/fixtures/userdata/<version>/,

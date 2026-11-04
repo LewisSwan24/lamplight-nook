@@ -75,6 +75,10 @@ const version = await claudeVersion(claudePath);
 const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
 const OUT = args.includes('--out') ? resolve(args[args.indexOf('--out') + 1]) : resolve(`lamplight-real-check-${stamp}${SIM ? '-sim' : ''}`);
 mkdirSync(OUT, { recursive: true });
+// The work folders sit under OUT. Inside this repository (whose package.json says "type": "module") Node would
+// load the demo's check.js as an ES module and fail on its first require; this marks everything below as CommonJS,
+// as a commission folder in Documents is.
+writeFileSync(join(OUT, 'package.json'), '{ "type": "commonjs" }\n');
 
 const zh = LANG === 'zh-CN';
 const samples = join(OUT, 'samples');

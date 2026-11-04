@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased (1.0)
+
+Safety before launch.
+
+- **Reading outside the commission folder asks first.** Claude's Read, Glob and Grep tools could open any file
+  on the computer that was not a key file or hidden settings, without a word; a web page or a handed-over file
+  that talked Claude into it could then have it send what it read on with a web request. Now any read outside the
+  folder waits for you, however it is written: a path, `..`, `~`, `cd ~`, or `$HOME` in PowerShell.
+- **Pages and files are material, not instructions.** Claude is told that web pages, search results and the files
+  in the folder are things to work from: if one tells it to run something, read or send other files, or change the
+  shop's rules, it does not, and says so in the summary.
+- **Only documents open with a click.** "Open" on the result card and the works shelf opens pages, text, tables,
+  pictures and PDFs; anything else the staff wrote (a program, a script, a shortcut) is shown in its folder
+  instead, and a link inside the folder can no longer point the click elsewhere.
+- **The shop's windows stay on the shop.** They refuse to navigate to another page, to open new windows or embedded
+  views, and every web permission request (camera, microphone and the like). The page can no longer set the work
+  folder; only the folder dialog does.
+- **The installed app cannot be borrowed to run other code.** Electron's fuses are set in the build: no plain Node
+  mode (`ELECTRON_RUN_AS_NODE`), no code through `NODE_OPTIONS`, no debugger flags, and only the app's own
+  `app.asar` loads, checked against its recorded hash on Windows.
+- **The plan shows up more often.** For work with three or more steps Claude is asked to keep its to-do list in your
+  language from the start, so the blackboard shows the real plan rather than three generic steps (a real page
+  commission now lists "请设计师给出配色与布局方案…").
+
 ## 0.9.1 (2026-11-03)
 
 A safety fix.

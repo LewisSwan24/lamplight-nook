@@ -50,6 +50,14 @@
       "package.json",
       "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
     ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
     "win": {
       "icon": "assets/ui/icon.png",
       "target": [

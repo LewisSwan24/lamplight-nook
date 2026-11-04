@@ -12,3 +12,5 @@ store-out/
 legacy-out/
 real-out/
 real-out-sim/
+real-check/
+lamplight-real-check-*/

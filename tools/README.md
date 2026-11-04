@@ -79,9 +79,9 @@ tests start from.
 
 ```bash
 # each old version in its own checkout, sharing node_modules (the dependencies have not changed)
-git worktree add --detach ../old/0.5.0 fca49e9 && ln -s "$PWD/node_modules" ../old/0.5.0/node_modules
+git worktree add --detach ../old/0.5.0 c8d0f30 && ln -s "$PWD/node_modules" ../old/0.5.0/node_modules
 (cd ../old/0.5.0 && npx electron-vite build)
-# likewise ../old/0.6.1 at 157ad2f and ../old/0.7.0 at 176ac64
+# likewise ../old/0.6.1 at 0b3fbdc and ../old/0.7.0 at a0b70a8
 npm run build && node tools/sim/legacy.mjs --old ../old --fixtures
 ```
 
@@ -132,6 +132,12 @@ Fields that only the real run has are listed for reading; the app uses few of th
 installer, with the repository secret `LAMPLIGHT_TEST_KEY` and a $1 budget (any amount when run by hand from the
 Actions tab). Without the secret only the stand-in part runs. A failed run emails the repository owner; the job
 summary has the table, and the report zips are kept as the run's artifact.
+
+The test key itself lives in the Claude Code cloud environment's settings, not in GitHub, so the weekly real run
+is a scheduled task there ("小灯屋每周真实回归", Mondays 04:23 UTC): a fresh session in that environment runs the
+same three commands with the key in a cleared environment, $1 at most, and reports the comparison (or opens an
+issue when it can). The workflow above stays for the stand-in half, and runs the real half too if the secret is
+ever added to the repository.
 
 `real/ui.mjs` runs the demo commission through the real app window (Xvfb in a container) against the
 Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY`, taking a screenshot every few seconds into
