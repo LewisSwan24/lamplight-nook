@@ -133,6 +133,12 @@ installer, with the repository secret `LAMPLIGHT_TEST_KEY` and a $1 budget (any 
 Actions tab). Without the secret only the stand-in part runs. A failed run emails the repository owner; the job
 summary has the table, and the report zips are kept as the run's artifact.
 
+The test key itself lives in the Claude Code cloud environment's settings, not in GitHub, so the weekly real run
+is a scheduled task there ("小灯屋每周真实回归", Mondays 04:23 UTC): a fresh session in that environment runs the
+same three commands with the key in a cleared environment, $1 at most, and reports the comparison (or opens an
+issue when it can). The workflow above stays for the stand-in half, and runs the real half too if the secret is
+ever added to the repository.
+
 `real/ui.mjs` runs the demo commission through the real app window (Xvfb in a container) against the
 Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY`, taking a screenshot every few seconds into
 `real-out/`. The app's lowest cap is $1; `--cap` (default 0.40) lowers it for the test through a small wrapper
