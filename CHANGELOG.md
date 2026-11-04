@@ -25,6 +25,10 @@ The running card and the road to 1.0.
 - **Everyone finds their own way.** Staff, neighbours, you and the cat work out a walk round the furniture and the
   holiday pieces instead of following one fixed aisle, in the shop, the study and the garden. The same start and end
   always give the same walk.
+- **A commission that falls over says so.** If Claude Code stops partway for no reason it can name, Adeng now tells you
+  with a card and you can carry on from where it stopped. It used to go quiet, with the plan left on the blackboard.
+  Carried on, it stays one commission in the notebook.
+- **Tab stays on the card.** While a card is open, Tab goes round inside it instead of wandering off to the shop behind.
 - **The doors make sense now.** The top wall faces the street, so only the front door opens there, and a third window
   looks out where the back door used to be. The back door is in the bottom wall, right above the path in the garden.
   Laoshi stands on the other side of the workbench, out of its way.

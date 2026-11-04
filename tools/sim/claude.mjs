@@ -8,7 +8,7 @@
 //
 // Environment:
 //   SIM_SPEED      milliseconds per step (default 700); 0 runs as fast as possible
-//   SIM_SCENARIO   a twist on the play: budget | neterror | longwait | stuck (default none)
+//   SIM_SCENARIO   a twist on the play: budget | neterror | longwait | stuck | crash (default none)
 //   SIM_COST       dollars charged per tool call (default 0.018)
 //   SIM_STATE_DIR  where sessions are kept so --resume can continue them (default <tmp>/lamplight-sim)
 //   SIM_LOG        append every message in and out to this file
@@ -317,6 +317,8 @@ async function run(prompt) {
   });
   const stage = makeStage(state);
   try {
+    // Falls over once: carrying on (--resume) gets through.
+    if (SCENARIO === 'crash' && !resumeId) setTimeout(() => process.exit(1), 6 * SPEED);
     await play.run(stage, { scenario: SCENARIO, prompt });
   } catch (err) {
     if (!(err instanceof Stopped)) {

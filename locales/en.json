@@ -550,6 +550,8 @@
       "closeTitle": "A commission is still going",
       "closeText": "If you close now the staff will stop. You can carry on next time you open Lamplight Nook.",
       "stopAndClose": "Stop and close",
+      "failedTitle": "This one stopped partway",
+      "failedText": "The work stopped partway through, and I can't say why. What's done so far is safe, and you can carry on.",
       "goneTitle": "Can't find that commission's folder",
       "goneText": "It may have been moved or deleted. If you still want it, hand in a new commission."
     },

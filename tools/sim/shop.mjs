@@ -279,7 +279,7 @@ export class Shop {
   /** The card saying why a commission stopped (network, budget...), as { title, text }, or null. */
   async stopCard() {
     const R = this.L.ui.run;
-    const titles = [R.netTitle, R.busyTitle, R.billingTitle, R.authTitle, R.goneTitle, R.budgetTitle];
+    const titles = [R.netTitle, R.busyTitle, R.billingTitle, R.authTitle, R.goneTitle, R.budgetTitle, R.failedTitle];
     return this.page.evaluate((titles) => {
       for (const c of document.querySelectorAll('#ui .card')) {
         const title = c.querySelector('.card-title, .serious-title')?.textContent?.trim();

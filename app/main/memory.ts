@@ -34,6 +34,8 @@ export class MemoryStore {
     let t = now.getTime();
     while (this.data.commissions.some((c) => c.id === `c${t}`)) t++;
     const entry: CommissionMemo = { ...memo, id: `c${t}`, date };
+    // Carrying on after a stop is still the same commission: what stopped is replaced, not listed twice.
+    this.data.commissions = this.data.commissions.filter((c) => !(memo.folder && c.folder === memo.folder && c.result === 'failed'));
     this.data.commissions.push(entry);
     this.data.commissions = this.data.commissions.slice(-MAX_COMMISSIONS);
     this.note(memo.title, stuck, date);

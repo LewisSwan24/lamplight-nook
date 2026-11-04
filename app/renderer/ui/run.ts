@@ -3,7 +3,7 @@ import { fill, strings } from '../../shared/i18n';
 import { capLine, elapsedLine, planLine } from '../../shared/progress';
 import type { ActorId, CommissionForm, ExternalLink, LamplightApi } from '../../shared/types';
 import { el } from './dom';
-import { closeButton, closePanel, replaceOpen } from './panels';
+import { clearWorkSigns, closeButton, closePanel, replaceOpen } from './panels';
 import { portraitEl, withPortrait } from './portraits';
 
 const R = strings.ui.run;
@@ -102,14 +102,15 @@ const FAILURES: Record<string, Failure> = {
   billing: { title: R.billingTitle, text: R.billingText, link: ['billing', R.billingHow], retry: true, plain: true },
   auth: { title: R.authTitle, text: R.authText, link: ['apiKeys', R.authHow], retry: false, plain: true },
   gone: { title: R.goneTitle, text: R.goneText, retry: false, plain: false },
+  failed: { title: R.failedTitle, text: R.failedText, retry: true, plain: false },
   budget: { title: R.budgetTitle, text: R.budgetText, retry: true, plain: true, retryLabel: R.budgetRetry },
 };
 
-/** Returns false when the failure needs no card (the characters already said it didn't work out). */
+/** Returns false when the failure needs no card: a commission that was called off. */
 export function showFailure(api: LamplightApi, kind: string, retry: () => void, vars: Record<string, string> = {}): boolean {
   const f = FAILURES[kind];
   if (!f) return false;
-  replaceOpen(el(f.plain ? 'div.card.serious' : 'div.card.paper', {},
+  const card = el(f.plain ? 'div.card.serious' : 'div.card.paper', { 'onpanel-closed': clearWorkSigns },
     closeButton(),
     // Money and key problems stay plain, without a character; the rest is Adeng telling you.
     ...(f.plain
@@ -117,8 +118,10 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void, 
       : [withPortrait('adeng', 'troubled', el('div.card-title', {}, f.title), el('div', {}, fill(f.text, vars)))]),
     el('div.actions', {},
       f.link ? el('button', { onclick: () => api.openLink(f.link![0]) }, f.link[1]) : null,
-      f.retry ? el('button.default', { onclick: () => { closePanel(); retry(); } }, f.retryLabel ?? R.retry) : null),
-  ));
+      // Carrying on keeps the plan on the blackboard; putting the card away ends the commission, so it goes too.
+      f.retry ? el('button.default', { onclick: () => { card.removeEventListener('panel-closed', clearWorkSigns); closePanel(); retry(); } }, f.retryLabel ?? R.retry) : null),
+  );
+  replaceOpen(card);
   return true;
 }
 

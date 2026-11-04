@@ -127,6 +127,115 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** The computer loses power, a process dies, a folder disappears: the shop opens again and nothing delivered is lost. */
+  async crash(lang, out) {
+    const open = async (home, opts = {}) => {
+      const shop = await launch({ lang, home, speed: 120, ...opts });
+      await sleep(2500);
+      return shop;
+    };
+    const start = async (shop) => {
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      await sleep(5000);
+      return JSON.parse(readFileSync(join(shop.home.data, 'pending.json'), 'utf8')).workDir;
+    };
+    const pull = async (shop) => {
+      // The app's own process: what Playwright started may be only a wrapper around it.
+      process.kill(await shop.app.evaluate(() => process.pid), 'SIGKILL');
+      await sleep(3000);
+    };
+    const finished = (home) => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.filter((c) => c.result === 'done');
+
+    // The plug is pulled halfway through: the shop offers to carry on, and it counts as one work.
+    let home = freshHome({ 'settings.json': onboarded(lang) });
+    const log = join(home.home, 'stand-in.log');
+    let shop = await open(home, { speed: 600, simEnv: { SIM_LOG: log } });
+    const workDir = await start(shop);
+    await pull(shop);
+    const size = statSync(log).size;
+    await sleep(5000);
+    check(statSync(log).size === size, 'the stand-in kept working after the app died');
+    shop = await open(home);
+    const resume = await shop.maybe('.pending-card button.default', 8000);
+    check(resume, 'pulled plug: the unfinished commission was not offered');
+    await shop.shot(join(out, 'crash-pending.png'));
+    await resume.click();
+    check((await shop.workUntilDone({ answers: demoAnswers })).ok, 'pulled plug: it did not finish when carried on');
+    await shop.page.keyboard.press('Escape');
+    await sleep(1000);
+    check(finished(home).length === 1, `pulled plug: ${finished(home).length} works counted`);
+    check(readdirSync(workDir).length > 0, 'pulled plug: nothing in the commission folder');
+
+    // Pulled with the result still on the table: the work is safe, and nothing is left to carry on.
+    check((await runOne(shop, { template: 'letter', want: W[lang].letter }, { answers: demoAnswers })).ok, 'second commission');
+    await pull(shop);
+    shop = await open(home);
+    check(!(await shop.maybe('.pending-card', 3000)), 'finished work: offered to carry on');
+    check(finished(home).length === 2, `finished work: ${finished(home).length} works counted`);
+    await shop.close();
+
+    // Half-written files from a write that never finished are ignored.
+    for (const name of ['settings.json', 'memory.json', 'pending.json', 'spend.json']) writeFileSync(join(home.data, `${name}.tmp`), '{"half');
+    shop = await open(home, { speed: 600 });
+    check(finished(home).length === 2, 'half-written files: works lost');
+    check(!(await shop.maybe('.pending-card', 2000)), 'half-written files: offered to carry on');
+
+    // The commission's folder is emptied while it runs (Windows will not delete a folder in use): the shop says
+    // something and takes the next one.
+    let gone = await start(shop);
+    for (const name of readdirSync(gone)) rmSync(join(gone, name), { recursive: true, force: true });
+    const during = await shop.workUntilDone({ answers: demoAnswers, timeout: 90_000 });
+    check(!during.timeout, 'folder emptied: the shop never said anything');
+    await shop.shot(join(out, 'crash-folder-gone.png'));
+    await shop.page.keyboard.press('Escape');
+    await sleep(800);
+    check(await shop.page.locator('button.hotspot').count() > 0, 'folder emptied: the shop is gone');
+    await shop.close();
+
+    // Deleted while the shop is closed, then carried on.
+    home = freshHome({ 'settings.json': onboarded(lang) });
+    shop = await open(home, { speed: 600 });
+    gone = await start(shop);
+    await pull(shop);
+    rmSync(gone, { recursive: true, force: true });
+    shop = await open(home);
+    const again = await shop.maybe('.pending-card button.default', 8000);
+    check(again, 'folder gone: the unfinished commission was not offered');
+    await again.click();
+    const after = await shop.workUntilDone({ answers: demoAnswers, timeout: 90_000 });
+    check(!after.timeout, 'folder gone: carrying on never ended');
+    await shop.shot(join(out, 'crash-carried-on-gone.png'));
+    await shop.close();
+
+    // Claude Code itself falls over: a plain card, and the shop stays open.
+    shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: 300, scenario: 'crash' });
+    await sleep(2500);
+    await shop.order({ template: 'page', want: W[lang].page });
+    await shop.submit();
+    const fell = await shop.workUntilDone({ answers: demoAnswers, timeout: 60_000 });
+    await shop.shot(join(out, 'crash-standin.png'));
+    check(fell.stopped?.title === shop.L.ui.run.failedTitle, `Claude Code fell over: ${JSON.stringify(fell).slice(0, 200)}`);
+    // Put away, the card takes the plan off the blackboard with it: nothing is going on any more.
+    await shop.page.keyboard.press('Escape');
+    await sleep(300);
+    check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) === 0, 'the blackboard still shows the plan of a commission that stopped');
+    await shop.close();
+
+    // Carried on from the card: it finishes, and the notebook has one entry for it.
+    const stopped = freshHome({ 'settings.json': onboarded(lang) });
+    shop = await launch({ lang, home: stopped, speed: 300, scenario: 'crash' });
+    await sleep(2500);
+    await shop.order({ template: 'page', want: W[lang].page });
+    await shop.submit();
+    check((await shop.workUntilDone({ answers: demoAnswers, timeout: 60_000 })).stopped, 'no card when it fell over');
+    await shop.retry();
+    check((await shop.workUntilDone({ answers: demoAnswers, timeout: 90_000 })).ok, 'carrying on did not finish');
+    const entries = JSON.parse(readFileSync(join(stopped.data, 'memory.json'), 'utf8')).commissions;
+    check(entries.length === 1 && entries[0].result === 'done', `the notebook has ${entries.map((c) => c.result)} for one commission`);
+    await shop.close();
+  },
+
   /** Everything fixed in the shop answers: a name on hover, a key to reach it, and a word or a light, for nothing. */
   async objects(lang, out) {
     for (const scene of ['cafe', 'study']) {

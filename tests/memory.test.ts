@@ -16,6 +16,20 @@ describe('memory store', () => {
     expect(m.stuckNotes).toEqual([{ commission: 'ledger', note: 'node check.js', date: '2026-10-22' }]);
   });
 
+  it('keeps one entry when a stopped commission is carried on in the same folder', () => {
+    const store = new MemoryStore(fresh());
+    store.remember({ ...memo('ledger', {}, 'failed'), folder: 'C:/works/ledger' }, []);
+    store.remember({ ...memo('ledger'), folder: 'C:/works/ledger' }, []);
+    expect(store.get().commissions.map((c) => c.result)).toEqual(['done']);
+  });
+
+  it('keeps a finished commission and a failed one that are in different folders', () => {
+    const store = new MemoryStore(fresh());
+    store.remember({ ...memo('ledger', {}, 'failed'), folder: 'C:/works/one' }, []);
+    store.remember({ ...memo('ledger'), folder: 'C:/works/two' }, []);
+    expect(store.get().commissions).toHaveLength(2);
+  });
+
   it('starts empty and recalls nothing', () => {
     const store = new MemoryStore(fresh());
     expect(store.recallForCommission('ledger')).toEqual({ flags: [], vars: {} });
