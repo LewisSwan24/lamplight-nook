@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **Crisp at 125% and 150%.** On a display Windows scales, game pixels came out uneven. The shop now picks its size in
+  real pixels, so every pixel is the same size on the common laptop settings too.
 - **Forget everything means everything.** Records of runs are deleted and the spending ledger no longer says what the money
   went on; before, both kept the names of your commissions. Records of runs are also kept to the last 50.
 - **Words you can read.** The copper links and main buttons, dates, hints and settings tabs were lighter than the paper

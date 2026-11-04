@@ -141,8 +141,9 @@ export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: 
 }
 
 /** Largest integer scale that fits the canvas in the viewport, at least 1. */
-export function integerScale(viewW: number, viewH: number): number {
-  return Math.max(1, Math.floor(Math.min(viewW / CANVAS.width, viewH / CANVAS.height)));
+export function integerScale(viewW: number, viewH: number, dpr = 1): number {
+  // In real pixels: on a display Windows scales by 125%, 3 CSS pixels would be 3.75 real ones, and uneven.
+  return Math.max(1, Math.floor(Math.min((viewW * dpr) / CANVAS.width, (viewH * dpr) / CANVAS.height))) / dpr;
 }
 
 /**

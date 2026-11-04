@@ -60,7 +60,7 @@ const game = new Phaser.Game({
 
 // Integer zoom keeps pixels crisp; leftover space stays dark.
 function fit() {
-  game.scale.setZoom(integerScale(window.innerWidth, window.innerHeight));
+  game.scale.setZoom(integerScale(window.innerWidth, window.innerHeight, window.devicePixelRatio));
   const ui = uiScale(window.innerWidth, window.innerHeight);
   document.documentElement.style.setProperty('--ui', String(ui));
   document.documentElement.style.setProperty('--tool-px', String(toolIconPx(ui, window.devicePixelRatio)));

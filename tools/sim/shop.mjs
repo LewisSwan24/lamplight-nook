@@ -119,9 +119,10 @@ async function refuseRealFolders(app, home) {
  * such as an older version; its own locales are used), simEnv (more SIM_* settings for the stand-in Claude),
  * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed;
  * 'sdk' the Agent SDK's own copy, for real runs),
- * args (more Electron switches).
+ * args (more Electron switches), displayScale (Windows display scaling, such as 1.25: the window is sized without any
+ * emulation, which would reset the device pixel ratio to 1).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [] } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0 } = {}) {
   const env = {
     PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(home),
     HOME: home.home,
@@ -144,7 +145,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
   };
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
   // Electron now and then fails to start right after another one quit; one more try is enough.
-  const start = () => electron.launch({ executablePath: ELECTRON, args: ['-r', ISOLATE, appDir, '--no-sandbox', ...args], env, cwd: appDir });
+  const start = () => electron.launch({ executablePath: ELECTRON, args: ['-r', ISOLATE, appDir, '--no-sandbox', ...(displayScale ? [`--force-device-scale-factor=${displayScale}`] : []), ...args], env, cwd: appDir });
   const app = await start().catch(async (err) => {
     if (!/failed to launch/i.test(String(err?.message))) throw err;
     await sleep(2000);
@@ -163,6 +164,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
     await page.evaluate(hide).catch(() => {});
   }
   const shop = new Shop(app, page, lang, home, appDir);
+  shop.displayScale = displayScale;
   await shop.resize(size);
   await page.waitForSelector('#game canvas', { timeout: 30_000 });
   await sleep(1500);
@@ -185,7 +187,7 @@ export class Shop {
       win.setContentSize(w, h);
       win.center();
     }, [w, h]);
-    await this.page.setViewportSize({ width: w, height: h }).catch(() => {});
+    if (!this.displayScale) await this.page.setViewportSize({ width: w, height: h }).catch(() => {});
     await sleep(400);
   }
 

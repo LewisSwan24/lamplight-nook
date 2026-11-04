@@ -65,6 +65,7 @@ body.debug #debug { display: block; }
 .card, .dialog, .serious { --card-w: var(--card-small); box-sizing: border-box; width: min(var(--card-w), calc(92vw / var(--ui, 1))); max-height: calc(94vh / var(--ui, 1)); }
 .commission, .settings, .shelf-card, .meeting, .welcome, .dialog, .serious { --card-w: var(--card-form); }
 .notebook, .caption-card, .notice-card, .card.legal { --card-w: var(--card-reading); }
+.notice-card { overflow-y: auto; }
 .card-title { font-family: var(--hand); font-size: 21px; line-height: 1.3; margin-bottom: 6px; }
 .card .close, .parcel .close { position: absolute; right: 6px; top: 6px; width: 26px; height: 26px; padding: 0; border: none; border-radius: 6px; background: none; font: 20px/26px sans-serif; text-align: center; cursor: pointer; color: var(--ink); z-index: 1; }
 .card .close::before { display: none; }

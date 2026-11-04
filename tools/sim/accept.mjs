@@ -10,6 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { mainCards } from './cards.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
 
 const args = process.argv.slice(2);
@@ -128,6 +129,96 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Small laptops and Windows display scaling: game pixels stay even, clicks land, and every card stays on the screen. */
+  async screens(lang, out) {
+    const problems = [];
+    const see = (ok, why) => { if (!ok) problems.push(why); };
+    // Real display scaling: 1366x768 at 125%, 1920x1080 at 150%, 1536x864 (a 1080p laptop at 125%), 2560x1440 at 175%.
+    for (const [w, h, scale] of [[1093, 580, 1.25], [1280, 680, 1.5], [1536, 830, 1.25], [1463, 790, 1.75]]) {
+      const name = `${w}x${h}@${scale}`;
+      const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), size: [w, h], displayScale: scale, debug: true });
+      try {
+        await sleep(2500);
+        const got = await shop.page.evaluate(() => {
+          const r = document.querySelector('#game canvas').getBoundingClientRect();
+          return { dpr: devicePixelRatio, x: r.x, y: r.y, w: r.width, h: r.height, vw: innerWidth, vh: innerHeight };
+        });
+        see(Math.abs(got.dpr - scale) < 0.01, `${name}: the display scale is ${got.dpr}`);
+        const real = got.w * got.dpr / 320;
+        see(Math.abs(real - Math.round(real)) < 0.01, `${name}: a game pixel is ${real} real pixels wide`);
+        see(got.x >= 0 && got.y >= 0 && got.x + got.w <= got.vw + 1 && got.y + got.h <= got.vh + 1, `${name}: the shop does not fit: ${JSON.stringify(got)}`);
+        // Counted on the picture itself: runs of one colour across a row are whole numbers of game pixels.
+        const pic = await shop.page.screenshot({ scale: 'device', clip: { x: got.x, y: got.y + got.h * 0.1, width: got.w, height: got.h * 0.5 } });
+        const uneven = await shop.page.evaluate(async ([png, n]) => {
+          const img = await createImageBitmap(new Blob([Uint8Array.from(atob(png), (c) => c.charCodeAt(0))], { type: 'image/png' }));
+          const c = new OffscreenCanvas(img.width, img.height).getContext('2d');
+          c.drawImage(img, 0, 0);
+          const d = c.getImageData(0, 0, img.width, img.height).data;
+          let runs = 0, off = 0;
+          for (let y = 0; y < img.height; y += n * 3) {
+            let start = 0;
+            for (let x = 1; x < img.width; x++) {
+              const at = (y * img.width + x) * 4;
+              if (d[at] === d[at - 4] && d[at + 1] === d[at - 3] && d[at + 2] === d[at - 2]) continue;
+              runs++;
+              if ((x - start) % n) off++;
+              start = x;
+            }
+          }
+          return off / runs;
+        }, [pic.toString('base64'), Math.round(real)]);
+        see(uneven < 0.03, `${name}: ${(uneven * 100).toFixed(1)}% of the colour runs are not whole game pixels`);
+        await shop.page.screenshot({ path: join(out, `screens-${name}.png`), scale: 'device' });
+        // A click on Adeng, wherever scaling has put them, lands on Adeng.
+        const spot = await shop.page.evaluate(() => {
+          const scene = window.lamplightDebug.scene;
+          const s = scene.actors.get('adeng').sprite;
+          const r = document.querySelector('#game canvas').getBoundingClientRect();
+          return { x: r.x + s.x * r.width / 320, y: r.y + (s.y - 10) * r.height / 180 };
+        });
+        await shop.page.mouse.click(spot.x, spot.y);
+        see(await shop.maybe('.actor-card', 3000), `${name}: clicking Adeng does not open their card`);
+        await shop.page.keyboard.press('Escape');
+      } finally {
+        await shop.close();
+      }
+    }
+    // The smallest window the app allows, and small ones around it: every card stays on the screen, close button and all.
+    const memory = {
+      commissions: Array.from({ length: 12 }, (_, i) => ({ id: `c${1760000000000 + i * 86400000}`, title: 'A long enough name for a commission', date: '2026-10-20', result: 'done', choices: { Q: 'A' }, costUsd: 0.2, folder: 'C:/nowhere', form: { want: 'x', template: 'letter' } })),
+      stuckNotes: [], greeted: 'c1', shop: { done: 12, told: [], grown: [], met: [] },
+    };
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) }), debug: true });
+    try {
+      for (const size of [[640, 360], [800, 450], [911, 512]]) {
+        await shop.resize(size);
+        for (const [name, sel, open, tab] of mainCards(lang)) {
+          if (tab) await shop.openSettings(tab);
+          else await shop.page.evaluate(`void (${open})`);
+          await sleep(300);
+          const box = await shop.page.evaluate((sel) => {
+            const card = document.querySelector(sel);
+            const r = card.getBoundingClientRect();
+            const buttons = [...card.querySelectorAll('.actions button.default, :scope > button.close')].map((b) => b.getBoundingClientRect());
+            return { top: r.top, left: r.left, bottom: r.bottom, right: r.right, vw: innerWidth, vh: innerHeight, buttonsOut: card.scrollHeight > card.clientHeight ? 0 : buttons.filter((b) => b.top < 0 || b.bottom > innerHeight + 1 || b.left < 0 || b.right > innerWidth + 1).length };
+          }, sel);
+          const where = `${size.join('x')} ${name}`;
+          see(box.top >= -1 && box.left >= -1 && box.bottom <= box.vh + 1 && box.right <= box.vw + 1, `${where} leaves the window: ${Math.round(box.top)}..${Math.round(box.bottom)} of ${box.vh}, ${Math.round(box.left)}..${Math.round(box.right)} of ${box.vw}`);
+          see(box.buttonsOut === 0, `${where}: ${box.buttonsOut} of its buttons are out of reach`);
+          if (size[0] === 640 && (name === 'shelf' || name === 'slip' || name === 'settings-work')) await shop.shot(join(out, `screens-small-${name}.png`));
+          await shop.page.keyboard.press('Escape');
+          await sleep(200);
+          const stuck = shop.page.locator('.pending-card button.default');
+          if (await stuck.count()) await stuck.click();
+          await sleep(100);
+        }
+      }
+    } finally {
+      await shop.close();
+    }
+    check(problems.length === 0, `\n  ${problems.join('\n  ')}`);
+  },
+
   /** Every kind of text on every main card can be read: tools/sim/contrast.mjs. */
   async contrast(lang, out) {
     const run = spawnSync(process.execPath, [join(ROOT, 'tools', 'sim', 'contrast.mjs'), '--lang', lang, '--out', out], { encoding: 'utf8' });

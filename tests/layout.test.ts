@@ -18,6 +18,18 @@ describe('scene layout', () => {
     expect(integerScale(100, 100)).toBe(1);
   });
 
+  it('counts real pixels when Windows scales the display, so every game pixel stays the same size', () => {
+    // 1366x768 at 125%: 4 real pixels each, not 3 CSS pixels at 3.75 real ones.
+    expect(integerScale(1093, 614, 1.25)).toBeCloseTo(4 / 1.25);
+    // 1920x1080 at 150%.
+    expect(integerScale(1280, 720, 1.5)).toBeCloseTo(6 / 1.5);
+    // 2560x1440 at 175%.
+    expect(integerScale(1463, 823, 1.75)).toBeCloseTo(8 / 1.75);
+    expect(integerScale(1280, 720, 1)).toBe(4);
+    // Never smaller than one real pixel.
+    expect(integerScale(100, 100, 2)).toBe(0.5);
+  });
+
   it('paths end at the anchor', () => {
     const path = pathBetween(ANCHORS.shelf, 'door');
     expect(path.at(-1)).toEqual({ x: ANCHORS.door.x, y: ANCHORS.door.y });
