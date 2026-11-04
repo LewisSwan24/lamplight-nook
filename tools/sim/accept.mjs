@@ -9,7 +9,7 @@
 import { pathToFileURL } from 'node:url';
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { FAKE_CLAUDE, freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
+import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : def; };
@@ -127,6 +127,66 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Past twenty works nothing drops off the shelf or the notebook, and the shop's days read right. */
+  async days(lang, out) {
+    const N = locale(lang).ui.notebook;
+    const day = (i) => Date.UTC(2026, 0, 1 + i);
+    const title = (i) => (i === 29 ? 'A very long name '.repeat(20).trim() : `work ${i + 1}`);
+    const commissions = Array.from({ length: 30 }, (_, i) => ({
+      id: `c${day(i)}`, title: title(i), date: new Date(day(i)).toISOString().slice(0, 10), result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'page' },
+    }));
+    const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 30, told: [], grown: [{ id: 'painting', date: '2026-01-01' }], met: [{ id: 'baker', date: '2026-01-03' }] } };
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) }), size: 'small', debug: true });
+    const notebook = async () => {
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await shop.page.waitForSelector('.notebook');
+      await sleep(300);
+    };
+    try {
+      await sleep(2500);
+      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.waitForSelector('.shelf-card');
+      const shelved = await shop.page.locator('.shelf-card ul.works > li').count();
+      check(shelved === 30, `${shelved} of 30 works on the shelf`);
+      await shop.page.keyboard.press('Escape');
+      await sleep(300);
+
+      await notebook();
+      const days = await shop.page.locator('.notebook-days').innerText();
+      for (const line of [
+        N.firstWork.replace('{title}', 'work 1'), N.nthWork.replace('{n}', '10').replace('{title}', 'work 10'), N.nthWork.replace('{n}', '25').replace('{title}', 'work 25'),
+        N.bedRipe, N.bedFull, N.metLine.replace('{name}', locale(lang).guests.baker),
+      ]) check(days.includes(line), `not in the shop's days: ${line}`);
+      check(await shop.page.locator('.notebook-pages').evaluate((p) => p.scrollTop) === 0, 'the notebook opens scrolled past the shop\'s days');
+      const spills = await shop.page.locator('.notebook-pages').evaluate((p) => p.scrollWidth > p.clientWidth + 1);
+      check(!spills, 'a long name pushes the notebook sideways');
+      await shop.shot(join(out, 'days.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(300);
+
+      // Someone new comes in: the page says so next time.
+      await shop.page.evaluate('void window.lamplightDebug.scene.guestVisit("postman", [])');
+      await shop.page.waitForFunction(() => window.lamplightDebug.scene.guest, null, { timeout: 12_000 });
+      await sleep(500);
+      await notebook();
+      check((await shop.page.locator('.notebook-days').innerText()).includes(N.metLine.replace('{name}', locale(lang).guests.postman)), 'the postman is not in the days');
+      await shop.page.keyboard.press('Escape');
+    } finally {
+      await shop.close();
+    }
+
+    // A shop that has made nothing has no such page.
+    const fresh = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }) });
+    try {
+      await sleep(2500);
+      await fresh.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await fresh.page.waitForSelector('.notebook');
+      check(await fresh.page.locator('.notebook-days').count() === 0, 'an empty shop has days');
+    } finally {
+      await fresh.close();
+    }
+  },
+
   /** The vegetable beds come up with the works finished, say so three times, and a round of changes does not count. */
   async beds(lang, out) {
     const seed = (done) => ({

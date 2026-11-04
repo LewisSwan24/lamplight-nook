@@ -25,6 +25,11 @@ The running card and the road to 1.0.
 - **Everyone finds their own way.** Staff, neighbours, you and the cat work out a walk round the furniture and the
   holiday pieces instead of following one fixed aisle, in the shop, the study and the garden. The same start and end
   always give the same walk.
+- **Nothing drops off the shelf.** The shop used to remember the last twenty commissions, so older works quietly left the
+  shelf and the notebook. It keeps them all now. Claude is still only told about recent choices, so a long history costs
+  nothing more on each commission.
+- **The shop's days.** The notebook's page now tells the shop's story: the first work by name, the tenth and twenty-fifth,
+  what it gathered, the first visit of each neighbour, and how the beds did.
 - **The garden grows with the work.** The vegetable beds behind the shop start empty. A sprout comes up every three works
   finished and ripens three works later, so they fill at the twenty-fifth. The staff mention the first sprout, the first
   ripe plant and the full beds. Another round of changes on the same work does not count.

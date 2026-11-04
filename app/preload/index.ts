@@ -47,6 +47,7 @@ const api: LamplightApi = {
   shopState: () => ipcRenderer.invoke(IPC.shopState),
   openWork: (id) => ipcRenderer.invoke(IPC.openWork, id),
   markTold: (id) => ipcRenderer.invoke(IPC.markTold, id),
+  markMet: (id) => ipcRenderer.invoke(IPC.markMet, id),
   reviseCommission: (req) => ipcRenderer.invoke(IPC.reviseCommission, req),
   restorePrevious: (id) => ipcRenderer.invoke(IPC.restorePrevious, id),
   onRawEvent: (cb) => on(IPC.rawEvent, cb),

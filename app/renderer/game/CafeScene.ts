@@ -147,6 +147,8 @@ export class CafeScene extends Phaser.Scene {
   private speech = new Map<ActorId, { text: string; icon?: Bubble }>();
   /** A neighbour in the shop (at most one), what they are saying, and whether the pointer is over them. */
   private guest?: Guest;
+  /** A neighbour has really come in. */
+  onGuestIn?: (id: GuestId) => void;
   /** A neighbour on the street, on the way to the door. */
   private guestComing = false;
   /** Bumped to send a guest on their way (a commission came in). */
@@ -946,6 +948,7 @@ export class CafeScene extends Phaser.Scene {
     this.guestComing = false;
     // A commission came in while they were on their way: they carry on down the street.
     if (gone()) return;
+    this.onGuestIn?.(id);
     const wait = (ms: number) => new Promise((r) => this.time.delayedCall(ms, r));
     const sprite = this.add.sprite(GUEST_DOOR.x, GUEST_DOOR.y - 8, id).setOrigin(0.5, 1).setAlpha(0).setDepth(GUEST_DOOR.y);
     const shadow = this.add.ellipse(GUEST_DOOR.x, GUEST_DOOR.y, 11, 4, 0x3b2a1e, 0.28);

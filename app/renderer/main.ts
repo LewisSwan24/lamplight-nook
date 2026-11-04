@@ -176,6 +176,7 @@ function tendGarden(quiet: boolean) {
 
 // Now and then a neighbour drops in for a word while the shop is quiet; work sends them on their way.
 const visits = new VisitPlanner(Date.now());
+scene.onGuestIn = (id) => void window.lamplight.markMet(id);
 const heardVisits = new Set<string>();
 function dropIn(quiet: boolean) {
   const guest = visits.next(Date.now(), quiet && !scene.hasGuest(), scene.period, welcomeGuests(shopDays.made));

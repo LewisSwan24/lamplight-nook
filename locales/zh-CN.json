@@ -608,7 +608,13 @@
       "asked": "后来改过：{ask}",
       "days": "店里的日子",
       "doneCount": "一起做完了 {n} 单。",
-      "grewLine": "店里多了{item}"
+      "grewLine": "店里多了{item}",
+      "firstWork": "第一单：{title}",
+      "nthWork": "第 {n} 单：{title}",
+      "metLine": "{name}第一次来店里",
+      "bedSprout": "后院种下第一棵菜",
+      "bedRipe": "后院第一棵菜熟了",
+      "bedFull": "后院菜地长满了"
     },
     "tray": {
       "sectionLabel": "不在眼前的时候",

@@ -1,4 +1,5 @@
 import { fill, strings } from '../../shared/i18n';
+import { shopTimeline } from '../../shared/days';
 import { formatUsd } from '../../shared/money';
 import type { LamplightApi, Memory } from '../../shared/types';
 import { el } from './dom';
@@ -21,7 +22,7 @@ function pages(api: LamplightApi, memory: Memory, revise?: (id: string, title: s
   const shop = memory.shop;
   const days = shop?.done ? el('section.notebook-days', {}, el('h4', {}, N.days),
     el('div', {}, fill(N.doneCount, { n: String(shop.done) })),
-    el('ul', {}, ...[...shop.grown].reverse().map((g) => el('li', {}, el('span.notebook-date', {}, g.date), ' ', fill(N.grewLine, { item: strings.growth[g.id] }))))) : null;
+    el('ul', {}, ...shopTimeline(memory).map((d) => el('li', {}, el('span.notebook-date', {}, d.date), ' ', d.text)))) : null;
   return [
     days,
     commissions.length ? el('section', {}, el('h4', {}, N.commissions), el('ul', {}, ...commissions)) : null,
@@ -66,4 +67,7 @@ export async function showNotebook(api: LamplightApi) {
     actions,
   ));
   ask();
+  // Start at the top of the page, not at the first link further down.
+  body.focus();
+  body.scrollTop = 0;
 }

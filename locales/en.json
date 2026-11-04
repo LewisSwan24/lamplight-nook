@@ -608,7 +608,13 @@
       "asked": "Changed later: {ask}",
       "days": "Days at the shop",
       "doneCount": "Commissions finished together: {n}.",
-      "grewLine": "the shop got {item}"
+      "grewLine": "the shop got {item}",
+      "firstWork": "the first job: {title}",
+      "nthWork": "job {n}: {title}",
+      "metLine": "{name} came by for the first time",
+      "bedSprout": "the first vegetable went in out back",
+      "bedRipe": "the first vegetable out back was ripe",
+      "bedFull": "the beds out back filled up"
     },
     "tray": {
       "sectionLabel": "When you're away",

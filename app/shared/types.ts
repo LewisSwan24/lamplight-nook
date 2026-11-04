@@ -139,6 +139,7 @@ export interface LamplightApi {
   openWork(id: string): Promise<boolean>;
   /** A one-off story has been told; it won't come up again. */
   markTold(id: string): Promise<void>;
+  markMet(id: GuestId): Promise<void>;
   /** Change finished work in its own folder, continuing where the staff left off. */
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
@@ -265,6 +266,7 @@ export const IPC = {
   shopState: 'shop:state',
   openWork: 'shop:open-work',
   markTold: 'shop:mark-told',
+  markMet: 'shop:mark-met',
   restorePrevious: 'commission:restore-previous',
 } as const;
 
@@ -351,7 +353,13 @@ export type CommissionMemo = {
 };
 
 /** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
-export type ShopDays = { done: number; grown: { id: GrowthId; date: string }[]; told: string[] };
+export type ShopDays = {
+  done: number;
+  grown: { id: GrowthId; date: string }[];
+  told: string[];
+  /** Who has been to the shop, and the day they first came. Absent in shops from before 1.0. */
+  met?: { id: GuestId; date: string }[];
+};
 
 /** A finished piece of work on the works shelf. */
 export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean };

@@ -72,13 +72,35 @@ describe('memory store', () => {
     expect(store.promptNotes('ledger').match(/node check\.js/g)).toHaveLength(1);
   });
 
-  it('keeps only recent work', () => {
+  it('keeps every work, however many there have been', () => {
+    const store = new MemoryStore(fresh());
+    for (let i = 0; i < 45; i++) store.remember(memo(`work ${i}`), []);
+    expect(store.get().commissions).toHaveLength(45);
+    expect(store.shopState().works).toHaveLength(45);
+  });
+
+  it('keeps the last ten stuck notes', () => {
     const store = new MemoryStore(fresh());
     for (let i = 0; i < 25; i++) store.remember(memo(`job ${i}`), [`step ${i}`], new Date(2026, 9, 1, 0, i));
-    const m = store.get();
-    expect(m.commissions).toHaveLength(20);
-    expect(m.commissions[0].title).toBe('job 5');
-    expect(m.stuckNotes).toHaveLength(10);
+    expect(store.get().stuckNotes).toHaveLength(10);
+  });
+
+  it('tells Claude only about recent choices, so a long history does not cost more on every commission', () => {
+    const store = new MemoryStore(fresh());
+    store.remember(memo('old', { 'Old question?': 'old answer' }), []);
+    for (let i = 0; i < 25; i++) store.remember(memo(`work ${i}`, { [`Question ${i}?`]: 'yes' }), []);
+    const notes = store.promptNotes('anything');
+    expect(notes).not.toContain('Old question?');
+    expect(notes).toContain('Question 24?');
+    expect(notes.split('\n').length).toBeLessThanOrEqual(21);
+  });
+
+  it('remembers the first time a neighbour came, once', () => {
+    const file = fresh();
+    const store = new MemoryStore(file);
+    store.markMet('baker', new Date('2026-03-01'));
+    store.markMet('baker', new Date('2026-04-01'));
+    expect(new MemoryStore(file).get().shop?.met).toEqual([{ id: 'baker', date: '2026-03-01' }]);
   });
 
   it('writes earlier choices and stuck places into the prompt notes', () => {

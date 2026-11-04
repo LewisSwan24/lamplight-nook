@@ -1,10 +1,11 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
-import type { CommissionMemo, Memory, Recall, ShopDays, ShopState } from '../shared/types';
+import type { CommissionMemo, GuestId, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
 /** How much is kept: the shop remembers recent work, not everything. */
-const MAX_COMMISSIONS = 20;
+/** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
+const RECENT_FOR_NOTES = 20;
 const MAX_NOTES = 10;
 /** Rounds of changes remembered per commission. */
 const MAX_ASKS = 10;
@@ -40,7 +41,6 @@ export class MemoryStore {
     const entry: CommissionMemo = { ...memo, choices: { ...before?.choices, ...memo.choices }, id: `c${t}`, date };
     this.data.commissions = this.data.commissions.filter((c) => !stopped(c));
     this.data.commissions.push(entry);
-    this.data.commissions = this.data.commissions.slice(-MAX_COMMISSIONS);
     this.note(memo.title, stuck, date);
     this.save();
     return structuredClone(entry);
@@ -89,6 +89,15 @@ export class MemoryStore {
     this.data.shop = shop;
     this.save();
     return fresh;
+  }
+
+  /** A neighbour has come to the shop: only the first time is written down. */
+  markMet(id: GuestId, now = new Date()) {
+    const shop = this.shop();
+    if (shop.met?.some((m) => m.id === id)) return;
+    shop.met = [...(shop.met ?? []), { id, date: now.toISOString().slice(0, 10) }];
+    this.data.shop = shop;
+    this.save();
   }
 
   /** A one-off story has been told. */
@@ -191,7 +200,7 @@ export class MemoryStore {
   promptNotes(title: string): string {
     const lines: string[] = [];
     const choices = new Map<string, string>();
-    for (const c of this.data.commissions) for (const [q, a] of Object.entries(c.choices)) choices.set(q, a);
+    for (const c of this.data.commissions.slice(-RECENT_FOR_NOTES)) for (const [q, a] of Object.entries(c.choices)) choices.set(q, a);
     for (const [q, a] of choices) lines.push(`- Asked "${q}" before, the user chose "${a}".`);
     for (const n of this.data.stuckNotes.filter((s) => s.commission === title)) lines.push(`- On this commission before, "${n.note}" failed at first.`);
     return lines.length ? `Notes from earlier commissions with this user (summaries only):\n${lines.join('\n')}` : '';
@@ -205,7 +214,7 @@ export class MemoryStore {
         stuckNotes: Array.isArray(m.stuckNotes) ? m.stuckNotes.filter((n) => n && typeof n.note === 'string' && typeof n.commission === 'string') : [],
         greeted: typeof m.greeted === 'string' ? m.greeted : undefined,
         shop: m.shop && typeof m.shop.done === 'number'
-          ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [] }
+          ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [], met: Array.isArray(m.shop.met) ? m.shop.met : undefined }
           : undefined,
       };
     } catch {
