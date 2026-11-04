@@ -12,6 +12,8 @@ function seeded(seed: number) {
 const chats = parseChats(readFileSync('lines/chats.yaml', 'utf8'));
 const everyone = () => true;
 
+const nothing = { made: {} };
+
 describe('neighbours dropping in', () => {
   it('waits a while after opening, then comes every so often, never after dark', () => {
     const v = new VisitPlanner(0, seeded(1));
@@ -74,22 +76,39 @@ describe('what neighbours say', () => {
 
   it('picks a visit for the day, only with staff who are in', () => {
     const used = new Set<string>();
-    const rain = pickVisit(chats, 'postman', { sky: 'rain', holiday: null }, 'day', everyone, used, seeded(5));
+    const rain = pickVisit(chats, 'postman', { sky: 'rain', holiday: null }, 'day', everyone, used, nothing, seeded(5));
     expect(rain?.id).toBe('postman_rain');
     const noLaoshi = (who: string) => who !== 'laoshi';
     for (let i = 0; i < 20; i++) {
-      const v = pickVisit(chats, 'postman', { sky: 'clear', holiday: null }, 'day', noLaoshi, used, seeded(i));
+      const v = pickVisit(chats, 'postman', { sky: 'clear', holiday: null }, 'day', noLaoshi, used, nothing, seeded(i));
       expect(v?.guest).toBe('postman');
       expect(v?.turns.some((t) => t.speaker === 'laoshi')).toBe(false);
     }
-    const dawn = pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'dawn', everyone, new Set(), seeded(6));
+    const dawn = pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'dawn', everyone, new Set(), nothing, seeded(6));
     expect(dawn?.id).toBe('baker_fresh');
   });
 
   it('goes through every visit before repeating one', () => {
     const used = new Set<string>();
-    const everyday = chats.filter((c) => c.guest === 'baker' && !c.sky && !c.holiday && !c.period);
-    const ids = everyday.map((_, i) => pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'day', everyone, used, seeded(i + 10))!.id);
+    const everyday = chats.filter((c) => c.guest === 'baker' && !c.sky && !c.holiday && !c.period && !c.made && !c.mentions);
+    const ids = everyday.map((_, i) => pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'day', everyone, used, nothing, seeded(i + 10))!.id);
     expect(new Set(ids).size).toBe(everyday.length);
+  });
+});
+
+describe('neighbours who remember what the shop made', () => {
+  const chat = (id: string, extra: object) => ({ id, when: 'idle' as const, guest: 'baker' as const, turns: [{ speaker: 'baker' as const, text: 'x' }, { speaker: 'adeng' as const, text: 'y' }], ...extra });
+  const plain = chat('plain', {});
+  const website = chat('website', { made: 'page' });
+  const asks = chat('asks', { mentions: true });
+  const pick = (shop: { made: Record<string, number>; lastWork?: string }) => pickVisit([plain, website, asks], 'baker', { sky: 'clear', holiday: null }, 'day', () => true, new Set(), shop, () => 0)?.id;
+
+  it('asks about a kind of work only once the shop has done it, and asks first', () => {
+    expect(pick({ made: {} })).toBe('plain');
+    expect(pick({ made: { page: 1 } })).toBe('website');
+  });
+
+  it('mentions the last work only when there is one', () => {
+    expect(pick({ made: {}, lastWork: '记账页' })).toBe('asks');
   });
 });

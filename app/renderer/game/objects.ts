@@ -69,6 +69,7 @@ const pick = (lines: string[], turn: number) => lines[turn % lines.length];
 export function objectReaction(id: ObjectId, ctx: ObjectContext, O: Objects): Reaction {
   if (id.startsWith('grow-')) {
     const g = GROWTH.find((x) => `grow-${x.id}` === id)!;
+    if ('work' in g) return { say: O.grownMade[g.id], by: 'adeng' };
     return { say: fill(O.grownLine, { thing: O.grown[g.id], n: g.at }), by: 'adeng' };
   }
   const { running, turn } = ctx;

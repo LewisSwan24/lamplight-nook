@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
-import { grownBy, workIcon, type GrowthId } from '../shared/growth';
+import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import type { CommissionMemo, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
 /** How much is kept: the shop remembers recent work, not everything. */
@@ -78,7 +78,8 @@ export class MemoryStore {
     shop.done++;
     const date = now.toISOString().slice(0, 10);
     const have = new Set(shop.grown.map((g) => g.id));
-    const fresh = grownBy(shop.done).filter((id) => !have.has(id));
+    const works = this.data.commissions.filter((c) => c.result === 'done').map((c) => ({ icon: workIcon(c.form) }));
+    const fresh = grownBy(shop.done, madeOf(works)).filter((id) => !have.has(id));
     shop.grown.push(...fresh.map((id) => ({ id, date })));
     this.data.shop = shop;
     this.save();

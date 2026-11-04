@@ -115,6 +115,16 @@ describe('what the staff really do', () => {
     }
   });
 
+  it('sends Adeng to the board when the list on it changes', () => {
+    expect(on('progress')[0]).toMatchObject({ actor: 'adeng', moveTo: 'board', anim: 'read' });
+  });
+
+  it('has an unnamed helper at work with a note, out where the errand is', () => {
+    const t = open();
+    t.translate(ev({ kind: 'subagent_start', agent: 'unknown' }));
+    expect(t.translate(ev({ kind: 'tool_start', agent: 'unknown', tool: 'Read' }))[0]).toMatchObject({ actor: 'xiaoju', state: 'out', bubble: 'note' });
+  });
+
   it('lets the cat walk for real', () => {
     expect(resolveAnim(anims, 'cat', 'walk')).toEqual({ anim: 'walk' });
   });

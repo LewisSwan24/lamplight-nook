@@ -179,8 +179,44 @@
       "needSource": "先选一下要处理的文件或文件夹。",
       "tooBig": "这个文件有点大（超过 1MB），店员们一次看不完，换个小一点的吧。"
     },
-    "furnish": {"hint": "现在布置的是：{scene}。每个地方的颜色各记各的，店里长出来的东西不受影响。", "wall": "墙面", "curtain": "窗帘", "rug": "地毯", "choices": {"wall": {"default": "原样", "sage": "鼠尾草绿", "rose": "灰粉", "sky": "雾蓝"}, "curtain": {"default": "亚麻", "blue": "靛蓝", "rose": "玫瑰", "green": "青草"}, "rug": {"default": "砖红", "blue": "海蓝", "green": "松绿", "plum": "梅子"}}},
-    "materials": {"label": "递过来的东西", "add": "递材料…", "hint": "截图、表格、稿子都行，也可以直接拖到这张单子或柜台上。店员们用的是复制件，原文件不动。", "remove": "拿掉 {name}", "folder": "「{name}」是个文件夹。要整理文件夹，请用上面的「整理文件夹」。", "tooBig": "「{name}」太大了（一次最多 20MB，合计 50MB）。", "tooMany": "一次最多递 10 个，「{name}」先放一放。", "missing": "「{name}」找不到了。", "busy": "店里正忙着这一单，等做完再递新的吧。", "drop": "松手就递给阿灯"},
+    "furnish": {
+      "hint": "现在布置的是：{scene}。每个地方的颜色各记各的，店里长出来的东西不受影响。",
+      "wall": "墙面",
+      "curtain": "窗帘",
+      "rug": "地毯",
+      "choices": {
+        "wall": {
+          "default": "原样",
+          "sage": "鼠尾草绿",
+          "rose": "灰粉",
+          "sky": "雾蓝"
+        },
+        "curtain": {
+          "default": "亚麻",
+          "blue": "靛蓝",
+          "rose": "玫瑰",
+          "green": "青草"
+        },
+        "rug": {
+          "default": "砖红",
+          "blue": "海蓝",
+          "green": "松绿",
+          "plum": "梅子"
+        }
+      }
+    },
+    "materials": {
+      "label": "递过来的东西",
+      "add": "递材料…",
+      "hint": "截图、表格、稿子都行，也可以直接拖到这张单子或柜台上。店员们用的是复制件，原文件不动。",
+      "remove": "拿掉 {name}",
+      "folder": "「{name}」是个文件夹。要整理文件夹，请用上面的「整理文件夹」。",
+      "tooBig": "「{name}」太大了（一次最多 20MB，合计 50MB）。",
+      "tooMany": "一次最多递 10 个，「{name}」先放一放。",
+      "missing": "「{name}」找不到了。",
+      "busy": "店里正忙着这一单，等做完再递新的吧。",
+      "drop": "松手就递给阿灯"
+    },
     "want": "想做什么",
     "wantMissing": "先写一句想做什么。",
     "details": "有什么讲究",
@@ -280,7 +316,13 @@
       "trialEndText": "刚才是一段录好的示范：店员们接了一张“记账小页面”的委托。装好 Claude Code、填上 API Key，就能递你自己的委托了。",
       "trialSetUp": "去准备",
       "trialDone": "好",
-      "settingsTabs": { "furnish": "布置", "basics": "基本", "sight": "画面和声音", "work": "干活", "about": "关于" },
+      "settingsTabs": {
+        "furnish": "布置",
+        "basics": "基本",
+        "sight": "画面和声音",
+        "work": "干活",
+        "about": "关于"
+      },
       "settingsTitle": "设置",
       "nameLabel": "称呼",
       "lookLabel": "你的样子",
@@ -366,7 +408,16 @@
         "guitar": "这把吉他",
         "bonsai": "这棵盆景",
         "easel": "这个画架",
-        "trophy": "这个奖杯"
+        "trophy": "这个奖杯",
+        "portrait": "这张小像",
+        "sunset": "这张晚霞",
+        "star": "这颗金星",
+        "album": "相册",
+        "calendar": "挂历",
+        "globe": "地球仪",
+        "letters": "信件板",
+        "ledger": "账本",
+        "monitor": "小电脑"
       },
       "grownLine": "{thing}是做完第 {n} 单后添的。",
       "clock": "现在 {time}。",
@@ -445,7 +496,15 @@
         "baker": "刚出炉的，趁热吃。",
         "postman": "今天的信不多，你的那封在最上面。"
       },
-      "you": "你的委托在做了，先坐会儿吧。"
+      "you": "你的委托在做了，先坐会儿吧。",
+      "grownMade": {
+        "album": "做过相册，留一本在店里翻。",
+        "calendar": "排过日程，墙上就挂了本挂历。",
+        "globe": "查过两回资料，地球仪就搬来了。",
+        "letters": "写过几封信，回信都钉在这儿。",
+        "ledger": "做过两回表格，账也记得勤了。",
+        "monitor": "做过几回网页，这台小电脑就常开着。"
+      }
     },
     "run": {
       "runningTitle": "正在做：{want}",
@@ -693,7 +752,16 @@
     "guitar": "老石修好的吉他",
     "bonsai": "一盆盆景",
     "easel": "青黛的画架",
-    "trophy": "一个小奖杯"
+    "trophy": "一个小奖杯",
+    "portrait": "一张大家的小像",
+    "sunset": "一幅晚霞",
+    "star": "一颗金星",
+    "album": "一本相册",
+    "calendar": "一本挂历",
+    "globe": "一个地球仪",
+    "letters": "一块信件板",
+    "ledger": "一本账",
+    "monitor": "一台小电脑"
   },
   "sceneText": {
     "study": {

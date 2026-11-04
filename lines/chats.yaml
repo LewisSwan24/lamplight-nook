@@ -390,6 +390,152 @@
     - adeng: 我记得，粉笔灰抹了一脸。
     - qingdai: 那是故意的。
 
+# Further on as regulars: there is still more to say after the tenth.
+- id: regular_fifteen
+  when: idle
+  after: 15
+  turns:
+    - adeng: 十五单了，灯泡都换过一轮。
+    - xiaoju: 那些灯泡是我换的！
+
+- id: regular_twenty
+  when: idle
+  after: 20
+  turns:
+    - laoshi: 二十单了。
+    - adeng: 你还记着数。
+    - laoshi: 工具坏了几回，也记着。
+
+- id: story_lamp
+  when: idle
+  after: 25
+  once: true
+  turns:
+    - adeng: 这盏灯是开店那天买的。
+    - laoshi: 修过四回。
+    - adeng: 还亮着就好。
+
+- id: regular_thirty
+  when: idle
+  after: 30
+  turns:
+    - qingdai: 黑板都擦薄了。
+    - xiaoju: 那我再买一块！
+    - qingdai: 留着吧，上头有印子。
+
+- id: regular_forty
+  when: idle
+  after: 40
+  turns:
+    - xiaoju: 街上的人都知道这儿了。
+    - adeng: 也还是这几张桌子。
+
+- id: regular_fifty
+  when: idle
+  after: 50
+  turns:
+    - qingdai: 五十单了，画一张吧。
+    - adeng: 画什么？
+    - qingdai: 画第一单那天的店。
+
+# What the shop has made comes up in the talk.
+- id: made_album
+  when: idle
+  made: album
+  turns:
+    - qingdai: 那本相册我又翻了一遍。
+    - xiaoju: 哪张最好看？
+    - qingdai: 排在第三页那张。
+
+- id: made_research
+  when: idle
+  made: research
+  turns:
+    - xiaoju: 上回查的东西我还记得！
+    - laoshi: 记得哪条？
+    - xiaoju: 记得查过。
+
+- id: made_letter
+  when: idle
+  made: letter
+  turns:
+    - adeng: 那封信写了三遍才顺。
+    - qingdai: 最后一句最好。
+
+- id: made_sheet
+  when: idle
+  made: sheet
+  turns:
+    - laoshi: 表格对齐了。
+    - adeng: 你就看这个？
+    - laoshi: 对不齐，数也不对。
+
+- id: made_page
+  when: idle
+  made: page
+  turns:
+    - qingdai: 那个网页的颜色，我还想再调调。
+    - adeng: 人家都用上了。
+    - qingdai: 我知道，就是想想。
+
+- id: made_plan
+  when: idle
+  made: plan
+  turns:
+    - adeng: 替人排日程，自己的也该排排。
+    - xiaoju: 咱们店哪有日程？
+    - adeng: 所以才该排。
+
+# Neighbours have heard what the shop does. `made:` a kind of work done; `mentions:` asks after the latest work.
+- id: postman_website
+  when: idle
+  guest: postman
+  made: page
+  turns:
+    - postman: 街口修车的老周问，能不能也给他做个网页。
+    - adeng: 让他来坐坐。
+
+- id: baker_album
+  when: idle
+  guest: baker
+  made: album
+  turns:
+    - baker: 听说你们会做相册，我家有一箱老照片。
+    - qingdai: 改天带来看看。
+
+- id: postman_envelope
+  when: idle
+  guest: postman
+  made: letter
+  turns:
+    - postman: 你们写的信，我一看信封就认得。
+    - adeng: 信封也看得出来？
+    - postman: 送了二十年信了。
+
+- id: baker_sheet
+  when: idle
+  guest: baker
+  made: sheet
+  turns:
+    - baker: 我那本账，一到月底就头疼。
+    - xiaoju: 这个我们做过！
+
+- id: baker_asks
+  when: idle
+  guest: baker
+  mentions: true
+  turns:
+    - baker: 上回那个“{lastWork}”，用上了吗？
+    - adeng: 我也想问问。
+
+- id: postman_asks
+  when: idle
+  guest: postman
+  mentions: true
+  turns:
+    - postman: “{lastWork}”做完了？这几天灯亮到挺晚。
+    - adeng: 做完了，坐下歇会儿。
+
 # In the study at home (shared/scenes.ts): `scene: study` chats come up only there, before everyday ones.
 - id: move_in
   when: idle

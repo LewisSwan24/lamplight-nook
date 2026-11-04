@@ -1,3 +1,4 @@
+import type { Made } from '../../shared/growth';
 import type { GuestId, Speaker } from '../../shared/types';
 import type { Chat } from '../translator/lines';
 import type { Period } from './daytime';
@@ -57,14 +58,15 @@ export class VisitPlanner {
 /**
  * What a guest says on this visit: one of their chats whose staff are all in the shop and whose
  * weather, holiday and time of day fit, preferring ones for today's weather or holiday, without
- * repeating until all have been heard (`used` keeps track).
+ * repeating until all have been heard (`used` keeps track). What the shop has made comes up first too.
  */
 export function pickVisit(
   chats: Chat[], guest: GuestId, outside: { sky: Sky; holiday: Holiday | null }, period: Period,
-  present: (who: Speaker) => boolean, used: Set<string>, rand: () => number = Math.random,
+  present: (who: Speaker) => boolean, used: Set<string>, shop: { made: Made; lastWork?: string }, rand: () => number = Math.random,
 ): Chat | null {
   const fits = chats.filter((c) => c.guest === guest && (!c.period || c.period === period)
     && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday)
+    && (!c.made || !!shop.made[c.made]) && (!c.mentions || !!shop.lastWork)
     && c.turns.every((t) => t.speaker === guest || present(t.speaker)));
   if (!fits.length) return null;
   let fresh = fits.filter((c) => !used.has(c.id));
@@ -72,7 +74,7 @@ export function pickVisit(
     for (const c of fits) used.delete(c.id);
     fresh = fits;
   }
-  const special = fresh.filter((c) => c.sky || c.holiday || c.period);
+  const special = fresh.filter((c) => c.sky || c.holiday || c.period || c.made || c.mentions);
   const from = special.length ? special : fresh;
   const pick = from[Math.floor(rand() * from.length)];
   used.add(pick.id);

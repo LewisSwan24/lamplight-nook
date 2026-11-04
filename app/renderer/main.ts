@@ -5,7 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -29,7 +29,7 @@ import { type ObjectId, objectReaction } from './game/objects';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, onNotebookRevise } from './ui/notebook';
 import { showShelf } from './ui/shelf';
-import type { GrowthId } from '../shared/growth';
+import { type GrowthId, type Made, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
@@ -177,10 +177,12 @@ const visits = new VisitPlanner(Date.now());
 const heardVisits = new Set<string>();
 function dropIn(quiet: boolean) {
   const guest = visits.next(Date.now(), quiet && !scene.hasGuest(), scene.period);
-  if (!guest) return;
+  if (guest) welcome(guest);
+}
+function welcome(guest: GuestId) {
   const present = (who: string) => scene.anchorOf(who as ActorId) !== null;
-  const chat = pickVisit(ruleBook().chats, guest, scene.outside(), scene.period, present, heardVisits);
-  if (chat) void scene.guestVisit(guest, chat.turns);
+  const chat = pickVisit(ruleBook().chats, guest, scene.outside(), scene.period, present, heardVisits, shopDays);
+  if (chat) void scene.guestVisit(guest, chat.turns.map((t) => ({ ...t, text: fill(t.text, { lastWork: shopDays.lastWork ?? '' }) })));
 }
 
 // Out in the garden people say something about what they are doing, heard while you look out there.
@@ -297,7 +299,7 @@ window.lamplight.onDecision((req) => {
   }).catch((e) => append(`decision failed: ${e}`));
 });
 // What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
-let shopDays: { done: number; told: Set<string> } = { done: 0, told: new Set() };
+let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string } = { done: 0, told: new Set(), made: {} };
 /** How many works were on the shelf before this result came back (the shelf only shows from the first). */
 let worksKept = 0;
 async function refreshShop(fresh: GrowthId[] = []) {
@@ -306,7 +308,7 @@ async function refreshShop(fresh: GrowthId[] = []) {
   while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
   scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
   scene.growth.setWorks(state.works.map((w) => w.icon));
-  shopDays = { done: state.done, told: new Set(state.told) };
+  shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
 }
 /** Something new in the shop: once the result card is seen to, someone says a word about it. */
@@ -543,7 +545,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     const ui = { showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm: () => showCommissionForm(api) };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; scene.setFormWaiting(!on); scene.setBell(on); };
-    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning } });
+    Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning, welcome } });
   }
   const env = $('env');
   env.textContent = [

@@ -1,3 +1,4 @@
+import type { WorkIcon } from '../../shared/growth';
 import { parse } from 'yaml';
 import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
@@ -28,6 +29,10 @@ export type Chat = {
   guest?: GuestId;
   /** Only once the shop has finished this many commissions with the user (plan.md R2.3). */
   after?: number;
+  /** Only once the shop has finished this kind of work. */
+  made?: WorkIcon;
+  /** A neighbour asks after the latest work, by name ({lastWork}). */
+  mentions?: boolean;
   /** A little story told only once, ever (remembered in Adeng's notebook). */
   once?: boolean;
   /** Only in this scene (shared/scenes.ts); replaces the chat with the same id there. */
@@ -47,6 +52,8 @@ export function parseChats(text: string): Chat[] {
     ...(c.guest ? { guest: c.guest } : {}),
     ...(typeof c.after === 'number' ? { after: c.after } : {}),
     ...(c.once ? { once: true } : {}),
+    ...(c.made ? { made: c.made } : {}),
+    ...(c.mentions ? { mentions: true } : {}),
     ...(c.scene ? { scene: c.scene } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];

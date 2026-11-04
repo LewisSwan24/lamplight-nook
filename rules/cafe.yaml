@@ -136,6 +136,23 @@
   bubble: idea
   priority: work
 
+# An unnamed helper's errand is Xiaoju's: she stays out, just shows a bubble.
+- on: tool_start
+  when: { agent: unknown }
+  actor: xiaoju
+  state: out
+  bubble: note
+  priority: work
+
+# The list on the board changes: Adeng goes over and looks it through.
+- on: progress
+  when: { agent: main }
+  actor: adeng
+  state: working
+  moveTo: board
+  anim: read
+  priority: chat
+
 # Adeng's own work
 - on: tool_start
   when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }

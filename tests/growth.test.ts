@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../app/main/memory';
-import { GROWTH, grownBy, workIcon } from '../app/shared/growth';
+import { GROWTH, grownBy, madeOf, shortWork, workIcon } from '../app/shared/growth';
 import { Chatter, CHAT_GAP_MS } from '../app/renderer/stage/chatter';
 import { chatsForScene, parseChats, parseLines, pickLine } from '../app/renderer/translator/lines';
 
@@ -19,7 +19,63 @@ describe('the shop grows with the commissions done together', () => {
     const state = store.shopState();
     expect(state.done).toBe(5);
     expect(state.grown).toEqual(['painting', 'plant', 'lights', 'fruit'].map((id) => ({ id, date: '2026-11-01' })));
-    expect(grownBy(20)).toEqual(GROWTH.map((g) => g.id));
+    expect(grownBy(20)).toEqual(['painting', 'plant', 'lights', 'fruit', 'guitar', 'bonsai', 'easel', 'trophy']);
+  });
+
+  it('keeps growing long after the twentieth', () => {
+    expect(grownBy(25)).toContain('portrait');
+    expect(grownBy(35)).toContain('sunset');
+    expect(grownBy(50)).toContain('star');
+    expect(grownBy(49)).not.toContain('star');
+  });
+
+  it('gathers what fits the kind of work done', () => {
+    expect(grownBy(0, { album: 1 })).toEqual(['album']);
+    expect(grownBy(0, { research: 1 })).toEqual([]);
+    expect(grownBy(0, { research: 2 })).toEqual(['globe']);
+    expect(grownBy(0, { page: 3, plan: 1, letter: 2, sheet: 2 }).sort()).toEqual(['calendar', 'ledger', 'letters', 'monitor']);
+    const store = fresh();
+    store.remember(memo('photos', { form: { want: 'x', template: 'album' } }), []);
+    expect(store.finished()).toEqual(['painting', 'album']);
+  });
+
+  it('counts only finished work of each kind', () => {
+    const store = fresh();
+    store.remember(memo('a', { form: { want: 'x', template: 'research' } }), []);
+    store.remember({ ...memo('b', { form: { want: 'x', template: 'research' } }), result: 'failed' }, []);
+    store.remember(memo('c', { form: { want: 'x', template: 'album' } }), []);
+    expect(madeOf(store.shopState().works)).toEqual({ research: 1, album: 1 });
+  });
+
+  it('does not grow from another round on the same work', () => {
+    const store = fresh();
+    const a = store.remember(memo('a', { form: { want: 'x', template: 'research' } }), []);
+    store.revise(a.id, 'shorter', { result: 'done', choices: {} }, []);
+    store.revise(a.id, 'longer', { result: 'done', choices: {} }, []);
+    expect(madeOf(store.shopState().works)).toEqual({ research: 1 });
+  });
+
+  it('shows a different shop after thirty commissions of different kinds', () => {
+    const shopAfter = (kinds: string[]) => {
+      const store = fresh();
+      for (let i = 0; i < 30; i++) {
+        store.remember(memo(`w${i}`, { form: { want: 'x', template: kinds[i % kinds.length] } }), []);
+        store.finished(new Date('2026-11-01T10:00:00Z'));
+      }
+      return store.shopState().grown.map((g) => g.id);
+    };
+    const albums = shopAfter(['album']);
+    const reports = shopAfter(['research', 'sheet']);
+    expect(albums).toContain('album');
+    expect(albums).not.toContain('globe');
+    expect(reports).toEqual(expect.arrayContaining(['globe', 'ledger']));
+    expect(reports).not.toContain('album');
+    for (const shop of [albums, reports]) expect(shop).toEqual(expect.arrayContaining(['trophy', 'portrait']));
+  });
+
+  it('shortens a title to fit a bubble', () => {
+    expect(shortWork('记账页')).toBe('记账页');
+    expect(shortWork('一二三四五六七八九十一二三四五')).toBe('一二三四五六七八九十…');
   });
 
   it('puts finished works on the shelf, latest first, with their icons and rounds', () => {
@@ -52,8 +108,38 @@ describe('the shop grows with the commissions done together', () => {
 });
 
 describe('chats for regulars', () => {
+  it('has more to say after the tenth, in both languages', () => {
+    for (const file of ['lines/chats.yaml', 'lines/en/chats.yaml']) {
+      const later = parseChats(readFileSync(file, 'utf8')).filter((c) => (c.after ?? 0) > 10);
+      expect(later.map((c) => c.after).sort((a, b) => a! - b!), file).toEqual([15, 20, 25, 30, 40, 50]);
+    }
+  });
+
+  it('talks about the kinds of work done, and neighbours ask about them, in both languages', () => {
+    for (const file of ['lines/chats.yaml', 'lines/en/chats.yaml']) {
+      const all = parseChats(readFileSync(file, 'utf8'));
+      for (const work of ['page', 'album', 'letter', 'sheet', 'research', 'plan']) {
+        expect(all.some((c) => c.made === work && !c.guest), `${file} staff on ${work}`).toBe(true);
+      }
+      for (const work of ['page', 'album', 'letter', 'sheet']) {
+        expect(all.some((c) => c.made === work && c.guest), `${file} neighbour on ${work}`).toBe(true);
+      }
+      const asks = all.filter((c) => c.mentions);
+      expect(asks.length, file).toBeGreaterThanOrEqual(2);
+      for (const c of asks) expect(c.turns.some((t) => t.text.includes('{lastWork}')), c.id).toBe(true);
+    }
+  });
+
+  it('only brings up a kind of work the shop has done', () => {
+    const made = { id: 'album_talk', when: 'idle' as const, made: 'album' as const, turns: [{ speaker: 'adeng' as const, text: 'x' }, { speaker: 'xiaoju' as const, text: 'y' }] };
+    const talk = (shop: { done: number; told: Set<string>; made: Record<string, number> }) => new Chatter([made], [], 0, () => 0.5).next('idle', CHAT_GAP_MS, 'day', { sky: 'clear', holiday: null }, shop);
+    expect(talk({ done: 5, told: new Set(), made: {} })).toBeNull();
+    expect(talk({ done: 5, told: new Set(), made: { album: 1 } })?.id).toBe('album_talk');
+  });
+
   const chats = chatsForScene(parseChats(readFileSync('lines/chats.yaml', 'utf8')), 'cafe');
-  const heard = (shop: { done: number; told: Set<string> }, rounds = 60) => {
+  const heard = (seen: { done: number; told: Set<string> }, rounds = 60) => {
+    const shop = { ...seen, made: {} };
     const c = new Chatter(chats, [], 0, () => 0.5);
     const ids: string[] = [];
     for (let i = 1; i <= rounds; i++) {

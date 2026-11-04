@@ -179,8 +179,44 @@
       "needSource": "Choose the file or folder first.",
       "tooBig": "That file is a bit big (over 1 MB) for the staff to read in one go. Try a smaller one."
     },
-    "furnish": {"hint": "This room: {scene}. Each room keeps its own colours, and what the shop has gathered stays put.", "wall": "Walls", "curtain": "Curtains", "rug": "Rug", "choices": {"wall": {"default": "As it was", "sage": "Sage", "rose": "Dusty rose", "sky": "Mist blue"}, "curtain": {"default": "Linen", "blue": "Indigo", "rose": "Rose", "green": "Meadow"}, "rug": {"default": "Brick red", "blue": "Sea blue", "green": "Pine", "plum": "Plum"}}},
-    "materials": {"label": "Handed over", "add": "Hand over files…", "hint": "Screenshots, spreadsheets, drafts: anything helps. You can also drag files onto this slip or the counter. The staff work from copies; your files stay as they are.", "remove": "Take back {name}", "folder": "“{name}” is a folder. To sort out a folder, use “Tidy a folder” above.", "tooBig": "“{name}” is too big (20 MB each, 50 MB in all).", "tooMany": "Ten files at most; “{name}” will have to wait.", "missing": "“{name}” can't be found.", "busy": "The shop is busy with this one. Hand it over when it's done.", "drop": "Let go to hand it to Wick"},
+    "furnish": {
+      "hint": "This room: {scene}. Each room keeps its own colours, and what the shop has gathered stays put.",
+      "wall": "Walls",
+      "curtain": "Curtains",
+      "rug": "Rug",
+      "choices": {
+        "wall": {
+          "default": "As it was",
+          "sage": "Sage",
+          "rose": "Dusty rose",
+          "sky": "Mist blue"
+        },
+        "curtain": {
+          "default": "Linen",
+          "blue": "Indigo",
+          "rose": "Rose",
+          "green": "Meadow"
+        },
+        "rug": {
+          "default": "Brick red",
+          "blue": "Sea blue",
+          "green": "Pine",
+          "plum": "Plum"
+        }
+      }
+    },
+    "materials": {
+      "label": "Handed over",
+      "add": "Hand over files…",
+      "hint": "Screenshots, spreadsheets, drafts: anything helps. You can also drag files onto this slip or the counter. The staff work from copies; your files stay as they are.",
+      "remove": "Take back {name}",
+      "folder": "“{name}” is a folder. To sort out a folder, use “Tidy a folder” above.",
+      "tooBig": "“{name}” is too big (20 MB each, 50 MB in all).",
+      "tooMany": "Ten files at most; “{name}” will have to wait.",
+      "missing": "“{name}” can't be found.",
+      "busy": "The shop is busy with this one. Hand it over when it's done.",
+      "drop": "Let go to hand it to Wick"
+    },
     "want": "What would you like?",
     "wantMissing": "Write a line about what you'd like first.",
     "details": "Anything particular?",
@@ -280,7 +316,13 @@
       "trialEndText": "That was a recorded sample: the staff took an \"expense tracker\" commission. Install Claude Code and add an API key, and you can hand in your own.",
       "trialSetUp": "Get set up",
       "trialDone": "OK",
-      "settingsTabs": { "furnish": "Furnish", "basics": "Basics", "sight": "Sight and sound", "work": "Work", "about": "About" },
+      "settingsTabs": {
+        "furnish": "Furnish",
+        "basics": "Basics",
+        "sight": "Sight and sound",
+        "work": "Work",
+        "about": "About"
+      },
       "settingsTitle": "Settings",
       "nameLabel": "Your name",
       "lookLabel": "How you look",
@@ -366,7 +408,16 @@
         "guitar": "This guitar",
         "bonsai": "This bonsai",
         "easel": "This easel",
-        "trophy": "This cup"
+        "trophy": "This cup",
+        "portrait": "This little portrait",
+        "sunset": "This sunset",
+        "star": "This gold star",
+        "album": "Album",
+        "calendar": "Calendar",
+        "globe": "Globe",
+        "letters": "Letter board",
+        "ledger": "Ledger",
+        "monitor": "Little computer"
       },
       "grownLine": "{thing} came after commission number {n}.",
       "clock": "It's {time}.",
@@ -445,7 +496,15 @@
         "baker": "Fresh from the oven. Eat it while it's hot.",
         "postman": "Not many letters today. Yours is on top."
       },
-      "you": "Your commission is under way. Have a seat."
+      "you": "Your commission is under way. Have a seat.",
+      "grownMade": {
+        "album": "We made an album once, so one stays here to leaf through.",
+        "calendar": "We planned a schedule, and the calendar went up.",
+        "globe": "After two rounds of research, the globe moved in.",
+        "letters": "We wrote a few letters. The replies get pinned here.",
+        "ledger": "After a couple of sheets we keep our own books better.",
+        "monitor": "After a few web pages, this little computer stays on."
+      }
     },
     "run": {
       "runningTitle": "Working on: {want}",
@@ -693,7 +752,16 @@
     "guitar": "the guitar Flint mended",
     "bonsai": "a bonsai",
     "easel": "Iris's easel",
-    "trophy": "a little trophy"
+    "trophy": "a little trophy",
+    "portrait": "a little portrait of everyone",
+    "sunset": "a painting of a sunset",
+    "star": "a gold star",
+    "album": "an album",
+    "calendar": "a calendar",
+    "globe": "a globe",
+    "letters": "a board of letters",
+    "ledger": "a ledger",
+    "monitor": "a little computer"
   },
   "sceneText": {
     "study": {

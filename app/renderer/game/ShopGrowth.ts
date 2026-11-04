@@ -7,6 +7,15 @@ import guitarUrl from '../../../assets/sprites/grow-guitar.png';
 import bonsaiUrl from '../../../assets/sprites/grow-bonsai.png';
 import easelUrl from '../../../assets/sprites/grow-easel.png';
 import trophyUrl from '../../../assets/sprites/grow-trophy.png';
+import portraitUrl from '../../../assets/sprites/grow-portrait.png';
+import sunsetUrl from '../../../assets/sprites/grow-sunset.png';
+import starUrl from '../../../assets/sprites/grow-star.png';
+import albumUrl from '../../../assets/sprites/grow-album.png';
+import calendarUrl from '../../../assets/sprites/grow-calendar.png';
+import globeUrl from '../../../assets/sprites/grow-globe.png';
+import lettersUrl from '../../../assets/sprites/grow-letters.png';
+import ledgerUrl from '../../../assets/sprites/grow-ledger.png';
+import monitorUrl from '../../../assets/sprites/grow-monitor.png';
 import worksUrl from '../../../assets/sprites/works.png';
 import { overlayDepth } from './pieces';
 import { GROWTH, SHELF_SLOTS, WORK_ICONS, type GrowthId, type WorkIcon } from '../../shared/growth';
@@ -14,6 +23,8 @@ import { GROWTH, SHELF_SLOTS, WORK_ICONS, type GrowthId, type WorkIcon } from '.
 const URLS: Record<GrowthId, string> = {
   painting: paintingUrl, plant: plantUrl, lights: lightsUrl, fruit: fruitUrl,
   guitar: guitarUrl, bonsai: bonsaiUrl, easel: easelUrl, trophy: trophyUrl,
+  portrait: portraitUrl, sunset: sunsetUrl, star: starUrl,
+  album: albumUrl, calendar: calendarUrl, globe: globeUrl, letters: lettersUrl, ledger: ledgerUrl, monitor: monitorUrl,
 };
 
 /** On the wall behind everyone, like the holiday decorations, and under them. */

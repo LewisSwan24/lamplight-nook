@@ -225,6 +225,57 @@ const SCENARIOS = {
     }
   },
 
+  /** Thirty commissions on: the shop has come to look like what was made in it, and the neighbours ask about it. */
+  async history(lang, out) {
+    const common = ['painting', 'plant', 'lights', 'fruit', 'guitar', 'bonsai', 'easel', 'trophy', 'portrait'];
+    const shops = [
+      { name: 'albums', scene: 'cafe', kinds: ['album', 'plan'], has: ['album', 'calendar'], lacks: ['globe', 'letters', 'ledger', 'monitor'] },
+      { name: 'reports', scene: 'cafe', kinds: ['research', 'letter', 'sheet', 'page'], has: ['globe', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
+      { name: 'reports', scene: 'study', kinds: ['research', 'letter', 'sheet', 'page'], has: ['globe', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
+    ];
+    for (const { name, scene, kinds, has, lacks } of shops) {
+      const title = kinds[0] === 'album' ? W[lang].page.slice(0, 4) : 'Q3';
+      const commissions = Array.from({ length: 20 }, (_, i) => ({
+        id: `c${1000 + i}`, title: i === 19 ? title : `w${i}`, date: '2026-10-20', result: 'done', choices: {}, folder: 'C:/nowhere',
+        form: { want: 'x', template: kinds[i % kinds.length] },
+      }));
+      const memory = {
+        commissions, stuckNotes: [], greeted: 'c1019',
+        shop: { done: 30, told: [], grown: [...common, ...has].map((id) => ({ id, date: '2026-10-20' })) },
+      };
+      const home = freshHome({ 'settings.json': onboarded(lang, { scene }), 'memory.json': JSON.stringify(memory) });
+      const shop = await launch({ lang, home, size: 'large' });
+      try {
+        await shop.page.waitForFunction(() => window.lamplightDebug?.scene?.growth?.shows('painting'));
+        const shows = (ids) => shop.page.evaluate((ids) => ids.filter((id) => window.lamplightDebug.scene.growth.shows(id)), ids);
+        check((await shows(has)).length === has.length, `${name}: missing from the shop: ${has} / ${await shows(has)}`);
+        check((await shows(lacks)).length === 0, `${name}: should not be in the shop: ${await shows(lacks)}`);
+        await shop.page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        await sleep(600);
+        await shop.shot(join(out, `history-${scene}-${name}.png`));
+        // A piece says where it came from.
+        const O = shop.L.ui.objects;
+        let told = false;
+        for (let i = 0; i < 6 && !told; i++) {
+          await shop.hotspot(O.grown[has[0]]);
+          told = await shop.page.waitForFunction(([by, line]) => window.lamplightDebug.scene.isSaying(by, line), ['adeng', O.grownMade[has[0]]], { timeout: 2500 }).then(() => true, () => false);
+        }
+        check(told, `${name}: the ${has[0]} says nothing`);
+        // A neighbour asks after the latest work, by name.
+        let asked = false;
+        for (let i = 0; i < 6 && !asked; i++) {
+          const guest = i % 2 ? 'postman' : 'baker';
+          await shop.page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+          await shop.page.waitForFunction(() => !window.lamplightDebug.scene.hasGuest());
+          await shop.page.evaluate((guest) => window.lamplightDebug.welcome(guest), guest);
+          asked = await shop.page.waitForFunction((title) => window.lamplightDebug.scene.guest?.speech?.includes(title), title, { timeout: 15000 }).then(() => true, () => false);
+          if (asked) await shop.shot(join(out, `history-${scene}-${name}-asks.png`));
+        }
+        check(asked, `${name}: no neighbour asked after "${title}"`);
+      } finally { await shop.close(); }
+    }
+  },
+
   /** Staff with something in hand, turning to whoever talks, and a cat that really walks. */
   async hands(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
