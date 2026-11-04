@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **A damaged notebook no longer costs you the notebook.** A data file that cannot be read used to count as empty, and the
+  next save wrote over it. Now it is put aside, the copy from when the shop last opened takes its place, and Adeng tells you.
 - **Crisp at 125% and 150%.** On a display Windows scales, game pixels came out uneven. The shop now picks its size in
   real pixels, so every pixel is the same size on the common laptop settings too.
 - **Forget everything means everything.** Records of runs are deleted and the spending ledger no longer says what the money

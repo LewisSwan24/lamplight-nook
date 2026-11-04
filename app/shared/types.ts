@@ -131,6 +131,8 @@ export interface LamplightApi {
   addNote(text: string): Promise<boolean>;
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
+  /** The notebook could not be read when the shop opened: whether the last copy took its place. */
+  memoryDamage(): Promise<'restored' | 'lost' | null>;
   /** Forget everything in the notebook. */
   clearMemory(): Promise<void>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
@@ -262,6 +264,7 @@ export const IPC = {
   recallOnOpen: 'memory:recall-open',
   recallForRevision: 'memory:recall-revision',
   getMemory: 'memory:get',
+  memoryDamage: 'memory:damage',
   addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
   openCommissionFolder: 'memory:open-folder',

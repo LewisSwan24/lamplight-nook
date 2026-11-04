@@ -1,4 +1,5 @@
 import { localMonth } from '../shared/localday';
+import { forgetAside, putAside } from './aside';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
@@ -47,6 +48,7 @@ export class SpendLedger {
       return { ...e, key: `${anonymous.get(folder)}|` };
     });
     this.save();
+    forgetAside(this.file);
     const backups = join(dirname(this.file), 'backup');
     if (!existsSync(backups)) return;
     for (const dir of readdirSync(backups)) rmSync(join(backups, dir, basename(this.file)), { force: true });
@@ -78,10 +80,12 @@ export class SpendLedger {
   }
 
   private read(): Entry[] {
+    if (!existsSync(this.file)) return [];
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8'));
       return Array.isArray(parsed) ? parsed.filter((e) => e && typeof e.key === 'string' && typeof e.usd === 'number' && typeof e.month === 'string') : [];
     } catch {
+      putAside(this.file);
       return [];
     }
   }

@@ -1,6 +1,7 @@
 import { DEFAULT_SCENE, cleanScene } from '../shared/scenes';
 import { cleanFurnishing, cleanFurnishings } from '../shared/furnish';
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { putAside } from './aside';
 import { dirname, join } from 'node:path';
 import { DEFAULT_AVATAR, cleanAvatar } from '../shared/avatars';
 import { strings } from '../shared/i18n';
@@ -73,10 +74,12 @@ export class SettingsStore {
   }
 
   private read(): Partial<Settings> {
+    if (!existsSync(this.file)) return {};
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8'));
       return typeof parsed === 'object' && parsed ? parsed : {};
     } catch {
+      putAside(this.file);
       return {};
     }
   }

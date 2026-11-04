@@ -52,6 +52,14 @@ function pages(api: LamplightApi, memory: Memory, revise?: (id: string, title: s
   ].filter((n): n is HTMLElement => n !== null);
 }
 
+/** The notebook could not be read when the shop opened. */
+export function showNotebookTrouble(kind: 'restored' | 'lost') {
+  replaceOpen(el('div.card.paper.notebook-trouble', { role: 'dialog', 'aria-label': N.troubleTitle },
+    closeButton(),
+    withPortrait('adeng', 'unsure', el('div.card-title', {}, N.troubleTitle), el('div', {}, kind === 'restored' ? N.troubleRestored : N.troubleLost)),
+    el('div.actions', {}, el('button.default', { type: 'button', onclick: closePanel }, N.troubleOk))));
+}
+
 /** "Change it a bit" on an old commission, set by the shop once it can take one (main.ts). */
 let reviseOld: ((id: string, title: string) => void) | undefined;
 export function onNotebookRevise(fn: (id: string, title: string) => void) {

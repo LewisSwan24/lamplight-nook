@@ -19,6 +19,7 @@ export function mainCards(lang) {
     ['meeting', 'form.meeting', `${ui}.showMeeting()`],
     ['shelf', '.shelf-card', `${ui}.showShelf()`],
     ['notebook', '.notebook', `${ui}.showNotebook()`],
+    ['notebook-trouble', '.notebook-trouble', `${ui}.showNotebookTrouble('restored')`],
     ['captions', '.caption-card', `${ui}.showCaptionLog()`],
     ['legal', '.card.legal', `${ui}.showLegal('terms')`],
     ['pending', '.pending-card', `${ui}.showPending({ want: ${text(long)} })`],

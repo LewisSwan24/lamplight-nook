@@ -492,6 +492,7 @@ ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => me
 ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
 ipcMain.handle(IPC.recallForRevision, (_e, id: string): Recall => memory.recallForRevision(id, shorten));
 ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
+ipcMain.handle(IPC.memoryDamage, () => memory.damage);
 // A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
 ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
@@ -564,6 +565,7 @@ app.whenReady().then(() => {
   versions = new VersionStore(join(app.getPath('userData'), 'versions'));
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
+  if (memory.damage) log.warn('notebook could not be read', { damage: memory.damage });
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   leftover = pending.load();
   createWindow();

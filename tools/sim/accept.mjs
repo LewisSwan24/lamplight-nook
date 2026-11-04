@@ -10,6 +10,7 @@ import { pathToFileURL } from 'node:url';
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { mainCards } from './cards.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
 
@@ -129,6 +130,69 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Data files that cannot be read: nothing is written over, the shop says so, and work goes on. */
+  async baddata(lang, out) {
+    const N = locale(lang).ui.notebook;
+    const works = Array.from({ length: 3 }, (_, i) => ({ id: `c${1760000000000 + i * 86400000}`, title: `work ${i + 1}`, date: '2025-10-09', result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'page' } }));
+    const good = JSON.stringify({ commissions: works, stuckNotes: [], greeted: 'c1', shop: { done: 3, told: [], grown: [], met: [] } });
+    const kept = (home, name) => readdirSync(home.data).filter((f) => f.startsWith(`${name}.broken-`));
+
+    // With a copy from the last opening: the works come back.
+    let home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': '{"commissions":[{"titl', 'memory.last-good.json': good, 'spend.json': '[{"key"' });
+    let shop = await launch({ lang, home, debug: true });
+    try {
+      await shop.page.waitForSelector('.notebook-trouble', { timeout: 10_000 });
+      check((await shop.page.locator('.notebook-trouble').innerText()).includes(N.troubleRestored), 'the shop does not say what happened');
+      check(kept(home, 'memory').length === 1, 'the file that could not be read was not put aside');
+      check(kept(home, 'spend').length === 1, 'the ledger that could not be read was not put aside');
+      await shop.shot(join(out, 'baddata.png'));
+      await shop.page.locator('.notebook-trouble button.default').click();
+      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.waitForSelector('.shelf-card');
+      check(await shop.page.locator('.shelf-card li.work').count() === 3, 'the works did not come back');
+      await shop.page.keyboard.press('Escape');
+      await sleep(300);
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the next commission did not finish');
+    } finally {
+      await shop.close();
+    }
+    const after = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    check(after.commissions.length === 4, `${after.commissions.length} works after the next commission`);
+    check(readFileSync(join(home.data, kept(home, 'memory')[0]), 'utf8') === '{"commissions":[{"titl', 'the file put aside changed');
+
+    // Opening again: all is well, nothing more is said.
+    shop = await launch({ lang, home, debug: true });
+    try {
+      await sleep(4000);
+      check(await shop.page.locator('.notebook-trouble').count() === 0, 'the shop says it again the next time');
+    } finally {
+      await shop.close();
+    }
+
+    // No copy: a new notebook, and the old one still there.
+    home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': 'garbage' });
+    shop = await launch({ lang, home, debug: true });
+    try {
+      await shop.page.waitForSelector('.notebook-trouble', { timeout: 10_000 });
+      check((await shop.page.locator('.notebook-trouble').innerText()).includes(N.troubleLost), 'the shop does not say it lost the notebook');
+      check(kept(home, 'memory').length === 1, 'the file that could not be read was not put aside');
+    } finally {
+      await shop.close();
+    }
+
+    // A card that must be answered comes first, then this one.
+    home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': 'garbage', 'pending.json': JSON.stringify({ workDir: join(tmpdir(), 'nowhere'), form: { want: 'x' }, id: 'c1' }) });
+    shop = await launch({ lang, home, debug: true });
+    try {
+      await shop.page.waitForSelector('.pending-card', { timeout: 10_000 });
+      check(await shop.page.locator('.notebook-trouble').count() === 0, 'the trouble card pushed the unfinished work aside');
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** Small laptops and Windows display scaling: game pixels stay even, clicks land, and every card stays on the screen. */
   async screens(lang, out) {
     const problems = [];

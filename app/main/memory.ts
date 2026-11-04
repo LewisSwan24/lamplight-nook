@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
+import { forgetAside, putAside } from './aside';
 import type { CommissionMemo, GuestId, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
 /** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
@@ -15,13 +16,33 @@ const empty = (): Memory => ({ commissions: [], stuckNotes: [] });
 /**
  * Adeng's notebook (tech 8): past commissions with the choices the user made, and the places where the
  * work got stuck. Only these summaries are kept, never the conversation. Stored as JSON in the app's
- * data folder; a missing or broken file means an empty notebook.
+ * data folder. A file that cannot be read is put aside, never written over, and the copy made when the shop last
+ * opened takes its place; `damage` says so, for the shop to tell the user.
  */
 export class MemoryStore {
   private data: Memory;
+  damage: 'restored' | 'lost' | null = null;
 
   constructor(private file: string) {
-    this.data = this.read();
+    this.data = this.open();
+  }
+
+  private get lastGood() {
+    return join(dirname(this.file), 'memory.last-good.json');
+  }
+
+  private open(): Memory {
+    if (!existsSync(this.file)) return empty();
+    const good = this.read(this.file);
+    if (good) {
+      copyFileSync(this.file, this.lastGood);
+      return good;
+    }
+    putAside(this.file);
+    const copy = existsSync(this.lastGood) ? this.read(this.lastGood) : null;
+    this.damage = copy ? 'restored' : 'lost';
+    if (copy) copyFileSync(this.lastGood, this.file);
+    return copy ?? empty();
   }
 
   get(): Memory {
@@ -148,6 +169,8 @@ export class MemoryStore {
   clear() {
     this.data = empty();
     rmSync(this.file, { force: true });
+    rmSync(this.lastGood, { force: true });
+    forgetAside(this.file);
     const backups = join(dirname(this.file), 'backup');
     if (!existsSync(backups)) return;
     for (const dir of readdirSync(backups)) rmSync(join(backups, dir, basename(this.file)), { force: true });
@@ -206,11 +229,12 @@ export class MemoryStore {
     return lines.length ? `Notes from earlier commissions with this user (summaries only):\n${lines.join('\n')}` : '';
   }
 
-  private read(): Memory {
+  private read(file: string): Memory | null {
     try {
-      const m = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<Memory>;
+      const m = JSON.parse(readFileSync(file, 'utf8')) as Partial<Memory>;
+      if (!Array.isArray(m.commissions)) return null;
       return {
-        commissions: Array.isArray(m.commissions) ? m.commissions.filter((c) => c && typeof c.title === 'string' && c.choices && typeof c.choices === 'object') : [],
+        commissions: m.commissions.filter((c) => c && typeof c.title === 'string' && c.choices && typeof c.choices === 'object'),
         stuckNotes: Array.isArray(m.stuckNotes) ? m.stuckNotes.filter((n) => n && typeof n.note === 'string' && typeof n.commission === 'string') : [],
         greeted: typeof m.greeted === 'string' ? m.greeted : undefined,
         shop: m.shop && typeof m.shop.done === 'number'
@@ -218,7 +242,7 @@ export class MemoryStore {
           : undefined,
       };
     } catch {
-      return empty();
+      return null;
     }
   }
 

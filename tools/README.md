@@ -58,7 +58,7 @@ node tools/sim/accept.mjs                      # every scenario, Chinese and Eng
 node tools/sim/accept.mjs --lang en --only demo,board
 ```
 
-Scenarios: `screens` (Windows display scaling at 125%, 150% and 175% for real, with game pixels counted on the picture, and every
+Scenarios: `baddata` (data files that cannot be read are put aside, and the works come back from the last copy), `screens` (Windows display scaling at 125%, 150% and 175% for real, with game pixels counted on the picture, and every
 main card in the smallest windows), `contrast` (`sim/contrast.mjs`: each kind of text on every main card, against what is really behind it, to WCAG AA),
 `ledger` (fourteen months of spending and more runs than used to be kept), `thousand` (1000 works: how fast the shop, shelf and notebook open, finding one, one more commission),
 `grownline` (the line about what grew waits for its speaker), `crash` (the plug pulled mid-commission and with the result open, half-written files, the folder emptied or

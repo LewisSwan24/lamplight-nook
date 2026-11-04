@@ -27,7 +27,7 @@ import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { closeRunning, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
-import { onNotebookForget, onNotebookRevise, showNotebook } from './ui/notebook';
+import { onNotebookForget, showNotebookTrouble, onNotebookRevise, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
@@ -570,6 +570,11 @@ async function openShop() {
   // A commission left unfinished when the app last closed.
   const left = await api.pendingCommission();
   if (left) showPending(api, left, () => void prepare(left).then(() => run(left.want, () => api.resumePending())));
+  const damage = await api.memoryDamage();
+  if (damage) {
+    while (document.querySelector('#ui > .card, #ui > form.card, .backdrop')) await wait(ONCE_RETRY_MS);
+    showNotebookTrouble(damage);
+  }
 }
 void openShop();
 
@@ -598,6 +603,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showResult: (r: CommissionResult) => showResult(r, { open: () => {}, revise: () => {}, restore: async () => true, firstWork: true, report: () => {} }),
       showNotReady: (env: EnvStatus) => showNotReady(api, env, () => {}),
       showTrialEnd: () => showTrialEnd(() => {}),
+      showNotebookTrouble,
       showMeeting: () => showMeeting(),
       showRevise: (title?: string) => showRevise(undefined, title),
       showShelf: () => showShelf(api, () => {}),
