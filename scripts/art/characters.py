@@ -41,7 +41,8 @@ STAFF = {
 }
 
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and
-# Axin the postman, with his mail bag.
+# Axin the postman, with his mail bag; then those the work brings: Old Zhou from the garage, in his work clothes,
+# Granny Chen with her buns and glasses, and Xiaohe the student, with a backpack.
 GUESTS = {
     'baker': {
         'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
@@ -51,6 +52,20 @@ GUESTS = {
         'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
                    'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_05_04.png',
                    'Accessories/16x16/Accessory_03_Backpack_01.png'],
+    },
+    'mechanic': {
+        'layers': ['Bodies/16x16/Body_03.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_23_01.png', 'Hairstyles/16x16/Hairstyle_01_05.png'],
+    },
+    'granny': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_21_01.png', 'Hairstyles/16x16/Hairstyle_21_05.png',
+                   'Accessories/16x16/Accessory_15_Glasses_01.png'],
+    },
+    'student': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_12_01.png', 'Hairstyles/16x16/Hairstyle_10_02.png',
+                   'Accessories/16x16/Accessory_03_Backpack_02.png'],
     },
 }
 

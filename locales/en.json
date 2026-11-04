@@ -26,7 +26,10 @@
   },
   "guests": {
     "baker": "Auntie Olive",
-    "postman": "Pip"
+    "postman": "Pip",
+    "mechanic": "Old Zhou",
+    "granny": "Granny Chen",
+    "student": "Xiaohe"
   },
   "you": {
     "label": "You"
@@ -494,7 +497,10 @@
       ],
       "guest": {
         "baker": "Fresh from the oven. Eat it while it's hot.",
-        "postman": "Not many letters today. Yours is on top."
+        "postman": "Not many letters today. Yours is on top.",
+        "mechanic": "Hands are clean, don't worry.",
+        "granny": "Take your time, dear. I'm in no hurry.",
+        "student": "I'll only sit a while. Don't mind me."
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {

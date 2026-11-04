@@ -500,8 +500,8 @@
   guest: baker
   made: album
   turns:
-    - baker: You make albums? I have a box of old photos.
-    - qingdai: Bring them over sometime.
+    - baker: Granny Chen has old photos. I sent her over.
+    - qingdai: Tell her to bring them.
 
 - id: postman_envelope
   when: idle
@@ -535,6 +535,85 @@
   turns:
     - postman: "\"{lastWork}\" finished? Your lights were on late."
     - adeng: It is. Sit down a while.
+
+# Neighbours the work brings (game/guests.ts): Old Zhou after a web page, Granny Chen after an album, Xiaohe after research.
+- id: zhou_page
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: Axin says you do web pages. I could use one.
+    - adeng: What should it say?
+    - mechanic: The number, and that I'm shut on Sundays.
+
+- id: zhou_pliers
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: Hands are washed. I won't mark your table.
+    - laoshi: These pliers have gone loose.
+    - mechanic: Give them here. Two minutes.
+
+- id: zhou_bike
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: Xiaoju's brakes need tightening.
+    - xiaoju: So that's why I keep not stopping!
+
+- id: zhou_rain
+  when: idle
+  guest: mechanic
+  sky: rain
+  turns:
+    - mechanic: No repairs in the rain. Thought I'd sit.
+    - adeng: The tea's just made.
+
+- id: chen_photos
+  when: idle
+  guest: granny
+  turns:
+    - granny: I brought the photos. They're so old now.
+    - qingdai: Old is what makes them good.
+    - granny: This one is your street.
+
+- id: chen_date
+  when: idle
+  guest: granny
+  turns:
+    - granny: A date on the back. My eyes can't manage it.
+    - adeng: Let me look.
+
+- id: chen_rice
+  when: idle
+  guest: granny
+  turns:
+    - granny: I toasted some rice for you to try.
+    - xiaoju: For me?
+    - granny: For everyone.
+
+- id: xiaohe_thesis
+  when: idle
+  guest: student
+  turns:
+    - student: Two more chapters on my thesis.
+    - adeng: Write here, if you like.
+    - student: Your lamp beats the library's.
+
+- id: xiaohe_sources
+  when: idle
+  guest: student
+  turns:
+    - student: How do you keep track of your sources?
+    - xiaoju: On my hand!
+    - laoshi: In a notebook.
+
+- id: xiaohe_exam
+  when: idle
+  guest: student
+  turns:
+    - student: Exams are over!
+    - xiaoju: How did they go?
+    - student: They're over.
 
 # In the study at home (shared/scenes.ts): `scene: study` chats come up only there, before everyday ones.
 - id: move_in

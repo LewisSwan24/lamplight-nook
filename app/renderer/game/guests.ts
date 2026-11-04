@@ -1,4 +1,4 @@
-import type { Made } from '../../shared/growth';
+import type { Made, WorkIcon } from '../../shared/growth';
 import type { GuestId, Speaker } from '../../shared/types';
 import type { Chat } from '../translator/lines';
 import type { Period } from './daytime';
@@ -11,7 +11,19 @@ import type { Holiday, Sky } from './weather';
  * the front door, stop by the counter for a few words (lines/chats.yaml, chats with `guest:`) and go
  * again; they leave at once when a commission comes in. Pure: the caller asks every few seconds.
  */
-export const GUEST_IDS: GuestId[] = ['baker', 'postman'];
+export const GUEST_IDS: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student'];
+/** Old friends of the shop, who come from the start. */
+const OLD_FRIENDS: GuestId[] = ['baker', 'postman'];
+/**
+ * Those who come because of what the shop has done: Old Zhou from the garage once there has been a web page,
+ * Granny Chen with her photographs once there has been an album, Xiaohe with her thesis once there has been research.
+ */
+const BROUGHT_BY: [GuestId, WorkIcon][] = [['mechanic', 'page'], ['granny', 'album'], ['student', 'research']];
+
+/** Who may drop in, given what the shop has made. */
+export function welcomeGuests(made: Made): GuestId[] {
+  return [...OLD_FRIENDS, ...BROUGHT_BY.filter(([, work]) => made[work]).map(([guest]) => guest)];
+}
 
 type Point = { x: number; y: number };
 
@@ -31,22 +43,26 @@ export const AFTER_WORK_MS = 120_000;
 export class VisitPlanner {
   private nextAt: number;
   private last: GuestId | null = null;
+  private seen = new Set<GuestId>();
 
   constructor(now: number, private rand: () => number = Math.random) {
     this.nextAt = now + this.between(FIRST_VISIT_MS);
   }
 
-  next(now: number, quiet: boolean, period: Period): GuestId | null {
+  next(now: number, quiet: boolean, period: Period, guests: GuestId[] = OLD_FRIENDS): GuestId | null {
     if (!quiet) {
       this.nextAt = Math.max(this.nextAt, now + AFTER_WORK_MS);
       return null;
     }
     if (period === 'night' || now < this.nextAt) return null;
     this.nextAt = now + this.between(VISIT_GAP_MS);
-    // Mostly taking turns, now and then the same one again.
-    const other = GUEST_IDS.find((g) => g !== this.last)!;
-    const guest = this.last && this.rand() < 0.75 ? other : GUEST_IDS[Math.floor(this.rand() * GUEST_IDS.length)];
+    // Everyone comes round once, the newly welcome included; then mostly taking turns, now and then the same one again.
+    const unseen = guests.filter((g) => !this.seen.has(g));
+    const others = guests.filter((g) => g !== this.last);
+    const from = unseen.length ? unseen : this.last && this.rand() < 0.75 ? others : guests;
+    const guest = from[Math.floor(this.rand() * from.length)];
     this.last = guest;
+    this.seen.add(guest);
     return guest;
   }
 

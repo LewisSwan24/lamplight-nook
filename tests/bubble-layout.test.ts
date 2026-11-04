@@ -54,3 +54,22 @@ describe('placing speech bubbles', () => {
     expect(out.get('three')?.visible).toBe(true);
   });
 });
+
+describe('bubbles at the edge of the window', () => {
+  const words = (key: string, x: number, w: number): BubbleBox => ({ key, x, y: 100, w, h: 20, iconOnly: false });
+
+  it('moves words back inside, whichever side they would run off', () => {
+    const places = placeBubbles([words('right', 900, 300), words('left', 40, 200)], [], [], 1000);
+    expect(places.get('right')).toMatchObject({ x: 846, visible: true });
+    expect(places.get('left')).toMatchObject({ x: 104, visible: true });
+  });
+
+  it('leaves words alone when they fit', () => {
+    expect(placeBubbles([words('mid', 500, 100)], [], [], 1000).get('mid')?.x).toBe(500);
+  });
+
+  it('still keeps two people from talking over each other after moving one in', () => {
+    const places = placeBubbles([words('a', 850, 200), words('b', 900, 300)], [], [], 1000);
+    expect(places.get('b')!.y).toBeLessThan(places.get('a')!.y);
+  });
+});

@@ -10,7 +10,7 @@ import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
-import { VisitPlanner, pickVisit } from './game/guests';
+import { VisitPlanner, pickVisit, welcomeGuests } from './game/guests';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
@@ -104,7 +104,7 @@ function drawLabels() {
       const cards = Array.from(document.querySelectorAll('.card, .parcel, .dialog, .serious')).map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0);
       const board = ZONES.find((z) => z.id === 'board')!;
       const chalk = { left: rect.left + board.x * s, right: rect.left + (board.x + board.w) * s, top: rect.top + board.y * s, bottom: rect.top + (board.y + board.h) * s };
-      for (const [key, place] of placeBubbles(bubbles, cards, [chalk])) {
+      for (const [key, place] of placeBubbles(bubbles, cards, [chalk], window.innerWidth)) {
         const el = labelEls.get(key)!;
         el.style.left = `${place.x}px`;
         el.style.top = `${place.y}px`;
@@ -176,7 +176,7 @@ function tendGarden(quiet: boolean) {
 const visits = new VisitPlanner(Date.now());
 const heardVisits = new Set<string>();
 function dropIn(quiet: boolean) {
-  const guest = visits.next(Date.now(), quiet && !scene.hasGuest(), scene.period);
+  const guest = visits.next(Date.now(), quiet && !scene.hasGuest(), scene.period, welcomeGuests(shopDays.made));
   if (guest) welcome(guest);
 }
 function welcome(guest: GuestId) {

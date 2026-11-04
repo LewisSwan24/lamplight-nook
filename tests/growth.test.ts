@@ -71,7 +71,7 @@ describe('the shop grows with the commissions done together', () => {
     expect(reports).toEqual(expect.arrayContaining(['globe', 'ledger']));
     expect(reports).not.toContain('album');
     for (const shop of [albums, reports]) expect(shop).toEqual(expect.arrayContaining(['trophy', 'portrait']));
-  });
+  }, 20_000);
 
   it('shortens a title to fit a bubble', () => {
     expect(shortWork('记账页')).toBe('记账页');

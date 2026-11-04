@@ -11,6 +11,9 @@ import dogSleepUrl from '../../../assets/sprites/dog-sleep.png';
 import hensUrl from '../../../assets/sprites/hens.png';
 import bakerUrl from '../../../assets/sprites/baker.png';
 import postmanUrl from '../../../assets/sprites/postman.png';
+import mechanicUrl from '../../../assets/sprites/mechanic.png';
+import grannyUrl from '../../../assets/sprites/granny.png';
+import studentUrl from '../../../assets/sprites/student.png';
 import catUrl from '../../../assets/sprites/cat.png';
 import clockUrl from '../../../assets/sprites/clock.png';
 import cupUrl from '../../../assets/sprites/cup.png';
@@ -61,7 +64,7 @@ import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_
 
 const DECOR_URLS: Record<Holiday, string> = { halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */

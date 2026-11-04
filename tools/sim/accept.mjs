@@ -272,6 +272,17 @@ const SCENARIOS = {
           if (asked) await shop.shot(join(out, `history-${scene}-${name}-asks.png`));
         }
         check(asked, `${name}: no neighbour asked after "${title}"`);
+        // Whoever the work has brought drops in, with something to say.
+        for (const guest of name === 'albums' ? ['granny'] : ['mechanic', 'student']) {
+          await shop.page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+          await shop.page.waitForFunction(() => !window.lamplightDebug.scene.hasGuest());
+          await shop.page.evaluate((guest) => window.lamplightDebug.welcome(guest), guest);
+          await shop.page.waitForFunction((guest) => {
+            const g = window.lamplightDebug.scene.guest;
+            return g?.id === guest && g.speech;
+          }, guest, { timeout: 15000 });
+          await shop.shot(join(out, `history-${scene}-${guest}.png`));
+        }
       } finally { await shop.close(); }
     }
   },

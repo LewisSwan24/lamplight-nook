@@ -26,7 +26,10 @@
   },
   "guests": {
     "baker": "桂姨",
-    "postman": "阿信"
+    "postman": "阿信",
+    "mechanic": "老周",
+    "granny": "陈婆婆",
+    "student": "小禾"
   },
   "you": {
     "label": "你"
@@ -494,7 +497,10 @@
       ],
       "guest": {
         "baker": "刚出炉的，趁热吃。",
-        "postman": "今天的信不多，你的那封在最上面。"
+        "postman": "今天的信不多，你的那封在最上面。",
+        "mechanic": "手洗过了，放心。",
+        "granny": "慢慢来，我不急。",
+        "student": "我就坐一会儿，不打扰。"
       },
       "you": "你的委托在做了，先坐会儿吧。",
       "grownMade": {

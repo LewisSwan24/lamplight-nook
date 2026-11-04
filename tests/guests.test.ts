@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { AFTER_WORK_MS, FIRST_VISIT_MS, VISIT_GAP_MS, VisitPlanner, pickVisit } from '../app/renderer/game/guests';
+import { AFTER_WORK_MS, FIRST_VISIT_MS, GUEST_IDS, VISIT_GAP_MS, VisitPlanner, pickVisit, welcomeGuests } from '../app/renderer/game/guests';
 import { Chatter } from '../app/renderer/stage/chatter';
 import { lintChats, parseChats } from '../app/renderer/translator/lines';
 
@@ -110,5 +110,38 @@ describe('neighbours who remember what the shop made', () => {
 
   it('mentions the last work only when there is one', () => {
     expect(pick({ made: {}, lastWork: '记账页' })).toBe('asks');
+  });
+});
+
+describe('new neighbours, who come because of the work', () => {
+  it('has only the old friends until a kind of work brings someone', () => {
+    expect(welcomeGuests({})).toEqual(['baker', 'postman']);
+    expect(welcomeGuests({ page: 1 })).toEqual(['baker', 'postman', 'mechanic']);
+    expect(welcomeGuests({ album: 2 })).toEqual(['baker', 'postman', 'granny']);
+    expect(welcomeGuests({ research: 1 })).toEqual(['baker', 'postman', 'student']);
+    expect(welcomeGuests({ letter: 5, sheet: 5 })).toEqual(['baker', 'postman']);
+  });
+
+  it('only sends those who are welcome, and someone new soon after they are', () => {
+    const v = new VisitPlanner(0, seeded(4));
+    const who: string[] = [];
+    for (let t = 0; t < 12 * VISIT_GAP_MS[1]; t += 5000) {
+      const g = v.next(t, true, 'day', ['baker', 'postman', 'mechanic']);
+      if (g) who.push(g);
+    }
+    expect(new Set(who)).toEqual(new Set(['baker', 'postman', 'mechanic']));
+    expect(who.slice(0, 3).sort()).toEqual(['baker', 'mechanic', 'postman']);
+  });
+
+  it('gives every neighbour a name, a word and things to say, in both languages', () => {
+    for (const [locale, file] of [['zh-CN', 'lines/chats.yaml'], ['en', 'lines/en/chats.yaml']] as const) {
+      const L = JSON.parse(readFileSync(`locales/${locale}.json`, 'utf8'));
+      const all = parseChats(readFileSync(file, 'utf8'));
+      for (const g of GUEST_IDS) {
+        expect(L.guests[g], `${locale} ${g}`).toBeTruthy();
+        expect(L.ui.objects.guest[g], `${locale} ${g}`).toBeTruthy();
+        expect(all.filter((c) => c.guest === g).length, `${file} ${g}`).toBeGreaterThanOrEqual(3);
+      }
+    }
   });
 });

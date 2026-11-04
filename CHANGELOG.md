@@ -24,6 +24,8 @@ The running card and the road to 1.0.
   go up on a board, and a calendar, a ledger and an old computer arrive the same way. The staff talk about the work, the
   neighbours ask about it, and Auntie Gui asks after your latest piece by name. There is more to gather and more to hear
   after the twentieth commission, up to the fiftieth. Another round of changes on one work still counts as one.
+- **New neighbours, brought by the work.** After a web page Old Zhou from the garage drops in. After an album Granny Chen
+  comes with her photographs. After some research Xiaohe sits down to write her thesis.
 - **The staff do what they seem to be doing.** Writing is a page and a moving pencil on the table, a drink is a cup in the
   hand, and Laoshi taps with a hammer. Adeng takes the phone at the counter for commands and the web, and hands the work
   over when someone is sent off. Whoever is listening turns to whoever is talking. The cat gets up and walks.
