@@ -9,7 +9,7 @@ import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvSt
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot } from './commission';
+import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore } from './versions';
 import { migrate } from './migrate';
@@ -410,7 +410,7 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
   if (form.source && !picked.has(form.source)) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   if (form.materials?.some((m) => !picked.has(m))) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   if (form.demo) form = { ...form, materials: undefined };
-  const workDir = commissionDir(settings.get().workRoot, commissionTitle(form));
+  const workDir = commissionDir(settings.get().workRoot, folderName(commissionTitle(form)));
   mkdirSync(workDir, { recursive: true });
   if (form.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
   prepareSource(workDir, form);

@@ -2,10 +2,11 @@
 
 The npm package lxgw-wenkai-screen-webfont ships the font as ~100 woff2 slices by unicode range.
 Unpack it to assets/vendor/fonts/lxgw-wenkai-screen-webfont/ (not in the repo), then run
-python3 scripts/art/font.py. It collects every character in locales/ and lines/ plus ASCII and
-common punctuation, takes those glyphs from the slices that hold them, merges them into one font
-and writes assets/fonts/hand.woff2 with the licence next to it. Characters outside the set fall
-back to the system's KaiTi (see style.css), which looks close.
+python3 scripts/art/font.py. It collects every character in locales/ and lines/, ASCII and common
+punctuation, and the 3755 common characters of GB2312 level 1 for text we cannot list in advance
+(the plan Claude writes), takes those glyphs from the slices that hold them, merges them into one
+font and writes assets/fonts/hand.woff2 with the licence next to it. Rarer characters fall back to
+the system's KaiTi (see style.css). tests/hand-font.test.ts fails when text outgrows the font.
 """
 import glob
 import json
@@ -23,8 +24,20 @@ OUT = ROOT / 'assets/fonts/hand.woff2'
 EXTRA = ''.join(chr(c) for c in range(0x20, 0x7F)) + '，。？！、：；“”‘’（）《》…—·✓'
 
 
+def common_chars():
+    """GB2312 level 1: rows 0xB0 to 0xD7, 94 cells each, the last row a little short."""
+    chars = set()
+    for row in range(0xB0, 0xD8):
+        for cell in range(0xA1, 0xFF):
+            try:
+                chars.add(bytes((row, cell)).decode('gb2312'))
+            except UnicodeDecodeError:
+                pass
+    return chars
+
+
 def used_chars():
-    chars = set(EXTRA)
+    chars = set(EXTRA) | common_chars()
 
     def walk(o):
         if isinstance(o, str):

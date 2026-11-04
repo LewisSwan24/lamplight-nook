@@ -33,6 +33,11 @@ The app uses it when `LAMPLIGHT_CLAUDE_PATH` points at it.
 `HOME`, the language, the stand-in's settings and a fake API key. Nothing from your shell (keys, Claude Code
 sign-in) reaches the app, and every run goes to the stand-in. On Linux without a display it starts its own Xvfb.
 
+On Windows a throwaway `HOME` is not enough: Electron asks the system for Documents, AppData and the rest, and would
+find the real ones. `sim/isolate.cjs` is loaded before the app and points all of them into the throwaway home, and
+`shop.mjs` refuses to go on if the app still reports a real folder. Windows open off-screen and never take the
+foreground, so a run does not interrupt you. Set `SIM_SHOW=1` in the shell to watch real windows instead.
+
 ## Acceptance run (`sim/accept.mjs`)
 
 ```bash
@@ -44,13 +49,18 @@ node tools/sim/accept.mjs --lang en --only demo,board
 Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
 `templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart),
-`study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080), `trial`,
+`study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
+slip holding twelve long-named files), `trial`,
 `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),
 `oldclaude` (the stand-in claims an old Claude Code version), `feedback` ("Write to us" and reporting
 what the staff made: the mail program and the save dialog are caught, nothing is sent), `store`
 (the Microsoft Store build without Claude Code: steps only, no installer run by the app), and `firstrun`
 (a new user from nothing: welcome, the trial, Claude Code appearing, the key pasted in the app, the first
 commission on the shelf; the key check's request to Anthropic is caught and answered in the test).
+Every scenario also checks, when its commission ends, that no speech bubble crosses a card or another bubble.
+
+On Windows `oldclaude` fails: the stand-in is a `.mjs` file, which the app's `execFile` cannot start there (EFTYPE),
+so run it on Linux. `upgrade` fails without `legacy-out/`.
 
 `launch()` options worth knowing: `store` plays the Store build (`LAMPLIGHT_STORE=1`); `claudePath`
 other than the stand-in, such as a path that does not exist, also gives the app a PATH with no `claude`

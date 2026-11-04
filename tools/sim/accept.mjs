@@ -6,6 +6,7 @@
 //
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
+import { pathToFileURL } from 'node:url';
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { FAKE_CLAUDE, freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
@@ -105,7 +106,24 @@ async function runOne(shop, { template, want, files }, opts = {}) {
     await shop.retry();
     r = await shop.workUntilDone(opts);
   }
+  await checkBubbles(shop);
   return r;
+}
+
+/** Nothing anyone says is half hidden: no bubble crosses a card or sits on another bubble. */
+async function checkBubbles(shop) {
+  const clashes = await shop.page.evaluate(() => {
+    const touch = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+    const shown = [...document.querySelectorAll('.label.bubble')].filter((e) => getComputedStyle(e).visibility !== 'hidden').map((e) => ({ text: e.textContent, box: e.getBoundingClientRect() }));
+    const cards = [...document.querySelectorAll('.card, .parcel, .dialog, .serious')].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+    const out = [];
+    shown.forEach((b, i) => {
+      if (cards.some((c) => touch(b.box, c))) out.push(`card over "${b.text}"`);
+      for (const other of shown.slice(i + 1)) if (touch(b.box, other.box)) out.push(`"${b.text}" on "${other.text}"`);
+    });
+    return out;
+  });
+  check(!clashes.length, `speech bubbles: ${clashes.join('; ')}`);
 }
 
 const SCENARIOS = {
@@ -136,6 +154,8 @@ const SCENARIOS = {
       const r = await shop.workUntilDone({ onTick: async (ms) => {
         if (!boardText && ms > 6000) {
           boardText = await shop.page.evaluate(() => document.getElementById('board')?.innerText ?? '');
+          const cut = await shop.page.evaluate(() => [...document.querySelectorAll('#board .step')].every((s) => getComputedStyle(s).textOverflow === 'ellipsis'));
+          check(cut, 'a long line on the blackboard is cut without an ellipsis');
           await shop.shot(join(out, 'board.png'));
           await shop.hotspot(shop.L.ui.access.hotspotBoard);
           planCard = await shop.page.locator('.plan-card').isVisible();
@@ -351,6 +371,11 @@ const SCENARIOS = {
   async walk(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);
+    const many = Array.from({ length: 12 }, (_, i) => {
+      const file = join(home.home, 'samples', `a-rather-long-name-for-a-handed-over-file-${i + 1}.txt`);
+      writeFileSync(file, 'x');
+      return file;
+    });
     const shop = await launch({ lang, home, speed: SPEED });
     const fits = async (selector, what) => {
       const box = await shop.page.locator(selector).first().boundingBox();
@@ -367,7 +392,17 @@ const SCENARIOS = {
         await shop.shot(join(out, `walk-${size}-shop.png`));
         await shop.order({ template: 'album', want: W[lang].album, files: s.photos });
         await fits('form.commission', `${size} commission slip`);
+        // What people type is in the plain face, like every other box: the handwriting font has only the shop's own words.
+        const typed = await shop.page.locator('form.commission textarea').first().evaluate((e) => getComputedStyle(e).fontFamily);
+        check(!typed.includes('Lamplight Hand'), `the slip's text box uses the handwriting font: ${typed}`);
         await shop.shot(join(out, `walk-${size}-slip.png`));
+        await shop.page.keyboard.press('Escape');
+        await sleep(300);
+        // Many files with long names: the slip stays inside the window and its buttons can still be reached.
+        await shop.order({ template: 'letter', want: W[lang].letter, files: many });
+        await fits('form.commission', `${size} commission slip with many files`);
+        await fits('form.commission .actions button.default', `${size} commission slip's hand-in button`);
+        await shop.shot(join(out, `walk-${size}-slip-many.png`));
         await shop.page.keyboard.press('Escape');
         await sleep(300);
         for (const tab of ['basics', 'furnish', 'sight', 'work', 'about']) {
@@ -550,7 +585,9 @@ const SCENARIOS = {
    */
   async firstrun(lang, out) {
     const home = freshHome();
-    const claudeAt = join(home.home, '.local', 'bin', 'claude');
+    // On Windows the app can only start a script that has its extension, and a symlink needs special rights.
+    const windows = process.platform === 'win32';
+    const claudeAt = join(home.home, '.local', 'bin', windows ? 'claude.mjs' : 'claude');
     // Linux test machines have no keyring; the basic store lets the app encrypt the key as it would on Windows.
     const shop = await launch({ lang, home, speed: SPEED, key: false, claudePath: claudeAt, args: ['--password-store=basic'] });
     const S = shop.L.ui.setup;
@@ -583,7 +620,9 @@ const SCENARIOS = {
 
       // Claude Code is installed (the stand-in appears where the app looks): the row turns green by itself.
       mkdirSync(join(claudeAt, '..'), { recursive: true });
-      symlinkSync(FAKE_CLAUDE, claudeAt);
+      if (windows) writeFileSync(claudeAt, `import ${JSON.stringify(pathToFileURL(FAKE_CLAUDE).href)};
+`);
+      else symlinkSync(FAKE_CLAUDE, claudeAt);
       await shop.page.waitForSelector('.notice-card .env-row.ok', { timeout: 15_000 });
 
       // The key, pasted in the app; the check with Anthropic is caught here and says yes.

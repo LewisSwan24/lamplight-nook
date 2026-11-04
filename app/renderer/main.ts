@@ -30,6 +30,7 @@ import { onNotebookForget, onNotebookRevise } from './ui/notebook';
 import { showShelf } from './ui/shelf';
 import type { GrowthId } from '../shared/growth';
 import { showRevise } from './ui/revise';
+import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, view } from './ui/toolbar';
 
@@ -75,6 +76,7 @@ function drawLabels() {
     overlay.style.setProperty('--emote-px', `${Math.max(1, Math.floor(s * 0.75))}px`);
     overlay.style.setProperty('--emote-px-small', `${Math.max(1, Math.floor(s / 2))}px`);
     const seen = new Set<string>();
+    const bubbles: BubbleBox[] = [];
     for (const l of scene.labels()) {
       seen.add(l.key);
       let el = labelEls.get(l.key);
@@ -92,6 +94,18 @@ function drawLabels() {
       }
       el.style.left = `${rect.left + l.x * s}px`;
       el.style.top = `${rect.top + l.y * s}px`;
+      if (l.kind === 'bubble') {
+        const size = el.getBoundingClientRect();
+        bubbles.push({ key: l.key, x: rect.left + l.x * s, y: rect.top + l.y * s, w: size.width, h: size.height, iconOnly: !!l.icon && !l.text });
+      }
+    }
+    if (bubbles.length) {
+      const cards = Array.from(document.querySelectorAll('.card, .parcel, .dialog, .serious')).map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0);
+      for (const [key, place] of placeBubbles(bubbles, cards)) {
+        const el = labelEls.get(key)!;
+        el.style.top = `${place.y}px`;
+        el.style.visibility = place.visible ? '' : 'hidden';
+      }
     }
     for (const [key, el] of labelEls) {
       if (!seen.has(key)) { el.remove(); labelEls.delete(key); }

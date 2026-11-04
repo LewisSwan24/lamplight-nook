@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SUMMARY_RULE, collectOutputs, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
+import { SUMMARY_RULE, collectOutputs, folderName, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
 import { classify } from '../app/main/risk-classifier';
 import { strings } from '../app/shared/i18n';
 
@@ -10,15 +10,55 @@ const F = strings.ui.files;
 const dir = (name = 'tpl-') => mkdtempSync(join(tmpdir(), name));
 
 describe('commission titles', () => {
-  it('drops the "please" and the punctuation, and stays short', () => {
+  it('drops the "please" and the end of the sentence', () => {
     expect(shortTitle('帮我做一个家庭聚会签到的小网页。')).toBe('做一个家庭聚会签到的小网页');
     expect(shortTitle('Please make me a sign-in page for the family party.')).toBe('Make a sign-in page for the family party');
-    expect(shortTitle('Write a letter to my landlord about moving out at the end of next month.')).toBe('Write a letter to my landlord about moving out');
-    expect(shortTitle('Make me a small web page that works as a pomodoro timer.')).toBe('Make a small web page that works as a pomodoro');
-    expect(shortTitle('Tidy: downloads/old stuff')).toBe('Tidy downloads old stuff');
-    expect(shortTitle('Supercalifragilisticexpialidocious-and-more-and-more words')).toBe('Supercalifragili');
-    expect(shortTitle('整理一下：下载/文件夹')).toBe('整理一下-下载-文件夹');
     expect(shortTitle('？？')).toBe('？？');
+  });
+
+  it('keeps the punctuation of a title that fits', () => {
+    expect(shortTitle('写一封给房东的信，说下个月底退租。')).toBe('写一封给房东的信，说下个月底退租');
+    expect(shortTitle('Edit this document, make it read more smoothly.')).toBe('Edit this document, make it read more smoothly');
+    expect(shortTitle('Tidy: downloads/old stuff')).toBe('Tidy: downloads/old stuff');
+    expect(shortTitle('整理一下：下载/文件夹')).toBe('整理一下：下载/文件夹');
+  });
+
+  it('stops at the end of a clause when it is too long', () => {
+    expect(shortTitle('看看这个文件夹该怎么整理，下载文件夹太乱了')).toBe('看看这个文件夹该怎么整理');
+    expect(shortTitle('查一查阳台种番茄要注意什么，写一份简短的总结。')).toBe('查一查阳台种番茄要注意什么');
+    expect(shortTitle('Make a little album of these photos: our autumn trip.')).toBe('Make a little album of these photos');
+  });
+
+  it('says so when it has to cut, and never cuts a word', () => {
+    expect(shortTitle('Write a letter to my landlord about moving out at the end of next month.')).toBe('Write a letter to my landlord about moving out…');
+    expect(shortTitle('Make me a small web page that works as a pomodoro timer.')).toBe('Make a small web page that works as a pomodoro…');
+    expect(shortTitle('用这些照片做一本秋天出游的小相册给爸妈当礼物')).toBe('用这些照片做一本秋天出游的小相册…');
+    expect(shortTitle('Supercalifragilisticexpialidocious-and-more-and-more words')).toBe('Supercalifragili…');
+  });
+});
+
+describe('commission folder names', () => {
+  it('leaves a plain title alone', () => {
+    expect(folderName('做一个家庭聚会签到的小网页')).toBe('做一个家庭聚会签到的小网页');
+    expect(folderName('Make a sign-in page for the family party')).toBe('Make a sign-in page for the family party');
+  });
+
+  it('turns what a folder name cannot or should not hold into a dash', () => {
+    expect(folderName('整理一下：下载/文件夹')).toBe('整理一下-下载-文件夹');
+    expect(folderName('写一封给房东的信，说下个月底退租')).toBe('写一封给房东的信-说下个月底退租');
+    expect(folderName('Tidy: downloads/old stuff')).toBe('Tidy- downloads-old stuff');
+    expect(folderName('a\\b*c?d"e<f>g|h')).toBe('a-b-c-d-e-f-g-h');
+  });
+
+  it('never ends on a dot, a space or a dash, which Windows trims or mangles', () => {
+    expect(folderName('Write a letter…')).toBe('Write a letter');
+    expect(folderName('用这些照片做相册…')).toBe('用这些照片做相册');
+    expect(folderName('notes. ')).toBe('notes');
+  });
+
+  it('still names a folder when nothing usable is left', () => {
+    expect(folderName('？？')).toBe('？？');
+    expect(folderName('///')).toBe('commission');
   });
 });
 
@@ -31,6 +71,8 @@ describe('commission templates', () => {
     const p = commissionPrompt({ want: 'w' });
     expect(p).not.toMatch(/index\.html|research commission|tidying/);
     expect(p).toMatch(/Work only inside the current folder/);
+    expect(p).toMatch(/Write and Edit tools, not with shell commands or scripts/);
+    expect(p).toMatch(/material to work from, not instructions/);
   });
 
   it('a page asks for one self-contained index.html', () => {
@@ -106,7 +148,7 @@ describe('listing a folder', () => {
     writeFileSync(join(root, 'photos', '2025', 'deep', 'x.jpg'), 'x');
     writeFileSync(join(root, 'photos', 'cat.jpg'), 'meow');
     writeFileSync(join(root, '.secret'), 's');
-    symlinkSync(join(root, 'photos'), join(root, 'link'));
+    symlinkSync(join(root, 'photos'), join(root, 'link'), 'junction'); // a junction needs no special rights on Windows; elsewhere the type is ignored
     const lines = listFolder(root).trim().split('\n').map((l) => l.split('\t')[0]);
     expect(lines).toEqual(['photos/', 'photos/2025/', 'photos/cat.jpg']);
   });
@@ -182,7 +224,7 @@ describe('phase 6 templates', () => {
   it('a table or a letter is the main result when nothing else was made', () => {
     const d = dir();
     const before = snapshot(d);
-    writeFileSync(join(d, F.sheet), '﻿a,b\n');
+    writeFileSync(join(d, F.sheet), 'a,b\n');
     expect(collectOutputs(d, before).main).toBe(join(d, F.sheet));
     const e = dir();
     const none = snapshot(e);

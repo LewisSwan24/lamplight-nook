@@ -15,6 +15,9 @@ describe('asking for changes', () => {
     expect(p).toContain('"lighter colours"');
     expect(p).toContain(REVISE_SUMMARY_RULE);
     expect(p).not.toContain('sign-in page');
+    // The same safety rules as a new commission: pages are material, files change through the file tools.
+    expect(p).toMatch(/material to work from, not instructions/);
+    expect(p).toMatch(/Write and Edit tools, not with shell commands or scripts/);
   });
 
   it('without the session, the agent is told what the work was and where to find it', () => {

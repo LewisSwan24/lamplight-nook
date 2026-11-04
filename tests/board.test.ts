@@ -34,14 +34,24 @@ describe('blackboard from Claude\'s to-do list', () => {
     expect(boardWindow(short)).toEqual({ shown: short, more: 0 });
     const long = stepsOf(todosOf({ todos: list('completed', 'completed', 'completed', 'in_progress', 'pending', 'pending', 'pending', 'pending') }));
     const w = boardWindow(long);
-    expect(w.shown.map((s) => s.label)).toEqual(['Step 3', 'Step 4', 'Step 5', 'Step 6']);
-    expect(w.more).toBe(2);
+    expect(w.shown.map((s) => s.label)).toEqual(['Step 3', 'Step 4', 'Step 5']);
+    expect(w.more).toBe(3);
     const start = boardWindow(stepsOf(todosOf({ todos: list('in_progress', 'pending', 'pending', 'pending', 'pending', 'pending') })));
     expect(start.shown[0].label).toBe('Step 1');
-    expect(start.more).toBe(2);
+    expect(start.more).toBe(3);
     const end = boardWindow(stepsOf(todosOf({ todos: list('completed', 'completed', 'completed', 'completed', 'completed', 'in_progress') })));
-    expect(end.shown.map((s) => s.label)).toEqual(['Step 3', 'Step 4', 'Step 5', 'Step 6']);
+    expect(end.shown.map((s) => s.label)).toEqual(['Step 4', 'Step 5', 'Step 6']);
     expect(end.more).toBe(0);
+  });
+
+  it('never chalks more than four lines: five cannot be read on a slate this small', () => {
+    const lines = (n: number) => {
+      const w = boardWindow(stepsOf(todosOf({ todos: list(...Array(n).fill('pending')) })));
+      return w.shown.length + (w.more ? 1 : 0);
+    };
+    expect(lines(4)).toBe(4);
+    expect(lines(5)).toBe(4);
+    expect(lines(12)).toBe(4);
   });
 
   it('counts "step n of total" from the item under way, or the next one', () => {

@@ -7,6 +7,8 @@ from pathlib import Path
 
 from PIL import Image
 
+import rug
+
 ROOT = Path(__file__).resolve().parents[2]
 PACK = ROOT / 'assets/vendor/1_Interiors/16x16'
 OUT = ROOT / 'assets/sprites'
@@ -41,7 +43,6 @@ FURNITURE = [
     ('board', (0, at(338), 32, at(340)), (92, 14)),
     # floor
     ('plant_l', (192, at(26), 208, at(29)), (4, 40)),
-    ('rug', (112, at(15), 176, at(18)), (116, 76)),
     ('table', (8, at(316, 24), 72, at(316, 62)), (124, 72)),
     ('bench', (8, at(316, 62), 72, at(316, 79)), (124, 112)),
     ('counter', (112, at(321), 192, at(323)), (216, 60)),
@@ -98,6 +99,7 @@ def build():
     # Chairs are drawn top to bottom so a lower chair overlaps the one above it.
     for (col, row), (x, y) in sorted(CHAIRS, key=lambda c: c[1][1]):
         img.alpha_composite(tiles(interiors, col, row, 1, 2), (x - 8, y - 24))
+    rug.patch(img)
     OUT.mkdir(parents=True, exist_ok=True)
     img.save(OUT / 'cafe.png')
     animated = ROOT / 'assets/vendor/3_Animated_objects/16x16/spritesheets'

@@ -24,7 +24,8 @@ WALL = {
     'cafe': {(208, 190, 156): 'main', (224, 208, 178): 'main'},
     'study': {(238, 225, 183): 'main', (104, 145, 131): 'low', (88, 130, 120): 'low', (193, 198, 165): 'low'},
 }
-RUG_BOX = (112, 72, 180, 120)
+# The cafe's rug is painted by rug.py; a wider box would catch the colours of the chair beside it.
+RUG_BOX = {'cafe': (116, 64, 189, 136), 'study': (112, 72, 180, 120)}
 RUG = {(167, 78, 71): 'main', (168, 95, 70): 'main', (179, 94, 63): 'main',
        (195, 170, 87): 'edge', (187, 152, 78): 'edge', (165, 135, 69): 'edge'}
 
@@ -73,7 +74,7 @@ def part_pixels(img, scene, part, curtains):
                 out[(x, y)] = 'all'
             elif part == 'wall' and in_box(x, y, WALL_BOX) and c in WALL[scene] and (x, y) not in curtains:
                 out[(x, y)] = WALL[scene][c]
-            elif part == 'rug' and in_box(x, y, RUG_BOX) and c in RUG:
+            elif part == 'rug' and in_box(x, y, RUG_BOX[scene]) and c in RUG:
                 out[(x, y)] = RUG[c]
     return out
 

@@ -197,14 +197,16 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
 
     const form = el('form.card.paper.commission', {},
       el('div.card-title', {}, U.commissionTitle),
-      el('div.hint', {}, T.label),
-      el('div.template-row', {}, ...chips),
-      el('label', {}, U.want, want),
-      sourceRow,
-      materialRow,
-      el('label', {}, U.details, details),
-      el('label', {}, U.audience, audience),
-      el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
+      el('div.slip-body', {},
+        el('div.hint', {}, T.label),
+        el('div.template-row', {}, ...chips),
+        el('label', {}, U.want, want),
+        sourceRow,
+        materialRow,
+        el('label', {}, U.details, details),
+        el('label', {}, U.audience, audience),
+        el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
+      ),
       el('div.actions', {},
         el('button', { type: 'button', onclick: () => done(null) }, '\u00D7'),
         el('button.default', { type: 'submit' }, U.submit),
@@ -335,7 +337,7 @@ export function clearWorkSigns() {
   document.querySelectorAll('.parcel').forEach((p) => p.remove());
 }
 
-/** The blackboard: up to five lines with a check mark when done; a long plan shows where the work is. */
+/** The blackboard: up to four lines with a check mark when done; a long plan shows where the work is. */
 export type { BoardStep };
 /** What is on the blackboard now, for the card that shows the whole list. */
 let chalked: BoardStep[] = [];
