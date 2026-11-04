@@ -22,7 +22,7 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { boardSteps, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { answerFirst, boardSteps, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { closeRunning, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
@@ -429,6 +429,7 @@ let oldClaudeOk = false;
 const notReady = (env: EnvStatus) => !env.hasClaude || !env.hasApiKey || (env.claudeCompat === 'old' && !oldClaudeOk);
 
 async function newCommission(dropped: string[] = []) {
+  if (answerFirst()) return;
   if (running) {
     if (dropped.length) return greet(strings.ui.materials.busy);
     return openProgress();

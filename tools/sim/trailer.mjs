@@ -5,7 +5,8 @@
 //   node tools/sim/store.mjs ...   (first: it leaves a grown shop, see store-out/<lang>-home.txt)
 //   node tools/sim/trailer.mjs [--lang zh-CN,en] [--out store-out]
 //
-// Linux with Xvfb and ffmpeg only (it records the X display). Output: <out>/trailer-<lang>.mp4, 1920x1080, 30 fps.
+// Needs ffmpeg. On Linux it records the virtual display; elsewhere the app hands over its own frames, so the window
+// stays off screen and nothing takes the foreground. Output: <out>/trailer-<lang>.mp4, 1920x1080, 30 fps.
 
 import { spawn, execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
@@ -31,6 +32,59 @@ function cut(m) {
   ];
 }
 
+const FPS = 30;
+
+/** Record the X display. Returns how to stop. */
+async function recordDisplay(shop, raw) {
+  const bounds = await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getContentBounds());
+  const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'x11grab', '-draw_mouse', '0', '-framerate', String(FPS),
+    '-video_size', `${bounds.width}x${bounds.height}`, '-i', `${await display()}+${bounds.x},${bounds.y}`,
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '16', '-pix_fmt', 'yuv420p', raw], { stdio: ['pipe', 'inherit', 'inherit'] });
+  return async () => {
+    ff.stdin.write('q');
+    await new Promise((r) => ff.on('close', r));
+  };
+}
+
+/**
+ * Record what the window paints, from inside the app, at a steady frame rate on the wall clock: the marks taken
+ * in seconds must still line up with the video when it is cut. Returns how to stop.
+ */
+async function recordFrames(shop, raw) {
+  await shop.app.evaluate(({ BrowserWindow }, { raw, fps }) => {
+    const { spawn } = process.getBuiltinModule('node:child_process');
+    const { webContents } = BrowserWindow.getAllWindows()[0];
+    // Counted from here, not from the first frame, so that video time and the marks start together.
+    const started = Date.now();
+    let ff, closed, last, written = 0;
+    webContents.beginFrameSubscription((image) => {
+      const { width, height } = image.getSize();
+      last = image.toBitmap();
+      if (ff) return;
+      ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'bgra', '-video_size', `${width}x${height}`, '-framerate', String(fps),
+        '-i', '-', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '10', '-pix_fmt', 'yuv420p', raw], { stdio: ['pipe', 'ignore', 'inherit'] });
+      // Heard from the start: ffmpeg may be gone long before the recording is stopped.
+      closed = new Promise((done) => ff.on('close', done));
+      ff.stdin.on('error', () => {});
+    });
+    const timer = setInterval(() => {
+      if (!ff) return;
+      const due = Math.floor((Date.now() - started) / 1000 * fps);
+      for (; written < due; written++) ff.stdin.write(last);
+    }, 1000 / fps);
+    globalThis.__stopFrames = () => {
+      clearInterval(timer);
+      webContents.endFrameSubscription();
+      ff.stdin.end();
+      return closed;
+    };
+  }, { raw, fps: FPS });
+  return async () => {
+    const code = await shop.app.evaluate(() => globalThis.__stopFrames());
+    if (code !== 0) throw new Error(`ffmpeg stopped with code ${code} while recording`);
+  };
+}
+
 async function record(lang) {
   const homeFile = join(OUT, `${lang}-home.txt`);
   if (!existsSync(homeFile)) throw new Error(`run store.mjs for ${lang} first`);
@@ -39,16 +93,14 @@ async function record(lang) {
   rmSync(home.home, { recursive: true, force: true });
   cpSync(grown, home.home, { recursive: true });
 
-  const shop = await launch({ lang, home, size: 'large', speed: 1000 });
-  const bounds = await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getContentBounds());
+  // One real pixel for each CSS pixel, or a scaled display would record at something other than 1920x1080.
+  const shop = await launch({ lang, home, size: 'large', speed: 1000, args: ['--force-device-scale-factor=1'] });
   await sleep(6000);
   for (let i = 0; i < 3; i++) await shop.page.keyboard.press('Escape');
   await sleep(1000);
 
   const raw = join(OUT, `trailer-${lang}-raw.mp4`);
-  const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'x11grab', '-draw_mouse', '0', '-framerate', '30',
-    '-video_size', `${bounds.width}x${bounds.height}`, '-i', `${await display()}+${bounds.x},${bounds.y}`,
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '16', '-pix_fmt', 'yuv420p', raw], { stdio: ['pipe', 'inherit', 'inherit'] });
+  const stop = await (process.platform === 'linux' ? recordDisplay : recordFrames)(shop, raw);
   const t0 = Date.now();
   const now = () => (Date.now() - t0) / 1000;
   const m = { start: 0 };
@@ -84,8 +136,7 @@ async function record(lang) {
     m.garden = now();
     await sleep(4200);
   } finally {
-    ff.stdin.write('q');
-    await new Promise((r) => ff.on('close', r));
+    await stop();
     await shop.close();
   }
   return { raw, marks: m };

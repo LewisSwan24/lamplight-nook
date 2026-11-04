@@ -822,7 +822,7 @@ const SCENARIOS = {
       check(await tipShown(0), 'the first button shows no label on keyboard focus');
       await page.evaluate(() => document.activeElement.blur());
       await buttons.nth(5).hover();
-      await shop.shot(join(out, 'menus-toolbar-tip.png'));
+      await page.screenshot({ path: join(out, 'menus-toolbar-tip.png') });
 
       // Whole real pixels at every window size.
       for (const size of ['small', 'medium', 'large']) {

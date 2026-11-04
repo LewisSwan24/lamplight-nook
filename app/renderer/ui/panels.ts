@@ -25,9 +25,11 @@ let returnFocus: HTMLElement | null = null;
 /** Where keyboard focus lands on a new card, best first. The main button is last in its row, and Enter must be safe. */
 const FOCUS_FIRST = ['textarea, input', 'button.default', 'button:not(.close)', 'button'];
 
+/** A card that must be answered is up: nothing else opens until it has been. */
+export const answerFirst = () => open?.classList.contains('must-answer') === true;
+
 export function replaceOpen(node: HTMLElement) {
-  // A card that must be answered stays until it is; nothing pushes it aside.
-  if (open?.classList.contains('must-answer')) return;
+  if (answerFirst()) return;
   if (!open) returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   open?.remove();
   open = node;

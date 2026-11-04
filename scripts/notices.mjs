@@ -22,8 +22,9 @@ const SHIPPED_SEPARATELY = ['electron'];
 const ASSETS = `Art, sound, fonts and music
 ===========================
 
-Modern Interiors, Modern Exteriors, Modern Farm (pixel art for the shop, the street,
-the back garden, the staff and the cat)
+Modern Interiors, Modern Exteriors, Modern Farm (pixel art for the shop, the study, the street,
+the back garden, the staff, the neighbours, the cat, and what the shop gathers over time;
+some of it changed for Lamplight Nook, such as the staff's props and walking animals)
   By LimeZu - https://limezu.itch.io/
   Used under the licenses that come with the packs: commercial use and changes allowed,
   the assets themselves may not be resold or redistributed. Credit to LimeZu is required.
@@ -37,7 +38,8 @@ LXGW WenKai Screen (handwriting font, subset, internal name "Lamplight Hand")
   By LXGW - https://github.com/lxgw/LxgwWenKai-Screen
   SIL Open Font License 1.1; the full license text follows the package list below.
 
-Door bell, mallet, pencil and meeting bell sounds, the app icon and the tray lamp
+Door bell, mallet, pencil and meeting bell sounds, the app icon, the tray lamp, the toolbar icons
+and the works shelf icons
   Made for Lamplight Nook.
 `;
 

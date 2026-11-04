@@ -82,7 +82,8 @@ node tools/sim/store.mjs --lang en --only board,result
 Grows a shop by finishing eight commissions, then takes each picture at 1920x1080 in daylight.
 Store PNGs go to `store-out/<lang>/`; 1280x720 JPEGs for the website go to `store-out/site/`, named the way
 the site expects (copy them into the site repository's `img/`). `sim/trailer.mjs` records the 30-second
-trailer from the same kind of run.
+trailer from the same kind of run, with ffmpeg: on Linux from the virtual display, elsewhere from the frames the
+app paints, so the window stays off screen.
 
 ## Upgrades (`sim/legacy.mjs`)
 

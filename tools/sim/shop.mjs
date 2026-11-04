@@ -198,6 +198,8 @@ export class Shop {
       const a = document.activeElement;
       if (a instanceof HTMLElement && a.matches('.tool-btn, .hotspot')) a.blur();
     });
+    // The pointer stays where the script last clicked, and a toolbar button there would show its label.
+    await this.page.mouse.move(0, 0);
     await this.page.screenshot({ path });
     return path;
   }
