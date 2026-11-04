@@ -127,6 +127,133 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** A whole commission without touching the mouse: every stop shows where the focus is, and cards keep it inside. */
+  async keyboard(lang, out) {
+    const shop = await launch({ lang, home: freshHome(), speed: 250, size: 'small', debug: true });
+    const { page, L } = shop;
+    const faults = [];
+    const here = () => page.evaluate(() => {
+      const e = document.activeElement;
+      if (!e || e === document.body) return null;
+      const s = getComputedStyle(e);
+      const r = e.getBoundingClientRect();
+      const typing = e.matches('input, textarea');
+      return {
+        name: e.getAttribute('aria-label') || e.textContent?.trim().slice(0, 24) || e.className,
+        shows: typing || (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) || s.boxShadow !== 'none',
+        inView: r.width > 0 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight,
+        inCard: Boolean(e.closest('.card, .dialog, .serious, .backdrop, .welcome, .settings')),
+      };
+    });
+    const tab = async () => {
+      await page.keyboard.press('Tab');
+      await sleep(60);
+      const f = await here();
+      if (f && !f.shows) faults.push(`no focus ring on "${f.name}"`);
+      if (f && !f.inView) faults.push(`focus off screen on "${f.name}"`);
+      return f;
+    };
+    /** Tab until the focus is on something by this name; how many presses it took is part of the result. */
+    const tabTo = async (name, most = 60) => {
+      for (let i = 1; i <= most; i++) {
+        if ((await tab())?.name === name) return i;
+      }
+      throw new Error(`Tab never reached "${name}"`);
+    };
+    const tabToButton = async (selector, most = 40) => {
+      for (let i = 1; i <= most; i++) {
+        await tab();
+        if (await page.evaluate((s) => document.activeElement?.matches(s), selector)) return i;
+      }
+      throw new Error(`Tab never reached ${selector}`);
+    };
+    const staysInside = async (what, presses = 25) => {
+      for (let i = 0; i < presses; i++) {
+        const f = await tab();
+        if (!f?.inCard) {
+          faults.push(`${what}: Tab left the card, to "${f?.name ?? 'nothing'}"`);
+          return;
+        }
+      }
+    };
+    try {
+      // The welcome.
+      await shop.maybe('.welcome input[type=text]', 8000);
+      await page.keyboard.type(lang === 'en' ? 'Sam' : '小林');
+      await staysInside('welcome');
+      for (let i = 0; i < 3; i++) {
+        await tabToButton('.welcome .actions button.default');
+        await page.keyboard.press('Enter');
+        await sleep(400);
+      }
+      await sleep(1500);
+
+      // The commission slip.
+      await tabTo(L.ui.toolbar.order);
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('form.commission');
+      await sleep(300);
+      check(await page.evaluate(() => document.activeElement?.matches('form.commission textarea, form.commission input')), 'the slip does not start in a field');
+      await page.keyboard.type(W[lang].letter);
+      await staysInside('slip');
+      await tabToButton('form.commission button.default');
+      await shop.shot(join(out, 'keyboard-slip.png'));
+      await page.keyboard.press('Enter');
+      await sleep(1500);
+
+      // While it runs: the progress card opens and gives the focus back.
+      await tabTo(L.ui.toolbar.progress);
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('.running-card');
+      await staysInside('progress', 12);
+      await shop.shot(join(out, 'keyboard-progress.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      const back = await here();
+      if (back?.name !== L.ui.toolbar.progress) faults.push(`closing the progress card left the focus on "${back?.name ?? 'nothing'}"`);
+
+      const r = await shop.workUntilDone();
+      check(r.ok, 'the commission did not finish on Enter alone');
+      await staysInside('result', 12);
+      await shop.shot(join(out, 'keyboard-result.png'));
+      await page.keyboard.press('Escape');
+      await sleep(400);
+
+      // The shelf and the notebook.
+      await tabTo(L.ui.shelf.title);
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('.shelf-card');
+      await staysInside('shelf', 8);
+      await page.keyboard.press('Escape');
+      await tabTo(L.ui.notebook.title);
+      await page.keyboard.press('Enter');
+      await sleep(400);
+      await staysInside('notebook', 8);
+      await page.keyboard.press('Escape');
+
+      // Out to the garden through the back door and back in.
+      await tabTo(L.ui.access.hotspotGarden);
+      await page.keyboard.press('Enter');
+      await sleep(900);
+      check(await page.evaluate(() => window.lamplightDebug.scene.view) === 'garden', 'Enter on the back door did not go to the garden');
+      await tabTo(L.ui.access.hotspotShop);
+      await page.keyboard.press('Enter');
+      await sleep(900);
+      check(await page.evaluate(() => window.lamplightDebug.scene.view) === 'shop', 'Enter on the door did not come back');
+
+      // Settings, every tab.
+      await tabTo(L.ui.toolbar.settings);
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('.settings .tabs');
+      await staysInside('settings', 30);
+      await shop.shot(join(out, 'keyboard-settings.png'));
+      await page.keyboard.press('Escape');
+    } finally {
+      await shop.close();
+    }
+    check(!faults.length, [...new Set(faults)].join('; '));
+  },
+
   /** The computer loses power, a process dies, a folder disappears: the shop opens again and nothing delivered is lost. */
   async crash(lang, out) {
     const open = async (home, opts = {}) => {

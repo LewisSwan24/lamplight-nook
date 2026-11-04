@@ -59,6 +59,20 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// While a card is open, Tab goes round inside it: the shop behind cannot be used, so the focus does not go there.
+const TAB_STOPS = 'button:not([disabled]), input:not([disabled]), textarea, select, a[href], summary, [tabindex="0"]';
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const card = document.querySelector('.backdrop') ?? document.querySelector('.settings') ?? open;
+  if (!card) return;
+  const stops = Array.from(card.querySelectorAll<HTMLElement>(TAB_STOPS)).filter((s) => s.getClientRects().length > 0);
+  const at = stops.indexOf(document.activeElement as HTMLElement);
+  const next = e.shiftKey ? (at <= 0 ? stops.length - 1 : -1) : (at === stops.length - 1 || at < 0 ? 0 : -1);
+  if (next < 0) return;
+  e.preventDefault();
+  stops[next]?.focus();
+});
+
 /** Card shown when a character is clicked. */
 /** Detailed mode opens the raw record straight away. */
 export function showActorCard(actor: ActorId, info: ActorInfo, detailed = false) {
