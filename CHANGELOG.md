@@ -23,6 +23,25 @@ Safety before launch.
 - **The plan shows up more often.** For work with three or more steps Claude is asked to keep its to-do list in your
   language from the start, so the blackboard shows the real plan rather than three generic steps (a real page
   commission now lists "请设计师给出配色与布局方案…").
+- **Fewer confirmation cards, and revisions keep the rules.** Claude is told to change files with its file tools
+  rather than python or sed, so ordinary edits stop asking. "Another round" now gets the same safety rules as the
+  first commission.
+
+Polish before launch.
+
+- **The commission slip scrolls when it is full.** With many materials handed over, the files and the text scroll
+  inside the slip and the send button stays on screen, at every window size.
+- **The handwriting font is whole.** It now carries the common Chinese characters (GB2312 level 1, 3,883 in all), so
+  a line no longer drops into another font halfway. The font file grows from 119 KB to 991 KB. The text box on the
+  slip uses the plain font, so what you type stays easy to read.
+- **The rug fits the big table.** The cafe's rug is larger and centred, showing the same on every side in all its
+  colours, and the bench has its top edge, so the table and bench no longer read as one broken table.
+- **Shelf titles read like titles.** A title keeps its punctuation and stops at the end of a clause, or with "…" if
+  it runs long. Folder names still leave out what Windows does not allow. Titles already on the shelf keep their
+  old form.
+- **The blackboard shows four steps.** A step too long for its line ends in "…" instead of being cut off.
+- **Speech bubbles are never half hidden.** A bubble that would land on another moves above it, and one that a card
+  would cut is not shown until the card closes.
 
 ## 0.9.1 (2026-11-03)
 
