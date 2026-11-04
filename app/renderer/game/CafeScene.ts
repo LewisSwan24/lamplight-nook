@@ -39,6 +39,8 @@ import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import { currentScene } from '../../shared/scenes';
 import { COUNTER_TOP, PIECES } from './pieces';
+import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
+import type { GrowthId } from '../../shared/growth';
 import { walkBetween } from './layout';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
@@ -82,6 +84,7 @@ const FURNISH_DEPTH = 0.2;
 /** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
 const CUP_POS = SCENE === 'study' ? { x: 232, y: 62 } : { x: 256, y: 64 };
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
+const FLOOR_LAMP = 0.2;
 const FORM_POS = { x: 224, y: 78 };
 /** The meeting bell at the left end of the counter (top-left corner, canvas pixels); shown while a commission runs. */
 const BELL_POS = { x: 216, y: 78 };
@@ -89,7 +92,7 @@ const BELL_POS = { x: 216, y: 78 };
 const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
-export type Target = ActorId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'works' | 'board';
+export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'works' | 'guest' | 'you';
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -138,6 +141,15 @@ export class CafeScene extends Phaser.Scene {
   youName = '';
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
   private hovered: Target | null = null;
+  private objects = objectBoxes(SCENE);
+  private growthZones = new Map<string, Phaser.GameObjects.Zone>();
+  private pieceImages = new Map<string, Phaser.GameObjects.Image>();
+  private cup!: Phaser.GameObjects.Sprite;
+  private floorLamp!: { img: Phaser.GameObjects.Image; base: number; sun: boolean };
+  /** How strong the lamps are at this time of day. */
+  private lampLevel = 1;
+  onObjectClick: (id: ObjectId) => void = () => {};
+  onYouClick: () => void = () => {};
   private bell!: Phaser.GameObjects.Graphics;
   private bellZone!: Phaser.GameObjects.Zone;
   private glow?: { sprite: Phaser.GameObjects.Sprite; fx: Phaser.FX.Glow };
@@ -237,7 +249,7 @@ export class CafeScene extends Phaser.Scene {
     const sheet = this.textures.get('pieces');
     for (const p of PIECES) {
       sheet.add(p.name, 0, 0, p.sy, p.w, p.h);
-      this.add.image(p.x, p.y, 'pieces', p.name).setOrigin(0).setDepth(p.base);
+      this.pieceImages.set(p.name, this.add.image(p.x, p.y, 'pieces', p.name).setOrigin(0).setDepth(p.base));
     }
     for (const part of FURNISH_PARTS) this.furnishLayers.set(part, this.add.image(0, 0, 'cafe').setOrigin(0).setDepth(FURNISH_DEPTH).setVisible(false));
     this.setFurnishing(this.furnishing);
@@ -245,6 +257,7 @@ export class CafeScene extends Phaser.Scene {
     this.addProps();
     this.growth = new ShopGrowth(this, () => {});
     this.growth.onShelfClick = () => this.activate('works');
+    this.addObjects();
     const slate = ZONES.find((z) => z.id === 'board')!;
     this.add
       .zone(slate.x, slate.y, slate.w, slate.h)
@@ -332,9 +345,46 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** Small animated things that make the room feel lived in. */
+  /** A hit zone for everything fixed in the shop, under the people and over the counter. A growth piece's goes with it. */
+  private addObjects() {
+    for (const box of this.objects) {
+      if (box.id === 'board') continue;
+      const zone = this.add.zone(box.x, box.y, box.w, box.h).setOrigin(0).setDepth(box.id.startsWith('grow-') ? 0.6 : 0.5)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerover', () => this.highlight(box.id))
+        .on('pointerout', () => this.hovered === box.id && this.highlight(null))
+        .on('pointerdown', () => this.activate(box.id));
+      if (box.id.startsWith('grow-')) this.growthZones.set(box.id, zone);
+    }
+  }
+
+  private shows(box: ObjectBox): boolean {
+    return !box.id.startsWith('grow-') || this.growth.shows(box.id.slice(5) as GrowthId);
+  }
+
+  /** The floor lamp, on or off: only for the look of it. */
+  toggleLamp() {
+    const g = this.floorLamp;
+    g.base = g.base ? 0 : FLOOR_LAMP;
+    g.img.setAlpha(Math.min(1, g.base * this.lampLevel));
+    return g.base > 0;
+  }
+
+  /** A little shake of a plant or the cup; nothing at all with reduced motion. */
+  wiggle(id: ObjectId) {
+    const target = id === 'cup' ? this.cup : this.pieceImages.get(id === 'plant2' ? 'plant_r' : 'plant_l');
+    if (!target || this.reducedMotion) return;
+    this.tweens.add({ targets: target, x: target.x + 1, duration: 70, yoyo: true, repeat: 3 });
+  }
+
+  /** Who is out on an errand. */
+  get outOnErrand(): ActorId | null {
+    return this.street.who as ActorId | null;
+  }
+
   private addProps() {
     this.add.sprite(180, 14, 'clock').setOrigin(0).play('clock');
-    this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(COUNTER_TOP).play('cup');
+    this.cup = this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(COUNTER_TOP).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
     // The back door: click it to look out at the garden.
     this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'door', 0).setOrigin(0).setDepth(1);
@@ -438,7 +488,8 @@ export class CafeScene extends Phaser.Scene {
     };
     glow(48, 60, 56, 0.22, true);
     glow(243, 86, 48, 0.18);
-    glow(278, 146, 36, 0.2);
+    glow(278, 146, 36, FLOOR_LAMP);
+    this.floorLamp = this.glows[this.glows.length - 1];
     glow(207, 34, 20, 0.12);
   }
 
@@ -524,6 +575,7 @@ export class CafeScene extends Phaser.Scene {
       const sky = mix(from.sky, look.sky);
       this.sky.setTint(Phaser.Display.Color.GetColor(sky.r, sky.g, sky.b)).setAlpha(from.skyAlpha + (look.skyAlpha - from.skyAlpha) * t);
       const lamps = from.lamps + (look.lamps - from.lamps) * t;
+      this.lampLevel = lamps;
       const sun = from.sun + (look.sun - from.sun) * t;
       for (const g of this.glows) g.img.setAlpha(Math.min(1, g.base * (g.sun ? sun : lamps)));
     };
@@ -568,7 +620,7 @@ export class CafeScene extends Phaser.Scene {
   highlight(target: Target | null) {
     if (this.glow) this.glow.sprite.preFX?.remove(this.glow.fx);
     this.glow = undefined;
-    const actor = target && !['counter', 'bell', 'backdoor', 'shopdoor', 'dog', 'hens', 'works', 'board'].includes(target) ? this.actors.get(target as ActorId) : undefined;
+    const actor = target ? this.actors.get(target as ActorId) : undefined;
     if (actor?.outside || actor?.inGarden) target = null;
     this.hovered = target;
     const fx = actor && target ? actor.sprite.preFX?.addGlow(0xfff1c8, 1.5, 0, false, 0.1, 4) : undefined;
@@ -579,7 +631,11 @@ export class CafeScene extends Phaser.Scene {
   activate(target: Target) {
     if (target === 'counter') return this.onCounterClick();
     if (target === 'works') return this.growth.hasWorks ? this.onWorksClick() : undefined;
-    if (target === 'board') return this.boardInUse() && this.view === 'shop' ? this.onBoardClick() : undefined;
+    if (target === 'board') return this.boardInUse() ? this.onBoardClick() : this.onObjectClick('board');
+    if (target === 'guest') return this.guestHello();
+    if (target === 'you') return this.onYouClick();
+    const object = this.objects.find((b) => b.id === target);
+    if (object) return this.shows(object) ? this.onObjectClick(object.id) : undefined;
     if (target === 'backdoor') return this.showGarden();
     if (target === 'shopdoor') return this.showShop();
     if (target === 'dog') return this.garden.animals.pat();
@@ -589,13 +645,13 @@ export class CafeScene extends Phaser.Scene {
       this.ringBell();
       return this.onBellClick();
     }
-    const actor = this.actors.get(target);
+    const actor = this.actors.get(target as ActorId);
     // Someone out on an errand can still be clicked in the street inset, and someone in the garden out there.
-    if (actor?.outside && this.street.who === target) return this.onActorClick(target);
-    if (actor?.inGarden) return this.view === 'garden' ? this.onActorClick(target) : undefined;
+    if (actor?.outside && this.street.who === target) return this.onActorClick(target as ActorId);
+    if (actor?.inGarden) return this.view === 'garden' ? this.onActorClick(target as ActorId) : undefined;
     if (!actor || actor.outside) return;
     this.react(actor);
-    this.onActorClick(target);
+    this.onActorClick(target as ActorId);
   }
 
   /** What can be clicked, in canvas pixels, for the keyboard hotspots laid over the canvas. */
@@ -610,9 +666,21 @@ export class CafeScene extends Phaser.Scene {
     const out = this.street.open && this.street.who ? [{ id: this.street.who, x: INSET.x, y: INSET.y, w: INSET.w, h: INSET.h }] : [];
     const back = { id: 'backdoor' as const, x: BACK_DOOR.x, y: BACK_DOOR.y, w: 16, h: 32 };
     const works = this.growth.hasWorks ? [{ id: 'works' as const, ...SHELF }] : [];
+    for (const [id, zone] of this.growthZones) zone.input!.enabled = this.growth.shows(id.slice(5) as GrowthId);
+    const objects = this.objects.filter((o) => o.id !== 'board' && this.shows(o));
+    const guest = this.guest ? [{ id: 'guest' as const, x: this.guest.sprite.x - 8, y: this.guest.sprite.y - 32, w: 16, h: 32 }] : [];
+    const you = this.you ? [{ id: 'you' as const, x: this.you.sprite.x - 8, y: this.you.sprite.y - 32, w: 16, h: 32 }] : [];
     const slate = ZONES.find((z) => z.id === 'board')!;
-    const board = this.boardInUse() ? [{ id: 'board' as const, x: slate.x, y: slate.y, w: slate.w, h: slate.h }] : [];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...works, ...board, ...people, ...out];
+    const board = [{ id: 'board' as const, x: slate.x, y: slate.y, w: slate.w, h: slate.h }];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...people, ...out];
+  }
+
+  /** A neighbour says hello when clicked. */
+  private guestHello() {
+    const g = this.guest;
+    if (!g || g.speech) return;
+    g.speech = strings.ui.objects.guest[g.id];
+    this.time.delayedCall(2600, () => { g.speech = undefined; });
   }
 
   /** A click gets a small reaction: staff hop and look at you; the cat purrs a heart and wakes up. */
@@ -710,6 +778,10 @@ export class CafeScene extends Phaser.Scene {
     return this.speech.has(actorId) || !!actor?.outside || !!actor?.inGarden;
   }
 
+  isSaying(actorId: ActorId, text: string): boolean {
+    return this.speech.get(actorId)?.text === text;
+  }
+
   /** Show a line above a character (text may be empty to show just the bubble). Pass null and no bubble to clear. */
   say(actorId: ActorId, text: string | null, bubble?: Bubble) {
     if (text === null && !bubble) this.speech.delete(actorId);
@@ -790,9 +862,10 @@ export class CafeScene extends Phaser.Scene {
     const shadow = this.add.ellipse(GUEST_DOOR.x, GUEST_DOOR.y, 11, 4, 0x3b2a1e, 0.28);
     const g: Guest = { id, sprite, shadow };
     this.guest = g;
-    sprite.setInteractive({ useHandCursor: false, pixelPerfect: true })
+    sprite.setInteractive({ useHandCursor: true, pixelPerfect: true })
       .on('pointerover', () => (g.hovered = true))
-      .on('pointerout', () => (g.hovered = false));
+      .on('pointerout', () => (g.hovered = false))
+      .on('pointerdown', () => this.guestHello());
     await this.openDoor();
     sprite.play(animKey(id, 'walk', 'down'), true);
     await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
@@ -869,9 +942,10 @@ export class CafeScene extends Phaser.Scene {
     const shadow = this.add.ellipse(YOU_DOOR.x, YOU_DOOR.y, 11, 4, 0x3b2a1e, 0.28).setAlpha(0);
     const y: You = { sprite, shadow, seated: false, trip: 0 };
     this.you = y;
-    sprite.setInteractive({ useHandCursor: false, pixelPerfect: true })
+    sprite.setInteractive({ useHandCursor: true, pixelPerfect: true })
       .on('pointerover', () => (y.hovered = true))
-      .on('pointerout', () => (y.hovered = false));
+      .on('pointerout', () => (y.hovered = false))
+      .on('pointerdown', () => this.onYouClick());
     const trip = y.trip;
     const off = () => trip !== y.trip;
     y.arriving = (async () => {
@@ -1091,7 +1165,13 @@ export class CafeScene extends Phaser.Scene {
   labels(): LabelPos[] {
     if (this.view === 'garden') return this.gardenLabels();
     // Names appear only on hover; the art shows who is who and what each place is.
-    const zones = ZONES.filter((z) => z.id === this.hovered).map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
+    const object = this.hovered !== 'board' ? this.objects.find((o) => o.id === this.hovered) : undefined;
+    const zones = ZONES.filter((z) => z.id === this.hovered && !object).map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
+    if (object) {
+      const O = strings.ui.objects;
+      const name = object.id.startsWith('grow-') ? O.grown[object.id.slice(5) as GrowthId] : O.names[object.id as keyof typeof O.names];
+      zones.push({ key: `z-${object.id}`, text: name, x: object.x + object.w / 2, y: object.y - 2, kind: 'zone' as const });
+    }
     if (this.hovered === 'bell') zones.push({ key: 'z-bell', text: strings.zones.bell, x: BELL_POS.x + 3, y: BELL_POS.y - 2, kind: 'zone' as const });
     if (this.hovered === 'backdoor') zones.push({ key: 'z-garden', text: strings.zones.garden, x: BACK_DOOR.x + 8, y: BACK_DOOR.y - 2, kind: 'zone' as const });
     const actors = ACTORS.filter((a) => a.id === this.hovered).map((a) => {

@@ -25,6 +25,7 @@ import { formatUsd } from '../shared/money';
 import { boardSteps, clearWorkSigns, commissionFormOpen, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { closeRunning, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
+import { type ObjectId, objectReaction } from './game/objects';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, onNotebookRevise } from './ui/notebook';
 import { showShelf } from './ui/shelf';
@@ -215,6 +216,8 @@ scene.onView = (v) => {
 // Long commissions: now and then Adeng says how far along it is (from the blackboard).
 let runStartedAt = 0;
 let runBudget = 0;
+/** What was handed over for the commission under way, for the table to tell. */
+let runMaterials: string[] = [];
 let progressSaidAt: number | undefined;
 let progressCount = 0;
 function sayProgress() {
@@ -317,6 +320,27 @@ function noticeGrowth(ids: GrowthId[]) {
   }, GROWTH_LINE_DELAY_MS);
 }
 const GROWTH_LINE_DELAY_MS = 4000;
+/** Clicking something in the shop: a line, a light, someone strolling over; never anything that costs money. */
+const objectTurns = new Map<ObjectId, number>();
+function clickObject(id: ObjectId) {
+  const turn = objectTurns.get(id) ?? 0;
+  objectTurns.set(id, turn + 1);
+  const now = new Date();
+  const r = objectReaction(id, {
+    running: running !== null, hour: now.getHours(), minute: now.getMinutes(), sky: scene.outside().sky, period: scene.period,
+    errand: scene.outOnErrand, materials: runMaterials, laoshiDoing: stage.actorInfo('laoshi').doing ?? '', turn,
+  }, strings.ui.objects);
+  if ('open' in r) return openProgress();
+  if ('lamp' in r) return void (sfx('click'), scene.toggleLamp());
+  const here = STAFF.filter((a) => scene.anchorOf(a) !== null);
+  const speaker = here.includes(r.by) ? r.by : here[0];
+  if (!speaker) return;
+  if (r.wiggle) scene.wiggle(id);
+  if (r.walk && !scene.reducedMotion) void scene.walkTo(speaker, r.walk);
+  void stage.answer(speaker, r.say);
+}
+scene.onObjectClick = clickObject;
+scene.onYouClick = () => void stage.answer('adeng', strings.ui.objects.you);
 scene.boardInUse = () => running !== null || boardSteps().length > 0;
 scene.onBoardClick = () => (running ? openProgress() : showPlan(boardSteps()));
 scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
@@ -359,6 +383,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   } finally {
     closeRunning();
     running = null;
+    runMaterials = [];
     scene.setFormWaiting(true);
     scene.setBell(false);
     void scene.youLeave();
@@ -395,6 +420,7 @@ async function newCommission(dropped: string[] = []) {
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
+  runMaterials = (form.materials ?? []).map((m) => m.split(/[\\/]/).pop()!);
   await run(form.want, () => window.lamplight.startCommission(form));
 }
 

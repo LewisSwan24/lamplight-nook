@@ -341,6 +341,112 @@
       "creditMusic": "Background music: Alex Morgan, Jazz Study Sessions and Jazz Cafe & Coffee Shop (CC BY 4.0; converted to Ogg and evened out in volume)",
       "creditMusicLink": "freemusicarchive.org"
     },
+    "objects": {
+      "names": {
+        "clock": "Clock",
+        "window": "Window",
+        "frontdoor": "Front door",
+        "table": "Big table",
+        "shelf": "Bookshelf",
+        "workbench": "Flint's workbench",
+        "lamp": "Floor lamp",
+        "plant": "Pot plant",
+        "plant2": "Pot plant",
+        "cup": "Coffee cup",
+        "board": "Blackboard",
+        "sofa": "Sofa",
+        "guest": "Visitor",
+        "you": "You"
+      },
+      "grown": {
+        "painting": "This little painting",
+        "plant": "This pot plant",
+        "lights": "These fairy lights",
+        "fruit": "This bowl of fruit",
+        "guitar": "This guitar",
+        "bonsai": "This bonsai",
+        "easel": "This easel",
+        "trophy": "This cup"
+      },
+      "grownLine": "{thing} came after commission number {n}.",
+      "clock": "It's {time}.",
+      "window": "Outside it's {sky}, and {period}.",
+      "skies": {
+        "clear": "clear",
+        "rain": "raining",
+        "snow": "snowing",
+        "petals": "all petals",
+        "leaves": "all falling leaves"
+      },
+      "periods": {
+        "dawn": "just getting light",
+        "day": "the middle of the day",
+        "dusk": "nearly sunset",
+        "night": "already night"
+      },
+      "door": {
+        "clear": "Lovely out. Fancy a walk?",
+        "rain": "Still raining. Umbrella's by the door.",
+        "snow": "Slippery out there. Go gently.",
+        "petals": "Petals all over the step. I'll sweep them later.",
+        "leaves": "Another layer of leaves on the step."
+      },
+      "doorErrand": "{name} is out on an errand, back soon.",
+      "doorNobody": "Nobody's out right now. Everyone's busy in here.",
+      "actorNames": {
+        "adeng": "Wick",
+        "xiaoju": "Clem",
+        "laoshi": "Flint",
+        "qingdai": "Iris",
+        "cat": "the cat"
+      },
+      "table": [
+        "Table's clear, ready for the next one.",
+        "This table is older than the shop.",
+        "Sit down a while if you like."
+      ],
+      "tableMaterials": "Handed in for this one: {list}.",
+      "tableNothing": "Nothing handed in for this one, just your words.",
+      "listJoin": ", ",
+      "shelf": [
+        "Let me find something to read.",
+        "Where did I get to in this one?",
+        "This shelf wants dusting."
+      ],
+      "shelfBusy": [
+        "Books can wait till this one's done.",
+        "Hands are full. Later."
+      ],
+      "workbench": [
+        "This chair could use another look.",
+        "Every tool back in its place.",
+        "Don't touch that file, it's just been sharpened."
+      ],
+      "workbenchBusy": "On the bench right now: {doing}.",
+      "plant": [
+        "Watered it today.",
+        "There's a new leaf coming.",
+        "Don't shake it. It holds a grudge."
+      ],
+      "cup": [
+        "Still hot. Want one?",
+        "That's my third today.",
+        "We're nearly out of beans."
+      ],
+      "board": [
+        "Nothing on the board. Waiting for the next one.",
+        "I wiped off the last lot of chalk."
+      ],
+      "sofa": [
+        "Sit on this and you won't get up again.",
+        "A fine place for a nap."
+      ],
+      "guest": {
+        "baker": "Fresh from the oven. Eat it while it's hot.",
+        "postman": "Not many letters today. Yours is on top."
+      },
+      "you": "Your commission is under way. Have a seat."
+    },
     "run": {
       "runningTitle": "Working on: {want}",
       "cancel": "Call it off",

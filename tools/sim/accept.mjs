@@ -127,6 +127,61 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Everything fixed in the shop answers: a name on hover, a key to reach it, and a word or a light, for nothing. */
+  async objects(lang, out) {
+    for (const scene of ['cafe', 'study']) {
+      const home = freshHome({ 'settings.json': onboarded(lang, { scene, budgetUsd: 5 }) });
+      const shop = await launch({ lang, home, size: 'medium', speed: Math.max(SPEED, 1500) });
+      try {
+        await sleep(1500);
+        const O = shop.L.ui.objects;
+        // Press until the answer shows: a line the shop was about to say anyway can take the bubble first.
+        const ask = async (name, lines) => {
+          for (let i = 0; i < 5; i++) {
+            await shop.hotspot(name);
+            const shown = await shop.page.waitForFunction((lines) => lines.some((l) => document.body.innerText.includes(l)), lines, { timeout: 1500 }).then(() => true, () => false);
+            if (shown) return;
+          }
+          await shop.shot(join(out, 'objects-stuck.png'));
+          throw new Error(`nobody said ${lines[0]}`);
+        };
+        await ask(O.names.clock, [O.clock.split('{')[0]]);
+        await ask(O.names.frontdoor, Object.values(O.door));
+        await ask(O.names.window, [O.window.split('{')[0]]);
+        for (const [name, lines] of [['table', O.table], ['workbench', O.workbench], ['plant', O.plant], ['cup', O.cup], ['shelf', O.shelf]]) {
+          await ask(O.names[name], lines);
+        }
+        await shop.shot(join(out, `objects-${scene}-idle.png`));
+        const lamp = () => shop.page.evaluate(() => window.lamplightDebug.scene.floorLamp.base);
+        const before = await lamp();
+        await shop.hotspot(O.names.lamp);
+        check((await lamp()) !== before, `${scene}: the lamp did not switch`);
+        await shop.hotspot(O.names.lamp);
+        check((await lamp()) === before, `${scene}: the lamp did not switch back`);
+        // A name on hover, where the mouse is.
+        const named = await shop.page.evaluate(async (name) => {
+          const { scene } = window.lamplightDebug;
+          scene.highlight('clock');
+          await new Promise((r) => setTimeout(r, 200));
+          const seen = document.body.innerText.includes(name);
+          scene.highlight(null);
+          return seen;
+        }, O.names.clock);
+        check(named, `${scene}: no name for the clock`);
+        // At work: the clock opens the running card, the table says nothing was handed in.
+        await shop.order({ template: 'page', want: W[lang].page });
+        await shop.submit();
+        await shop.page.waitForFunction(() => document.querySelectorAll('.board .step').length >= 3);
+        await sleep(2500);
+        await ask(O.names.table, [O.tableNothing]);
+        await shop.hotspot(O.names.clock);
+        await shop.page.locator('.running-card').waitFor();
+        await shop.page.keyboard.press('Escape');
+        await shop.shot(join(out, `objects-${scene}-busy.png`));
+      } finally { await shop.close(); }
+    }
+  },
+
   /** Furniture stands in the room: someone behind the table is hidden by it, someone in front is not. */
   async behind(lang, out) {
     for (const scene of ['cafe', 'study']) {

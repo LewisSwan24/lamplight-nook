@@ -1,11 +1,12 @@
 import data from '../../../assets/sprites/pieces.json';
-import { currentScene } from '../../shared/scenes';
+import { currentScene, type SceneId } from '../../shared/scenes';
 import type { Area, Box } from './path';
 
 /**
  * The furniture standing in the room (scripts/art/pieces.py): each piece is drawn at the depth of its foot, so anyone
  * whose feet are higher up the screen walks behind it.
  */
+export const pieceData = (scene: SceneId) => data[scene];
 const here = data[currentScene()];
 export const PIECES = here.pieces;
 type Piece = (typeof PIECES)[number];

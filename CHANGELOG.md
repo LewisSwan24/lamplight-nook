@@ -20,6 +20,10 @@ The running card and the road to 1.0.
 - **The study has its own floor plan.** The sofa stands at the reading table, and the staff keep off the gap in the desk.
 - **Words keep off the blackboard.** A speech bubble that would cover the chalk moves beside it. Laoshi's guitar now
   hangs on the wall, where the Christmas tree cannot hide it.
+- **Everything in the shop answers.** The clock, window, doors, table, shelf, workbench, lamp, plants, cup, blackboard
+  and what the shop has gathered all show a name on hover, can be reached from the keyboard, and answer a click with a
+  word, a light or someone strolling over, for nothing. At work the clock opens the running card, the table lists what
+  you handed in, and the front door says who is out. Neighbours say hello when clicked.
 - **The limit is per round, and says so.** The commission form, settings and the stop card all say "this round", and
   the stop card shows what the round spent, not the running total.
 - **Nobody walks through furniture.** Eleven stand points got their own place for each character, the holiday pieces

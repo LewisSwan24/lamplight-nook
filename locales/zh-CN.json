@@ -341,6 +341,112 @@
       "creditMusic": "背景音乐：Alex Morgan《Jazz Study Sessions》《Jazz Cafe & Coffee Shop》（CC BY 4.0，已统一音量并转为 Ogg）",
       "creditMusicLink": "freemusicarchive.org"
     },
+    "objects": {
+      "names": {
+        "clock": "挂钟",
+        "window": "窗户",
+        "frontdoor": "前门",
+        "table": "大桌子",
+        "shelf": "书架",
+        "workbench": "老石的工作台",
+        "lamp": "落地灯",
+        "plant": "盆栽",
+        "plant2": "盆栽",
+        "cup": "咖啡杯",
+        "board": "小黑板",
+        "sofa": "沙发",
+        "guest": "客人",
+        "you": "你自己"
+      },
+      "grown": {
+        "painting": "这幅小画",
+        "plant": "这盆花",
+        "lights": "这串小灯",
+        "fruit": "这盘水果",
+        "guitar": "这把吉他",
+        "bonsai": "这棵盆景",
+        "easel": "这个画架",
+        "trophy": "这个奖杯"
+      },
+      "grownLine": "{thing}是做完第 {n} 单后添的。",
+      "clock": "现在 {time}。",
+      "window": "外面{sky}，{period}。",
+      "skies": {
+        "clear": "天晴",
+        "rain": "在下雨",
+        "snow": "在下雪",
+        "petals": "飘着花瓣",
+        "leaves": "飘着落叶"
+      },
+      "periods": {
+        "dawn": "天刚亮",
+        "day": "是白天",
+        "dusk": "太阳快落了",
+        "night": "已经晚上了"
+      },
+      "door": {
+        "clear": "天不错，出去走走吗？",
+        "rain": "雨还没停，伞在门边。",
+        "snow": "外面滑，出门慢点。",
+        "petals": "门口全是花瓣，一会儿我去扫。",
+        "leaves": "门口的落叶又厚了一层。"
+      },
+      "doorErrand": "{name}出去跑腿了，一会儿回来。",
+      "doorNobody": "这会儿没人出门，都在屋里忙。",
+      "actorNames": {
+        "adeng": "阿灯",
+        "xiaoju": "小橘",
+        "laoshi": "老石",
+        "qingdai": "青黛",
+        "cat": "小猫"
+      },
+      "table": [
+        "桌子收拾好了，等下一单。",
+        "这张桌子比店还老。",
+        "坐下歇会儿也行。"
+      ],
+      "tableMaterials": "这单递来的材料：{list}。",
+      "tableNothing": "这单没递材料，全凭你那句话。",
+      "listJoin": "、",
+      "shelf": [
+        "我找本书看看。",
+        "这本我上次翻到哪儿了？",
+        "书架该掸掸灰了。"
+      ],
+      "shelfBusy": [
+        "等忙完这单再翻书。",
+        "书先放着，手上有活。"
+      ],
+      "workbench": [
+        "这把椅子还能再修修。",
+        "工具都归位了。",
+        "别碰那把锉，刚磨好。"
+      ],
+      "workbenchBusy": "手上这件：{doing}。",
+      "plant": [
+        "今天浇过水了。",
+        "新叶子冒出来了。",
+        "别晃它，它会记仇。"
+      ],
+      "cup": [
+        "还热着，你要来一杯吗？",
+        "这是今天第三杯了。",
+        "咖啡豆快见底了。"
+      ],
+      "board": [
+        "黑板是空的，等下一单。",
+        "上次的粉笔字我擦了。"
+      ],
+      "sofa": [
+        "这沙发坐下去就不想起来。",
+        "午觉的好地方。"
+      ],
+      "guest": {
+        "baker": "刚出炉的，趁热吃。",
+        "postman": "今天的信不多，你的那封在最上面。"
+      },
+      "you": "你的委托在做了，先坐会儿吧。"
+    },
     "run": {
       "runningTitle": "正在做：{want}",
       "cancel": "不做了",

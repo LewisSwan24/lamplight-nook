@@ -191,6 +191,13 @@ if __name__ == '__main__':
     for name, room, boxes in (('cafe', cafe_room(), cafe_boxes()), ('study', study_room(), study_boxes())):
         pieces = split(name, room, boxes, chairs)
         data[name] = {'pieces': pieces, 'on': overlays_on(pieces, name), 'decor': floor_decor()}
+    # Where each growth piece shows, so it can be clicked (game/objects.ts).
+    grow = {}
+    for path in sorted(OUT.glob('grow-*.png')):
+        l, t, r, b = Image.open(path).convert('RGBA').getbbox()
+        grow[path.stem[5:]] = {'x': l, 'y': t, 'w': r - l, 'h': b - t}
+    for scene_data in data.values():
+        scene_data['grow'] = grow
     with open(OUT / 'pieces.json', 'w', encoding='utf-8', newline='\n') as f:
         json.dump(data, f, indent=1)
         f.write('\n')

@@ -251,6 +251,13 @@ export class Stage {
     }
   }
 
+  /** Someone clicked something: the answer comes now, over whatever was being said. */
+  async answer(speaker: ActorId, text: string): Promise<void> {
+    this.scene.say(speaker, text);
+    await new Promise((r) => setTimeout(r, 2000 + 150 * [...text].length));
+    if (this.scene.isSaying(speaker, text)) this.scene.say(speaker, null);
+  }
+
   private show(owner: ActorId, who: ActorId, text: string, bubble?: CharacterCommand['bubble']) {
     this.owner.set(who, owner);
     this.scene.say(who, text, bubble);

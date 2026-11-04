@@ -51,6 +51,11 @@ export class ShopGrowth {
       .on('pointerout', () => onHover(false));
   }
 
+  /** Whether a piece is out in the shop. */
+  shows(id: GrowthId): boolean {
+    return this.pieces.get(id)!.visible;
+  }
+
   /** Show what the shop has; a piece that just arrived fades in instead of popping up. */
   setGrown(ids: GrowthId[], fresh: GrowthId[] = []) {
     for (const [id, img] of this.pieces) {
