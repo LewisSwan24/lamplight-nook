@@ -146,7 +146,7 @@ body.debug #debug { display: block; }
   font-family: var(--hand); line-height: 1.3; color: #f1ede0;
   text-shadow: 0 0 1px rgba(241, 237, 224, 0.7);
 }
-.board .step { white-space: nowrap; overflow: hidden; }
+.board .step { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .board .step.todo { opacity: 0.55; }
 .board .step.more { opacity: 0.55; font-size: 0.9em; }
 .board .step.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }

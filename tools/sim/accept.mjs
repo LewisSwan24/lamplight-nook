@@ -106,7 +106,24 @@ async function runOne(shop, { template, want, files }, opts = {}) {
     await shop.retry();
     r = await shop.workUntilDone(opts);
   }
+  await checkBubbles(shop);
   return r;
+}
+
+/** Nothing anyone says is half hidden: no bubble crosses a card or sits on another bubble. */
+async function checkBubbles(shop) {
+  const clashes = await shop.page.evaluate(() => {
+    const touch = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+    const shown = [...document.querySelectorAll('.label.bubble')].filter((e) => getComputedStyle(e).visibility !== 'hidden').map((e) => ({ text: e.textContent, box: e.getBoundingClientRect() }));
+    const cards = [...document.querySelectorAll('.card, .parcel, .dialog, .serious')].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+    const out = [];
+    shown.forEach((b, i) => {
+      if (cards.some((c) => touch(b.box, c))) out.push(`card over "${b.text}"`);
+      for (const other of shown.slice(i + 1)) if (touch(b.box, other.box)) out.push(`"${b.text}" on "${other.text}"`);
+    });
+    return out;
+  });
+  check(!clashes.length, `speech bubbles: ${clashes.join('; ')}`);
 }
 
 const SCENARIOS = {
@@ -137,6 +154,8 @@ const SCENARIOS = {
       const r = await shop.workUntilDone({ onTick: async (ms) => {
         if (!boardText && ms > 6000) {
           boardText = await shop.page.evaluate(() => document.getElementById('board')?.innerText ?? '');
+          const cut = await shop.page.evaluate(() => [...document.querySelectorAll('#board .step')].every((s) => getComputedStyle(s).textOverflow === 'ellipsis'));
+          check(cut, 'a long line on the blackboard is cut without an ellipsis');
           await shop.shot(join(out, 'board.png'));
           await shop.hotspot(shop.L.ui.access.hotspotBoard);
           planCard = await shop.page.locator('.plan-card').isVisible();

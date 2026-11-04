@@ -337,7 +337,7 @@ export function clearWorkSigns() {
   document.querySelectorAll('.parcel').forEach((p) => p.remove());
 }
 
-/** The blackboard: up to five lines with a check mark when done; a long plan shows where the work is. */
+/** The blackboard: up to four lines with a check mark when done; a long plan shows where the work is. */
 export type { BoardStep };
 /** What is on the blackboard now, for the card that shows the whole list. */
 let chalked: BoardStep[] = [];

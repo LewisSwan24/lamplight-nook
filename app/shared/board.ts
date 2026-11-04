@@ -7,7 +7,7 @@ export type Todo = { text: string; status: 'pending' | 'in_progress' | 'complete
 export type BoardStep = { key: string; label: string; status: 'todo' | 'doing' | 'done' };
 
 /** How many lines fit on the blackboard. */
-export const BOARD_LINES = 5;
+export const BOARD_LINES = 4;
 /** Longest to-do text kept, in characters; the chalk is small and the board narrow. */
 const MAX_TEXT = 40;
 
