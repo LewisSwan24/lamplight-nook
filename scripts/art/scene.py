@@ -79,7 +79,8 @@ ANIMATED = {
 }
 
 
-def build():
+def shell():
+    """The room with nothing standing in it: floor, wall and the daylight behind the two doors."""
     img = Image.new('RGBA', (W, H), (59, 42, 30, 255))
     floor = tiles(floors, 4, 12, 3, 2)
     for y in range(48, H, floor.height):
@@ -94,6 +95,11 @@ def build():
     # Behind the back door: the green of the garden.
     back = BACK_DOOR
     img.paste((150, 200, 140, 255), (back[0] + 1, back[1] + 12, back[0] + 15, back[1] + 32))
+    return img
+
+
+def build():
+    img = shell()
     for _name, rect, pos in FURNITURE:
         img.alpha_composite(obj(*rect), pos)
     # Chairs are drawn top to bottom so a lower chair overlaps the one above it.

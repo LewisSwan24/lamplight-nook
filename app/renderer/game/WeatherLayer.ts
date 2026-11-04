@@ -1,3 +1,4 @@
+import { overlayDepth } from './pieces';
 import Phaser from 'phaser';
 import { FALLING, type Holiday, type Sky, multiply } from './weather';
 
@@ -50,9 +51,9 @@ export class WeatherLayer {
   set(sky: Sky, holiday: Holiday | null) {
     this.sky = sky;
     this.holiday = holiday;
-    if (holiday) this.decor.setTexture(`decor-${holiday}`);
+    if (holiday) this.decor.setTexture(`decor-${holiday}`).setDepth(overlayDepth(`decor-${holiday}`, DECOR_DEPTH));
     this.decor.setVisible(!!holiday);
-    if (sky !== 'clear') this.touch.setTexture(`weather-${sky}`);
+    if (sky !== 'clear') this.touch.setTexture(`weather-${sky}`).setDepth(overlayDepth(`weather-${sky}`, DECOR_DEPTH));
     this.touch.setVisible(sky !== 'clear');
     this.restart();
   }

@@ -59,6 +59,7 @@ no pixel changed, so compare pixels and restore unchanged files before committin
 | `study.py` | The study background. Run `furnish.py` afterwards. |
 | `rug.py` | The cafe's rug and the bench's top edge, and can repaint an existing `cafe.png`. |
 | `furnish.py` | The wall, curtain and rug colour overlays for each scene. |
+| `pieces.py` | Splits `cafe.png` and `study.png` into the empty room and the furniture, with depths for the game and boxes for the walks (`pieces.json`). Run last, after anything that changes a room or an overlay. |
 | `decor.py` | Holiday and weather overlays. |
 | `garden.py`, `animals.py` | The back garden and its animals. |
 | `street.py` | The street seen through the small inset. |

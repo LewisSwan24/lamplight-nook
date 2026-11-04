@@ -1,8 +1,9 @@
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ANCHORS, CANVAS, pathBetween, standPoint } from '../app/renderer/game/layout';
-import { GUEST_DOOR, GUEST_PATH, GUEST_SPOT } from '../app/renderer/game/guests';
-import { PATH_OUT, PATH_TO_COUNTER, PATH_TO_SEAT, YOU_SEAT } from '../app/renderer/game/you';
+import { GARDEN_AREA, GARDEN_DOOR_SPOT, SPOTS, pathInGarden, pathToBackDoor } from '../app/renderer/game/garden';
+import { ANCHORS, CANVAS, pathBetween, standPoint, walkBetween } from '../app/renderer/game/layout';
+import { GUEST_DOOR, GUEST_SPOT } from '../app/renderer/game/guests';
+import { YOU_SEAT } from '../app/renderer/game/you';
 import type { ActorId, AnchorId } from '../app/shared/types';
 import { readPng } from './png';
 
@@ -54,23 +55,32 @@ const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 const ANCHOR_IDS = Object.keys(ANCHORS) as AnchorId[];
 
 /** Each walk a character can take in the shop. */
-function walks(): { name: string; points: Point[] }[] {
+function walks(scene: 'cafe' | 'study'): { name: string; points: Point[] }[] {
   const out: { name: string; points: Point[] }[] = [];
   for (const actor of STAFF) {
     for (const from of ANCHOR_IDS) {
       for (const to of ANCHOR_IDS) {
         if (from === to) continue;
         const start = standPoint(from, actor);
-        out.push({ name: `${actor}: ${from} to ${to}`, points: [start, ...pathBetween(start, to, actor)] });
+        out.push({ name: `${actor}: ${from} to ${to}`, points: [start, ...pathBetween(start, to, actor, scene)] });
       }
     }
   }
   const catHome = standPoint('window', 'cat');
-  out.push({ name: 'cat: window to counter', points: [catHome, ...pathBetween(catHome, 'counter', 'cat')] });
-  out.push({ name: 'guest: door to counter', points: [GUEST_DOOR, ...GUEST_PATH] });
-  out.push({ name: 'you: counter to the door', points: [GUEST_SPOT, ...PATH_OUT] });
-  out.push({ name: 'you: counter to the seat', points: [GUEST_SPOT, ...PATH_TO_SEAT] });
-  out.push({ name: 'you: seat to the counter', points: [YOU_SEAT, ...PATH_TO_COUNTER] });
+  const catCounter = standPoint('counter', 'cat');
+  out.push({ name: 'cat: window to counter', points: [catHome, ...pathBetween(catHome, 'counter', 'cat', scene)] });
+  out.push({ name: 'cat: counter to window', points: [catCounter, ...pathBetween(catCounter, 'window', 'cat', scene)] });
+  const trips: [string, Point, Point][] = [
+    ['door to counter', GUEST_DOOR, GUEST_SPOT], ['counter to the door', GUEST_SPOT, GUEST_DOOR],
+    ['counter to the seat', GUEST_SPOT, YOU_SEAT], ['seat to the counter', YOU_SEAT, GUEST_SPOT],
+  ];
+  for (const [name, from, to] of trips) out.push({ name, points: [from, ...walkBetween(from, to, scene)] });
+  for (const actor of STAFF) {
+    for (const from of ANCHOR_IDS) {
+      const start = standPoint(from, actor);
+      out.push({ name: `${actor}: ${from} to the back door`, points: [start, ...pathToBackDoor(start, scene)] });
+    }
+  }
   return out;
 }
 
@@ -80,7 +90,7 @@ describe('walking through the shop', () => {
   for (const [scene, furniture] of Object.entries(FURNITURE)) {
     it(`no walk crosses the furniture in the ${scene}`, () => {
       const crossed = new Set<string>();
-      for (const walk of walks()) {
+      for (const walk of walks(scene as 'cafe' | 'study')) {
         for (const p of along(walk.points)) {
           for (const b of furniture) if (hits(p, b)) crossed.add(`${walk.name} crosses the ${b.name}`);
         }
@@ -93,7 +103,7 @@ describe('walking through the shop', () => {
     it(`no walk crosses the ${holiday} decorations on the floor`, () => {
       const decor = sprite(`decor-${holiday}.png`);
       const crossed = new Set<string>();
-      for (const walk of walks()) {
+      for (const walk of [...walks('cafe'), ...walks('study')]) {
         for (const p of along(walk.points)) {
           for (let y = Math.round(p.y - FEET.up); y <= p.y + FEET.down; y++) {
             for (let x = Math.round(p.x - FEET.x); x <= p.x + FEET.x; x++) {
@@ -107,8 +117,28 @@ describe('walking through the shop', () => {
   }
 
   it('keeps everyone on the canvas', () => {
-    const off = walks().filter((w) => along(w.points).some((p) => p.x < 0 || p.x > CANVAS.width || p.y < 0 || p.y > CANVAS.height));
+    const off = [...walks('cafe'), ...walks('study')].filter((w) => along(w.points).some((p) => p.x < 0 || p.x > CANVAS.width || p.y < 0 || p.y > CANVAS.height));
     expect(off.map((w) => w.name)).toEqual([]);
+  });
+
+  it('no walk crosses anything in the garden', () => {
+    const places: Point[] = [GARDEN_DOOR_SPOT, ...SPOTS];
+    const crossed: string[] = [];
+    for (const a of places) {
+      for (const b of places) {
+        for (const p of along([a, ...pathInGarden(a, b)])) {
+          for (const o of GARDEN_AREA.obstacles) {
+            if (hits(p, { name: '', ...o })) crossed.push(`${a.x},${a.y} to ${b.x},${b.y}`);
+          }
+        }
+      }
+    }
+    expect([...new Set(crossed)]).toEqual([]);
+  });
+
+  it('takes the same way every time', () => {
+    const from = standPoint('shelf', 'adeng');
+    expect(pathBetween(from, 'door', 'adeng', 'cafe')).toEqual(pathBetween(from, 'door', 'adeng', 'cafe'));
   });
 
   it('never stands two characters on one spot', () => {

@@ -1,8 +1,10 @@
 import { DEFAULT_FURNISHING, FURNISH_CHOICES, FURNISH_PARTS, type FurnishPart, type Furnishing } from '../../shared/furnish';
 import Phaser from 'phaser';
 import adengUrl from '../../../assets/sprites/adeng.png';
-import cafeUrl from '../../../assets/sprites/cafe.png';
-import studyUrl from '../../../assets/sprites/study.png';
+import cafeUrl from '../../../assets/sprites/cafe-room.png';
+import cafePiecesUrl from '../../../assets/sprites/cafe-pieces.png';
+import studyUrl from '../../../assets/sprites/study-room.png';
+import studyPiecesUrl from '../../../assets/sprites/study-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
 import dogUrl from '../../../assets/sprites/dog.png';
 import dogSleepUrl from '../../../assets/sprites/dog-sleep.png';
@@ -36,6 +38,8 @@ import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import { currentScene } from '../../shared/scenes';
+import { COUNTER_TOP, PIECES } from './pieces';
+import { walkBetween } from './layout';
 import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
@@ -46,9 +50,9 @@ import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
 import { INSET, VIEW } from './street';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { DOG_FRAME, HEN_FRAME } from './animals';
-import { GUEST_DOOR, GUEST_IDS, GUEST_PATH, GUEST_SPEED } from './guests';
+import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT } from './guests';
 import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
-import { HAND_OVER_MS, PATH_IN, PATH_OUT, PATH_TO_COUNTER, PATH_TO_SEAT, PICK_UP_MS, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
+import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
 const DECOR_URLS: Record<Holiday, string> = { halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl };
@@ -192,6 +196,7 @@ export class CafeScene extends Phaser.Scene {
   preload() {
     // The room itself: the cafe or the study; both share the floor plan in layout.ts.
     this.load.image('cafe', SCENE === 'study' ? studyUrl : cafeUrl);
+    this.load.image('pieces', SCENE === 'study' ? studyPiecesUrl : cafePiecesUrl);
     this.load.image('street', streetUrl);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
@@ -229,6 +234,11 @@ export class CafeScene extends Phaser.Scene {
 
   create() {
     this.add.image(0, 0, 'cafe').setOrigin(0);
+    const sheet = this.textures.get('pieces');
+    for (const p of PIECES) {
+      sheet.add(p.name, 0, 0, p.sy, p.w, p.h);
+      this.add.image(p.x, p.y, 'pieces', p.name).setOrigin(0).setDepth(p.base);
+    }
     for (const part of FURNISH_PARTS) this.furnishLayers.set(part, this.add.image(0, 0, 'cafe').setOrigin(0).setDepth(FURNISH_DEPTH).setVisible(false));
     this.setFurnishing(this.furnishing);
     this.createAnims();
@@ -324,7 +334,7 @@ export class CafeScene extends Phaser.Scene {
   /** Small animated things that make the room feel lived in. */
   private addProps() {
     this.add.sprite(180, 14, 'clock').setOrigin(0).play('clock');
-    this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(1).play('cup');
+    this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(COUNTER_TOP).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
     // The back door: click it to look out at the garden.
     this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'door', 0).setOrigin(0).setDepth(1);
@@ -334,15 +344,15 @@ export class CafeScene extends Phaser.Scene {
       .on('pointerover', () => this.highlight('backdoor'))
       .on('pointerout', () => this.hovered === 'backdoor' && this.highlight(null));
     // A sheet of paper with two pencilled lines, slightly askew on the counter top.
-    this.form = this.add.graphics({ x: FORM_POS.x, y: FORM_POS.y }).setDepth(2);
+    this.form = this.add.graphics({ x: FORM_POS.x, y: FORM_POS.y }).setDepth(COUNTER_TOP + 0.1);
     this.form.fillStyle(0x7a5236, 0.35).fillRect(1, 1, 9, 7);
     this.form.fillStyle(0xfbf6ec, 1).fillRect(0, 0, 9, 7);
     this.form.fillStyle(0xc9b79f, 1).fillRect(2, 2, 5, 1).fillRect(2, 4, 4, 1);
     this.setFormWaiting(true);
-    this.bell = this.add.graphics({ x: BELL_POS.x, y: BELL_POS.y }).setDepth(2).setVisible(false);
+    this.bell = this.add.graphics({ x: BELL_POS.x, y: BELL_POS.y }).setDepth(COUNTER_TOP + 0.1).setVisible(false);
     BELL.forEach((row, y) => [...row].forEach((c, x) => { if (BELL_COLORS[c]) this.bell.fillStyle(BELL_COLORS[c], 1).fillRect(x, y, 1, 1); }));
     // Over the counter's own zone, so a click on the bell rings it instead of opening the counter.
-    this.bellZone = this.add.zone(BELL_POS.x - 1, BELL_POS.y - 2, 9, 9).setOrigin(0).setDepth(3)
+    this.bellZone = this.add.zone(BELL_POS.x - 1, BELL_POS.y - 2, 9, 9).setOrigin(0).setDepth(COUNTER_TOP + 0.2)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.activate('bell'))
       .on('pointerover', () => this.highlight('bell'))
@@ -394,7 +404,7 @@ export class CafeScene extends Phaser.Scene {
     if (!on) return;
     // 5x9: a white tag with an ink "!" and a little tail pointing at the form.
     const TAG = ['wwwww', 'wwkww', 'wwkww', 'wwkww', 'wwwww', 'wwkww', 'wwwww', '.www.', '..w..'];
-    const g = this.add.graphics({ x: FORM_POS.x + 2, y: FORM_POS.y - 11 }).setDepth(3);
+    const g = this.add.graphics({ x: FORM_POS.x + 2, y: FORM_POS.y - 11 }).setDepth(COUNTER_TOP + 0.2);
     TAG.forEach((row, y) => [...row].forEach((c, x) => {
       if (c === 'w') g.fillStyle(0xfbf6ec, 1).fillRect(x, y, 1, 1);
       if (c === 'k') g.fillStyle(0xb5653b, 1).fillRect(x, y, 1, 1);
@@ -787,7 +797,7 @@ export class CafeScene extends Phaser.Scene {
     sprite.play(animKey(id, 'walk', 'down'), true);
     await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
     this.closeDoor();
-    if (!gone()) await this.walkGuest(g, GUEST_PATH);
+    if (!gone()) await this.walkGuest(g, walkBetween({ x: g.sprite.x, y: g.sprite.y }, GUEST_SPOT));
     if (!gone()) {
       this.faceGuest(true);
       // Something for the shop: bread from the bakery, letters from the post.
@@ -812,7 +822,7 @@ export class CafeScene extends Phaser.Scene {
     }
     g.speech = undefined;
     this.faceGuest(false);
-    await this.walkGuest(g, [GUEST_PATH[0], { ...GUEST_DOOR }]);
+    await this.walkGuest(g, walkBetween({ x: g.sprite.x, y: g.sprite.y }, GUEST_DOOR));
     await this.openDoor();
     sprite.play(animKey(id, 'walk', 'up'), true);
     await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y - 8, alpha: 0, duration: 420, onComplete: () => r() }));
@@ -871,13 +881,13 @@ export class CafeScene extends Phaser.Scene {
       sprite.play(this.youAnim('walk', 'down'), true);
       await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: YOU_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
       this.closeDoor();
-      if (!off()) await this.walkYou(y, PATH_IN);
+      if (!off()) await this.walkYou(y, walkBetween({ x: sprite.x, y: sprite.y }, YOU_COUNTER));
       if (off()) return;
       this.faceGuest(true);
       sprite.play(this.youAnim('gift', 'left'), true);
       await this.wait(HAND_OVER_MS);
       this.faceGuest(false);
-      if (!off()) await this.walkYou(y, PATH_TO_SEAT);
+      if (!off()) await this.walkYou(y, walkBetween({ x: sprite.x, y: sprite.y }, YOU_SEAT));
       if (off()) return;
       y.seated = true;
       sprite.play(this.youAnim('sit', YOU_SEAT.facing), true);
@@ -899,14 +909,14 @@ export class CafeScene extends Phaser.Scene {
     const trip = ++y.trip;
     const off = () => trip !== y.trip;
     y.seated = false;
-    await this.walkYou(y, PATH_TO_COUNTER);
+    await this.walkYou(y, walkBetween({ x: y.sprite.x, y: y.sprite.y }, YOU_COUNTER));
     if (off()) return;
     this.faceGuest(true);
     y.sprite.play(this.youAnim('idle', 'left'), true);
     await this.wait(PICK_UP_MS);
     this.faceGuest(false);
     if (off()) return;
-    await this.walkYou(y, PATH_OUT);
+    await this.walkYou(y, walkBetween({ x: y.sprite.x, y: y.sprite.y }, YOU_DOOR));
     if (off()) return;
     await this.openDoor();
     y.sprite.play(this.youAnim('walk', 'up'), true);

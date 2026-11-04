@@ -1,9 +1,10 @@
+import { walkBetween } from '../app/renderer/game/layout';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { AVATAR_COUNT, avatarKey, cleanAvatar } from '../app/shared/avatars';
 import { ZONES } from '../app/renderer/game/layout';
 import { STAFF_ANIMS, STAFF_FRAME } from '../app/renderer/game/sprites';
-import { PATH_IN, PATH_OUT, PATH_TO_COUNTER, PATH_TO_SEAT, YOU_COUNTER, YOU_DOOR, YOU_SEAT } from '../app/renderer/game/you';
+import { YOU_COUNTER, YOU_DOOR, YOU_SEAT } from '../app/renderer/game/you';
 
 /** Width and height of a PNG, from its header. */
 const pngSize = (path: string) => {
@@ -41,11 +42,11 @@ describe('the player\'s visit', () => {
   };
 
   it('comes in, hands over the slip, sits by the lamp, picks up the result and goes, never through furniture', () => {
-    expect(walk(YOU_DOOR, PATH_IN)).toEqual(YOU_COUNTER);
-    const seat = walk(YOU_COUNTER, PATH_TO_SEAT);
+    expect(walk(YOU_DOOR, walkBetween(YOU_DOOR, YOU_COUNTER))).toEqual(YOU_COUNTER);
+    const seat = walk(YOU_COUNTER, walkBetween(YOU_COUNTER, YOU_SEAT));
     expect(seat).toEqual({ x: YOU_SEAT.x, y: YOU_SEAT.y });
-    expect(walk(seat, PATH_TO_COUNTER)).toEqual(YOU_COUNTER);
-    expect(walk(YOU_COUNTER, PATH_OUT)).toEqual(YOU_DOOR);
+    expect(walk(seat, walkBetween(seat, YOU_COUNTER))).toEqual(YOU_COUNTER);
+    expect(walk(YOU_COUNTER, walkBetween(YOU_COUNTER, YOU_DOOR))).toEqual(YOU_DOOR);
   });
 
   it('sits the way the chair faces, which sitting can do', () => {

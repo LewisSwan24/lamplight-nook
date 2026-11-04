@@ -1,4 +1,4 @@
-import { GUEST_DOOR, GUEST_PATH, GUEST_SPOT } from './guests';
+import { GUEST_DOOR, GUEST_SPOT } from './guests';
 import type { Facing } from './layout';
 
 /**
@@ -14,15 +14,6 @@ export const YOU_SEAT: Point & { facing: Facing } = { x: 262, y: 166, facing: 'l
 /** Where the slip is handed over and the result picked up. */
 export const YOU_COUNTER = GUEST_SPOT;
 export const YOU_DOOR = GUEST_DOOR;
-
-/** From the door to the counter: the neighbours' way in. */
-export const PATH_IN: Point[] = GUEST_PATH;
-/** From the counter round the lamp to the chair, coming at it from the left so the last step is a sit-down. */
-export const PATH_TO_SEAT: Point[] = [{ x: 284, y: 118 }, { x: 248, y: 118 }, { x: 248, y: YOU_SEAT.y }, { x: YOU_SEAT.x, y: YOU_SEAT.y }];
-/** Back from the chair to the counter. */
-export const PATH_TO_COUNTER: Point[] = [{ x: 248, y: YOU_SEAT.y }, { x: 248, y: 118 }, { x: 284, y: 118 }, { ...YOU_COUNTER }];
-/** From the counter out of the front door. */
-export const PATH_OUT: Point[] = [GUEST_PATH[0], { ...GUEST_DOOR }];
 
 export const YOU_SPEED = 34;
 /** How long the slip takes to hand over, and the result to take, at the counter. */

@@ -16,9 +16,8 @@ type Point = { x: number; y: number };
 
 /** Where a guest stands to talk: by the end of the counter, facing Adeng, who stands in front of it. */
 export const GUEST_SPOT = { x: 284, y: 100 } as const;
-/** Just inside the front door, and the way from there to the counter (clear of the counter and the plant). */
+/** Just inside the front door. */
 export const GUEST_DOOR = { x: ANCHORS.door.x, y: ANCHORS.door.y } as const;
-export const GUEST_PATH: Point[] = [{ x: GUEST_DOOR.x, y: 92 }, { ...GUEST_SPOT }];
 export const GUEST_SPEED = 34;
 
 /** The first visit comes a while after opening; after that, one every so often. */

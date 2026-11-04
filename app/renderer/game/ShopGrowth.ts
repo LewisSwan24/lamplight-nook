@@ -8,6 +8,7 @@ import bonsaiUrl from '../../../assets/sprites/grow-bonsai.png';
 import easelUrl from '../../../assets/sprites/grow-easel.png';
 import trophyUrl from '../../../assets/sprites/grow-trophy.png';
 import worksUrl from '../../../assets/sprites/works.png';
+import { overlayDepth } from './pieces';
 import { GROWTH, SHELF_SLOTS, WORK_ICONS, type GrowthId, type WorkIcon } from '../../shared/growth';
 
 const URLS: Record<GrowthId, string> = {
@@ -39,7 +40,7 @@ export class ShopGrowth {
   onShelfClick: () => void = () => {};
 
   constructor(private scene: Phaser.Scene, onHover: (on: boolean) => void) {
-    for (const g of GROWTH) this.pieces.set(g.id, scene.add.image(0, 0, `grow-${g.id}`).setOrigin(0).setDepth(DEPTH).setVisible(false));
+    for (const g of GROWTH) this.pieces.set(g.id, scene.add.image(0, 0, `grow-${g.id}`).setOrigin(0).setDepth(overlayDepth(`grow-${g.id}`, DEPTH)).setVisible(false));
     // A thin wooden plank with a darker edge and two little brackets; hidden until there is a work to put on it.
     this.plank = scene.add.graphics({ x: SHELF.x, y: SHELF.y + SHELF.h - 2 }).setDepth(DEPTH).setVisible(false);
     this.plank.fillStyle(0xa0703f, 1).fillRect(0, 0, SHELF.w, 1);

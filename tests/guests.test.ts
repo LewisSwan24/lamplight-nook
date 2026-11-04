@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { AFTER_WORK_MS, FIRST_VISIT_MS, GUEST_PATH, GUEST_SPOT, VISIT_GAP_MS, VisitPlanner, pickVisit } from '../app/renderer/game/guests';
-import { ZONES } from '../app/renderer/game/layout';
+import { AFTER_WORK_MS, FIRST_VISIT_MS, VISIT_GAP_MS, VisitPlanner, pickVisit } from '../app/renderer/game/guests';
 import { Chatter } from '../app/renderer/stage/chatter';
 import { lintChats, parseChats } from '../app/renderer/translator/lines';
 
@@ -44,11 +43,6 @@ describe('neighbours dropping in', () => {
     expect(switches / (who.length - 1)).toBeGreaterThan(0.6);
   });
 
-  it('walks in from the door to the counter end without crossing the counter', () => {
-    const counter = ZONES.find((z) => z.id === 'counter')!;
-    for (const p of GUEST_PATH) expect(p.x > counter.x + counter.w || p.y > counter.y + counter.h).toBe(true);
-    expect(GUEST_PATH.at(-1)).toEqual(GUEST_SPOT);
-  });
 });
 
 describe('what neighbours say', () => {

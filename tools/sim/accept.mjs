@@ -127,6 +127,42 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Furniture stands in the room: someone behind the table is hidden by it, someone in front is not. */
+  async behind(lang, out) {
+    for (const scene of ['cafe', 'study']) {
+      const home = freshHome({ 'settings.json': onboarded(lang, { scene }) });
+      const shop = await launch({ lang, home, size: 'medium' });
+      try {
+        await sleep(1500);
+        const placed = await shop.page.evaluate(() => {
+          const { scene } = window.lamplightDebug;
+          const adeng = scene.actors.get('adeng');
+          const qingdai = scene.actors.get('qingdai');
+          scene.tweens.killTweensOf(adeng.sprite);
+          scene.tweens.killTweensOf(qingdai.sprite);
+          adeng.sprite.setPosition(150, 82).setDepth(82);
+          qingdai.sprite.setPosition(232, 74).setDepth(74);
+          const pieces = scene.children.list.filter((o) => o.texture?.key === 'pieces');
+          return pieces.map((p) => ({ name: p.frame.name, depth: p.depth }));
+        });
+        check(placed.length === 11, `${scene}: ${placed.length} pieces in the room`);
+        check(placed.find((p) => p.name === 'table').depth > 82, `${scene}: the table is not in front of someone behind it`);
+        await sleep(300);
+        await shop.shot(join(out, `behind-${scene}.png`));
+        // What lies on the furniture stays on top of it.
+        for (const holiday of ['christmas', 'halloween']) {
+          await shop.page.evaluate((holiday) => {
+            const { scene } = window.lamplightDebug;
+            scene.growth.setGrown(['painting', 'plant', 'lights', 'fruit', 'guitar', 'bonsai', 'easel', 'trophy']);
+            scene.setWeather('clear', holiday, false);
+          }, holiday);
+          await sleep(300);
+          await shop.shot(join(out, `behind-${scene}-${holiday}.png`));
+        }
+      } finally { await shop.close(); }
+    }
+  },
+
   /** The card for work under way: from the counter and the blackboard, a word in the middle, and calling it off. */
   async progress(lang, out) {
     for (const size of ['small', 'large', 'medium']) {

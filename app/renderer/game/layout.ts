@@ -1,5 +1,7 @@
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId } from '../../shared/types';
+import { findPath, type Point } from './path';
+import { shopArea } from './pieces';
 
 /** Fixed 320x180 canvas, scaled up by integer factors to fit the window. */
 export const CANVAS = { width: 320, height: 180 } as const;
@@ -35,9 +37,6 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
   counter: { x: 244, y: 98, facing: 'down' },
   door: { x: 295, y: 56, facing: 'up' },
 };
-
-/** The free aisle across the room. Staff walk via the aisle; tests/routes.test.ts checks no walk crosses furniture. */
-export const AISLE_Y = 136;
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
 const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, cat: 0 };
@@ -103,38 +102,12 @@ export function standPoint(anchor: AnchorId, actor?: ActorId): Spot {
   return facing === 'left' || facing === 'right' ? { x, y: y + d, facing } : { x: x + d, y, facing };
 }
 
-/** Pixels cut off each corner of a path, so characters round corners instead of turning on the spot. */
-const CORNER_CUT = 6;
+/** The walk across the floor from one point to another (path.ts), leaving out where it starts. */
+export const walkBetween = (from: Point, to: Point, scene?: 'cafe' | 'study'): Point[] => findPath(shopArea(scene), from, to);
 
-/** Replace each right-angle corner with a short diagonal. */
-export function roundCorners(points: { x: number; y: number }[]): { x: number; y: number }[] {
-  const out = [points[0]];
-  for (let i = 1; i < points.length - 1; i++) {
-    const [a, c, b] = [points[i - 1], points[i], points[i + 1]];
-    const lenIn = Math.hypot(c.x - a.x, c.y - a.y);
-    const lenOut = Math.hypot(b.x - c.x, b.y - c.y);
-    const cut = Math.min(CORNER_CUT, lenIn / 2, lenOut / 2);
-    if (cut < 2) {
-      out.push(c);
-      continue;
-    }
-    out.push({ x: Math.round(c.x - ((c.x - a.x) / lenIn) * cut), y: Math.round(c.y - ((c.y - a.y) / lenIn) * cut) });
-    out.push({ x: Math.round(c.x + ((b.x - c.x) / lenOut) * cut), y: Math.round(c.y + ((b.y - c.y) / lenOut) * cut) });
-  }
-  out.push(points[points.length - 1]);
-  return out;
-}
-
-/** The walk from a point to an anchor: down to the aisle, along it, then up to the spot, with rounded corners. */
-export function pathBetween(from: { x: number; y: number }, to: AnchorId, actor?: ActorId): { x: number; y: number }[] {
-  const { x, y } = standPoint(to, actor);
-  if (from.x === x && from.y === y) return [];
-  const corners = [
-    { x: from.x, y: AISLE_Y },
-    { x, y: AISLE_Y },
-    { x, y },
-  ].filter((p, i, arr) => (i === 0 ? p.y !== from.y : p.x !== arr[i - 1].x || p.y !== arr[i - 1].y));
-  return roundCorners([from, ...corners]).slice(1);
+/** The walk from a point to an anchor. */
+export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: 'cafe' | 'study'): Point[] {
+  return walkBetween(from, standPoint(to, actor), scene);
 }
 
 /** Largest integer scale that fits the canvas in the viewport, at least 1. */

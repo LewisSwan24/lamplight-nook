@@ -8,6 +8,12 @@ The running card and the road to 1.0.
   the limit for this round, what is happening now, every step of the plan, who on the staff is doing what, and three
   buttons (keep going, say something, call it off). It keeps up while it is open. Steps that are only Adeng's guess
   are not counted as "1 of 3 done". The blackboard also shows a hand cursor now.
+- **The staff walk behind the furniture.** The table, counter, shelves, chairs and the rest are separate pieces now,
+  each drawn at the depth of its foot, so someone behind the table shows only their head. What stands on the furniture
+  (the cup, the slip, the bell, fruit on the table, a pumpkin on the shelf) stays on top of it.
+- **Everyone finds their own way.** Staff, neighbours, you and the cat work out a walk round the furniture and the
+  holiday pieces instead of following one fixed aisle, in the shop, the study and the garden. The same start and end
+  always give the same walk.
 - **The limit is per round, and says so.** The commission form, settings and the stop card all say "this round", and
   the stop card shows what the round spent, not the running total.
 - **Nobody walks through furniture.** Eleven stand points got their own place for each character, the holiday pieces
