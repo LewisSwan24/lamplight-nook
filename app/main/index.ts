@@ -350,7 +350,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     });
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome, cancelled runs included.
-    spend.record(job.workDir, job.sessionId, result.costUsd);
+    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
@@ -368,7 +368,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
-    return result;
+    return { ...result, spentThisRun };
   } finally {
     broker.onAnswered = undefined;
     pending.clear();

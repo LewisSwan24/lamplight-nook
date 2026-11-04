@@ -19,10 +19,12 @@ export class SpendLedger {
     this.entries = this.read();
   }
 
-  record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date()) {
-    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return;
+  /** Keeps a run's reported total and returns what this run itself added. */
+  record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date()): number {
+    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return 0;
     const key = `${workDir}|${sessionId ?? ''}`;
     const old = this.entries.find((e) => e.key === key);
+    const added = old && usd > old.usd ? usd - old.usd : usd;
     if (old) {
       // Running totals only grow; a crash result may carry zeros and must not shrink what was spent.
       old.usd = Math.max(old.usd, usd);
@@ -34,6 +36,7 @@ export class SpendLedger {
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(`${this.file}.tmp`, JSON.stringify(this.entries));
     renameSync(`${this.file}.tmp`, this.file);
+    return added;
   }
 
   /** What one commission folder has cost across all its sessions. */

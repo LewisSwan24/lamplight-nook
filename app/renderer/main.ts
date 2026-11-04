@@ -350,7 +350,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     if (!r) return;
     sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
-    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.costUsd ?? 0) });
+    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) });
   } finally {
     running = null;
     scene.setFormWaiting(true);

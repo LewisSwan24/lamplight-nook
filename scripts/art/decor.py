@@ -22,12 +22,12 @@ PIECES = {
     'halloween': [
         (halloween, (14, 4, 62, 22), (128, 17)),  # bunting with bats and ghosts, on the wall
         (halloween, (128, 8, 160, 24), (24, 26)),  # two jack-o'-lanterns on the window sill
-        (halloween, (83, 7, 93, 22), (278, 46)),  # a small pumpkin on the counter
+        (halloween, (83, 7, 93, 22), (28, 97)),  # a small pumpkin beside the pile
         (halloween, (163, 6, 189, 28), (2, 90)),  # a pile of pumpkins by the bookshelf
     ],
     'christmas': [
-        (christmas, (17, 12, 47, 47), (290, 60)),  # the tree, right of the counter
-        (christmas, (0, 100, 30, 140), (290, 56)),  # its lights and star
+        (christmas, (17, 12, 47, 47), (288, 143)),  # the tree, in the corner past the lamp
+        (christmas, (0, 100, 30, 140), (288, 139)),  # its lights and star
         (christmas, (174, 6, 194, 28), (264, 18)),  # a wreath on the wall by the door
         (christmas, (226, 109, 238, 128), (150, 66)),  # a little tree on the big table
         (christmas, (147, 10, 157, 25), (136, 22)),  # stockings along the wall

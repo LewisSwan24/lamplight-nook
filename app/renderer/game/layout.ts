@@ -36,7 +36,7 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
   door: { x: 295, y: 56, facing: 'up' },
 };
 
-/** The free aisle across the room. Every move goes via the aisle so characters never walk through furniture. */
+/** The free aisle across the room. Staff walk via the aisle; tests/routes.test.ts checks no walk crosses furniture. */
 export const AISLE_Y = 136;
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
@@ -49,6 +49,7 @@ export type Spot = { x: number; y: number; facing: Facing; chair?: boolean };
 /**
  * Seats: anchors with chairs give each character a fixed spot instead of a slot.
  * The chairs are drawn into the background at these spots (scripts/art/scene.py, CHAIRS).
+ * The other spots here are where a plain slot would put someone in the way of furniture or on top of someone else.
  */
 export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = {
   table: {
@@ -59,8 +60,37 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
     qingdai: { x: 90, y: 114, facing: 'right' },
   },
   // Qingdai's place by the blackboard, where she pins up her colour swatches, facing the room.
+  // The left chair stands right under the board, so everyone else keeps to its left.
   board: {
-    qingdai: { x: 114, y: 62, facing: 'down' },
+    qingdai: { x: 116, y: 62, facing: 'down' },
+    adeng: { x: 92, y: 60, facing: 'up' },
+    xiaoju: { x: 80, y: 60, facing: 'up' },
+    laoshi: { x: 68, y: 60, facing: 'up' },
+  },
+  // Between the bookshelf and the left chair. The cat keeps its old place by the window.
+  window: {
+    xiaoju: { x: 62, y: 60, facing: 'up' },
+    cat: { x: 70, y: 60, facing: 'up' },
+    adeng: { x: 78, y: 60, facing: 'up' },
+    laoshi: { x: 86, y: 60, facing: 'up' },
+    qingdai: { x: 92, y: 68, facing: 'up' },
+  },
+  // Above the aisle: the study's sofa takes the floor below it.
+  shelf: {
+    laoshi: { x: 78, y: 128, facing: 'left' },
+    qingdai: { x: 78, y: 140, facing: 'left' },
+  },
+  corner: {
+    qingdai: { x: 182, y: 160, facing: 'left' },
+  },
+  // Clear of the plant under the door.
+  door: {
+    laoshi: { x: 289, y: 62, facing: 'up' },
+    qingdai: { x: 295, y: 68, facing: 'up' },
+  },
+  // By Adeng's feet, close enough to rub against a leg.
+  counter: {
+    cat: { x: 236, y: 106, facing: 'right' },
   },
 };
 

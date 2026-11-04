@@ -67,8 +67,8 @@ export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
-/** costUsd is Claude Code's estimate of what the session has cost so far. */
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
+/** costUsd is Claude Code's estimate of what the session has cost so far; spentThisRun is this run's share of it. */
+export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export interface LamplightApi {

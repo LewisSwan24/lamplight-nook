@@ -291,6 +291,9 @@ const SCENARIOS = {
       while (!r.ok && r.stopped && stops < 12) {
         check(r.stopped.title === shop.L.ui.run.budgetTitle, `unexpected stop: ${r.stopped.title}`);
         if (stops === 0) await shop.shot(join(out, 'budget-stop.png'));
+        // A resumed session reports its running total; the card talks about this round only.
+        const said = Number(/\$(\d+(?:\.\d+)?)/.exec(r.stopped.text)?.[1]);
+        check(said > 0 && said < 1.5, `round ${stops + 1} of a $1 cap says it spent ${said}: ${JSON.stringify(r.stopped.text)}`);
         stops++;
         await shop.retry();
         r = await shop.workUntilDone();

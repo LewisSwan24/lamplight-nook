@@ -14,7 +14,7 @@ export const GUEST_IDS: GuestId[] = ['baker', 'postman'];
 
 type Point = { x: number; y: number };
 
-/** Where a guest stands to talk: by the end of the counter, facing Adeng behind it. */
+/** Where a guest stands to talk: by the end of the counter, facing Adeng, who stands in front of it. */
 export const GUEST_SPOT = { x: 284, y: 100 } as const;
 /** Just inside the front door, and the way from there to the counter (clear of the counter and the plant). */
 export const GUEST_DOOR = { x: ANCHORS.door.x, y: ANCHORS.door.y } as const;

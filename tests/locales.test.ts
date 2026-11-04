@@ -119,3 +119,11 @@ describe('the wording of the locales', () => {
     expect(en.ui.furnish.hint).not.toContain('café');
   });
 });
+
+describe('how the budget is described', () => {
+  it('says the limit is per round everywhere, as the app applies it', () => {
+    const budget = (locale: typeof zh) => [...leaves(locale)].filter(([k]) => /budget(Cap|NoCap|Label|Title|Text)$/.test(k)).map(([, v]) => String(v)).join('\n');
+    expect(budget(zh)).not.toMatch(/这张单|这单|每次开工|这次开工/);
+    expect(budget(en)).not.toMatch(/This commission|per run|per-run|This run/);
+  });
+});
