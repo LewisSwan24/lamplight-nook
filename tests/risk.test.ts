@@ -94,6 +94,30 @@ describe('risk classifier', () => {
     expect(r('PowerShell', { command: 'npx serve .' })).toBe('ask');
   });
 
+  it('reading outside the commission folder asks, however it is spelled', () => {
+    // The Read, Glob and Grep tools.
+    expect(r('Read', { file_path: join(workDir, 'materials', 'notes.txt') })).toBe('safe');
+    expect(r('Glob', { pattern: '**/*.html' })).toBe('safe');
+    expect(r('Grep', { pattern: 'x', path: workDir })).toBe('safe');
+    expect(r('Read', { file_path: join(home, 'Documents', 'taxes.pdf') })).toBe('serious');
+    expect(classify('Read', { file_path: join(workDir, '..', 'other', 'a.txt') }, ctx).reason).toBe(strings.risk.readOutside);
+    expect(r('Grep', { pattern: 'password', path: join(home, 'Documents') })).toBe('serious');
+    expect(r('Glob', { pattern: '../**/*.pdf' })).toBe('serious');
+    expect(r('Glob', { pattern: `${home}/**/*.pdf` })).toBe('serious');
+    expect(r('Glob', { pattern: '*', path: home })).toBe('serious');
+    expect(r('Read', { file_path: '~/Documents/a.txt' })).toBe('serious');
+    // Shell words that leave the folder without a slash.
+    expect(r('Bash', { command: 'grep -rn todo ..' })).toBe('serious');
+    expect(r('Bash', { command: 'ls ~' })).toBe('serious');
+    expect(r('Bash', { command: 'cd ~ && cat notes.txt' })).toBe('serious');
+    expect(r('Bash', { command: 'cd && ls' })).toBe('serious');
+    expect(r('Bash', { command: 'echo .. done' })).toBe('safe');
+    expect(r('PowerShell', { command: 'cat $HOME/Documents/a.txt' })).toBe('serious');
+    expect(r('PowerShell', { command: 'dir ..' })).toBe('serious');
+    expect(r('PowerShell', { command: 'cat ~/notes.txt' })).toBe('serious');
+    expect(r('PowerShell', { command: 'dir' })).toBe('safe');
+  });
+
   it("Claude's own to-do list never asks", () => {
     for (const tool of ['TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet']) expect(r(tool, {})).toBe('safe');
   });
