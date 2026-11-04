@@ -31,6 +31,7 @@ export const answerFirst = () => open?.classList.contains('must-answer') === tru
 export function replaceOpen(node: HTMLElement) {
   if (answerFirst()) return;
   if (!open) returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  open?.dispatchEvent(new Event('panel-closed'));
   open?.remove();
   open = node;
   layer().append(node);
@@ -59,18 +60,20 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// While a card is open, Tab goes round inside it: the shop behind cannot be used, so the focus does not go there.
+// While a card is open, Tab goes round inside it: the shop behind cannot be used, so the focus does not go there. The
+// browser moves the focus itself, because it also stops at text that scrolls; this only brings it back when it leaves.
 const TAB_STOPS = 'button:not([disabled]), input:not([disabled]), textarea, select, a[href], summary, [tabindex="0"]';
+let tabbing: 'on' | 'back' | null = null;
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Tab') return;
-  const card = document.querySelector('.backdrop') ?? document.querySelector('.settings') ?? open;
-  if (!card) return;
+  if (e.key === 'Tab') tabbing = e.shiftKey ? 'back' : 'on';
+});
+document.addEventListener('pointerdown', () => { tabbing = null; });
+document.addEventListener('focusin', (e) => {
+  const card = document.querySelector('.legal-backdrop') ?? document.querySelector('.backdrop') ?? document.querySelector('.settings') ?? open;
+  const to = e.target as HTMLElement;
+  if (!tabbing || !card || card.contains(to)) return;
   const stops = Array.from(card.querySelectorAll<HTMLElement>(TAB_STOPS)).filter((s) => s.getClientRects().length > 0);
-  const at = stops.indexOf(document.activeElement as HTMLElement);
-  const next = e.shiftKey ? (at <= 0 ? stops.length - 1 : -1) : (at === stops.length - 1 || at < 0 ? 0 : -1);
-  if (next < 0) return;
-  e.preventDefault();
-  stops[next]?.focus();
+  stops[tabbing === 'back' ? stops.length - 1 : 0]?.focus();
 });
 
 /** Card shown when a character is clicked. */

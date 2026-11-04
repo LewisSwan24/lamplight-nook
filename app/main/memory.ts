@@ -33,9 +33,12 @@ export class MemoryStore {
     // Ids are c<time>; two entries in the same millisecond still get different ones.
     let t = now.getTime();
     while (this.data.commissions.some((c) => c.id === `c${t}`)) t++;
-    const entry: CommissionMemo = { ...memo, id: `c${t}`, date };
-    // Carrying on after a stop is still the same commission: what stopped is replaced, not listed twice.
-    this.data.commissions = this.data.commissions.filter((c) => !(memo.folder && c.folder === memo.folder && c.result === 'failed'));
+    // Carrying on after a stop is still the same commission: what stopped is replaced, not listed twice, and what was
+    // answered before the stop still counts.
+    const stopped = (c: CommissionMemo) => memo.folder && c.folder === memo.folder && c.result === 'failed';
+    const before = this.data.commissions.find(stopped);
+    const entry: CommissionMemo = { ...memo, choices: { ...before?.choices, ...memo.choices }, id: `c${t}`, date };
+    this.data.commissions = this.data.commissions.filter((c) => !stopped(c));
     this.data.commissions.push(entry);
     this.data.commissions = this.data.commissions.slice(-MAX_COMMISSIONS);
     this.note(memo.title, stuck, date);

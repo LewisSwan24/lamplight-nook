@@ -397,7 +397,8 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     if (!r) return;
     sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
-    if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) });
+    // No card to put away (called off, no key, no Claude Code): nothing is going on any more, so the plan goes now.
+    if (!r.ok && !showFailure(window.lamplight, r.error ?? '', () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) })) clearWorkSigns();
   } finally {
     closeRunning();
     running = null;

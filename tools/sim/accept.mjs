@@ -219,6 +219,14 @@ const SCENARIOS = {
       await page.keyboard.press('Escape');
       await sleep(400);
 
+      // A long summary scrolls by itself, and the browser makes that a stop too: the buttons after it stay in reach.
+      await page.evaluate((summary) => window.lamplightDebug.ui.showResult({ ok: true, workDir: 'C:/w', files: ['C:/w/page.html'], main: 'C:/w/page.html', costUsd: 0.42, summary, id: 'c1015', round: 2, canRestore: true }), 'long summary line. '.repeat(120));
+      await sleep(300);
+      await tabToButton('.result-card .result-report', 12);
+      await tabToButton('.result-card .actions button.default', 12);
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
       // The shelf and the notebook.
       await tabTo(L.ui.shelf.title);
       await page.keyboard.press('Enter');
@@ -247,6 +255,19 @@ const SCENARIOS = {
       await page.waitForSelector('.settings .tabs');
       await staysInside('settings', 30);
       await shop.shot(join(out, 'keyboard-settings.png'));
+
+      // The legal sheet lies over settings: Tab stays on the sheet.
+      await page.evaluate(() => window.lamplightDebug.ui.showLegal('terms'));
+      await page.waitForSelector('#legal');
+      for (let i = 0; i < 6; i++) {
+        await tab();
+        if (!(await page.evaluate(() => Boolean(document.activeElement?.closest('#legal'))))) {
+          faults.push('legal sheet: Tab left the sheet');
+          break;
+        }
+      }
+      await page.keyboard.press('Escape');
+      await sleep(200);
       await page.keyboard.press('Escape');
     } finally {
       await shop.close();
@@ -325,7 +346,8 @@ const SCENARIOS = {
     shop = await open(home, { speed: 600 });
     gone = await start(shop);
     await pull(shop);
-    rmSync(gone, { recursive: true, force: true });
+    // Windows keeps the folder locked until the stand-in has seen the pipe close and gone.
+    rmSync(gone, { recursive: true, force: true, maxRetries: 20, retryDelay: 500 });
     shop = await open(home);
     const again = await shop.maybe('.pending-card button.default', 8000);
     check(again, 'folder gone: the unfinished commission was not offered');
@@ -347,6 +369,29 @@ const SCENARIOS = {
     await shop.page.keyboard.press('Escape');
     await sleep(300);
     check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) === 0, 'the blackboard still shows the plan of a commission that stopped');
+    await shop.close();
+
+    // Another card takes its place: that puts it away too.
+    shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: 300, scenario: 'crash' });
+    await sleep(2500);
+    await shop.order({ template: 'page', want: W[lang].page });
+    await shop.submit();
+    check((await shop.workUntilDone({ answers: demoAnswers, timeout: 60_000 })).stopped, 'no card when it fell over');
+    await shop.hotspot(shop.L.ui.access.hotspotCounter);
+    await sleep(400);
+    check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) === 0, 'the blackboard kept the plan when another card replaced the stop card');
+    await shop.close();
+
+    // Called off: the plan goes from the blackboard, no card about it.
+    shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: 800 });
+    await sleep(2500);
+    await shop.order({ template: 'page', want: W[lang].page });
+    await shop.submit();
+    await sleep(6000);
+    check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) > 0, 'no plan on the blackboard to call off');
+    await shop.page.evaluate(() => window.lamplight.cancelCommission());
+    await sleep(2500);
+    check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) === 0, 'the blackboard kept the plan of a commission called off');
     await shop.close();
 
     // Carried on from the card: it finishes, and the notebook has one entry for it.

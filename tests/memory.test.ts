@@ -23,6 +23,13 @@ describe('memory store', () => {
     expect(store.get().commissions.map((c) => c.result)).toEqual(['done']);
   });
 
+  it('keeps what was answered before the stop when it is carried on', () => {
+    const store = new MemoryStore(fresh());
+    store.remember({ ...memo('ledger', { 'Main color?': 'mint', 'Font?': 'serif' }, 'failed'), folder: 'C:/works/ledger' }, []);
+    store.remember({ ...memo('ledger', { 'Font?': 'sans' }), folder: 'C:/works/ledger' }, []);
+    expect(store.get().commissions[0].choices).toEqual({ 'Main color?': 'mint', 'Font?': 'sans' });
+  });
+
   it('keeps a finished commission and a failed one that are in different folders', () => {
     const store = new MemoryStore(fresh());
     store.remember({ ...memo('ledger', {}, 'failed'), folder: 'C:/works/one' }, []);
