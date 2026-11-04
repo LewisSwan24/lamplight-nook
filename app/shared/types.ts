@@ -362,7 +362,7 @@ export type ShopDays = {
 };
 
 /** A finished piece of work on the works shelf. */
-export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean };
+export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean; want?: string };
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
 export type ShopState = ShopDays & { works: Work[] };

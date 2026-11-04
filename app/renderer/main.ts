@@ -316,30 +316,35 @@ async function refreshShop(fresh: GrowthId[] = []) {
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
 }
-/** Something new in the shop: once the result card is seen to, someone says a word about it. */
+/** Something new in the shop: someone says a word about it. */
 function noticeGrowth(ids: GrowthId[]) {
   const id = ids.at(-1);
-  if (!id) return;
-  setTimeout(() => {
-    const turns = pickLine(ruleBook().lines.grow ?? [], [`grow_${id}`], {});
-    const present = (turns ?? []).filter((t) => scene.anchorOf(t.speaker) !== null);
-    if (present.length) void stage.talk(present);
-  }, GROWTH_LINE_DELAY_MS);
+  if (id) sayOnce(`grow_${id}`, GROWTH_LINE_DELAY_MS);
 }
 const GROWTH_LINE_DELAY_MS = 4000;
 /** After anything new in the shop has had its word. */
 const BEDS_LINE_DELAY_MS = 10_000;
-const BEDS_LINE_RETRY_MS = 2_000;
-/** Said only once in the life of the shop, so it waits until someone can hear it and the speaker is in the room and free. */
+const ONCE_RETRY_MS = 2_000;
 function noticeBeds(news: ReturnType<typeof bedNews>) {
-  if (!news) return;
-  const turns = pickLine(ruleBook().lines.grow ?? [], [`grow_${news}`], {}) ?? [];
-  const tryNow = () => {
-    const unheard = document.hidden || document.querySelector('.backdrop');
-    if (unheard || turns.some((t) => scene.anchorOf(t.speaker) === null || scene.busyTalking(t.speaker))) setTimeout(tryNow, BEDS_LINE_RETRY_MS);
-    else void stage.talk(turns);
-  };
-  setTimeout(tryNow, BEDS_LINE_DELAY_MS);
+  if (news) sayOnce(`grow_${news}`, BEDS_LINE_DELAY_MS);
+}
+const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+/** The lines still to be said, one at a time; forgetting everything takes them back. */
+let onceLines: Promise<unknown> = Promise.resolve();
+let forgotten = 0;
+/** Said only once in the life of the shop, so it waits until someone is in the room to hear it, nothing lies over the shop, and the speaker is there and free. */
+function sayOnce(line: string, delay: number) {
+  const due = Date.now() + delay;
+  const asked = forgotten;
+  onceLines = onceLines.then(async () => {
+    await wait(due - Date.now());
+    while (asked === forgotten) {
+      const turns = pickLine(ruleBook().lines.grow ?? [], [line], {}) ?? [];
+      const unheard = document.hidden || scene.view !== 'shop' || document.querySelector('#ui > .card, #ui > form.card, .backdrop, .legal-backdrop');
+      if (!unheard && turns.every((t) => scene.anchorOf(t.speaker) !== null && !scene.busyTalking(t.speaker))) return stage.talk(turns);
+      await wait(ONCE_RETRY_MS);
+    }
+  });
 }
 /** Clicking something in the shop: a line, a light, someone strolling over; never anything that costs money. */
 const objectTurns = new Map<ObjectId, number>();
@@ -369,7 +374,10 @@ scene.onBoardClick = () => {
   else showPlan(boardSteps());
 };
 scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
-onNotebookForget(() => void refreshShop());
+onNotebookForget(() => {
+  forgotten++;
+  void refreshShop();
+});
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
   void refreshShop(result.grew ?? []).then(() => noticeBeds(bedNews(before, shopDays.done)));

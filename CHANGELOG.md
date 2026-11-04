@@ -4,6 +4,10 @@
 
 The running card and the road to 1.0.
 
+- **Find anything on the works shelf.** Search by name, by what you asked for or by month, or look at one kind of work.
+  Works sit under their months and come in as you ask for them, so a thousand of them open as fast as eight.
+- **Things said once are heard once.** What the shop says about something new waits until the result card is put away and
+  you are in the room, and never talks over the last thing it said.
 - **`npm run packaged`** runs the built app from its own folder with the stand-in Claude, so a picture left out of the
   package or a fuse left unset shows before any release does.
 - **Dates are the ones on your wall.** Works, the shop's days, commission folders and the monthly spend used Greenwich

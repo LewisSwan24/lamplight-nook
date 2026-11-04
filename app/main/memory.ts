@@ -112,7 +112,7 @@ export class MemoryStore {
   /** The shop's days and the works shelf: finished commissions, latest first. */
   shopState(): ShopState {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
-      id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
+      id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main), want: c.form?.want,
     }));
     return { ...structuredClone(this.shop()), works };
   }

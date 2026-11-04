@@ -591,6 +591,7 @@
       "sectionText": "Wick notes down past commissions, the choices you made and where things got stuck. Only that, never your conversations.",
       "title": "Wick's notebook",
       "commissions": "Past commissions",
+      "more": "{n} older: show more",
       "stuck": "Snags we hit together",
       "empty": "The notebook is still empty.",
       "done": "done",
@@ -673,7 +674,24 @@
       "rounds": "changed {n} times",
       "roundsOne": "changed once",
       "gone": "Can't find it; it may have been moved or deleted.",
-      "empty": "The shelf is still empty. The first thing we finish goes right here."
+      "empty": "The shelf is still empty. The first thing we finish goes right here.",
+      "search": "Find one: a name, what you asked, a month",
+      "kindsLabel": "By kind",
+      "all": "All",
+      "found": "{n} found",
+      "noMatch": "Nothing matches. Try other words, or another kind.",
+      "more": "{n} older: show more",
+      "kinds": {
+        "page": "Pages",
+        "research": "Research",
+        "edit": "Edits",
+        "tidy": "Tidying",
+        "demo": "Samples",
+        "letter": "Letters",
+        "sheet": "Tables",
+        "plan": "Plans",
+        "album": "Albums"
+      }
     },
     "mini": {
       "toggle": "Keep a small window in the corner while the shop is out of sight",

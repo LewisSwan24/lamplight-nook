@@ -127,6 +127,225 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** A shop that has made a thousand things: still opens quickly, and anything on the shelf can be found. */
+  async thousand(lang, out) {
+    const S = locale(lang).ui.shelf;
+    const N = locale(lang).ui.notebook;
+    const kinds = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album'];
+    const needle = lang === 'en' ? 'Needle in the haystack' : '草堆里的针';
+    const day = (i) => Date.UTC(2024, 0, 1) + i * 86_400_000;
+    const commissions = Array.from({ length: 1000 }, (_, i) => ({
+      id: `c${day(i)}`, title: i === 500 ? needle : `${lang === 'en' ? 'Work' : '作品'} ${i + 1}`, date: new Date(day(i)).toISOString().slice(0, 10),
+      result: 'done', choices: { Q: 'answer', R: 'another answer' }, asks: i % 7 ? [] : [{ ask: 'a bit warmer', date: '2024-01-01' }], folder: `C:/nowhere/${i}`, costUsd: 0.12,
+      form: { want: `Make something for round ${i}`, template: kinds[i % kinds.length] },
+    }));
+    const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 1000, told: [], grown: [], met: [] } };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) });
+    const times = { memoryKb: Math.round(statSync(join(home.data, 'memory.json')).size / 1024) };
+
+    const began = Date.now();
+    let shop = await launch({ lang, home, size: 'small', debug: true });
+    times.launch = Date.now() - began;
+    const { page } = shop;
+    const painted = () => page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    const timed = async (name, act) => {
+      const t = Date.now();
+      await act();
+      await painted();
+      times[name] = Date.now() - t;
+    };
+    const works = () => page.locator('.shelf-card li.work').count();
+    const openShelf = async () => {
+      await page.locator('.toolbar button.tool-btn').nth(1).click();
+      await page.waitForSelector('.shelf-card');
+    };
+    /** From the press to the card on screen, timed in the page so that the script's own clicking does not count. */
+    const opening = (button, card) => page.evaluate(async ([button, card]) => {
+      const t = performance.now();
+      document.querySelectorAll('.toolbar button.tool-btn')[button].click();
+      while (!document.querySelector(card)) await new Promise((r) => setTimeout(r, 5));
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return Math.round(performance.now() - t);
+    }, [button, card]);
+    try {
+      await sleep(2500);
+      times.shelf = await opening(1, '.shelf-card');
+      check(await page.evaluate(() => document.activeElement?.classList.contains('shelf-search')), 'the shelf does not open ready to search');
+      check(await works() === 40, `the shelf draws ${await works()} works at first`);
+      await shop.shot(join(out, 'thousand-shelf.png'));
+
+      await timed('search', () => page.keyboard.type(needle));
+      check(await works() === 1, `searching finds ${await works()} works`);
+      check((await page.locator('.shelf-card li.work').innerText()).includes(needle), 'searching finds the wrong work');
+      await page.keyboard.press('Enter');
+      check(await page.evaluate(() => !!document.activeElement?.closest('li.work')), 'Enter in the search box does not go to the first result');
+      await page.locator('.shelf-search').focus();
+      await page.keyboard.press('Escape');
+      check(await page.locator('.shelf-card').count() === 1, 'Esc with words in the box closes the whole shelf');
+      check(await page.locator('.shelf-search').inputValue() === '', 'Esc does not clear the words');
+      check(await works() === 40, 'clearing the words does not bring the shelf back');
+      // Still choosing a character: the list stays as it is until the word is settled.
+      await page.evaluate(() => {
+        const box = document.querySelector('.shelf-search');
+        box.value = 'zzzz';
+        box.dispatchEvent(new InputEvent('input', { isComposing: true, bubbles: true }));
+      });
+      check(await works() === 40, 'the list redraws while a word is still being composed');
+      await page.evaluate(() => document.querySelector('.shelf-search').dispatchEvent(new CompositionEvent('compositionend', { bubbles: true })));
+      check(await works() === 0, 'the list does not follow when the word is settled');
+      await page.locator('.shelf-search').fill('');
+      await page.locator('.shelf-search').fill(new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(Date.UTC(2024, 2, 1)));
+      check(await works() === 31, `the month as written finds ${await works()} works`);
+      await page.locator('.shelf-search').fill('');
+      await page.locator('.shelf-search').fill('Make something for round 5 zzz');
+      check(await page.locator('.works-none').innerText() === S.noMatch, 'finding nothing says nothing');
+      await shop.shot(join(out, 'thousand-none.png'));
+      await page.locator('.shelf-search').fill('');
+
+      await page.locator('.kind-chip', { hasText: S.kinds.album }).click();
+      check((await page.locator('.works-count').innerText()) === S.found.replace('{n}', '125'), 'the album chip counts wrong');
+      check(await page.locator('.kind-chip[aria-pressed=true]').count() === 1, 'more than one chip is pressed');
+      await page.locator('.works-more button').click();
+      check(await works() === 80, `the next page holds ${await works()} works`);
+      const moved = await page.evaluate(() => document.activeElement?.closest('li.work') === document.querySelectorAll('li.work')[40]);
+      check(moved, 'the keyboard does not land on the first of the new works');
+      const spills = await page.locator('.shelf-card').evaluate((c) => c.scrollWidth > c.clientWidth + 1);
+      check(!spills, 'the chips push the shelf sideways');
+      await shop.shot(join(out, 'thousand-album.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      times.notebook = await opening(2, '.notebook');
+      const entries = () => page.locator('.notebook-pages section:not(.notebook-days) > ul > li:not(.notebook-more)').count();
+      check(await entries() === 20, `the notebook draws ${await entries()} commissions at first`);
+      await page.locator('.notebook-more button').click();
+      check(await entries() === 40, `the next page holds ${await entries()} commissions`);
+      const landed = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll('.notebook-pages section:not(.notebook-days) > ul > li')];
+        return rows.indexOf(document.activeElement?.closest('li'));
+      });
+      check(landed === 20, `after showing more, the keyboard is on row ${landed} instead of the first new one`);
+      await shop.shot(join(out, 'thousand-notebook.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      // One more: the whole notebook is saved again, and it should still feel like nothing.
+      await timed('oneMore', async () => {
+        await shop.order({ template: 'demo' });
+        await shop.submit();
+        check((await shop.workUntilDone()).ok, 'the thousand and first commission did not finish');
+      });
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await openShelf();
+      const top = await page.locator('.shelf-card li.work').first().innerText();
+      check(top.includes(locale(lang).ui.templates.demo.split(/[:：]/).at(-1).trim()), `the newest is not first: ${top}`);
+    } finally {
+      await shop.close();
+    }
+
+    const again = Date.now();
+    shop = await launch({ lang, home, size: 'small', debug: true });
+    times.relaunch = Date.now() - again;
+    await shop.close();
+    const bare = Date.now();
+    shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), size: 'small', debug: true });
+    times.launchEmpty = Date.now() - bare;
+    await shop.close();
+    const saved = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    check(saved.commissions.length === 1001, `${saved.commissions.length} commissions kept`);
+    console.log(`  thousand ${lang} ${JSON.stringify(times)}`);
+    writeFileSync(join(out, `thousand-${lang}.json`), JSON.stringify(times, null, 2));
+    check(times.shelf < 1000, `the shelf took ${times.shelf} ms to open`);
+    check(times.notebook < 1000, `the notebook took ${times.notebook} ms to open`);
+    check(times.search < 1000, `typing a search took ${times.search} ms`);
+  },
+
+  /** The lines said once in a shop's life: heard whole, one at a time, and not while nobody can hear them. */
+  async grownline(lang, out) {
+    const L = locale(lang);
+    const painting = lang === 'en' ? ["There's a little painting on the wall.", 'Bought it the day we finished the first job.'] : ['墙上挂了幅小画。', '第一单做完那天买的。'];
+    const sprout = lang === 'en' ? ["There's a sprout in the beds out back.", 'Planted the day the first job was done.'] : ['后院菜地冒芽了。', '第一单做完那天种的。'];
+    const ripe = lang === 'en' ? 'First vegetable out back is ripe.' : '后院第一棵菜熟了。';
+    const seed = (done) => ({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [], stuckNotes: [], greeted: 'c1', shop: { done, told: [], grown: [], met: [] } }) });
+    const finishOne = async (shop) => {
+      await sleep(2000);
+      // Everything said from now on, as it appears over people's heads.
+      await shop.page.evaluate(() => {
+        window.heard = [];
+        setInterval(() => {
+          const now = document.getElementById('labels').innerText;
+          if (window.heard.at(-1) !== now) window.heard.push(now);
+        }, 200);
+      });
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission did not finish');
+    };
+    const heard = (shop, words) => shop.page.evaluate((words) => window.heard.some((h) => h.includes(words)), words);
+    const hearUntil = async (shop, words, ms) => {
+      for (const start = Date.now(); Date.now() - start < ms; await sleep(500)) if (await heard(shop, words)) return true;
+      return false;
+    };
+
+    // The first work brings two such lines. Adeng is out when the first falls due, and the result card is open before that.
+    let shop = await launch({ lang, home: freshHome(seed(0)), debug: true, speed: 100 });
+    try {
+      await finishOne(shop);
+      await sleep(12_000);
+      check(!(await heard(shop, painting[0])), 'a line that comes once was said while the result card was open');
+      await shop.page.evaluate(() => {
+        const scene = window.lamplightDebug.scene;
+        const real = scene.anchorOf.bind(scene);
+        scene.anchorOf = (who) => (window.adengOut && who === 'adeng' ? null : real(who));
+        window.adengOut = true;
+      });
+      await shop.page.keyboard.press('Escape');
+      await sleep(5000);
+      check(!(await heard(shop, painting[0])), 'the line was said with the speaker out');
+      await shop.page.evaluate(() => { window.adengOut = false; });
+      check(await hearUntil(shop, painting[0], 8000), 'the line about what grew was never said');
+      check(await hearUntil(shop, painting[1], 15_000), 'the line about what grew was cut short');
+      check(await hearUntil(shop, sprout[0], 15_000), 'the line about the beds was never said');
+      check(await hearUntil(shop, sprout[1], 15_000), 'the line about the beds was cut short');
+      await shop.shot(join(out, 'grownline.png'));
+    } finally {
+      await shop.close();
+    }
+
+    // Out in the back garden nobody hears what is said indoors: it waits until they come back.
+    shop = await launch({ lang, home: freshHome(seed(3)), debug: true, speed: 100 });
+    try {
+      await finishOne(shop);
+      await shop.page.keyboard.press('Escape');
+      await sleep(300);
+      await shop.hotspot(L.ui.access.hotspotGarden);
+      await sleep(14_000);
+      check(await shop.page.evaluate(() => window.lamplightDebug.scene.view === 'garden'), 'never got to the garden');
+      check(!(await heard(shop, ripe)), 'the line about the beds was said indoors with nobody in to hear it');
+      await shop.hotspot(L.ui.access.hotspotShop);
+      check(await hearUntil(shop, ripe, 20_000), 'the line about the beds was lost to the garden');
+    } finally {
+      await shop.close();
+    }
+
+    // Everything forgotten: nobody then mentions what has gone.
+    shop = await launch({ lang, home: freshHome(seed(0)), debug: true, speed: 100 });
+    try {
+      await finishOne(shop);
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await shop.page.waitForSelector('.notebook');
+      await shop.page.locator('.notebook .actions button').click();
+      await shop.page.locator('.notebook .actions button', { hasText: L.ui.notebook.forgetYes }).click();
+      await shop.page.waitForSelector('.notebook-empty');
+      await shop.page.keyboard.press('Enter');
+      await sleep(16_000);
+      check(!(await heard(shop, painting[0])), 'the painting was mentioned after everything was forgotten');
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** Past twenty works nothing drops off the shelf or the notebook, and the shop's days read right. */
   async days(lang, out) {
     const N = locale(lang).ui.notebook;
@@ -146,7 +365,7 @@ const SCENARIOS = {
       await sleep(2500);
       await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
       await shop.page.waitForSelector('.shelf-card');
-      const shelved = await shop.page.locator('.shelf-card ul.works > li').count();
+      const shelved = await shop.page.locator('.shelf-card ul.works > li.work').count();
       check(shelved === 30, `${shelved} of 30 works on the shelf`);
       await shop.page.keyboard.press('Escape');
       await sleep(300);
