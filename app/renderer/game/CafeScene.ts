@@ -59,6 +59,7 @@ import { INSET, VIEW } from './street';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT } from './guests';
+import { PASSER_FEET, WINDOW_PANES, passBy } from './passers';
 import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
@@ -73,8 +74,11 @@ const CORNER_PAUSE_MS = 90;
 /** Top-left of the door sprite; the doorway behind it is painted into cafe.png (scripts/art/scene.py, DOOR). */
 const DOOR_POS = { x: 288, y: 16 };
 const DOOR_MS = 260;
+/** Over the sky in the glass (0.5), under the weather falling past it (0.6). */
+const PASSER_DEPTH = 0.55;
+/** A dark shape against the daylight; after dark, lit by the street lamps. */
+const PASSER_COLOR: Record<Period, number> = { dawn: 0x2c2a35, day: 0x2c2a35, dusk: 0x2c2a35, night: 0xa89c86 };
 /** The window panes in cafe.png (scripts/art/scene.py) and the colours of their glass, which takes the sky's colour. */
-const WINDOW_PANES = [{ x: 18, y: 12, w: 24, h: 18 }, { x: 54, y: 12, w: 24, h: 18 }, { x: 199, y: 12, w: 24, h: 18 }];
 const GLASS = new Set(['216,208,224', '235,228,242', '248,248,248']);
 /** How long the room takes to change its light when the hour turns a new period. */
 const DAYLIGHT_MS = 4000;
@@ -142,6 +146,8 @@ export class CafeScene extends Phaser.Scene {
   private speech = new Map<ActorId, { text: string; icon?: Bubble }>();
   /** A neighbour in the shop (at most one), what they are saying, and whether the pointer is over them. */
   private guest?: Guest;
+  /** A neighbour on the street, on the way to the door. */
+  private guestComing = false;
   /** Bumped to send a guest on their way (a commission came in). */
   private guestTrip = 0;
   /** The player, while in the shop; their look and the name they go by. */
@@ -181,6 +187,7 @@ export class CafeScene extends Phaser.Scene {
   /** The back garden, beside the shop in this scene; the camera slides over to look at it. */
   private garden!: GardenView;
   private backDoor!: Phaser.GameObjects.Sprite;
+  private glassMask!: Phaser.Display.Masks.BitmapMask;
   /** What the window shows: the shop, or the garden through the back door. */
   view: 'shop' | 'garden' = 'shop';
   /** Called when the view changes (the page hides the blackboard's chalk in the garden). */
@@ -548,6 +555,7 @@ export class CafeScene extends Phaser.Scene {
     ctx.putImageData(mask, 0, 0);
     tex.refresh();
     this.sky = this.add.image(0, 0, 'glass').setOrigin(0).setDepth(0.5).setAlpha(0);
+    this.glassMask = this.make.image({ x: 0, y: 0, key: 'glass', origin: 0 }, false).createBitmapMask();
     this.shade = this.add.rectangle(0, 0, src.width, src.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
     const garden = { x: GARDEN_X, y: 0, w: src.width, h: src.height };
     const gardenMask = this.make.graphics({}, false).fillStyle(0xffffff).fillRect(garden.x, garden.y, garden.w, garden.h).createGeometryMask();
@@ -779,6 +787,16 @@ export class CafeScene extends Phaser.Scene {
     this.door.play('door-close');
   }
 
+  /** Someone goes by outside: a dark shape behind the glass, gone behind the curtains and the wall between panes. */
+  private async passWindows(key: ActorId | GuestId, way: 'in' | 'out') {
+    if (this.reducedMotion) return;
+    const { from, to, ms } = passBy(way);
+    const shape = this.add.sprite(from, PASSER_FEET, key).setOrigin(0.5, 1).setDepth(PASSER_DEPTH).setTintFill(PASSER_COLOR[this.period]).setAlpha(0.8).setMask(this.glassMask);
+    shape.play(animKey(key, 'walk', to > from ? 'right' : 'left'), true);
+    await new Promise<void>((done) => this.tweens.add({ targets: shape, x: to, duration: ms, onComplete: () => done() }));
+    shape.destroy();
+  }
+
   /** Step out through the open door and fade away; the character stays hidden until it walks somewhere. */
   private async leave(actor: Actor) {
     await this.openDoor();
@@ -787,11 +805,12 @@ export class CafeScene extends Phaser.Scene {
     actor.outside = true;
     this.closeDoor();
     this.street.goOut(actor.id, this.tintColor);
+    void this.passWindows(actor.id, 'out');
   }
 
   /** Come back in through the door, facing into the room. */
   private async enter(actor: Actor) {
-    await this.street.comeBack(actor.id);
+    await Promise.all([this.street.comeBack(actor.id), this.passWindows(actor.id, 'in')]);
     const spot = standPoint('door', actor.id);
     actor.sprite.setPosition(spot.x, spot.y - 8).setAlpha(0).setDepth(spot.y);
     await this.openDoor();
@@ -916,9 +935,14 @@ export class CafeScene extends Phaser.Scene {
    * Resolves once they have gone. sendGuestAway() cuts it short.
    */
   async guestVisit(id: GuestId, turns: { speaker: Speaker; text: string }[]): Promise<void> {
-    if (this.guest) return;
+    if (this.guest || this.guestComing) return;
     const trip = ++this.guestTrip;
     const gone = () => trip !== this.guestTrip;
+    this.guestComing = true;
+    await this.passWindows(id, 'in');
+    this.guestComing = false;
+    // A commission came in while they were on their way: they carry on down the street.
+    if (gone()) return;
     const wait = (ms: number) => new Promise((r) => this.time.delayedCall(ms, r));
     const sprite = this.add.sprite(GUEST_DOOR.x, GUEST_DOOR.y - 8, id).setOrigin(0.5, 1).setAlpha(0).setDepth(GUEST_DOOR.y);
     const shadow = this.add.ellipse(GUEST_DOOR.x, GUEST_DOOR.y, 11, 4, 0x3b2a1e, 0.28);
@@ -965,6 +989,7 @@ export class CafeScene extends Phaser.Scene {
     sprite.destroy();
     shadow.destroy();
     this.guest = undefined;
+    void this.passWindows(id, 'out');
   }
 
   /** Work came in: a guest in the shop says goodbye and heads out. */

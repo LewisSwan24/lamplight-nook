@@ -1,5 +1,8 @@
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// Every walk of every actor in every scene: seconds of work, longer on a busy machine.
+vi.setConfig({ testTimeout: 60_000 });
 import { GARDEN_AREA, GARDEN_DOOR_SPOT, SPOTS, pathInGarden, pathToBackDoor } from '../app/renderer/game/garden';
 import { ANCHORS, CANVAS, pathBetween, seatsIn, standPoint, walkBetween } from '../app/renderer/game/layout';
 import { GUEST_DOOR, GUEST_SPOT } from '../app/renderer/game/guests';

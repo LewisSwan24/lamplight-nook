@@ -127,6 +127,62 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Neighbours and Xiaoju are seen through the windows on their way to and from the door, in both scenes. */
+  async passers(lang, out) {
+    for (const sceneName of ['cafe', 'study']) {
+      const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang, { scene: sceneName }) }), debug: true, size: 'large' });
+      const { page } = shop;
+      const shape = () => page.evaluate(() => {
+        const s = window.lamplightDebug.scene.children.list.find((o) => o.depth === 0.55);
+        return s ? { x: s.x, tinted: s.isTinted, masked: Boolean(s.mask) } : null;
+      });
+      const visit = () => page.evaluate('void window.lamplightDebug.scene.guestVisit("baker", [])');
+      const guest = () => page.evaluate(() => Boolean(window.lamplightDebug.scene.guest));
+      try {
+        await sleep(2500);
+        // Coming in: along the wall from the far end, nobody in the shop until they reach the door.
+        await visit();
+        await sleep(600);
+        const a = await shape();
+        check(a?.tinted && a.masked, `${sceneName}: nobody behind the glass: ${JSON.stringify(a)}`);
+        check(!(await guest()), `${sceneName}: the neighbour is indoors before reaching the door`);
+        const shots = [];
+        for (const at of [24, 62, 208]) {
+          await page.waitForFunction((at) => {
+            const s = window.lamplightDebug.scene.children.list.find((o) => o.depth === 0.55);
+            return !s || s.x >= at;
+          }, at, { timeout: 8000 });
+          shots.push(await shop.shot(join(out, `passers-${sceneName}-${at}.png`)));
+        }
+        await page.waitForFunction(() => window.lamplightDebug.scene.guest, null, { timeout: 8000 });
+        check(!(await shape()), `${sceneName}: still behind the glass once indoors`);
+        await page.waitForFunction(() => !window.lamplightDebug.scene.guest, null, { timeout: 30000 });
+        // Going out: back along the wall.
+        await sleep(300);
+        const b = await shape();
+        check(b && b.x < 296, `${sceneName}: nobody walking away: ${JSON.stringify(b)}`);
+        await page.waitForFunction(() => !window.lamplightDebug.scene.children.list.some((o) => o.depth === 0.55), null, { timeout: 8000 });
+
+        // A commission comes in while they are on the way: they walk on by.
+        await visit();
+        await sleep(400);
+        await page.evaluate(() => { window.lamplightDebug.scene.guestTrip++; });
+        await page.waitForFunction(() => !window.lamplightDebug.scene.children.list.some((o) => o.depth === 0.55), null, { timeout: 8000 });
+        await sleep(600);
+        check(!(await guest()), `${sceneName}: came in although a commission started`);
+
+        // Less motion: no one goes by, and the door still works.
+        await page.evaluate(() => window.lamplightDebug.scene.setReducedMotion(true));
+        await visit();
+        await sleep(300);
+        check(!(await shape()), `${sceneName}: walking past with less motion asked for`);
+        await page.waitForFunction(() => window.lamplightDebug.scene.guest, null, { timeout: 8000 });
+      } finally {
+        await shop.close();
+      }
+    }
+  },
+
   /** A whole commission without touching the mouse: every stop shows where the focus is, and cards keep it inside. */
   async keyboard(lang, out) {
     const shop = await launch({ lang, home: freshHome(), speed: 250, size: 'small', debug: true });

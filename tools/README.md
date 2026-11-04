@@ -46,7 +46,9 @@ node tools/sim/accept.mjs                      # every scenario, Chinese and Eng
 node tools/sim/accept.mjs --lang en --only demo,board
 ```
 
-Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
+Scenarios: `crash` (the plug pulled mid-commission and with the result open, half-written files, the folder emptied or
+gone, Claude Code falling over), `keyboard` (a whole commission, the shelf, the garden and settings without the mouse),
+`passers` (people seen through the windows on their way to the door), `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
 `templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
