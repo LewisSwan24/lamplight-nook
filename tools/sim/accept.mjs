@@ -127,6 +127,51 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** The card for work under way: from the counter and the blackboard, a word in the middle, and calling it off. */
+  async progress(lang, out) {
+    for (const size of ['small', 'large', 'medium']) {
+      const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 5 }) });
+      const shop = await launch({ lang, home, size, speed: Math.max(SPEED, 1500) });
+      try {
+        // The smallest window also gets a long request: the title must not push the buttons off the card.
+        await shop.order({ template: 'page', want: size === 'small' ? W[lang].page.repeat(8) : W[lang].page });
+        await shop.submit();
+        await shop.page.waitForFunction(() => document.querySelectorAll('.board .step').length >= 3);
+        await sleep(2500);
+        const A = shop.L.ui.access;
+        const card = shop.page.locator('.running-card');
+        await shop.hotspot(A.hotspotCounter);
+        await card.waitFor();
+        const seen = await card.evaluate((c) => {
+          const box = c.getBoundingClientRect();
+          return { top: box.top, bottom: box.bottom, left: box.left, right: box.right, width: innerWidth, height: innerHeight, text: c.innerText,
+            steps: c.querySelectorAll('.plan-list li').length, staff: c.querySelectorAll('.progress-staff button').length };
+        });
+        check(seen.top >= 0 && seen.left >= 0 && seen.bottom <= seen.height && seen.right <= seen.width, `${size}: the card does not fit: ${JSON.stringify(seen)}`);
+        check(seen.text.includes('$5.00'), `${size}: no limit on the card: ${JSON.stringify(seen.text)}`);
+        check(seen.steps >= 3, `${size}: only ${seen.steps} steps on the card`);
+        check(seen.staff === 4, `${size}: ${seen.staff} of the staff on the card`);
+        await shop.shot(join(out, `progress-${size}.png`));
+        if (size !== 'medium') continue;
+        await shop.page.keyboard.press('Escape');
+        await shop.hotspot(A.hotspotBoard);
+        await card.waitFor();
+        await card.locator('.progress-meet').click();
+        await shop.page.waitForSelector('form.meeting');
+        await shop.page.keyboard.press('Escape');
+        await sleep(600);
+        await shop.hotspot(A.hotspotCounter);
+        await card.locator('.progress-cancel').click();
+        await shop.shot(join(out, 'progress-confirm.png'));
+        await card.locator('.progress-cancel').click();
+        await shop.page.waitForFunction((label) => [...document.querySelectorAll('button.hotspot')].every((b) => b.getAttribute('aria-label') !== label || b.hidden), A.hotspotBell);
+        check(await shop.page.locator('.running-card').count() === 0, 'the card stayed open after calling it off');
+        await shop.hotspot(A.hotspotCounter);
+        await shop.page.waitForSelector('form.commission');
+      } finally { await shop.close(); }
+    }
+  },
+
   /** The fixed demo: research, a failing check, a colour question, the serious delete ("not now"), review. */
   async demo(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });

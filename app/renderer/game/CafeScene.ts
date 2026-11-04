@@ -239,7 +239,9 @@ export class CafeScene extends Phaser.Scene {
     this.add
       .zone(slate.x, slate.y, slate.w, slate.h)
       .setOrigin(0)
-      .setInteractive({ useHandCursor: false })
+      .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => this.highlight('board'))
+      .on('pointerout', () => this.hovered === 'board' && this.highlight(null))
       .on('pointerdown', () => this.activate('board'));
     const counter = ZONES.find((z) => z.id === 'counter')!;
     this.add

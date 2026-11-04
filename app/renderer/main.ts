@@ -24,7 +24,7 @@ import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
 import { boardSteps, clearWorkSigns, commissionFormOpen, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
-import { showFailure, showPending, showRunning } from './ui/run';
+import { closeRunning, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
 import { showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, onNotebookRevise } from './ui/notebook';
 import { showShelf } from './ui/shelf';
@@ -211,6 +211,7 @@ scene.onView = (v) => {
 
 // Long commissions: now and then Adeng says how far along it is (from the blackboard).
 let runStartedAt = 0;
+let runBudget = 0;
 let progressSaidAt: number | undefined;
 let progressCount = 0;
 function sayProgress() {
@@ -313,8 +314,8 @@ function noticeGrowth(ids: GrowthId[]) {
   }, GROWTH_LINE_DELAY_MS);
 }
 const GROWTH_LINE_DELAY_MS = 4000;
-scene.boardInUse = () => boardSteps().length > 0;
-scene.onBoardClick = () => showPlan(boardSteps());
+scene.boardInUse = () => running !== null || boardSteps().length > 0;
+scene.onBoardClick = () => (running ? openProgress() : showPlan(boardSteps()));
 scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
 onNotebookForget(() => void refreshShop());
 window.lamplight.onResult((result) => {
@@ -342,6 +343,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   // You come in with the slip and wait by the lamp while it is made.
   void scene.youArrive();
   runStartedAt = Date.now();
+  runBudget = (await window.lamplight.getSettings()).budgetUsd;
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
   scene.setBell(true);
@@ -352,12 +354,26 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
     if (!r.ok && r.error) showFailure(window.lamplight, r.error, () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) });
   } finally {
+    closeRunning();
     running = null;
     scene.setFormWaiting(true);
     scene.setBell(false);
     void scene.youLeave();
   }
 }
+/** The one card for work under way. */
+function openProgress() {
+  showRunning(window.lamplight, () => ({
+    want: running ?? '',
+    startedAt: runStartedAt,
+    budgetUsd: runBudget,
+    steps: boardSteps(),
+    realPlan: stage.planIsReal,
+    now: stage.latestDoing,
+    staff: STAFF.map((actor) => ({ actor, state: stage.actorInfo(actor).state, doing: stage.actorInfo(actor).doing ?? '' })),
+  }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed) });
+}
+
 /** The user chose to go ahead with an old Claude Code; not asked again until the app restarts. */
 let oldClaudeOk = false;
 /** What the shop needs before a commission: Claude Code, a key, and (unless waved through) a recent enough Claude Code. */
@@ -366,7 +382,7 @@ const notReady = (env: EnvStatus) => !env.hasClaude || !env.hasApiKey || (env.cl
 async function newCommission(dropped: string[] = []) {
   if (running) {
     if (dropped.length) return greet(strings.ui.materials.busy);
-    return showRunning(window.lamplight, running);
+    return openProgress();
   }
   // Check what the shop needs before the form is filled in, not after.
   const env = await window.lamplight.envStatus();
@@ -384,7 +400,7 @@ async function newCommission(dropped: string[] = []) {
  * `title` is shown when the commission was picked from the notebook rather than the card just handed over.
  */
 async function revise(id: string, title?: string) {
-  if (running) return showRunning(window.lamplight, running);
+  if (running) return openProgress();
   const env = await window.lamplight.envStatus();
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void revise(id, title), () => { oldClaudeOk = true; void revise(id, title); });
   const ask = await showRevise(current?.avatar, title);
@@ -495,7 +511,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
   // Handles for driving the scene from dev tools and screenshot scripts.
   if (debug) {
     const api = window.lamplight;
-    const ui = { showRunning: (want: string) => showRunning(api, want), showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm: () => showCommissionForm(api) };
+    const ui = { showFailure: (kind: string) => showFailure(api, kind, () => {}), showCommissionForm: () => showCommissionForm(api) };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; scene.setFormWaiting(!on); scene.setBell(on); };
     Object.assign(window, { lamplightDebug: { scene, stage, ui, replay: startReplay, pretendRunning } });
@@ -513,6 +529,7 @@ window.lamplight.onAiEvent((e) => {
   append(`${e.agent} | ${e.kind} | ${e.plain}${e.risk ? ` (${e.risk})` : ''}`);
   stage.speed = 1;
   stage.handle(e);
+  refreshRunning();
 });
 
 for (const [btn, kind] of [['run-hello', 'hello'], ['run-sub', 'subagents']] as const) {

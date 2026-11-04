@@ -168,6 +168,16 @@ body.drop-ready #game { filter: brightness(1.04); }
 .plan-list li.doing { color: #4a3a2c; font-weight: bold; }
 .plan-list li.todo { color: #6b5a48; }
 .plan-now { font-weight: normal; color: var(--accent); font-size: 14px; }
+.running-card .plan-list { max-height: calc(22vh / var(--ui, 1)); scrollbar-width: thin; scrollbar-color: #b9a58a transparent; }
+.running-card .waiting { margin-top: 12px; }
+.progress-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.progress-now { font-family: var(--hand); font-size: 16px; }
+.progress-heading { margin-top: 10px; }
+.progress-staff { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 8px 0; }
+button.progress-person { display: flex; align-items: center; gap: 6px; padding: 2px 6px; background: none; border: 0; box-shadow: none; color: inherit; font-size: 14px; text-align: left; }
+button.progress-person:hover, button.progress-person:focus-visible { background: rgba(138, 75, 42, .1); }
+.progress-person .portrait { --pp: 2px; }
+.progress-state { margin-left: auto; color: #8a7a66; font-size: 13px; }
 .result-more { justify-content: flex-start; margin-top: 6px; }
 .result-more button { font-size: 0.92em; }
 .result-report { display: block; margin-top: 8px; font-size: 0.82em; opacity: 0.75; }

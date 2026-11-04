@@ -2,6 +2,19 @@
 
 ## Unreleased (1.0)
 
+The running card and the road to 1.0.
+
+- **One card for work under way.** The counter and the blackboard now open the same card: how long it has taken,
+  the limit for this round, what is happening now, every step of the plan, who on the staff is doing what, and three
+  buttons (keep going, say something, call it off). It keeps up while it is open. Steps that are only Adeng's guess
+  are not counted as "1 of 3 done". The blackboard also shows a hand cursor now.
+- **The limit is per round, and says so.** The commission form, settings and the stop card all say "this round", and
+  the stop card shows what the round spent, not the running total.
+- **Nobody walks through furniture.** Eleven stand points got their own place for each character, the holiday pieces
+  moved clear of the walks, and a test checks every walk against the measured furniture in both scenes.
+- **Old Claude Code checks work on Windows.** A `.mjs` or `.js` stand-in runs through Node, so the version check and
+  the upgrade offer behave the same on Windows.
+
 Safety before launch.
 
 - **Reading outside the commission folder asks first.** Claude's Read, Glob and Grep tools could open any file
