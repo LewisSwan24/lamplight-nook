@@ -352,6 +352,11 @@ const SCENARIOS = {
   async walk(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);
+    const many = Array.from({ length: 12 }, (_, i) => {
+      const file = join(home.home, 'samples', `a-rather-long-name-for-a-handed-over-file-${i + 1}.txt`);
+      writeFileSync(file, 'x');
+      return file;
+    });
     const shop = await launch({ lang, home, speed: SPEED });
     const fits = async (selector, what) => {
       const box = await shop.page.locator(selector).first().boundingBox();
@@ -368,7 +373,17 @@ const SCENARIOS = {
         await shop.shot(join(out, `walk-${size}-shop.png`));
         await shop.order({ template: 'album', want: W[lang].album, files: s.photos });
         await fits('form.commission', `${size} commission slip`);
+        // What people type is in the plain face, like every other box: the handwriting font has only the shop's own words.
+        const typed = await shop.page.locator('form.commission textarea').first().evaluate((e) => getComputedStyle(e).fontFamily);
+        check(!typed.includes('Lamplight Hand'), `the slip's text box uses the handwriting font: ${typed}`);
         await shop.shot(join(out, `walk-${size}-slip.png`));
+        await shop.page.keyboard.press('Escape');
+        await sleep(300);
+        // Many files with long names: the slip stays inside the window and its buttons can still be reached.
+        await shop.order({ template: 'letter', want: W[lang].letter, files: many });
+        await fits('form.commission', `${size} commission slip with many files`);
+        await fits('form.commission .actions button.default', `${size} commission slip's hand-in button`);
+        await shop.shot(join(out, `walk-${size}-slip-many.png`));
         await shop.page.keyboard.press('Escape');
         await sleep(300);
         for (const tab of ['basics', 'furnish', 'sight', 'work', 'about']) {

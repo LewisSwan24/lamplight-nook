@@ -151,7 +151,7 @@ describe('upgrading the data folder', () => {
     writeFileSync(join(data, 'memory.json'), JSON.stringify(memory));
     migrate(data, NOW);
     const after = read<Memory>(join(data, 'memory.json'));
-    expect(after.commissions.map((c) => c.title)).toEqual(['Make me a small', 'Write a letter to my landlord about moving out', '做一个番茄钟小网页', 'expense tracker']);
+    expect(after.commissions.map((c) => c.title)).toEqual(['Make me a small', 'Write a letter to my landlord about moving out…', '做一个番茄钟小网页', 'expense tracker']);
     expect(after.stuckNotes[0].commission).toBe('Make me a small');
   });
 

@@ -44,37 +44,59 @@ const HOUSE_RULES = [
   REPLY_LANGUAGE,
 ].join('\n');
 
-/** Short name of a commission: its folder name and how Adeng's notebook refers to it. */
+/** Short name of a commission: what the works shelf shows and how Adeng's notebook refers to it. */
 export const commissionTitle = (form: CommissionForm) => (form.demo ? strings.demo.brief : shortTitle(form.want));
 
 /** Little words a short English title should not end on ("Write a letter to my" -> "Write a letter"). */
-const TRAILING_WORDS = new Set(['a', 'an', 'the', 'to', 'for', 'of', 'and', 'or', 'with', 'my', 'our', 'your', 'about', 'on', 'in', 'at', 'as', 'that', 'which', 'who']);
+const TRAILING_WORDS = new Set(['a', 'an', 'the', 'to', 'for', 'of', 'and', 'or', 'with', 'my', 'our', 'your', 'about', 'on', 'in', 'at', 'as', 'that', 'which', 'who', 'while', 'when', 'so', 'but']);
 /** Longest English title, in characters; words are never cut. */
 const MAX_WORDS_TITLE = 48;
+/** Longest title written without spaces between words (Chinese), in characters. */
+const MAX_CHARS_TITLE = 16;
+
+/** Where a clause ends inside the first `limit` characters, if that leaves a title worth having. */
+function clauseEnd(text: string, limit: number): number | null {
+  let end: number | null = null;
+  for (const m of text.slice(0, limit + 1).matchAll(/[,;:](?=\s)|[，；：、]/g)) end = m.index;
+  return end !== null && end >= limit / 4 ? end : null;
+}
 
 /**
- * "帮我做一个家庭聚会签到的小网页。" → "做一个家庭聚会签到的小网页": no "please" in front, no punctuation, at most 16 characters, safe as a folder name.
- * Requests written in words with spaces between them keep whole words instead, up to 48 characters:
+ * "帮我做一个家庭聚会签到的小网页。" → "做一个家庭聚会签到的小网页": no "please" in front, no full stop at the end.
+ * A long request stops at the end of a clause; with no clause to stop at it is cut and says so with "…".
+ * Requests written in words with spaces between them keep whole words:
  * "Please make me a sign-in page for the family party." → "Make a sign-in page for the family party".
+ * This is what people read; folderName makes it safe on disk.
  */
 export function shortTitle(want: string): string {
   const core = want.trim().replace(/^(请|麻烦)?(帮我|给我|替我)/, '').replace(/^(please\s+|can you\s+|could you\s+)+/i, '');
-  const firstSentence = core.split(/[。！？!?\n]/)[0] || core;
-  if (/\s/.test(firstSentence.trim()) && !/[\u3000-\u9fff\uff00-\uffef]/.test(firstSentence)) {
+  const sentence = (core.split(/[。！？!?\n]/)[0] || core).trim().replace(/[,.;:，。；：、\s]+$/, '');
+  if (!sentence) return [...want.trim()].slice(0, MAX_CHARS_TITLE).join('');
+  if (/\s/.test(sentence) && !/[　-鿿＀-￯]/.test(sentence)) {
     // "Make me a page" -> "Make a page": the "me" says nothing on a shelf label.
-    const plain = firstSentence.replace(/^(\w+)\s+me\s+/i, '$1 ');
-    const words = plain.replace(/[\\/:*?"<>|]+/g, ' ').split(/\s+/).map((w) => w.replace(/[,.;]+$/, '')).filter(Boolean);
+    const plain = sentence.replace(/^(\w+)\s+me\s+/i, '$1 ');
+    const capital = (title: string) => title[0].toUpperCase() + title.slice(1);
+    if (plain.length <= MAX_WORDS_TITLE) return capital(plain);
+    const clause = clauseEnd(plain, MAX_WORDS_TITLE);
+    if (clause !== null) return capital(plain.slice(0, clause));
     const kept: string[] = [];
-    for (const w of words) {
+    for (const w of plain.split(/\s+/)) {
       if ([...kept, w].join(' ').length > MAX_WORDS_TITLE) break;
       kept.push(w);
     }
     while (kept.length > 1 && TRAILING_WORDS.has(kept[kept.length - 1].toLowerCase())) kept.pop();
-    const title = kept.join(' ');
-    if (title) return title[0].toUpperCase() + title.slice(1);
+    if (kept.length) return `${capital(kept.join(' ').replace(/[,;:]+$/, ''))}…`;
   }
-  const title = [...firstSentence].slice(0, 16).join('').replace(/[\\/:*?"<>|\s，,。.；;：]+/g, '-').replace(/^-+|-+$/g, '');
-  return title || [...want].slice(0, 16).join('').replace(/[\\/:*?"<>|\s]+/g, '-');
+  const chars = [...sentence];
+  if (chars.length <= MAX_CHARS_TITLE) return sentence;
+  const clause = clauseEnd(sentence, MAX_CHARS_TITLE);
+  return clause !== null ? sentence.slice(0, clause) : `${chars.slice(0, MAX_CHARS_TITLE).join('')}…`;
+}
+
+/** A commission's folder name, from its title: nothing Windows refuses, and no end it would trim. */
+export function folderName(title: string): string {
+  const name = title.replace(/[\\/:*?"<>|，,；;：。…]+/g, '-').replace(/^[-.\s]+|[-.\s]+$/g, '');
+  return name || 'commission';
 }
 
 /** Add what the shop remembers about this user (may be empty) to a prompt. */
