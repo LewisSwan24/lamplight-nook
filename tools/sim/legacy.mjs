@@ -11,6 +11,7 @@
 // --fixtures also writes the data files of the Chinese run to tests/fixtures/userdata/<version>/,
 // with the throwaway home replaced by {HOME}.
 
+import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
@@ -78,7 +79,12 @@ const STEPS = {
     const pending = join(shop.home.data, 'pending.json');
     for (let i = 0; i < 100 && !existsSync(pending); i++) await sleep(50);
     if (!existsSync(pending)) throw new Error('0.7.0 did not note the running commission');
-    shop.app.process().kill('SIGKILL');
+    // A hard stop: closing normally clears the note, and Node's kill on Windows can still let the app close itself.
+    const proc = shop.app.process();
+    if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
+    else proc.kill('SIGKILL');
+    await sleep(500);
+    if (!existsSync(pending)) throw new Error('the note of the running commission did not survive the hard stop');
   },
   current: async (shop, w, home) => {
     // The commission 0.7.0 left unfinished is offered first; carry on with it.

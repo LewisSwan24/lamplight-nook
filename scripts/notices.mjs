@@ -18,7 +18,7 @@ export const REVIEWED = {
 /** Electron and Chromium ship their own license files next to the app (LICENSE.electron.txt, LICENSES.chromium.html). */
 const SHIPPED_SEPARATELY = ['electron'];
 
-/** Art, sound, font and music, from the asset register (docs/art.md section 7). */
+/** Art, sound, font and music, see docs/art.md. */
 const ASSETS = `Art, sound, fonts and music
 ===========================
 

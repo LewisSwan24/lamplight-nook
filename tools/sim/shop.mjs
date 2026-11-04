@@ -332,7 +332,12 @@ export class Shop {
 
   /** Quit the app; if it does not go within ten seconds (a hidden window can hold it up), end the process. */
   async close() {
-    const proc = this.app.process();
+    let proc;
+    try {
+      proc = this.app.process();
+    } catch {
+      return; // Already gone: the legacy run stops it hard on purpose.
+    }
     // Closing mid-commission asks "stop and close?" in a dialog that would block the app and pop up on the desktop.
     await this.app.evaluate(({ dialog }) => { dialog.showMessageBoxSync = () => 1; }).catch(() => {});
     await Promise.race([this.app.close().catch(() => {}), sleep(10_000)]);

@@ -59,8 +59,9 @@ what the staff made: the mail program and the save dialog are caught, nothing is
 commission on the shelf; the key check's request to Anthropic is caught and answered in the test).
 Every scenario also checks, when its commission ends, that no speech bubble crosses a card or another bubble.
 
-On Windows `oldclaude` fails: the stand-in is a `.mjs` file, which the app's `execFile` cannot start there (EFTYPE),
-so run it on Linux. `upgrade` fails without `legacy-out/`.
+`upgrade` fails without `legacy-out/`. To make it on Windows, follow the steps at the top of `sim/legacy.mjs`, with a
+junction in place of the `ln -s` (`New-Item -ItemType Junction`). Remove the junctions before removing the old
+checkouts, so that nothing deletes through them into `node_modules`.
 
 `launch()` options worth knowing: `store` plays the Store build (`LAMPLIGHT_STORE=1`); `claudePath`
 other than the stand-in, such as a path that does not exist, also gives the app a PATH with no `claude`
