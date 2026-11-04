@@ -9,6 +9,7 @@ import { showNotebook } from './notebook';
 import { lookPicker, withPortrait } from './portraits';
 import { moveTo, scenePicker, sceneRow } from './scenes';
 import { FURNISH_CHOICES, FURNISH_PARTS, SWATCHES, type Furnishing } from '../../shared/furnish';
+import { keyTextParts } from './key-text';
 import { currentScene, type SceneId } from '../../shared/scenes';
 
 const S = strings.ui.setup;
@@ -16,6 +17,8 @@ const S = strings.ui.setup;
 const SUPPORT_EMAIL = SUPPORT;
 const OK = '\u2713';
 const MISSING = '\u25CB';
+
+const keyText = (text: string) => keyTextParts(text).map((p) => (p.key ? el('span.key-text', {}, p.text) : p.text));
 
 /** The key row: where the key comes from (masked), or a box to paste one into. Calls back after a change. */
 function keyRow(api: LamplightApi, e: EnvStatus, changed: (said?: string) => void): HTMLElement {
@@ -37,18 +40,18 @@ function keyRow(api: LamplightApi, e: EnvStatus, changed: (said?: string) => voi
         changed(r.verified ? S.keySaved : S.keyUnverified);
         return;
       }
-      status.textContent = { format: S.keyBadFormat, invalid: S.keyInvalid, storage: S.keyNoStorage }[r.reason];
+      status.replaceChildren(...keyText({ format: S.keyBadFormat, invalid: S.keyInvalid, storage: S.keyNoStorage }[r.reason]));
       input.select();
     });
     return form;
   };
   const body = el('div.key-body');
   if (e.keySource === 'stored') {
-    body.append(fill(S.keyStored, { hint: e.keyHint ?? '' }), ' ',
+    body.append(...keyText(fill(S.keyStored, { hint: e.keyHint ?? '' })), ' ',
       el('button.link', { onclick: () => body.replaceChildren(pasteBox(), status) }, S.keyReplace), ' ',
       el('button.link', { onclick: async () => { await api.clearApiKey(); changed(); } }, S.keyRemove));
   } else if (e.keySource === 'env') {
-    body.append(fill(S.keyFromEnv, { hint: e.keyHint ?? '' }));
+    body.append(...keyText(fill(S.keyFromEnv, { hint: e.keyHint ?? '' })));
   } else if (e.keySource === 'subscription') {
     body.append(S.keySubscription);
   } else {
@@ -458,8 +461,15 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
   // Only the inside scrolls, so the paper behind it always covers the whole card.
   const body = el('div.settings-body', { role: 'tabpanel' });
   const tabs = SETTINGS_TABS.map((id) => el('button.tab', { role: 'tab', 'data-tab': id }, S.settingsTabs[id]) as HTMLButtonElement);
+  const card = el('div.card.paper.settings', {},
+    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '×'),
+    el('div.card-title', {}, S.settingsTitle),
+    el('div.tabs', { role: 'tablist' }, ...tabs),
+    body,
+  );
   const pick = (id: SettingsTab) => {
     lastTab = id;
+    card.dataset.tab = id;
     for (const t of tabs) {
       const on = t.dataset.tab === id;
       t.classList.toggle('on', on);
@@ -482,10 +492,5 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     });
   });
   pick(lastTab);
-  replaceOpen(el('div.card.paper.settings', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    el('div.card-title', {}, S.settingsTitle),
-    el('div.tabs', { role: 'tablist' }, ...tabs),
-    body,
-  ));
+  replaceOpen(card);
 }

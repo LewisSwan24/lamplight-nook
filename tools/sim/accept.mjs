@@ -327,6 +327,16 @@ const SCENARIOS = {
         await sleep(300);
       }
       await shop.shot(join(out, 'furnish-settings.png'));
+      // The room is what is being chosen for: the card stands beside the rug, with no empty paper under the swatches.
+      const seen = await shop.page.evaluate(() => {
+        const box = (e) => e.getBoundingClientRect();
+        const canvas = box(document.querySelector('canvas'));
+        const body = document.querySelector('.settings .settings-body');
+        return { cardLeft: box(document.querySelector('.settings')).left, rugRight: canvas.left + (189 / 320) * canvas.width, spare: box(body).bottom - box(body.lastElementChild).bottom };
+      });
+      // Some room is needed: the ring round the chosen swatch reaches past the button and the body clips it.
+      check(seen.spare >= 6 && seen.spare <= 16, `paper under the swatches: ${JSON.stringify(seen)}`);
+      check(seen.cardLeft >= seen.rugRight, `the card covers the rug: ${JSON.stringify(seen)}`);
       await shop.page.keyboard.press('Escape');
       await sleep(600);
       await shop.shot(join(out, 'furnish-cafe.png'));
@@ -345,6 +355,16 @@ const SCENARIOS = {
     const shop = await launch({ lang, home, speed: SPEED });
     try {
       await shop.shot(join(out, 'study.png'));
+      await shop.openSettings('furnish');
+      await sleep(300);
+      await shop.shot(join(out, 'study-furnish.png'));
+      const clear = await shop.page.evaluate(() => {
+        const canvas = document.querySelector('canvas').getBoundingClientRect();
+        return document.querySelector('.settings').getBoundingClientRect().left >= canvas.left + (180 / 320) * canvas.width;
+      });
+      check(clear, 'the card covers the rug in the study');
+      await shop.page.keyboard.press('Escape');
+      await sleep(300);
       const r = await runOne(shop, { template: 'plan', want: W[lang].plan });
       check(r.ok, 'did not finish in the study');
     } finally { await shop.close(); }
@@ -364,6 +384,7 @@ const SCENARIOS = {
       if (process.env.SIM_DEBUG) console.log('mini:', text);
       await mini.screenshot({ path: join(out, 'mini.png') });
       check(/\d/.test(text), `corner window shows no step count: ${JSON.stringify(text)}`);
+      check(!/在忙：|Busy:/.test(text), `corner window puts a label in front of what is happening: ${JSON.stringify(text)}`);
     } finally { await shop.close(); }
   },
 
@@ -631,6 +652,15 @@ const SCENARIOS = {
         // Test machines only: Linux without a keyring has nothing to encrypt with; Windows always has DPAPI.
         if (process.platform === 'linux') safeStorage.setUsePlainTextEncryption(true);
       });
+      // A wrong key first: the message names the prefix, and no line break lands inside it.
+      await shop.page.fill('.notice-card .key-form input', 'not-a-key');
+      await shop.page.locator('.notice-card .key-form button').click();
+      await shop.page.waitForFunction(() => /sk-ant-/.test(document.querySelector('.notice-card .key-status')?.textContent ?? ''));
+      const prefixLines = await shop.page.evaluate(() => {
+        const part = document.querySelector('.notice-card .key-status .key-text');
+        return part ? part.getClientRects().length : 0;
+      });
+      check(prefixLines === 1, `the key prefix is not kept on one line: ${prefixLines}`);
       await shop.page.fill('.notice-card .key-form input', 'sk-ant-api03-simulated-1111111111111111111111111111111111111111');
       await shop.page.locator('.notice-card .key-form button').click();
       const ready = await shop.maybe('.notice-card button.default', 10_000);

@@ -99,3 +99,23 @@ describe('shortening what the user wrote', () => {
     expect(shorten('Short one', en)).toBe('Short one');
   });
 });
+
+describe('the wording of the locales', () => {
+  it('calls changing finished work the same thing everywhere', () => {
+    for (const locale of [zh, en]) {
+      const names = [...leaves(locale)].filter(([k]) => /\.(revise|resultRevise)$|\.revise\.title$/.test(k)).map(([, v]) => v);
+      expect(names.length).toBeGreaterThanOrEqual(4);
+      expect(new Set(names).size).toBe(1);
+    }
+  });
+
+  it('uses Chinese quotation marks in Chinese text', () => {
+    const straight = [...leaves(zh)].filter(([, v]) => typeof v === 'string' && /[一-鿿]/.test(v) && v.includes('"')).map(([k]) => k);
+    expect(straight).toEqual([]);
+  });
+
+  it('does not name the rooms differently from the room picker in the furnishing hint', () => {
+    expect(zh.ui.furnish.hint).not.toContain('咖啡厅');
+    expect(en.ui.furnish.hint).not.toContain('café');
+  });
+});

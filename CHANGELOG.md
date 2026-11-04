@@ -42,6 +42,12 @@ Polish before launch.
 - **The blackboard shows four steps.** A step too long for its line ends in "…" instead of being cut off.
 - **Speech bubbles are never half hidden.** A bubble that would land on another moves above it, and one that a card
   would cut is not shown until the card closes.
+- **Furnishing in plain sight.** The Furnish tab of Settings moves the card beside the room and fits it to what is on
+  it, so the walls, curtains and rug can be seen changing. The hint now says plainly that each room keeps its own
+  colours.
+- **Smaller wording.** Changing finished work is called the same thing on every card ("再改改" in Chinese). The corner
+  window says what is happening without "Busy:" in front of it. The key prefix `sk-ant-` stays on one line. Chinese
+  text uses Chinese quotation marks.
 
 ## 0.9.1 (2026-11-03)
 
