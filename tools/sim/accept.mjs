@@ -9,6 +9,7 @@
 import { pathToFileURL } from 'node:url';
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
 
 const args = process.argv.slice(2);
@@ -127,6 +128,13 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** Every kind of text on every main card can be read: tools/sim/contrast.mjs. */
+  async contrast(lang, out) {
+    const run = spawnSync(process.execPath, [join(ROOT, 'tools', 'sim', 'contrast.mjs'), '--lang', lang, '--out', out], { encoding: 'utf8' });
+    check(run.status === 0, `too faint:\n${run.stdout.split('\n').filter((l) => l.startsWith('LOW') || l.startsWith('?')).join('\n')}${run.stderr}`);
+    console.log(`  ${run.stdout.trim().split('\n').at(-1)}`);
+  },
+
   /** Fourteen months and more runs than the ledger used to keep: each month and the sum are right. */
   async ledger(lang, out) {
     const month = (i) => `20${25 + Math.floor((i + 9) / 12)}-${String((i + 9) % 12 + 1).padStart(2, '0')}`;
