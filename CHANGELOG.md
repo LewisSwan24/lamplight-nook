@@ -17,6 +17,9 @@ Safety before launch.
 - **The shop's windows stay on the shop.** They refuse to navigate to another page, to open new windows or embedded
   views, and every web permission request (camera, microphone and the like). The page can no longer set the work
   folder; only the folder dialog does.
+- **The installed app cannot be borrowed to run other code.** Electron's fuses are set in the build: no plain Node
+  mode (`ELECTRON_RUN_AS_NODE`), no code through `NODE_OPTIONS`, no debugger flags, and only the app's own
+  `app.asar` loads, checked against its recorded hash on Windows.
 - **The plan shows up more often.** For work with three or more steps Claude is asked to keep its to-do list in your
   language from the start, so the blackboard shows the real plan rather than three generic steps (a real page
   commission now lists "请设计师给出配色与布局方案…").

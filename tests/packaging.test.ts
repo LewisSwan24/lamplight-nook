@@ -56,3 +56,21 @@ describe('installing Claude Code', () => {
     expect(findClaude(fresh)).toBe(exe);
   });
 });
+
+describe('Electron fuses', () => {
+  // Turned off so the shipped app cannot be used to run other code: as plain Node (ELECTRON_RUN_AS_NODE),
+  // with code injected through NODE_OPTIONS, or under a debugger. Only the app's own app.asar is loaded, and
+  // its integrity is checked. GrantFileProtocolExtraPrivileges stays on: the game loads its assets from file://.
+  it('are set for the packaged app', async () => {
+    const { readFileSync } = await import('node:fs');
+    const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+    expect(pkg.build.electronFuses).toEqual({
+      runAsNode: false,
+      enableCookieEncryption: true,
+      enableNodeOptionsEnvironmentVariable: false,
+      enableNodeCliInspectArguments: false,
+      enableEmbeddedAsarIntegrityValidation: true,
+      onlyLoadAppFromAsar: true,
+    });
+  });
+});

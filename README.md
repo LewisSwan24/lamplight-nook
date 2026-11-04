@@ -61,6 +61,11 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 - Run the workflow from the Actions tab, or push a tag such as `v0.1.0`.
 - It creates a GitHub release with `Lamplight-Nook-Setup-<version>.exe` and the Store test package attached, tagged with the pushed tag or with the version in `package.json`. Bump the version before each release.
 
+The build sets Electron's fuses (`build.electronFuses` in `package.json`): the packaged app does not run as plain
+Node, ignores `NODE_OPTIONS` and debugger flags, and loads only its own `app.asar`, whose hash is checked on
+Windows. Playwright cannot attach to such a build (it needs the debugger flag), so the acceptance scripts drive the
+unpackaged app.
+
 The installer is not code-signed yet, so Windows SmartScreen asks for confirmation ("More info", then "Run anyway").
 The installer does not include Claude Code. The app uses the copy installed on the machine
 (native installer location, `PATH`, or a global npm install; `LAMPLIGHT_CLAUDE_PATH` overrides the lookup)
