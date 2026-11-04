@@ -34,7 +34,8 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
   board: { x: 100, y: 60, facing: 'up' },
   shelf: { x: 66, y: 140, facing: 'left' },
   table: { x: 196, y: 102, facing: 'left' },
-  corner: { x: 170, y: 160, facing: 'left' },
+  // On the far side of the workbench from the back door, which everyone needs to get through.
+  corner: { x: 118, y: 148, facing: 'right' },
   counter: { x: 228, y: 84, facing: 'down' },
   door: { x: 295, y: 56, facing: 'up' },
 };
@@ -81,7 +82,7 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
     qingdai: { x: 78, y: 140, facing: 'left' },
   },
   corner: {
-    qingdai: { x: 182, y: 160, facing: 'left' },
+    qingdai: { x: 104, y: 160, facing: 'right' },
   },
   // Clear of the plant under the door.
   door: {

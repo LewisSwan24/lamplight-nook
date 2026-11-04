@@ -33,7 +33,7 @@ SEAT_BASE = {'bench': 121.5, 'sofa': 124.5}
 FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
         'study': {'table': 12, 'sofa': 20, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 8, 'plant_l': 8, 'plant_r': 8}}
 CHAIR_FOOT = 12
-WALL = ('window', 'window2', 'board')
+WALL = ('window', 'window2', 'window3', 'board')
 # Where the floor starts: what ends higher up hangs on the wall.
 FLOOR_TOP = 50
 

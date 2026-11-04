@@ -40,6 +40,7 @@ FURNITURE = [
     # back wall
     ('window', (0, at(226), 32, at(228)), (16, 12)),
     ('window2', (0, at(226), 32, at(228)), (52, 12)),
+    ('window3', (0, at(226), 32, at(228)), (197, 12)),  # looks out on the street, between the clock and the wall painting
     ('board', (0, at(338), 32, at(340)), (92, 14)),
     # floor
     ('plant_l', (192, at(26), 208, at(29)), (4, 40)),
@@ -56,8 +57,18 @@ FURNITURE = [
 
 # Top-left of the door (an animated sprite placed by the game at the same spot).
 DOOR = (288, 16)
-# The back door out to the garden (app/renderer/game/garden.ts, BACK_DOOR), another animated door.
-BACK_DOOR = (200, 16)
+# The back door out to the garden, in the near wall (app/renderer/game/garden.ts, BACK_DOOR).
+BACK_DOOR = (152, 164)
+NEAR_WALL_Y = 176
+NEAR_WALL = (34, 28, 36, 255)
+WALL_CAP_ROW = 1
+GARDEN_GREEN = (150, 200, 140, 255)
+MAT = (132, 142, 104, 255)
+MAT_EDGE = (92, 102, 76, 255)
+DOOR_WOOD = (156, 98, 58, 255)
+DOOR_EDGE = (92, 56, 38, 255)
+DOOR_KNOB = (238, 204, 120, 255)
+DAYLIGHT = (214, 240, 190, 70)
 
 # Chairs at the table seats (app/renderer/game/layout.ts, SEATS): a chair's 16x32 cell sits 8px below
 # the sitting character's frame, whose feet are at the seat point.
@@ -92,10 +103,40 @@ def shell():
     # The doorway behind the animated door: daylight outside, seen when the door opens.
     door = (DOOR[0], DOOR[1])
     img.paste((205, 226, 222, 255), (door[0] + 1, door[1] + 12, door[0] + 15, door[1] + 32))
-    # Behind the back door: the green of the garden.
-    back = BACK_DOOR
-    img.paste((150, 200, 140, 255), (back[0] + 1, back[1] + 12, back[0] + 15, back[1] + 32))
+    near_wall(img, wall)
     return img
+
+
+def near_wall(img, wall):
+    """The wall nearest us, seen from above along the bottom edge. Its gap shows the garden, with a mat in front."""
+    img.paste(wall.getpixel((0, WALL_CAP_ROW)), (0, NEAR_WALL_Y, W, NEAR_WALL_Y + 1))
+    img.paste(NEAR_WALL, (0, NEAR_WALL_Y + 1, W, H))
+    x = BACK_DOOR[0]
+    img.paste(GARDEN_GREEN, (x + 1, NEAR_WALL_Y, x + 15, H))
+    img.paste(MAT_EDGE, (x - 1, NEAR_WALL_Y - 6, x + 17, NEAR_WALL_Y - 1))
+    img.paste(MAT, (x, NEAR_WALL_Y - 5, x + 16, NEAR_WALL_Y - 2))
+
+
+def back_door():
+    """The back door from above, swinging outwards: closed, two steps, then open with the daylight on the mat."""
+    sheet = Image.new('RGBA', (16 * 4, 16), (0, 0, 0, 0))
+    top = NEAR_WALL_Y - BACK_DOOR[1]
+    for frame, right in enumerate((15, 9, 4, 1)):
+        x = frame * 16
+        for px in range(1, right):
+            for y in range(top, 16):
+                sheet.putpixel((x + px, y), DOOR_EDGE if y == top or px in (1, right - 1) else DOOR_WOOD)
+        for post in (0, 15):
+            for y in range(top - 2, 16):
+                sheet.putpixel((x + post, y), DOOR_EDGE)
+        if frame == 0:
+            sheet.putpixel((x + 12, top + 1), DOOR_KNOB)
+        if frame == 3:
+            for y in range(top - 6, top):
+                inset = (top - y) // 2
+                for px in range(2 + inset, 14 - inset):
+                    sheet.putpixel((x + px, y), DAYLIGHT)
+    sheet.save(OUT / 'back-door.png')
 
 
 def build():
@@ -108,6 +149,7 @@ def build():
     rug.patch(img)
     OUT.mkdir(parents=True, exist_ok=True)
     img.save(OUT / 'cafe.png')
+    back_door()
     animated = ROOT / 'assets/vendor/3_Animated_objects/16x16/spritesheets'
     for out, src in ANIMATED.items():
         Image.open(animated / src).convert('RGBA').save(OUT / out)

@@ -18,8 +18,8 @@ export const GARDEN_X = CANVAS.width + 80;
 type Point = { x: number; y: number };
 
 /** The back door in the shop (top-left of the door sprite) and where to stand in front of it, inside. */
-export const BACK_DOOR = { x: 200, y: 16 } as const;
-export const BACK_DOOR_SPOT = { x: 208, y: 56 } as const;
+export const BACK_DOOR = { x: 152, y: 164, w: 16, h: 16 } as const;
+export const BACK_DOOR_SPOT = { x: 160, y: 172 } as const;
 /** The same door seen from the garden (garden coordinates), and where to stand outside it. */
 export const GARDEN_DOOR = { x: 152, y: 16 } as const;
 export const GARDEN_DOOR_SPOT = { x: 160, y: 56 } as const;

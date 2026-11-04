@@ -18,6 +18,7 @@ import catUrl from '../../../assets/sprites/cat.png';
 import clockUrl from '../../../assets/sprites/clock.png';
 import cupUrl from '../../../assets/sprites/cup.png';
 import doorUrl from '../../../assets/sprites/door.png';
+import backDoorUrl from '../../../assets/sprites/back-door.png';
 import laoshiUrl from '../../../assets/sprites/laoshi.png';
 import qingdaiUrl from '../../../assets/sprites/qingdai.png';
 import streetUrl from '../../../assets/sprites/street.png';
@@ -73,7 +74,7 @@ const CORNER_PAUSE_MS = 90;
 const DOOR_POS = { x: 288, y: 16 };
 const DOOR_MS = 260;
 /** The window panes in cafe.png (scripts/art/scene.py) and the colours of their glass, which takes the sky's colour. */
-const WINDOW_PANES = [{ x: 18, y: 12, w: 24, h: 18 }, { x: 54, y: 12, w: 24, h: 18 }];
+const WINDOW_PANES = [{ x: 18, y: 12, w: 24, h: 18 }, { x: 54, y: 12, w: 24, h: 18 }, { x: 199, y: 12, w: 24, h: 18 }];
 const GLASS = new Set(['216,208,224', '235,228,242', '248,248,248']);
 /** How long the room takes to change its light when the hour turns a new period. */
 const DAYLIGHT_MS = 4000;
@@ -231,6 +232,7 @@ export class CafeScene extends Phaser.Scene {
     this.load.spritesheet('clock', clockUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('cup', cupUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('door', doorUrl, { frameWidth: 16, frameHeight: 32 });
+    this.load.spritesheet('back-door', backDoorUrl, { frameWidth: BACK_DOOR.w, frameHeight: BACK_DOOR.h });
     preloadGrowth(this.load);
     for (const part of FURNISH_PARTS) {
       for (const choice of FURNISH_CHOICES[part]) {
@@ -360,6 +362,8 @@ export class CafeScene extends Phaser.Scene {
     this.anims.create({ key: 'cup', frames: this.anims.generateFrameNumbers('cup', {}), frameRate: 5, repeat: -1 });
     this.anims.create({ key: 'door-open', frames: this.anims.generateFrameNumbers('door', { start: 0, end: 4 }), duration: DOOR_MS });
     this.anims.create({ key: 'door-close', frames: this.anims.generateFrameNumbers('door', { start: 4, end: 0 }), duration: DOOR_MS });
+    this.anims.create({ key: 'back-door-open', frames: this.anims.generateFrameNumbers('back-door', { start: 0, end: 3 }), duration: DOOR_MS });
+    this.anims.create({ key: 'back-door-close', frames: this.anims.generateFrameNumbers('back-door', { start: 3, end: 0 }), duration: DOOR_MS });
   }
 
   /** Small animated things that make the room feel lived in. */
@@ -405,8 +409,8 @@ export class CafeScene extends Phaser.Scene {
     this.cup = this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(COUNTER_TOP).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
     // The back door: click it to look out at the garden.
-    this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'door', 0).setOrigin(0).setDepth(1);
-    this.add.zone(BACK_DOOR.x, BACK_DOOR.y, 16, 32).setOrigin(0)
+    this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'back-door', 0).setOrigin(0).setDepth(1);
+    this.add.zone(BACK_DOOR.x, BACK_DOOR.y, BACK_DOOR.w, BACK_DOOR.h).setOrigin(0)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.activate('backdoor'))
       .on('pointerover', () => this.highlight('backdoor'))
@@ -515,7 +519,8 @@ export class CafeScene extends Phaser.Scene {
     glow(243, 86, 48, 0.18);
     glow(278, 146, 36, FLOOR_LAMP);
     this.floorLamp = this.glows[this.glows.length - 1];
-    glow(207, 34, 20, 0.12);
+    // The window by the clock lets the day in too.
+    glow(211, 58, 26, 0.14, true);
   }
 
   /**
@@ -719,7 +724,7 @@ export class CafeScene extends Phaser.Scene {
     });
     const bell = this.bell.visible ? [{ id: 'bell' as const, x: BELL_POS.x - 1, y: BELL_POS.y - 2, w: 9, h: 9 }] : [];
     const out = this.street.open && this.street.who ? [{ id: this.street.who, x: INSET.x, y: INSET.y, w: INSET.w, h: INSET.h }] : [];
-    const back = { id: 'backdoor' as const, x: BACK_DOOR.x, y: BACK_DOOR.y, w: 16, h: 32 };
+    const back = { id: 'backdoor' as const, ...BACK_DOOR };
     const works = this.growth.hasWorks ? [{ id: 'works' as const, ...SHELF }] : [];
     for (const [id, zone] of this.growthZones) zone.input!.enabled = this.growth.shows(id.slice(5) as GrowthId);
     const objects = this.objects.filter((o) => o.id !== 'board' && this.shows(o));
@@ -1160,21 +1165,21 @@ export class CafeScene extends Phaser.Scene {
     actor.inGarden = false;
     this.speech.delete(actor.id);
     await this.garden.leave(actor.id, this.view !== 'garden');
-    actor.sprite.setPosition(BACK_DOOR_SPOT.x, BACK_DOOR_SPOT.y - 8).setDepth(BACK_DOOR_SPOT.y);
+    actor.sprite.setPosition(BACK_DOOR_SPOT.x, BACK_DOOR_SPOT.y + 8).setDepth(BACK_DOOR_SPOT.y);
     await this.throughBackDoor(actor, 'in');
   }
 
   /** Open the back door and step through it, fading out going out or in coming back. */
   private async throughBackDoor(actor: Actor, way: 'out' | 'in') {
     if (this.view === 'shop') this.onSound?.('door');
-    this.backDoor.play('door-open');
+    this.backDoor.play('back-door-open');
     await new Promise((r) => this.time.delayedCall(DOOR_MS, r));
-    if (actor.id !== 'cat') actor.sprite.play(animKey(actor.id, 'walk', way === 'out' ? 'up' : 'down'), true);
-    const to = way === 'out' ? { y: BACK_DOOR_SPOT.y - 8, alpha: 0 } : { y: BACK_DOOR_SPOT.y, alpha: 1 };
+    if (actor.id !== 'cat') actor.sprite.play(animKey(actor.id, 'walk', way === 'out' ? 'down' : 'up'), true);
+    const to = way === 'out' ? { y: BACK_DOOR_SPOT.y + 8, alpha: 0 } : { y: BACK_DOOR_SPOT.y, alpha: 1 };
     await new Promise<void>((done) => {
       actor.tween = this.tweens.chain({ tweens: [{ targets: [actor.sprite], ...to, duration: 420 }], onComplete: () => done(), onStop: () => done() });
     });
-    this.backDoor.play('door-close');
+    this.backDoor.play('back-door-close');
   }
 
   /** Look out at the garden, or back into the shop: a quick fade while the camera moves over. */

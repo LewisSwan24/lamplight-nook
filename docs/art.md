@@ -55,7 +55,7 @@ no pixel changed, so compare pixels and restore unchanged files before committin
 
 | Script | Builds |
 |---|---|
-| `scene.py` | The cafe background. Calls `rug.py`. Run `furnish.py` afterwards. |
+| `scene.py` | The cafe background, and the back door in the near wall (`back-door.png`, drawn by the script). Calls `rug.py`. Run `furnish.py` afterwards. |
 | `study.py` | The study background. Run `furnish.py` afterwards. |
 | `rug.py` | The cafe's rug and the bench's top edge, and can repaint an existing `cafe.png`. |
 | `furnish.py` | The wall, curtain and rug colour overlays for each scene. |

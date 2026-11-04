@@ -29,9 +29,10 @@ def piece(sheet, rect):
 # name, sheet, pixel rect on it -> top-left on the canvas. Drawn in order, so later pieces overlap earlier ones.
 # The names are the cafe's where a piece plays the same part (scripts/art/pieces.py); the wall and the rug have none.
 FURNITURE = [
-    # back wall: the same two windows and blackboard as the cafe (the window glass takes the sky's colour)
+    # back wall: the same three windows and blackboard as the cafe (the window glass takes the sky's colour)
     (None, scene.interiors, (0, scene.at(226), 32, scene.at(228)), (16, 12)),
     (None, scene.interiors, (0, scene.at(226), 32, scene.at(228)), (52, 12)),
+    (None, scene.interiors, (0, scene.at(226), 32, scene.at(228)), (197, 12)),
     (None, scene.interiors, (0, scene.at(338), 32, scene.at(340)), (92, 14)),
     # floor
     ('plant_l', living, (166, 8, 186, 41), (2, 40)),  # a tall pot plant in the corner
@@ -61,9 +62,9 @@ def shell():
     wall = scene.tiles(scene.walls, 23, 24, 1, 2)
     for x in range(0, W, scene.T):
         img.alpha_composite(wall, (x, 16))
-    door, back = scene.DOOR, scene.BACK_DOOR
+    door = scene.DOOR
     img.paste((205, 226, 222, 255), (door[0] + 1, door[1] + 12, door[0] + 15, door[1] + 32))
-    img.paste((150, 200, 140, 255), (back[0] + 1, back[1] + 12, back[0] + 15, back[1] + 32))
+    scene.near_wall(img, wall)
     return img
 
 

@@ -8,6 +8,8 @@ const GLASS_DEPTH = 0.6;
 const DECOR_DEPTH = 1.5;
 /** Where things fall past the windows (the panes, a little above them so they fall in from outside). */
 const WINDOW_AREA = { x: 16, y: 4, w: 64, h: 36 };
+/** And past the window by the clock. */
+const SIDE_WINDOW_AREA = { x: 197, y: 4, w: 28, h: 36 };
 
 export const HOLIDAYS: Holiday[] = ['halloween', 'christmas', 'new_year'];
 /** Weather that leaves a touch in the room: a wet umbrella, snow on the sills, leaves or petals blown in. */
@@ -84,6 +86,7 @@ export class WeatherLayer {
     if (this.sky === 'clear' || this.reducedMotion) return;
     const glassMask = this.scene.make.image({ x: 0, y: 0, key: this.glass, origin: 0 }, false).createBitmapMask();
     this.emitters.push(this.emitter(WINDOW_AREA, 1, GLASS_DEPTH).setMask(glassMask));
+    this.emitters.push(this.emitter(SIDE_WINDOW_AREA, SIDE_WINDOW_AREA.w / WINDOW_AREA.w, GLASS_DEPTH).setMask(glassMask));
     for (const o of this.outdoors) {
       const e = this.emitter(o.area, o.area.w / WINDOW_AREA.w, o.depth).setMask(o.mask);
       this.emitters.push(e);

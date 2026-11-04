@@ -391,6 +391,7 @@
       "names": {
         "clock": "Clock",
         "window": "Window",
+        "sidewindow": "Window by the clock",
         "frontdoor": "Front door",
         "table": "Big table",
         "shelf": "Bookshelf",

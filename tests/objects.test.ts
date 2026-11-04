@@ -48,6 +48,24 @@ describe.each(['zh-CN', 'en'] as const)('what things say in %s', (lang) => {
     }
   });
 
+  it('has a window where the back door used to be, clear of the clock and the wall painting', () => {
+    for (const scene of ['cafe', 'study'] as const) {
+      const boxes = objectBoxes(scene);
+      const box = boxes.find((b) => b.id === 'sidewindow')!;
+      const clock = boxes.find((b) => b.id === 'clock')!;
+      const painting = boxes.find((b) => b.id === 'grow-painting')!;
+      expect(box.x).toBeGreaterThanOrEqual(clock.x + clock.w);
+      expect(box.x + box.w).toBeLessThanOrEqual(painting.x);
+      expect(box.y + box.h).toBeLessThanOrEqual(48);
+    }
+  });
+
+  it('shows the same weather through that window as through the others', () => {
+    const rain = { ...quiet, sky: 'rain', period: 'night' } as const;
+    const { say } = objectReaction('window', rain, O) as { say: string };
+    expect(objectReaction('sidewindow', rain, O)).toEqual({ say, by: 'xiaoju' });
+  });
+
   it('knows every kind of weather and time of day through the window', () => {
     const seen = new Set<string>();
     for (const sky of ['clear', 'rain', 'snow', 'petals', 'leaves'] as const) {

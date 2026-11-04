@@ -10,7 +10,7 @@ import type { Sky } from './weather';
  * Everything fixed in the shop can be clicked (docs/information-structure.md, section 4). Pure: what stands where and
  * what it says. A reaction never costs anything: a line, a light, or someone strolling over. CafeScene shows it.
  */
-const FIXED = ['clock', 'window', 'frontdoor', 'table', 'shelf', 'workbench', 'lamp', 'plant', 'plant2', 'cup', 'board', 'sofa'] as const;
+const FIXED = ['clock', 'window', 'sidewindow', 'frontdoor', 'table', 'shelf', 'workbench', 'lamp', 'plant', 'plant2', 'cup', 'board', 'sofa'] as const;
 export const OBJECT_IDS = FIXED;
 export type FixedObject = (typeof FIXED)[number];
 export type ObjectId = FixedObject | `grow-${GrowthId}`;
@@ -25,6 +25,7 @@ const PIECE_OF: Partial<Record<FixedObject, string>> = {
 const WALL: Partial<Record<FixedObject, { x: number; y: number; w: number; h: number }>> = {
   clock: { x: 180, y: 14, w: 16, h: 32 },
   window: { x: 16, y: 12, w: 64, h: 28 },
+  sidewindow: { x: 197, y: 12, w: 28, h: 28 },
   frontdoor: { x: 288, y: 16, w: 16, h: 32 },
 };
 const CUP = { cafe: { x: 258, y: 78, w: 12, h: 14 }, study: { x: 234, y: 76, w: 12, h: 14 } };
@@ -80,6 +81,8 @@ export function objectReaction(id: ObjectId, ctx: ObjectContext, O: Objects): Re
     }
     case 'window':
       return { say: fill(O.window, { sky: O.skies[ctx.sky], period: O.periods[ctx.period] }), by: 'qingdai' };
+    case 'sidewindow':
+      return { say: fill(O.window, { sky: O.skies[ctx.sky], period: O.periods[ctx.period] }), by: 'xiaoju' };
     case 'frontdoor':
       if (!running) return { say: O.door[ctx.sky], by: 'xiaoju' };
       return { say: ctx.errand ? fill(O.doorErrand, { name: O.actorNames[ctx.errand as keyof Objects['actorNames']] }) : O.doorNobody, by: 'adeng' };
