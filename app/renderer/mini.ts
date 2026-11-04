@@ -3,9 +3,9 @@ import studyUrl from '../../assets/sprites/study.png';
 import adengUrl from '../../assets/sprites/adeng.png';
 import catUrl from '../../assets/sprites/cat.png';
 import emotesUrl from '../../assets/ui/emotes.png';
-import { fill, strings } from '../shared/i18n';
+import { strings } from '../shared/i18n';
 import { currentScene } from '../shared/scenes';
-import { MINI_IDLE, type MiniState } from '../shared/mini';
+import { MINI_IDLE, type MiniState, miniLine } from '../shared/mini';
 import { CAT_FRAME, STAFF_ANIMS, STAFF_FRAME, staffFrames } from './game/sprites';
 import { EMOTES } from './ui/emotes';
 
@@ -36,18 +36,10 @@ const load = (src: string) => new Promise<HTMLImageElement>((ok, fail) => {
 let state: MiniState = MINI_IDLE;
 let frame = 0;
 
-function line(s: MiniState): string {
-  if (s.status === 'working') {
-    const busy = fill(M.working, { what: s.what || '…' });
-    return s.step ? `${fill(M.step, { n: String(s.step.n), total: String(s.step.total) })} \u00B7 ${busy}` : busy;
-  }
-  return M[s.status];
-}
-
 function show(next: MiniState) {
   state = next;
   document.body.dataset.status = next.status;
-  status.textContent = line(next);
+  status.textContent = miniLine(next, M);
   status.title = status.textContent;
 }
 

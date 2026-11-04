@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MINI_IDLE, type MiniEvent, type MiniState, nextMini } from '../app/shared/mini';
+import { MINI_IDLE, type MiniEvent, type MiniState, miniLine, nextMini } from '../app/shared/mini';
+import { LOCALES } from '../app/shared/i18n';
 
 const run = (...events: MiniEvent[]): MiniState => events.reduce(nextMini, MINI_IDLE);
 const ai = (kind: string, extra: Record<string, unknown> = {}): MiniEvent => ({ type: 'ai', event: { kind, agent: 'main', plain: '', ...extra } as never });
@@ -42,5 +43,25 @@ describe('corner window state', () => {
 
   it('coming back while work runs does not stop it showing as busy', () => {
     expect(run({ type: 'run', running: true }, { type: 'seen' }).status).toBe('working');
+  });
+});
+
+describe('the corner window line', () => {
+  const M = LOCALES.en.ui.mini;
+  const working = (extra: Partial<MiniState>): MiniState => ({ status: 'working', pose: 'idle', ...extra });
+
+  it('shows what is happening without a second label in front of it', () => {
+    const line = miniLine(working({ what: 'sent someone to: Colours', step: { n: 2, total: 7 } }), M);
+    expect(line).toBe('2 of 7 · sent someone to: Colours');
+  });
+
+  it('says busy when there is nothing more to say', () => {
+    expect(miniLine(working({}), M)).toBe(M.working);
+    expect(M.working).not.toMatch(/[{:：]/);
+    expect(LOCALES['zh-CN'].ui.mini.working).not.toMatch(/[{:：]/);
+  });
+
+  it('uses the plain line for every other status', () => {
+    expect(miniLine({ status: 'done', pose: 'idle' }, M)).toBe(M.done);
   });
 });

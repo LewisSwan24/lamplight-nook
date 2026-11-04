@@ -217,6 +217,10 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .settings-body > section:first-child { margin-top: 4px; }
 /* Every tab gets the same height, so the card does not jump about when switching. */
 .settings .settings-body { height: min(420px, calc((86vh / var(--ui, 1)) - 110px)); }
+/* Furnishing: the card stands beside the room, so the walls, curtains and rug change in plain sight. */
+.settings[data-tab='furnish'] { left: auto; right: 2vw; transform: translateY(-50%); }
+.settings[data-tab='furnish'] .settings-body { height: auto; padding-bottom: 8px; }
+.key-text { white-space: nowrap; }
 
 .settings h4 { margin: 0 0 2px; font-family: var(--hand); font-weight: normal; font-size: 17px; opacity: 0.85; }
 .settings .about { font-size: 13px; }

@@ -48,7 +48,7 @@ node tools/sim/accept.mjs --lang en --only demo,board
 
 Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
 `templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
-`meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart),
+`meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
 slip holding twelve long-named files), `trial`,
 `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),

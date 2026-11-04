@@ -1,5 +1,13 @@
 import { stepCount } from './board';
+import { fill, type strings } from './i18n';
 import type { AiEvent, Bubble } from './types';
+
+/** The one line under the picture. What is happening already says it is busy, so the word is only the fallback. */
+export function miniLine(s: MiniState, M: typeof strings.ui.mini): string {
+  if (s.status !== 'working') return M[s.status];
+  const what = s.what || M.working;
+  return s.step ? `${fill(M.step, { n: String(s.step.n), total: String(s.step.total) })} · ${what}` : what;
+}
 
 /** What the small corner window shows: Adeng at the counter, a mood bubble, and one line of status. */
 export type MiniStatus = 'idle' | 'working' | 'waiting' | 'serious' | 'done' | 'failed';
