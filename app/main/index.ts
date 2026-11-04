@@ -1,9 +1,9 @@
 import './locale-boot';
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
-import { basename, dirname, isAbsolute, join } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, shell } from 'electron';
+import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, session, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
@@ -253,7 +253,11 @@ ipcMain.handle(IPC.clearApiKey, () => keys.clear());
 ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth());
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
-ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => settings.update(patch));
+ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
+  // Where commissions are written is chosen in the folder dialog (chooseWorkRoot), never sent from the page.
+  const { workRoot: _ignored, ...rest } = patch && typeof patch === 'object' ? patch : ({} as Partial<Settings>);
+  return settings.update(rest);
+});
 ipcMain.handle(IPC.chooseWorkRoot, async (): Promise<Settings | null> => {
   if (!win) return null;
   const r = await dialog.showOpenDialog(win, { defaultPath: settings.get().workRoot, properties: ['openDirectory', 'createDirectory'] });
@@ -441,7 +445,11 @@ ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
   const memo = typeof id === 'string' ? memory.find(id) : undefined;
   if (!memo?.folder || !existsSync(memo.folder)) return false;
   const main = memo.main ? join(memo.folder, memo.main) : null;
-  if (main && isInside(memo.folder, main) && existsSync(main)) return (await shell.openPath(main)) === '';
+  if (main && existsSync(main) && insideForReal(memo.folder, main)) {
+    if (openable(main)) return (await shell.openPath(main)) === '';
+    shell.showItemInFolder(main);
+    return true;
+  }
   return (await shell.openPath(memo.folder)) === '';
 });
 /** Commissions put back to their previous version since their last round (the next round is told). */
@@ -499,14 +507,45 @@ ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean
 
 // Only files from the current or last commission folder can be opened from the renderer.
 ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') => {
+  if (typeof path !== 'string') return false;
   const allowed = [current?.workDir, lastWorkDir].filter(Boolean) as string[];
-  if (!allowed.some((dir) => isInside(dir, path))) return false;
-  if (how === 'reveal') shell.showItemInFolder(path);
+  if (!allowed.some((dir) => insideForReal(dir, path))) return false;
+  if (how === 'reveal' || !openable(path)) shell.showItemInFolder(path);
   else await shell.openPath(path);
   return true;
 });
 
+/**
+ * Kinds of file the shop opens with a click. The staff write files, and a page or a file they read could talk
+ * them into writing a program, a script or a shortcut; opening that would run it. Anything else is shown in
+ * its folder instead, for the user to decide.
+ */
+const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']);
+const openable = (path: string) => OPENABLE.has(extname(path).toLowerCase());
+/** Inside the folder once links are followed, so a link inside cannot point the click somewhere else. */
+function insideForReal(dir: string, path: string): boolean {
+  try {
+    return isInside(dir, path) && isInside(realpathSync(dir), realpathSync(path));
+  } catch {
+    return false;
+  }
+}
+
+// The shop's windows only ever show its own pages. A link or a script that tried to load something else
+// would get the shop's API with it, so navigation, new windows and embedded views are refused.
+app.on('web-contents-created', (_e, contents) => {
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  contents.on('will-navigate', (e, url) => {
+    const dev = process.env.ELECTRON_RENDERER_URL;
+    if (!(dev && !app.isPackaged && url.startsWith(dev))) e.preventDefault();
+  });
+  contents.on('will-attach-webview', (e) => e.preventDefault());
+});
+
 app.whenReady().then(() => {
+  // Nothing in the shop needs the camera, the microphone, notifications from the page or anything like them.
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, done) => done(false));
+  session.defaultSession.setPermissionCheckHandler(() => false);
   log = new Log(join(app.getPath('userData'), 'logs'));
   log.prune();
   log.info('app start', { version: app.getVersion(), packaged: app.isPackaged, platform: process.platform, release: release() });

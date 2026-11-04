@@ -1,5 +1,5 @@
 import { homedir } from 'node:os';
-import { basename, isAbsolute, resolve, sep } from 'node:path';
+import { basename, isAbsolute, join, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
 import type { Risk } from '../shared/types';
 import { isInside } from './paths';
@@ -189,7 +189,7 @@ function classifyBash(cmd: string, ctx: RiskContext): RiskVerdict {
     for (const source of part.reads) verdict = worse(verdict, readVerdict(ctx, cwd, source));
     if (name === undefined) continue;
     if (name === 'cd') {
-      const to = abs(cwd, args[0] ?? (ctx.home ?? homedir()));
+      const to = abs(cwd, expandHome(ctx, args[0] ?? '~'));
       if (args.length > 1 || !isInside(ctx.workDir, to)) return worse(verdict, { risk: 'serious', reason: R.readOutside });
       cwd = to;
       continue;
@@ -203,6 +203,7 @@ function classifyBash(cmd: string, ctx: RiskContext): RiskVerdict {
     const run = runVerdict(name, args);
     if (run?.risk === 'serious') return worse(verdict, run);
     if (run) verdict = worse(verdict, run);
+    if (name === 'echo') continue; // its words are printed, not opened
     for (const arg of args) {
       if (arg.startsWith('-')) continue;
       verdict = worse(verdict, readVerdict(ctx, cwd, arg));
@@ -231,11 +232,30 @@ function runVerdict(name: string, args: string[]): RiskVerdict | null {
 
 /** A path a command reads: blocked or outside the folder as for the Read tool, otherwise nothing to say. */
 function readVerdict(ctx: RiskContext, cwd: string, arg: string): RiskVerdict {
-  const full = abs(cwd, arg);
+  const full = abs(cwd, expandHome(ctx, arg));
   const v = pathVerdict(ctx, full, false);
   if (v) return v;
-  if (!isInside(ctx.workDir, full) && /[\\/]/.test(arg)) return { risk: 'serious', reason: R.readOutside };
+  if (!isInside(ctx.workDir, full)) return { risk: 'serious', reason: R.readOutside };
   return { risk: 'safe', reason: R.safeCommand };
+}
+
+/** ~ and ~/x are the home folder, as the shell reads them. */
+function expandHome(ctx: RiskContext, p: string): string {
+  if (p !== '~' && !p.startsWith('~/') && !p.startsWith('~\\')) return p;
+  return join(ctx.home ?? homedir(), p.slice(2));
+}
+
+/** The folder a glob pattern starts from: everything before the first wildcard ("../**" -> "..", "*.md" -> ""). */
+function globBase(pattern: string): string {
+  const parts = pattern.split(/[\\/]/);
+  const fixed: string[] = [];
+  for (const part of parts) {
+    if (/[*?[{]/.test(part)) break;
+    fixed.push(part);
+  }
+  if (fixed.length === parts.length) fixed.pop(); // a plain path: its folder
+  const base = fixed.join('/');
+  return base === '' && pattern.startsWith('/') ? '/' : base;
 }
 
 function abs(workDir: string, p: string) {
@@ -267,8 +287,17 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
   if (WEB_READ_TOOLS.has(tool)) return { risk: 'safe', reason: R.webRead };
 
   if (READ_ONLY_TOOLS.has(tool)) {
-    const p = String(input.file_path ?? input.path ?? '');
-    return (p && pathVerdict(ctx, p, false)) || { risk: 'safe', reason: R.read };
+    // Claude Code asks only for reads outside its folder. Anything read there could be sent on by a later
+    // web request (say, after a page Claude read told it to), so it waits for the user.
+    const where = [input.file_path, input.path, tool === 'Glob' ? globBase(String(input.pattern ?? '')) : undefined]
+      .filter((v): v is string => typeof v === 'string' && v !== '');
+    let verdict: RiskVerdict = { risk: 'safe', reason: R.read };
+    for (const w of where) {
+      const full = abs(ctx.workDir, expandHome(ctx, w));
+      verdict = worse(verdict, pathVerdict(ctx, full, false)
+        ?? (isInside(ctx.workDir, full) ? { risk: 'safe', reason: R.read } : { risk: 'serious', reason: R.readOutside }));
+    }
+    return verdict;
   }
 
   if (WRITE_TOOLS.has(tool)) {
@@ -285,19 +314,16 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
     if (tool === 'Bash') return classifyBash(cmd, ctx);
     if (DELETE.test(cmd)) return { risk: 'serious', reason: R.delete };
     if (NETWORK_SEND.test(cmd)) return { risk: 'serious', reason: R.networkSend };
-    if (COMPLEX.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
+    if (COMPLEX.test(cmd) || /\$/.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
     if (INSTALL.test(cmd)) return { risk: 'ask', reason: R.install };
     const name = cmd.split(/\s+/)[0];
     if (SAFE_COMMANDS.has(name)) {
       const run = runVerdict(name, cmd.split(/\s+/).slice(1));
       if (run) return run;
       for (const arg of cmd.split(/\s+/).slice(1)) {
-        if (arg.startsWith('-')) continue;
-        const v = pathVerdict(ctx, arg, false);
-        if (v) return v;
-        if (!isInside(ctx.workDir, abs(ctx.workDir, arg)) && /[\\/]/.test(arg)) {
-          return { risk: 'serious', reason: R.readOutside };
-        }
+        if (arg.startsWith('-') || name === 'echo') continue;
+        const v = readVerdict(ctx, ctx.workDir, arg.replace(/^(['"])(.*)\1$/, '$2'));
+        if (v.risk !== 'safe') return v;
       }
       return { risk: 'safe', reason: R.safeCommand };
     }
