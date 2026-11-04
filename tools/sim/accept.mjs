@@ -6,6 +6,7 @@
 //
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
+import { pathToFileURL } from 'node:url';
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { FAKE_CLAUDE, freshHome, launch, onboarded, sleep, ROOT } from './shop.mjs';
@@ -550,7 +551,9 @@ const SCENARIOS = {
    */
   async firstrun(lang, out) {
     const home = freshHome();
-    const claudeAt = join(home.home, '.local', 'bin', 'claude');
+    // On Windows the app can only start a script that has its extension, and a symlink needs special rights.
+    const windows = process.platform === 'win32';
+    const claudeAt = join(home.home, '.local', 'bin', windows ? 'claude.mjs' : 'claude');
     // Linux test machines have no keyring; the basic store lets the app encrypt the key as it would on Windows.
     const shop = await launch({ lang, home, speed: SPEED, key: false, claudePath: claudeAt, args: ['--password-store=basic'] });
     const S = shop.L.ui.setup;
@@ -583,7 +586,9 @@ const SCENARIOS = {
 
       // Claude Code is installed (the stand-in appears where the app looks): the row turns green by itself.
       mkdirSync(join(claudeAt, '..'), { recursive: true });
-      symlinkSync(FAKE_CLAUDE, claudeAt);
+      if (windows) writeFileSync(claudeAt, `import ${JSON.stringify(pathToFileURL(FAKE_CLAUDE).href)};
+`);
+      else symlinkSync(FAKE_CLAUDE, claudeAt);
       await shop.page.waitForSelector('.notice-card .env-row.ok', { timeout: 15_000 });
 
       // The key, pasted in the app; the check with Anthropic is caught here and says yes.

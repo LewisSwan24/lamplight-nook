@@ -108,7 +108,7 @@ describe('listing a folder', () => {
     writeFileSync(join(root, 'photos', '2025', 'deep', 'x.jpg'), 'x');
     writeFileSync(join(root, 'photos', 'cat.jpg'), 'meow');
     writeFileSync(join(root, '.secret'), 's');
-    symlinkSync(join(root, 'photos'), join(root, 'link'));
+    symlinkSync(join(root, 'photos'), join(root, 'link'), 'junction'); // a junction needs no special rights on Windows; elsewhere the type is ignored
     const lines = listFolder(root).trim().split('\n').map((l) => l.split('\t')[0]);
     expect(lines).toEqual(['photos/', 'photos/2025/', 'photos/cat.jpg']);
   });
