@@ -311,6 +311,8 @@ export type CharacterCommand = {
   state: string;
   moveTo?: AnchorId;
   anim?: string;
+  /** Something held in the hand during the animation (game/props.ts). */
+  prop?: string;
   /** What the rule asked for before the sprite fallback (write, hammer, ...); sounds follow this, not the sprite. */
   action?: string;
   /**

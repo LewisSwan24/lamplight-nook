@@ -180,7 +180,9 @@ export class Stage {
     const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
     if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
     if (replaced()) return;
-    this.scene.play(actor, cmd.anim);
+    this.scene.play(actor, cmd.anim, cmd.prop);
+    // Handing something over: Adeng turns to whoever brings it.
+    if (cmd.anim === 'gift' && actor !== 'adeng') this.scene.lookAt('adeng', actor);
     const sound = ACTION_SOUNDS[cmd.action ?? cmd.anim ?? ''];
     if (sound) this.scene.onSound?.(sound);
     const vars = cmd.line?.vars ?? {};
@@ -195,6 +197,7 @@ export class Stage {
       if (replaced()) return;
       if (last && last !== t.who) this.hide(actor, last);
       this.show(actor, t.who, t.text, t.who === actor ? cmd.bubble : undefined);
+      for (const other of turns) if (other.who !== t.who) this.scene.lookAt(other.who, t.who);
       last = t.who;
     }
     if (goingOut) {
@@ -245,6 +248,8 @@ export class Stage {
     for (const t of turns) {
       if (this.scene.busyTalking(t.speaker)) return;
       this.scene.say(t.speaker, t.text);
+      // Whoever is listening turns to whoever is talking.
+      for (const other of turns) if (other.speaker !== t.speaker) this.scene.lookAt(other.speaker, t.speaker);
       await new Promise((r) => setTimeout(r, 2000 + 150 * [...t.text].length));
       this.scene.say(t.speaker, null);
       await new Promise((r) => setTimeout(r, 300));

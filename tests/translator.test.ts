@@ -6,7 +6,8 @@ import { Director } from '../app/renderer/translator/director';
 import { parseLines, toLineBook } from '../app/renderer/translator/lines';
 import { ACTOR_STATES, StateMachine, canMove } from '../app/renderer/translator/state-machine';
 import { Translator, parseAnimTable, parseRules, resolveAnim } from '../app/renderer/translator/translator';
-import type { AiEvent, RawAgentEvent } from '../app/shared/types';
+import { STAFF_ANIMS } from '../app/renderer/game/sprites';
+import type { ActorId, AiEvent, RawAgentEvent } from '../app/shared/types';
 
 const root = join(__dirname, '..');
 const read = (p: string) => readFileSync(join(root, p), 'utf8');
@@ -58,6 +59,73 @@ describe('state machine', () => {
   });
 });
 
+describe('what the staff really do', () => {
+  const open = () => {
+    const t = new Translator(rules, anims, { brief: 'x' });
+    t.translate(ev({ kind: 'session_start' }));
+    return t;
+  };
+  const on = (kind: AiEvent['kind'], extra: Partial<AiEvent> = {}) => open().translate(ev({ kind, ...extra }));
+
+  it('gives a character something to hold instead of a stand-in pose', () => {
+    expect(resolveAnim(anims, 'adeng', 'write')).toMatchObject({ prop: 'pencil' });
+    expect(resolveAnim(anims, 'adeng', 'drink')).toMatchObject({ anim: 'idle', prop: 'cup' });
+    expect(resolveAnim(anims, 'adeng', 'spin_cup')).toMatchObject({ anim: 'idle', prop: 'cup' });
+    expect(resolveAnim(anims, 'laoshi', 'hammer')).toMatchObject({ anim: 'lift', prop: 'hammer' });
+  });
+
+  it('passes the thing held on to the command', () => {
+    const [cmd] = on('tool_start', { tool: 'Write' });
+    expect(cmd).toMatchObject({ actor: 'adeng', anim: 'sit', prop: 'pencil' });
+  });
+
+  it('has Adeng on the phone for the web and for commands', () => {
+    for (const tool of ['Bash', 'PowerShell', 'WebSearch', 'WebFetch']) {
+      expect(on('tool_start', { tool })[0], tool).toMatchObject({ anim: 'phone', moveTo: 'counter' });
+    }
+  });
+
+  it('still sends Adeng to the shelf to read', () => {
+    expect(on('tool_start', { tool: 'Read' })[0]).toMatchObject({ anim: 'read', moveTo: 'shelf' });
+  });
+
+  it('has Adeng hand the work over when someone is sent off', () => {
+    for (const agent of ['designer', 'reviewer', 'researcher'] as const) {
+      const cmds = on('subagent_start', { agent });
+      expect(cmds.find((c) => c.actor === 'adeng'), agent).toMatchObject({ anim: 'gift' });
+    }
+  });
+
+  it('hands the work over even when Adeng is already at work', () => {
+    const t = open();
+    t.translate(ev({ kind: 'tool_start', tool: 'Write' }));
+    expect(t.translate(ev({ kind: 'subagent_start', agent: 'reviewer' })).find((c) => c.actor === 'adeng')).toMatchObject({ anim: 'gift' });
+  });
+
+  it('has Laoshi lift the work back when the check is done', () => {
+    expect(on('subagent_stop', { agent: 'reviewer' })[0]).toMatchObject({ actor: 'laoshi', anim: 'lift' });
+  });
+
+  it('only ever asks a sprite sheet for an animation it really has', () => {
+    expect(anims.staff.available.filter((a) => !STAFF_ANIMS[a])).toEqual([]);
+    for (const r of rules) for (const s of [r, ...(r.extra ?? [])]) {
+      if (!s.anim || s.actor === 'cat' || s.anim === 'walk') continue;
+      const { anim } = resolveAnim(anims, s.actor === '{agent}' ? 'adeng' : (s.actor as ActorId), s.anim);
+      expect(STAFF_ANIMS[anim], `${s.anim} -> ${anim}`).toBeDefined();
+    }
+  });
+
+  it('lets the cat walk for real', () => {
+    expect(resolveAnim(anims, 'cat', 'walk')).toEqual({ anim: 'walk' });
+  });
+
+  it('keeps only stand-ins that have a reason, each with something to show for it', () => {
+    const left = Object.values(anims.staff.fallback);
+    for (const f of left) expect((f as { prop?: string; bubble?: string }).prop ?? (f as { bubble?: string }).bubble ?? 'walk').toBeTruthy();
+    expect(Object.keys(anims.staff.fallback).sort()).toEqual(['drink', 'hammer', 'put_on_coat', 'scratch_head', 'spin_cup', 'write']);
+  });
+});
+
 describe('translation: real recording', () => {
   const t = new Translator(rules, anims, { brief: 'ledger page' });
   const cmds = normalizeAll(recording).flatMap((e) => t.translate(e).map((c) => ({ kind: e.kind, ...c })));
@@ -66,11 +134,11 @@ describe('translation: real recording', () => {
   it('plays the storyboard', () => {
     expect(story).toEqual([
       'adeng:ready@counter', 'xiaoju:ready@shelf', 'laoshi:ready@corner', 'qingdai:ready@board',
-      'xiaoju:out@door',
+      'xiaoju:out@door', 'adeng:working', // handed over
       'xiaoju:out', // web search while out: bubble only
       'xiaoju:returning@counter',
       'adeng:working@table',
-      'laoshi:checking@table',
+      'laoshi:checking@table', 'adeng:working', // handed over
       'laoshi:checking', // reads notes.md
       'laoshi:ready@corner',
       'adeng:thinking',
@@ -84,7 +152,7 @@ describe('translation: real recording', () => {
     const go = cmds.find((c) => c.actor === 'xiaoju' && c.state === 'out' && c.moveTo)!;
     expect(go.anim).toBe('walk');
     const check = cmds.find((c) => c.actor === 'laoshi' && c.state === 'checking')!;
-    expect(check).toMatchObject({ anim: 'lift', bubble: 'dots' });
+    expect(check).toMatchObject({ anim: 'lift', prop: 'hammer', bubble: 'dots' });
   });
 
   it('a passing review picks the "looks fine" line', () => {
@@ -99,12 +167,12 @@ describe('translation: cases not in the recording', () => {
     const t = new Translator(rules, anims);
     t.translate(ev({ kind: 'session_start' }));
     const show = (e: Partial<AiEvent>) => t.translate(ev(e)).map((c) => `${c.actor}:${c.state}${c.moveTo ? '@' + c.moveTo : ''}${c.line ? '/' + c.line.group : ''}`);
-    expect(show({ kind: 'subagent_start', agent: 'researcher' })).toEqual(['xiaoju:out@door/sub_go_xiaoju']);
+    expect(show({ kind: 'subagent_start', agent: 'researcher' })).toEqual(['xiaoju:out@door/sub_go_xiaoju', 'adeng:working']);
     const queued = t.translate(ev({ kind: 'subagent_start', agent: 'unknown' }));
     expect(queued).toMatchObject([{ actor: 'adeng', line: { group: 'sub_queue', flags: ['who_xiaoju'] } }]);
     expect(new Director(toLineBook(lines)).submit(queued[0])?.line?.vars._id).toBe('sub_queue_01');
     expect(show({ kind: 'subagent_stop', agent: 'researcher', target: 'notes' })).toEqual([
-      'xiaoju:returning@counter/sub_back_xiaoju', 'xiaoju:out@door/sub_go_xiaoju',
+      'xiaoju:returning@counter/sub_back_xiaoju', 'xiaoju:out@door/sub_go_xiaoju', 'adeng:working',
     ]);
     expect(show({ kind: 'subagent_stop', agent: 'unknown' })).toEqual(['xiaoju:returning@counter/sub_back_xiaoju']);
   });

@@ -141,6 +141,41 @@ def build(name, recipe):
 CHESTNUT = ['#3E2A20', '#6B432C', '#7A4E33', '#8A5A3C', '#A87550']
 
 
+# The pack's cat only lies down. Drawn here so it can walk: k outline, m fur, n stripe, l light fur, e eye. Four frames of 20x14.
+CAT_WALK_BODY = [
+    '....................',
+    '....................',
+    '..............k..k..',
+    '.............kmkkmk.',
+    '.............kmmmmk.',
+    'kk...........kemmek.',
+    'kmk..........kmllmk.',
+    '.kmk.kkkkkkkkkmmmk..',
+    '..kkkmnmmnmmnmmmmk..',
+    '....kmnmmnmmnmmmmk..',
+    '....kmmmmmmmlllmmk..',
+    '....kkkkkkkkkkkkkk..',
+]
+CAT_WALK_LEGS = [
+    ['.....km.km..km.km...', '.....kk.kk..kk.kk...'],
+    ['......kmkm...kmkm...', '......kkkk...kkkk...'],
+    ['....km...km.km...km.', '....kk...kk.kk...kk.'],
+    ['.....kmkm...kmkm....', '.....kkkk...kkkk....'],
+]
+
+
+def build_cat_walk():
+    ramp = [hex_rgb(c) for c in CHESTNUT]
+    colour = {'k': ramp[0], 'm': ramp[3], 'n': ramp[1], 'l': ramp[4], 'e': ramp[0]}
+    sheet = Image.new('RGBA', (20 * len(CAT_WALK_LEGS), 14), (0, 0, 0, 0))
+    for f, legs in enumerate(CAT_WALK_LEGS):
+        for y, row in enumerate(CAT_WALK_BODY + legs):
+            for x, c in enumerate(row):
+                if c != '.':
+                    sheet.putpixel((f * 20 + x, y), (*colour[c], 255))
+    sheet.save(OUT / 'cat-walk.png')
+
+
 def build_cat():
     """Recolour the pack's grey cat (12 frames of 48x16, lying and wagging its tail) to chestnut."""
     img = Image.open(CAT).convert('RGBA')
@@ -161,6 +196,7 @@ if __name__ == '__main__':
         build(name, recipe)
         print('built', name)
     build_cat()
+    build_cat_walk()
     print('built cat')
     for n, layers in enumerate(PLAYERS, 1):
         layers = [layers[0], 'Eyes/16x16/Eyes_01.png', *layers[1:]]

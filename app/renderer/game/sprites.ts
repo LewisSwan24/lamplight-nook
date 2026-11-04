@@ -7,6 +7,7 @@ import type { Facing } from './layout';
  */
 export const STAFF_FRAME = { width: 16, height: 32, perRow: 56 } as const;
 export const CAT_FRAME = { width: 48, height: 16 } as const;
+export const CAT_WALK_FRAME = { width: 20, height: 14 } as const;
 
 export const DIRECTIONS: Facing[] = ['right', 'up', 'left', 'down'];
 

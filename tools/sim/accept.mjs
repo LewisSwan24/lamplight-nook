@@ -225,6 +225,62 @@ const SCENARIOS = {
     }
   },
 
+  /** Staff with something in hand, turning to whoever talks, and a cat that really walks. */
+  async hands(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, size: 'large' });
+    try {
+      const read = (id) => shop.page.evaluate((id) => {
+        const a = window.lamplightDebug.scene.actors.get(id);
+        return { x: a.sprite.x, y: a.sprite.y, facing: a.facing, moving: !!a.tween?.isPlaying(), anim: a.sprite.anims.getName(), flip: a.sprite.flipX,
+          prop: a.prop ? { key: a.prop.texture.key, x: a.prop.x, y: a.prop.y, visible: a.prop.visible } : null };
+      }, id);
+      await shop.page.evaluate(() => {
+        const { scene } = window.lamplightDebug;
+        return Promise.all([scene.walkTo('adeng', 'table'), scene.walkTo('laoshi', 'corner'), scene.walkTo('qingdai', 'board')]);
+      });
+      await shop.page.evaluate(() => {
+        const { scene } = window.lamplightDebug;
+        scene.play('adeng', 'sit', 'pencil');
+        scene.play('laoshi', 'lift', 'hammer');
+        scene.play('qingdai', 'idle', 'cup');
+      });
+      await sleep(400);
+      for (const [id, key] of [['adeng', 'prop-pencil'], ['laoshi', 'prop-hammer'], ['qingdai', 'prop-cup']]) {
+        const a = await read(id);
+        check(a.prop?.key.startsWith(key) && a.prop.visible, `${id} holds nothing: ${JSON.stringify(a.prop)}`);
+        check(Math.abs(a.prop.x - a.x) <= 16 && a.y - a.prop.y >= 4 && a.y - a.prop.y <= 24, `${id}: the ${key} is not at the hand: ${JSON.stringify(a)}`);
+      }
+      await shop.shot(join(out, 'hands-props.png'));
+      // Off with the thing in hand, on the way somewhere else.
+      await shop.page.evaluate(() => window.lamplightDebug.scene.walkTo('adeng', 'counter'));
+      check((await read('adeng')).prop === null, 'the pencil walked off with Adeng');
+      // Whoever listens turns to whoever talks.
+      await shop.page.evaluate(() => Promise.all(['laoshi', 'qingdai'].map((a) => window.lamplightDebug.scene.walkTo(a, 'shelf'))));
+      await shop.page.evaluate(() => {
+        const { scene } = window.lamplightDebug;
+        scene.play('laoshi', 'idle');
+        scene.lookAt('laoshi', 'adeng');
+      });
+      const [laoshi, adeng] = [await read('laoshi'), await read('adeng')];
+      const expected = Math.abs(adeng.x - laoshi.x) >= Math.abs(adeng.y - laoshi.y)
+        ? (adeng.x > laoshi.x ? 'right' : 'left') : (adeng.y > laoshi.y ? 'down' : 'up');
+      check(laoshi.facing === expected, `Laoshi faces ${laoshi.facing}, Adeng is ${expected}`);
+      // The cat gets up and walks, both ways, and lies down again.
+      for (const anchor of ['counter', 'window']) {
+        const walking = shop.page.evaluate((anchor) => window.lamplightDebug.scene.walkTo('cat', anchor), anchor);
+        await sleep(350);
+        const cat = await read('cat');
+        check(cat.anim === 'cat-walk', `the cat is not walking to the ${anchor}: ${cat.anim}`);
+        check(cat.flip === (cat.facing === 'left'), `the cat walks backwards: ${JSON.stringify(cat)}`);
+        await shop.shot(join(out, `hands-cat-${anchor}.png`));
+        await walking;
+        const lying = await read('cat');
+        check(lying.anim === 'cat-lie' && !lying.flip, `the cat did not lie down at the ${anchor}: ${JSON.stringify(lying)}`);
+      }
+    } finally { await shop.close(); }
+  },
+
   /** The card for work under way: from the counter and the blackboard, a word in the middle, and calling it off. */
   async progress(lang, out) {
     for (const size of ['small', 'large', 'medium']) {

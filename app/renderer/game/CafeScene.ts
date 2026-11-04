@@ -38,7 +38,9 @@ import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import { currentScene } from '../../shared/scenes';
+import catWalkUrl from '../../../assets/sprites/cat-walk.png';
 import { COUNTER_TOP, PIECES } from './pieces';
+import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
 import type { GrowthId } from '../../shared/growth';
 import { walkBetween } from './layout';
@@ -55,7 +57,7 @@ import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT } from './guests';
 import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
-import { CAT_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
+import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
 const DECOR_URLS: Record<Holiday, string> = { halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
@@ -108,6 +110,8 @@ type Actor = {
   at: AnchorId;
   /** The animation the character should hold when not walking. */
   pose: string;
+  prop?: Phaser.GameObjects.Image;
+  propId?: PropId;
   height: number;
   tween?: Phaser.Tweens.TweenChain;
   /** Pending idle-life timer: a glance around, or the cat's nap. */
@@ -219,6 +223,7 @@ export class CafeScene extends Phaser.Scene {
     for (const id of [...STAFF_IDS, ...GUEST_IDS]) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     YOU_SHEETS.slice(0, AVATAR_COUNT).forEach((url, i) => this.load.spritesheet(avatarKey(i + 1), url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height }));
     this.load.spritesheet('cat', SHEETS.cat, { frameWidth: CAT_FRAME.width, frameHeight: CAT_FRAME.height });
+    this.load.spritesheet('cat-walk', catWalkUrl, { frameWidth: CAT_WALK_FRAME.width, frameHeight: CAT_WALK_FRAME.height });
     this.load.spritesheet('clock', clockUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('cup', cupUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('door', doorUrl, { frameWidth: 16, frameHeight: 32 });
@@ -316,7 +321,15 @@ export class CafeScene extends Phaser.Scene {
     this.garden.update();
     // Shadows follow their characters; the cat's sits under its body, which is drawn left of centre.
     for (const a of this.actors.values()) {
-      a.shadow.setPosition(a.sprite.x + (a.id === 'cat' ? 3 : 0), a.sprite.y - 1).setDepth(a.sprite.depth - 0.5).setAlpha(0.28 * a.sprite.alpha);
+      if (a.prop && a.propId) {
+        const now = this.reducedMotion ? 0 : this.time.now;
+        const { x, y } = propOffset(a.propId, a.facing, a.pose, now);
+        // A page lies on the table, so above it; anything else is in the hand, behind the body when walking away.
+        const depth = a.sprite.depth + (a.pose === 'sit' ? 40 : a.facing === 'up' ? -0.1 : 0.1);
+        a.prop.setTexture(`prop-${a.propId}-${propFrame(a.propId, now)}`).setFlipX(a.facing === 'left')
+          .setPosition(a.sprite.x + x, a.sprite.y + y).setDepth(depth).setVisible(a.sprite.visible && !a.outside && !a.inGarden);
+      }
+      a.shadow.setPosition(a.sprite.x + (a.id === 'cat' && a.sprite.anims.getName() !== 'cat-walk' ? 3 : 0), a.sprite.y - 1).setDepth(a.sprite.depth - 0.5).setAlpha(0.28 * a.sprite.alpha);
     }
   }
 
@@ -337,6 +350,7 @@ export class CafeScene extends Phaser.Scene {
         }
       }
     }
+    this.anims.create({ key: 'cat-walk', frames: this.anims.generateFrameNumbers('cat-walk', {}), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'cat-lie', frames: this.anims.generateFrameNumbers('cat', {}), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'clock', frames: this.anims.generateFrameNumbers('clock', {}), frameRate: 4, repeat: -1, yoyo: true });
     this.anims.create({ key: 'cup', frames: this.anims.generateFrameNumbers('cup', {}), frameRate: 5, repeat: -1 });
@@ -586,11 +600,40 @@ export class CafeScene extends Phaser.Scene {
   /** Play the actor's current pose at its current facing. */
   private hold(actor: Actor) {
     if (actor.id === 'cat') {
-      actor.sprite.play('cat-lie', true);
+      actor.sprite.setFlipX(false).play('cat-lie', true);
       return;
     }
     const key = animKey(actor.id, actor.pose, actor.facing);
     if (this.anims.exists(key)) actor.sprite.play(key, true);
+  }
+
+  /** Put something in a character's hand, or take it away. */
+  private setProp(actor: Actor, prop?: PropId) {
+    actor.prop?.destroy();
+    actor.prop = undefined;
+    actor.propId = prop;
+    if (!prop) return;
+    const { frames, colors } = PROPS[prop];
+    frames.forEach((rows, i) => {
+      const key = `prop-${prop}-${i}`;
+      if (this.textures.exists(key)) return;
+      const g = this.make.graphics({ x: 0, y: 0 });
+      rows.forEach((row, y) => [...row].forEach((c, x) => {
+        if (c !== '.') g.fillStyle(colors[c], 1).fillRect(x, y, 1, 1);
+      }));
+      g.generateTexture(key, rows[0].length, rows.length);
+      g.destroy();
+    });
+    actor.prop = this.add.image(actor.sprite.x, actor.sprite.y, `prop-${prop}-0`).setOrigin(0.5, 1);
+  }
+
+  /** One character turns to another, unless busy with something that has its own way of facing. */
+  lookAt(id: ActorId, other: ActorId) {
+    const [actor, them] = [this.actors.get(id), this.actors.get(other)];
+    if (!actor || !them || id === 'cat' || actor.outside || actor.inGarden || them.outside || them.inGarden) return;
+    if (actor.pose !== 'idle' || actor.tween?.isPlaying()) return;
+    actor.facing = facingTowards(actor.sprite, them.sprite);
+    this.hold(actor);
   }
 
   /** Sitting only makes sense on a chair; elsewhere the character stands. */
@@ -599,9 +642,10 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** Switch a character to an animation (a name from STAFF_ANIMS); unknown names keep the current pose. */
-  play(actorId: ActorId, anim: string | undefined) {
+  play(actorId: ActorId, anim: string | undefined, prop?: string) {
     const actor = this.actors.get(actorId);
     if (!actor || actorId === 'cat' || !anim || anim === 'walk' || !STAFF_ANIMS[anim]) return;
+    this.setProp(actor, prop as PropId | undefined);
     actor.pose = this.poseAt(anim, actor);
     if (!actor.tween?.isPlaying()) {
       // Handing something over faces the nearest colleague; everything else faces the way the spot faces.
@@ -819,6 +863,7 @@ export class CafeScene extends Phaser.Scene {
   /** Walk a path, easing in and out and pausing briefly at each turn. Resolves when done or stopped by a newer walk. */
   private followPath(actor: Actor, path: { x: number; y: number }[]): Promise<void> {
     const { sprite, id } = actor;
+    this.setProp(actor);
     const speed = WALK_SPEED[id];
     let from = { x: sprite.x, y: sprite.y };
     const steps = path.map((to, i) => {
@@ -837,7 +882,8 @@ export class CafeScene extends Phaser.Scene {
         ease: first && last ? 'Sine.easeInOut' : first ? 'Sine.easeIn' : last ? 'Sine.easeOut' : 'Linear',
         onStart: () => {
           actor.facing = facingTowards(start, to);
-          if (id !== 'cat') sprite.play(animKey(id, 'walk', actor.facing), true);
+          if (id === 'cat') sprite.setFlipX(actor.facing === 'left').play('cat-walk', true);
+          else sprite.play(animKey(id, 'walk', actor.facing), true);
         },
         onUpdate: () => sprite.setDepth(sprite.y),
       };

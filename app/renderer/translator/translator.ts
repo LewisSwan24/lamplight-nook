@@ -25,7 +25,7 @@ export type Rule = CommandSpec & {
   extra?: CommandSpec[];
 };
 
-export type AnimTable = Record<'staff' | 'cat', { available: string[]; fallback: Record<string, { anim: string; bubble?: Bubble }> }>;
+export type AnimTable = Record<'staff' | 'cat', { available: string[]; fallback: Record<string, { anim: string; bubble?: Bubble; prop?: string }> }>;
 
 export const parseRules = (text: string) => parse(text) as Rule[];
 export const parseAnimTable = (text: string) => parse(text) as AnimTable;
@@ -53,7 +53,7 @@ export function matches(rule: Rule, e: AiEvent): boolean {
 }
 
 /** Map an animation the art doesn't have yet onto one it does (rules/anim-fallback.yaml). */
-export function resolveAnim(table: AnimTable, actor: ActorId, anim: string): { anim: string; bubble?: Bubble } {
+export function resolveAnim(table: AnimTable, actor: ActorId, anim: string): { anim: string; bubble?: Bubble; prop?: string } {
   const t = table[actor === 'cat' ? 'cat' : 'staff'];
   if (t.available.includes(anim)) return { anim };
   return t.fallback[anim] ?? { anim: actor === 'cat' ? 'lie' : 'idle' };
@@ -150,6 +150,7 @@ export class Translator {
       cmd.anim = a.anim;
       if (a.anim !== spec.anim) cmd.action = spec.anim;
       if (a.bubble) cmd.bubble = a.bubble;
+      if (a.prop) cmd.prop = a.prop;
     }
     if (spec.bubble) cmd.bubble = spec.bubble;
     if (spec.lines) {

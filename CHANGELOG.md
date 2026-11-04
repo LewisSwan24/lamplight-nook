@@ -20,6 +20,9 @@ The running card and the road to 1.0.
 - **The study has its own floor plan.** The sofa stands at the reading table, and the staff keep off the gap in the desk.
 - **Words keep off the blackboard.** A speech bubble that would cover the chalk moves beside it. Laoshi's guitar now
   hangs on the wall, where the Christmas tree cannot hide it.
+- **The staff do what they seem to be doing.** Writing is a page and a moving pencil on the table, a drink is a cup in the
+  hand, and Laoshi taps with a hammer. Adeng takes the phone at the counter for commands and the web, and hands the work
+  over when someone is sent off. Whoever is listening turns to whoever is talking. The cat gets up and walks.
 - **Everything in the shop answers.** The clock, window, doors, table, shelf, workbench, lamp, plants, cup, blackboard
   and what the shop has gathered all show a name on hover, can be reached from the keyboard, and answer a click with a
   word, a light or someone strolling over, for nothing. At work the clock opens the running card, the table lists what
