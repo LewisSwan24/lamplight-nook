@@ -166,7 +166,7 @@ const SCENARIOS = {
         // A commission comes in while they are on the way: they walk on by.
         await visit();
         await sleep(400);
-        await page.evaluate(() => { window.lamplightDebug.scene.guestTrip++; });
+        await page.evaluate(() => { window.lamplightDebug.scene.sendGuestAway(); });
         await page.waitForFunction(() => !window.lamplightDebug.scene.children.list.some((o) => o.depth === 0.55), null, { timeout: 8000 });
         await sleep(600);
         check(!(await guest()), `${sceneName}: came in although a commission started`);

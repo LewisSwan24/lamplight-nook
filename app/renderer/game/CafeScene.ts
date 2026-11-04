@@ -994,14 +994,14 @@ export class CafeScene extends Phaser.Scene {
 
   /** Work came in: a guest in the shop says goodbye and heads out. */
   sendGuestAway() {
-    if (!this.guest) return;
+    // Also tells someone still out on the street, who then walks on past the door.
     this.guestTrip++;
-    this.guest.tween?.stop();
+    this.guest?.tween?.stop();
   }
 
   /** Is a neighbour in the shop? */
   hasGuest(): boolean {
-    return !!this.guest;
+    return !!this.guest || this.guestComing;
   }
 
   /** The player's look changed (settings): the shop shows it at once, even mid-walk. */
