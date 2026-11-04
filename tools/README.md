@@ -38,6 +38,18 @@ find the real ones. `sim/isolate.cjs` is loaded before the app and points all of
 `shop.mjs` refuses to go on if the app still reports a real folder. Windows open off-screen and never take the
 foreground, so a run does not interrupt you. Set `SIM_SHOW=1` in the shell to watch real windows instead.
 
+## The packaged app (`sim/packaged.mjs`)
+
+```bash
+npm run packaged
+```
+
+Builds the unpacked app into `sim-out/packaged` (`dist/` is left alone) and runs it from there with the stand-in Claude: the
+fuses read back from the exe, pictures, fonts and music out of `app.asar`, one commission, closing through the window, and
+the shelf and the hidden debug tools after a restart. It stops with a failure if the real data folder changed. The fuses
+keep `isolate.cjs` out, so `--user-data-dir` and `settings.json` do the isolating, and the window shows for a moment before
+it moves off-screen. This is not W11: no installer, no real Claude Code, no real key.
+
 ## Acceptance run (`sim/accept.mjs`)
 
 ```bash

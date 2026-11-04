@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **`npm run packaged`** runs the built app from its own folder with the stand-in Claude, so a picture left out of the
+  package or a fuse left unset shows before any release does.
 - **Dates are the ones on your wall.** Works, the shop's days, commission folders and the monthly spend used Greenwich
   time, so a job finished on a morning in Brisbane was filed under yesterday.
 - **Six buttons, in the order you reach for them.** Commission (Progress while one is running), the works shelf, the
