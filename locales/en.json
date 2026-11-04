@@ -578,6 +578,12 @@
       "hotspotGarden": "Back door: look out at the garden",
       "hotspotShop": "Back door: go back inside",
       "hotspotHens": "The hens: toss them some grain",
+      "hotspotBeds": "The vegetable beds",
+      "bedsBare": "Vegetable beds: empty until the first job is done",
+      "bedsSay": ": ",
+      "bedsAnd": ", ",
+      "bedsRipe": "{n} ripe",
+      "bedsSprout": "{n} sprouting",
       "hotspotBoard": "The blackboard: see the whole plan",
       "hotspotWorks": "The works shelf: see what we made together"
     },

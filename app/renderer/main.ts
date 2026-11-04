@@ -29,7 +29,7 @@ import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, onNotebookRevise, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
-import { type GrowthId, type Made, madeOf, shortWork } from '../shared/growth';
+import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
@@ -311,6 +311,8 @@ async function refreshShop(fresh: GrowthId[] = []) {
   while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
   scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
   scene.growth.setWorks(state.works.map((w) => w.icon));
+  scene.garden.setWorksDone(state.done);
+  noticeBeds(bedNews(shopDays?.done ?? state.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
 }
@@ -325,6 +327,19 @@ function noticeGrowth(ids: GrowthId[]) {
   }, GROWTH_LINE_DELAY_MS);
 }
 const GROWTH_LINE_DELAY_MS = 4000;
+/** After anything new in the shop has had its word. */
+const BEDS_LINE_DELAY_MS = 10_000;
+const BEDS_LINE_RETRY_MS = 2_000;
+/** Said only once in the life of the shop, so it waits until the speaker is in the room and free. */
+function noticeBeds(news: ReturnType<typeof bedNews>) {
+  if (!news) return;
+  const turns = pickLine(ruleBook().lines.grow ?? [], [`grow_${news}`], {}) ?? [];
+  const tryNow = () => {
+    if (turns.some((t) => scene.anchorOf(t.speaker) === null || scene.busyTalking(t.speaker))) setTimeout(tryNow, BEDS_LINE_RETRY_MS);
+    else void stage.talk(turns);
+  };
+  setTimeout(tryNow, BEDS_LINE_DELAY_MS);
+}
 /** Clicking something in the shop: a line, a light, someone strolling over; never anything that costs money. */
 const objectTurns = new Map<ObjectId, number>();
 function clickObject(id: ObjectId) {

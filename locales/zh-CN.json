@@ -578,6 +578,12 @@
       "hotspotGarden": "后门：看看后院",
       "hotspotShop": "后门：回店里",
       "hotspotHens": "母鸡：撒把米",
+      "hotspotBeds": "菜地",
+      "bedsBare": "菜地：还空着，做完第一单就种",
+      "bedsSay": "：",
+      "bedsAnd": "，",
+      "bedsRipe": "熟了 {n} 棵",
+      "bedsSprout": "刚发芽 {n} 棵",
       "hotspotBoard": "黑板：看看整张计划",
       "hotspotWorks": "作品架：看看一起做过的东西"
     },

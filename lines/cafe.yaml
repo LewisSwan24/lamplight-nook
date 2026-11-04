@@ -252,6 +252,9 @@ garden:
 
 # Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
 grow:
+  - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["后院菜地冒芽了。", "第一单做完那天种的。"] }
+  - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["后院第一棵菜熟了。", "从第一单长到现在。"] }
+  - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["后院的菜地都长满了。", "都是这些单子一点点攒下来的。"] }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["墙上挂了幅小画。", "第一单做完那天买的。"] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["柜台上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["窗上挂了串小灯。", "晚上看，店里暖一点。"] }

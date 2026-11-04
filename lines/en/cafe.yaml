@@ -252,6 +252,9 @@ garden:
 
 # Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
 grow:
+  - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["There's a sprout in the beds out back.", "Planted the day the first job was done."] }
+  - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["First vegetable out back is ripe.", "Been growing since that first job."] }
+  - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["The beds out back are full now.", "Every one of them from work we did together."] }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["There's a little painting on the wall.", "Bought it the day we finished the first job."] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the counter!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["Fairy lights over the windows.", "The shop looks warmer at night."] }

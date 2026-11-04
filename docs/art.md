@@ -65,6 +65,7 @@ no pixel changed, so compare pixels and restore unchanged files before committin
 | `street.py` | The street seen through the small inset. |
 | `characters.py`, `portraits.py` | Staff sprite sheets, then portraits from those sheets. |
 | `emotes.py` | The mood bubble strip. |
+| `garden.py` | The garden, and `garden-crops.png` (what comes up in the beds; the sprout is drawn by the script). |
 | `tools.py` | The toolbar icons. Drawn by the script, no pack needed. |
 | `growth.py` | What the shop gathers, and the works shelf icons. |
 | `font.py` | The handwriting font subset. |

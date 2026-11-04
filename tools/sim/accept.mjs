@@ -127,6 +127,51 @@ async function checkBubbles(shop) {
 }
 
 const SCENARIOS = {
+  /** The vegetable beds come up with the works finished, say so three times, and a round of changes does not count. */
+  async beds(lang, out) {
+    const seed = (done) => ({
+      'settings.json': onboarded(lang),
+      'memory.json': JSON.stringify({ commissions: [], stuckNotes: [], shop: { done, told: [], grown: [] } }),
+    });
+    const expected = { 0: [0, 0], 1: [0, 1], 4: [1, 1], 12: [3, 1], 25: [8, 0], 60: [8, 0] };
+    for (const [done, [ripe, sprout]] of Object.entries(expected)) {
+      const shop = await launch({ lang, home: freshHome(seed(Number(done))), size: 'large', debug: true });
+      try {
+        await sleep(2500);
+        await shop.page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        const beds = await shop.page.evaluate(() => window.lamplightDebug.scene.garden.beds);
+        const seen = [beds.filter((b) => b === 'ripe').length, beds.filter((b) => b === 'sprout').length];
+        check(seen.join() === [ripe, sprout].join(), `${done} works: ${seen} instead of ${ripe},${sprout}`);
+        await shop.hotspot(shop.L.ui.access.hotspotGarden);
+        await sleep(900);
+        await shop.hotspot(shop.L.ui.access.hotspotBeds);
+        await sleep(200);
+        const A = shop.L.ui.access;
+        const says = [ripe && A.bedsRipe.replace('{n}', ripe), sprout && A.bedsSprout.replace('{n}', sprout)].filter(Boolean).join(A.bedsAnd);
+        const label = done === '0' ? A.bedsBare : `${A.hotspotBeds}${A.bedsSay}${says}`;
+        check((await shop.page.locator('body').innerText()).includes(label), `${done} works: no "${label}" over the beds`);
+        await shop.page.screenshot({ path: join(out, `beds-${done}.png`) });
+      } finally {
+        await shop.close();
+      }
+    }
+
+    // The fourth work: the first plant is ripe, and Laoshi says so.
+    const home = freshHome(seed(3));
+    const shop = await launch({ lang, home, speed: 100, debug: true });
+    try {
+      await sleep(2500);
+      check((await runOne(shop, { template: 'letter', want: W[lang].letter }, { answers: demoAnswers })).ok, 'the fourth work did not finish');
+      await shop.page.keyboard.press('Escape');
+      const beds = await shop.page.evaluate(() => window.lamplightDebug.scene.garden.beds);
+      check(beds[0] === 'ripe', `after the fourth work the first bed is ${beds[0]}`);
+      const words = lang === 'en' ? 'First vegetable' : '第一棵菜熟了';
+      await shop.page.waitForFunction((words) => document.body.innerText.includes(words), words, { timeout: 45_000 });
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** Neighbours and Xiaoju are seen through the windows on their way to and from the door, in both scenes. */
   async passers(lang, out) {
     for (const sceneName of ['cafe', 'study']) {

@@ -6,6 +6,7 @@ import cafePiecesUrl from '../../../assets/sprites/cafe-pieces.png';
 import studyUrl from '../../../assets/sprites/study-room.png';
 import studyPiecesUrl from '../../../assets/sprites/study-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
+import gardenCropsUrl from '../../../assets/sprites/garden-crops.png';
 import dogUrl from '../../../assets/sprites/dog.png';
 import dogSleepUrl from '../../../assets/sprites/dog-sleep.png';
 import hensUrl from '../../../assets/sprites/hens.png';
@@ -39,7 +40,7 @@ import you6Url from '../../../assets/sprites/you-6.png';
 import you7Url from '../../../assets/sprites/you-7.png';
 import you8Url from '../../../assets/sprites/you-8.png';
 import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
-import { strings } from '../../shared/i18n';
+import { fill, strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import { currentScene } from '../../shared/scenes';
 import catWalkUrl from '../../../assets/sprites/cat-walk.png';
@@ -103,7 +104,7 @@ const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
 export type HintSpot = 'counter' | 'bell' | 'board';
-export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'works' | 'guest' | 'you';
+export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you';
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -185,7 +186,7 @@ export class CafeScene extends Phaser.Scene {
   /** The street outside, shown in an inset while someone is out on an errand. */
   private street!: StreetView;
   /** The back garden, beside the shop in this scene; the camera slides over to look at it. */
-  private garden!: GardenView;
+  garden!: GardenView;
   private backDoor!: Phaser.GameObjects.Sprite;
   private glassMask!: Phaser.Display.Masks.BitmapMask;
   /** What the window shows: the shop, or the garden through the back door. */
@@ -227,6 +228,7 @@ export class CafeScene extends Phaser.Scene {
     this.load.image('pieces', SCENE === 'study' ? studyPiecesUrl : cafePiecesUrl);
     this.load.image('street', streetUrl);
     this.load.image('garden', gardenUrl);
+    this.load.spritesheet('garden-crops', gardenCropsUrl, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
     this.load.spritesheet('dog-sleep', dogSleepUrl, { frameWidth: 32, frameHeight: 48 });
     this.load.spritesheet('hens', hensUrl, { frameWidth: HEN_FRAME.width, frameHeight: HEN_FRAME.height });
@@ -708,6 +710,7 @@ export class CafeScene extends Phaser.Scene {
     if (target === 'shopdoor') return this.showShop();
     if (target === 'dog') return this.garden.animals.pat();
     if (target === 'hens') return this.garden.animals.scatterGrain();
+    if (target === 'beds') return this.highlight('beds');
     if (target === 'bell') {
       if (!this.bell.visible) return;
       this.ringBell();
@@ -1285,12 +1288,22 @@ export class CafeScene extends Phaser.Scene {
     return [...zones, ...actors, ...bubbles, ...guest, ...you];
   }
 
+  private bedsLabel(): string {
+    const count = (stage: string) => this.garden.beds.filter((b) => b === stage).length;
+    const A = strings.ui.access;
+    const says = [count('ripe') && fill(A.bedsRipe, { n: String(count('ripe')) }), count('sprout') && fill(A.bedsSprout, { n: String(count('sprout')) })];
+    return says.some(Boolean) ? `${A.hotspotBeds}${A.bedsSay}${says.filter(Boolean).join(A.bedsAnd)}` : A.bedsBare;
+  }
+
   /** In the garden view: the door's name on hover, and what anyone out there says. */
   private gardenLabels(): LabelPos[] {
     const door = this.garden.hovered === 'door' || this.hovered === 'shopdoor'
       ? [{ key: 'z-shop', text: strings.zones.shop, x: GARDEN_DOOR.x + 8, y: GARDEN_DOOR.y - 2, kind: 'zone' as const }]
       : [];
     const { animals } = this.garden;
+    const beds = this.garden.hovered === 'beds' || this.hovered === 'beds'
+      ? [{ key: 'z-beds', text: this.bedsLabel(), x: 53, y: 68, kind: 'zone' as const }]
+      : [];
     const dog = animals.dogHead();
     const hens = animals.hensHead();
     const names = [
@@ -1302,6 +1315,6 @@ export class CafeScene extends Phaser.Scene {
       const { text, icon } = this.speech.get(h.id)!;
       return { key: `b-${h.id}`, text, icon, x: h.x, y: h.y, kind: 'bubble' as const };
     });
-    return [...door, ...names, ...pat, ...bubbles];
+    return [...door, ...beds, ...names, ...pat, ...bubbles];
   }
 }

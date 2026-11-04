@@ -25,6 +25,9 @@ The running card and the road to 1.0.
 - **Everyone finds their own way.** Staff, neighbours, you and the cat work out a walk round the furniture and the
   holiday pieces instead of following one fixed aisle, in the shop, the study and the garden. The same start and end
   always give the same walk.
+- **The garden grows with the work.** The vegetable beds behind the shop start empty. A sprout comes up every three works
+  finished and ripens three works later, so they fill at the twenty-fifth. The staff mention the first sprout, the first
+  ripe plant and the full beds. Another round of changes on the same work does not count.
 - **People pass the windows.** A neighbour on the way in and Xiaoju on an errand go by behind the glass before they reach
   the door, a dark shape by day and lit by the street lamps at night. With less motion asked for, nobody goes by.
 - **A commission that falls over says so.** If Claude Code stops partway for no reason it can name, Adeng now tells you

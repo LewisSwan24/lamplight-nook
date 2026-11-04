@@ -55,3 +55,30 @@ export function shortWork(title: string): string {
 
 /** How many works fit on the shelf on the wall; the shelf card lists all of them. */
 export const SHELF_SLOTS = 5;
+
+/**
+ * The vegetable beds behind the shop grow with the works finished: a sprout every three, ripe three works later. Where
+ * each stands in the garden (feet of the plant; scripts/art/garden.py, PLANTERS).
+ */
+export const BEDS = [
+  { x: 22, y: 84 }, { x: 36, y: 84 }, { x: 56, y: 84 }, { x: 70, y: 84 },
+  { x: 22, y: 112 }, { x: 36, y: 112 }, { x: 56, y: 112 }, { x: 70, y: 112 },
+] as const;
+export type BedStage = 'empty' | 'sprout' | 'ripe';
+const BED_EVERY = 3;
+
+export function bedStages(done: number): BedStage[] {
+  return BEDS.map((_, i) => {
+    const planted = i * BED_EVERY + 1;
+    return done >= planted + BED_EVERY ? 'ripe' : done >= planted ? 'sprout' : 'empty';
+  });
+}
+
+/** What is worth a word after finishing a work: the first sprout, the first ripe plant, all of them ripe. */
+export function bedNews(before: number, after: number): 'bed_sprout' | 'bed_ripe' | 'bed_full' | null {
+  const ripe = (done: number) => bedStages(done).filter((b) => b === 'ripe').length;
+  if (ripe(after) === BEDS.length && ripe(before) < BEDS.length) return 'bed_full';
+  if (ripe(after) > 0 && ripe(before) === 0) return 'bed_ripe';
+  if (after > 0 && before === 0) return 'bed_sprout';
+  return null;
+}
