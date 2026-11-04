@@ -312,7 +312,6 @@ async function refreshShop(fresh: GrowthId[] = []) {
   scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
   scene.growth.setWorks(state.works.map((w) => w.icon));
   scene.garden.setWorksDone(state.done);
-  noticeBeds(bedNews(shopDays?.done ?? state.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
 }
@@ -330,12 +329,13 @@ const GROWTH_LINE_DELAY_MS = 4000;
 /** After anything new in the shop has had its word. */
 const BEDS_LINE_DELAY_MS = 10_000;
 const BEDS_LINE_RETRY_MS = 2_000;
-/** Said only once in the life of the shop, so it waits until the speaker is in the room and free. */
+/** Said only once in the life of the shop, so it waits until someone can hear it and the speaker is in the room and free. */
 function noticeBeds(news: ReturnType<typeof bedNews>) {
   if (!news) return;
   const turns = pickLine(ruleBook().lines.grow ?? [], [`grow_${news}`], {}) ?? [];
   const tryNow = () => {
-    if (turns.some((t) => scene.anchorOf(t.speaker) === null || scene.busyTalking(t.speaker))) setTimeout(tryNow, BEDS_LINE_RETRY_MS);
+    const unheard = document.hidden || document.querySelector('.backdrop');
+    if (unheard || turns.some((t) => scene.anchorOf(t.speaker) === null || scene.busyTalking(t.speaker))) setTimeout(tryNow, BEDS_LINE_RETRY_MS);
     else void stage.talk(turns);
   };
   setTimeout(tryNow, BEDS_LINE_DELAY_MS);
@@ -370,7 +370,8 @@ scene.onBoardClick = () => {
 scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
 onNotebookForget(() => void refreshShop());
 window.lamplight.onResult((result) => {
-  void refreshShop(result.grew ?? []);
+  const before = shopDays.done;
+  void refreshShop(result.grew ?? []).then(() => noticeBeds(bedNews(before, shopDays.done)));
   noticeGrowth(result.grew ?? []);
 });
 window.lamplight.onResult((result) => showResult(result, {

@@ -151,6 +151,15 @@ const SCENARIOS = {
         const label = done === '0' ? A.bedsBare : `${A.hotspotBeds}${A.bedsSay}${says}`;
         check((await shop.page.locator('body').innerText()).includes(label), `${done} works: no "${label}" over the beds`);
         await shop.page.screenshot({ path: join(out, `beds-${done}.png`) });
+        // Opening the shop again is not news: nobody brings the beds up.
+        if (done === '12') {
+          await shop.hotspot(shop.L.ui.access.hotspotShop);
+          await sleep(13_000);
+          await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
+          await shop.page.waitForSelector('.caption-card');
+          const log = await shop.page.locator('.caption-card').innerText();
+          check(!log.includes(lang === 'en' ? 'First vegetable' : '第一棵菜熟了'), 'the beds were news again on opening the shop');
+        }
       } finally {
         await shop.close();
       }
