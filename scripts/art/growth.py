@@ -30,10 +30,10 @@ MUSIC = '6_Music_and_Sport_Shadowless'
 def pieces_by_id():
     return {
         'painting': [(single(ART, 'Art_Singles_Shadowless_46.png'), (226, 24))],  # a little landscape between the doors
-        'plant': [(single(LIVING, 'Living_Room_Singles_Shadowless_15.png'), (218, 48))],  # a pot plant at the end of the counter
+        'plant': [(single(LIVING, 'Living_Room_Singles_Shadowless_15.png'), (218, 64))],  # a pot plant at the end of the counter
         'lights': [(single(LIVING, 'Living_Room_Singles_Shadowless_12.png'), (x, 18)) for x in (19, 55)],  # fairy lights over the windows
         'fruit': [(single(LIVING, 'Living_Room_Singles_Shadowless_49.png'), (166, 82))],  # a bowl of fruit on the big table
-        'guitar': [(single(MUSIC, 'Music_and_Sport_Singles_Shadowless_206.png'), (300, 146))],  # Laoshi's mended guitar in the corner
+        'guitar': [(single(MUSIC, 'Music_and_Sport_Singles_Shadowless_206.png'), (246, 22))],  # Laoshi's mended guitar in the corner
         'bonsai': [(single(ART, 'Art_Singles_Shadowless_21.png'), (27, 93))],  # a bonsai on top of the bookcase
         'easel': [(single(ART, 'Art_Singles_Shadowless_38.png'), (302, 72))],  # Qingdai's easel by the front wall
         'trophy': [(single(MUSIC, 'Music_and_Sport_Singles_Shadowless_140.png'), (44, 97))],  # a small cup beside the bonsai

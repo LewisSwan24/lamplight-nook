@@ -11,7 +11,7 @@ import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
 import { VisitPlanner, pickVisit } from './game/guests';
-import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, integerScale, uiScale } from './game/layout';
+import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
@@ -101,8 +101,11 @@ function drawLabels() {
     }
     if (bubbles.length) {
       const cards = Array.from(document.querySelectorAll('.card, .parcel, .dialog, .serious')).map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0);
-      for (const [key, place] of placeBubbles(bubbles, cards)) {
+      const board = ZONES.find((z) => z.id === 'board')!;
+      const chalk = { left: rect.left + board.x * s, right: rect.left + (board.x + board.w) * s, top: rect.top + board.y * s, bottom: rect.top + (board.y + board.h) * s };
+      for (const [key, place] of placeBubbles(bubbles, cards, [chalk])) {
         const el = labelEls.get(key)!;
+        el.style.left = `${place.x}px`;
         el.style.top = `${place.y}px`;
         el.style.visibility = place.visible ? '' : 'hidden';
       }

@@ -80,11 +80,11 @@ const furnishUrl = (part: FurnishPart, choice: string) => FURNISH_URLS[`../../..
 /** Over the room, under the window glass and everything in it. */
 const FURNISH_DEPTH = 0.2;
 /** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
-const CUP_POS = SCENE === 'study' ? { x: 232, y: 46 } : { x: 256, y: 48 };
+const CUP_POS = SCENE === 'study' ? { x: 232, y: 62 } : { x: 256, y: 64 };
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
-const FORM_POS = { x: 224, y: 57 };
+const FORM_POS = { x: 224, y: 78 };
 /** The meeting bell at the left end of the counter (top-left corner, canvas pixels); shown while a commission runs. */
-const BELL_POS = { x: 216, y: 57 };
+const BELL_POS = { x: 216, y: 78 };
 /** A brass service bell, 7x6: k knob, g brass, h highlight, s shade, b wooden base. */
 const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
@@ -437,7 +437,7 @@ export class CafeScene extends Phaser.Scene {
       this.glows.push({ img, base: alpha, sun });
     };
     glow(48, 60, 56, 0.22, true);
-    glow(243, 70, 48, 0.18);
+    glow(243, 86, 48, 0.18);
     glow(278, 146, 36, 0.2);
     glow(207, 34, 20, 0.12);
   }

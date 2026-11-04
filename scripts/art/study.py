@@ -38,15 +38,17 @@ FURNITURE = [
     (None, scene.interiors, (112, scene.at(15), 176, scene.at(18)), (116, 78)),  # rug under the reading table
     ('table', living, (33, 123, 95, 142), (122, 84)),  # the reading table: two low tables with lace cloths
     ('shelf', library, (0, 360, 47, 411), (8, 108)),  # the bookcase
-    ('counter', living, (52, 181, 112, 202), (218, 60)),  # Adeng's desk: a cabinet and a chest of drawers side by side
-    ('counter', living, (84, 154, 96, 171), (246, 47)),  # the desk lamp on it
-    ('counter', library, (208, 12, 224, 38), (264, 40)),  # a globe at the end of the desk
+    ('counter', living, (52, 181, 112, 202), (218, 76)),  # Adeng's desk: a cabinet and a chest of drawers side by side
+    ('counter', living, (84, 154, 96, 171), (246, 63)),  # the desk lamp on it
+    ('counter', library, (208, 12, 224, 38), (264, 56)),  # a globe at the end of the desk
     ('workbench', scene.interiors, (144, scene.at(272), 176, scene.at(274)), (128, 144)),  # Laoshi's workbench, brought from home
     ('lamp', living, (176, 182, 192, 210), (274, 138)),  # a floor lamp by the visitor's chair
     ('plant_r', living, (191, 7, 209, 45), (300, 108)),  # another plant by the front wall
 ]
 
+# Under the reading table, where two of the staff sit for a meeting.
 SOFA = (living, (16, 450, 64, 482))
+SOFA_POS = (129, 106)
 
 
 def shell():
@@ -69,7 +71,7 @@ def build():
     img = shell()
     for _name, sheet, rect, pos in FURNITURE:
         img.alpha_composite(piece(sheet, rect), pos)
-    img.alpha_composite(piece(*SOFA), (62, 146))
+    img.alpha_composite(piece(*SOFA), SOFA_POS)
     for (col, row), (x, y) in sorted(scene.CHAIRS, key=lambda c: c[1][1]):
         img.alpha_composite(scene.tiles(scene.interiors, col, row, 1, 2), (x - 8, y - 24))
     img.save(OUT / 'study.png')

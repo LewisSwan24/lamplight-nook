@@ -149,6 +149,13 @@ const SCENARIOS = {
         check(placed.find((p) => p.name === 'table').depth > 82, `${scene}: the table is not in front of someone behind it`);
         await sleep(300);
         await shop.shot(join(out, `behind-${scene}.png`));
+        // A meeting: all four sit down at the table, wherever they come from.
+        await shop.page.evaluate(() => {
+          const { scene } = window.lamplightDebug;
+          return Promise.all(['adeng', 'xiaoju', 'laoshi', 'qingdai'].map((a) => scene.walkTo(a, 'table')));
+        });
+        await sleep(400);
+        await shop.shot(join(out, `behind-${scene}-seated.png`));
         // What lies on the furniture stays on top of it.
         for (const holiday of ['christmas', 'halloween']) {
           await shop.page.evaluate((holiday) => {

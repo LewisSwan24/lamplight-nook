@@ -13,7 +13,7 @@ const STEP = 2;
 /** A turn costs as much as this many pixels of walking, so a walk does not zigzag for nothing. */
 const TURN = 24;
 /** How far a walker may be from the grid: where a spot tight against furniture joins it. */
-const JOIN = 8;
+const JOIN = 16;
 const CORNER = 6;
 
 export const hitsFeet = (p: Point, b: Box) =>
@@ -36,7 +36,7 @@ function join(area: Area, p: Point): Point {
   const y0 = Math.round(p.y / STEP) * STEP;
   const near: Point[] = [];
   for (let dy = -JOIN; dy <= JOIN; dy += STEP) for (let dx = -JOIN; dx <= JOIN; dx += STEP) near.push({ x: x0 + dx, y: y0 + dy });
-  near.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y) || a.y - b.y || a.x - b.x);
+  near.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y) || b.y - a.y || a.x - b.x);
   // A spot may be tight against something (a chair): only what it is not already touching can get in the way.
   const free = { ...area, obstacles: area.obstacles.filter((b) => !hitsFeet(p, b)) };
   return near.find((q) => inBounds(area, q) && clear(area, q) && lineClear(free, p, q))!;
@@ -91,7 +91,7 @@ function search(area: Area, from: Point, to: Point): Point[] {
       for (let m: Node | undefined = n; m?.back; m = m.back) {
         if (m.back.d !== m.d) corners.unshift(m.back.p);
       }
-      return corners;
+      return [from, ...corners];
     }
     if ((best.get(key(n.p, n.d)) ?? Infinity) < n.cost) continue;
     DIRS.forEach((dir, d) => {

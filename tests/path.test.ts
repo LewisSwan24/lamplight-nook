@@ -31,6 +31,16 @@ describe('finding a way across the floor', () => {
     for (const p of along([from, ...path])) expect(hitsFeet(p, wall)).toBe(false);
   });
 
+  it('only ever walks along the axes or cuts a short corner', () => {
+    const from = { x: 11, y: 21 };
+    const path = findPath(room([wall]), from, { x: 87, y: 33 });
+    let at = from;
+    for (const p of path) {
+      expect(Math.min(Math.abs(p.x - at.x), Math.abs(p.y - at.y))).toBeLessThanOrEqual(6);
+      at = p;
+    }
+  });
+
   it('takes the same way every time', () => {
     const area = room([wall]);
     const way = () => findPath(area, { x: 13, y: 21 }, { x: 87, y: 33 });

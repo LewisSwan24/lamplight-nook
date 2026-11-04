@@ -1,5 +1,6 @@
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId } from '../../shared/types';
+import { currentScene, type SceneId } from '../../shared/scenes';
 import { findPath, type Point } from './path';
 import { shopArea } from './pieces';
 
@@ -20,7 +21,7 @@ export const ZONES: Zone[] = [
   { id: 'shelf', label: Z.shelf, x: 8, y: 112, w: 48, h: 40 },
   { id: 'table', label: Z.table, x: 116, y: 72, w: 68, h: 58 },
   { id: 'corner', label: Z.corner, x: 128, y: 144, w: 32, h: 18 },
-  { id: 'counter', label: Z.counter, x: 216, y: 46, w: 54, h: 32 },
+  { id: 'counter', label: Z.counter, x: 216, y: 62, w: 54, h: 32 },
   { id: 'door', label: Z.door, x: 288, y: 16, w: 15, h: 32 },
 ];
 
@@ -34,7 +35,7 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
   shelf: { x: 66, y: 140, facing: 'left' },
   table: { x: 196, y: 102, facing: 'left' },
   corner: { x: 170, y: 160, facing: 'left' },
-  counter: { x: 244, y: 98, facing: 'down' },
+  counter: { x: 228, y: 84, facing: 'down' },
   door: { x: 295, y: 56, facing: 'up' },
 };
 
@@ -54,9 +55,9 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
   table: {
     adeng: { x: 196, y: 100, facing: 'left', chair: true },
     xiaoju: { x: 104, y: 100, facing: 'right', chair: true },
-    // No third chair fits; Laoshi stands at Adeng's shoulder, Qingdai at Xiaoju's.
-    laoshi: { x: 212, y: 114, facing: 'left' },
-    qingdai: { x: 90, y: 114, facing: 'right' },
+    // On the bench, turned towards each other.
+    laoshi: { x: 140, y: 122, facing: 'right', chair: true },
+    qingdai: { x: 168, y: 122, facing: 'left', chair: true },
   },
   // Qingdai's place by the blackboard, where she pins up her colour swatches, facing the room.
   // The left chair stands right under the board, so everyone else keeps to its left.
@@ -87,15 +88,43 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
     laoshi: { x: 289, y: 62, facing: 'up' },
     qingdai: { x: 295, y: 68, facing: 'up' },
   },
-  // By Adeng's feet, close enough to rub against a leg.
+  // On the customers' side: Adeng is behind the counter, and it is the customers who get rubbed against.
+  // The coffee machine takes the middle of the counter, so the others stand either side of it.
   counter: {
-    cat: { x: 236, y: 106, facing: 'right' },
+    xiaoju: { x: 216, y: 84, facing: 'down' },
+    laoshi: { x: 264, y: 84, facing: 'down' },
+    qingdai: { x: 276, y: 84, facing: 'left' },
+    cat: { x: 226, y: 104, facing: 'right' },
   },
 };
 
+/** The study's own places, where its furniture differs from the shop's (docs/floor-plans.md). */
+const STUDY_SEATS: typeof SEATS = {
+  table: {
+    // On the sofa under the reading table.
+    laoshi: { x: 141, y: 125, facing: 'right', chair: true },
+    qingdai: { x: 165, y: 125, facing: 'left', chair: true },
+  },
+  // The desk is two pieces with a gap between them: everyone keeps to a piece.
+  counter: {
+    adeng: { x: 232, y: 84, facing: 'down' },
+    xiaoju: { x: 222, y: 84, facing: 'down' },
+    laoshi: { x: 256, y: 84, facing: 'down' },
+    qingdai: { x: 285, y: 84, facing: 'left' },
+  },
+};
+
+/** Every fixed place in a scene, the study's own over the shared ones. */
+export function seatsIn(scene: SceneId = currentScene()): typeof SEATS {
+  if (scene !== 'study') return SEATS;
+  const out: typeof SEATS = { ...SEATS };
+  for (const [anchor, seats] of Object.entries(STUDY_SEATS)) out[anchor as AnchorId] = { ...SEATS[anchor as AnchorId], ...seats };
+  return out;
+}
+
 /** Where a character's feet go at an anchor, and which way it faces there. */
-export function standPoint(anchor: AnchorId, actor?: ActorId): Spot {
-  const seat = actor && SEATS[anchor]?.[actor];
+export function standPoint(anchor: AnchorId, actor?: ActorId, scene: SceneId = currentScene()): Spot {
+  const seat = actor && seatsIn(scene)[anchor]?.[actor];
   if (seat) return seat;
   const { x, y, facing } = ANCHORS[anchor];
   const d = actor ? SLOT[actor] * SLOT_GAP : 0;
@@ -103,11 +132,11 @@ export function standPoint(anchor: AnchorId, actor?: ActorId): Spot {
 }
 
 /** The walk across the floor from one point to another (path.ts), leaving out where it starts. */
-export const walkBetween = (from: Point, to: Point, scene?: 'cafe' | 'study'): Point[] => findPath(shopArea(scene), from, to);
+export const walkBetween = (from: Point, to: Point, scene?: SceneId): Point[] => findPath(shopArea(scene), from, to);
 
 /** The walk from a point to an anchor. */
-export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: 'cafe' | 'study'): Point[] {
-  return walkBetween(from, standPoint(to, actor), scene);
+export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: SceneId): Point[] {
+  return walkBetween(from, standPoint(to, actor, scene), scene);
 }
 
 /** Largest integer scale that fits the canvas in the viewport, at least 1. */

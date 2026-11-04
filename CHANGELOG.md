@@ -14,6 +14,12 @@ The running card and the road to 1.0.
 - **Everyone finds their own way.** Staff, neighbours, you and the cat work out a walk round the furniture and the
   holiday pieces instead of following one fixed aisle, in the shop, the study and the garden. The same start and end
   always give the same walk.
+- **Adeng is behind the counter.** The counter moved down, so Adeng stands behind it with the coffee machine alongside,
+  and neighbours and you come up to its end. The mini window shows the same.
+- **Everyone sits down for a meeting.** The bench in the shop and the sofa in the study take two more, so all four sit.
+- **The study has its own floor plan.** The sofa stands at the reading table, and the staff keep off the gap in the desk.
+- **Words keep off the blackboard.** A speech bubble that would cover the chalk moves beside it. Laoshi's guitar now
+  hangs on the wall, where the Christmas tree cannot hide it.
 - **The limit is per round, and says so.** The commission form, settings and the stop card all say "this round", and
   the stop card shows what the round spent, not the running total.
 - **Nobody walks through furniture.** Eleven stand points got their own place for each character, the holiday pieces

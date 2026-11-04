@@ -30,7 +30,7 @@ describe('the player\'s looks', () => {
 
 describe('the player\'s visit', () => {
   // The floor furniture, plus the lamp beside the customer's chair (scripts/art/scene.py).
-  const furniture = [...ZONES.filter((z) => ['shelf', 'table', 'corner', 'counter'].includes(z.id)), { id: 'lamp', x: 272, y: 140, w: 16, h: 40 }];
+  const furniture = [...ZONES.filter((z) => ['corner'].includes(z.id)), { id: 'lamp', x: 272, y: 169, w: 13, h: 6 }];
   const inside = (p: { x: number; y: number }) => furniture.find((z) => p.x > z.x && p.x < z.x + z.w && p.y > z.y && p.y < z.y + z.h);
   const walk = (from: { x: number; y: number }, path: { x: number; y: number }[]) => {
     let a = from;

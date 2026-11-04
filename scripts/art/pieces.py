@@ -26,7 +26,13 @@ import study
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/sprites'
 W, H = scene.W, scene.H
-SOFA_POS = (62, 146)
+# Seats drawn into a bigger piece: its depth is half a pixel behind the sitters (layout.ts, SEATS), not at its foot.
+SEAT_BASE = {'bench': 121.5, 'sofa': 124.5}
+# How much of a piece's height on screen is floor it stands on, counted from its foot; the rest rises in front of
+# whoever walks behind it. Walkers go round this part only (game/pieces.ts).
+FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'study': {'table': 12, 'sofa': 20, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 8, 'plant_l': 8, 'plant_r': 8}}
+CHAIR_FOOT = 12
 WALL = ('window', 'window2', 'board')
 # Where the floor starts: what ends higher up hangs on the wall.
 FLOOR_TOP = 50
@@ -71,7 +77,7 @@ def study_boxes():
         if name:
             box = box_of(study.piece(sheet, rect), pos)
             boxes[name] = union(boxes[name], box) if name in boxes else box
-    boxes['sofa'] = box_of(study.piece(*study.SOFA), SOFA_POS)
+    boxes['sofa'] = box_of(study.piece(*study.SOFA), study.SOFA_POS)
     return boxes
 
 
@@ -112,7 +118,7 @@ def solid(mask):
 
 def split(name, room, boxes, chairs):
     picture = Image.open(OUT / f'{name}.png').convert('RGBA')
-    named = [(key, box, box[3]) for key, box in boxes.items()] + [(key, box, y - 0.5) for key, box, y in chairs]
+    named = [(key, box, SEAT_BASE.get(key, box[3])) for key, box in boxes.items()] + [(key, box, y - 0.5) for key, box, y in chairs]
     named = [(key, (max(0, l), max(0, t), min(W, r), min(H, b)), base) for key, (l, t, r, b), base in named]
     # Whatever belongs to no piece stays in the room as it is in the picture.
     for y in range(H):
@@ -131,7 +137,7 @@ def split(name, room, boxes, chairs):
         trim = part.getbbox()
         part = part.crop(trim)
         pieces.append({'name': key, 'x': l + trim[0], 'y': t + trim[1], 'w': part.width, 'h': part.height,
-                       'sy': sheet_h, 'base': base, '_image': part})
+                       'sy': sheet_h, 'base': base, 'foot': FOOT[name].get(key, CHAIR_FOOT), '_image': part})
         sheet_h += part.height
     sheet = Image.new('RGBA', (max(p['w'] for p in pieces), sheet_h), (0, 0, 0, 0))
     for p in pieces:
