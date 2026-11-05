@@ -17,6 +17,7 @@
     "dist": "electron-vite build && node scripts/notices.mjs && electron-builder --win nsis --publish never",
     "packaged": "electron-vite build && node scripts/notices.mjs && electron-builder --win dir --publish never -c.directories.output=sim-out/packaged && node tools/sim/packaged.mjs",
     "contrast": "node tools/sim/contrast.mjs",
+    "names": "node tools/sim/names.mjs",
     "msix": "node scripts/msix.mjs",
     "accept": "npm run build && node tools/sim/accept.mjs",
     "store-shots": "npm run build && node tools/sim/store.mjs && node tools/sim/trailer.mjs"

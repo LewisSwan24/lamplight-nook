@@ -4,7 +4,7 @@ import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
 import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
-import { closeButton, closePanel, replaceOpen } from './panels';
+import { closeButton, closePanel, nameCard, replaceOpen } from './panels';
 import { el, layer } from './dom';
 import { lookPicker, withPortrait } from './portraits';
 import { moveTo, scenePicker, sceneRow } from './scenes';
@@ -166,12 +166,13 @@ function folderRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
  */
 export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatus): Promise<Settings> {
   return new Promise((resolve) => {
-    const name = el('input', { type: 'text', maxlength: 10, placeholder: S.namePlaceholder, value: settings.name }) as HTMLInputElement;
+    const name = el('input', { type: 'text', maxlength: 10, placeholder: S.namePlaceholder, value: settings.name, 'aria-label': S.nameLabel }) as HTMLInputElement;
     let look = settings.avatar;
     const looks = lookPicker(look, (n) => { look = n; });
     const card = el('div.card.paper.welcome.must-answer');
     const page = (...children: (Node | null)[]) => {
       card.replaceChildren(...children.filter((c): c is Node => c !== null));
+      nameCard(card);
       // Enter goes on to the next page, as it does on the first.
       card.querySelector<HTMLElement>('button.default')?.focus();
     };
@@ -437,7 +438,7 @@ function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Setting
 /** Settings, in the five tabs of docs/information-structure.md: who you are, the shop, sight and sound, working, and about. */
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
   const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
-  const name = el('input', { type: 'text', maxlength: 10, value: settings.name }) as HTMLInputElement;
+  const name = el('input', { type: 'text', maxlength: 10, value: settings.name, 'aria-label': S.nameLabel }) as HTMLInputElement;
   name.addEventListener('change', async () => onChange(await api.saveSettings({ name: name.value })));
   const groups: Record<SettingsTab, (HTMLElement | null)[]> = {
     basics: [

@@ -332,6 +332,13 @@ const SCENARIOS = {
     check(readFileSync(told, 'utf8').startsWith(locale(lang).ui.startFail.title), 'nothing was said');
   },
 
+  /** Every control and every card has a name for a screen reader: tools/sim/names.mjs. */
+  async names(lang, out) {
+    const run = spawnSync(process.execPath, [join(ROOT, 'tools', 'sim', 'names.mjs'), '--lang', lang, '--out', out], { encoding: 'utf8' });
+    check(run.status === 0, `nameless:\n${run.stdout.split('\n').filter((l) => l.startsWith('NONE')).join('\n')}${run.stderr}`);
+    console.log(`  ${run.stdout.trim().split('\n').at(-1)}`);
+  },
+
   /** Fourteen months and more runs than the ledger used to keep: each month and the sum are right. */
   async ledger(lang, out) {
     const month = (i) => `20${25 + Math.floor((i + 9) / 12)}-${String((i + 9) % 12 + 1).padStart(2, '0')}`;

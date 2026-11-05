@@ -316,7 +316,7 @@
       "readyText": "Claude Code and your API key are ready. Write what you need on the commission slip and hand it to Wick.",
       "readyStart": "Write a commission",
       "trialOffer": "Want to see how the shop usually works first?",
-      "trialButton": "Watch a trial run (a replay, costs nothing)",
+      "trialButton": "Watch a free trial run",
       "trialEndTitle": "End of the trial run",
       "trialEndText": "That was a recorded sample: the staff took an \"expense tracker\" commission. Install Claude Code and add an API key, and you can hand in your own.",
       "trialSetUp": "Get set up",

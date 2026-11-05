@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **Cards say what they are.** A screen reader is now told each card is a dialog and what it is called when it opens,
+  and the name box in settings has a name.
 - **A damaged notebook no longer costs you the notebook.** A data file that cannot be read used to count as empty, and the
   next save wrote over it. Now it is put aside, the copy from when the shop last opened takes its place, and Adeng tells you.
 - **When the shop cannot open, it says so.** A full disk or a folder it cannot write to used to leave it running with no

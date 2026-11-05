@@ -49,7 +49,7 @@ export function showDecision(req: DecisionRequest): Promise<string> {
 
 function dialog(req: DecisionRequest, close: (id: string) => void) {
   const actor = req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng';
-  return el('div.dialog.paper', { role: 'dialog', 'aria-modal': 'true' },
+  return el('div.dialog.paper', { role: 'dialog', 'aria-modal': 'true', 'aria-label': req.title },
     withPortrait(actor, 'unsure',
       el('div.who', {}, strings.actors[actor]),
       el('div.question', {}, req.title),
@@ -68,7 +68,7 @@ function seriousCard(req: DecisionRequest, close: (id: string) => void) {
   const allow = req.options.find((o) => o.id === 'allow')!;
   const confirm = el('button.confirm', { disabled: true, onclick: () => close('allow') }, allow.label);
   setTimeout(() => confirm.removeAttribute('disabled'), CONFIRM_DELAY_MS);
-  return el('div.serious', { role: 'alertdialog', 'aria-modal': 'true' },
+  return el('div.serious', { role: 'alertdialog', 'aria-modal': 'true', 'aria-label': D.seriousTitle },
     el('div.serious-title', {}, `\u26A0 ${D.seriousTitle}`),
     el('dl', {},
       el('dt', {}, D.what), el('dd', {}, req.title),

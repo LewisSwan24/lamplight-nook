@@ -28,8 +28,17 @@ const FOCUS_FIRST = ['textarea, input', 'button.default', 'button:not(.close)', 
 /** A card that must be answered is up: nothing else opens until it has been. */
 export const answerFirst = () => open?.classList.contains('must-answer') === true;
 
+/** What a screen reader says when a card opens: a dialog, called by its title. Called again when a card changes page. */
+export function nameCard(node: HTMLElement) {
+  if (!node.hasAttribute('role')) node.setAttribute('role', 'dialog');
+  node.setAttribute('aria-modal', 'true');
+  const title = node.querySelector('.card-title, .serious-title')?.textContent;
+  if (title) node.setAttribute('aria-label', title);
+}
+
 export function replaceOpen(node: HTMLElement) {
   if (answerFirst()) return;
+  nameCard(node);
   if (!open) returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   open?.dispatchEvent(new Event('panel-closed'));
   open?.remove();
