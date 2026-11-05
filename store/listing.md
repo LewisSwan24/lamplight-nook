@@ -38,6 +38,17 @@ Text for Partner Center (Store listings, one per language). Keep both languages 
 
 小灯屋不收集你的任何数据，没有统计、没有广告，也没有我们的服务器。你的设置、Key 和作品都只在你的电脑上。
 
+### 新内容
+
+1.0 版：
+
+- 一张卡看全进度：用了多久、这一轮的上限、计划的每一步、谁在做什么，还能插句话或者喊停。
+- 作品都留着，作品架可以搜索。挪走的作品也能找回来。
+- 数据文件坏了不会被盖掉，店里会用上次的副本顶上，并告诉你。
+- 读委托文件夹以外的文件一定先问你，网页和文件里的内容只算材料。
+- 店员绕着家具走，做过什么，店里就添什么，新街坊也会来串门。
+- 文字更清楚，支持读屏软件，Windows 缩放时像素依然整齐。
+
 ## English (en)
 
 ### Name
@@ -73,3 +84,14 @@ undone, such as deleting files, always waits for you, and the default is "not no
 ### Privacy
 
 Lamplight Nook collects none of your data: no analytics, no ads, and no servers of ours. Your settings, key and work stay on your computer.
+
+### What's new
+
+Version 1.0:
+
+- One card for work under way: how long it has taken, the limit for this round, every step of the plan and who is doing what, with a way to add a word or call it off.
+- Nothing drops off the works shelf, and you can search it. A work that moved can be found again.
+- A damaged data file is no longer written over. The shop goes back to the last copy and tells you.
+- Reading outside the commission folder always asks first, and pages and files count only as material to work from.
+- The staff walk around the furniture, what you make shows up in the shop, and new neighbours drop in.
+- Clearer text, screen reader support, and even pixels when Windows scales.

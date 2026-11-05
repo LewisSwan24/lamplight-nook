@@ -695,6 +695,7 @@
       "relinkDialog": "Which folder is {main} in now?",
       "relinkWrong": "The main file isn't in that folder.",
       "relinkBroad": "That folder holds a lot more than this work. Give it a folder of its own and show me that one.",
+      "relinkTaken": "Another work is already there. Give this one a folder of its own and show me that one.",
       "relinked": "Found it. It opens from there now.",
       "empty": "The shelf is still empty. The first thing we finish goes right here.",
       "search": "Find one: a name, what you asked, a month",

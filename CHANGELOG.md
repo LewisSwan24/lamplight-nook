@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (1.0)
+## 1.0.0 (2026-11-05)
 
 The running card and the road to 1.0.
 
@@ -14,7 +14,7 @@ The running card and the road to 1.0.
 - **A stopped commission shows what it managed.** Its card now leads to what was done so far, and the plan stays up.
 - **Forgetting waits for the running commission.** Before, what was running wrote itself straight back and the ledger
   could count a round twice.
-- **The shop has a birthday.** A year to the day after the first work, Adeng mentions it, and it goes into the shop's days.
+- **The shop has a birthday.** A year to the day after the first work, Wick mentions it, and it goes into the shop's days.
 - **A work that moved can be found again.** When its folder has been moved, the shelf asks where it is now, and takes the
   new place if its main file is there.
 - **One shop at a time.** Opening the app again brings the shop back. Before, a second shop opened on the same notebook,
@@ -22,7 +22,7 @@ The running card and the road to 1.0.
 - **Cards say what they are.** A screen reader is now told each card is a dialog and what it is called when it opens,
   and the name box in settings has a name.
 - **A damaged notebook no longer costs you the notebook.** A data file that cannot be read used to count as empty, and the
-  next save wrote over it. Now it is put aside, the copy from when the shop last opened takes its place, and Adeng tells you.
+  next save wrote over it. Now it is put aside, the copy from when the shop last opened takes its place, and Wick tells you.
 - **When the shop cannot open, it says so.** A full disk or a folder it cannot write to used to leave it running with no
   window at all. Damaged settings or a damaged ledger are now mentioned too, including what the budget went back to.
 - **Crisp at 125% and 150%.** On a display Windows scales, game pixels came out uneven. The shop now picks its size in
@@ -51,10 +51,10 @@ The running card and the road to 1.0.
   answer has neither and cannot be pushed aside. The main button is always last on the right and takes the keyboard focus,
   so Enter is safe. Three widths instead of a dozen, and long words scroll inside the paper.
 - **A newcomer gets shown round.** A small "!" over the counter, then over the bell and the blackboard during the first
-  commission, with a word from Adeng about what they are for. The works shelf says so when it is empty.
+  commission, with a word from Wick about what they are for. The works shelf says so when it is empty.
 - **One card for work under way.** The counter and the blackboard now open the same card: how long it has taken,
   the limit for this round, what is happening now, every step of the plan, who on the staff is doing what, and three
-  buttons (keep going, say something, call it off). It keeps up while it is open. Steps that are only Adeng's guess
+  buttons (keep going, say something, call it off). It keeps up while it is open. Steps that are only Wick's guess
   are not counted as "1 of 3 done". The blackboard also shows a hand cursor now.
 - **The staff walk behind the furniture.** The table, counter, shelves, chairs and the rest are separate pieces now,
   each drawn at the depth of its foot, so someone behind the table shows only their head. What stands on the furniture
@@ -70,29 +70,29 @@ The running card and the road to 1.0.
 - **The garden grows with the work.** The vegetable beds behind the shop start empty. A sprout comes up every three works
   finished and ripens three works later, so they fill at the twenty-fifth. The staff mention the first sprout, the first
   ripe plant and the full beds. Another round of changes on the same work does not count.
-- **People pass the windows.** A neighbour on the way in and Xiaoju on an errand go by behind the glass before they reach
+- **People pass the windows.** A neighbour on the way in and Clem on an errand go by behind the glass before they reach
   the door, a dark shape by day and lit by the street lamps at night. With less motion asked for, nobody goes by.
-- **A commission that falls over says so.** If Claude Code stops partway for no reason it can name, Adeng now tells you
+- **A commission that falls over says so.** If Claude Code stops partway for no reason it can name, Wick now tells you
   with a card and you can carry on from where it stopped. It used to go quiet, with the plan left on the blackboard.
   Carried on, it stays one commission in the notebook.
 - **Tab stays on the card.** While a card is open, Tab goes round inside it instead of wandering off to the shop behind.
 - **The doors make sense now.** The top wall faces the street, so only the front door opens there, and a third window
   looks out where the back door used to be. The back door is in the bottom wall, right above the path in the garden.
-  Laoshi stands on the other side of the workbench, out of its way.
-- **Adeng is behind the counter.** The counter moved down, so Adeng stands behind it with the coffee machine alongside,
+  Flint stands on the other side of the workbench, out of its way.
+- **Wick is behind the counter.** The counter moved down, so Wick stands behind it with the coffee machine alongside,
   and neighbours and you come up to its end. The mini window shows the same.
 - **Everyone sits down for a meeting.** The bench in the shop and the sofa in the study take two more, so all four sit.
 - **The study has its own floor plan.** The sofa stands at the reading table, and the staff keep off the gap in the desk.
-- **Words keep off the blackboard.** A speech bubble that would cover the chalk moves beside it. Laoshi's guitar now
+- **Words keep off the blackboard.** A speech bubble that would cover the chalk moves beside it. Flint's guitar now
   hangs on the wall, where the Christmas tree cannot hide it.
 - **The shop comes to look like what was made in it.** Albums leave an album on the table, research leaves a stack of books, letters
   go up on a board, and a calendar, a ledger and an old computer arrive the same way. The staff talk about the work, the
-  neighbours ask about it, and Auntie Gui asks after your latest piece by name. There is more to gather and more to hear
+  neighbours ask about it, and Auntie Olive asks after your latest piece by name. There is more to gather and more to hear
   after the twentieth commission, up to the fiftieth. Another round of changes on one work still counts as one.
 - **New neighbours, brought by the work.** After a web page Old Zhou from the garage drops in. After an album Granny Chen
   comes with her photographs. After some research Xiaohe sits down to write her thesis.
 - **The staff do what they seem to be doing.** Writing is a page and a moving pencil on the table, a drink is a cup in the
-  hand, and Laoshi taps with a hammer. Adeng takes the phone at the counter for commands and the web, and hands the work
+  hand, and Flint taps with a hammer. Wick takes the phone at the counter for commands and the web, and hands the work
   over when someone is sent off. Whoever is listening turns to whoever is talking. The cat gets up and walks.
 - **Everything in the shop answers.** The clock, window, doors, table, shelf, workbench, lamp, plants, cup, blackboard
   and what the shop has gathered all show a name on hover, can be reached from the keyboard, and answer a click with a
