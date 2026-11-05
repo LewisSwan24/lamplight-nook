@@ -63,7 +63,7 @@ export function showDataTrouble(damage: DataDamage, budget: number) {
   ].filter((s): s is string => Boolean(s));
   replaceOpen(el('div.card.paper.notebook-trouble', {},
     closeButton(),
-    withPortrait('adeng', 'unsure', el('div.card-title', {}, N.troubleTitle), ...said.map((s) => el('div', {}, s))),
+    el('div.card-scroll', {}, withPortrait('adeng', 'unsure', el('div.card-title', {}, N.troubleTitle), ...said.map((s) => el('div', {}, s)))),
     el('div.actions', {}, el('button.default', { type: 'button', onclick: closePanel }, N.troubleOk))));
 }
 

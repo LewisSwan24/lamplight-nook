@@ -271,11 +271,13 @@ const SCENARIOS = {
             const card = document.querySelector(sel);
             const r = card.getBoundingClientRect();
             const buttons = [...card.querySelectorAll('.actions button.default, :scope > button.close')].map((b) => b.getBoundingClientRect());
-            return { top: r.top, left: r.left, bottom: r.bottom, right: r.right, vw: innerWidth, vh: innerHeight, buttonsOut: card.scrollHeight > card.clientHeight ? 0 : buttons.filter((b) => b.top < 0 || b.bottom > innerHeight + 1 || b.left < 0 || b.right > innerWidth + 1).length };
+            return { top: r.top, left: r.left, bottom: r.bottom, right: r.right, vw: innerWidth, vh: innerHeight, offPaper: card.matches('.paper') && card.scrollHeight > card.clientHeight + 1, buttonsOut: card.scrollHeight > card.clientHeight ? 0 : buttons.filter((b) => b.top < 0 || b.bottom > innerHeight + 1 || b.left < 0 || b.right > innerWidth + 1).length };
           }, sel);
           const where = `${size.join('x')} ${name}`;
           see(box.top >= -1 && box.left >= -1 && box.bottom <= box.vh + 1 && box.right <= box.vw + 1, `${where} leaves the window: ${Math.round(box.top)}..${Math.round(box.bottom)} of ${box.vh}, ${Math.round(box.left)}..${Math.round(box.right)} of ${box.vw}`);
           see(box.buttonsOut === 0, `${where}: ${box.buttonsOut} of its buttons are out of reach`);
+          // The paper is only as tall as the card, so the inside has to do the scrolling.
+          see(!box.offPaper, `${where}: its words run off the paper`);
           if (size[0] === 640 && (name === 'shelf' || name === 'slip' || name === 'settings-work')) await shop.shot(join(out, `screens-small-${name}.png`));
           await shop.page.keyboard.press('Escape');
           await sleep(200);

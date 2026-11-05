@@ -228,7 +228,7 @@ export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => vo
   // Once both are there, the card says so and leads straight to the commission slip.
   const ready = () => {
     card.replaceChildren(close,
-      withPortrait('adeng', 'happy', el('div.card-title', {}, S.readyTitle), el('div', {}, S.readyText)),
+      el('div.card-scroll', {}, withPortrait('adeng', 'happy', el('div.card-title', {}, S.readyTitle), el('div', {}, S.readyText))),
       el('div.actions', {}, el('button.default', { type: 'button', onclick: () => { closePanel(); start?.(); } }, S.readyStart)));
     nameCard(card);
   };
@@ -237,11 +237,11 @@ export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => vo
   const onlyOld = (e: EnvStatus) => e.hasClaude && e.hasApiKey && e.claudeCompat === 'old';
   keepOld.hidden = !useOld || !onlyOld(env);
   card.append(close,
-    withPortrait('adeng', 'unsure', el('div.card-title', {}, onlyOld(env) ? S.oldTitle : S.notReadyTitle),
+    el('div.card-scroll', {}, withPortrait('adeng', 'unsure', el('div.card-title', {}, onlyOld(env) ? S.oldTitle : S.notReadyTitle),
       envRows(api, env, (e) => {
         keepOld.hidden = !useOld || !onlyOld(e);
         if (e.hasClaude && e.hasApiKey && e.claudeCompat !== 'old' && start) setTimeout(ready, 1200);
-      })),
+      }))),
     keepOld,
     ...(trial ? [el('div.trial-offer', {}, el('span', {}, S.trialOffer),
       el('button.sticker', { type: 'button', onclick: () => { closePanel(); trial(); } }, S.trialButton))] : []));

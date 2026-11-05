@@ -4,6 +4,7 @@
 
 The running card and the road to 1.0.
 
+- **Long cards stay on the paper in a small window.** The words scroll inside the card, and the button stays in view.
 - **Stopping on the way out can be carried on, as promised.** "Stop and close" used to throw away what it said you could
   carry on with, and answering "keep going" when quitting stopped the commission anyway.
 - **A stopped commission shows what it managed.** Its card now leads to what was done so far, and the plan stays up.
