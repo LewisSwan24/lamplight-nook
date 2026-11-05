@@ -554,6 +554,10 @@ app.on('web-contents-created', (_e, contents) => {
   contents.on('will-attach-webview', (e) => e.preventDefault());
 });
 
+// One shop at a time: two would write over each other's notebook, and each would spend its own budget.
+if (!app.requestSingleInstanceLock()) app.exit(0);
+app.on('second-instance', () => tray.show());
+
 app.whenReady().then(() => {
   // Nothing in the shop needs the camera, the microphone, notifications from the page or anything like them.
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, done) => done(false));

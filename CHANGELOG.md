@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **One shop at a time.** Opening the app again brings the shop back. Before, a second shop opened on the same notebook,
+  and each kept its own idea of what had been written.
 - **Cards say what they are.** A screen reader is now told each card is a dialog and what it is called when it opens,
   and the name box in settings has a name.
 - **A damaged notebook no longer costs you the notebook.** A data file that cannot be read used to count as empty, and the

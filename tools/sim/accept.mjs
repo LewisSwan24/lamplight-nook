@@ -332,6 +332,28 @@ const SCENARIOS = {
     check(readFileSync(told, 'utf8').startsWith(locale(lang).ui.startFail.title), 'nothing was said');
   },
 
+  /** Opening it twice brings the shop back rather than opening a second one on the same notebook. */
+  async oneshop(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, debug: true });
+    // The corner window comes up when the shop is put away, so only the big window counts.
+    const hidden = () => shop.app.evaluate(({ BrowserWindow }) => !BrowserWindow.getAllWindows().find((w) => w.getSize()[0] >= 640).isVisible());
+    try {
+      await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.getSize()[0] >= 640).hide());
+      await sleep(300);
+      check(await hidden(), 'the shop could not be put away for the test');
+      const again = await launch({ lang, home, noWindow: true }).catch(() => null);
+      const gone = !again || await Promise.race([new Promise((r) => again.process().once('exit', () => r(true))), sleep(15_000).then(() => false)]);
+      if (!gone) again.process().kill();
+      check(gone, 'a second shop opened on the same data');
+      await sleep(500);
+      check(!(await hidden()), 'the first shop did not come back');
+      await shop.page.evaluate(() => document.title);
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** Every control and every card has a name for a screen reader: tools/sim/names.mjs. */
   async names(lang, out) {
     const run = spawnSync(process.execPath, [join(ROOT, 'tools', 'sim', 'names.mjs'), '--lang', lang, '--out', out], { encoding: 'utf8' });
