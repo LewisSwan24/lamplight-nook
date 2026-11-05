@@ -269,7 +269,7 @@ grow:
   - { id: grow_star, speaker: adeng, when: grow_star, bubbles: ["Fifty commissions.", "Clem cut out that star."] }
   - { id: grow_album, speaker: qingdai, when: grow_album, bubbles: ["An album stays on the table now."] }
   - { id: grow_calendar, speaker: adeng, when: grow_calendar, bubbles: ["A calendar went up.", "The days fit better now."] }
-  - { id: grow_globe, speaker: adeng, when: grow_globe, bubbles: ["A globe on the bookcase.", "Good for looking things up."] }
+  - { id: grow_books, speaker: adeng, when: grow_books, bubbles: ["A stack of books on the bookcase.", "Good for looking things up."] }
   - { id: grow_letters, speaker: xiaoju, when: grow_letters, bubbles: ["Letters on the wall!", "They all came back to us."] }
   - { id: grow_ledger, speaker: laoshi, when: grow_ledger, bubbles: ["A ledger on the table.", "Keep it straight."] }
   - { id: grow_monitor, speaker: xiaoju, when: grow_monitor, bubbles: ["A computer on the little table!", "It even turns on."] }

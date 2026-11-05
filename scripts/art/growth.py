@@ -39,6 +39,8 @@ DRAWN = {
     'monitor': ['xxxxxxxxxxxxxx', 'xddddddddddddx', 'xdxxxxxxxxxxdx', 'xdxuuuuuuuuxdx', 'xdxuwwwuuuuxdx', 'xdxuuuuwwuuxdx',
                 'xdxuwwuuuuuxdx', 'xdxxxxxxxxxxdx', 'xddddddddddddx', 'xxxxxxxxxxxxxx', '....xddddx....', '..xxxxxxxxxx..',
                 '..xddddddddx..', '..xxxxxxxxxx..'],
+    'books': ['..xxxxxxxxxx..', '..xrrrrrrrrx..', '..xrryyrrrwx..', '.xxxxxxxxxxxx.', '.xuuuuuuuuuux.', '.xuyyuuuuuuwx.',
+              'xxxxxxxxxxxxxx', 'xggggggggggggx', 'xgggyyggggggwx', 'xxxxxxxxxxxxxx'],
     'star': ['xxxxxxxxxxxx', 'xbbbbbbbbbbx', 'xbuuuuGuuubx', 'xbuuuGGGuubx', 'xbGGGGGGGGbx', 'xbuGGGGGGubx', 'xbuuGGGGuubx',
              'xbuGGuuGGubx', 'xbGuuuuuuGbx', 'xbbbbbbbbbbx', 'xxxxxxxxxxxx'],
 }
@@ -73,7 +75,7 @@ def pieces_by_id():
         # Pieces that come from a kind of work (shared/growth.ts).
         'album': [(drawn('album'), (134, 84))],  # an open album on the big table
         'calendar': [(drawn('calendar'), (129, 19))],  # a calendar over the works shelf
-        'globe': [(single(CLASSROOM, 'Classroom_and_Library_Singles_Shadowless_34.png'), (11, 93))],  # on top of the bookcase
+        'books': [(drawn('books'), (12, 103))],  # a stack on top of the bookcase; the study has its own globe
         'letters': [(drawn('letters'), (146, 19))],  # a board of letters beside the calendar
         'ledger': [(drawn('ledger'), (155, 85))],  # a ledger on the big table
         'monitor': [(drawn('monitor'), (129, 133))],  # an old computer on the little table
