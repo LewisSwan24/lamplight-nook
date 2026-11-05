@@ -11,7 +11,7 @@
 
 ## 一、安装
 
-1. 运行 `dist` 里的安装程序，装好后打开。
+1. 运行 `C:\Users\LewisDong\Projects\lamplight-decisions\dist\Lamplight-Nook-Setup-0.9.1.exe`，装好后打开。安装包没有签名，Windows 可能弹 SmartScreen 警告，点“更多信息”再点“仍要运行”。
 2. 看店里是不是原来的数据：名字、书架上的作品、小本子。
 
 ## 二、花钱的四步
@@ -44,7 +44,12 @@
 
 ## 四、微软商店的包
 
-12. 我打好测试用的 MSIX 后，你装上打开，看能不能启动，以及能不能看到现有数据。看不到也要记下来，这决定发布说明怎么写。
+12. 先卸载上面装的版本，再在 PowerShell 里运行下面两条，装上后打开。看能不能启动，以及能不能看到现有数据。看不到也要记下来，这决定发布说明怎么写。
+
+    ```powershell
+    cd C:\Users\LewisDong\Projects\lamplight-decisions\dist
+    Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-0.9.1-test.msix
+    ```
 
 ## 记什么发给我
 
