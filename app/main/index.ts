@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileS
 import { arch, homedir, release } from 'node:os';
 import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, session, shell } from 'electron';
+import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
@@ -352,7 +352,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       emitAi: (e) => { stuck.see(e); emitters.emitAi(e); },
     });
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
-    // Money spent counts whatever the outcome, cancelled runs included.
+    // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
     const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
@@ -473,6 +473,7 @@ ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
   if (holdsTooMuch(folder)) return 'broad';
   const main = join(folder, memo.main);
   if (!existsSync(main) || !statSync(main).isFile() || !insideForReal(folder, main)) return 'wrong';
+  spend.moved(memo.folder, folder);
   memory.relink(memo.id, folder);
   // What was kept of it came from the old folder; nothing may be put back over the new one.
   versions.drop(memo.id);
@@ -581,6 +582,8 @@ app.on('web-contents-created', (_e, contents) => {
 
 // One shop at a time: two would write over each other's notebook, and each would spend its own budget.
 if (!app.requestSingleInstanceLock()) app.exit(0);
+// Electron's own File, Edit and View menus, developer tools among them, are not for the people the shop serves.
+Menu.setApplicationMenu(null);
 app.on('second-instance', () => tray.show());
 
 app.whenReady().then(() => {

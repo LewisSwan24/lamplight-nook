@@ -218,6 +218,9 @@ const SCENARIOS = {
         const real = got.w * got.dpr / 320;
         see(Math.abs(real - Math.round(real)) < 0.01, `${name}: a game pixel is ${real} real pixels wide`);
         see(got.x >= 0 && got.y >= 0 && got.x + got.w <= got.vw + 1 && got.y + got.h <= got.vh + 1, `${name}: the shop does not fit: ${JSON.stringify(got)}`);
+        // By day whatever the clock says: the evening's lamplight is a gradient, with runs that are no one's pixels.
+        await shop.page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+        await sleep(500);
         // Counted on the picture itself: runs of one colour across a row are whole numbers of game pixels.
         const pic = await shop.page.screenshot({ scale: 'device', clip: { x: got.x, y: got.y + got.h * 0.1, width: got.w, height: got.h * 0.5 } });
         const uneven = await shop.page.evaluate(async ([png, n]) => {
@@ -399,12 +402,17 @@ const SCENARIOS = {
       await sleep(400);
       check((await row.locator('.work-note').innerText()).includes(W.relinked), 'the shelf does not say it found it');
       check(saved().folder === now && !saved().sessionId, 'the notebook did not take the new folder');
-      check(saved().preexisting.length === 2, 'what is in the new folder does not count as already there');
+      check(saved().preexisting.length === 1 && saved().preexisting[0].endsWith('mine.txt'), 'the file the shop made, or what else is in the folder, is counted wrongly');
       await row.locator('.work-actions button').first().click();
       await sleep(300);
       const opened = await shop.app.evaluate(() => globalThis.opened);
       check(opened.length === 1 && opened[0].endsWith('page.html') && opened[0].includes('now'), `opened ${opened}`);
       await shop.shot(join(out, 'moved.png'));
+      // A round that made no file of its own still comes back with a card: without one the run ends in silence.
+      await shop.page.keyboard.press('Escape');
+      await shop.page.evaluate((workDir) => { window.lamplightDebug.ui.showResult({ ok: true, summary: 'done', files: [], workDir }); }, now);
+      await shop.page.waitForSelector('.result-card');
+      check((await shop.page.locator('.result-card').innerText()).includes('done'), 'a result with no file has no card');
     } finally {
       await shop.close();
     }
@@ -1907,6 +1915,7 @@ const SCENARIOS = {
     const home = freshHome({ 'settings.json': onboarded(lang, { muted: false }) });
     const shop = await launch({ lang, home, speed: SPEED, debug: true });
     const { page, L } = shop;
+    check(await shop.app.evaluate(({ Menu }) => Menu.getApplicationMenu() === null), "the window shows Electron's File, Edit and View menus");
     const S = L.ui.setup;
     const buttons = page.locator('.toolbar button.tool-btn');
     const tip = (i) => buttons.nth(i).getAttribute('data-tip');

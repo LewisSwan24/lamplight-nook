@@ -10,7 +10,7 @@ const memo = (title: string, choices: Record<string, string> = {}, result: 'done
 describe('a work whose folder moved', () => {
   const madeIn = (file: string, folder: string) => new MemoryStore(file).remember({ ...memo('page'), folder, main: 'page.html', sessionId: 's1', preexisting: [join(folder, 'old.txt')] }, []);
 
-  it('lives in the new folder from now on, and everything there counts as already being there', () => {
+  it('lives in the new folder from now on, its own file still belongs to the shop, and the rest counts as already being there', () => {
     const file = fresh();
     const work = madeIn(file, 'C:/gone');
     const moved = mkdtempSync(join(tmpdir(), 'lamplight-moved-'));
@@ -21,7 +21,7 @@ describe('a work whose folder moved', () => {
     expect(after.folder).toBe(moved);
     expect(after.main).toBe('page.html');
     // A round in the new folder or putting one back must never clear away what was already in it.
-    expect(after.preexisting?.sort()).toEqual([join(moved, 'mine.txt'), join(moved, 'page.html')].sort());
+    expect(after.preexisting).toEqual([join(moved, 'mine.txt')]);
     // The staff's session belongs to the old folder.
     expect(after.sessionId).toBeUndefined();
   });

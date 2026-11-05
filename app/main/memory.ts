@@ -163,7 +163,8 @@ export class MemoryStore {
   relink(id: string, folder: string) {
     const memo = this.data.commissions.find((c) => c.id === id)!;
     memo.folder = folder;
-    memo.preexisting = readdirSync(folder).map((name) => join(folder, name));
+    // The work itself is the shop's to change; the rest of what is there may be the user's.
+    memo.preexisting = readdirSync(folder).filter((name) => name !== memo.main).map((name) => join(folder, name));
     delete memo.sessionId;
     this.save();
   }
