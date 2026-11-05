@@ -425,7 +425,7 @@
         "star": "This gold star",
         "album": "Album",
         "calendar": "Calendar",
-        "globe": "Globe",
+        "books": "Stack of books",
         "letters": "Letter board",
         "ledger": "Ledger",
         "monitor": "Little computer"
@@ -514,7 +514,7 @@
       "grownMade": {
         "album": "We made an album once, so one stays here to leaf through.",
         "calendar": "We planned a schedule, and the calendar went up.",
-        "globe": "After two rounds of research, the globe moved in.",
+        "books": "After two rounds of research, the books stayed.",
         "letters": "We wrote a few letters. The replies get pinned here.",
         "ledger": "After a couple of sheets we keep our own books better.",
         "monitor": "After a few web pages, this little computer stays on."
@@ -821,7 +821,7 @@
     "star": "a gold star",
     "album": "an album",
     "calendar": "a calendar",
-    "globe": "a globe",
+    "books": "a stack of books",
     "letters": "a board of letters",
     "ledger": "a ledger",
     "monitor": "a little computer"

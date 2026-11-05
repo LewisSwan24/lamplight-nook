@@ -269,7 +269,7 @@ grow:
   - { id: grow_star, speaker: adeng, when: grow_star, bubbles: ["五十单了。", "这颗星是小橘剪的。"] }
   - { id: grow_album, speaker: qingdai, when: grow_album, bubbles: ["桌上留了本相册。"] }
   - { id: grow_calendar, speaker: adeng, when: grow_calendar, bubbles: ["墙上挂了本挂历。", "日子排得开了。"] }
-  - { id: grow_globe, speaker: adeng, when: grow_globe, bubbles: ["书架上添了个地球仪。", "查东西时转一转。"] }
+  - { id: grow_books, speaker: adeng, when: grow_books, bubbles: ["书架上堆了一叠书。", "查东西时翻一翻。"] }
   - { id: grow_letters, speaker: xiaoju, when: grow_letters, bubbles: ["墙上钉了几封信！", "都是寄回来的。"] }
   - { id: grow_ledger, speaker: laoshi, when: grow_ledger, bubbles: ["桌上多了本账。", "记清楚。"] }
   - { id: grow_monitor, speaker: xiaoju, when: grow_monitor, bubbles: ["小桌上多了台电脑！", "还能开机。"] }

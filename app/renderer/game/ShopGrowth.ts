@@ -12,7 +12,7 @@ import sunsetUrl from '../../../assets/sprites/grow-sunset.png';
 import starUrl from '../../../assets/sprites/grow-star.png';
 import albumUrl from '../../../assets/sprites/grow-album.png';
 import calendarUrl from '../../../assets/sprites/grow-calendar.png';
-import globeUrl from '../../../assets/sprites/grow-globe.png';
+import booksUrl from '../../../assets/sprites/grow-books.png';
 import lettersUrl from '../../../assets/sprites/grow-letters.png';
 import ledgerUrl from '../../../assets/sprites/grow-ledger.png';
 import monitorUrl from '../../../assets/sprites/grow-monitor.png';
@@ -24,7 +24,7 @@ const URLS: Record<GrowthId, string> = {
   painting: paintingUrl, plant: plantUrl, lights: lightsUrl, fruit: fruitUrl,
   guitar: guitarUrl, bonsai: bonsaiUrl, easel: easelUrl, trophy: trophyUrl,
   portrait: portraitUrl, sunset: sunsetUrl, star: starUrl,
-  album: albumUrl, calendar: calendarUrl, globe: globeUrl, letters: lettersUrl, ledger: ledgerUrl, monitor: monitorUrl,
+  album: albumUrl, calendar: calendarUrl, books: booksUrl, letters: lettersUrl, ledger: ledgerUrl, monitor: monitorUrl,
 };
 
 /** On the wall behind everyone, like the holiday decorations, and under them. */

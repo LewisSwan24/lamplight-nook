@@ -32,7 +32,7 @@ describe('the shop grows with the commissions done together', () => {
   it('gathers what fits the kind of work done', () => {
     expect(grownBy(0, { album: 1 })).toEqual(['album']);
     expect(grownBy(0, { research: 1 })).toEqual([]);
-    expect(grownBy(0, { research: 2 })).toEqual(['globe']);
+    expect(grownBy(0, { research: 2 })).toEqual(['books']);
     expect(grownBy(0, { page: 3, plan: 1, letter: 2, sheet: 2 }).sort()).toEqual(['calendar', 'ledger', 'letters', 'monitor']);
     const store = fresh();
     store.remember(memo('photos', { form: { want: 'x', template: 'album' } }), []);
@@ -67,8 +67,8 @@ describe('the shop grows with the commissions done together', () => {
     const albums = shopAfter(['album']);
     const reports = shopAfter(['research', 'sheet']);
     expect(albums).toContain('album');
-    expect(albums).not.toContain('globe');
-    expect(reports).toEqual(expect.arrayContaining(['globe', 'ledger']));
+    expect(albums).not.toContain('books');
+    expect(reports).toEqual(expect.arrayContaining(['books', 'ledger']));
     expect(reports).not.toContain('album');
     for (const shop of [albums, reports]) expect(shop).toEqual(expect.arrayContaining(['trophy', 'portrait']));
   }, 20_000);

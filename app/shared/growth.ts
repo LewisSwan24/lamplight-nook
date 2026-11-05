@@ -21,7 +21,7 @@ export const GROWTH = [
   { id: 'star', at: 50 },
   { id: 'album', at: 1, work: 'album' },
   { id: 'calendar', at: 1, work: 'plan' },
-  { id: 'globe', at: 2, work: 'research' },
+  { id: 'books', at: 2, work: 'research' },
   { id: 'letters', at: 2, work: 'letter' },
   { id: 'ledger', at: 2, work: 'sheet' },
   { id: 'monitor', at: 3, work: 'page' },

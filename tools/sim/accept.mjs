@@ -1337,9 +1337,9 @@ const SCENARIOS = {
   async history(lang, out) {
     const common = ['painting', 'plant', 'lights', 'fruit', 'guitar', 'bonsai', 'easel', 'trophy', 'portrait'];
     const shops = [
-      { name: 'albums', scene: 'cafe', kinds: ['album', 'plan'], has: ['album', 'calendar'], lacks: ['globe', 'letters', 'ledger', 'monitor'] },
-      { name: 'reports', scene: 'cafe', kinds: ['research', 'letter', 'sheet', 'page'], has: ['globe', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
-      { name: 'reports', scene: 'study', kinds: ['research', 'letter', 'sheet', 'page'], has: ['globe', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
+      { name: 'albums', scene: 'cafe', kinds: ['album', 'plan'], has: ['album', 'calendar'], lacks: ['books', 'letters', 'ledger', 'monitor'] },
+      { name: 'reports', scene: 'cafe', kinds: ['research', 'letter', 'sheet', 'page'], has: ['books', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
+      { name: 'reports', scene: 'study', kinds: ['research', 'letter', 'sheet', 'page'], has: ['books', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
     ];
     for (const { name, scene, kinds, has, lacks } of shops) {
       const title = kinds[0] === 'album' ? W[lang].page.slice(0, 4) : 'Q3';
