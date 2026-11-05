@@ -415,14 +415,17 @@ W1 和 W3 可以同时进行，其余按依赖走。
 
 - [x] 版本号改成 1.0.0，CHANGELOG 改成 “1.0.0 (日期)”。Lewis 2026-11-05 看过，说“没问题”。日期写的是 2026-11-05，发布当天要核对。
 - [x] 写 `release-notes/v1.0.0.md`（中英文），更新 `store/listing.md` 的“新内容”。Lewis 2026-11-05 看过，说“没问题”。
-- [ ] 合并后在 main 打 `v1.0.0` 标签并推送，触发 `release.yml`。这次合并之后就打，结果看 GitHub Release。
+- [x] 合并后在 main 打 `v1.0.0` 标签并推送，触发 `release.yml`。2026-11-05 发布，`0144088`，[运行记录](https://github.com/LewisSwan24/lamplight-nook/actions/runs/42019226211)。产物还没有人下载安装过。
 - [x] 正式发布前先用 `v1.0.0-rc.2` 跑通 `release.yml`（2026-11-05）：检查、打包、MSIX、建 Release 都过了，产物没有下载安装过。`v1.0.0-rc.1` 查出 `npm test` 在 CI 上缺 `playwright`，#65 修好了。
 
 **发布之后，都等 Lewis 说了再做**
 
-- [ ] 删除 `backup/main-before-squash`。
-- [ ] 删除 `polish-1.0`、`polish-1.0-copy` 分支。
-- [ ] 删除 `C:\Users\LewisDong\Downloads\小灯屋-模拟产物隔离-2026-11-04`。
+- [x] 删除 `backup/main-before-squash`。
+- [x] 删除 `polish-1.0`、`polish-1.0-copy` 分支。
+- [x] 删除 `C:\Users\LewisDong\Downloads\小灯屋-模拟产物隔离-2026-11-04`。已进回收站，还没有清空。
+- [x] 删除 `v1.0.0-rc.1` 标签。
+- [ ] 删除 `v1.0.0-rc.2` 的 Release 和标签。Release 带安装包，删了找不回来，由 Lewis 自己删。
+- [x] 清掉真实数据里的测试作品、录制和文件夹（2026-11-05）。账本保留，测试花的钱是真的。
 
 ## 8. 1.0 之后
 
