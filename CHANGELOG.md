@@ -4,6 +4,10 @@
 
 The running card and the road to 1.0.
 
+- **A moved work's round comes back with a card.** It used to end in silence, after asking to overwrite the work's own
+  file, and what the work had cost stayed behind in the old folder.
+- **No File, Edit and View menus.** Those were Electron's own, with the developer tools among them.
+- **Settings says what the monthly figure leaves out.** Claude Code reports no cost for a round stopped partway.
 - **Long cards stay on the paper in a small window.** The words scroll inside the card, and the button stays in view.
 - **Stopping on the way out can be carried on, as promised.** "Stop and close" used to throw away what it said you could
   carry on with, and answering "keep going" when quitting stopped the commission anyway.
