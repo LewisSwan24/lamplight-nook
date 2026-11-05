@@ -364,7 +364,7 @@ W1 和 W3 可以同时进行，其余按依赖走。
 
 - [x] 重新生成商店图和宣传片（`tools/sim/store.mjs`、`trailer.mjs`），场景变了旧图就过期了。
 - [x] 更新 `store/listing.md`、`README.md`、`tools/README.md`。
-- [ ] 处理 D5、D6（等 Lewis 定）。
+- [x] 处理 D5、D6（Lewis 2026-11-05 定了，见第 6 节）。
 - [x] 更新第三方声明，新素材要写进署名。
 
 **做法：**
