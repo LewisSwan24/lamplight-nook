@@ -483,6 +483,73 @@ const SCENARIOS = {
     }
   },
 
+  /** A commission that finishes just after "stop and close" is finished: nothing is left to carry on next time. */
+  async stopdone(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, debug: true });
+    try {
+      await shop.order({ template: 'page', want: 'A page' });
+      await shop.submit();
+      await sleep(1000);
+      check(existsSync(join(home.data, 'pending.json')), 'the commission was not noted as under way');
+      // The answer is "stop and close", and the window stays long enough for the commission to finish first.
+      await shop.app.evaluate(({ BrowserWindow, dialog }) => {
+        dialog.showMessageBoxSync = () => 1;
+        const main = BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('mini'));
+        main.on('close', (e) => e.preventDefault());
+        main.close();
+      });
+      check((await shop.workUntilDone()).ok, 'the commission did not finish');
+      await sleep(500);
+      check(!existsSync(join(home.data, 'pending.json')), 'a finished commission would be offered again next time');
+      await shop.app.evaluate(({ BrowserWindow }) => {
+        for (const w of BrowserWindow.getAllWindows()) w.removeAllListeners('close');
+      });
+    } finally {
+      await shop.close();
+    }
+  },
+
+  /** A folder with another work in it, or inside another work, is not where a moved work went. */
+  async movedother(lang, out) {
+    const W = locale(lang).ui.shelf;
+    const home = freshHome();
+    const was = join(home.home, 'was');
+    const holder = join(home.home, 'holder');
+    const other = join(holder, 'other');
+    const inner = join(other, 'inner');
+    const own = join(home.home, 'own');
+    for (const d of [inner, own]) mkdirSync(d, { recursive: true });
+    for (const d of [holder, other, inner, own]) writeFileSync(join(d, 'index.html'), 'x');
+    const work = (id, title, folder) => ({ id, title, date: '2025-10-09', result: 'done', choices: {}, folder, main: 'index.html', form: { want: title, template: 'page' } });
+    const works = [work('c1760000000000', 'Other work', other), work('c1760000000001', 'Moved work', was)];
+    writeFileSync(join(home.data, 'memory.json'), JSON.stringify({ commissions: works, stuckNotes: [], greeted: works[1].id, shop: { done: 2, told: [], grown: [], met: [] } }));
+    writeFileSync(join(home.data, 'settings.json'), JSON.stringify(onboarded(lang)));
+    const shop = await launch({ lang, home, debug: true });
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.find((c) => c.id === works[1].id);
+    try {
+      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.waitForSelector('.shelf-card');
+      const row = shop.page.locator('.shelf-card li.work', { hasText: 'Moved work' });
+      await row.locator('.work-actions button').first().click();
+      await row.locator('.work-note button').waitFor();
+      for (const [folder, what] of [[other, 'the other work\'s folder'], [inner, 'a folder inside the other work'], [holder, 'a folder holding the other work']]) {
+        await shop.pickFiles([folder]);
+        await row.locator('.work-note button').click();
+        await sleep(400);
+        check((await row.locator('.work-note').innerText()).includes(W.relinkTaken), `${what} was not refused`);
+        check(saved().folder === was, `${what} was taken`);
+      }
+      await shop.shot(join(out, 'moved-other.png'));
+      await shop.pickFiles([own]);
+      await row.locator('.work-note button').click();
+      await sleep(400);
+      check(saved().folder === own, 'a folder of its own was not taken');
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** Forgetting everything while a commission runs would be written straight back: it waits. */
   async forgetbusy(lang, out) {
     const N = locale(lang).ui.notebook;

@@ -29,7 +29,6 @@ export class SpendLedger {
     const key = `${workDir}|${sessionId ?? ''}`;
     const earlier = this.entries.filter((e) => e.key === key);
     const reported = earlier.reduce((sum, e) => sum + e.usd, 0);
-    const added = earlier.length && usd > reported ? usd - reported : usd;
     // Running totals only grow: a lower figure never shrinks what was spent. What is new goes to this month, and what
     // a session cost last month stays last month's. Under a millionth of a dollar is only the rounding of the sum.
     const grew = earlier.length ? usd - reported : usd;
@@ -39,7 +38,7 @@ export class SpendLedger {
       else this.entries.push({ key, usd: grew, month: month(now) });
     }
     this.save();
-    return added;
+    return Math.max(grew, 0);
   }
 
   /** A commission's folder moved: what it cost goes with it. */

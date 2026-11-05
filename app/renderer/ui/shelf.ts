@@ -35,6 +35,7 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
       if (found === 'found') note.textContent = W.relinked;
       if (found === 'wrong') note.replaceChildren(W.relinkWrong, ' ', note.querySelector('button')!);
       if (found === 'broad') note.replaceChildren(W.relinkBroad, ' ', note.querySelector('button')!);
+      if (found === 'taken') note.replaceChildren(W.relinkTaken, ' ', note.querySelector('button')!);
     } }, W.relink)] : []));
     return el('li.work', {},
       workIconEl(w.icon),

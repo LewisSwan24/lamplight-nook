@@ -331,6 +331,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   const revision: Revision | undefined = r && { ask: r.ask, form: job.form, summary: r.summary, restored: r.restored };
   // A round of changes picks up the earlier session when Claude Code still has it; otherwise it starts afresh from the folder.
   const pickUp = !again && r?.fromSession && sessionExists(r.fromSession) ? r.fromSession : undefined;
+  let finished = false;
   try {
     const before = new Set(job.preexisting);
     const result = await runAgent({
@@ -351,6 +352,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       ...emitters,
       emitAi: (e) => { stuck.see(e); emitters.emitAi(e); },
     });
+    finished = result.ok;
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
     const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd);
@@ -374,7 +376,8 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     return { ...result, spentThisRun };
   } finally {
     broker.onAnswered = undefined;
-    if (!quitting) pending.clear();
+    // Stopping on the way out promised it could be carried on, unless it got to the end first.
+    if (!quitting || finished) pending.clear();
     current = null;
     lastWorkDir = job.workDir;
     mini.feed({ type: 'run', running: false });
@@ -473,6 +476,9 @@ ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
   if (holdsTooMuch(folder)) return 'broad';
   const main = join(folder, memo.main);
   if (!existsSync(main) || !statSync(main).isFile() || !insideForReal(folder, main)) return 'wrong';
+  // A same-named main file is common, and the next round would change the other work's without asking.
+  const others = memory.get().commissions.filter((c) => c.id !== memo.id && c.folder);
+  if (others.some((c) => insideForReal(c.folder!, folder) || insideForReal(folder, c.folder!))) return 'taken';
   spend.moved(memo.folder, folder);
   memory.relink(memo.id, folder);
   // What was kept of it came from the old folder; nothing may be put back over the new one.

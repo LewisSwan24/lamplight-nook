@@ -45,6 +45,14 @@ describe('what commissions cost', () => {
     expect(ledger.record('/w/a', 's1', undefined, oct)).toBe(0);
   });
 
+  it('a run that reports no more than the running total added nothing', () => {
+    const ledger = new SpendLedger(join(dir(), 'spend.json'));
+    ledger.record('/w/a', 's1', 2.1, oct);
+    expect(ledger.record('/w/a', 's1', 2.1, oct)).toBe(0);
+    expect(ledger.record('/w/a', 's1', 1, oct)).toBe(0);
+    expect(ledger.forCommission('/w/a')).toBeCloseTo(2.1);
+  });
+
   it('counts the month separately and survives a restart', () => {
     const file = join(dir(), 'spend.json');
     new SpendLedger(file).record('/w/a', 's1', 0.4, oct);

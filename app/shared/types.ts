@@ -148,8 +148,8 @@ export interface LamplightApi {
   /** A one-off story has been told; it won't come up again. */
   markTold(id: string): Promise<void>;
   markMet(id: GuestId): Promise<void>;
-  /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked. */
-  relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'cancelled'>;
+  /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
+  relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'taken' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
