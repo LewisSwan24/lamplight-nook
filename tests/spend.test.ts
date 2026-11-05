@@ -138,3 +138,16 @@ describe('the per-run cap', () => {
     expect(failureKind(undefined, '', 'error_during_execution')).toBe('failed');
   });
 });
+
+describe('a commission whose folder moved', () => {
+  it('keeps what it cost, and adds to it from the new folder', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lamplight-spend-'));
+    const ledger = new SpendLedger(join(dir, 'spend.json'));
+    ledger.record('old', 's1', 0.5);
+    ledger.moved('old', 'new');
+    ledger.record('new', 's2', 0.1);
+    expect(ledger.forCommission('old')).toBe(0);
+    expect(ledger.forCommission('new')).toBeCloseTo(0.6);
+    expect(new SpendLedger(join(dir, 'spend.json')).forCommission('new')).toBeCloseTo(0.6);
+  });
+});

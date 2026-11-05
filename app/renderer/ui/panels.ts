@@ -324,8 +324,8 @@ export type ResultActions = {
  * after a round of changes, swap between this version and the last one (nothing is lost either way).
  */
 export function showResult(result: CommissionResult, actions: ResultActions) {
-  if (!result.main && !result.files.length) return;
-  const target = result.main ?? result.files[0];
+  // A round may change nothing that can be pointed at; it still ends with a card, or it ends in silence.
+  const target = result.main ?? result.files[0] ?? result.workDir;
   const { id } = result;
   const note = el('div.hint.result-restored', { role: 'status' });
   let back = false;
@@ -345,7 +345,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     closeButton(),
     el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${result.round === 1 ? U.resultRoundOne : fill(U.resultRound, { n: String(result.round) })}`) : null),
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
-    el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
+    !result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     note,
     result.ok && actions.firstWork ? el('div.hint.result-shelf', {}, U.resultShelf) : null,

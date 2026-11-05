@@ -80,8 +80,9 @@ writes the package itself in the MSIX SDK layout (block map, content types, zip6
 
 - Set `MSIX_IDENTITY_NAME`, `MSIX_PUBLISHER` (`CN=...`) and `MSIX_PUBLISHER_NAME` from Partner Center's
   Product identity page to get `Lamplight-Nook-<version>.msix` for upload.
-- Without them it writes `Lamplight-Nook-<version>-test.msix` with a test publisher that Windows 11 installs
-  unsigned: `Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-<version>-test.msix` in PowerShell.
+- Without them it writes `Lamplight-Nook-<version>-test.msix` with a test publisher. `Add-AppxPackage -AllowUnsigned` refused it on Windows 11
+  build 26300 (5 Nov 2026, `0x80073D2B`: an unsigned package cannot hold an executable activation), so this file has
+  not been installed; trying it needs a signature from a certificate the machine trusts. The command was: `Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-<version>-test.msix` in PowerShell.
 - Tile images are in `assets/store/`, made from `assets/ui/icon.png`.
 - The listing text (both languages) is in `store/listing.md`.
 - The release workflow attaches the test package next to the installer.

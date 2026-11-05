@@ -42,6 +42,14 @@ export class SpendLedger {
     return added;
   }
 
+  /** A commission's folder moved: what it cost goes with it. */
+  moved(from: string, to: string) {
+    for (const e of this.entries) {
+      if (e.key.startsWith(`${from}|`)) e.key = `${to}${e.key.slice(from.length)}`;
+    }
+    this.save();
+  }
+
   /** Forgetting everything: the money was spent and stays in its months, but folder names say what it was spent on. */
   forget() {
     const anonymous = new Map<string, number>();

@@ -336,7 +336,7 @@
       "folderLabel": "委托放在",
       "checkLabel": "开工条件",
       "spendLabel": "花费",
-      "spendMonth": "这个月大约花了 {cost}。这是 Claude Code 的估算，以 Anthropic 的账单为准。",
+      "spendMonth": "这个月大约花了 {cost}。这是 Claude Code 的估算，半路停下的那一轮它不报价钱，所以不算在内。以 Anthropic 的账单为准。",
       "spendBook": "每个月花了多少",
       "spendBookCount": "{n} 单",
       "spendBookOne": "1 单",

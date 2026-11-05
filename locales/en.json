@@ -336,7 +336,7 @@
       "folderLabel": "Commissions go in",
       "checkLabel": "Ready to work?",
       "spendLabel": "Spending",
-      "spendMonth": "About {cost} this month. This is Claude Code's estimate; Anthropic's bill is what counts.",
+      "spendMonth": "About {cost} this month. This is Claude Code's estimate. It reports no cost for a round stopped partway, so those aren't counted. Anthropic's bill is what counts.",
       "spendBook": "Month by month",
       "spendBookCount": "{n} commissions",
       "spendBookOne": "1 commission",
