@@ -29,6 +29,7 @@ import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
+import { birthdayToday } from '../shared/days';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
@@ -329,6 +330,14 @@ function noticeBeds(news: ReturnType<typeof bedNews>) {
   if (news) sayOnce(`grow_${news}`, BEDS_LINE_DELAY_MS);
 }
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+/** Once a year, whenever the shop is opened that day. */
+async function noticeBirthday() {
+  const { works, done, told } = await window.lamplight.shopState();
+  const age = birthdayToday(works, done);
+  if (!age || told.includes(`birthday_${age}`)) return;
+  void window.lamplight.markTold(`birthday_${age}`);
+  sayOnce('grow_birthday', BEDS_LINE_DELAY_MS);
+}
 /** The lines still to be said, one at a time; forgetting everything takes them back. */
 let onceLines: Promise<unknown> = Promise.resolve();
 let forgotten = 0;
@@ -550,6 +559,7 @@ async function greetBack(name: string) {
 async function openShop() {
   const api = window.lamplight;
   void refreshShop();
+  void noticeBirthday();
   let settings = await api.getSettings();
   applySettings(settings);
   const S = strings.ui.setup;

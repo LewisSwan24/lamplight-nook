@@ -252,6 +252,7 @@ garden:
 
 # Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
 grow:
+  - { id: grow_birthday, speaker: adeng, when: grow_birthday, bubbles: ["今天是小店的生日。", "第一件东西就是这天做完的。"] }
   - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["后院菜地冒芽了。", "第一单做完那天种的。"] }
   - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["后院第一棵菜熟了。", "从第一单长到现在。"] }
   - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["后院的菜地都长满了。", "都是这些单子一点点攒下来的。"] }

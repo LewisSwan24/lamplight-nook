@@ -629,6 +629,7 @@
       "metLine": "{name}第一次来店里",
       "bedSprout": "后院种下第一棵菜",
       "bedRipe": "后院第一棵菜熟了",
+      "birthday": "小店满 {n} 岁了",
       "bedFull": "后院菜地长满了"
     },
     "tray": {

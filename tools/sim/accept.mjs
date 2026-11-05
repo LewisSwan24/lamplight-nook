@@ -400,6 +400,38 @@ const SCENARIOS = {
     }
   },
 
+  /** A year to the day after the first work: said once, whenever the shop is opened that day. */
+  async birthday(lang, out) {
+    const now = new Date();
+    const made = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 12).getTime();
+    const words = lang === 'en' ? "It's the shop's birthday today." : '今天是小店的生日。';
+    const work = { id: `c${made}`, title: 'A page', date: '2025-10-09', result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'demo' } };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [work], stuckNotes: [], greeted: work.id, shop: { done: 1, told: [], grown: [], met: [] } }) });
+    const listen = (shop) => shop.page.evaluate(() => {
+      window.heard = [];
+      setInterval(() => { window.heard.push(document.getElementById('labels').innerText); }, 200);
+    });
+    const heard = (shop) => shop.page.evaluate((w) => window.heard.some((h) => h.includes(w)), words);
+    let shop = await launch({ lang, home, debug: true });
+    try {
+      await listen(shop);
+      let said = false;
+      for (const start = Date.now(); !said && Date.now() - start < 40_000; await sleep(500)) said = await heard(shop);
+      check(said, 'nobody said it was the birthday');
+    } finally {
+      await shop.close();
+    }
+    check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.told.includes('birthday_1'), 'the shop did not remember saying it');
+    shop = await launch({ lang, home, debug: true });
+    try {
+      await listen(shop);
+      await sleep(20_000);
+      check(!(await heard(shop)), 'it was said again the same day');
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** Every control and every card has a name for a screen reader: tools/sim/names.mjs. */
   async names(lang, out) {
     const run = spawnSync(process.execPath, [join(ROOT, 'tools', 'sim', 'names.mjs'), '--lang', lang, '--out', out], { encoding: 'utf8' });

@@ -1,9 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { shopTimeline } from '../app/shared/days';
+import { birthdayToday, shopTimeline } from '../app/shared/days';
 import { strings } from '../app/shared/i18n';
 import type { CommissionMemo, Memory } from '../app/shared/types';
 
 const N = strings.ui.notebook;
+
+describe('the shop\'s birthday', () => {
+  const madeOn = (y: number, m: number, d: number) => ({ id: `c${new Date(y, m, d, 12).getTime()}` });
+  const on = (y: number, m: number, d: number) => new Date(y, m, d, 9);
+
+  it('is the day the first work was finished, from the first year on', () => {
+    const works = [madeOn(2026, 5, 2), madeOn(2025, 2, 14), madeOn(2025, 8, 1)];
+    expect(birthdayToday(works, 3, on(2026, 2, 14))).toBe(1);
+    expect(birthdayToday(works, 3, on(2028, 2, 14))).toBe(3);
+    expect(birthdayToday(works, 3, on(2025, 2, 14))).toBe(0);
+    expect(birthdayToday(works, 3, on(2026, 2, 15))).toBe(0);
+  });
+
+  it('falls on the 28th when the 29th is not there that year', () => {
+    const works = [madeOn(2024, 1, 29)];
+    expect(birthdayToday(works, 1, on(2025, 1, 28))).toBe(1);
+    expect(birthdayToday(works, 1, on(2028, 1, 28))).toBe(0);
+    expect(birthdayToday(works, 1, on(2028, 1, 29))).toBe(4);
+  });
+
+  it('is not known when the first work is no longer kept', () => {
+    expect(birthdayToday([madeOn(2025, 2, 14)], 5, on(2026, 2, 14))).toBe(0);
+    expect(birthdayToday([], 0, on(2026, 2, 14))).toBe(0);
+  });
+
+  it('is in the shop\'s days once it has come round', () => {
+    const made = new Date(2024, 2, 14, 12).getTime();
+    const m: Memory = { commissions: [{ id: `c${made}`, title: 'first', date: '2024-03-14', result: 'done', choices: {}, folder: 'x' }], stuckNotes: [], shop: { done: 1, grown: [], told: [] } };
+    const said = shopTimeline(m, on(2026, 2, 13)).map((e) => e.text);
+    expect(said).toContain(N.birthday.replace('{n}', '1'));
+    expect(said).not.toContain(N.birthday.replace('{n}', '2'));
+    expect(shopTimeline(m, on(2026, 2, 14)).map((e) => e.text)).toContain(N.birthday.replace('{n}', '2'));
+  });
+});
 const day = (d: number) => new Date(Date.UTC(2026, 0, d));
 const work = (n: number, over: Partial<CommissionMemo> = {}): CommissionMemo => ({
   id: `c${day(n).getTime()}`, title: `work ${n}`, date: day(n).toISOString().slice(0, 10), result: 'done', choices: {}, form: { want: 'x' }, ...over,

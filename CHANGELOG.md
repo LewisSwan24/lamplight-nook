@@ -4,6 +4,7 @@
 
 The running card and the road to 1.0.
 
+- **The shop has a birthday.** A year to the day after the first work, Adeng mentions it, and it goes into the shop's days.
 - **A work that moved can be found again.** When its folder has been moved, the shelf asks where it is now, and takes the
   new place if its main file is there.
 - **One shop at a time.** Opening the app again brings the shop back. Before, a second shop opened on the same notebook,

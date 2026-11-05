@@ -625,6 +625,7 @@
       "doneCount": "Commissions finished together: {n}.",
       "grewLine": "the shop got {item}",
       "firstWork": "the first job: {title}",
+      "birthday": "the shop turned {n}",
       "nthWork": "job {n}: {title}",
       "metLine": "{name} came by for the first time",
       "bedSprout": "the first vegetable went in out back",
