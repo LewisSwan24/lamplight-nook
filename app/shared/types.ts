@@ -71,6 +71,8 @@ export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'm
 export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
+export type DataDamage = { notebook: 'restored' | 'lost' | 'missing' | null; settings: boolean; ledger: boolean };
+
 export interface LamplightApi {
   envStatus(): Promise<EnvStatus>;
   getSettings(): Promise<Settings>;
@@ -132,7 +134,8 @@ export interface LamplightApi {
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
   /** The notebook could not be read when the shop opened: whether the last copy took its place. */
-  memoryDamage(): Promise<'restored' | 'lost' | null>;
+  /** What could not be read when the shop opened. Asking takes it: it is said once. */
+  dataDamage(): Promise<DataDamage>;
   /** Forget everything in the notebook. */
   clearMemory(): Promise<void>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
@@ -264,7 +267,7 @@ export const IPC = {
   recallOnOpen: 'memory:recall-open',
   recallForRevision: 'memory:recall-revision',
   getMemory: 'memory:get',
-  memoryDamage: 'memory:damage',
+  dataDamage: 'data:damage',
   addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
   openCommissionFolder: 'memory:open-folder',

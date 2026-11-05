@@ -14,6 +14,7 @@ import type { CommissionMemo, GuestId, Memory } from '../shared/types';
  * 3: a shop that was already open counts every neighbour as known, so none is met for the first time on upgrade day.
  */
 export const DATA_VERSION = 3;
+// A step that changes memory.json has to change memory.last-good.json the same way: that copy can take its place later.
 const MARKER = 'data-version.json';
 /** Data files copied aside before a migration touches anything. */
 const BACKED_UP = ['settings.json', 'memory.json', 'spend.json', 'pending.json'];

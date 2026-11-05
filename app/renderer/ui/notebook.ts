@@ -1,7 +1,7 @@
 import { fill, strings } from '../../shared/i18n';
 import { shopTimeline } from '../../shared/days';
 import { formatUsd } from '../../shared/money';
-import type { LamplightApi, Memory } from '../../shared/types';
+import type { DataDamage, LamplightApi, Memory } from '../../shared/types';
 import { el } from './dom';
 import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
@@ -52,11 +52,18 @@ function pages(api: LamplightApi, memory: Memory, revise?: (id: string, title: s
   ].filter((n): n is HTMLElement => n !== null);
 }
 
-/** The notebook could not be read when the shop opened. */
-export function showNotebookTrouble(kind: 'restored' | 'lost') {
-  replaceOpen(el('div.card.paper.notebook-trouble', { role: 'dialog', 'aria-label': N.troubleTitle },
+/** Data files could not be read when the shop opened. `budget` is what a commission may spend now. */
+export function showDataTrouble(damage: DataDamage, budget: number) {
+  const said = [
+    damage.notebook && { restored: N.troubleRestored, lost: N.troubleLost, missing: N.troubleMissing }[damage.notebook],
+    damage.settings && fill(N.troubleSettings, { budget }),
+    damage.ledger && N.troubleLedger,
+    // A notebook that went missing left nothing behind.
+    (damage.notebook !== 'missing' || damage.settings || damage.ledger) && N.troubleKept,
+  ].filter((s): s is string => Boolean(s));
+  replaceOpen(el('div.card.paper.notebook-trouble', {},
     closeButton(),
-    withPortrait('adeng', 'unsure', el('div.card-title', {}, N.troubleTitle), el('div', {}, kind === 'restored' ? N.troubleRestored : N.troubleLost)),
+    withPortrait('adeng', 'unsure', el('div.card-title', {}, N.troubleTitle), ...said.map((s) => el('div', {}, s))),
     el('div.actions', {}, el('button.default', { type: 'button', onclick: closePanel }, N.troubleOk))));
 }
 

@@ -122,7 +122,7 @@ async function refuseRealFolders(app, home) {
  * args (more Electron switches), displayScale (Windows display scaling, such as 1.25: the window is sized without any
  * emulation, which would reset the device pixel ratio to 1).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0 } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0, noWindow = false } = {}) {
   const env = {
     PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(home),
     HOME: home.home,
@@ -151,6 +151,8 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
     await sleep(2000);
     return start();
   });
+  // For a start that is meant to fail: the caller only watches the process.
+  if (noWindow) return app;
   await refuseRealFolders(app, home);
   const page = await app.firstWindow();
   // A development build always has the debug panel; keep it out of pictures and recordings unless asked for.

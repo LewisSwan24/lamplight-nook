@@ -3,7 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
 import { forgetAside, putAside } from './aside';
-import type { CommissionMemo, GuestId, Memory, Recall, ShopDays, ShopState } from '../shared/types';
+import type { CommissionMemo, DataDamage, GuestId, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
 /** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
 const RECENT_FOR_NOTES = 20;
@@ -21,7 +21,7 @@ const empty = (): Memory => ({ commissions: [], stuckNotes: [] });
  */
 export class MemoryStore {
   private data: Memory;
-  damage: 'restored' | 'lost' | null = null;
+  damage: DataDamage['notebook'] = null;
 
   constructor(private file: string) {
     this.data = this.open();
@@ -32,17 +32,29 @@ export class MemoryStore {
   }
 
   private open(): Memory {
-    if (!existsSync(this.file)) return empty();
-    const good = this.read(this.file);
+    const there = existsSync(this.file);
+    if (!there && !existsSync(this.lastGood)) return empty();
+    const good = there ? this.read(this.file) : null;
     if (good) {
-      copyFileSync(this.file, this.lastGood);
+      this.copyToLastGood();
       return good;
     }
-    putAside(this.file);
+    if (there) putAside(this.file);
     const copy = existsSync(this.lastGood) ? this.read(this.lastGood) : null;
-    this.damage = copy ? 'restored' : 'lost';
+    this.damage = !copy ? 'lost' : there ? 'restored' : 'missing';
     if (copy) copyFileSync(this.lastGood, this.file);
     return copy ?? empty();
+  }
+
+  /** Only a spare: a full disk or a locked file must not stop the shop opening, or spoil the copy already there. */
+  private copyToLastGood() {
+    const tmp = `${this.lastGood}.tmp`;
+    try {
+      copyFileSync(this.file, tmp);
+      renameSync(tmp, this.lastGood);
+    } catch {
+      rmSync(tmp, { force: true });
+    }
   }
 
   get(): Memory {
@@ -169,11 +181,13 @@ export class MemoryStore {
   clear() {
     this.data = empty();
     rmSync(this.file, { force: true });
+    rmSync(`${this.file}.tmp`, { force: true });
     rmSync(this.lastGood, { force: true });
     forgetAside(this.file);
     const backups = join(dirname(this.file), 'backup');
     if (!existsSync(backups)) return;
-    for (const dir of readdirSync(backups)) rmSync(join(backups, dir, basename(this.file)), { force: true });
+    // A copy of an unfinished commission says what it was about as well.
+    for (const dir of readdirSync(backups)) for (const name of [basename(this.file), 'pending.json']) rmSync(join(backups, dir, name), { force: true });
   }
 
   /**

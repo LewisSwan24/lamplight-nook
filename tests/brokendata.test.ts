@@ -92,7 +92,71 @@ describe('a notebook that cannot be read', () => {
   });
 });
 
+describe('the copy of the notebook', () => {
+  it('not being able to make it does not stop the shop opening', () => {
+    const dir = home();
+    const file = join(dir, 'memory.json');
+    writeFileSync(file, notebook(['a']));
+    mkdirSync(join(dir, 'memory.last-good.json'));
+    const store = new MemoryStore(file);
+    expect(store.get().commissions).toHaveLength(1);
+    expect(store.damage).toBeNull();
+    expect(readdirSync(dir).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+  });
+
+  it('a notebook that has gone missing comes back from it, and the shop says so', () => {
+    const dir = home();
+    writeFileSync(join(dir, 'memory.last-good.json'), notebook(['a', 'b']));
+    const file = join(dir, 'memory.json');
+    const store = new MemoryStore(file);
+    expect(store.damage).toBe('missing');
+    expect(store.get().commissions).toHaveLength(2);
+    expect(existsSync(file)).toBe(true);
+  });
+
+  it('forgetting everything also takes a save that never finished', () => {
+    const dir = home();
+    const file = join(dir, 'memory.json');
+    writeFileSync(file, notebook(['a']));
+    const store = new MemoryStore(file);
+    writeFileSync(`${file}.tmp`, notebook(['secret']));
+    mkdirSync(join(dir, 'backup', 'v1'), { recursive: true });
+    writeFileSync(join(dir, 'backup', 'v1', 'pending.json'), '{"form":{"want":"secret"}}');
+    store.clear();
+    expect(existsSync(`${file}.tmp`)).toBe(false);
+    expect(existsSync(join(dir, 'backup', 'v1', 'pending.json'))).toBe(false);
+  });
+});
+
 describe('other data files that cannot be read', () => {
+  it('the ledger of the wrong shape is put aside too, and it says so', () => {
+    const dir = home();
+    const file = join(dir, 'spend.json');
+    writeFileSync(file, '{"x":1}');
+    const ledger = new SpendLedger(file);
+    ledger.record('/w/a', 's', 0.5);
+    expect(aside(dir, 'spend')).toHaveLength(1);
+    expect(ledger.damaged).toBe(true);
+  });
+
+  it('a healthy ledger and healthy settings say nothing', () => {
+    const dir = home();
+    expect(new SpendLedger(join(dir, 'spend.json')).damaged).toBe(false);
+    expect(new SettingsStore(join(dir, 'settings.json'), dir).damaged).toBe(false);
+  });
+
+  for (const bad of ['null', '[]', '3']) {
+    it(`settings holding ${bad} are put aside too, and they say so`, () => {
+      const dir = home();
+      const file = join(dir, 'settings.json');
+      writeFileSync(file, bad);
+      const settings = new SettingsStore(file, dir);
+      settings.update({ name: 'New' });
+      expect(readFileSync(join(dir, aside(dir, 'settings')[0]), 'utf8')).toBe(bad);
+      expect(settings.damaged).toBe(true);
+    });
+  }
+
   it('the ledger is put aside rather than written over, and forgetting takes it', () => {
     const dir = home();
     const file = join(dir, 'spend.json');

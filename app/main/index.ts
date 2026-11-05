@@ -5,7 +5,7 @@ import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, session, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -492,7 +492,13 @@ ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => me
 ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
 ipcMain.handle(IPC.recallForRevision, (_e, id: string): Recall => memory.recallForRevision(id, shorten));
 ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
-ipcMain.handle(IPC.memoryDamage, () => memory.damage);
+ipcMain.handle(IPC.dataDamage, (): DataDamage => {
+  const damage = { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged };
+  memory.damage = null;
+  settings.damaged = false;
+  spend.damaged = false;
+  return damage;
+});
 // A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
 ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
@@ -558,19 +564,25 @@ app.whenReady().then(() => {
   app.on('child-process-gone', (_e, details) => log?.warn('child process gone', details));
   // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
   const migrated = migrate(app.getPath('userData'));
-  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', migrated);
+  // Only how many: a change can quote a commission's title, and the log goes into the diagnostics file.
+  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
   versions = new VersionStore(join(app.getPath('userData'), 'versions'));
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
-  if (memory.damage) log.warn('notebook could not be read', { damage: memory.damage });
+  if (memory.damage || settings.damaged || spend.damaged) log.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   leftover = pending.load();
   createWindow();
   tray.create();
   win?.on('focus', () => tray.calm());
+}).catch((err: unknown) => {
+  // Before the window there is nothing else to tell the user with, and a process with no window would stay until killed.
+  log?.error('could not open', err);
+  dialog.showErrorBox(strings.ui.startFail.title, fill(strings.ui.startFail.text, { reason: err instanceof Error ? err.message : String(err) }));
+  app.quit();
 });
 // The corner window: what to show now, and a click on it brings the shop back.
 ipcMain.handle(IPC.miniState, () => mini.state);

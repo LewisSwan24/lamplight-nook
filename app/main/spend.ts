@@ -16,6 +16,9 @@ const month = localMonth;
 export class SpendLedger {
   private entries: Entry[];
 
+  /** The file could not be read when the shop opened, for the shop to tell the user. */
+  damaged = false;
+
   constructor(private file: string) {
     this.entries = this.read();
   }
@@ -83,9 +86,11 @@ export class SpendLedger {
     if (!existsSync(this.file)) return [];
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8'));
-      return Array.isArray(parsed) ? parsed.filter((e) => e && typeof e.key === 'string' && typeof e.usd === 'number' && typeof e.month === 'string') : [];
+      if (!Array.isArray(parsed)) throw new Error('not a ledger');
+      return parsed.filter((e) => e && typeof e.key === 'string' && typeof e.usd === 'number' && typeof e.month === 'string');
     } catch {
       putAside(this.file);
+      this.damaged = true;
       return [];
     }
   }

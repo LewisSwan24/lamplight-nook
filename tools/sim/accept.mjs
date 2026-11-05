@@ -142,11 +142,18 @@ const SCENARIOS = {
     let shop = await launch({ lang, home, debug: true });
     try {
       await shop.page.waitForSelector('.notebook-trouble', { timeout: 10_000 });
-      check((await shop.page.locator('.notebook-trouble').innerText()).includes(N.troubleRestored), 'the shop does not say what happened');
+      const said = await shop.page.locator('.notebook-trouble').innerText();
+      check(said.includes(N.troubleRestored), 'the shop does not say what happened');
+      check(said.includes(N.troubleLedger), 'the shop does not mention the ledger');
       check(kept(home, 'memory').length === 1, 'the file that could not be read was not put aside');
       check(kept(home, 'spend').length === 1, 'the ledger that could not be read was not put aside');
       await shop.shot(join(out, 'baddata.png'));
       await shop.page.locator('.notebook-trouble button.default').click();
+      // Moving to another room reloads the page: it has been said.
+      await shop.page.reload();
+      await shop.page.waitForSelector('.toolbar');
+      await sleep(3000);
+      check(await shop.page.locator('.notebook-trouble').count() === 0, 'the shop says it again after a reload');
       await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
       await shop.page.waitForSelector('.shelf-card');
       check(await shop.page.locator('.shelf-card li.work').count() === 3, 'the works did not come back');
@@ -288,6 +295,41 @@ const SCENARIOS = {
     const run = spawnSync(process.execPath, [join(ROOT, 'tools', 'sim', 'contrast.mjs'), '--lang', lang, '--out', out], { encoding: 'utf8' });
     check(run.status === 0, `too faint:\n${run.stdout.split('\n').filter((l) => l.startsWith('LOW') || l.startsWith('?')).join('\n')}${run.stderr}`);
     console.log(`  ${run.stdout.trim().split('\n').at(-1)}`);
+  },
+
+  /** Settings that cannot be read: the welcome again, then the shop says why and what the budget is now. */
+  async badsettings(lang, out) {
+    const N = locale(lang).ui.notebook;
+    const home = freshHome({ 'settings.json': '{"name":"Sam' });
+    const shop = await launch({ lang, home, debug: true });
+    try {
+      check(await shop.maybe('.welcome input[type=text]', 8000), 'no welcome card');
+      await shop.page.locator('.welcome input[type=text]').fill(lang === 'en' ? 'Sam' : '小林');
+      for (let i = 0; i < 2; i++) {
+        await shop.page.locator('.welcome .actions button.default').last().click();
+        await sleep(300);
+      }
+      await shop.page.locator('.welcome .actions button.default').last().click();
+      await shop.page.waitForSelector('.notebook-trouble', { timeout: 15_000 });
+      const said = await shop.page.locator('.notebook-trouble').innerText();
+      check(said.includes('$3'), `the budget is not mentioned: ${said}`);
+      check(said.includes(N.troubleKept), 'the file put aside is not mentioned');
+      await shop.shot(join(out, 'badsettings.png'));
+    } finally {
+      await shop.close();
+    }
+  },
+
+  /** The shop cannot open at all: it says so and goes, rather than staying behind with no window. */
+  async badstart(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    writeFileSync(join(home.data, 'logs'), 'a file where the folder goes');
+    const told = join(home.home, 'told.txt');
+    const app = await launch({ lang, home, simEnv: { SIM_ERRORBOX: told }, noWindow: true }).catch(() => null);
+    const exited = !app || await Promise.race([new Promise((r) => app.process().once('exit', () => r(true))), sleep(30_000).then(() => false)]);
+    if (!exited) app.process().kill();
+    check(exited, 'the app stayed running with no window');
+    check(readFileSync(told, 'utf8').startsWith(locale(lang).ui.startFail.title), 'nothing was said');
   },
 
   /** Fourteen months and more runs than the ledger used to keep: each month and the sum are right. */
