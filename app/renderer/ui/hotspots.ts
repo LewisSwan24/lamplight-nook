@@ -9,9 +9,12 @@ let box: HTMLElement | null = null;
 
 const PLACES: Partial<Record<Target, string>> = {
   counter: A.hotspotCounter, bell: A.hotspotBell, backdoor: A.hotspotGarden, shopdoor: A.hotspotShop,
-  dog: fill(A.hotspotCat, { name: strings.animals.dog }), hens: A.hotspotHens, works: A.hotspotWorks, board: A.hotspotBoard,
+  dog: fill(A.hotspotCat, { name: strings.animals.dog }), hens: A.hotspotHens, beds: A.hotspotBeds, works: A.hotspotWorks, board: A.hotspotBoard,
 };
-const label = (id: Target) => PLACES[id] ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
+const O = strings.ui.objects;
+const objectName = (id: string): string | undefined =>
+  id.startsWith('grow-') ? O.grown[id.slice(5) as keyof typeof O.grown] : O.names[id as keyof typeof O.names];
+const label = (id: Target) => PLACES[id] ?? objectName(id) ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
 
 /**
  * Invisible buttons over the counter, the doors and each character, so the shop works from the keyboard:

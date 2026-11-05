@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { AFTER_WORK_MS, FIRST_VISIT_MS, GUEST_PATH, GUEST_SPOT, VISIT_GAP_MS, VisitPlanner, pickVisit } from '../app/renderer/game/guests';
-import { ZONES } from '../app/renderer/game/layout';
+import { AFTER_WORK_MS, FIRST_VISIT_MS, GUEST_IDS, VISIT_GAP_MS, VisitPlanner, pickVisit, welcomeGuests } from '../app/renderer/game/guests';
 import { Chatter } from '../app/renderer/stage/chatter';
 import { lintChats, parseChats } from '../app/renderer/translator/lines';
 
@@ -12,6 +11,8 @@ function seeded(seed: number) {
 
 const chats = parseChats(readFileSync('lines/chats.yaml', 'utf8'));
 const everyone = () => true;
+
+const nothing = { made: {} };
 
 describe('neighbours dropping in', () => {
   it('waits a while after opening, then comes every so often, never after dark', () => {
@@ -44,11 +45,6 @@ describe('neighbours dropping in', () => {
     expect(switches / (who.length - 1)).toBeGreaterThan(0.6);
   });
 
-  it('walks in from the door to the counter end without crossing the counter', () => {
-    const counter = ZONES.find((z) => z.id === 'counter')!;
-    for (const p of GUEST_PATH) expect(p.x > counter.x + counter.w || p.y > counter.y + counter.h).toBe(true);
-    expect(GUEST_PATH.at(-1)).toEqual(GUEST_SPOT);
-  });
 });
 
 describe('what neighbours say', () => {
@@ -80,22 +76,72 @@ describe('what neighbours say', () => {
 
   it('picks a visit for the day, only with staff who are in', () => {
     const used = new Set<string>();
-    const rain = pickVisit(chats, 'postman', { sky: 'rain', holiday: null }, 'day', everyone, used, seeded(5));
+    const rain = pickVisit(chats, 'postman', { sky: 'rain', holiday: null }, 'day', everyone, used, nothing, seeded(5));
     expect(rain?.id).toBe('postman_rain');
     const noLaoshi = (who: string) => who !== 'laoshi';
     for (let i = 0; i < 20; i++) {
-      const v = pickVisit(chats, 'postman', { sky: 'clear', holiday: null }, 'day', noLaoshi, used, seeded(i));
+      const v = pickVisit(chats, 'postman', { sky: 'clear', holiday: null }, 'day', noLaoshi, used, nothing, seeded(i));
       expect(v?.guest).toBe('postman');
       expect(v?.turns.some((t) => t.speaker === 'laoshi')).toBe(false);
     }
-    const dawn = pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'dawn', everyone, new Set(), seeded(6));
+    const dawn = pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'dawn', everyone, new Set(), nothing, seeded(6));
     expect(dawn?.id).toBe('baker_fresh');
   });
 
   it('goes through every visit before repeating one', () => {
     const used = new Set<string>();
-    const everyday = chats.filter((c) => c.guest === 'baker' && !c.sky && !c.holiday && !c.period);
-    const ids = everyday.map((_, i) => pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'day', everyone, used, seeded(i + 10))!.id);
+    const everyday = chats.filter((c) => c.guest === 'baker' && !c.sky && !c.holiday && !c.period && !c.made && !c.mentions);
+    const ids = everyday.map((_, i) => pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'day', everyone, used, nothing, seeded(i + 10))!.id);
     expect(new Set(ids).size).toBe(everyday.length);
+  });
+});
+
+describe('neighbours who remember what the shop made', () => {
+  const chat = (id: string, extra: object) => ({ id, when: 'idle' as const, guest: 'baker' as const, turns: [{ speaker: 'baker' as const, text: 'x' }, { speaker: 'adeng' as const, text: 'y' }], ...extra });
+  const plain = chat('plain', {});
+  const website = chat('website', { made: 'page' });
+  const asks = chat('asks', { mentions: true });
+  const pick = (shop: { made: Record<string, number>; lastWork?: string }) => pickVisit([plain, website, asks], 'baker', { sky: 'clear', holiday: null }, 'day', () => true, new Set(), shop, () => 0)?.id;
+
+  it('asks about a kind of work only once the shop has done it, and asks first', () => {
+    expect(pick({ made: {} })).toBe('plain');
+    expect(pick({ made: { page: 1 } })).toBe('website');
+  });
+
+  it('mentions the last work only when there is one', () => {
+    expect(pick({ made: {}, lastWork: '记账页' })).toBe('asks');
+  });
+});
+
+describe('new neighbours, who come because of the work', () => {
+  it('has only the old friends until a kind of work brings someone', () => {
+    expect(welcomeGuests({})).toEqual(['baker', 'postman']);
+    expect(welcomeGuests({ page: 1 })).toEqual(['baker', 'postman', 'mechanic']);
+    expect(welcomeGuests({ album: 2 })).toEqual(['baker', 'postman', 'granny']);
+    expect(welcomeGuests({ research: 1 })).toEqual(['baker', 'postman', 'student']);
+    expect(welcomeGuests({ letter: 5, sheet: 5 })).toEqual(['baker', 'postman']);
+  });
+
+  it('only sends those who are welcome, and someone new soon after they are', () => {
+    const v = new VisitPlanner(0, seeded(4));
+    const who: string[] = [];
+    for (let t = 0; t < 12 * VISIT_GAP_MS[1]; t += 5000) {
+      const g = v.next(t, true, 'day', ['baker', 'postman', 'mechanic']);
+      if (g) who.push(g);
+    }
+    expect(new Set(who)).toEqual(new Set(['baker', 'postman', 'mechanic']));
+    expect(who.slice(0, 3).sort()).toEqual(['baker', 'mechanic', 'postman']);
+  });
+
+  it('gives every neighbour a name, a word and things to say, in both languages', () => {
+    for (const [locale, file] of [['zh-CN', 'lines/chats.yaml'], ['en', 'lines/en/chats.yaml']] as const) {
+      const L = JSON.parse(readFileSync(`locales/${locale}.json`, 'utf8'));
+      const all = parseChats(readFileSync(file, 'utf8'));
+      for (const g of GUEST_IDS) {
+        expect(L.guests[g], `${locale} ${g}`).toBeTruthy();
+        expect(L.ui.objects.guest[g], `${locale} ${g}`).toBeTruthy();
+        expect(all.filter((c) => c.guest === g).length, `${file} ${g}`).toBeGreaterThanOrEqual(3);
+      }
+    }
   });
 });

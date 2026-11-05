@@ -1,0 +1,2 @@
+# A CRLF after the first line stops a #! script from loading.
+*.mjs text eol=lf

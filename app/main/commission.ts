@@ -1,3 +1,4 @@
+import { localDay } from '../shared/localday';
 import { copyFileSync, existsSync, lstatSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { strings } from '../shared/i18n';
@@ -295,7 +296,7 @@ export function listFolder(root: string, maxDepth = LIST_DEPTH, max = LIST_MAX):
       if (st.isSymbolicLink()) continue;
       if (lines.length >= max) { more++; continue; }
       const path = rel ? `${rel}/${name}` : name;
-      const date = st.mtime.toISOString().slice(0, 10);
+      const date = localDay(st.mtime);
       if (st.isDirectory()) {
         lines.push(`${path}/\t-\t${date}`);
         if (depth < maxDepth) walk(join(dir, name), path, depth + 1);

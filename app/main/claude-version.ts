@@ -67,8 +67,15 @@ export async function claudeVersion(path: string | undefined, run: (file: string
   return { version: hit.version, compat: compat(hit.version, tested), tested };
 }
 
-function versionOutput(file: string): Promise<string> {
+/** The command that prints a version. A script goes through node, as the SDK runs one: Windows cannot start it alone. */
+export function versionCommand(file: string, execPath = process.execPath): { file: string; args: string[]; env?: Record<string, string> } {
+  if (/\.[cm]?js$/i.test(file)) return { file: execPath, args: [file, '--version'], env: { ELECTRON_RUN_AS_NODE: '1' } };
+  return { file, args: ['--version'] };
+}
+
+function versionOutput(path: string): Promise<string> {
+  const { file, args, env } = versionCommand(path);
   return new Promise((resolve, reject) => {
-    execFile(file, ['--version'], { timeout: 8000, windowsHide: true }, (err, stdout) => (err ? reject(err) : resolve(String(stdout))));
+    execFile(file, args, { timeout: 8000, windowsHide: true, env: { ...process.env, ...env } }, (err, stdout) => (err ? reject(err) : resolve(String(stdout))));
   });
 }

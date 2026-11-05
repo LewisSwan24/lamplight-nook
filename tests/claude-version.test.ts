@@ -2,7 +2,7 @@ import { mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { claudeVersion, compat, parseVersion, testedVersion } from '../app/main/claude-version';
+import { claudeVersion, compat, parseVersion, testedVersion, versionCommand } from '../app/main/claude-version';
 
 describe('Claude Code version', () => {
   it('reads the version out of what claude --version prints', () => {
@@ -56,5 +56,15 @@ describe('Claude Code version', () => {
     const file = join(mkdtempSync(join(tmpdir(), 'lamplight-claude-')), 'claude');
     writeFileSync(file, '');
     expect(await claudeVersion(file, async () => { throw new Error('ENOENT'); })).toMatchObject({ version: undefined, compat: 'unknown' });
+  });
+});
+
+describe('asking a Claude Code for its version', () => {
+  it('runs a real program directly', () => {
+    expect(versionCommand('C:/x/claude.exe', 'C:/app/app.exe')).toEqual({ file: 'C:/x/claude.exe', args: ['--version'] });
+  });
+
+  it('runs a script through node, as the SDK does, since Windows cannot start one by itself', () => {
+    expect(versionCommand('C:/x/claude.mjs', 'C:/app/app.exe')).toEqual({ file: 'C:/app/app.exe', args: ['C:/x/claude.mjs', '--version'], env: { ELECTRON_RUN_AS_NODE: '1' } });
   });
 });

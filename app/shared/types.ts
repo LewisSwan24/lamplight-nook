@@ -9,8 +9,8 @@ import type { GrowthId, WorkIcon } from './growth';
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
 
 export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'cat';
-/** Neighbours who drop in now and then: Auntie Gui from the bakery and Axin the postman. */
-export type GuestId = 'baker' | 'postman';
+/** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
+export type GuestId = 'baker' | 'postman' | 'mechanic' | 'granny' | 'student';
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;
 
@@ -67,10 +67,12 @@ export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
-/** costUsd is Claude Code's estimate of what the session has cost so far. */
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
+/** costUsd is Claude Code's estimate of what the session has cost so far; spentThisRun is this run's share of it. */
+export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
+export type DataDamage = { notebook: 'restored' | 'lost' | 'missing' | null; settings: boolean; ledger: boolean };
+
 export interface LamplightApi {
   envStatus(): Promise<EnvStatus>;
   getSettings(): Promise<Settings>;
@@ -101,6 +103,8 @@ export interface LamplightApi {
   installClaude(): Promise<boolean>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
+  /** Every month that cost anything, newest first. */
+  spendMonths(): Promise<{ month: string; usd: number; commissions: number }[]>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
   chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
@@ -129,8 +133,12 @@ export interface LamplightApi {
   addNote(text: string): Promise<boolean>;
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
+  /** The notebook could not be read when the shop opened: whether the last copy took its place. */
+  /** What could not be read when the shop opened. Asking takes it: it is said once. */
+  dataDamage(): Promise<DataDamage>;
   /** Forget everything in the notebook. */
-  clearMemory(): Promise<void>;
+  /** False, with nothing changed, while a commission runs. */
+  clearMemory(): Promise<boolean>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
   openCommissionFolder(id: string): Promise<boolean>;
   /** The shop's days and the works shelf. */
@@ -139,6 +147,9 @@ export interface LamplightApi {
   openWork(id: string): Promise<boolean>;
   /** A one-off story has been told; it won't come up again. */
   markTold(id: string): Promise<void>;
+  markMet(id: GuestId): Promise<void>;
+  /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
+  relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'taken' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
@@ -176,6 +187,8 @@ export type SourcePick = { path: string; name: string } | { error: 'too-big' };
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
 export type CommissionResult = {
+  /** Why it stopped, when it did. */
+  error?: string;
   ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number;
   /** What the staff say they made, in their own words. */
   summary?: string;
@@ -235,6 +248,7 @@ export const IPC = {
   saveApiKey: 'key:save',
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
+  spendMonths: 'spend:months',
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',
@@ -258,13 +272,16 @@ export const IPC = {
   recallOnOpen: 'memory:recall-open',
   recallForRevision: 'memory:recall-revision',
   getMemory: 'memory:get',
+  dataDamage: 'data:damage',
   addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
   openCommissionFolder: 'memory:open-folder',
   reviseCommission: 'commission:revise',
   shopState: 'shop:state',
   openWork: 'shop:open-work',
+  relinkWork: 'shop:relink-work',
   markTold: 'shop:mark-told',
+  markMet: 'shop:mark-met',
   restorePrevious: 'commission:restore-previous',
 } as const;
 
@@ -311,6 +328,8 @@ export type CharacterCommand = {
   state: string;
   moveTo?: AnchorId;
   anim?: string;
+  /** Something held in the hand during the animation (game/props.ts). */
+  prop?: string;
   /** What the rule asked for before the sprite fallback (write, hammer, ...); sounds follow this, not the sprite. */
   action?: string;
   /**
@@ -349,10 +368,16 @@ export type CommissionMemo = {
 };
 
 /** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
-export type ShopDays = { done: number; grown: { id: GrowthId; date: string }[]; told: string[] };
+export type ShopDays = {
+  done: number;
+  grown: { id: GrowthId; date: string }[];
+  told: string[];
+  /** Who has been to the shop, and the day they first came. Absent in shops from before 1.0. */
+  met?: { id: GuestId; date: string }[];
+};
 
 /** A finished piece of work on the works shelf. */
-export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean };
+export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean; want?: string };
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
 export type ShopState = ShopDays & { works: Work[] };

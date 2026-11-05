@@ -26,7 +26,10 @@
   },
   "guests": {
     "baker": "桂姨",
-    "postman": "阿信"
+    "postman": "阿信",
+    "mechanic": "老周",
+    "granny": "陈婆婆",
+    "student": "小禾"
   },
   "you": {
     "label": "你"
@@ -150,6 +153,7 @@
     "askAgentTitle": "{who}想问你"
   },
   "ui": {
+    "startFail": { "title": "小灯屋打不开", "text": "可能是硬盘满了，或者数据文件夹不能写入。腾出些空间再试一次。\n\n{reason}" },
     "commissionTitle": "委托单",
     "templates": {
       "label": "挑一种，或者直接写",
@@ -179,16 +183,52 @@
       "needSource": "先选一下要处理的文件或文件夹。",
       "tooBig": "这个文件有点大（超过 1MB），店员们一次看不完，换个小一点的吧。"
     },
-    "furnish": {"hint": "现在布置的是：{scene}。每个地方的颜色各记各的，店里长出来的东西不受影响。", "wall": "墙面", "curtain": "窗帘", "rug": "地毯", "choices": {"wall": {"default": "原样", "sage": "鼠尾草绿", "rose": "灰粉", "sky": "雾蓝"}, "curtain": {"default": "亚麻", "blue": "靛蓝", "rose": "玫瑰", "green": "青草"}, "rug": {"default": "砖红", "blue": "海蓝", "green": "松绿", "plum": "梅子"}}},
-    "materials": {"label": "递过来的东西", "add": "递材料…", "hint": "截图、表格、稿子都行，也可以直接拖到这张单子或柜台上。店员们用的是复制件，原文件不动。", "remove": "拿掉 {name}", "folder": "「{name}」是个文件夹。要整理文件夹，请用上面的「整理文件夹」。", "tooBig": "「{name}」太大了（一次最多 20MB，合计 50MB）。", "tooMany": "一次最多递 10 个，「{name}」先放一放。", "missing": "「{name}」找不到了。", "busy": "店里正忙着这一单，等做完再递新的吧。", "drop": "松手就递给阿灯"},
+    "furnish": {
+      "hint": "现在布置的是：{scene}。每个地方的颜色各记各的，店里长出来的东西不受影响。",
+      "wall": "墙面",
+      "curtain": "窗帘",
+      "rug": "地毯",
+      "choices": {
+        "wall": {
+          "default": "原样",
+          "sage": "鼠尾草绿",
+          "rose": "灰粉",
+          "sky": "雾蓝"
+        },
+        "curtain": {
+          "default": "亚麻",
+          "blue": "靛蓝",
+          "rose": "玫瑰",
+          "green": "青草"
+        },
+        "rug": {
+          "default": "砖红",
+          "blue": "海蓝",
+          "green": "松绿",
+          "plum": "梅子"
+        }
+      }
+    },
+    "materials": {
+      "label": "递过来的东西",
+      "add": "递材料…",
+      "hint": "截图、表格、稿子都行，也可以直接拖到这张单子或柜台上。店员们用的是复制件，原文件不动。",
+      "remove": "拿掉 {name}",
+      "folder": "「{name}」是个文件夹。要整理文件夹，请用上面的「整理文件夹」。",
+      "tooBig": "「{name}」太大了（一次最多 20MB，合计 50MB）。",
+      "tooMany": "一次最多递 10 个，「{name}」先放一放。",
+      "missing": "「{name}」找不到了。",
+      "busy": "店里正忙着这一单，等做完再递新的吧。",
+      "drop": "松手就递给阿灯"
+    },
     "want": "想做什么",
     "wantMissing": "先写一句想做什么。",
     "details": "有什么讲究",
     "audience": "给谁用",
     "detailsPlaceholder": "比如：手机上也要好用，字大一点",
     "audiencePlaceholder": "比如：我爸妈",
-    "budgetCap": "这张单最多花 {cap}，到了会先停下问你。上限可以在设置里改。",
-    "budgetNoCap": "这张单没设花费上限，可以在设置里设一个。",
+    "budgetCap": "这一轮最多花 {cap}，到了会先停下问你。上限可以在设置里改。",
+    "budgetNoCap": "这一轮没设花费上限，可以在设置里设一个。",
     "submit": "交给阿灯",
     "demoFill": "帮我做一个记账小页面，能记下每天花了多少钱。",
     "resultTitle": "成品",
@@ -203,6 +243,7 @@
     "statsLine": "写了 {writes} 次文件、试运行 {runs} 次、失败 {fails} 次",
     "raw": "看原始记录",
     "replayBadge": "回放",
+    "closeLabel": "关闭",
     "replayTag": "（回放）",
     "board": {
       "research": "找参考",
@@ -280,7 +321,13 @@
       "trialEndText": "刚才是一段录好的示范：店员们接了一张“记账小页面”的委托。装好 Claude Code、填上 API Key，就能递你自己的委托了。",
       "trialSetUp": "去准备",
       "trialDone": "好",
-      "settingsTabs": { "furnish": "布置", "basics": "基本", "sight": "画面和声音", "work": "干活", "about": "关于" },
+      "settingsTabs": {
+        "furnish": "店面",
+        "basics": "基本",
+        "sight": "画面和声音",
+        "work": "开工",
+        "about": "关于"
+      },
       "settingsTitle": "设置",
       "nameLabel": "称呼",
       "lookLabel": "你的样子",
@@ -289,8 +336,13 @@
       "folderLabel": "委托放在",
       "checkLabel": "开工条件",
       "spendLabel": "花费",
-      "spendMonth": "这个月大约花了 {cost}。这是 Claude Code 的估算，以 Anthropic 的账单为准。",
-      "budgetLabel": "每次开工最多花",
+      "spendMonth": "这个月大约花了 {cost}。这是 Claude Code 的估算，半路停下的那一轮它不报价钱，所以不算在内。以 Anthropic 的账单为准。",
+      "spendBook": "每个月花了多少",
+      "spendBookCount": "{n} 单",
+      "spendBookOne": "1 单",
+      "spendBookTotal": "合计",
+      "spendBookEmpty": "还没有花过钱。",
+      "budgetLabel": "每一轮最多花",
       "budgetNone": "不设上限",
       "budgetHint": "到了上限，店员们会先停下，等你说接着做。",
       "troubleLabel": "出问题时",
@@ -341,12 +393,148 @@
       "creditMusic": "背景音乐：Alex Morgan《Jazz Study Sessions》《Jazz Cafe & Coffee Shop》（CC BY 4.0，已统一音量并转为 Ogg）",
       "creditMusicLink": "freemusicarchive.org"
     },
+    "objects": {
+      "names": {
+        "clock": "挂钟",
+        "window": "窗户",
+        "sidewindow": "挂钟旁的窗",
+        "frontdoor": "前门",
+        "table": "大桌子",
+        "shelf": "书架",
+        "workbench": "老石的工作台",
+        "lamp": "落地灯",
+        "plant": "盆栽",
+        "plant2": "盆栽",
+        "cup": "咖啡杯",
+        "board": "小黑板",
+        "sofa": "沙发",
+        "guest": "客人",
+        "you": "你自己"
+      },
+      "grown": {
+        "painting": "这幅小画",
+        "plant": "这盆花",
+        "lights": "这串小灯",
+        "fruit": "这盘水果",
+        "guitar": "这把吉他",
+        "bonsai": "这棵盆景",
+        "easel": "这个画架",
+        "trophy": "这个奖杯",
+        "portrait": "这张小像",
+        "sunset": "这张晚霞",
+        "star": "这颗金星",
+        "album": "相册",
+        "calendar": "挂历",
+        "books": "一叠书",
+        "letters": "信件板",
+        "ledger": "账本",
+        "monitor": "小电脑"
+      },
+      "grownLine": "{thing}是做完第 {n} 单后添的。",
+      "clock": "现在 {time}。",
+      "window": "外面{sky}，{period}。",
+      "skies": {
+        "clear": "天晴",
+        "rain": "在下雨",
+        "snow": "在下雪",
+        "petals": "飘着花瓣",
+        "leaves": "飘着落叶"
+      },
+      "periods": {
+        "dawn": "天刚亮",
+        "day": "是白天",
+        "dusk": "太阳快落了",
+        "night": "已经晚上了"
+      },
+      "door": {
+        "clear": "天不错，出去走走吗？",
+        "rain": "雨还没停，伞在门边。",
+        "snow": "外面滑，出门慢点。",
+        "petals": "门口全是花瓣，一会儿我去扫。",
+        "leaves": "门口的落叶又厚了一层。"
+      },
+      "doorErrand": "{name}出去跑腿了，一会儿回来。",
+      "doorNobody": "这会儿没人出门，都在屋里忙。",
+      "actorNames": {
+        "adeng": "阿灯",
+        "xiaoju": "小橘",
+        "laoshi": "老石",
+        "qingdai": "青黛",
+        "cat": "小猫"
+      },
+      "table": [
+        "桌子收拾好了，等下一单。",
+        "这张桌子比店还老。",
+        "坐下歇会儿也行。"
+      ],
+      "tableMaterials": "这单递来的材料：{list}。",
+      "tableNothing": "这单没递材料，全凭你那句话。",
+      "listJoin": "、",
+      "shelf": [
+        "我找本书看看。",
+        "这本我上次翻到哪儿了？",
+        "书架该掸掸灰了。"
+      ],
+      "shelfBusy": [
+        "等忙完这单再翻书。",
+        "书先放着，手上有活。"
+      ],
+      "workbench": [
+        "这把椅子还能再修修。",
+        "工具都归位了。",
+        "别碰那把锉，刚磨好。"
+      ],
+      "workbenchBusy": "手上这件：{doing}。",
+      "plant": [
+        "今天浇过水了。",
+        "新叶子冒出来了。",
+        "别晃它，它会记仇。"
+      ],
+      "cup": [
+        "还热着，你要来一杯吗？",
+        "这是今天第三杯了。",
+        "咖啡豆快见底了。"
+      ],
+      "board": [
+        "黑板是空的，等下一单。",
+        "上次的粉笔字我擦了。"
+      ],
+      "sofa": [
+        "这沙发坐下去就不想起来。",
+        "午觉的好地方。"
+      ],
+      "guest": {
+        "baker": "刚出炉的，趁热吃。",
+        "postman": "今天的信不多，你的那封在最上面。",
+        "mechanic": "手洗过了，放心。",
+        "granny": "慢慢来，我不急。",
+        "student": "我就坐一会儿，不打扰。"
+      },
+      "you": "你的委托在做了，先坐会儿吧。",
+      "grownMade": {
+        "album": "做过相册，留一本在店里翻。",
+        "calendar": "排过日程，墙上就挂了本挂历。",
+        "books": "查过两回资料，这叠书就留下了。",
+        "letters": "写过几封信，回信都钉在这儿。",
+        "ledger": "做过两回表格，账也记得勤了。",
+        "monitor": "做过几回网页，这台小电脑就常开着。"
+      }
+    },
     "run": {
       "runningTitle": "正在做：{want}",
-      "runningText": "店员们在忙。做好了会放到桌上。",
       "cancel": "不做了",
       "cancelConfirm": "确定不做了吗？已经做好的文件会留着。",
       "keepGoing": "继续做",
+      "progressJustStarted": "刚开工",
+      "progressMinutes": "已经做了 {n} 分钟",
+      "progressHours": "已经做了 {h} 小时 {m} 分钟",
+      "progressCap": "这一轮最多花 {cap}",
+      "progressThinking": "阿灯在想怎么安排",
+      "progressNoPlan": "计划还没定",
+      "progressGuess": "这几步是阿灯估的，还不算正式计划",
+      "progressPlanCount": "计划 · 做完 {done} 件，共 {total} 件",
+      "progressMeet": "插句话",
+      "firstHint": "有话想补充就按铃，计划都写在黑板上。",
       "retry": "再试一次",
       "netTitle": "外面好像断网了",
       "netText": "试了几次都连不上 Anthropic。网络好了以后可以接着做，已经做好的部分不会丢。",
@@ -358,8 +546,8 @@
       "authTitle": "API Key 用不了",
       "authText": "这把 API Key 无效或者过期了。到设置的“开工条件”里换一把新的。",
       "authHow": "去换一把",
-      "budgetTitle": "这单花到上限了",
-      "budgetText": "这次开工已经花了约 {cost}，到了你在设置里定的每次上限。接着做会再给同样多的额度；也可以先去设置里调高。",
+      "budgetTitle": "这一轮花到上限了",
+      "budgetText": "这一轮已经花了约 {cost}，到了你在设置里定的每轮上限。接着做会再给同样多的额度；也可以先去设置里调高。",
       "budgetRetry": "接着做",
       "pendingTitle": "上次的委托还没做完",
       "pendingText": "「{want}」做到一半停下了。要接着做吗？",
@@ -368,14 +556,17 @@
       "closeTitle": "委托还没做完",
       "closeText": "现在关的话，店员们会停下来。下次打开小灯屋可以接着做。",
       "stopAndClose": "停下并关闭",
+      "seeSoFar": "看看已经做好的",
+      "failedTitle": "这单中途停了",
+      "failedText": "活干到一半停下来了，我也说不清为什么。已经做好的部分都留着，可以接着做。",
       "goneTitle": "那单的文件夹找不到了",
       "goneText": "可能被挪走或删掉了。想要的话，重新递一张委托单吧。"
     },
     "toolbar": {
       "label": "店里的开关",
       "settings": "设置",
-      "detailedOn": "详细模式：显示 AI 实际在做什么",
-      "detailedOff": "关闭详细模式",
+      "order": "委托",
+      "progress": "进度",
       "mute": "静音",
       "unmute": "打开声音"
     },
@@ -386,6 +577,7 @@
       "sectionLabel": "看和听",
       "captionsToggle": "在画面下方一直显示刚说的话",
       "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
+      "detailedToggle": "在画面下方显示店员在做什么",
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",
       "hotspotCat": "{name}：摸摸它",
@@ -393,15 +585,28 @@
       "hotspotGarden": "后门：看看后院",
       "hotspotShop": "后门：回店里",
       "hotspotHens": "母鸡：撒把米",
+      "hotspotBeds": "菜地",
+      "bedsBare": "菜地：还空着，做完第一单就种",
+      "bedsSay": "：",
+      "bedsAnd": "，",
+      "bedsRipe": "熟了 {n} 棵",
+      "bedsSprout": "刚发芽 {n} 棵",
       "hotspotBoard": "黑板：看看整张计划",
       "hotspotWorks": "作品架：看看一起做过的东西"
     },
     "notebook": {
-      "sectionLabel": "阿灯的小本子",
       "sectionText": "阿灯会记下做过的委托、你做的选择和卡住过的地方，只记这些，不记聊天内容。",
-      "open": "翻开看看",
       "title": "阿灯的小本子",
       "commissions": "做过的委托",
+      "troubleTitle": "有些记录读不出来了",
+      "troubleRestored": "这种事很少见。小本子我用上次开店时抄的那份补上了，那之后的委托可能没记下来。做好的东西都还在各自的文件夹里。",
+      "troubleMissing": "小本子不见了。我用上次开店时抄的那份补上了，那之后的委托可能没记下来。做好的东西都还在各自的文件夹里。",
+      "troubleSettings": "设置读不出来，只好回到最初的样子。每一轮最多花 ${budget}，工作文件夹和语言也回到了默认，记得去设置里看一眼。",
+      "troubleLedger": "花费记录读不出来，之前花的钱不再算在账本里。你在 Anthropic 那边的账单不受影响。",
+      "troubleKept": "读不出来的文件留在数据文件夹，没有删，名字里带 broken。",
+      "troubleLost": "这种事很少见。小本子手边没有能用的抄本，只好先换一本新的。做好的东西都还在各自的文件夹里。",
+      "troubleOk": "知道了",
+      "more": "还有 {n} 条更早的，接着看",
       "stuck": "一起踩过的坑",
       "empty": "本子还是空的。",
       "done": "做好了",
@@ -411,7 +616,8 @@
       "openFolder": "看看做好的东西",
       "stuckLine": "{commission}：{note} 卡过",
       "forget": "全部忘掉",
-      "forgetConfirm": "真的全部忘掉吗？忘了就找不回来了，店里攒下的东西也会收起来。",
+      "forgetBusy": "委托还在做，现在忘不掉：它做的事马上又会记回本子上。等做完再来。",
+      "forgetConfirm": "真的全部忘掉吗？忘了就找不回来了，店里攒下的东西也会收起来。每个月花了多少还留着，只是不再记得花在哪一单上。Claude Code 自己放在 .claude 文件夹里的记录也还在。",
       "forgetYes": "忘掉",
       "keep": "留着",
       "forgotten": "好，本子上的都划掉了。称呼还在设置里，想改随时改。",
@@ -419,7 +625,14 @@
       "asked": "后来改过：{ask}",
       "days": "店里的日子",
       "doneCount": "一起做完了 {n} 单。",
-      "grewLine": "店里多了{item}"
+      "grewLine": "店里多了{item}",
+      "firstWork": "第一单：{title}",
+      "nthWork": "第 {n} 单：{title}",
+      "metLine": "{name}第一次来店里",
+      "bedSprout": "后院种下第一棵菜",
+      "bedRipe": "后院第一棵菜熟了",
+      "birthday": "小店满 {n} 岁了",
+      "bedFull": "后院菜地长满了"
     },
     "tray": {
       "sectionLabel": "不在眼前的时候",
@@ -477,7 +690,31 @@
       "revise": "再改改",
       "rounds": "改过 {n} 回",
       "roundsOne": "改过 1 回",
-      "gone": "找不到了，可能被挪走或删掉了。"
+      "gone": "找不到了，可能被挪走或删掉了。",
+      "relink": "告诉我它在哪",
+      "relinkDialog": "{main} 现在在哪个文件夹？",
+      "relinkWrong": "那个文件夹里没有它的主文件。",
+      "relinkBroad": "那个文件夹里放的东西太多了。给这件作品单独建一个文件夹，再指给我。",
+      "relinkTaken": "那里已经放着另一件作品。给这件作品单独建一个文件夹，再指给我。",
+      "relinked": "找到了，以后就从那里打开。",
+      "empty": "架子还空着。做好第一件，就摆在这儿。",
+      "search": "找一件：名字、当时说的话或月份",
+      "kindsLabel": "按种类看",
+      "all": "全部",
+      "found": "找到 {n} 件",
+      "noMatch": "没有对得上的。换个词，或者换个种类试试。",
+      "more": "还有 {n} 件更早的，接着看",
+      "kinds": {
+        "page": "网页",
+        "research": "资料",
+        "edit": "改文档",
+        "tidy": "整理",
+        "demo": "示范",
+        "letter": "信",
+        "sheet": "表格",
+        "plan": "计划",
+        "album": "相册"
+      }
     },
     "mini": {
       "toggle": "店藏起来时，桌面角落留个小窗",
@@ -535,11 +772,11 @@
   "legal": {
     "privacy": [
       "# 隐私说明",
-      "最后更新：2026 年 10 月 29 日",
+      "最后更新：2026 年 11 月 5 日",
       "小灯屋不收集你的任何数据：没有统计、没有广告、不在后台上报。我们自己没有服务器，也看不到你在店里做了什么。",
       "# 留在你电脑上的",
-      "称呼和设置；加密保存的 API Key（用系统自带的加密，只有这台电脑上的你能解开）；阿灯的小本子（做过的委托、你做的选择、卡住过的地方）；每次委托的运行记录；最近 7 天的运行日志；崩溃记录。",
-      "这些都在应用的数据文件夹里（Windows 上是 %APPDATA%\\Lamplight Nook；商店版存在应用自己的存储区，卸载时 Windows 会一并删除）。小本子可以在设置里一键清空；用安装包装的，卸载后删掉这个文件夹，就什么都不剩。",
+      "称呼和设置；加密保存的 API Key（用系统自带的加密，只有这台电脑上的你能解开）；阿灯的小本子（做过的委托、你做的选择、卡住过的地方）；每个月的花费估算；最近 50 次委托的运行记录；最近 7 天的运行日志；崩溃记录。",
+      "这些都在应用的数据文件夹里（Windows 上是 %APPDATA%\\Lamplight Nook；商店版存在应用自己的存储区，卸载时 Windows 会一并删除）。小本子上可以把店里记得的东西全部忘掉；Claude Code 自己也会记录每一单，放在用户目录的 .claude 文件夹里，那些归 Claude Code 管，不会跟着清掉；用安装包装的，卸载后删掉这个文件夹，就什么都不剩。",
       "店员做好的东西放在你选的委托文件夹里，归你所有。",
       "# 会发给 Anthropic 的",
       "店员靠你电脑上的 Claude Code 干活。你递的委托、补充的话、店员在委托文件夹里读到的文件内容、上网查资料的请求，会通过 Claude Code、用你自己的 API Key 发给 Anthropic 处理。这部分适用 Anthropic 的隐私政策和商业条款，费用记在你自己的 Anthropic 账户上。",
@@ -558,7 +795,7 @@
       "你购买的是小灯屋在你自己设备上的个人使用许可，不是软件或其中素材的所有权。请不要转售、出租或再分发小灯屋，也不要把其中的美术、音效、字体、音乐单独提取出来使用；这些素材属于各自的作者，见“第三方授权”。",
       "# 2. 你的 API Key 和费用",
       "店员的工作由 Anthropic 的服务完成，需要你自己的 Anthropic 账户和 API Key，并遵守 Anthropic 的条款（包括年龄要求）。每张委托产生的费用由 Anthropic 按你的账户收取，与小灯屋的售价无关。",
-      "店里显示的花费是 Claude Code 的估算，以 Anthropic 的账单为准。“每次最多花”的上限会尽量在到达时停下，但实际花费可能略高于上限。",
+      "店里显示的花费是 Claude Code 的估算，以 Anthropic 的账单为准。“每一轮最多花”的上限会尽量在到达时停下，但实际花费可能略高于上限。",
       "# 3. 店员做出来的东西",
       "店员是 AI，会出错。做好的网页、总结、修改稿和整理方案，请你检查后再使用，尤其是要发给别人或拿去做决定的时候。做出来的东西归你，同时受 Anthropic 条款约束。",
       "# 4. 你的文件",
@@ -579,7 +816,16 @@
     "guitar": "老石修好的吉他",
     "bonsai": "一盆盆景",
     "easel": "青黛的画架",
-    "trophy": "一个小奖杯"
+    "trophy": "一个小奖杯",
+    "portrait": "一张大家的小像",
+    "sunset": "一幅晚霞",
+    "star": "一颗金星",
+    "album": "一本相册",
+    "calendar": "一本挂历",
+    "books": "一叠书",
+    "letters": "一块信件板",
+    "ledger": "一本账",
+    "monitor": "一台小电脑"
   },
   "sceneText": {
     "study": {

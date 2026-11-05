@@ -1,3 +1,5 @@
+import { GUEST_IDS } from '../game/guests';
+import type { WorkIcon } from '../../shared/growth';
 import { parse } from 'yaml';
 import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
@@ -28,6 +30,10 @@ export type Chat = {
   guest?: GuestId;
   /** Only once the shop has finished this many commissions with the user (plan.md R2.3). */
   after?: number;
+  /** Only once the shop has finished this kind of work. */
+  made?: WorkIcon;
+  /** A neighbour asks after the latest work, by name ({lastWork}). */
+  mentions?: boolean;
   /** A little story told only once, ever (remembered in Adeng's notebook). */
   once?: boolean;
   /** Only in this scene (shared/scenes.ts); replaces the chat with the same id there. */
@@ -47,6 +53,8 @@ export function parseChats(text: string): Chat[] {
     ...(c.guest ? { guest: c.guest } : {}),
     ...(typeof c.after === 'number' ? { after: c.after } : {}),
     ...(c.once ? { once: true } : {}),
+    ...(c.made ? { made: c.made } : {}),
+    ...(c.mentions ? { mentions: true } : {}),
     ...(c.scene ? { scene: c.scene } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
@@ -147,8 +155,8 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
     const badSky = chat.sky && !['rain', 'snow', 'petals', 'leaves'].includes(chat.sky);
     const badHoliday = chat.holiday && !['halloween', 'christmas', 'new_year'].includes(chat.holiday);
     // A visit opens with the guest, and only that guest comes along.
-    const guests = chat.turns.map((t) => t.speaker).filter((s) => s === 'baker' || s === 'postman');
-    const badGuest = chat.guest ? !['baker', 'postman'].includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
+    const guests = chat.turns.map((t) => t.speaker).filter((s) => GUEST_IDS.includes(s as GuestId));
+    const badGuest = chat.guest ? !GUEST_IDS.includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
     if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }

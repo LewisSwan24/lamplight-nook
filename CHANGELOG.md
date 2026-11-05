@@ -1,6 +1,109 @@
 # Changelog
 
-## Unreleased (1.0)
+## 1.0.0 (2026-11-05)
+
+The running card and the road to 1.0.
+
+- **A moved work's round comes back with a card.** It used to end in silence, after asking to overwrite the work's own
+  file, and what the work had cost stayed behind in the old folder.
+- **No File, Edit and View menus.** Those were Electron's own, with the developer tools among them.
+- **Settings says what the monthly figure leaves out.** Claude Code reports no cost for a round stopped partway.
+- **Long cards stay on the paper in a small window.** The words scroll inside the card, and the button stays in view.
+- **Stopping on the way out can be carried on, as promised.** "Stop and close" used to throw away what it said you could
+  carry on with, and answering "keep going" when quitting stopped the commission anyway.
+- **A stopped commission shows what it managed.** Its card now leads to what was done so far, and the plan stays up.
+- **Forgetting waits for the running commission.** Before, what was running wrote itself straight back and the ledger
+  could count a round twice.
+- **The shop has a birthday.** A year to the day after the first work, Wick mentions it, and it goes into the shop's days.
+- **A work that moved can be found again.** When its folder has been moved, the shelf asks where it is now, and takes the
+  new place if its main file is there.
+- **One shop at a time.** Opening the app again brings the shop back. Before, a second shop opened on the same notebook,
+  and each kept its own idea of what had been written.
+- **Cards say what they are.** A screen reader is now told each card is a dialog and what it is called when it opens,
+  and the name box in settings has a name.
+- **A damaged notebook no longer costs you the notebook.** A data file that cannot be read used to count as empty, and the
+  next save wrote over it. Now it is put aside, the copy from when the shop last opened takes its place, and Wick tells you.
+- **When the shop cannot open, it says so.** A full disk or a folder it cannot write to used to leave it running with no
+  window at all. Damaged settings or a damaged ledger are now mentioned too, including what the budget went back to.
+- **Crisp at 125% and 150%.** On a display Windows scales, game pixels came out uneven. The shop now picks its size in
+  real pixels, so every pixel is the same size on the common laptop settings too.
+- **Forget everything means everything.** Records of runs are deleted and the spending ledger no longer says what the money
+  went on; before, both kept the names of your commissions. Records of runs are also kept to the last 50.
+- **Words you can read.** The copper links and main buttons, dates, hints and settings tabs were lighter than the paper
+  could carry. All of it now measures at least 4.5:1 against what is really behind it.
+- **Month by month.** Settings shows what each month cost and on how many commissions. A work changed again in a later
+  month no longer moves what it cost earlier, and nothing old drops out of the ledger.
+- **Find anything on the works shelf.** Search by name, by what you asked for or by month, or look at one kind of work.
+  Works sit under their months and come in as you ask for them, so a thousand of them open as fast as eight.
+- **Things said once are heard once.** What the shop says about something new waits until the result card is put away and
+  you are in the room, and never talks over the last thing it said.
+- **`npm run packaged`** runs the built app from its own folder with the stand-in Claude, so a picture left out of the
+  package or a fuse left unset shows before any release does.
+- **Dates are the ones on your wall.** Works, the shop's days, commission folders and the monthly spend used Greenwich
+  time, so a job finished on a morning in Brisbane was filed under yesterday.
+- **Six buttons, in the order you reach for them.** Commission (Progress while one is running), the works shelf, the
+  notebook, captions, sound and settings, in pixel icons drawn for the shop that look the same on every computer. Each
+  says what it is the moment you point at it or tab to it.
+- **Settings sort themselves out.** Who you are, the shop (where it is and how it is furnished), sight and sound, getting
+  to work, and about, with the trouble and write-to-us rows there. Detailed mode is now a switch under sight and sound:
+  "Show what the staff are doing at the bottom of the window".
+- **Every card behaves the same.** A card you can put away has a x at the top right and answers Esc; a card that needs an
+  answer has neither and cannot be pushed aside. The main button is always last on the right and takes the keyboard focus,
+  so Enter is safe. Three widths instead of a dozen, and long words scroll inside the paper.
+- **A newcomer gets shown round.** A small "!" over the counter, then over the bell and the blackboard during the first
+  commission, with a word from Wick about what they are for. The works shelf says so when it is empty.
+- **One card for work under way.** The counter and the blackboard now open the same card: how long it has taken,
+  the limit for this round, what is happening now, every step of the plan, who on the staff is doing what, and three
+  buttons (keep going, say something, call it off). It keeps up while it is open. Steps that are only Wick's guess
+  are not counted as "1 of 3 done". The blackboard also shows a hand cursor now.
+- **The staff walk behind the furniture.** The table, counter, shelves, chairs and the rest are separate pieces now,
+  each drawn at the depth of its foot, so someone behind the table shows only their head. What stands on the furniture
+  (the cup, the slip, the bell, fruit on the table, a pumpkin on the shelf) stays on top of it.
+- **Everyone finds their own way.** Staff, neighbours, you and the cat work out a walk round the furniture and the
+  holiday pieces instead of following one fixed aisle, in the shop, the study and the garden. The same start and end
+  always give the same walk.
+- **Nothing drops off the shelf.** The shop used to remember the last twenty commissions, so older works quietly left the
+  shelf and the notebook. It keeps them all now. Claude is still only told about recent choices, so a long history costs
+  nothing more on each commission.
+- **The shop's days.** The notebook's page now tells the shop's story: the first work by name, the tenth and twenty-fifth,
+  what it gathered, the first visit of each neighbour, and how the beds did.
+- **The garden grows with the work.** The vegetable beds behind the shop start empty. A sprout comes up every three works
+  finished and ripens three works later, so they fill at the twenty-fifth. The staff mention the first sprout, the first
+  ripe plant and the full beds. Another round of changes on the same work does not count.
+- **People pass the windows.** A neighbour on the way in and Clem on an errand go by behind the glass before they reach
+  the door, a dark shape by day and lit by the street lamps at night. With less motion asked for, nobody goes by.
+- **A commission that falls over says so.** If Claude Code stops partway for no reason it can name, Wick now tells you
+  with a card and you can carry on from where it stopped. It used to go quiet, with the plan left on the blackboard.
+  Carried on, it stays one commission in the notebook.
+- **Tab stays on the card.** While a card is open, Tab goes round inside it instead of wandering off to the shop behind.
+- **The doors make sense now.** The top wall faces the street, so only the front door opens there, and a third window
+  looks out where the back door used to be. The back door is in the bottom wall, right above the path in the garden.
+  Flint stands on the other side of the workbench, out of its way.
+- **Wick is behind the counter.** The counter moved down, so Wick stands behind it with the coffee machine alongside,
+  and neighbours and you come up to its end. The mini window shows the same.
+- **Everyone sits down for a meeting.** The bench in the shop and the sofa in the study take two more, so all four sit.
+- **The study has its own floor plan.** The sofa stands at the reading table, and the staff keep off the gap in the desk.
+- **Words keep off the blackboard.** A speech bubble that would cover the chalk moves beside it. Flint's guitar now
+  hangs on the wall, where the Christmas tree cannot hide it.
+- **The shop comes to look like what was made in it.** Albums leave an album on the table, research leaves a stack of books, letters
+  go up on a board, and a calendar, a ledger and an old computer arrive the same way. The staff talk about the work, the
+  neighbours ask about it, and Auntie Olive asks after your latest piece by name. There is more to gather and more to hear
+  after the twentieth commission, up to the fiftieth. Another round of changes on one work still counts as one.
+- **New neighbours, brought by the work.** After a web page Old Zhou from the garage drops in. After an album Granny Chen
+  comes with her photographs. After some research Xiaohe sits down to write her thesis.
+- **The staff do what they seem to be doing.** Writing is a page and a moving pencil on the table, a drink is a cup in the
+  hand, and Flint taps with a hammer. Wick takes the phone at the counter for commands and the web, and hands the work
+  over when someone is sent off. Whoever is listening turns to whoever is talking. The cat gets up and walks.
+- **Everything in the shop answers.** The clock, window, doors, table, shelf, workbench, lamp, plants, cup, blackboard
+  and what the shop has gathered all show a name on hover, can be reached from the keyboard, and answer a click with a
+  word, a light or someone strolling over, for nothing. At work the clock opens the running card, the table lists what
+  you handed in, and the front door says who is out. Neighbours say hello when clicked.
+- **The limit is per round, and says so.** The commission form, settings and the stop card all say "this round", and
+  the stop card shows what the round spent, not the running total.
+- **Nobody walks through furniture.** Eleven stand points got their own place for each character, the holiday pieces
+  moved clear of the walks, and a test checks every walk against the measured furniture in both scenes.
+- **Old Claude Code checks work on Windows.** A `.mjs` or `.js` stand-in runs through Node, so the version check and
+  the upgrade offer behave the same on Windows.
 
 Safety before launch.
 

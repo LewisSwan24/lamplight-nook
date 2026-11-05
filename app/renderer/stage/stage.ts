@@ -44,6 +44,8 @@ export class Stage {
   private board: BoardStep[] = [];
   /** The board shows Claude's own to-do list: the guessed three steps stop following events. */
   private realPlan = false;
+  /** The latest thing anyone started doing, for the running card. */
+  private latest = '';
   /** The window is hidden or minimized: skip the acting and keep the shop's state current (see skip). */
   catchingUp = false;
   /** Playback speed multiplier (replays run faster). */
@@ -83,6 +85,10 @@ export class Stage {
     return { done, left: this.board.length - done, doing: this.board.find((s) => s.status === 'doing')?.label };
   }
 
+  /** The running card's picture of the work: whether the plan is the staff's own, and what just started. */
+  get planIsReal() { return this.realPlan; }
+  get latestDoing() { return this.latest; }
+
   actorInfo(actor: ActorId): ActorInfo {
     return this.info.get(actor) ?? emptyInfo();
   }
@@ -94,6 +100,7 @@ export class Stage {
       this.info.clear();
       const B = strings.ui.board;
       this.realPlan = false;
+      this.latest = '';
       this.board = [
         { key: 'research', label: B.research, status: 'todo' },
         { key: 'write', label: B.write, status: 'todo' },
@@ -120,7 +127,7 @@ export class Stage {
     this.info.set(actor, info);
     info.raw.push(`${e.kind}${e.tool ? ` ${e.tool}` : ''}${e.target ? ` ${e.target}` : ''}`);
     // The card says what kind of thing is happening; the command itself is in the raw record and detailed mode.
-    if (e.kind === 'tool_start') info.doing = e.tool === 'Bash' || e.tool === 'PowerShell' ? plainOf(e.kind, e.tool) : e.plain;
+    if (e.kind === 'tool_start') this.latest = info.doing = e.tool === 'Bash' || e.tool === 'PowerShell' ? plainOf(e.kind, e.tool) : e.plain;
     if (e.kind === 'tool_ok' && (e.tool === 'Write' || e.tool === 'Edit')) info.stats.writes++;
     if (e.kind === 'tool_start' && (e.tool === 'Bash' || e.tool === 'PowerShell')) info.stats.runs++;
     if (e.kind === 'tool_fail') info.stats.fails++;
@@ -173,7 +180,9 @@ export class Stage {
     const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
     if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
     if (replaced()) return;
-    this.scene.play(actor, cmd.anim);
+    this.scene.play(actor, cmd.anim, cmd.prop);
+    // Handing something over: Adeng turns to whoever brings it.
+    if (cmd.anim === 'gift' && actor !== 'adeng') this.scene.lookAt('adeng', actor);
     const sound = ACTION_SOUNDS[cmd.action ?? cmd.anim ?? ''];
     if (sound) this.scene.onSound?.(sound);
     const vars = cmd.line?.vars ?? {};
@@ -188,6 +197,7 @@ export class Stage {
       if (replaced()) return;
       if (last && last !== t.who) this.hide(actor, last);
       this.show(actor, t.who, t.text, t.who === actor ? cmd.bubble : undefined);
+      for (const other of turns) if (other.who !== t.who) this.scene.lookAt(other.who, t.who);
       last = t.who;
     }
     if (goingOut) {
@@ -238,10 +248,19 @@ export class Stage {
     for (const t of turns) {
       if (this.scene.busyTalking(t.speaker)) return;
       this.scene.say(t.speaker, t.text);
+      // Whoever is listening turns to whoever is talking.
+      for (const other of turns) if (other.speaker !== t.speaker) this.scene.lookAt(other.speaker, t.speaker);
       await new Promise((r) => setTimeout(r, 2000 + 150 * [...t.text].length));
       this.scene.say(t.speaker, null);
       await new Promise((r) => setTimeout(r, 300));
     }
+  }
+
+  /** Someone clicked something: the answer comes now, over whatever was being said. */
+  async answer(speaker: ActorId, text: string): Promise<void> {
+    this.scene.say(speaker, text);
+    await new Promise((r) => setTimeout(r, 2000 + 150 * [...text].length));
+    if (this.scene.isSaying(speaker, text)) this.scene.say(speaker, null);
   }
 
   private show(owner: ActorId, who: ActorId, text: string, bubble?: CharacterCommand['bubble']) {

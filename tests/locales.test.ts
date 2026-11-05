@@ -35,6 +35,13 @@ describe('the English locale', () => {
     expect(left).toEqual([]);
   });
 
+  it('calls the staff by their English names, in the app and in what they say', () => {
+    const inside = /\b(Adeng|Xiaoju|Laoshi|Qingdai)\b/;
+    const shown = [...b].filter(([k, v]) => k !== 'lineLint.laoshiParticle' && inside.test(JSON.stringify(v))).map(([k]) => k);
+    expect(shown).toEqual([]);
+    for (const file of ['lines/en/cafe.yaml', 'lines/en/chats.yaml']) expect(readFileSync(file, 'utf8')).not.toMatch(inside);
+  });
+
   it('keeps file names safe on Windows', () => {
     for (const name of Object.values(en.ui.files)) expect(name).not.toMatch(/[\\/:*?"<>|]/);
   });
@@ -117,5 +124,13 @@ describe('the wording of the locales', () => {
   it('does not name the rooms differently from the room picker in the furnishing hint', () => {
     expect(zh.ui.furnish.hint).not.toContain('咖啡厅');
     expect(en.ui.furnish.hint).not.toContain('café');
+  });
+});
+
+describe('how the budget is described', () => {
+  it('says the limit is per round everywhere, as the app applies it', () => {
+    const budget = (locale: typeof zh) => [...leaves(locale)].filter(([k]) => /budget(Cap|NoCap|Label|Title|Text)$/.test(k)).map(([, v]) => String(v)).join('\n');
+    expect(budget(zh)).not.toMatch(/这张单|这单|每次开工|这次开工/);
+    expect(budget(en)).not.toMatch(/This commission|per run|per-run|This run/);
   });
 });

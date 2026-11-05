@@ -252,6 +252,10 @@ garden:
 
 # Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
 grow:
+  - { id: grow_birthday, speaker: adeng, when: grow_birthday, bubbles: ["今天是小店的生日。", "第一件东西就是这天做完的。"] }
+  - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["后院菜地冒芽了。", "第一单做完那天种的。"] }
+  - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["后院第一棵菜熟了。", "从第一单长到现在。"] }
+  - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["后院的菜地都长满了。", "都是这些单子一点点攒下来的。"] }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["墙上挂了幅小画。", "第一单做完那天买的。"] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["柜台上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["窗上挂了串小灯。", "晚上看，店里暖一点。"] }
@@ -260,6 +264,15 @@ grow:
   - { id: grow_bonsai, speaker: adeng, when: grow_bonsai, bubbles: ["书架上那盆是街坊送的。", "说我们太忙，该养盆慢的。"] }
   - { id: grow_easel, speaker: qingdai, when: grow_easel, bubbles: ["我的画架搬过来了。", "有空就画两笔。"] }
   - { id: grow_trophy, speaker: xiaoju, when: grow_trophy, bubbles: ["这个小奖杯是我做的！", "给做完二十单的我们。"], reply: { speaker: laoshi, bubbles: ["歪的。"] } }
+  - { id: grow_portrait, speaker: qingdai, when: grow_portrait, bubbles: ["给大家画了张小像，挂上了。"] }
+  - { id: grow_sunset, speaker: qingdai, when: grow_sunset, bubbles: ["这张晚霞画了好久。"] }
+  - { id: grow_star, speaker: adeng, when: grow_star, bubbles: ["五十单了。", "这颗星是小橘剪的。"] }
+  - { id: grow_album, speaker: qingdai, when: grow_album, bubbles: ["桌上留了本相册。"] }
+  - { id: grow_calendar, speaker: adeng, when: grow_calendar, bubbles: ["墙上挂了本挂历。", "日子排得开了。"] }
+  - { id: grow_books, speaker: adeng, when: grow_books, bubbles: ["书架上堆了一叠书。", "查东西时翻一翻。"] }
+  - { id: grow_letters, speaker: xiaoju, when: grow_letters, bubbles: ["墙上钉了几封信！", "都是寄回来的。"] }
+  - { id: grow_ledger, speaker: laoshi, when: grow_ledger, bubbles: ["桌上多了本账。", "记清楚。"] }
+  - { id: grow_monitor, speaker: xiaoju, when: grow_monitor, bubbles: ["小桌上多了台电脑！", "还能开机。"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["阅读桌上有水果了！", "橘子是我的。"] }

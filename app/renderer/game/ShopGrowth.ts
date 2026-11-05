@@ -7,12 +7,24 @@ import guitarUrl from '../../../assets/sprites/grow-guitar.png';
 import bonsaiUrl from '../../../assets/sprites/grow-bonsai.png';
 import easelUrl from '../../../assets/sprites/grow-easel.png';
 import trophyUrl from '../../../assets/sprites/grow-trophy.png';
+import portraitUrl from '../../../assets/sprites/grow-portrait.png';
+import sunsetUrl from '../../../assets/sprites/grow-sunset.png';
+import starUrl from '../../../assets/sprites/grow-star.png';
+import albumUrl from '../../../assets/sprites/grow-album.png';
+import calendarUrl from '../../../assets/sprites/grow-calendar.png';
+import booksUrl from '../../../assets/sprites/grow-books.png';
+import lettersUrl from '../../../assets/sprites/grow-letters.png';
+import ledgerUrl from '../../../assets/sprites/grow-ledger.png';
+import monitorUrl from '../../../assets/sprites/grow-monitor.png';
 import worksUrl from '../../../assets/sprites/works.png';
+import { overlayDepth } from './pieces';
 import { GROWTH, SHELF_SLOTS, WORK_ICONS, type GrowthId, type WorkIcon } from '../../shared/growth';
 
 const URLS: Record<GrowthId, string> = {
   painting: paintingUrl, plant: plantUrl, lights: lightsUrl, fruit: fruitUrl,
   guitar: guitarUrl, bonsai: bonsaiUrl, easel: easelUrl, trophy: trophyUrl,
+  portrait: portraitUrl, sunset: sunsetUrl, star: starUrl,
+  album: albumUrl, calendar: calendarUrl, books: booksUrl, letters: lettersUrl, ledger: ledgerUrl, monitor: monitorUrl,
 };
 
 /** On the wall behind everyone, like the holiday decorations, and under them. */
@@ -39,7 +51,7 @@ export class ShopGrowth {
   onShelfClick: () => void = () => {};
 
   constructor(private scene: Phaser.Scene, onHover: (on: boolean) => void) {
-    for (const g of GROWTH) this.pieces.set(g.id, scene.add.image(0, 0, `grow-${g.id}`).setOrigin(0).setDepth(DEPTH).setVisible(false));
+    for (const g of GROWTH) this.pieces.set(g.id, scene.add.image(0, 0, `grow-${g.id}`).setOrigin(0).setDepth(overlayDepth(`grow-${g.id}`, DEPTH)).setVisible(false));
     // A thin wooden plank with a darker edge and two little brackets; hidden until there is a work to put on it.
     this.plank = scene.add.graphics({ x: SHELF.x, y: SHELF.y + SHELF.h - 2 }).setDepth(DEPTH).setVisible(false);
     this.plank.fillStyle(0xa0703f, 1).fillRect(0, 0, SHELF.w, 1);
@@ -48,6 +60,11 @@ export class ShopGrowth {
       .on('pointerdown', () => this.onShelfClick())
       .on('pointerover', () => onHover(true))
       .on('pointerout', () => onHover(false));
+  }
+
+  /** Whether a piece is out in the shop. */
+  shows(id: GrowthId): boolean {
+    return this.pieces.get(id)!.visible;
   }
 
   /** Show what the shop has; a piece that just arrived fades in instead of popping up. */

@@ -22,15 +22,30 @@ export type ActorInfo = {
 let open: HTMLElement | null = null;
 /** Where keyboard focus was before the first card opened, to give it back on close. */
 let returnFocus: HTMLElement | null = null;
-const FOCUS_FIRST = 'textarea, input, button.default, button:not(.close), button';
+/** Where keyboard focus lands on a new card, best first. The main button is last in its row, and Enter must be safe. */
+const FOCUS_FIRST = ['textarea, input', 'button.default', 'button:not(.close)', 'button'];
+
+/** A card that must be answered is up: nothing else opens until it has been. */
+export const answerFirst = () => open?.classList.contains('must-answer') === true;
+
+/** What a screen reader says when a card opens: a dialog, called by its title. Called again when a card changes page. */
+export function nameCard(node: HTMLElement) {
+  if (!node.hasAttribute('role')) node.setAttribute('role', 'dialog');
+  node.setAttribute('aria-modal', 'true');
+  const title = node.querySelector('.card-title, .serious-title')?.textContent;
+  if (title) node.setAttribute('aria-label', title);
+}
 
 export function replaceOpen(node: HTMLElement) {
+  if (answerFirst()) return;
+  nameCard(node);
   if (!open) returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  open?.dispatchEvent(new Event('panel-closed'));
   open?.remove();
   open = node;
   layer().append(node);
   sfx('open');
-  if (!node.contains(document.activeElement)) node.querySelector<HTMLElement>(FOCUS_FIRST)?.focus();
+  if (!node.contains(document.activeElement)) FOCUS_FIRST.map((s) => node.querySelector<HTMLElement>(s)).find(Boolean)?.focus();
 }
 export function closePanel() {
   if (!open) return;
@@ -42,12 +57,32 @@ export function closePanel() {
   returnFocus = null;
 }
 
-// Esc closes the open card (decision dialogs handle their own keys and always win).
+/** The × at a card's top right. Cards that must be answered (the welcome, an unfinished commission, decisions) have none. */
+export const closeButton = (onClose: (e: Event) => void = closePanel) =>
+  el('button.close', { type: 'button', onclick: onClose, 'aria-label': U.closeLabel }, '\u00D7');
+
+// Esc closes the open card, unless it must be answered (decision dialogs handle their own keys and always win).
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && open && !open.classList.contains('welcome') && !document.querySelector('.backdrop')) {
+  if (e.key === 'Escape' && open && !open.classList.contains('must-answer') && !document.querySelector('.backdrop')) {
     e.preventDefault();
     closePanel();
   }
+});
+
+// While a card is open, Tab goes round inside it: the shop behind cannot be used, so the focus does not go there. The
+// browser moves the focus itself, because it also stops at text that scrolls; this only brings it back when it leaves.
+const TAB_STOPS = 'button:not([disabled]), input:not([disabled]), textarea, select, a[href], summary, [tabindex="0"]';
+let tabbing: 'on' | 'back' | null = null;
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') tabbing = e.shiftKey ? 'back' : 'on';
+});
+document.addEventListener('pointerdown', () => { tabbing = null; });
+document.addEventListener('focusin', (e) => {
+  const card = document.querySelector('.legal-backdrop') ?? document.querySelector('.backdrop') ?? document.querySelector('.settings') ?? open;
+  const to = e.target as HTMLElement;
+  if (!tabbing || !card || card.contains(to)) return;
+  const stops = Array.from(card.querySelectorAll<HTMLElement>(TAB_STOPS)).filter((s) => s.getClientRects().length > 0);
+  stops[tabbing === 'back' ? stops.length - 1 : 0]?.focus();
 });
 
 /** Card shown when a character is clicked. */
@@ -55,13 +90,14 @@ document.addEventListener('keydown', (e) => {
 export function showActorCard(actor: ActorId, info: ActorInfo, detailed = false) {
   const state = (strings.states as Record<string, string>)[info.state] ?? info.state;
   replaceOpen(el('div.card.paper.actor-card', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
-    withPortrait(actor, expressionFor(info.state),
-      el('div.card-title', {}, `${strings.actors[actor]} - ${state}`),
-      info.lastLine ? el('div.quote', {}, `\u201C${info.lastLine}\u201D`) : null),
-    info.doing ? el('div', {}, el('b', {}, U.doingNow), info.doing) : null,
-    info.stats.writes + info.stats.runs + info.stats.fails ? el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)) : null,
-    info.raw.length ? el('details', { open: detailed }, el('summary', {}, U.raw), el('pre', {}, info.raw.slice(-30).join('\n'))) : null,
+    closeButton(),
+    el('div.card-scroll', {},
+      withPortrait(actor, expressionFor(info.state),
+        el('div.card-title', {}, `${strings.actors[actor]} - ${state}`),
+        info.lastLine ? el('div.quote', {}, `\u201C${info.lastLine}\u201D`) : null),
+      info.doing ? el('div', {}, el('b', {}, U.doingNow), info.doing) : null,
+      info.stats.writes + info.stats.runs + info.stats.fails ? el('div', {}, el('b', {}, U.soFar), fill(U.statsLine, info.stats)) : null,
+      info.raw.length ? el('details', { open: detailed }, el('summary', {}, U.raw), el('pre', {}, info.raw.slice(-30).join('\n'))) : null),
   ));
 }
 
@@ -71,7 +107,7 @@ const plainText = (s: string) => s.replace(/[*#`]+/g, '').replace(/\s+/g, ' ').t
 /** A subagent's result handed over at the counter. */
 export function showParcel(actor: ActorId, summary: string) {
   const parcel = el('div.parcel.paper', { tabindex: 0 },
-    el('button.close', { 'aria-label': 'close', onclick: (e: Event) => { e.stopPropagation(); parcel.remove(); } }, '\u00D7'),
+    closeButton((e) => { e.stopPropagation(); parcel.remove(); }),
     el('div.card-title', {}, fill(U.parcelFrom, { who: strings.actors[actor] })),
     el('div.parcel-body', {}, withoutPathFolders(withoutColourCodes(plainText(summary)))),
   );
@@ -196,6 +232,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     };
 
     const form = el('form.card.paper.commission', {},
+      closeButton(),
       el('div.card-title', {}, U.commissionTitle),
       el('div.slip-body', {},
         el('div.hint', {}, T.label),
@@ -207,10 +244,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         el('label', {}, U.audience, audience),
         el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
       ),
-      el('div.actions', {},
-        el('button', { type: 'button', onclick: () => done(null) }, '\u00D7'),
-        el('button.default', { type: 'submit' }, U.submit),
-      ),
+      el('div.actions', {}, el('button.default', { type: 'submit' }, U.submit)),
     );
     // Enter in a one-line box moves on instead of handing the commission in; only the button starts the work.
     const submitButton = form.querySelector<HTMLButtonElement>('button.default')!;
@@ -290,8 +324,8 @@ export type ResultActions = {
  * after a round of changes, swap between this version and the last one (nothing is lost either way).
  */
 export function showResult(result: CommissionResult, actions: ResultActions) {
-  if (!result.main && !result.files.length) return;
-  const target = result.main ?? result.files[0];
+  // A round may change nothing that can be pointed at; it still ends with a card, or it ends in silence.
+  const target = result.main ?? result.files[0] ?? result.workDir;
   const { id } = result;
   const note = el('div.hint.result-restored', { role: 'status' });
   let back = false;
@@ -308,10 +342,10 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     restore.textContent = back ? U.resultRestoreBack : U.resultRestore;
   });
   const card = el('div.card.paper.result-card', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    closeButton(),
     el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${result.round === 1 ? U.resultRoundOne : fill(U.resultRound, { n: String(result.round) })}`) : null),
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
-    el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
+    !result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
     note,
     result.ok && actions.firstWork ? el('div.hint.result-shelf', {}, U.resultShelf) : null,
@@ -321,8 +355,8 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
       restore) : null,
     actions.report ? el('button.link.result-report', { type: 'button', onclick: actions.report }, U.resultReport) : null,
     el('div.actions', {},
+      el(`button${result.main ? '' : '.default'}`, { onclick: () => actions.open(target, 'reveal') }, U.openFolder),
       result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
-      el('button', { onclick: () => actions.open(target, 'reveal') }, U.openFolder),
     ),
   );
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.
@@ -360,7 +394,7 @@ export function showPlan(steps: BoardStep[]) {
   if (!steps.length) return;
   const done = steps.filter((s) => s.status === 'done').length;
   replaceOpen(el('div.card.paper.plan-card', {},
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    closeButton(),
     el('div.card-title', {}, U.board.title),
     el('div.hint', {}, fill(U.board.count, { done: String(done), total: String(steps.length) })),
     el('ol.plan-list', {}, ...steps.map((s) => el(`li.${s.status}`, {}, s.label,

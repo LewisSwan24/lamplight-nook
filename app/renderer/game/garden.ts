@@ -1,7 +1,8 @@
 import type { ActorId } from '../../shared/types';
 import type { Line } from '../translator/lines';
 import type { Period } from './daytime';
-import { AISLE_Y, CANVAS, type Facing } from './layout';
+import { CANVAS, type Facing, walkBetween } from './layout';
+import { type Area, findPath } from './path';
 import type { Sky } from './weather';
 
 /**
@@ -17,13 +18,29 @@ export const GARDEN_X = CANVAS.width + 80;
 type Point = { x: number; y: number };
 
 /** The back door in the shop (top-left of the door sprite) and where to stand in front of it, inside. */
-export const BACK_DOOR = { x: 200, y: 16 } as const;
-export const BACK_DOOR_SPOT = { x: 208, y: 56 } as const;
+export const BACK_DOOR = { x: 152, y: 164, w: 16, h: 16 } as const;
+export const BACK_DOOR_SPOT = { x: 160, y: 172 } as const;
 /** The same door seen from the garden (garden coordinates), and where to stand outside it. */
 export const GARDEN_DOOR = { x: 152, y: 16 } as const;
 export const GARDEN_DOOR_SPOT = { x: 160, y: 56 } as const;
-/** The row in front of the planters and flower beds where everyone walks across the lawn. */
-const LAWN_ROW = 126;
+/**
+ * What walkers go round in the garden, placed by scripts/art/garden.py: the four planters, the flower boxes along the
+ * fence, the henhouse, the tree, the doghouse and its bowl. The bench is left out: people sit on it.
+ */
+export const GARDEN_AREA: Area = {
+  left: 6, right: 314, top: 50, bottom: 158,
+  obstacles: [
+    { left: 20, right: 52, top: 70, bottom: 92 },
+    { left: 54, right: 86, top: 70, bottom: 92 },
+    { left: 20, right: 52, top: 98, bottom: 120 },
+    { left: 54, right: 86, top: 98, bottom: 120 },
+    { left: 112, right: 196, top: 136, bottom: 152 },
+    { left: 172, right: 236, top: 22, bottom: 70 },
+    { left: 236, right: 278, top: 46, bottom: 100 },
+    { left: 284, right: 316, top: 42, bottom: 88 },
+    { left: 266, right: 282, top: 82, bottom: 94 },
+  ],
+};
 
 export type SpotId = 'veg' | 'flowers' | 'bench' | 'lawn' | 'hens' | 'sun';
 
@@ -49,27 +66,16 @@ export const SPOTS: GardenSpot[] = [
   { id: 'sun', x: 122, y: 100, facing: 'down', anim: 'lie', who: ['cat'] },
 ];
 
-/** In the shop: from wherever someone stands to the back door, along the aisle and up the gap between the table and the counter. */
-export function pathToBackDoor(from: Point): Point[] {
-  return dedupe([{ x: from.x, y: AISLE_Y }, { x: BACK_DOOR_SPOT.x, y: AISLE_Y }, { ...BACK_DOOR_SPOT }], from);
+/** In the shop: from wherever someone stands to the back door. */
+export function pathToBackDoor(from: Point, scene?: 'cafe' | 'study'): Point[] {
+  return walkBetween(from, BACK_DOOR_SPOT, scene);
 }
 
-/** In the garden: down the path from the door, across the lawn, and up or down to the spot. */
+/** In the garden: from one point to another, round whatever stands in the way. */
 export function pathInGarden(from: Point, to: Point): Point[] {
-  return dedupe([{ x: from.x, y: LAWN_ROW }, { x: to.x, y: LAWN_ROW }, { x: to.x, y: to.y }], from);
+  return findPath(GARDEN_AREA, from, to);
 }
 
-/** Drop points that do not move anywhere (the first one if it is where we already are). */
-function dedupe(points: Point[], from: Point): Point[] {
-  const out: Point[] = [];
-  let at = from;
-  for (const p of points) {
-    if (p.x === at.x && p.y === at.y) continue;
-    out.push(p);
-    at = p;
-  }
-  return out;
-}
 
 /**
  * Who would go out to the garden in this weather at this hour: nobody in the rain or after dark,

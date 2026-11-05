@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { ActorId } from '../../shared/types';
 import type { Period } from './daytime';
+import { BEDS, type BedStage, bedStages } from '../../shared/growth';
 import { GardenAnimals } from './GardenAnimals';
 import { GARDEN_DOOR, GARDEN_DOOR_SPOT, GARDEN_X, type GardenSpot, type SpotId, pathInGarden } from './garden';
 import { CANVAS } from './layout';
@@ -8,6 +9,9 @@ import { WALK_SPEED } from './life';
 import { STAFF_ANIMS, animKey, facingTowards } from './sprites';
 import type { Sky } from './weather';
 
+/** The planters (scripts/art/garden.py, PLANTERS), and the sprout after the eight plants in garden-crops.png. */
+const BEDS_BOX = { x: 20, y: 70, w: 66, h: 50 };
+const SPROUT_FRAME = 8;
 /** One-off chores (picking, watering) are done again every few seconds. */
 const CHORE_EVERY_MS = [2500, 4500] as const;
 
@@ -25,7 +29,10 @@ export class GardenView {
   onActorClick: (actor: ActorId) => void = () => {};
   onAnimalClick: (what: 'dog' | 'hens') => void = () => {};
   /** What the pointer is over: the door and the animals show their names. */
-  hovered: 'door' | 'dog' | 'hens' | null = null;
+  hovered: 'door' | 'dog' | 'hens' | 'beds' | null = null;
+  /** The plants in the beds, which come up as works get finished. */
+  private plants: Phaser.GameObjects.Sprite[] = [];
+  beds: BedStage[] = bedStages(0);
   /** Malt and the hens, who live out here. */
   readonly animals: GardenAnimals;
 
@@ -37,6 +44,11 @@ export class GardenView {
       .on('pointerdown', () => this.onDoorClick())
       .on('pointerover', () => (this.hovered = 'door'))
       .on('pointerout', () => (this.hovered = null));
+    this.plants = BEDS.map((b) => scene.add.sprite(GARDEN_X + b.x, b.y, 'garden-crops', 0).setOrigin(0, 1).setDepth(1).setVisible(false));
+    scene.add.zone(GARDEN_X + BEDS_BOX.x, BEDS_BOX.y, BEDS_BOX.w, BEDS_BOX.h).setOrigin(0)
+      .setInteractive()
+      .on('pointerover', () => (this.hovered = 'beds'))
+      .on('pointerout', () => (this.hovered = null));
     this.animals = new GardenAnimals(scene, GARDEN_X, (what) => this.onAnimalClick(what), (what) => (this.hovered = what));
     // The garden's own share of the time-of-day light.
     this.shade = scene.add.rectangle(GARDEN_X, 0, CANVAS.width, CANVAS.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
@@ -44,6 +56,14 @@ export class GardenView {
 
   setTint(color: number) {
     this.shade.setFillStyle(color);
+  }
+
+  /** How many works the shop has finished decides what is growing. */
+  setWorksDone(done: number) {
+    this.beds = bedStages(done);
+    this.beds.forEach((stage, i) => {
+      this.plants[i].setVisible(stage !== 'empty').setFrame(stage === 'ripe' ? i : SPROUT_FRAME);
+    });
   }
 
   /** The weather and the hour, which send the animals in and out. */
@@ -119,12 +139,12 @@ export class GardenView {
     return [...this.visitors.values()].map((v) => ({ id: v.id, x: v.sprite.x - GARDEN_X, y: v.sprite.y - (v.id === 'cat' ? 12 : 30) - 2 }));
   }
 
-  hotspots(): { id: ActorId | 'door' | 'dog' | 'hens'; x: number; y: number; w: number; h: number }[] {
+  hotspots(): { id: ActorId | 'door' | 'dog' | 'hens' | 'beds'; x: number; y: number; w: number; h: number }[] {
     const people = [...this.visitors.values()].map((v) => {
       const b = v.sprite.getBounds();
       return { id: v.id, x: b.x - GARDEN_X, y: b.y, w: b.width, h: b.height };
     });
-    return [{ id: 'door' as const, x: GARDEN_DOOR.x, y: GARDEN_DOOR.y, w: 16, h: 32 }, ...this.animals.hotspots(), ...people];
+    return [{ id: 'door' as const, x: GARDEN_DOOR.x, y: GARDEN_DOOR.y, w: 16, h: 32 }, { id: 'beds' as const, ...BEDS_BOX }, ...this.animals.hotspots(), ...people];
   }
 
   /** Arrived: do what this spot is for. */

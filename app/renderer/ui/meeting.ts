@@ -1,7 +1,7 @@
 import { DEFAULT_AVATAR } from '../../shared/avatars';
 import { strings } from '../../shared/i18n';
 import { el } from './dom';
-import { closePanel, replaceOpen } from './panels';
+import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait, youPortraitEl } from './portraits';
 
 const M = strings.ui.meeting;
@@ -15,6 +15,7 @@ export function showMeeting(look = DEFAULT_AVATAR): Promise<string | null> {
     const note = el('textarea', { rows: 3, maxlength: 500, placeholder: M.placeholder, 'aria-label': M.text }) as HTMLTextAreaElement;
     const done = (text: string | null) => { resolve(text); closePanel(); };
     const card = el('form.card.paper.meeting', {},
+      closeButton(),
       withPortrait('adeng', 'calm', el('div.card-title', {}, M.title), el('div', {}, M.text)),
       el('div.speaker.you-says', {}, youPortraitEl(look), note),
       el('div.actions', {},

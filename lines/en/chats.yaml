@@ -390,6 +390,231 @@
     - adeng: I remember. Chalk all over your face.
     - qingdai: That was on purpose.
 
+# Further on as regulars: there is still more to say after the tenth.
+- id: regular_fifteen
+  when: idle
+  after: 15
+  turns:
+    - adeng: Fifteen now. We've replaced every bulb once.
+    - xiaoju: I replaced them!
+
+- id: regular_twenty
+  when: idle
+  after: 20
+  turns:
+    - laoshi: That's twenty.
+    - adeng: You keep count?
+    - laoshi: Of the broken tools too.
+
+- id: story_lamp
+  when: idle
+  after: 25
+  once: true
+  turns:
+    - adeng: I bought this lamp the day we opened.
+    - laoshi: Fixed it four times.
+    - adeng: It still lights up.
+
+- id: regular_thirty
+  when: idle
+  after: 30
+  turns:
+    - qingdai: The blackboard is wearing thin.
+    - xiaoju: I'll buy another!
+    - qingdai: Keep it. It has marks on it.
+
+- id: regular_forty
+  when: idle
+  after: 40
+  turns:
+    - xiaoju: The whole street knows us now.
+    - adeng: Same few tables, though.
+
+- id: regular_fifty
+  when: idle
+  after: 50
+  turns:
+    - qingdai: Fifty. I should paint something.
+    - adeng: Paint what?
+    - qingdai: The shop, the day of the first one.
+
+# What the shop has made comes up in the talk.
+- id: made_album
+  when: idle
+  made: album
+  turns:
+    - qingdai: I went through that album again.
+    - xiaoju: Which one's the best?
+    - qingdai: Third page.
+
+- id: made_research
+  when: idle
+  made: research
+  turns:
+    - xiaoju: I still remember what we looked up!
+    - laoshi: Which part?
+    - xiaoju: That we looked it up.
+
+- id: made_letter
+  when: idle
+  made: letter
+  turns:
+    - adeng: That letter took three drafts.
+    - qingdai: The last line was the best.
+
+- id: made_sheet
+  when: idle
+  made: sheet
+  turns:
+    - laoshi: The columns line up.
+    - adeng: That's what you check?
+    - laoshi: Crooked columns, crooked sums.
+
+- id: made_page
+  when: idle
+  made: page
+  turns:
+    - qingdai: I'd still adjust that page's colours.
+    - adeng: They're already using it.
+    - qingdai: I know. Just thinking.
+
+- id: made_plan
+  when: idle
+  made: plan
+  turns:
+    - adeng: We plan for others. We should plan for us.
+    - xiaoju: We have a schedule?
+    - adeng: That's the point.
+
+# Neighbours have heard what the shop does. `made:` a kind of work done; `mentions:` asks after the latest work.
+- id: postman_website
+  when: idle
+  guest: postman
+  made: page
+  turns:
+    - postman: Zhou from the garage wants a web page too.
+    - adeng: Tell him to drop by.
+
+- id: baker_album
+  when: idle
+  guest: baker
+  made: album
+  turns:
+    - baker: Granny Chen has old photos. I sent her over.
+    - qingdai: Tell her to bring them.
+
+- id: postman_envelope
+  when: idle
+  guest: postman
+  made: letter
+  turns:
+    - postman: I know your letters by the envelope.
+    - adeng: You can tell from that?
+    - postman: Twenty years on this round.
+
+- id: baker_sheet
+  when: idle
+  guest: baker
+  made: sheet
+  turns:
+    - baker: My accounts give me a headache every month.
+    - xiaoju: We've done those!
+
+- id: baker_asks
+  when: idle
+  guest: baker
+  mentions: true
+  turns:
+    - baker: That "{lastWork}" of yours, did it get used?
+    - adeng: I'd like to know too.
+
+- id: postman_asks
+  when: idle
+  guest: postman
+  mentions: true
+  turns:
+    - postman: "\"{lastWork}\" finished? Your lights were on late."
+    - adeng: It is. Sit down a while.
+
+# Neighbours the work brings (game/guests.ts): Old Zhou after a web page, Granny Chen after an album, Xiaohe after research.
+- id: zhou_page
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: Axin says you do web pages. I could use one.
+    - adeng: What should it say?
+    - mechanic: The number, and that I'm shut on Sundays.
+
+- id: zhou_pliers
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: Hands are washed. I won't mark your table.
+    - laoshi: These pliers have gone loose.
+    - mechanic: Give them here. Two minutes.
+
+- id: zhou_bike
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: Clem's brakes need tightening.
+    - xiaoju: So that's why I keep not stopping!
+
+- id: zhou_rain
+  when: idle
+  guest: mechanic
+  sky: rain
+  turns:
+    - mechanic: No repairs in the rain. Thought I'd sit.
+    - adeng: The tea's just made.
+
+- id: chen_photos
+  when: idle
+  guest: granny
+  turns:
+    - granny: I brought the photos. They're so old now.
+    - qingdai: Old is what makes them good.
+    - granny: This one is your street.
+
+- id: chen_date
+  when: idle
+  guest: granny
+  turns:
+    - granny: A date on the back. My eyes can't manage it.
+    - adeng: Let me look.
+
+- id: chen_rice
+  when: idle
+  guest: granny
+  turns:
+    - granny: I toasted some rice for you to try.
+    - xiaoju: For me?
+    - granny: For everyone.
+
+- id: xiaohe_thesis
+  when: idle
+  guest: student
+  turns:
+    - student: Two more chapters on my thesis.
+    - adeng: Write here, if you like.
+    - student: Your lamp beats the library's.
+
+- id: xiaohe_sources
+  when: idle
+  guest: student
+  turns:
+    - student: How do you keep track of your sources?
+    - xiaoju: On my hand!
+    - laoshi: In a notebook.
+
+- id: xiaohe_exam
+  when: idle
+  guest: student
+  turns:
+    - student: Exams are over!
+    - xiaoju: How did they go?
+    - student: They're over.
+
 # In the study at home (shared/scenes.ts): `scene: study` chats come up only there, before everyday ones.
 - id: move_in
   when: idle

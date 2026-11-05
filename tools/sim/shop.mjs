@@ -119,9 +119,10 @@ async function refuseRealFolders(app, home) {
  * such as an older version; its own locales are used), simEnv (more SIM_* settings for the stand-in Claude),
  * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed;
  * 'sdk' the Agent SDK's own copy, for real runs),
- * args (more Electron switches).
+ * args (more Electron switches), displayScale (Windows display scaling, such as 1.25: the window is sized without any
+ * emulation, which would reset the device pixel ratio to 1).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [] } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0, noWindow = false } = {}) {
   const env = {
     PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(home),
     HOME: home.home,
@@ -144,12 +145,14 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
   };
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
   // Electron now and then fails to start right after another one quit; one more try is enough.
-  const start = () => electron.launch({ executablePath: ELECTRON, args: ['-r', ISOLATE, appDir, '--no-sandbox', ...args], env, cwd: appDir });
+  const start = () => electron.launch({ executablePath: ELECTRON, args: ['-r', ISOLATE, appDir, '--no-sandbox', ...(displayScale ? [`--force-device-scale-factor=${displayScale}`] : []), ...args], env, cwd: appDir });
   const app = await start().catch(async (err) => {
     if (!/failed to launch/i.test(String(err?.message))) throw err;
     await sleep(2000);
     return start();
   });
+  // For a start that is meant to fail: the caller only watches the process.
+  if (noWindow) return app;
   await refuseRealFolders(app, home);
   const page = await app.firstWindow();
   // A development build always has the debug panel; keep it out of pictures and recordings unless asked for.
@@ -163,6 +166,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
     await page.evaluate(hide).catch(() => {});
   }
   const shop = new Shop(app, page, lang, home, appDir);
+  shop.displayScale = displayScale;
   await shop.resize(size);
   await page.waitForSelector('#game canvas', { timeout: 30_000 });
   await sleep(1500);
@@ -185,7 +189,7 @@ export class Shop {
       win.setContentSize(w, h);
       win.center();
     }, [w, h]);
-    await this.page.setViewportSize({ width: w, height: h }).catch(() => {});
+    if (!this.displayScale) await this.page.setViewportSize({ width: w, height: h }).catch(() => {});
     await sleep(400);
   }
 
@@ -198,6 +202,8 @@ export class Shop {
       const a = document.activeElement;
       if (a instanceof HTMLElement && a.matches('.tool-btn, .hotspot')) a.blur();
     });
+    // The pointer stays where the script last clicked, and a toolbar button there would show its label.
+    await this.page.mouse.move(0, 0);
     await this.page.screenshot({ path });
     return path;
   }
@@ -277,7 +283,7 @@ export class Shop {
   /** The card saying why a commission stopped (network, budget...), as { title, text }, or null. */
   async stopCard() {
     const R = this.L.ui.run;
-    const titles = [R.netTitle, R.busyTitle, R.billingTitle, R.authTitle, R.goneTitle, R.budgetTitle];
+    const titles = [R.netTitle, R.busyTitle, R.billingTitle, R.authTitle, R.goneTitle, R.budgetTitle, R.failedTitle];
     return this.page.evaluate((titles) => {
       for (const c of document.querySelectorAll('#ui .card')) {
         const title = c.querySelector('.card-title, .serious-title')?.textContent?.trim();
@@ -332,7 +338,12 @@ export class Shop {
 
   /** Quit the app; if it does not go within ten seconds (a hidden window can hold it up), end the process. */
   async close() {
-    const proc = this.app.process();
+    let proc;
+    try {
+      proc = this.app.process();
+    } catch {
+      return; // Already gone: the legacy run stops it hard on purpose.
+    }
     // Closing mid-commission asks "stop and close?" in a dialog that would block the app and pop up on the desktop.
     await this.app.evaluate(({ dialog }) => { dialog.showMessageBoxSync = () => 1; }).catch(() => {});
     await Promise.race([this.app.close().catch(() => {}), sleep(10_000)]);

@@ -1,3 +1,4 @@
+import { localClock, localDay } from '../shared/localday';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -261,7 +262,5 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
 
 /** One folder per commission inside the work folder: <date>-<time>-<name>. */
 export function commissionDir(workRoot: string, name: string, now = new Date()): string {
-  const date = now.toISOString().slice(0, 10);
-  const stamp = now.toISOString().slice(11, 19).replace(/:/g, '');
-  return join(workRoot, `${date}-${stamp}-${name}`);
+  return join(workRoot, `${localDay(now)}-${localClock(now)}-${name}`);
 }

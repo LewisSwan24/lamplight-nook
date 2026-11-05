@@ -26,7 +26,10 @@
   },
   "guests": {
     "baker": "Auntie Olive",
-    "postman": "Pip"
+    "postman": "Pip",
+    "mechanic": "Old Zhou",
+    "granny": "Granny Chen",
+    "student": "Xiaohe"
   },
   "you": {
     "label": "You"
@@ -150,6 +153,7 @@
     "askAgentTitle": "{who} has a question"
   },
   "ui": {
+    "startFail": { "title": "The shop couldn't open", "text": "The disk may be full, or the data folder may not be writable. Free up some space and try again.\n\n{reason}" },
     "commissionTitle": "Commission slip",
     "templates": {
       "label": "Pick one, or just write",
@@ -179,16 +183,52 @@
       "needSource": "Choose the file or folder first.",
       "tooBig": "That file is a bit big (over 1 MB) for the staff to read in one go. Try a smaller one."
     },
-    "furnish": {"hint": "This room: {scene}. Each room keeps its own colours, and what the shop has gathered stays put.", "wall": "Walls", "curtain": "Curtains", "rug": "Rug", "choices": {"wall": {"default": "As it was", "sage": "Sage", "rose": "Dusty rose", "sky": "Mist blue"}, "curtain": {"default": "Linen", "blue": "Indigo", "rose": "Rose", "green": "Meadow"}, "rug": {"default": "Brick red", "blue": "Sea blue", "green": "Pine", "plum": "Plum"}}},
-    "materials": {"label": "Handed over", "add": "Hand over files…", "hint": "Screenshots, spreadsheets, drafts: anything helps. You can also drag files onto this slip or the counter. The staff work from copies; your files stay as they are.", "remove": "Take back {name}", "folder": "“{name}” is a folder. To sort out a folder, use “Tidy a folder” above.", "tooBig": "“{name}” is too big (20 MB each, 50 MB in all).", "tooMany": "Ten files at most; “{name}” will have to wait.", "missing": "“{name}” can't be found.", "busy": "The shop is busy with this one. Hand it over when it's done.", "drop": "Let go to hand it to Wick"},
+    "furnish": {
+      "hint": "This room: {scene}. Each room keeps its own colours, and what the shop has gathered stays put.",
+      "wall": "Walls",
+      "curtain": "Curtains",
+      "rug": "Rug",
+      "choices": {
+        "wall": {
+          "default": "As it was",
+          "sage": "Sage",
+          "rose": "Dusty rose",
+          "sky": "Mist blue"
+        },
+        "curtain": {
+          "default": "Linen",
+          "blue": "Indigo",
+          "rose": "Rose",
+          "green": "Meadow"
+        },
+        "rug": {
+          "default": "Brick red",
+          "blue": "Sea blue",
+          "green": "Pine",
+          "plum": "Plum"
+        }
+      }
+    },
+    "materials": {
+      "label": "Handed over",
+      "add": "Hand over files…",
+      "hint": "Screenshots, spreadsheets, drafts: anything helps. You can also drag files onto this slip or the counter. The staff work from copies; your files stay as they are.",
+      "remove": "Take back {name}",
+      "folder": "“{name}” is a folder. To sort out a folder, use “Tidy a folder” above.",
+      "tooBig": "“{name}” is too big (20 MB each, 50 MB in all).",
+      "tooMany": "Ten files at most; “{name}” will have to wait.",
+      "missing": "“{name}” can't be found.",
+      "busy": "The shop is busy with this one. Hand it over when it's done.",
+      "drop": "Let go to hand it to Wick"
+    },
     "want": "What would you like?",
     "wantMissing": "Write a line about what you'd like first.",
     "details": "Anything particular?",
     "audience": "Who is it for?",
     "detailsPlaceholder": "e.g. works on a phone too, large text",
     "audiencePlaceholder": "e.g. my parents",
-    "budgetCap": "This commission spends at most {cap}; the staff stop and ask before going over. Change it in Settings.",
-    "budgetNoCap": "This commission has no spending cap. You can set one in Settings.",
+    "budgetCap": "This round spends at most {cap}; the staff stop and ask before going over. Change it in Settings.",
+    "budgetNoCap": "This round has no spending cap. You can set one in Settings.",
     "submit": "Hand it to Wick",
     "demoFill": "Make me a little expense tracker page where I can note what I spend each day.",
     "resultTitle": "All done",
@@ -203,6 +243,7 @@
     "statsLine": "wrote files {writes} times, ran things {runs} times, {fails} failed",
     "raw": "Raw log",
     "replayBadge": "Replay",
+    "closeLabel": "Close",
     "replayTag": " (replay)",
     "board": {
       "research": "Research",
@@ -275,12 +316,18 @@
       "readyText": "Claude Code and your API key are ready. Write what you need on the commission slip and hand it to Wick.",
       "readyStart": "Write a commission",
       "trialOffer": "Want to see how the shop usually works first?",
-      "trialButton": "Watch a trial run (a replay, costs nothing)",
+      "trialButton": "Watch a free trial run",
       "trialEndTitle": "End of the trial run",
       "trialEndText": "That was a recorded sample: the staff took an \"expense tracker\" commission. Install Claude Code and add an API key, and you can hand in your own.",
       "trialSetUp": "Get set up",
       "trialDone": "OK",
-      "settingsTabs": { "furnish": "Furnish", "basics": "Basics", "sight": "Sight and sound", "work": "Work", "about": "About" },
+      "settingsTabs": {
+        "furnish": "The shop",
+        "basics": "Basics",
+        "sight": "Sight and sound",
+        "work": "Work",
+        "about": "About"
+      },
       "settingsTitle": "Settings",
       "nameLabel": "Your name",
       "lookLabel": "How you look",
@@ -289,8 +336,13 @@
       "folderLabel": "Commissions go in",
       "checkLabel": "Ready to work?",
       "spendLabel": "Spending",
-      "spendMonth": "About {cost} this month. This is Claude Code's estimate; Anthropic's bill is what counts.",
-      "budgetLabel": "Most to spend per run",
+      "spendMonth": "About {cost} this month. This is Claude Code's estimate. It reports no cost for a round stopped partway, so those aren't counted. Anthropic's bill is what counts.",
+      "spendBook": "Month by month",
+      "spendBookCount": "{n} commissions",
+      "spendBookOne": "1 commission",
+      "spendBookTotal": "All together",
+      "spendBookEmpty": "Nothing spent yet.",
+      "budgetLabel": "Most to spend per round",
       "budgetNone": "No limit",
       "budgetHint": "At the limit the staff stop and wait for you to say carry on.",
       "troubleLabel": "If something goes wrong",
@@ -341,12 +393,148 @@
       "creditMusic": "Background music: Alex Morgan, Jazz Study Sessions and Jazz Cafe & Coffee Shop (CC BY 4.0; converted to Ogg and evened out in volume)",
       "creditMusicLink": "freemusicarchive.org"
     },
+    "objects": {
+      "names": {
+        "clock": "Clock",
+        "window": "Window",
+        "sidewindow": "Window by the clock",
+        "frontdoor": "Front door",
+        "table": "Big table",
+        "shelf": "Bookshelf",
+        "workbench": "Flint's workbench",
+        "lamp": "Floor lamp",
+        "plant": "Pot plant",
+        "plant2": "Pot plant",
+        "cup": "Coffee cup",
+        "board": "Blackboard",
+        "sofa": "Sofa",
+        "guest": "Visitor",
+        "you": "You"
+      },
+      "grown": {
+        "painting": "This little painting",
+        "plant": "This pot plant",
+        "lights": "These fairy lights",
+        "fruit": "This bowl of fruit",
+        "guitar": "This guitar",
+        "bonsai": "This bonsai",
+        "easel": "This easel",
+        "trophy": "This cup",
+        "portrait": "This little portrait",
+        "sunset": "This sunset",
+        "star": "This gold star",
+        "album": "Album",
+        "calendar": "Calendar",
+        "books": "Stack of books",
+        "letters": "Letter board",
+        "ledger": "Ledger",
+        "monitor": "Little computer"
+      },
+      "grownLine": "{thing} came after commission number {n}.",
+      "clock": "It's {time}.",
+      "window": "Outside it's {sky}, and {period}.",
+      "skies": {
+        "clear": "clear",
+        "rain": "raining",
+        "snow": "snowing",
+        "petals": "all petals",
+        "leaves": "all falling leaves"
+      },
+      "periods": {
+        "dawn": "just getting light",
+        "day": "the middle of the day",
+        "dusk": "nearly sunset",
+        "night": "already night"
+      },
+      "door": {
+        "clear": "Lovely out. Fancy a walk?",
+        "rain": "Still raining. Umbrella's by the door.",
+        "snow": "Slippery out there. Go gently.",
+        "petals": "Petals all over the step. I'll sweep them later.",
+        "leaves": "Another layer of leaves on the step."
+      },
+      "doorErrand": "{name} is out on an errand, back soon.",
+      "doorNobody": "Nobody's out right now. Everyone's busy in here.",
+      "actorNames": {
+        "adeng": "Wick",
+        "xiaoju": "Clem",
+        "laoshi": "Flint",
+        "qingdai": "Iris",
+        "cat": "the cat"
+      },
+      "table": [
+        "Table's clear, ready for the next one.",
+        "This table is older than the shop.",
+        "Sit down a while if you like."
+      ],
+      "tableMaterials": "Handed in for this one: {list}.",
+      "tableNothing": "Nothing handed in for this one, just your words.",
+      "listJoin": ", ",
+      "shelf": [
+        "Let me find something to read.",
+        "Where did I get to in this one?",
+        "This shelf wants dusting."
+      ],
+      "shelfBusy": [
+        "Books can wait till this one's done.",
+        "Hands are full. Later."
+      ],
+      "workbench": [
+        "This chair could use another look.",
+        "Every tool back in its place.",
+        "Don't touch that file, it's just been sharpened."
+      ],
+      "workbenchBusy": "On the bench right now: {doing}.",
+      "plant": [
+        "Watered it today.",
+        "There's a new leaf coming.",
+        "Don't shake it. It holds a grudge."
+      ],
+      "cup": [
+        "Still hot. Want one?",
+        "That's my third today.",
+        "We're nearly out of beans."
+      ],
+      "board": [
+        "Nothing on the board. Waiting for the next one.",
+        "I wiped off the last lot of chalk."
+      ],
+      "sofa": [
+        "Sit on this and you won't get up again.",
+        "A fine place for a nap."
+      ],
+      "guest": {
+        "baker": "Fresh from the oven. Eat it while it's hot.",
+        "postman": "Not many letters today. Yours is on top.",
+        "mechanic": "Hands are clean, don't worry.",
+        "granny": "Take your time, dear. I'm in no hurry.",
+        "student": "I'll only sit a while. Don't mind me."
+      },
+      "you": "Your commission is under way. Have a seat.",
+      "grownMade": {
+        "album": "We made an album once, so one stays here to leaf through.",
+        "calendar": "We planned a schedule, and the calendar went up.",
+        "books": "After two rounds of research, the books stayed.",
+        "letters": "We wrote a few letters. The replies get pinned here.",
+        "ledger": "After a couple of sheets we keep our own books better.",
+        "monitor": "After a few web pages, this little computer stays on."
+      }
+    },
     "run": {
       "runningTitle": "Working on: {want}",
-      "runningText": "The staff are busy. It'll be on the table when it's ready.",
       "cancel": "Call it off",
       "cancelConfirm": "Call it off? Files already made will stay.",
       "keepGoing": "Keep going",
+      "progressJustStarted": "Just started",
+      "progressMinutes": "{n} min so far",
+      "progressHours": "{h} h {m} min so far",
+      "progressCap": "This round stops at {cap}",
+      "progressThinking": "Wick is working out the plan",
+      "progressNoPlan": "No plan yet",
+      "progressGuess": "Wick's rough guess, not a real plan yet",
+      "progressPlanCount": "Plan · {done} of {total} done",
+      "progressMeet": "Say something",
+      "firstHint": "Ring the bell if you have more to say. The plan goes on the blackboard.",
       "retry": "Try again",
       "netTitle": "Looks like the internet is down",
       "netText": "Tried a few times and couldn't reach Anthropic. Carry on once you're back online; nothing done so far is lost.",
@@ -358,8 +546,8 @@
       "authTitle": "The API key doesn't work",
       "authText": "This API key is invalid or expired. Put in a new one under \"Ready to work?\" in Settings.",
       "authHow": "Replace it",
-      "budgetTitle": "This one hit the limit",
-      "budgetText": "This run has spent about {cost}, the per-run limit you set. Carrying on allows the same again; or raise the limit in Settings first.",
+      "budgetTitle": "This round hit the limit",
+      "budgetText": "This round has spent about {cost}, the per-round limit you set. Carrying on allows the same again; or raise the limit in Settings first.",
       "budgetRetry": "Carry on",
       "pendingTitle": "Last commission isn't finished",
       "pendingText": "\"{want}\" stopped halfway. Carry on with it?",
@@ -368,14 +556,17 @@
       "closeTitle": "A commission is still going",
       "closeText": "If you close now the staff will stop. You can carry on next time you open Lamplight Nook.",
       "stopAndClose": "Stop and close",
+      "seeSoFar": "See what's done so far",
+      "failedTitle": "This one stopped partway",
+      "failedText": "The work stopped partway through, and I can't say why. What's done so far is safe, and you can carry on.",
       "goneTitle": "Can't find that commission's folder",
       "goneText": "It may have been moved or deleted. If you still want it, hand in a new commission."
     },
     "toolbar": {
       "label": "Shop switches",
       "settings": "Settings",
-      "detailedOn": "Detailed mode: show what the AI is really doing",
-      "detailedOff": "Turn off detailed mode",
+      "order": "Commission",
+      "progress": "Progress",
       "mute": "Mute",
       "unmute": "Unmute"
     },
@@ -386,6 +577,7 @@
       "sectionLabel": "Seeing and hearing",
       "captionsToggle": "Always show the latest line at the bottom",
       "reduceMotion": "Less motion (no hops or flashes, lights change at once)",
+      "detailedToggle": "Show what the staff are doing at the bottom of the window",
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",
       "hotspotCat": "{name}: give her a pat",
@@ -393,15 +585,28 @@
       "hotspotGarden": "Back door: look out at the garden",
       "hotspotShop": "Back door: go back inside",
       "hotspotHens": "The hens: toss them some grain",
+      "hotspotBeds": "The vegetable beds",
+      "bedsBare": "Vegetable beds: empty until the first job is done",
+      "bedsSay": ": ",
+      "bedsAnd": ", ",
+      "bedsRipe": "{n} ripe",
+      "bedsSprout": "{n} sprouting",
       "hotspotBoard": "The blackboard: see the whole plan",
       "hotspotWorks": "The works shelf: see what we made together"
     },
     "notebook": {
-      "sectionLabel": "Wick's notebook",
       "sectionText": "Wick notes down past commissions, the choices you made and where things got stuck. Only that, never your conversations.",
-      "open": "Have a look",
       "title": "Wick's notebook",
       "commissions": "Past commissions",
+      "troubleTitle": "Some of the shop's records can't be read",
+      "troubleRestored": "That's rare. I filled the notebook in from the copy I made when the shop last opened, so anything since then may be missing. Everything we made is still in its folder.",
+      "troubleMissing": "The notebook has gone missing. I filled it in from the copy I made when the shop last opened, so anything since then may be missing. Everything we made is still in its folder.",
+      "troubleSettings": "The settings can't be read, so they're back to how they started. The most to spend per round is now ${budget}, and the work folder and language are back to their defaults too. Have a look in Settings.",
+      "troubleLedger": "The spending ledger can't be read, so what was spent before is no longer in it. Your bill with Anthropic isn't affected.",
+      "troubleKept": "The files that can't be read are still in the data folder, with broken in their names.",
+      "troubleLost": "That's rare, and there's no good copy of the notebook to hand, so I've started a new one. Everything we made is still in its folder.",
+      "troubleOk": "OK",
+      "more": "{n} older: show more",
       "stuck": "Snags we hit together",
       "empty": "The notebook is still empty.",
       "done": "done",
@@ -411,7 +616,8 @@
       "openFolder": "See what was made",
       "stuckLine": "{commission}: got stuck on {note}",
       "forget": "Forget everything",
-      "forgetConfirm": "Really forget everything? It can't be brought back, and what the shop gathered gets packed away too.",
+      "forgetBusy": "Not while a commission is running. Whatever it's doing would go straight back in the notebook. Try again once it's finished.",
+      "forgetConfirm": "Really forget everything? It can't be brought back, and what the shop gathered gets packed away too. What each month cost stays, but no longer says which commission it went on. Claude Code's own records, in its .claude folder, stay too.",
       "forgetYes": "Forget",
       "keep": "Keep it",
       "forgotten": "OK, it's all crossed out. Your name is still in Settings; change it any time.",
@@ -419,7 +625,14 @@
       "asked": "Changed later: {ask}",
       "days": "Days at the shop",
       "doneCount": "Commissions finished together: {n}.",
-      "grewLine": "the shop got {item}"
+      "grewLine": "the shop got {item}",
+      "firstWork": "the first job: {title}",
+      "birthday": "the shop turned {n}",
+      "nthWork": "job {n}: {title}",
+      "metLine": "{name} came by for the first time",
+      "bedSprout": "the first vegetable went in out back",
+      "bedRipe": "the first vegetable out back was ripe",
+      "bedFull": "the beds out back filled up"
     },
     "tray": {
       "sectionLabel": "When you're away",
@@ -477,7 +690,31 @@
       "revise": "Change it a bit",
       "rounds": "changed {n} times",
       "roundsOne": "changed once",
-      "gone": "Can't find it; it may have been moved or deleted."
+      "gone": "Can't find it; it may have been moved or deleted.",
+      "relink": "Show me where it is",
+      "relinkDialog": "Which folder is {main} in now?",
+      "relinkWrong": "The main file isn't in that folder.",
+      "relinkBroad": "That folder holds a lot more than this work. Give it a folder of its own and show me that one.",
+      "relinkTaken": "Another work is already there. Give this one a folder of its own and show me that one.",
+      "relinked": "Found it. It opens from there now.",
+      "empty": "The shelf is still empty. The first thing we finish goes right here.",
+      "search": "Find one: a name, what you asked, a month",
+      "kindsLabel": "By kind",
+      "all": "All",
+      "found": "{n} found",
+      "noMatch": "Nothing matches. Try other words, or another kind.",
+      "more": "{n} older: show more",
+      "kinds": {
+        "page": "Pages",
+        "research": "Research",
+        "edit": "Edits",
+        "tidy": "Tidying",
+        "demo": "Samples",
+        "letter": "Letters",
+        "sheet": "Tables",
+        "plan": "Plans",
+        "album": "Albums"
+      }
     },
     "mini": {
       "toggle": "Keep a small window in the corner while the shop is out of sight",
@@ -535,11 +772,11 @@
   "legal": {
     "privacy": [
       "# Privacy",
-      "Last updated: October 29, 2026",
+      "Last updated: November 5, 2026",
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
-      "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); a record of each commission; the last 7 days of the app's log; crash records.",
-      "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook; the Microsoft Store version keeps it in the app's own storage, which Windows removes when you uninstall). You can clear the notebook in Settings. If you installed from the setup file, delete that folder after uninstalling to remove everything.",
+      "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records.",
+      "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook; the Microsoft Store version keeps it in the app's own storage, which Windows removes when you uninstall). You can clear everything the shop remembers from Wick's notebook. Claude Code also keeps its own record of each job, in the .claude folder in your home folder; those belong to Claude Code and stay when you do. If you installed from the setup file, delete that folder after uninstalling to remove everything.",
       "What the staff make goes in the commission folder you chose, and it is yours.",
       "# What is sent to Anthropic",
       "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",
@@ -558,7 +795,7 @@
       "You are buying a license to use Lamplight Nook yourself on your own devices, not ownership of the software or its assets. Please do not resell, rent out or redistribute Lamplight Nook, or extract its art, sounds, fonts or music to use on their own: they belong to their creators, listed under Third-party licenses.",
       "# 2. Your API key and costs",
       "The staff's work is done by Anthropic's service, which needs your own Anthropic account and API key, used under Anthropic's terms (including their age requirements). Anthropic charges your account for each commission; this is separate from the price of Lamplight Nook.",
-      "Spending shown in the shop is Claude Code's estimate; Anthropic's bill is what counts. The per-run limit stops the staff when it is reached as best it can, but the actual cost may go slightly over.",
+      "Spending shown in the shop is Claude Code's estimate; Anthropic's bill is what counts. The per-round limit stops the staff when it is reached as best it can, but the actual cost may go slightly over.",
       "# 3. What the staff make",
       "The staff are AI and make mistakes. Check pages, summaries, edits and tidy-up plans before you use them, especially before you send them to others or rely on them for a decision. What they make is yours, subject to Anthropic's terms.",
       "# 4. Your files",
@@ -579,7 +816,16 @@
     "guitar": "the guitar Flint mended",
     "bonsai": "a bonsai",
     "easel": "Iris's easel",
-    "trophy": "a little trophy"
+    "trophy": "a little trophy",
+    "portrait": "a little portrait of everyone",
+    "sunset": "a painting of a sunset",
+    "star": "a gold star",
+    "album": "an album",
+    "calendar": "a calendar",
+    "books": "a stack of books",
+    "letters": "a board of letters",
+    "ledger": "a ledger",
+    "monitor": "a little computer"
   },
   "sceneText": {
     "study": {

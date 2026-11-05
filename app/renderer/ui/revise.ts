@@ -1,7 +1,7 @@
 import { fill, strings } from '../../shared/i18n';
 import { DEFAULT_AVATAR } from '../../shared/avatars';
 import { el } from './dom';
-import { closePanel, replaceOpen } from './panels';
+import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait, youPortraitEl } from './portraits';
 
 const V = strings.ui.revise;
@@ -15,6 +15,7 @@ export function showRevise(look = DEFAULT_AVATAR, title?: string): Promise<strin
     const ask = el('textarea', { rows: 3, maxlength: 2000, placeholder: V.placeholder, 'aria-label': V.text }) as HTMLTextAreaElement;
     const done = (text: string | null) => { resolve(text); closePanel(); };
     const card = el('form.card.paper.meeting.revise', {},
+      closeButton(),
       withPortrait('adeng', 'calm',
         el('div.card-title', {}, title ? `${V.title} · ${fill(V.oldFolder, { title })}` : V.title),
         el('div', {}, V.text)),

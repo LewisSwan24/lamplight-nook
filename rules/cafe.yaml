@@ -42,6 +42,8 @@
   anim: put_on_coat
   lines: sub_go_xiaoju
   priority: subagent
+  extra:
+    - { actor: adeng, state: working, anim: gift, priority: work }
 
 - on: subagent_stop
   when: { agent: researcher }
@@ -60,13 +62,15 @@
   anim: hammer
   lines: sub_go_laoshi
   priority: subagent
+  extra:
+    - { actor: adeng, state: working, anim: gift, priority: work }
 
 - on: subagent_stop
   when: { agent: reviewer }
   actor: laoshi
   state: ready
   moveTo: corner
-  anim: idle
+  anim: lift
   lines: sub_back_laoshi
   priority: subagent
 
@@ -80,6 +84,8 @@
   bubble: idea
   lines: sub_go_qingdai
   priority: subagent
+  extra:
+    - { actor: adeng, state: working, anim: gift, priority: work }
 
 - on: subagent_stop
   when: { agent: designer }
@@ -130,6 +136,23 @@
   bubble: idea
   priority: work
 
+# An unnamed helper's errand is Xiaoju's: she stays out, just shows a bubble.
+- on: tool_start
+  when: { agent: unknown }
+  actor: xiaoju
+  state: out
+  bubble: note
+  priority: work
+
+# The list on the board changes: Adeng goes over and looks it through.
+- on: progress
+  when: { agent: main }
+  actor: adeng
+  state: working
+  moveTo: board
+  anim: read
+  priority: chat
+
 # Adeng's own work
 - on: tool_start
   when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
@@ -140,8 +163,17 @@
   lines: writing
   priority: work
 
+# On the phone: asking around on the web, or getting something run.
 - on: tool_start
-  when: { agent: main, tool: [Read, Glob, Grep, WebSearch, WebFetch] }
+  when: { agent: main, tool: [Bash, PowerShell, WebSearch, WebFetch] }
+  actor: adeng
+  state: working
+  moveTo: counter
+  anim: phone
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Read, Glob, Grep] }
   actor: adeng
   state: working
   moveTo: shelf

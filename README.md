@@ -52,7 +52,7 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 | `npm run smoke` | Build and capture screenshots |
 | `npm run record -- <hello\|subagents> <folder>` | Run a debug task headlessly and record its events |
 | `npm run accept` | Simulated acceptance run in Chinese and English, against a stand-in for Claude Code (no API calls; see `tools/README.md`) |
-| `npm run store-shots` | Store screenshots, website pictures and the trailer (Linux with Xvfb and ffmpeg) |
+| `npm run store-shots` | Store screenshots, website pictures and the trailer (needs ffmpeg) |
 
 ## Windows installer
 
@@ -80,8 +80,9 @@ writes the package itself in the MSIX SDK layout (block map, content types, zip6
 
 - Set `MSIX_IDENTITY_NAME`, `MSIX_PUBLISHER` (`CN=...`) and `MSIX_PUBLISHER_NAME` from Partner Center's
   Product identity page to get `Lamplight-Nook-<version>.msix` for upload.
-- Without them it writes `Lamplight-Nook-<version>-test.msix` with a test publisher that Windows 11 installs
-  unsigned: `Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-<version>-test.msix` in PowerShell.
+- Without them it writes `Lamplight-Nook-<version>-test.msix` with a test publisher. `Add-AppxPackage -AllowUnsigned` refused it on Windows 11
+  build 26300 (5 Nov 2026, `0x80073D2B`: an unsigned package cannot hold an executable activation), so this file has
+  not been installed; trying it needs a signature from a certificate the machine trusts. The command was: `Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-<version>-test.msix` in PowerShell.
 - Tile images are in `assets/store/`, made from `assets/ui/icon.png`.
 - The listing text (both languages) is in `store/listing.md`.
 - The release workflow attaches the test package next to the installer.
@@ -103,6 +104,7 @@ python3 scripts/art/characters.py   # the three staff from generator layers, rec
 python3 scripts/art/scene.py        # the 320x180 cafe background
 python3 scripts/art/furnish.py      # wall, curtain and rug colour choices for each scene (needs only the backgrounds)
 python3 scripts/art/growth.py --icons  # the works-shelf icons alone (without --icons it also needs the pack)
+python3 scripts/art/tools.py           # the toolbar icons
 ```
 
 Character sheets keep the generator layout: 16x32 frames, 56 per row, directional animations in
