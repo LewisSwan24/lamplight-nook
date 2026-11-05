@@ -41,7 +41,8 @@ STAFF = {
 }
 
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and
-# Axin the postman, with his mail bag.
+# Axin the postman, with his mail bag; then those the work brings: Old Zhou from the garage, in his work clothes,
+# Granny Chen with her buns and glasses, and Xiaohe the student, with a backpack.
 GUESTS = {
     'baker': {
         'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
@@ -51,6 +52,20 @@ GUESTS = {
         'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
                    'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_05_04.png',
                    'Accessories/16x16/Accessory_03_Backpack_01.png'],
+    },
+    'mechanic': {
+        'layers': ['Bodies/16x16/Body_03.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_23_01.png', 'Hairstyles/16x16/Hairstyle_01_05.png'],
+    },
+    'granny': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_21_01.png', 'Hairstyles/16x16/Hairstyle_21_05.png',
+                   'Accessories/16x16/Accessory_15_Glasses_01.png'],
+    },
+    'student': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_12_01.png', 'Hairstyles/16x16/Hairstyle_10_02.png',
+                   'Accessories/16x16/Accessory_03_Backpack_02.png'],
     },
 }
 
@@ -141,6 +156,41 @@ def build(name, recipe):
 CHESTNUT = ['#3E2A20', '#6B432C', '#7A4E33', '#8A5A3C', '#A87550']
 
 
+# The pack's cat only lies down. Drawn here so it can walk: k outline, m fur, n stripe, l light fur, e eye. Four frames of 20x14.
+CAT_WALK_BODY = [
+    '....................',
+    '....................',
+    '..............k..k..',
+    '.............kmkkmk.',
+    '.............kmmmmk.',
+    'kk...........kemmek.',
+    'kmk..........kmllmk.',
+    '.kmk.kkkkkkkkkmmmk..',
+    '..kkkmnmmnmmnmmmmk..',
+    '....kmnmmnmmnmmmmk..',
+    '....kmmmmmmmlllmmk..',
+    '....kkkkkkkkkkkkkk..',
+]
+CAT_WALK_LEGS = [
+    ['.....km.km..km.km...', '.....kk.kk..kk.kk...'],
+    ['......kmkm...kmkm...', '......kkkk...kkkk...'],
+    ['....km...km.km...km.', '....kk...kk.kk...kk.'],
+    ['.....kmkm...kmkm....', '.....kkkk...kkkk....'],
+]
+
+
+def build_cat_walk():
+    ramp = [hex_rgb(c) for c in CHESTNUT]
+    colour = {'k': ramp[0], 'm': ramp[3], 'n': ramp[1], 'l': ramp[4], 'e': ramp[0]}
+    sheet = Image.new('RGBA', (20 * len(CAT_WALK_LEGS), 14), (0, 0, 0, 0))
+    for f, legs in enumerate(CAT_WALK_LEGS):
+        for y, row in enumerate(CAT_WALK_BODY + legs):
+            for x, c in enumerate(row):
+                if c != '.':
+                    sheet.putpixel((f * 20 + x, y), (*colour[c], 255))
+    sheet.save(OUT / 'cat-walk.png')
+
+
 def build_cat():
     """Recolour the pack's grey cat (12 frames of 48x16, lying and wagging its tail) to chestnut."""
     img = Image.open(CAT).convert('RGBA')
@@ -161,6 +211,7 @@ if __name__ == '__main__':
         build(name, recipe)
         print('built', name)
     build_cat()
+    build_cat_walk()
     print('built cat')
     for n, layers in enumerate(PLAYERS, 1):
         layers = [layers[0], 'Eyes/16x16/Eyes_01.png', *layers[1:]]

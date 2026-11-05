@@ -131,26 +131,25 @@ async function shots(lang, grown) {
       if (pick('board') || pick('result')) {
         await shop.order({ template: 'page', want: w.page, details: w.pageDetails });
         await shop.submit();
+        // One click while the work has only just started: later a click could put away the result card, which
+        // takes the running card's place by itself when the work ends.
+        await sleep(2500);
+        await shop.hotspot(shop.L.ui.access.hotspotBoard);
         let n = 0;
-        const r = await shop.workUntilDone({ onTick: async (ms) => {
-          if (ms > 4000 + n * 2500 && n < 14) {
+        const onTick = async (ms) => {
+          if (ms > 1500 + n * 2500 && n < 14 && await shop.page.locator('.running-card').isVisible()) {
             n++;
-            const tag = String(n).padStart(2, '0');
-            await shop.shot(join(cand, `02-board-${tag}.png`));
-            // The whole plan, as the blackboard's card shows it, while the work goes on.
-            if (await shop.page.locator('button.hotspot[aria-label="' + shop.L.ui.access.hotspotBoard + '"]').count()) {
-              await shop.hotspot(shop.L.ui.access.hotspotBoard).catch(() => {});
-              await sleep(500);
-              if (await shop.page.locator('.plan-card').isVisible()) {
-                await shop.shot(join(cand, `02-plan-${tag}.png`));
-                // Close this card only: by now the result card may have taken its place.
-                await shop.page.locator('.plan-card button.close').click({ timeout: 1000 }).catch(() => {});
-              }
-            }
+            await shop.shot(join(cand, `02-plan-${String(n).padStart(2, '0')}.png`));
           }
-        } });
-        if (!r.ok) throw new Error('the page commission did not finish');
-        // The store picture: the plan card halfway through, some items done and one under way.
+        };
+        let r = await shop.workUntilDone({ onTick });
+        // The stand-in now and then plays a dropped connection or a busy server: carry on, as anyone would.
+        for (let i = 0; !r.ok && r.stopped && i < 12; i++) {
+          await shop.retry();
+          r = await shop.workUntilDone({ onTick });
+        }
+        if (!r.ok) throw new Error(`the page commission did not finish: ${JSON.stringify({ stopped: r.stopped, timeout: r.timeout })}`);
+        // The store picture: the running card halfway through, some items done and one under way.
         const plans = readdirSync(cand).filter((f) => f.startsWith('02-plan-')).sort();
         if (plans.length) copyFileSync(join(cand, plans[Math.floor(plans.length / 2)]), join(out, '02-board.png'));
         await sleep(2500);
@@ -161,11 +160,13 @@ async function shots(lang, grown) {
       if (pick('shelf')) {
         await shop.hotspot(shop.L.ui.access.hotspotWorks);
         await sleep(800);
+        // A keyboard ring on the first row is right for the keyboard, not for a picture.
+        await shop.page.evaluate(() => document.activeElement.blur());
         await shop.shot(join(out, '08-shelf.png'));
         await closeCards(shop);
       }
       if (pick('notebook')) {
-        await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
+        await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
         await sleep(800);
         await shop.shot(join(out, '06-notebook.png'));
         await closeCards(shop);
@@ -238,7 +239,7 @@ async function shots(lang, grown) {
         await shop.shot(join(out, '11-furnish.png'));
       }
       if (pick('study')) {
-        await shop.openSettings('basics');
+        await shop.openSettings('furnish');
         await shop.page.locator('.settings .scene-picker button.scene-choice').last().click();
         await shop.page.locator('.settings button.sticker', { hasText: shop.L.ui.scene.move }).click();
         await sleep(10000);

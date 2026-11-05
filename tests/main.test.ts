@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { commissionDir, interimPermission, isInside } from '../app/main/agent-runner';
-import { Recorder, truncateDeep } from '../app/main/recorder';
+import { MAX_RECORDINGS, pruneRecordings, Recorder, truncateDeep } from '../app/main/recorder';
 import { strings } from '../app/shared/i18n';
 
 describe('recorder', () => {
@@ -21,6 +21,32 @@ describe('recorder', () => {
     r.write({ t: 2, source: 'message', name: 'B', payload: {} });
     const lines = readFileSync(p, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     expect(lines.map((l) => l.name)).toEqual(['A', 'B']);
+  });
+});
+
+describe('records of runs', () => {
+  it('keeps the newest ones and lets the rest go', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lamplight-rec-'));
+    for (let i = 10; i < 70; i++) writeFileSync(join(dir, `17000000000${i}-commission.jsonl`), '{}');
+    pruneRecordings(dir);
+    const left = readdirSync(dir).sort();
+    expect(left).toHaveLength(MAX_RECORDINGS);
+    expect(left.at(-1)).toBe('1700000000069-commission.jsonl');
+    expect(left[0]).toBe(`17000000000${70 - MAX_RECORDINGS}-commission.jsonl`);
+  });
+
+  it('has nothing to do when there are none yet', () => {
+    expect(() => pruneRecordings(join(tmpdir(), 'lamplight-no-such-folder'))).not.toThrow();
+  });
+
+  it('one recording that cannot be removed does not stop the shop opening, or the rest going', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lamplight-prune-'));
+    mkdirSync(join(dir, '0-held'));
+    writeFileSync(join(dir, '0-held', 'x'), 'x');
+    writeFileSync(join(dir, '1-old.jsonl'), 'x');
+    writeFileSync(join(dir, '2-new.jsonl'), 'x');
+    pruneRecordings(dir, 1);
+    expect(readdirSync(dir).sort()).toEqual(['0-held', '2-new.jsonl']);
   });
 });
 
@@ -46,7 +72,7 @@ describe('interim permissions', () => {
   });
 
   it('names commission folders by date and time', () => {
-    const d = commissionDir('/work', 'ledger', new Date('2026-10-21T10:30:05Z'));
+    const d = commissionDir('/work', 'ledger', new Date(2026, 9, 21, 10, 30, 5));
     expect(d).toBe(join('/work', '2026-10-21-103005-ledger'));
   });
 });

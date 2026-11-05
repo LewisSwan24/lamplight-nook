@@ -7,19 +7,19 @@ const icon = (key: string, x: number, y: number) => bubble(key, x, y, 32, 32, tr
 describe('placing speech bubbles', () => {
   it('leaves bubbles that do not touch where they are', () => {
     const out = placeBubbles([bubble('a', 100, 100), bubble('b', 400, 100)], []);
-    expect(out.get('a')).toEqual({ y: 100, visible: true });
-    expect(out.get('b')).toEqual({ y: 100, visible: true });
+    expect(out.get('a')).toMatchObject({ y: 100, visible: true });
+    expect(out.get('b')).toMatchObject({ y: 100, visible: true });
   });
 
   it('moves the later of two overlapping bubbles up, clear of the first', () => {
     const out = placeBubbles([bubble('a', 100, 100), bubble('b', 150, 95)], []);
-    expect(out.get('a')).toEqual({ y: 100, visible: true });
-    expect(out.get('b')).toEqual({ y: 76, visible: true }); // the first one's top (80), less the gap
+    expect(out.get('a')).toMatchObject({ y: 100, visible: true });
+    expect(out.get('b')).toMatchObject({ y: 76, visible: true }); // the first one's top (80), less the gap
   });
 
   it('keeps moving up until it is clear of every bubble', () => {
     const out = placeBubbles([bubble('a', 100, 100), bubble('b', 100, 76), bubble('c', 100, 98)], []);
-    expect(out.get('c')).toEqual({ y: 52, visible: true });
+    expect(out.get('c')).toMatchObject({ y: 52, visible: true });
   });
 
   it('hides a bubble that would be pushed out of the top of the window', () => {
@@ -38,12 +38,12 @@ describe('placing speech bubbles', () => {
   it('does not make room for a bubble the card has hidden', () => {
     const card = { left: 150, top: 0, right: 500, bottom: 300 };
     const out = placeBubbles([bubble('hidden', 120, 100), bubble('next', 60, 100, 60)], [card]);
-    expect(out.get('next')).toEqual({ y: 100, visible: true });
+    expect(out.get('next')).toMatchObject({ y: 100, visible: true });
   });
 
   it('lets a mood icon give way to words wherever it comes in the list', () => {
     const out = placeBubbles([icon('mood', 100, 100), bubble('words', 100, 95)], []);
-    expect(out.get('words')).toEqual({ y: 95, visible: true });
+    expect(out.get('words')).toMatchObject({ y: 95, visible: true });
     expect(out.get('mood')?.visible).toBe(false);
   });
 
@@ -52,5 +52,24 @@ describe('placing speech bubbles', () => {
     expect(out.get('one')?.visible).toBe(true);
     expect(out.get('two')?.visible).toBe(false);
     expect(out.get('three')?.visible).toBe(true);
+  });
+});
+
+describe('bubbles at the edge of the window', () => {
+  const words = (key: string, x: number, w: number): BubbleBox => ({ key, x, y: 100, w, h: 20, iconOnly: false });
+
+  it('moves words back inside, whichever side they would run off', () => {
+    const places = placeBubbles([words('right', 900, 300), words('left', 40, 200)], [], [], 1000);
+    expect(places.get('right')).toMatchObject({ x: 846, visible: true });
+    expect(places.get('left')).toMatchObject({ x: 104, visible: true });
+  });
+
+  it('leaves words alone when they fit', () => {
+    expect(placeBubbles([words('mid', 500, 100)], [], [], 1000).get('mid')?.x).toBe(500);
+  });
+
+  it('still keeps two people from talking over each other after moving one in', () => {
+    const places = placeBubbles([words('a', 850, 200), words('b', 900, 300)], [], [], 1000);
+    expect(places.get('b')!.y).toBeLessThan(places.get('a')!.y);
   });
 });

@@ -1,5 +1,8 @@
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId } from '../../shared/types';
+import { currentScene, type SceneId } from '../../shared/scenes';
+import { findPath, type Point } from './path';
+import { shopArea } from './pieces';
 
 /** Fixed 320x180 canvas, scaled up by integer factors to fit the window. */
 export const CANVAS = { width: 320, height: 180 } as const;
@@ -18,7 +21,7 @@ export const ZONES: Zone[] = [
   { id: 'shelf', label: Z.shelf, x: 8, y: 112, w: 48, h: 40 },
   { id: 'table', label: Z.table, x: 116, y: 72, w: 68, h: 58 },
   { id: 'corner', label: Z.corner, x: 128, y: 144, w: 32, h: 18 },
-  { id: 'counter', label: Z.counter, x: 216, y: 46, w: 54, h: 32 },
+  { id: 'counter', label: Z.counter, x: 216, y: 62, w: 54, h: 32 },
   { id: 'door', label: Z.door, x: 288, y: 16, w: 15, h: 32 },
 ];
 
@@ -31,13 +34,11 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
   board: { x: 100, y: 60, facing: 'up' },
   shelf: { x: 66, y: 140, facing: 'left' },
   table: { x: 196, y: 102, facing: 'left' },
-  corner: { x: 170, y: 160, facing: 'left' },
-  counter: { x: 244, y: 98, facing: 'down' },
+  // On the far side of the workbench from the back door, which everyone needs to get through.
+  corner: { x: 118, y: 148, facing: 'right' },
+  counter: { x: 228, y: 84, facing: 'down' },
   door: { x: 295, y: 56, facing: 'up' },
 };
-
-/** The free aisle across the room. Every move goes via the aisle so characters never walk through furniture. */
-export const AISLE_Y = 136;
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
 const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, cat: 0 };
@@ -49,67 +50,100 @@ export type Spot = { x: number; y: number; facing: Facing; chair?: boolean };
 /**
  * Seats: anchors with chairs give each character a fixed spot instead of a slot.
  * The chairs are drawn into the background at these spots (scripts/art/scene.py, CHAIRS).
+ * The other spots here are where a plain slot would put someone in the way of furniture or on top of someone else.
  */
 export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = {
   table: {
     adeng: { x: 196, y: 100, facing: 'left', chair: true },
     xiaoju: { x: 104, y: 100, facing: 'right', chair: true },
-    // No third chair fits; Laoshi stands at Adeng's shoulder, Qingdai at Xiaoju's.
-    laoshi: { x: 212, y: 114, facing: 'left' },
-    qingdai: { x: 90, y: 114, facing: 'right' },
+    // On the bench, turned towards each other.
+    laoshi: { x: 140, y: 122, facing: 'right', chair: true },
+    qingdai: { x: 168, y: 122, facing: 'left', chair: true },
   },
   // Qingdai's place by the blackboard, where she pins up her colour swatches, facing the room.
+  // The left chair stands right under the board, so everyone else keeps to its left.
   board: {
-    qingdai: { x: 114, y: 62, facing: 'down' },
+    qingdai: { x: 116, y: 62, facing: 'down' },
+    adeng: { x: 92, y: 60, facing: 'up' },
+    xiaoju: { x: 80, y: 60, facing: 'up' },
+    laoshi: { x: 68, y: 60, facing: 'up' },
+  },
+  // Between the bookshelf and the left chair. The cat keeps its old place by the window.
+  window: {
+    xiaoju: { x: 62, y: 60, facing: 'up' },
+    cat: { x: 70, y: 60, facing: 'up' },
+    adeng: { x: 78, y: 60, facing: 'up' },
+    laoshi: { x: 86, y: 60, facing: 'up' },
+    qingdai: { x: 92, y: 68, facing: 'up' },
+  },
+  // Above the aisle: the study's sofa takes the floor below it.
+  shelf: {
+    laoshi: { x: 78, y: 128, facing: 'left' },
+    qingdai: { x: 78, y: 140, facing: 'left' },
+  },
+  corner: {
+    qingdai: { x: 104, y: 160, facing: 'right' },
+  },
+  // Clear of the plant under the door.
+  door: {
+    laoshi: { x: 289, y: 62, facing: 'up' },
+    qingdai: { x: 295, y: 68, facing: 'up' },
+  },
+  // On the customers' side: Adeng is behind the counter, and it is the customers who get rubbed against.
+  // The coffee machine takes the middle of the counter, so the others stand either side of it.
+  counter: {
+    xiaoju: { x: 216, y: 84, facing: 'down' },
+    laoshi: { x: 264, y: 84, facing: 'down' },
+    qingdai: { x: 276, y: 84, facing: 'left' },
+    cat: { x: 226, y: 104, facing: 'right' },
   },
 };
 
+/** The study's own places, where its furniture differs from the shop's (docs/floor-plans.md). */
+const STUDY_SEATS: typeof SEATS = {
+  table: {
+    // On the sofa under the reading table.
+    laoshi: { x: 141, y: 125, facing: 'right', chair: true },
+    qingdai: { x: 165, y: 125, facing: 'left', chair: true },
+  },
+  // The desk is two pieces with a gap between them: everyone keeps to a piece.
+  counter: {
+    adeng: { x: 232, y: 84, facing: 'down' },
+    xiaoju: { x: 222, y: 84, facing: 'down' },
+    laoshi: { x: 256, y: 84, facing: 'down' },
+    qingdai: { x: 285, y: 84, facing: 'left' },
+  },
+};
+
+/** Every fixed place in a scene, the study's own over the shared ones. */
+export function seatsIn(scene: SceneId = currentScene()): typeof SEATS {
+  if (scene !== 'study') return SEATS;
+  const out: typeof SEATS = { ...SEATS };
+  for (const [anchor, seats] of Object.entries(STUDY_SEATS)) out[anchor as AnchorId] = { ...SEATS[anchor as AnchorId], ...seats };
+  return out;
+}
+
 /** Where a character's feet go at an anchor, and which way it faces there. */
-export function standPoint(anchor: AnchorId, actor?: ActorId): Spot {
-  const seat = actor && SEATS[anchor]?.[actor];
+export function standPoint(anchor: AnchorId, actor?: ActorId, scene: SceneId = currentScene()): Spot {
+  const seat = actor && seatsIn(scene)[anchor]?.[actor];
   if (seat) return seat;
   const { x, y, facing } = ANCHORS[anchor];
   const d = actor ? SLOT[actor] * SLOT_GAP : 0;
   return facing === 'left' || facing === 'right' ? { x, y: y + d, facing } : { x: x + d, y, facing };
 }
 
-/** Pixels cut off each corner of a path, so characters round corners instead of turning on the spot. */
-const CORNER_CUT = 6;
+/** The walk across the floor from one point to another (path.ts), leaving out where it starts. */
+export const walkBetween = (from: Point, to: Point, scene?: SceneId): Point[] => findPath(shopArea(scene), from, to);
 
-/** Replace each right-angle corner with a short diagonal. */
-export function roundCorners(points: { x: number; y: number }[]): { x: number; y: number }[] {
-  const out = [points[0]];
-  for (let i = 1; i < points.length - 1; i++) {
-    const [a, c, b] = [points[i - 1], points[i], points[i + 1]];
-    const lenIn = Math.hypot(c.x - a.x, c.y - a.y);
-    const lenOut = Math.hypot(b.x - c.x, b.y - c.y);
-    const cut = Math.min(CORNER_CUT, lenIn / 2, lenOut / 2);
-    if (cut < 2) {
-      out.push(c);
-      continue;
-    }
-    out.push({ x: Math.round(c.x - ((c.x - a.x) / lenIn) * cut), y: Math.round(c.y - ((c.y - a.y) / lenIn) * cut) });
-    out.push({ x: Math.round(c.x + ((b.x - c.x) / lenOut) * cut), y: Math.round(c.y + ((b.y - c.y) / lenOut) * cut) });
-  }
-  out.push(points[points.length - 1]);
-  return out;
-}
-
-/** The walk from a point to an anchor: down to the aisle, along it, then up to the spot, with rounded corners. */
-export function pathBetween(from: { x: number; y: number }, to: AnchorId, actor?: ActorId): { x: number; y: number }[] {
-  const { x, y } = standPoint(to, actor);
-  if (from.x === x && from.y === y) return [];
-  const corners = [
-    { x: from.x, y: AISLE_Y },
-    { x, y: AISLE_Y },
-    { x, y },
-  ].filter((p, i, arr) => (i === 0 ? p.y !== from.y : p.x !== arr[i - 1].x || p.y !== arr[i - 1].y));
-  return roundCorners([from, ...corners]).slice(1);
+/** The walk from a point to an anchor. */
+export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: SceneId): Point[] {
+  return walkBetween(from, standPoint(to, actor, scene), scene);
 }
 
 /** Largest integer scale that fits the canvas in the viewport, at least 1. */
-export function integerScale(viewW: number, viewH: number): number {
-  return Math.max(1, Math.floor(Math.min(viewW / CANVAS.width, viewH / CANVAS.height)));
+export function integerScale(viewW: number, viewH: number, dpr = 1): number {
+  // In real pixels: on a display Windows scales by 125%, 3 CSS pixels would be 3.75 real ones, and uneven.
+  return Math.max(1, Math.floor(Math.min((viewW * dpr) / CANVAS.width, (viewH * dpr) / CANVAS.height))) / dpr;
 }
 
 /**
@@ -119,6 +153,14 @@ export function integerScale(viewW: number, viewH: number): number {
 export function uiScale(viewW: number, viewH: number): number {
   const s = Math.min(viewW / 1280, viewH / 720);
   return Math.min(1.75, Math.max(1, Math.floor(s * 20) / 20));
+}
+
+/**
+ * How many CSS pixels one pixel of a toolbar icon takes: twice the window's scale, rounded so that it is always a
+ * whole number of real pixels, whatever the display scale. Anything else would make the pixels uneven.
+ */
+export function toolIconPx(ui: number, dpr: number): number {
+  return Math.round(2 * ui * dpr) / dpr;
 }
 
 const A = strings.actors;

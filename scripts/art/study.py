@@ -26,29 +26,34 @@ def piece(sheet, rect):
     return part.crop(part.getbbox())
 
 
-# (sheet, pixel rect on it) -> top-left on the canvas. Drawn in order, so later pieces overlap earlier ones.
+# name, sheet, pixel rect on it -> top-left on the canvas. Drawn in order, so later pieces overlap earlier ones.
+# The names are the cafe's where a piece plays the same part (scripts/art/pieces.py); the wall and the rug have none.
 FURNITURE = [
-    # back wall: the same two windows and blackboard as the cafe (the window glass takes the sky's colour)
-    (scene.interiors, (0, scene.at(226), 32, scene.at(228)), (16, 12)),
-    (scene.interiors, (0, scene.at(226), 32, scene.at(228)), (52, 12)),
-    (scene.interiors, (0, scene.at(338), 32, scene.at(340)), (92, 14)),
+    # back wall: the same three windows and blackboard as the cafe (the window glass takes the sky's colour)
+    (None, scene.interiors, (0, scene.at(226), 32, scene.at(228)), (16, 12)),
+    (None, scene.interiors, (0, scene.at(226), 32, scene.at(228)), (52, 12)),
+    (None, scene.interiors, (0, scene.at(226), 32, scene.at(228)), (197, 12)),
+    (None, scene.interiors, (0, scene.at(338), 32, scene.at(340)), (92, 14)),
     # floor
-    (living, (166, 8, 186, 41), (2, 40)),  # a tall pot plant in the corner
-    (scene.interiors, (112, scene.at(15), 176, scene.at(18)), (116, 78)),  # rug under the reading table
-    (living, (33, 123, 95, 142), (122, 84)),  # the reading table: two low tables with lace cloths
-    (library, (0, 360, 47, 411), (8, 108)),  # the bookcase
-    (living, (52, 181, 112, 202), (218, 60)),  # Adeng's desk: a cabinet and a chest of drawers side by side
-    (living, (84, 154, 96, 171), (246, 47)),  # the desk lamp on it
-    (library, (208, 12, 224, 38), (264, 40)),  # a globe at the end of the desk
-    (scene.interiors, (144, scene.at(272), 176, scene.at(274)), (128, 144)),  # Laoshi's workbench, brought from home
-    (living, (176, 182, 192, 210), (274, 138)),  # a floor lamp by the visitor's chair
-    (living, (191, 7, 209, 45), (300, 108)),  # another plant by the front wall
+    ('plant_l', living, (166, 8, 186, 41), (2, 40)),  # a tall pot plant in the corner
+    (None, scene.interiors, (112, scene.at(15), 176, scene.at(18)), (116, 78)),  # rug under the reading table
+    ('table', living, (33, 123, 95, 142), (122, 84)),  # the reading table: two low tables with lace cloths
+    ('shelf', library, (0, 360, 47, 411), (8, 108)),  # the bookcase
+    ('counter', living, (52, 181, 112, 202), (218, 76)),  # Adeng's desk: a cabinet and a chest of drawers side by side
+    ('counter', living, (84, 154, 96, 171), (246, 63)),  # the desk lamp on it
+    ('counter', library, (208, 12, 224, 38), (264, 56)),  # a globe at the end of the desk
+    ('workbench', scene.interiors, (144, scene.at(272), 176, scene.at(274)), (128, 144)),  # Laoshi's workbench, brought from home
+    ('lamp', living, (176, 182, 192, 210), (274, 138)),  # a floor lamp by the visitor's chair
+    ('plant_r', living, (191, 7, 209, 45), (300, 108)),  # another plant by the front wall
 ]
 
+# Under the reading table, where two of the staff sit for a meeting.
 SOFA = (living, (16, 450, 64, 482))
+SOFA_POS = (129, 106)
 
 
-def build():
+def shell():
+    """The room with nothing standing in it: floor, wall and the daylight behind the two doors."""
     img = Image.new('RGBA', (W, H), (59, 42, 30, 255))
     floor = scene.tiles(scene.floors, 0, 12, 3, 2)
     for y in range(48, H, floor.height):
@@ -57,12 +62,17 @@ def build():
     wall = scene.tiles(scene.walls, 23, 24, 1, 2)
     for x in range(0, W, scene.T):
         img.alpha_composite(wall, (x, 16))
-    door, back = scene.DOOR, scene.BACK_DOOR
+    door = scene.DOOR
     img.paste((205, 226, 222, 255), (door[0] + 1, door[1] + 12, door[0] + 15, door[1] + 32))
-    img.paste((150, 200, 140, 255), (back[0] + 1, back[1] + 12, back[0] + 15, back[1] + 32))
-    for sheet, rect, pos in FURNITURE:
+    scene.near_wall(img, wall)
+    return img
+
+
+def build():
+    img = shell()
+    for _name, sheet, rect, pos in FURNITURE:
         img.alpha_composite(piece(sheet, rect), pos)
-    img.alpha_composite(piece(*SOFA), (62, 146))
+    img.alpha_composite(piece(*SOFA), SOFA_POS)
     for (col, row), (x, y) in sorted(scene.CHAIRS, key=lambda c: c[1][1]):
         img.alpha_composite(scene.tiles(scene.interiors, col, row, 1, 2), (x - 8, y - 24))
     img.save(OUT / 'study.png')

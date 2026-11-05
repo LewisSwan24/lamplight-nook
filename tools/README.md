@@ -38,6 +38,18 @@ find the real ones. `sim/isolate.cjs` is loaded before the app and points all of
 `shop.mjs` refuses to go on if the app still reports a real folder. Windows open off-screen and never take the
 foreground, so a run does not interrupt you. Set `SIM_SHOW=1` in the shell to watch real windows instead.
 
+## The packaged app (`sim/packaged.mjs`)
+
+```bash
+npm run packaged
+```
+
+Builds the unpacked app into `sim-out/packaged` (`dist/` is left alone) and runs it from there with the stand-in Claude: the
+fuses read back from the exe, pictures, fonts and music out of `app.asar`, one commission, closing through the window, and
+the shelf and the hidden debug tools after a restart. It stops with a failure if the real data folder changed. The fuses
+keep `isolate.cjs` out, so `--user-data-dir` and `settings.json` do the isolating, and the window shows for a moment before
+it moves off-screen. This is not W11: no installer, no real Claude Code, no real key.
+
 ## Acceptance run (`sim/accept.mjs`)
 
 ```bash
@@ -46,11 +58,20 @@ node tools/sim/accept.mjs                      # every scenario, Chinese and Eng
 node tools/sim/accept.mjs --lang en --only demo,board
 ```
 
-Scenarios: `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
+Scenarios: `baddata` (data files that cannot be read are put aside, and the works come back from the last copy), `badsettings` (settings that cannot be read: the shop says why and what the budget is now), `badstart` (the shop cannot open at all: it says so and quits), `stopclose` (asked on the way out mid-commission: keeping going keeps going, stopping can be carried on next time), `forgetbusy` (forgetting everything waits for the commission that is running), `birthday` (a year to the day after the first work, said once), `moved` (a work's folder was moved: the shelf takes the new place only if the work is there), `oneshop` (opening it twice brings the shop back rather than opening a second one), `screens` (Windows display scaling at 125%, 150% and 175% for real, with game pixels counted on the picture, and every
+main card in the smallest windows), `names` (`sim/names.mjs`: every control and every card has a name in Chromium's accessibility tree; not a test with a real screen reader), `contrast` (`sim/contrast.mjs`: each kind of text on every main card, against what is really behind it, to WCAG AA),
+`ledger` (fourteen months of spending and more runs than used to be kept), `thousand` (1000 works: how fast the shop, shelf and notebook open, finding one, one more commission),
+`grownline` (the line about what grew waits for its speaker), `crash` (the plug pulled mid-commission and with the result open, half-written files, the folder emptied or
+gone, Claude Code falling over), `keyboard` (a whole commission, the shelf, the garden and settings without the mouse),
+`passers` (people seen through the windows on their way to the door), `beds` (the vegetable beds at 0, 1, 4, 12, 25 and 60 works), `days` (thirty works: all on the shelf, the shop's days in the notebook), `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
 `templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
-slip holding twelve long-named files), `trial`,
+slip holding twelve long-named files), `menus` (the toolbar's six buttons, labels and icon pixels, and what sits on each
+settings tab), `cards` (every kind of card at the three sizes through the debug handles, with long sample text: inside the
+window, nothing spilling over the paper, one of three widths, the close button and Esc only where a card may be put away, the
+main button last and focused; leaves `cards-<size>-<kind>.png`), `firstuse` (the "!" marks on the counter, bell and blackboard,
+in both rooms; slow on purpose, so the first commission is still going when Adeng speaks), `trial`,
 `upgrade` (opens the data a shop had under 0.5.0, 0.6.1 and 0.7.0; needs `legacy-out/`, see below),
 `oldclaude` (the stand-in claims an old Claude Code version), `feedback` ("Write to us" and reporting
 what the staff made: the mail program and the save dialog are caught, nothing is sent), `store`
@@ -59,8 +80,9 @@ what the staff made: the mail program and the save dialog are caught, nothing is
 commission on the shelf; the key check's request to Anthropic is caught and answered in the test).
 Every scenario also checks, when its commission ends, that no speech bubble crosses a card or another bubble.
 
-On Windows `oldclaude` fails: the stand-in is a `.mjs` file, which the app's `execFile` cannot start there (EFTYPE),
-so run it on Linux. `upgrade` fails without `legacy-out/`.
+`upgrade` fails without `legacy-out/`. To make it on Windows, follow the steps at the top of `sim/legacy.mjs`, with a
+junction in place of the `ln -s` (`New-Item -ItemType Junction`). Remove the junctions before removing the old
+checkouts, so that nothing deletes through them into `node_modules`.
 
 `launch()` options worth knowing: `store` plays the Store build (`LAMPLIGHT_STORE=1`); `claudePath`
 other than the stand-in, such as a path that does not exist, also gives the app a PATH with no `claude`
@@ -77,7 +99,8 @@ node tools/sim/store.mjs --lang en --only board,result
 Grows a shop by finishing eight commissions, then takes each picture at 1920x1080 in daylight.
 Store PNGs go to `store-out/<lang>/`; 1280x720 JPEGs for the website go to `store-out/site/`, named the way
 the site expects (copy them into the site repository's `img/`). `sim/trailer.mjs` records the 30-second
-trailer from the same kind of run.
+trailer from the same kind of run, with ffmpeg: on Linux from the virtual display, elsewhere from the frames the
+app paints, so the window stays off screen.
 
 ## Upgrades (`sim/legacy.mjs`)
 

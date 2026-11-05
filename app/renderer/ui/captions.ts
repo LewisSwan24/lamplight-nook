@@ -2,7 +2,7 @@ import { strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
 import { type Caption, CaptionLog } from './caption-log';
 import { el, layer } from './dom';
-import { closePanel, replaceOpen } from './panels';
+import { closeButton, replaceOpen } from './panels';
 
 const A = strings.ui.access;
 /** Lines the caption bar shows at once. */
@@ -38,7 +38,7 @@ export function showCaptionLog() {
   const list = el('div.caption-list', { tabindex: 0 },
     ...(lines.length ? lines.map((c) => el('div.caption-line', {}, el('span.caption-time', {}, clock(c.at)), ' ', el('b', {}, `${nameOf(c.who)}\uFF1A`), c.text)) : [A.captionsEmpty]));
   replaceOpen(el('div.card.paper.caption-card', { role: 'dialog', 'aria-label': A.captionsTitle },
-    el('button.close', { onclick: closePanel, 'aria-label': 'close' }, '\u00D7'),
+    closeButton(),
     el('div.card-title', {}, A.captionsTitle),
     list,
   ));

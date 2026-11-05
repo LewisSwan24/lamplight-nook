@@ -5,7 +5,7 @@ import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, net, safeStorage, session, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type AiEvent, type CommissionForm, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -22,6 +22,7 @@ import { isInside } from './paths';
 import { diagnosticsEntries } from './diagnostics';
 import { Log } from './log';
 import { SettingsStore, defaultWorkRoot } from './settings';
+import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
 import { zip } from './zip';
 import { ShopTray } from './tray';
@@ -119,12 +120,13 @@ function createWindow() {
       buttons: [R.keepGoing, R.stopAndClose], defaultId: 0, cancelId: 0, noLink: true,
     });
     if (choice === 0) {
+      // The quit is off, and this is what would have ended it.
       leaving = false;
       e.preventDefault();
       return;
     }
+    // Kept, because the question promised it: the shop offers to carry on when it next opens.
     quitting = true;
-    pending.clear();
   });
   win.on('hide', updateMini);
   win.on('show', updateMini);
@@ -251,6 +253,7 @@ ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
 ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth());
+ipcMain.handle(IPC.spendMonths, () => spend.months());
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
@@ -350,7 +353,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     });
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome, cancelled runs included.
-    spend.record(job.workDir, job.sessionId, result.costUsd);
+    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     if (result.error !== 'cancelled') {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
@@ -363,15 +366,15 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
-        ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        ok: result.ok, error: result.error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
         id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && versions.has(r.id)), grew,
       });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
-    return result;
+    return { ...result, spentThisRun };
   } finally {
     broker.onAnswered = undefined;
-    pending.clear();
+    if (!quitting) pending.clear();
     current = null;
     lastWorkDir = job.workDir;
     mini.feed({ type: 'run', running: false });
@@ -439,6 +442,7 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   }, false);
 });
 ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState());
+ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
 ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
 // From the works shelf: the main thing a commission made, or its folder; only what the notebook recorded.
 ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
@@ -452,8 +456,29 @@ ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
   }
   return (await shell.openPath(memo.folder)) === '';
 });
+/** A work's folder is where the staff will be let loose: not a whole drive, the user's own folders, or the shop's. */
+function holdsTooMuch(folder: string): boolean {
+  const theirs = (['home', 'documents', 'desktop', 'downloads', 'userData'] as const).map((name) => app.getPath(name));
+  return dirname(folder) === folder || [...theirs, settings.get().workRoot].some((place) => insideForReal(folder, place));
+}
 /** Commissions put back to their previous version since their last round (the next round is told). */
 const restoredSince = new Set<string>();
+ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  // Not the one being worked on, and one with no main file gives nothing to recognise it by (the shelf offers neither).
+  if (!memo?.main || current?.workDir === memo.folder) return 'cancelled';
+  const r = await dialog.showOpenDialog(win!, { title: fill(strings.ui.shelf.relinkDialog, { main: memo.main }), properties: ['openDirectory'] });
+  if (r.canceled) return 'cancelled';
+  const folder = r.filePaths[0];
+  if (holdsTooMuch(folder)) return 'broad';
+  const main = join(folder, memo.main);
+  if (!existsSync(main) || !statSync(main).isFile() || !insideForReal(folder, main)) return 'wrong';
+  memory.relink(memo.id, folder);
+  // What was kept of it came from the old folder; nothing may be put back over the new one.
+  versions.drop(memo.id);
+  restoredSince.delete(memo.id);
+  return 'found';
+});
 ipcMain.handle(IPC.restorePrevious, (_e, id: string): boolean => {
   if (current || typeof id !== 'string') return false;
   const memo = memory.find(id);
@@ -489,14 +514,26 @@ ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => me
 ipcMain.handle(IPC.recallOnOpen, (): Recall => memory.recallOnOpen());
 ipcMain.handle(IPC.recallForRevision, (_e, id: string): Recall => memory.recallForRevision(id, shorten));
 ipcMain.handle(IPC.getMemory, (): Memory => memory.get());
+ipcMain.handle(IPC.dataDamage, (): DataDamage => {
+  const damage = { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged };
+  memory.damage = null;
+  settings.damaged = false;
+  spend.damaged = false;
+  return damage;
+});
 // A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
 ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
   return Boolean(clean && current?.note?.(clean));
 });
-ipcMain.handle(IPC.clearMemory, () => {
+ipcMain.handle(IPC.clearMemory, (): boolean => {
+  // What it is doing would go straight back in the notebook, and the ledger would count the round twice.
+  if (current) return false;
   memory.clear();
   versions.clear();
+  spend.forget();
+  pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
+  return true;
 });
 // Only folders the notebook itself recorded, looked up by id.
 ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
@@ -542,6 +579,10 @@ app.on('web-contents-created', (_e, contents) => {
   contents.on('will-attach-webview', (e) => e.preventDefault());
 });
 
+// One shop at a time: two would write over each other's notebook, and each would spend its own budget.
+if (!app.requestSingleInstanceLock()) app.exit(0);
+app.on('second-instance', () => tray.show());
+
 app.whenReady().then(() => {
   // Nothing in the shop needs the camera, the microphone, notifications from the page or anything like them.
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, done) => done(false));
@@ -552,23 +593,34 @@ app.whenReady().then(() => {
   app.on('child-process-gone', (_e, details) => log?.warn('child process gone', details));
   // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
   const migrated = migrate(app.getPath('userData'));
-  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', migrated);
+  // Only how many: a change can quote a commission's title, and the log goes into the diagnostics file.
+  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
   settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
   pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
   memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
   versions = new VersionStore(join(app.getPath('userData'), 'versions'));
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
+  if (memory.damage || settings.damaged || spend.damaged) log.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
+  pruneRecordings(join(app.getPath('userData'), 'recordings'));
   leftover = pending.load();
   createWindow();
   tray.create();
   win?.on('focus', () => tray.calm());
+}).catch((err: unknown) => {
+  // Before the window there is nothing else to tell the user with, and a process with no window would stay until killed.
+  log?.error('could not open', err);
+  dialog.showErrorBox(strings.ui.startFail.title, fill(strings.ui.startFail.text, { reason: err instanceof Error ? err.message : String(err) }));
+  app.quit();
 });
 // The corner window: what to show now, and a click on it brings the shop back.
 ipcMain.handle(IPC.miniState, () => mini.state);
 ipcMain.handle(IPC.showShop, () => tray.show());
 app.on('before-quit', () => {
   leaving = true;
+});
+// After the windows have gone: the question on closing can still be answered with "keep going", which cancels the quit.
+app.on('will-quit', () => {
   mini.destroy();
   broker.cancelAll();
   current?.abort.abort();

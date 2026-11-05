@@ -1,6 +1,7 @@
 import { DEFAULT_SCENE, cleanScene } from '../shared/scenes';
 import { cleanFurnishing, cleanFurnishings } from '../shared/furnish';
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { putAside } from './aside';
 import { dirname, join } from 'node:path';
 import { DEFAULT_AVATAR, cleanAvatar } from '../shared/avatars';
 import { strings } from '../shared/i18n';
@@ -24,6 +25,8 @@ const cleanVolume = (v: unknown) => (typeof v === 'number' && Number.isFinite(v)
 /** User settings kept as JSON in the app's data folder. Unknown or broken files fall back to defaults. */
 export class SettingsStore {
   private data: Settings;
+  /** The file could not be read when the shop opened, for the shop to tell the user. */
+  damaged = false;
 
   constructor(private file: string, documentsDir: string) {
     const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), budgetUsd: DEFAULT_BUDGET, language: 'system' };
@@ -73,10 +76,14 @@ export class SettingsStore {
   }
 
   private read(): Partial<Settings> {
+    if (!existsSync(this.file)) return {};
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8'));
-      return typeof parsed === 'object' && parsed ? parsed : {};
+      if (typeof parsed !== 'object' || !parsed || Array.isArray(parsed)) throw new Error('not settings');
+      return parsed;
     } catch {
+      putAside(this.file);
+      this.damaged = true;
       return {};
     }
   }

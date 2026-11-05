@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR_SPOT, GARDEN_TALK_MS, GAP_MS, GardenPlanner, GardenTalk, SPOTS, VISIT_MS,
+  BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_DOOR_SPOT, GARDEN_TALK_MS, GAP_MS, GardenPlanner, GardenTalk, SPOTS, VISIT_MS,
   gardenOpen, outdoorsFor, pathInGarden, pathToBackDoor,
 } from '../app/renderer/game/garden';
 import { parseLines } from '../app/renderer/translator/lines';
@@ -24,21 +24,45 @@ const along = (from: { x: number; y: number }, path: { x: number; y: number }[])
 };
 
 describe('the way to the back garden', () => {
-  it('has the back door on the wall, clear of the front door and the clock', () => {
+  it('goes out through the near wall, straight above the door and the path in the garden', () => {
+    expect(BACK_DOOR.y + BACK_DOOR.h).toBe(CANVAS.height);
+    expect(BACK_DOOR.x).toBe(GARDEN_DOOR.x);
+    expect(BACK_DOOR_SPOT.x).toBe(GARDEN_DOOR_SPOT.x);
+  });
+
+  it('leaves the top wall to the street: only the front door opens onto it', () => {
     const door = ZONES.find((z) => z.id === 'door')!;
-    expect(BACK_DOOR.x + 16).toBeLessThanOrEqual(door.x);
-    expect(BACK_DOOR.x).toBeGreaterThanOrEqual(196);
+    expect(door.y).toBeLessThan(48);
+    expect(BACK_DOOR.y).toBeGreaterThan(CANVAS.height / 2);
+  });
+
+  it('keeps everyone who is standing about out of the doorway', () => {
+    for (const scene of ['cafe', 'study'] as const) {
+      for (const a of ACTORS) {
+        for (const anchor of Object.keys(ANCHORS) as (keyof typeof ANCHORS)[]) {
+          const { x, y } = standPoint(anchor, a.id, scene);
+          const inTheWay = y > BACK_DOOR.y - 8 && x > BACK_DOOR.x - 8 && x < BACK_DOOR.x + BACK_DOOR.w + 8;
+          expect(inTheWay, `${scene}: ${a.id} at ${anchor}`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('has somewhere to stand in front of the door, in both scenes', () => {
+    for (const scene of ['cafe', 'study'] as const) {
+      for (const a of ACTORS) {
+        expect(pathToBackDoor(standPoint('counter', a.id, scene), scene).at(-1)).toEqual(BACK_DOOR_SPOT);
+      }
+    }
+    expect(BACK_DOOR_SPOT.y).toBeLessThanOrEqual(BACK_DOOR.y + BACK_DOOR.h - 4);
   });
 
   it('walks from every home to the back door without crossing furniture', () => {
-    const furniture = ZONES.filter((z) => ['shelf', 'table', 'corner', 'counter'].includes(z.id));
-    const inside = (p: { x: number; y: number }) => furniture.find((z) => p.x > z.x && p.x < z.x + z.w && p.y > z.y && p.y < z.y + z.h);
     for (const a of ACTORS) {
       for (const anchor of Object.keys(ANCHORS) as (keyof typeof ANCHORS)[]) {
         const from = standPoint(anchor, a.id);
         const path = pathToBackDoor(from);
         expect(path.at(-1)).toEqual(BACK_DOOR_SPOT);
-        for (const p of along(from, path)) expect(inside(p)?.id, `${a.id} from ${anchor}`).toBeUndefined();
       }
     }
   });

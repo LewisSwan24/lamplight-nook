@@ -36,6 +36,26 @@ function homeFrom(version: string, missing: string[] = []) {
 
 const read = <T>(file: string): T => JSON.parse(readFileSync(file, 'utf8')) as T;
 
+describe('neighbours from before the shop kept count', () => {
+  const at = (memory: unknown) => {
+    const data = mkdtempSync(join(tmpdir(), 'lamplight-met-'));
+    writeFileSync(join(data, 'data-version.json'), JSON.stringify({ data: 2 }));
+    writeFileSync(join(data, 'memory.json'), JSON.stringify(memory));
+    migrate(data, NOW);
+    return JSON.parse(readFileSync(join(data, 'memory.json'), 'utf8')) as Memory;
+  };
+
+  it('counts them all as already known in a shop that was open before, so none is met for the first time on upgrade day', () => {
+    const { shop } = at({ commissions: [], stuckNotes: [], shop: { done: 3, grown: [], told: [] } });
+    expect(shop?.met?.map((m) => m.id).sort()).toEqual(['baker', 'granny', 'mechanic', 'postman', 'student']);
+    expect(shop?.met?.every((m) => m.date === '')).toBe(true);
+  });
+
+  it('leaves a shop that has no history alone', () => {
+    expect(at({ commissions: [], stuckNotes: [] }).shop).toBeUndefined();
+  });
+});
+
 describe('upgrading the data folder', () => {
   for (const version of ['0.5.0', '0.6.1']) {
     it(`counts the work finished with ${version} and keeps every notebook entry`, () => {
@@ -76,7 +96,7 @@ describe('upgrading the data folder', () => {
     m.shop = { done: 25, grown: [], told: ['radio'] };
     writeFileSync(file, JSON.stringify(m));
     migrate(data, NOW);
-    expect(read<Memory>(file).shop).toEqual({ done: 25, grown: [], told: ['radio'] });
+    expect(read<Memory>(file).shop).toMatchObject({ done: 25, grown: [], told: ['radio'] });
   });
 
   it('finds the main piece of work for old entries, and leaves entries whose folder is gone', () => {

@@ -1,48 +1,76 @@
+import toolsUrl from '../../../assets/sprites/tools.png';
 import { strings } from '../../shared/i18n';
 import type { ActorId, AiEvent, LamplightApi, Settings } from '../../shared/types';
 import { showCaptionLog } from './captions';
 import { el, layer } from './dom';
 import { showNotebook } from './notebook';
 import { showSettings } from './setup';
+import { TOOL_ICONS, type ToolIcon } from './tool-icons';
 
 const T = strings.ui.toolbar;
 const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', designer: 'qingdai', reviewer: 'laoshi', unknown: 'xiaoju' };
 /** How many recent events the detail strip keeps. */
 const DETAIL_LINES = 3;
 
-/** The scene-wide switches the toolbar owns; other modules read them through this. */
+/** The scene-wide switches; other modules read them through this. */
 export const view = { detailed: false, muted: false };
+/** A commission is under way: the first button is about that instead. */
+let working = false;
+let paint = () => {};
+
+/** What the shop itself opens from the toolbar. */
+export type ToolbarActions = { order: () => void; shelf: () => void };
+
+/** A button's picture and its label, which shows at once on hover and keyboard focus (style.css). */
+function look(button: HTMLElement, icon: ToolIcon, label: string) {
+  button.setAttribute('data-tip', label);
+  button.setAttribute('aria-label', label);
+  button.firstElementChild!.setAttribute('style', `background-image:url(${toolsUrl});--cells:${TOOL_ICONS.length};--cell:${TOOL_ICONS.indexOf(icon)}`);
+}
 
 /**
- * Top-left buttons (the door, and its speech bubbles, take the top-right corner): detailed mode, sound, captions, Adeng's notebook, settings. Detailed mode adds a strip along the bottom
- * that says, in plain words, what the AI is really doing right now.
+ * Top-left buttons (the door, and its speech bubbles, take the top-right corner), most used first: a commission (or
+ * how the one under way is going), the works shelf, Adeng's notebook, captions, sound, settings. Everything here can also
+ * be reached without the scene (docs/information-structure.md). The strip along the bottom is a setting now.
  */
-export function mountToolbar(api: LamplightApi, settings: Settings, onChange: (s: Settings) => void) {
-  view.detailed = settings.detailed;
-  view.muted = settings.muted;
-  const save = async (patch: Partial<Settings>) => {
-    const next = await api.saveSettings(patch);
-    view.detailed = next.detailed;
-    view.muted = next.muted;
-    render();
-    onChange(next);
+export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void, act: ToolbarActions) {
+  const button = (icon: ToolIcon, label: string, onclick: () => void) => {
+    const b = el('button.tool-btn', { type: 'button', onclick }, el('span.tool-icon', { 'aria-hidden': 'true' }));
+    look(b, icon, label);
+    return b;
   };
-  const button = (label: string, glyph: string, onclick: () => void, pressed?: boolean) =>
-    el('button.tool-btn', { title: label, 'aria-label': label, 'aria-pressed': pressed === undefined ? undefined : String(pressed), onclick }, glyph);
-  const bar = el('div.toolbar', { role: 'toolbar', 'aria-label': T.label });
-  const render = () => {
-    bar.replaceChildren(
-      button(view.detailed ? T.detailedOff : T.detailedOn, '\u{1F50D}', () => void save({ detailed: !view.detailed }), view.detailed),
-      button(view.muted ? T.unmute : T.mute, view.muted ? '\u{1F507}' : '\u{1F509}', () => void save({ muted: !view.muted }), view.muted),
-      button(strings.ui.access.captionsButton, '\u{1F4DC}', showCaptionLog),
-      button(strings.ui.notebook.title, '\u{1F4D2}', () => void showNotebook(api)),
-      button(T.settings, '\u2699', () => void showSettings(api, onChange)),
-    );
+  const order = button('order', T.order, act.order);
+  const sound = button('sound', T.mute, async () => onChange(await api.saveSettings({ muted: !view.muted })));
+  const bar = el('div.toolbar', { role: 'toolbar', 'aria-label': T.label },
+    order,
+    button('works', strings.ui.shelf.title, act.shelf),
+    button('notebook', strings.ui.notebook.title, () => void showNotebook(api)),
+    button('captions', strings.ui.access.captionsButton, showCaptionLog),
+    sound,
+    button('gear', T.settings, () => void showSettings(api, onChange)));
+  const strip = el('div.detail-strip', { 'aria-live': 'polite' });
+  paint = () => {
+    look(order, working ? 'progress' : 'order', working ? T.progress : T.order);
+    order.classList.toggle('working', working);
+    look(sound, view.muted ? 'mute' : 'sound', view.muted ? T.unmute : T.mute);
+    sound.setAttribute('aria-pressed', String(view.muted));
     strip.hidden = !view.detailed;
   };
-  const strip = el('div.detail-strip', { 'aria-live': 'polite' });
   layer().append(bar, strip);
-  render();
+  paint();
+}
+
+/** Saved settings reach the toolbar and the strip under the scene. */
+export function syncToolbar(s: Settings) {
+  view.detailed = s.detailed;
+  view.muted = s.muted;
+  paint();
+}
+
+/** A commission started or ended. */
+export function setWorking(on: boolean) {
+  working = on;
+  paint();
 }
 
 /** Add an event to the detail strip (kept even while hidden, so turning it on shows the latest). */

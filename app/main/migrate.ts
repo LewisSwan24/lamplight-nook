@@ -3,15 +3,18 @@ import { basename, join } from 'node:path';
 import { grownBy } from '../shared/growth';
 import { shortTitle } from './commission';
 import { LOCALES } from '../shared/i18n';
-import type { CommissionMemo, Memory } from '../shared/types';
+import { localDay } from '../shared/localday';
+import type { CommissionMemo, GuestId, Memory } from '../shared/types';
 
 /**
  * The shape of the app's data folder. Bump it with a new step in STEPS whenever stored data changes shape.
  * 1: everything up to 0.8.1 (no marker file).
  * 2: the marker exists; the shop has counted commissions finished before 0.7, old notebook entries
  *    know their main piece of work, and English titles from before 0.8.1 read as words.
+ * 3: a shop that was already open counts every neighbour as known, so none is met for the first time on upgrade day.
  */
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
+// A step that changes memory.json has to change memory.last-good.json the same way: that copy can take its place later.
 const MARKER = 'data-version.json';
 /** Data files copied aside before a migration touches anything. */
 const BACKED_UP = ['settings.json', 'memory.json', 'spend.json', 'pending.json'];
@@ -30,6 +33,16 @@ const STEPS: Record<number, Step> = {
     if (changes.length) writeJson(file, memory);
     return changes;
   },
+  // 2 -> 3
+  3: (dir) => {
+    const file = join(dir, 'memory.json');
+    const memory = readJson<Memory>(file);
+    if (!memory?.shop || memory.shop.met) return [];
+    const neighbours = Object.keys(Object.values(LOCALES)[0].guests) as GuestId[];
+    memory.shop.met = neighbours.map((id) => ({ id, date: '' }));
+    writeJson(file, memory);
+    return ['neighbours counted as known'];
+  },
 };
 
 /**
@@ -45,7 +58,7 @@ export function migrate(dir: string, now = new Date()): MigrationResult {
   try {
     mkdirSync(dir, { recursive: true });
     if (present.length) {
-      backup = join(dir, 'backup', `${now.toISOString().slice(0, 10)}-v${from}`);
+      backup = join(dir, 'backup', `${localDay(now)}-v${from}`);
       mkdirSync(backup, { recursive: true });
       for (const f of present) copyFileSync(join(dir, f), join(backup, f));
     }
@@ -80,7 +93,7 @@ function countEarlierWork(memory: Memory, now: Date): string[] {
   const finished = memory.commissions.filter((c) => c && c.result === 'done').length;
   const shop = memory.shop ?? { done: 0, grown: [], told: [] };
   if (finished <= shop.done) return [];
-  const date = now.toISOString().slice(0, 10);
+  const date = localDay(now);
   const have = new Set(shop.grown.map((g) => g.id));
   const added = grownBy(finished).filter((id) => !have.has(id));
   memory.shop = { ...shop, done: finished, grown: [...shop.grown, ...added.map((id) => ({ id, date }))] };

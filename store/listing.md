@@ -20,17 +20,19 @@ Text for Partner Center (Store listings, one per language). Keep both languages 
 遇到要你拿主意的地方，他们会来问你；删文件这类找不回来的事，一定先问过你，默认是“先不要”。
 
 - 真实的进度：店员们的一举一动都来自 Claude 的真实事件，不是动画演给你看。
+- 随时能查：点柜台、黑板或工具栏，就能看到用了多久、做到哪一步、谁在做什么，也能插句话或者喊停。
+- 点什么都有回应：窗户、时钟、灯、小猫和店员，点了都有反应，而且不花钱。
 - 东西交给你：做好的东西放进作品架，随时打开，也可以再改一轮，旧版本留着。
 - 可以交材料：把文件拖到柜台上，店员们只用副本，原件不动。
 - 花多少心里有数：每次开工有花费上限，到了就停下来问你。
-- 小店会长大：一起做完的委托越多，店里越热闹，还能自己布置墙纸、窗帘和地毯。
+- 小店会长大：做过什么，店里就添什么，相应的街坊也会来串门。墙纸、窗帘和地毯可以自己布置。
 - 中文和英文两种界面。
 
 ### 使用前需要
 
 - 电脑上装好 Claude Code（小灯屋会一步步带你装）。
 - 一把你自己的 Anthropic API Key，在应用里粘贴即可，加密保存在这台电脑上。费用按你自己的 Key 计费，小灯屋不另外收费。
-- 订阅了 Claude Max、Ultra 或 Team 的话，方案每月附带的 Claude API 赠送额度也可以用在小灯屋：在 claude.ai 的账单设置里把额度关联到一个 Claude Console 组织，再用这个组织创建的 API Key 就行。
+- 订阅了 Claude Max、Ultra 或 Team 的话，方案每月附带的 Claude API 赠送额度也可以用在小灯屋。做法是在 claude.ai 的账单设置里把额度关联到一个 Claude Console 组织，再用这个组织创建的 API Key。
 
 ### 隐私
 
@@ -54,10 +56,12 @@ real plan, ticking items off as they are done. When something is yours to decide
 undone, such as deleting files, always waits for you, and the default is "not now".
 
 - Real progress: every move the staff make comes from Claude's real events, not a canned animation.
+- Look any time: the counter, the blackboard or the toolbar show how long it has taken, how far it has got and who is doing what, and you can add a word or call it off.
+- Everything answers a click: the windows, the clock, the lamps, the cat and the staff all respond, and it costs nothing.
 - Work you keep: finished pieces go on the works shelf, ready to open, and can go through another round with the old version kept.
 - Hand over files: drop them on the counter; the staff work on copies and never touch the originals.
 - Spending you can see: each commission has a spending cap, and the shop stops and asks when it is reached.
-- A shop that grows: the more commissions you finish together, the livelier it gets, and you can choose the walls, curtains and rug.
+- A shop that grows: what you make shows up in the shop, and the neighbours who care about it drop in. You can choose the walls, curtains and rug.
 - In English and Simplified Chinese.
 
 ### What you need

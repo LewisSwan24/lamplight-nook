@@ -1,9 +1,25 @@
-import { appendFileSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { RawAgentEvent } from '../shared/types';
 import { redactSecrets } from './api-key';
 
 const MAX_TEXT = 2000;
+/** Records of runs kept: they are for looking into a problem soon after it happened, not an archive. */
+export const MAX_RECORDINGS = 50;
+
+/** File names start with the time, so the oldest sort first. Keeps the newest `keep`. */
+export function pruneRecordings(dir: string, keep = MAX_RECORDINGS) {
+  if (!existsSync(dir)) return;
+  const names = readdirSync(dir).sort();
+  for (const name of names.slice(0, Math.max(0, names.length - keep))) {
+    // Antivirus or an indexer may be holding it: it goes next time, and a shop must not fail to open over it.
+    try {
+      rmSync(join(dir, name), { force: true });
+    } catch {
+      continue;
+    }
+  }
+}
 
 /** Truncate long strings so recordings don't fill up with whole command outputs, and mask anything shaped like a key. */
 export function truncateDeep(value: unknown, depth = 0): unknown {

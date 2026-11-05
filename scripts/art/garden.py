@@ -37,6 +37,9 @@ PATH = [(152, y) for y in range(48, 112, T)] + [(x, 112) for x in range(120, 216
 PLANTER = (80, 234, 112, 256)
 PLANTERS = [(20, 70), (54, 70), (20, 98), (54, 98)]
 VEG = [(65, 178, 78, 192), (97, 178, 110, 192), (81, 83, 92, 93), (64, 84, 77, 94), (113, 81, 128, 96), (96, 81, 112, 96)]
+# A sprout, drawn here: a stem and two leaves.
+LEAF, STEM = (112, 176, 84, 255), (70, 124, 60, 255)
+SPROUT = {(3, 15): STEM, (3, 14): STEM, (3, 13): STEM, (2, 12): LEAF, (1, 12): LEAF, (1, 11): LEAF, (4, 12): LEAF, (5, 12): LEAF, (5, 11): LEAF, (4, 11): LEAF, (2, 11): LEAF}
 # A tree with a bench under it, right of the path; flowers along the front.
 TREE = ('ME_Singles_City_Props_16x16_Tree_11.png', (236, 46))
 BENCH = ('ME_Singles_Garden_16x16_Small_Bench_Vertical.png', (288, 98))
@@ -80,9 +83,6 @@ def build():
     planter = fences.crop(PLANTER)
     for i, (x, y) in enumerate(PLANTERS):
         img.alpha_composite(planter, (x, y))
-        for j in range(2):
-            veg = crops.crop(VEG[(i * 2 + j) % len(VEG)])
-            img.alpha_composite(veg, (x + 2 + j * 14, y + 14 - veg.height))
     for name, pos in [HENHOUSE, DOGHOUSE, BOWL]:
         img.alpha_composite(Image.open(FARM_SINGLES / name).convert('RGBA'), pos)
     for name, pos in [TREE, BENCH, *FLOWERS]:
@@ -92,7 +92,19 @@ def build():
         img.alpha_composite(fence, (x, H - fence.height + 2))
     OUT.mkdir(parents=True, exist_ok=True)
     img.save(OUT / 'garden.png')
+    crop_sheet(crops)
     return img
+
+
+def crop_sheet(crops):
+    """What grows in the beds (app/shared/growth.ts, BEDS): the eight plants, feet at the bottom left of a 16x16 cell, then a sprout."""
+    sheet = Image.new('RGBA', (16 * 9, 16), (0, 0, 0, 0))
+    for i in range(8):
+        veg = crops.crop(VEG[i % len(VEG)])
+        sheet.alpha_composite(veg, (i * 16, 16 - veg.height))
+    for (x, y), colour in SPROUT.items():
+        sheet.putpixel((8 * 16 + x, y), colour)
+    sheet.save(OUT / 'garden-crops.png')
 
 
 if __name__ == '__main__':

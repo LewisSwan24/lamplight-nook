@@ -252,6 +252,10 @@ garden:
 
 # Something new in the shop (shared/growth.ts): said once, a little after the commission that brought it is done.
 grow:
+  - { id: grow_birthday, speaker: adeng, when: grow_birthday, bubbles: ["It's the shop's birthday today.", "We finished our first job on this day."] }
+  - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["There's a sprout in the beds out back.", "Planted the day the first job was done."] }
+  - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["First vegetable out back is ripe.", "Been growing since that first job."] }
+  - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["The beds out back are full now.", "Every one of them from work we did together."] }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["There's a little painting on the wall.", "Bought it the day we finished the first job."] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the counter!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["Fairy lights over the windows.", "The shop looks warmer at night."] }
@@ -260,6 +264,15 @@ grow:
   - { id: grow_bonsai, speaker: adeng, when: grow_bonsai, bubbles: ["A neighbour gave us that bonsai.", "Said we're busy and need something slow."] }
   - { id: grow_easel, speaker: qingdai, when: grow_easel, bubbles: ["I've brought my easel over.", "I'll paint a bit when it's quiet."] }
   - { id: grow_trophy, speaker: xiaoju, when: grow_trophy, bubbles: ["I made this little trophy!", "For the twenty jobs we've done."], reply: { speaker: laoshi, bubbles: ["It's crooked."] } }
+  - { id: grow_portrait, speaker: qingdai, when: grow_portrait, bubbles: ["Painted us a little portrait. It's up."] }
+  - { id: grow_sunset, speaker: qingdai, when: grow_sunset, bubbles: ["That sunset took me ages."] }
+  - { id: grow_star, speaker: adeng, when: grow_star, bubbles: ["Fifty commissions.", "Clem cut out that star."] }
+  - { id: grow_album, speaker: qingdai, when: grow_album, bubbles: ["An album stays on the table now."] }
+  - { id: grow_calendar, speaker: adeng, when: grow_calendar, bubbles: ["A calendar went up.", "The days fit better now."] }
+  - { id: grow_globe, speaker: adeng, when: grow_globe, bubbles: ["A globe on the bookcase.", "Good for looking things up."] }
+  - { id: grow_letters, speaker: xiaoju, when: grow_letters, bubbles: ["Letters on the wall!", "They all came back to us."] }
+  - { id: grow_ledger, speaker: laoshi, when: grow_ledger, bubbles: ["A ledger on the table.", "Keep it straight."] }
+  - { id: grow_monitor, speaker: xiaoju, when: grow_monitor, bubbles: ["A computer on the little table!", "It even turns on."] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["Fruit on the reading table!", "The tangerines are mine."] }

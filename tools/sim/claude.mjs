@@ -8,7 +8,7 @@
 //
 // Environment:
 //   SIM_SPEED      milliseconds per step (default 700); 0 runs as fast as possible
-//   SIM_SCENARIO   a twist on the play: budget | neterror | longwait | stuck (default none)
+//   SIM_SCENARIO   a twist on the play: budget | neterror | longwait | stuck | crash (default none)
 //   SIM_COST       dollars charged per tool call (default 0.018)
 //   SIM_STATE_DIR  where sessions are kept so --resume can continue them (default <tmp>/lamplight-sim)
 //   SIM_LOG        append every message in and out to this file
@@ -127,15 +127,17 @@ function makeStage(state) {
   });
   const result = (subtype, extra) => out({
     type: 'result', subtype, session_id: session, uuid: nextId('u'), duration_ms: 1000, duration_api_ms: 800, num_turns: stepNo,
-    total_cost_usd: Math.round(spent * 10000) / 10000, usage: { input_tokens: 0, output_tokens: 0 }, permission_denials: [], ...extra,
+    total_cost_usd: Math.round(((state.paid ?? 0) + spent) * 10000) / 10000, usage: { input_tokens: 0, output_tokens: 0 }, permission_denials: [], ...extra,
   });
 
   /** Charge for a call; stop with the budget result once the cap is passed (the SDK's own --max-budget-usd). */
   const charge = (times = 1) => {
     spent += COST * times * (SCENARIO === 'budget' ? 12 : 1);
     if (budget !== undefined && spent >= budget) {
-      saveState(state);
+      // The cap counts this process only, while the reported total carries over a --resume.
       result('error_max_budget_usd', { is_error: true, errors: [`Reached maximum budget ($${budget})`] });
+      state.paid = (state.paid ?? 0) + spent;
+      saveState(state);
       throw new Stopped();
     }
   };
@@ -315,6 +317,8 @@ async function run(prompt) {
   });
   const stage = makeStage(state);
   try {
+    // Falls over once: carrying on (--resume) gets through.
+    if (SCENARIO === 'crash' && !resumeId) setTimeout(() => process.exit(1), 6 * SPEED);
     await play.run(stage, { scenario: SCENARIO, prompt });
   } catch (err) {
     if (!(err instanceof Stopped)) {

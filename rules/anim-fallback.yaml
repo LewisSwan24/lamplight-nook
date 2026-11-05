@@ -6,17 +6,19 @@
 staff:
   available: [idle, walk, sleep, sit, phone, read, push, pick_up, gift, lift, throw]
   fallback:
-    write: { anim: sit }
-    drink: { anim: sit, bubble: tea }
-    spin_cup: { anim: sit, bubble: dots }
-    hammer: { anim: lift, bubble: dots }
+    # Drawn at the hand (game/props.ts): the pack has no writing or drinking, so a pencil or a cup does the telling.
+    write: { anim: sit, prop: pencil }
+    drink: { anim: idle, prop: cup, bubble: tea }
+    spin_cup: { anim: idle, prop: cup, bubble: dots }
+    hammer: { anim: lift, prop: hammer, bubble: dots }
+    # No coat in the pack: leaving through the door says it well enough.
     put_on_coat: { anim: walk }
+    # No such move in the pack: the sweat drop is the point.
     scratch_head: { anim: idle, bubble: sweat }
 
 cat:
-  available: [lie]
+  available: [lie, walk]
   fallback:
     idle: { anim: lie }
     sleep: { anim: lie }
     rub_leg: { anim: lie, bubble: idea }
-    walk: { anim: lie }

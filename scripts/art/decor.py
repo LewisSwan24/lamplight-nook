@@ -22,12 +22,12 @@ PIECES = {
     'halloween': [
         (halloween, (14, 4, 62, 22), (128, 17)),  # bunting with bats and ghosts, on the wall
         (halloween, (128, 8, 160, 24), (24, 26)),  # two jack-o'-lanterns on the window sill
-        (halloween, (83, 7, 93, 22), (278, 46)),  # a small pumpkin on the counter
+        (halloween, (83, 7, 93, 22), (28, 97)),  # a small pumpkin beside the pile
         (halloween, (163, 6, 189, 28), (2, 90)),  # a pile of pumpkins by the bookshelf
     ],
     'christmas': [
-        (christmas, (17, 12, 47, 47), (290, 60)),  # the tree, right of the counter
-        (christmas, (0, 100, 30, 140), (290, 56)),  # its lights and star
+        (christmas, (17, 12, 47, 47), (288, 143)),  # the tree, in the corner past the lamp
+        (christmas, (0, 100, 30, 140), (288, 139)),  # its lights and star
         (christmas, (174, 6, 194, 28), (264, 18)),  # a wreath on the wall by the door
         (christmas, (226, 109, 238, 128), (150, 66)),  # a little tree on the big table
         (christmas, (147, 10, 157, 25), (136, 22)),  # stockings along the wall
@@ -102,10 +102,10 @@ WEATHER_COLORS = {
 # A wet umbrella leaning right of the door, with a puddle under it.
 UMBRELLA_POS = (306, 34)
 # Fallen leaves and petals: (x, y, colour) for little two-pixel pieces on the floor and the window sills.
-LEAVES = [(286, 54, 'l'), (299, 58, 'o'), (308, 52, 'l'), (276, 60, 'o'), (292, 63, 'l'), (281, 50, 'o'), (30, 27, 'l'), (66, 27, 'o')]
-PETALS = [(26, 27, 'p'), (40, 27, 'p'), (62, 27, 'p'), (74, 27, 'p'), (34, 50, 'p'), (58, 54, 'p'), (88, 48, 'p'), (46, 58, 'p'), (22, 62, 'p')]
-# The window sills in cafe.png: the x range of both windows, the row of the sill's top and its wood colours.
-SILLS = (16, 84)
+LEAVES = [(286, 54, 'l'), (299, 58, 'o'), (308, 52, 'l'), (276, 60, 'o'), (292, 63, 'l'), (281, 50, 'o'), (30, 27, 'l'), (66, 27, 'o'), (209, 27, 'l')]
+PETALS = [(26, 27, 'p'), (40, 27, 'p'), (62, 27, 'p'), (74, 27, 'p'), (205, 27, 'p'), (217, 27, 'p'), (34, 50, 'p'), (58, 54, 'p'), (88, 48, 'p'), (46, 58, 'p'), (22, 62, 'p')]
+# The window sills in cafe.png: the x range of the windows, the row of the sill's top and its wood colours.
+SILLS = (range(16, 84), range(197, 225))
 SILL_Y = 29
 SILL_WOOD = {(181, 117, 77), (199, 140, 89)}
 SNOW = (255, 255, 255, 255)
@@ -128,11 +128,12 @@ def weather():
     snow = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     cafe = Image.open(OUT / 'cafe.png').convert('RGB')
     # Snow piles on the window sills: wherever the sill's wood shows, a white line on top, a little higher here and there.
-    for x in range(SILLS[0], SILLS[1]):
-        if cafe.getpixel((x, SILL_Y)) in SILL_WOOD:
-            snow.putpixel((x, SILL_Y - 1), SNOW)
-            if x % 4 == 1:
-                snow.putpixel((x, SILL_Y - 2), SNOW)
+    for sill in SILLS:
+        for x in sill:
+            if cafe.getpixel((x, SILL_Y)) in SILL_WOOD:
+                snow.putpixel((x, SILL_Y - 1), SNOW)
+                if x % 4 == 1:
+                    snow.putpixel((x, SILL_Y - 2), SNOW)
 
     leaves = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     for x, y, c in LEAVES:

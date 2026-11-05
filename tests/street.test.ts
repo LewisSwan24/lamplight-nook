@@ -8,7 +8,7 @@ describe('street inset', () => {
     expect(INSET.y + INSET.h).toBeLessThanOrEqual(CANVAS.height);
     const counter = ZONES.find((z) => z.id === 'counter')!;
     expect(counter.y + counter.h).toBeLessThan(INSET.y);
-    for (const spot of Object.values(SEATS.table ?? {})) expect(spot!.y).toBeLessThan(INSET.y);
+    for (const spot of Object.values(SEATS.table ?? {})) expect(spot!.y < INSET.y || spot!.x + 8 <= INSET.x).toBe(true);
     for (const id of ['adeng', 'xiaoju', 'laoshi'] as const) {
       // A character is 16px wide, centred on its feet.
       expect(standPoint('corner', id).x + 8).toBeLessThanOrEqual(INSET.x);

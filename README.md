@@ -52,7 +52,7 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 | `npm run smoke` | Build and capture screenshots |
 | `npm run record -- <hello\|subagents> <folder>` | Run a debug task headlessly and record its events |
 | `npm run accept` | Simulated acceptance run in Chinese and English, against a stand-in for Claude Code (no API calls; see `tools/README.md`) |
-| `npm run store-shots` | Store screenshots, website pictures and the trailer (Linux with Xvfb and ffmpeg) |
+| `npm run store-shots` | Store screenshots, website pictures and the trailer (needs ffmpeg) |
 
 ## Windows installer
 
@@ -103,6 +103,7 @@ python3 scripts/art/characters.py   # the three staff from generator layers, rec
 python3 scripts/art/scene.py        # the 320x180 cafe background
 python3 scripts/art/furnish.py      # wall, curtain and rug colour choices for each scene (needs only the backgrounds)
 python3 scripts/art/growth.py --icons  # the works-shelf icons alone (without --icons it also needs the pack)
+python3 scripts/art/tools.py           # the toolbar icons
 ```
 
 Character sheets keep the generator layout: 16x32 frames, 56 per row, directional animations in

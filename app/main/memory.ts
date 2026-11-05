@@ -1,10 +1,12 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
-import { grownBy, workIcon, type GrowthId } from '../shared/growth';
-import type { CommissionMemo, Memory, Recall, ShopDays, ShopState } from '../shared/types';
+import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
+import { localDay } from '../shared/localday';
+import { forgetAside, putAside } from './aside';
+import type { CommissionMemo, DataDamage, GuestId, Memory, Recall, ShopDays, ShopState } from '../shared/types';
 
-/** How much is kept: the shop remembers recent work, not everything. */
-const MAX_COMMISSIONS = 20;
+/** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
+const RECENT_FOR_NOTES = 20;
 const MAX_NOTES = 10;
 /** Rounds of changes remembered per commission. */
 const MAX_ASKS = 10;
@@ -14,13 +16,46 @@ const empty = (): Memory => ({ commissions: [], stuckNotes: [] });
 /**
  * Adeng's notebook (tech 8): past commissions with the choices the user made, and the places where the
  * work got stuck. Only these summaries are kept, never the conversation. Stored as JSON in the app's
- * data folder; a missing or broken file means an empty notebook.
+ * data folder. A file that cannot be read is put aside, never written over, and the copy made when the shop last
+ * opened takes its place; `damage` says so, for the shop to tell the user.
  */
 export class MemoryStore {
   private data: Memory;
+  damage: DataDamage['notebook'] = null;
 
   constructor(private file: string) {
-    this.data = this.read();
+    this.data = this.open();
+  }
+
+  private get lastGood() {
+    return join(dirname(this.file), 'memory.last-good.json');
+  }
+
+  private open(): Memory {
+    const there = existsSync(this.file);
+    if (!there && !existsSync(this.lastGood)) return empty();
+    const good = there ? this.read(this.file) : null;
+    if (good) {
+      this.copyToLastGood();
+      return good;
+    }
+    if (there) putAside(this.file);
+    const copy = existsSync(this.lastGood) ? this.read(this.lastGood) : null;
+    this.damage = !copy ? 'lost' : there ? 'restored' : 'missing';
+    if (copy) copyFileSync(this.lastGood, this.file);
+    return copy ?? empty();
+  }
+
+  /** Only a spare: a full disk or a locked file must not stop the shop opening, or spoil the copy already there. */
+  private copyToLastGood() {
+    const tmp = `${this.lastGood}.tmp`;
+    try {
+      copyFileSync(this.file, tmp);
+      renameSync(tmp, this.lastGood);
+    } catch {
+      // Left behind if it cannot go either; the next opening writes over it.
+      try { rmSync(tmp, { force: true }); } catch { /* held by something else */ }
+    }
   }
 
   get(): Memory {
@@ -29,13 +64,17 @@ export class MemoryStore {
 
   /** Write down a finished (or failed) commission and what got stuck along the way. Returns its entry. */
   remember(memo: Omit<CommissionMemo, 'id' | 'date'>, stuck: string[], now = new Date()): CommissionMemo {
-    const date = now.toISOString().slice(0, 10);
+    const date = localDay(now);
     // Ids are c<time>; two entries in the same millisecond still get different ones.
     let t = now.getTime();
     while (this.data.commissions.some((c) => c.id === `c${t}`)) t++;
-    const entry: CommissionMemo = { ...memo, id: `c${t}`, date };
+    // Carrying on after a stop is still the same commission: what stopped is replaced, not listed twice, and what was
+    // answered before the stop still counts.
+    const stopped = (c: CommissionMemo) => memo.folder && c.folder === memo.folder && c.result === 'failed';
+    const before = this.data.commissions.find(stopped);
+    const entry: CommissionMemo = { ...memo, choices: { ...before?.choices, ...memo.choices }, id: `c${t}`, date };
+    this.data.commissions = this.data.commissions.filter((c) => !stopped(c));
     this.data.commissions.push(entry);
-    this.data.commissions = this.data.commissions.slice(-MAX_COMMISSIONS);
     this.note(memo.title, stuck, date);
     this.save();
     return structuredClone(entry);
@@ -48,7 +87,7 @@ export class MemoryStore {
   revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main'>>, stuck: string[], now = new Date()): CommissionMemo | null {
     const at = this.data.commissions.findIndex((c) => c.id === id);
     if (at < 0) return null;
-    const date = now.toISOString().slice(0, 10);
+    const date = localDay(now);
     const [old] = this.data.commissions.splice(at, 1);
     const entry: CommissionMemo = {
       ...old,
@@ -76,13 +115,23 @@ export class MemoryStore {
   finished(now = new Date()): GrowthId[] {
     const shop = this.shop();
     shop.done++;
-    const date = now.toISOString().slice(0, 10);
+    const date = localDay(now);
     const have = new Set(shop.grown.map((g) => g.id));
-    const fresh = grownBy(shop.done).filter((id) => !have.has(id));
+    const works = this.data.commissions.filter((c) => c.result === 'done').map((c) => ({ icon: workIcon(c.form) }));
+    const fresh = grownBy(shop.done, madeOf(works)).filter((id) => !have.has(id));
     shop.grown.push(...fresh.map((id) => ({ id, date })));
     this.data.shop = shop;
     this.save();
     return fresh;
+  }
+
+  /** A neighbour has come to the shop: only the first time is written down. */
+  markMet(id: GuestId, now = new Date()) {
+    const shop = this.shop();
+    if (shop.met?.some((m) => m.id === id)) return;
+    shop.met = [...(shop.met ?? []), { id, date: localDay(now) }];
+    this.data.shop = shop;
+    this.save();
   }
 
   /** A one-off story has been told. */
@@ -97,13 +146,26 @@ export class MemoryStore {
   /** The shop's days and the works shelf: finished commissions, latest first. */
   shopState(): ShopState {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
-      id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
+      id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main), want: c.form?.want,
     }));
     return { ...structuredClone(this.shop()), works };
   }
 
   private shop(): ShopDays {
     return this.data.shop ?? { done: 0, grown: [], told: [] };
+  }
+
+  /**
+   * A work's folder was moved, and the user pointed to where it is now. It may have landed among other things, and only
+   * its main file was checked, so all that is there now counts as the user's: nothing later clears it away. The staff's
+   * session stays behind, because it belongs to the old folder; they pick up from the summary instead.
+   */
+  relink(id: string, folder: string) {
+    const memo = this.data.commissions.find((c) => c.id === id)!;
+    memo.folder = folder;
+    memo.preexisting = readdirSync(folder).map((name) => join(folder, name));
+    delete memo.sessionId;
+    this.save();
   }
 
   find(id: string): CommissionMemo | undefined {
@@ -133,9 +195,13 @@ export class MemoryStore {
   clear() {
     this.data = empty();
     rmSync(this.file, { force: true });
+    rmSync(`${this.file}.tmp`, { force: true });
+    rmSync(this.lastGood, { force: true });
+    forgetAside(this.file);
     const backups = join(dirname(this.file), 'backup');
     if (!existsSync(backups)) return;
-    for (const dir of readdirSync(backups)) rmSync(join(backups, dir, basename(this.file)), { force: true });
+    // A copy of an unfinished commission says what it was about as well.
+    for (const dir of readdirSync(backups)) for (const name of [basename(this.file), 'pending.json']) rmSync(join(backups, dir, name), { force: true });
   }
 
   /**
@@ -185,25 +251,26 @@ export class MemoryStore {
   promptNotes(title: string): string {
     const lines: string[] = [];
     const choices = new Map<string, string>();
-    for (const c of this.data.commissions) for (const [q, a] of Object.entries(c.choices)) choices.set(q, a);
+    for (const c of this.data.commissions.slice(-RECENT_FOR_NOTES)) for (const [q, a] of Object.entries(c.choices)) choices.set(q, a);
     for (const [q, a] of choices) lines.push(`- Asked "${q}" before, the user chose "${a}".`);
     for (const n of this.data.stuckNotes.filter((s) => s.commission === title)) lines.push(`- On this commission before, "${n.note}" failed at first.`);
     return lines.length ? `Notes from earlier commissions with this user (summaries only):\n${lines.join('\n')}` : '';
   }
 
-  private read(): Memory {
+  private read(file: string): Memory | null {
     try {
-      const m = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<Memory>;
+      const m = JSON.parse(readFileSync(file, 'utf8')) as Partial<Memory>;
+      if (!Array.isArray(m.commissions)) return null;
       return {
-        commissions: Array.isArray(m.commissions) ? m.commissions.filter((c) => c && typeof c.title === 'string' && c.choices && typeof c.choices === 'object') : [],
+        commissions: m.commissions.filter((c) => c && typeof c.title === 'string' && c.choices && typeof c.choices === 'object'),
         stuckNotes: Array.isArray(m.stuckNotes) ? m.stuckNotes.filter((n) => n && typeof n.note === 'string' && typeof n.commission === 'string') : [],
         greeted: typeof m.greeted === 'string' ? m.greeted : undefined,
         shop: m.shop && typeof m.shop.done === 'number'
-          ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [] }
+          ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [], met: Array.isArray(m.shop.met) ? m.shop.met : undefined }
           : undefined,
       };
     } catch {
-      return empty();
+      return null;
     }
   }
 

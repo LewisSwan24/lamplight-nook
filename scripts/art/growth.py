@@ -24,19 +24,59 @@ def single(folder, name):
 ART = '7_Art_Singles_Shadowless'
 LIVING = '2_Living_Room_Singles_Shadowless'
 MUSIC = '6_Music_and_Sport_Shadowless'
+CLASSROOM = '5_Classroom_and_Library_Singles_Shadowless'
+
+# Drawn by hand where the pack has nothing small enough. x outline, G gold; the rest as COLORS below.
+DRAWN = {
+    'calendar': ['xxxxxxxxxxxx', 'xrrrrrrrrrrx', 'xrrwrrrrwrrx', 'xxxxxxxxxxxx', 'xwwwwwwwwwwx', 'xwlwlwlwlwwx',
+                 'xwwwwwwwwwwx', 'xwlwlwrwlwwx', 'xwwwwwwwwwwx', 'xwlwlwlwwwwx', 'xwwwwwwwwwwx', 'xxxxxxxxxxxx'],
+    'letters': ['xxxxxxxxxxxxxx', 'xoooooooooooox', 'xowwwwwoooooox', 'xowlllwoppppox', 'xowwwwwoprrpox', 'xoooooooppppox',
+                'xooooyyyyyooox', 'xooooylllyooox', 'xooooyyyyyooox', 'xoooooooooooox', 'xxxxxxxxxxxxxx'],
+    'album': ['xxxxxxxxxxxxxx', 'xwwwwwwxwwwwwx', 'xwuuuuwxwgggwx', 'xwuyuuwxwgsgwx', 'xwuuuuwxwgggwx', 'xwwwwwwxwwwwwx',
+              'xbbbbbbxbbbbbx', 'xxxxxxxxxxxxxx'],
+    'ledger': ['xxxxxxxxxxxx', 'xgggggggggwx', 'xgyyyyyyggwx', 'xgggggggggwx', 'xgggggggggwx', 'xgggggggggwx',
+               'xwwwwwwwwwwx', 'xxxxxxxxxxxx'],
+    'monitor': ['xxxxxxxxxxxxxx', 'xddddddddddddx', 'xdxxxxxxxxxxdx', 'xdxuuuuuuuuxdx', 'xdxuwwwuuuuxdx', 'xdxuuuuwwuuxdx',
+                'xdxuwwuuuuuxdx', 'xdxxxxxxxxxxdx', 'xddddddddddddx', 'xxxxxxxxxxxxxx', '....xddddx....', '..xxxxxxxxxx..',
+                '..xddddddddx..', '..xxxxxxxxxx..'],
+    'star': ['xxxxxxxxxxxx', 'xbbbbbbbbbbx', 'xbuuuuGuuubx', 'xbuuuGGGuubx', 'xbGGGGGGGGbx', 'xbuGGGGGGubx', 'xbuuGGGGuubx',
+             'xbuGGuuGGubx', 'xbGuuuuuuGbx', 'xbbbbbbbbbbx', 'xxxxxxxxxxxx'],
+}
+
+
+def drawn(name):
+    rows = DRAWN[name]
+    img = Image.new('RGBA', (len(rows[0]), len(rows)), (0, 0, 0, 0))
+    for y, row in enumerate(rows):
+        assert len(row) == len(rows[0]), (name, row)
+        for x, c in enumerate(row):
+            if c != '.':
+                img.putpixel((x, y), COLORS[c])
+    return img
+
 
 # Growth id -> pieces: (single, top-left of its trimmed image on the canvas). Kept clear of the anchors and
 # walking paths in layout.ts, and of the holiday decorations where they can be (decor.py).
 def pieces_by_id():
     return {
         'painting': [(single(ART, 'Art_Singles_Shadowless_46.png'), (226, 24))],  # a little landscape between the doors
-        'plant': [(single(LIVING, 'Living_Room_Singles_Shadowless_15.png'), (218, 48))],  # a pot plant at the end of the counter
+        'plant': [(single(LIVING, 'Living_Room_Singles_Shadowless_15.png'), (215, 71))],  # a pot plant at the front end of the counter, clear of Adeng's face
         'lights': [(single(LIVING, 'Living_Room_Singles_Shadowless_12.png'), (x, 18)) for x in (19, 55)],  # fairy lights over the windows
         'fruit': [(single(LIVING, 'Living_Room_Singles_Shadowless_49.png'), (166, 82))],  # a bowl of fruit on the big table
-        'guitar': [(single(MUSIC, 'Music_and_Sport_Singles_Shadowless_206.png'), (300, 146))],  # Laoshi's mended guitar in the corner
+        'guitar': [(single(MUSIC, 'Music_and_Sport_Singles_Shadowless_206.png'), (246, 22))],  # Laoshi's mended guitar in the corner
         'bonsai': [(single(ART, 'Art_Singles_Shadowless_21.png'), (27, 93))],  # a bonsai on top of the bookcase
         'easel': [(single(ART, 'Art_Singles_Shadowless_38.png'), (302, 72))],  # Qingdai's easel by the front wall
         'trophy': [(single(MUSIC, 'Music_and_Sport_Singles_Shadowless_140.png'), (44, 97))],  # a small cup beside the bonsai
+        'portrait': [(single(ART, 'Art_Singles_Shadowless_44.png'), (262, 24))],  # Qingdai's little portrait past the guitar
+        'sunset': [(single(ART, 'Art_Singles_Shadowless_45.png'), (275, 24))],  # and her sunset beside it
+        'star': [(drawn('star'), (164, 19))],  # fifty commissions: a gold star over the works shelf
+        # Pieces that come from a kind of work (shared/growth.ts).
+        'album': [(drawn('album'), (134, 84))],  # an open album on the big table
+        'calendar': [(drawn('calendar'), (129, 19))],  # a calendar over the works shelf
+        'globe': [(single(CLASSROOM, 'Classroom_and_Library_Singles_Shadowless_34.png'), (11, 93))],  # on top of the bookcase
+        'letters': [(drawn('letters'), (146, 19))],  # a board of letters beside the calendar
+        'ledger': [(drawn('ledger'), (155, 85))],  # a ledger on the big table
+        'monitor': [(drawn('monitor'), (129, 133))],  # an old computer on the little table
     }
 
 # Works-shelf icons, 8x8 each, in this order (shared/growth.ts WORK_ICONS):
@@ -57,6 +97,7 @@ COLORS = {
     'b': (122, 82, 54, 255), 'y': (243, 226, 178, 255), 's': (226, 156, 84, 255), 'g': (104, 150, 96, 255),
     'u': (72, 104, 160, 255), 'w': (250, 246, 236, 255), 'd': (150, 130, 110, 255), 'r': (200, 72, 60, 255),
     'k': (120, 80, 48, 255), 'o': (176, 128, 80, 255), 'l': (150, 150, 150, 255), 'p': (214, 150, 150, 255),
+    'x': (42, 34, 51, 255), 'G': (232, 184, 74, 255),
 }
 ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album']
 

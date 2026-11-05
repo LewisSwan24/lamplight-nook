@@ -13,6 +13,8 @@ const { registerHooks } = require('node:module');
 const { dirname, join } = require('node:path');
 
 const { app } = electron;
+// A native error box would wait for a click nobody can make; it is written down instead.
+if (process.env.SIM_ERRORBOX) electron.dialog.showErrorBox = (title, text) => require('node:fs').writeFileSync(process.env.SIM_ERRORBOX, `${title}\n${text}`);
 const home = process.env.SIM_HOME;
 const data = process.env.SIM_DATA;
 if (!home || !data) {
