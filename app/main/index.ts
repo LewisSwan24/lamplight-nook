@@ -457,6 +457,20 @@ ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
 });
 /** Commissions put back to their previous version since their last round (the next round is told). */
 const restoredSince = new Set<string>();
+ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  // Not the one being worked on, and one with no main file gives nothing to recognise it by (the shelf offers neither).
+  if (!memo?.main || current?.workDir === memo.folder) return 'cancelled';
+  const r = await dialog.showOpenDialog(win!, { title: fill(strings.ui.shelf.relinkDialog, { main: memo.main }), properties: ['openDirectory'] });
+  if (r.canceled) return 'cancelled';
+  const folder = r.filePaths[0];
+  if (!existsSync(join(folder, memo.main))) return 'wrong';
+  memory.relink(memo.id, folder);
+  // What was kept of it came from the old folder; nothing may be put back over the new one.
+  versions.drop(memo.id);
+  restoredSince.delete(memo.id);
+  return 'found';
+});
 ipcMain.handle(IPC.restorePrevious, (_e, id: string): boolean => {
   if (current || typeof id !== 'string') return false;
   const memo = memory.find(id);

@@ -354,6 +354,52 @@ const SCENARIOS = {
     }
   },
 
+  /** A work's folder was moved: the shelf says so, and takes the new place only if the work is really there. */
+  async moved(lang, out) {
+    const W = locale(lang).ui.shelf;
+    const home = freshHome();
+    const was = join(home.home, 'was');
+    const now = join(home.home, 'now');
+    const wrong = join(home.home, 'wrong');
+    for (const d of [now, wrong]) mkdirSync(d, { recursive: true });
+    writeFileSync(join(now, 'page.html'), 'x');
+    writeFileSync(join(now, 'mine.txt'), 'x');
+    const work = { id: 'c1760000000000', title: 'A page', date: '2025-10-09', result: 'done', choices: {}, folder: was, main: 'page.html', sessionId: 's1', form: { want: 'x', template: 'demo' } };
+    writeFileSync(join(home.data, 'memory.json'), JSON.stringify({ commissions: [work], stuckNotes: [], greeted: work.id, shop: { done: 1, told: [], grown: [], met: [] } }));
+    writeFileSync(join(home.data, 'settings.json'), JSON.stringify(onboarded(lang)));
+    const shop = await launch({ lang, home, debug: true });
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions[0];
+    try {
+      await shop.app.evaluate(({ shell }) => { globalThis.opened = []; shell.openPath = async (p) => { globalThis.opened.push(p); return ''; }; });
+      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.waitForSelector('.shelf-card');
+      const row = shop.page.locator('.shelf-card li.work');
+      await row.locator('.work-actions button').first().click();
+      await row.locator('.work-note button').waitFor();
+      check((await row.locator('.work-note').innerText()).includes(W.gone), 'the shelf does not say it is gone');
+
+      await shop.pickFiles([wrong]);
+      await row.locator('.work-note button').click();
+      await sleep(400);
+      check((await row.locator('.work-note').innerText()).includes(W.relinkWrong), 'a folder without the work was not refused');
+      check(saved().folder === was, 'a folder without the work was taken');
+
+      await shop.pickFiles([now]);
+      await row.locator('.work-note button').click();
+      await sleep(400);
+      check((await row.locator('.work-note').innerText()).includes(W.relinked), 'the shelf does not say it found it');
+      check(saved().folder === now && !saved().sessionId, 'the notebook did not take the new folder');
+      check(saved().preexisting.length === 2, 'what is in the new folder does not count as already there');
+      await row.locator('.work-actions button').first().click();
+      await sleep(300);
+      const opened = await shop.app.evaluate(() => globalThis.opened);
+      check(opened.length === 1 && opened[0].endsWith('page.html') && opened[0].includes('now'), `opened ${opened}`);
+      await shop.shot(join(out, 'moved.png'));
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** Every control and every card has a name for a screen reader: tools/sim/names.mjs. */
   async names(lang, out) {
     const run = spawnSync(process.execPath, [join(ROOT, 'tools', 'sim', 'names.mjs'), '--lang', lang, '--out', out], { encoding: 'utf8' });

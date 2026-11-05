@@ -7,6 +7,26 @@ import { MemoryStore, StuckTracker } from '../app/main/memory';
 const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-memory-')), 'memory.json');
 const memo = (title: string, choices: Record<string, string> = {}, result: 'done' | 'failed' = 'done') => ({ title, choices, result, folder: `/work/${title}` });
 
+describe('a work whose folder moved', () => {
+  const madeIn = (file: string, folder: string) => new MemoryStore(file).remember({ ...memo('page'), folder, main: 'page.html', sessionId: 's1', preexisting: [join(folder, 'old.txt')] }, []);
+
+  it('lives in the new folder from now on, and everything there counts as already being there', () => {
+    const file = fresh();
+    const work = madeIn(file, 'C:/gone');
+    const moved = mkdtempSync(join(tmpdir(), 'lamplight-moved-'));
+    writeFileSync(join(moved, 'page.html'), 'x');
+    writeFileSync(join(moved, 'mine.txt'), 'x');
+    new MemoryStore(file).relink(work.id, moved);
+    const after = new MemoryStore(file).find(work.id)!;
+    expect(after.folder).toBe(moved);
+    expect(after.main).toBe('page.html');
+    // A round in the new folder or putting one back must never clear away what was already in it.
+    expect(after.preexisting?.sort()).toEqual([join(moved, 'mine.txt'), join(moved, 'page.html')].sort());
+    // The staff's session belongs to the old folder.
+    expect(after.sessionId).toBeUndefined();
+  });
+});
+
 describe('memory store', () => {
   it('remembers commissions, choices and stuck places across restarts', () => {
     const file = fresh();

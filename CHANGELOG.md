@@ -4,6 +4,8 @@
 
 The running card and the road to 1.0.
 
+- **A work that moved can be found again.** When its folder has been moved, the shelf asks where it is now, and takes the
+  new place if its main file is there.
 - **One shop at a time.** Opening the app again brings the shop back. Before, a second shop opened on the same notebook,
   and each kept its own idea of what had been written.
 - **Cards say what they are.** A screen reader is now told each card is a dialog and what it is called when it opens,

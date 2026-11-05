@@ -154,6 +154,19 @@ export class MemoryStore {
     return this.data.shop ?? { done: 0, grown: [], told: [] };
   }
 
+  /**
+   * A work's folder was moved, and the user pointed to where it is now. It may have landed among other things, and only
+   * its main file was checked, so all that is there now counts as the user's: nothing later clears it away. The staff's
+   * session stays behind, because it belongs to the old folder; they pick up from the summary instead.
+   */
+  relink(id: string, folder: string) {
+    const memo = this.data.commissions.find((c) => c.id === id)!;
+    memo.folder = folder;
+    memo.preexisting = readdirSync(folder).map((name) => join(folder, name));
+    delete memo.sessionId;
+    this.save();
+  }
+
   find(id: string): CommissionMemo | undefined {
     const c = this.data.commissions.find((m) => m.id === id);
     return c && structuredClone(c);

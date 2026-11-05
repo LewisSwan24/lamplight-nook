@@ -29,6 +29,12 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
   const { works } = await api.shopState();
   const row = (w: Work) => {
     const note = el('div.hint.work-note');
+    // Moved rather than deleted: the user can say where to, as long as there is a main file to recognise it by.
+    const showGone = () => note.replaceChildren(W.gone, ...(w.hasMain ? [' ', el('button.link', { type: 'button', onclick: async () => {
+      const found = await api.relinkWork(w.id);
+      if (found === 'found') note.textContent = W.relinked;
+      if (found === 'wrong') note.replaceChildren(W.relinkWrong, ' ', note.querySelector('button')!);
+    } }, W.relink)] : []));
     return el('li.work', {},
       workIconEl(w.icon),
       el('div.work-text', {},
@@ -36,7 +42,7 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
         el('div.hint', {}, w.date, w.rounds ? ` \u00B7 ${w.rounds === 1 ? W.roundsOne : fill(W.rounds, { n: String(w.rounds) })}` : ''),
         note),
       el('div.work-actions', {},
-        el('button.link', { type: 'button', onclick: async () => { if (!(await api.openWork(w.id))) note.textContent = W.gone; } }, W.open),
+        el('button.link', { type: 'button', onclick: async () => { if (!(await api.openWork(w.id))) showGone(); } }, W.open),
         el('button.link', { type: 'button', onclick: () => revise(w.id, w.title) }, W.revise)));
   };
   const many = works.length > FEW_WORKS;
