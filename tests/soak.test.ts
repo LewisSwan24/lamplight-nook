@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareHalves } from '../tools/sim/soak.mjs';
+import { compareHalves } from '../tools/sim/halves.mjs';
 
 const reading = (over: Record<string, number> = {}) => ({
   objects: 100, tweens: 5, timers: 5, dom: 300, listeners: 40, heapMB: 50, mainHeapMB: 30, ...over,
