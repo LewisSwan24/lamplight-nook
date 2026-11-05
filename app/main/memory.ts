@@ -53,7 +53,8 @@ export class MemoryStore {
       copyFileSync(this.file, tmp);
       renameSync(tmp, this.lastGood);
     } catch {
-      rmSync(tmp, { force: true });
+      // Left behind if it cannot go either; the next opening writes over it.
+      try { rmSync(tmp, { force: true }); } catch { /* held by something else */ }
     }
   }
 

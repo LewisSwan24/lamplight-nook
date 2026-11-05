@@ -107,7 +107,9 @@ const FAILURES: Record<string, Failure> = {
 };
 
 /** Returns false when the failure needs no card: a commission that was called off. */
-export function showFailure(api: LamplightApi, kind: string, retry: () => void, vars: Record<string, string> = {}): boolean {
+export const hasFailureCard = (kind?: string) => Boolean(kind && FAILURES[kind]);
+
+export function showFailure(api: LamplightApi, kind: string, retry: () => void, vars: Record<string, string> = {}, workDir?: string): boolean {
   const f = FAILURES[kind];
   if (!f) return false;
   const card = el(f.plain ? 'div.card.serious' : 'div.card.paper', { 'onpanel-closed': clearWorkSigns },
@@ -118,6 +120,7 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void, 
       : [withPortrait('adeng', 'troubled', el('div.card-title', {}, f.title), el('div', {}, fill(f.text, vars)))]),
     el('div.actions', {},
       f.link ? el('button', { onclick: () => api.openLink(f.link![0]) }, f.link[1]) : null,
+      workDir ? el('button', { onclick: () => void api.openOutput(workDir, 'reveal') }, R.seeSoFar) : null,
       // Carrying on keeps the plan on the blackboard; putting the card away ends the commission, so it goes too.
       f.retry ? el('button.default', { onclick: () => { card.removeEventListener('panel-closed', clearWorkSigns); closePanel(); retry(); } }, f.retryLabel ?? R.retry) : null),
   );

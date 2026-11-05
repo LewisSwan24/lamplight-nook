@@ -24,7 +24,7 @@ import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
 import { answerFirst, boardSteps, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
-import { closeRunning, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
+import { closeRunning, hasFailureCard, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showNotebook } from './ui/notebook';
@@ -392,7 +392,8 @@ window.lamplight.onResult((result) => {
   void refreshShop(result.grew ?? []).then(() => noticeBeds(bedNews(before, shopDays.done)));
   noticeGrowth(result.grew ?? []);
 });
-window.lamplight.onResult((result) => showResult(result, {
+// A commission that stopped has its own card, which says what to do; putting a result card away first would end it.
+window.lamplight.onResult((result) => hasFailureCard(result.error) || showResult(result, {
   open: (path, how) => void window.lamplight.openOutput(path, how),
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
@@ -432,7 +433,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
     // No card to put away (called off, no key, no Claude Code): nothing is going on any more, so the plan goes now.
-    if (!r.ok && !showFailure(window.lamplight, r.error ?? '', () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) })) clearWorkSigns();
+    if (!r.ok && !showFailure(window.lamplight, r.error ?? '', () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) }, r.workDir)) clearWorkSigns();
   } finally {
     closeRunning();
     running = null;

@@ -95,7 +95,10 @@ export async function showNotebook(api: LamplightApi) {
     actions.querySelector<HTMLButtonElement>('button.default')?.focus();
   };
   const forget = async () => {
-    await api.clearMemory();
+    if (!(await api.clearMemory())) {
+      actions.replaceChildren(el('div.notebook-warn', {}, N.forgetBusy), el('button', { onclick: ask }, N.keep));
+      return;
+    }
     forgotten?.();
     body.replaceChildren(el('div.notebook-empty', {}, N.forgotten));
     actions.replaceChildren(el('button.default', { onclick: closePanel }, '\u2713'));

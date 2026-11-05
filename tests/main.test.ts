@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -37,6 +37,16 @@ describe('records of runs', () => {
 
   it('has nothing to do when there are none yet', () => {
     expect(() => pruneRecordings(join(tmpdir(), 'lamplight-no-such-folder'))).not.toThrow();
+  });
+
+  it('one recording that cannot be removed does not stop the shop opening, or the rest going', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lamplight-prune-'));
+    mkdirSync(join(dir, '0-held'));
+    writeFileSync(join(dir, '0-held', 'x'), 'x');
+    writeFileSync(join(dir, '1-old.jsonl'), 'x');
+    writeFileSync(join(dir, '2-new.jsonl'), 'x');
+    pruneRecordings(dir, 1);
+    expect(readdirSync(dir).sort()).toEqual(['0-held', '2-new.jsonl']);
   });
 });
 

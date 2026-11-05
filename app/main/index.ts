@@ -120,12 +120,13 @@ function createWindow() {
       buttons: [R.keepGoing, R.stopAndClose], defaultId: 0, cancelId: 0, noLink: true,
     });
     if (choice === 0) {
+      // The quit is off, and this is what would have ended it.
       leaving = false;
       e.preventDefault();
       return;
     }
+    // Kept, because the question promised it: the shop offers to carry on when it next opens.
     quitting = true;
-    pending.clear();
   });
   win.on('hide', updateMini);
   win.on('show', updateMini);
@@ -365,7 +366,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
-        ok: result.ok, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        ok: result.ok, error: result.error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
         id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && versions.has(r.id)), grew,
       });
     }
@@ -373,7 +374,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     return { ...result, spentThisRun };
   } finally {
     broker.onAnswered = undefined;
-    pending.clear();
+    if (!quitting) pending.clear();
     current = null;
     lastWorkDir = job.workDir;
     mini.feed({ type: 'run', running: false });
@@ -455,6 +456,11 @@ ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
   }
   return (await shell.openPath(memo.folder)) === '';
 });
+/** A work's folder is where the staff will be let loose: not a whole drive, the user's own folders, or the shop's. */
+function holdsTooMuch(folder: string): boolean {
+  const theirs = (['home', 'documents', 'desktop', 'downloads', 'userData'] as const).map((name) => app.getPath(name));
+  return dirname(folder) === folder || [...theirs, settings.get().workRoot].some((place) => insideForReal(folder, place));
+}
 /** Commissions put back to their previous version since their last round (the next round is told). */
 const restoredSince = new Set<string>();
 ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
@@ -464,7 +470,9 @@ ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
   const r = await dialog.showOpenDialog(win!, { title: fill(strings.ui.shelf.relinkDialog, { main: memo.main }), properties: ['openDirectory'] });
   if (r.canceled) return 'cancelled';
   const folder = r.filePaths[0];
-  if (!existsSync(join(folder, memo.main))) return 'wrong';
+  if (holdsTooMuch(folder)) return 'broad';
+  const main = join(folder, memo.main);
+  if (!existsSync(main) || !statSync(main).isFile() || !insideForReal(folder, main)) return 'wrong';
   memory.relink(memo.id, folder);
   // What was kept of it came from the old folder; nothing may be put back over the new one.
   versions.drop(memo.id);
@@ -518,11 +526,14 @@ ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
   return Boolean(clean && current?.note?.(clean));
 });
-ipcMain.handle(IPC.clearMemory, () => {
+ipcMain.handle(IPC.clearMemory, (): boolean => {
+  // What it is doing would go straight back in the notebook, and the ledger would count the round twice.
+  if (current) return false;
   memory.clear();
   versions.clear();
   spend.forget();
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
+  return true;
 });
 // Only folders the notebook itself recorded, looked up by id.
 ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
@@ -607,6 +618,9 @@ ipcMain.handle(IPC.miniState, () => mini.state);
 ipcMain.handle(IPC.showShop, () => tray.show());
 app.on('before-quit', () => {
   leaving = true;
+});
+// After the windows have gone: the question on closing can still be answered with "keep going", which cancels the quit.
+app.on('will-quit', () => {
   mini.destroy();
   broker.cancelAll();
   current?.abort.abort();

@@ -4,6 +4,11 @@
 
 The running card and the road to 1.0.
 
+- **Stopping on the way out can be carried on, as promised.** "Stop and close" used to throw away what it said you could
+  carry on with, and answering "keep going" when quitting stopped the commission anyway.
+- **A stopped commission shows what it managed.** Its card now leads to what was done so far, and the plan stays up.
+- **Forgetting waits for the running commission.** Before, what was running wrote itself straight back and the ledger
+  could count a round twice.
 - **The shop has a birthday.** A year to the day after the first work, Adeng mentions it, and it goes into the shop's days.
 - **A work that moved can be found again.** When its folder has been moved, the shelf asks where it is now, and takes the
   new place if its main file is there.

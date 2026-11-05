@@ -11,7 +11,14 @@ export const MAX_RECORDINGS = 50;
 export function pruneRecordings(dir: string, keep = MAX_RECORDINGS) {
   if (!existsSync(dir)) return;
   const names = readdirSync(dir).sort();
-  for (const name of names.slice(0, Math.max(0, names.length - keep))) rmSync(join(dir, name), { force: true });
+  for (const name of names.slice(0, Math.max(0, names.length - keep))) {
+    // Antivirus or an indexer may be holding it: it goes next time, and a shop must not fail to open over it.
+    try {
+      rmSync(join(dir, name), { force: true });
+    } catch {
+      continue;
+    }
+  }
 }
 
 /** Truncate long strings so recordings don't fill up with whole command outputs, and mask anything shaped like a key. */

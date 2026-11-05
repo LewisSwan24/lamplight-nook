@@ -226,9 +226,12 @@ export function showNotReady(api: LamplightApi, env: EnvStatus, trial?: () => vo
   const close = closeButton();
   const card = el('div.card.paper.notice-card');
   // Once both are there, the card says so and leads straight to the commission slip.
-  const ready = () => card.replaceChildren(close,
-    withPortrait('adeng', 'happy', el('div.card-title', {}, S.readyTitle), el('div', {}, S.readyText)),
-    el('div.actions', {}, el('button.default', { type: 'button', onclick: () => { closePanel(); start?.(); } }, S.readyStart)));
+  const ready = () => {
+    card.replaceChildren(close,
+      withPortrait('adeng', 'happy', el('div.card-title', {}, S.readyTitle), el('div', {}, S.readyText)),
+      el('div.actions', {}, el('button.default', { type: 'button', onclick: () => { closePanel(); start?.(); } }, S.readyStart)));
+    nameCard(card);
+  };
   // Only an old Claude Code in the way: it may still work, so going ahead is the user's call.
   const keepOld = el('div.actions.keep-old', {}, el('button', { type: 'button', onclick: () => { closePanel(); useOld?.(); } }, S.claudeKeepOld));
   const onlyOld = (e: EnvStatus) => e.hasClaude && e.hasApiKey && e.claudeCompat === 'old';

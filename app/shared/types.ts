@@ -137,7 +137,8 @@ export interface LamplightApi {
   /** What could not be read when the shop opened. Asking takes it: it is said once. */
   dataDamage(): Promise<DataDamage>;
   /** Forget everything in the notebook. */
-  clearMemory(): Promise<void>;
+  /** False, with nothing changed, while a commission runs. */
+  clearMemory(): Promise<boolean>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
   openCommissionFolder(id: string): Promise<boolean>;
   /** The shop's days and the works shelf. */
@@ -148,7 +149,7 @@ export interface LamplightApi {
   markTold(id: string): Promise<void>;
   markMet(id: GuestId): Promise<void>;
   /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked. */
-  relinkWork(id: string): Promise<'found' | 'wrong' | 'cancelled'>;
+  relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
@@ -186,6 +187,8 @@ export type SourcePick = { path: string; name: string } | { error: 'too-big' };
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
 export type CommissionResult = {
+  /** Why it stopped, when it did. */
+  error?: string;
   ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number;
   /** What the staff say they made, in their own words. */
   summary?: string;

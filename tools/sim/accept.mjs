@@ -384,6 +384,14 @@ const SCENARIOS = {
       check((await row.locator('.work-note').innerText()).includes(W.relinkWrong), 'a folder without the work was not refused');
       check(saved().folder === was, 'a folder without the work was taken');
 
+      // Somewhere that holds far more than the work: the staff would be let loose on all of it.
+      writeFileSync(join(home.home, 'page.html'), 'x');
+      await shop.pickFiles([home.home]);
+      await row.locator('.work-note button').click();
+      await sleep(400);
+      check((await row.locator('.work-note').innerText()).includes(W.relinkBroad), 'the whole home folder was not refused');
+      check(saved().folder === was, 'the whole home folder was taken');
+
       await shop.pickFiles([now]);
       await row.locator('.work-note button').click();
       await sleep(400);
@@ -427,6 +435,63 @@ const SCENARIOS = {
       await listen(shop);
       await sleep(20_000);
       check(!(await heard(shop)), 'it was said again the same day');
+    } finally {
+      await shop.close();
+    }
+  },
+
+  /** Asked on the way out mid-commission: going on really goes on, and stopping really can be carried on next time. */
+  async stopclose(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    let shop = await launch({ lang, home, debug: true, speed: 1500 });
+    const quit = (answer) => shop.app.evaluate(({ app, dialog }, answer) => {
+      dialog.showMessageBoxSync = () => answer;
+      app.quit();
+    }, answer);
+    try {
+      await shop.order({ template: 'page', want: 'A page' });
+      await shop.submit();
+      await sleep(2500);
+      await quit(0);
+      await sleep(1500);
+      check(await shop.page.evaluate(() => document.visibilityState !== undefined), 'the window went');
+      check(existsSync(join(home.data, 'pending.json')), 'the commission was given up on although the answer was to keep going');
+      const said = await shop.page.locator('#ui').innerText();
+      const gone = shop.L.ui.run.failedTitle;
+      check(!said.includes(gone), 'keeping going stopped the commission');
+      const exit = new Promise((r) => shop.app.process().once('exit', r));
+      await quit(1).catch(() => {});
+      await Promise.race([exit, sleep(15_000)]);
+    } finally {
+      await shop.close().catch(() => {});
+    }
+    shop = await launch({ lang, home, debug: true });
+    try {
+      check(await shop.maybe('.pending-card', 10_000), 'the promise to carry on next time was not kept');
+    } finally {
+      await shop.close();
+    }
+  },
+
+  /** Forgetting everything while a commission runs would be written straight back: it waits. */
+  async forgetbusy(lang, out) {
+    const N = locale(lang).ui.notebook;
+    const work = { id: 'c1760000000000', title: 'A page', date: '2025-10-09', result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'demo' } };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [work], stuckNotes: [], greeted: work.id, shop: { done: 1, told: [], grown: [], met: [] } }) });
+    const shop = await launch({ lang, home, debug: true, speed: 1500 });
+    try {
+      await shop.order({ template: 'page', want: 'Another page' });
+      await shop.submit();
+      await sleep(1000);
+      await shop.page.evaluate(() => window.lamplightDebug.ui.showNotebook(window.lamplight));
+      await shop.page.waitForSelector('.notebook');
+      await shop.page.locator('.notebook button', { hasText: N.forget }).click();
+      await shop.page.locator('.notebook button', { hasText: N.forgetYes }).click();
+      await sleep(500);
+      check((await shop.page.locator('.notebook').innerText()).includes(N.forgetBusy), 'the shop does not say why it did not forget');
+      const kept = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+      check(kept.commissions.length === 1, 'it forgot while a commission was running');
+      await shop.shot(join(out, 'forgetbusy.png'));
     } finally {
       await shop.close();
     }
@@ -1122,6 +1187,9 @@ const SCENARIOS = {
     const fell = await shop.workUntilDone({ answers: demoAnswers, timeout: 60_000 });
     await shop.shot(join(out, 'crash-standin.png'));
     check(fell.stopped?.title === shop.L.ui.run.failedTitle, `Claude Code fell over: ${JSON.stringify(fell).slice(0, 200)}`);
+    // What it did manage is one click away, and the plan is still up in case it carries on.
+    check(await shop.page.locator('#ui > .card button', { hasText: shop.L.ui.run.seeSoFar }).count() === 1, 'nothing leads to what was done so far');
+    check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) > 0, 'the plan went while the card still offers to carry on');
     // Put away, the card takes the plan off the blackboard with it: nothing is going on any more.
     await shop.page.keyboard.press('Escape');
     await sleep(300);
