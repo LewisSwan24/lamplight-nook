@@ -67,15 +67,18 @@ export async function claudeVersion(path: string | undefined, run: (file: string
   return { version: hit.version, compat: compat(hit.version, tested), tested };
 }
 
-/** The command that prints a version. A script goes through node, as the SDK runs one: Windows cannot start it alone. */
-export function versionCommand(file: string, execPath = process.execPath): { file: string; args: string[]; env?: Record<string, string> } {
-  if (/\.[cm]?js$/i.test(file)) return { file: execPath, args: [file, '--version'], env: { ELECTRON_RUN_AS_NODE: '1' } };
+/**
+ * The command that prints a version. A script goes through the node on PATH, which is what the SDK starts it with
+ * (its `executable` option defaults to node); Windows cannot start a script alone, and the shipped app cannot act as Node.
+ */
+export function versionCommand(file: string): { file: string; args: string[] } {
+  if (/\.[cm]?js$/i.test(file)) return { file: 'node', args: [file, '--version'] };
   return { file, args: ['--version'] };
 }
 
 function versionOutput(path: string): Promise<string> {
-  const { file, args, env } = versionCommand(path);
+  const { file, args } = versionCommand(path);
   return new Promise((resolve, reject) => {
-    execFile(file, args, { timeout: 8000, windowsHide: true, env: { ...process.env, ...env } }, (err, stdout) => (err ? reject(err) : resolve(String(stdout))));
+    execFile(file, args, { timeout: 8000, windowsHide: true }, (err, stdout) => (err ? reject(err) : resolve(String(stdout))));
   });
 }
