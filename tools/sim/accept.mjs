@@ -706,7 +706,7 @@ const SCENARIOS = {
   async thousand(lang, out) {
     const S = locale(lang).ui.shelf;
     const N = locale(lang).ui.notebook;
-    const kinds = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album'];
+    const kinds = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool'];
     const needle = lang === 'en' ? 'Needle in the haystack' : '草堆里的针';
     const day = (i) => Date.UTC(2024, 0, 1) + i * 86_400_000;
     const commissions = Array.from({ length: 1000 }, (_, i) => ({
@@ -778,7 +778,7 @@ const SCENARIOS = {
       await page.locator('.shelf-search').fill('');
 
       await page.locator('.kind-chip', { hasText: S.kinds.album }).click();
-      check((await page.locator('.works-count').innerText()) === S.found.replace('{n}', '125'), 'the album chip counts wrong');
+      check((await page.locator('.works-count').innerText()) === S.found.replace('{n}', String(commissions.filter((c) => c.form.template === 'album').length)), 'the album chip counts wrong');
       check(await page.locator('.kind-chip[aria-pressed=true]').count() === 1, 'more than one chip is pressed');
       await page.locator('.works-more button').click();
       check(await works() === 80, `the next page holds ${await works()} works`);
@@ -1497,6 +1497,7 @@ const SCENARIOS = {
       { name: 'albums', scene: 'cafe', kinds: ['album', 'plan'], has: ['album', 'calendar'], lacks: ['books', 'letters', 'ledger', 'monitor'] },
       { name: 'reports', scene: 'cafe', kinds: ['research', 'letter', 'sheet', 'page'], has: ['books', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
       { name: 'reports', scene: 'study', kinds: ['research', 'letter', 'sheet', 'page'], has: ['books', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
+      { name: 'odd-jobs', scene: 'cafe', kinds: ['resume', 'notes', 'travel', 'tool'], has: ['briefcase', 'readinglamp', 'postcards', 'toolbox'], lacks: ['album', 'calendar', 'books', 'letters', 'ledger', 'monitor'] },
     ];
     for (const { name, scene, kinds, has, lacks } of shops) {
       const title = kinds[0] === 'album' ? W[lang].page.slice(0, 4) : 'Q3';
