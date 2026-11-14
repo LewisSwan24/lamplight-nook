@@ -2,6 +2,10 @@
 
 ## Unreleased (1.1)
 
+- **The shop can work in a folder you already have.** Pick it on the slip and agree once; the staff then change your
+  files without asking about each one, after keeping a copy of each as it was. "Undo this commission" on the result card
+  puts your files back byte for byte and takes away what was new. Deleting, running commands, and changing settings
+  folders, scripts or `package.json` still ask, and a folder over 100 MB is turned down before anything starts.
 - **Four new kinds of commission:** a résumé, reading notes, a travel guide and a small tool. A résumé never invents
   experience, reading notes quote only what you hand over, and a travel guide says where each opening time and price
   came from.

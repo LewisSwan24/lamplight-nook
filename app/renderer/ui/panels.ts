@@ -386,6 +386,9 @@ export type ResultActions = {
 export function showResult(result: CommissionResult, actions: ResultActions) {
   // A round may change nothing that can be pointed at; it still ends with a card, or it ends in silence.
   const target = result.main ?? result.files[0] ?? result.workDir;
+  /** What "show in folder" points at; after an undo that took the main file away, the folder itself. */
+  let shown = target;
+  const openMain = result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null;
   const { id } = result;
   const note = el('div.hint.result-restored', { role: 'status' });
   let back = false;
@@ -419,7 +422,14 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     // A link in the folder that now leads out of it: those files are left for the user, and said by name.
     note.textContent = !skipped ? L.undoFailed : skipped.length ? fill(L.undoPartly, { files: fileList(skipped) }) : L.undone;
     undo.remove();
-    if (skipped) lent?.remove();
+    if (!skipped) return;
+    lent?.remove();
+    // A main file the commission made is gone with the rest: there is nothing to open, only the folder to show.
+    const slash = (p: string) => p.replace(/\\/g, '/');
+    if (result.main && result.lent!.added.some((p) => slash(result.main!).endsWith(`/${p}`))) {
+      openMain?.remove();
+      shown = result.workDir;
+    }
   });
   const card = el('div.card.paper.result-card', {},
     closeButton(),
@@ -439,8 +449,8 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
       restore, undo) : null,
     actions.report ? el('button.link.result-report', { type: 'button', onclick: actions.report }, U.resultReport) : null,
     el('div.actions', {},
-      el(`button${result.main ? '' : '.default'}`, { onclick: () => actions.open(target, 'reveal') }, U.openFolder),
-      result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
+      el(`button${result.main ? '' : '.default'}`, { onclick: () => actions.open(shown, 'reveal') }, U.openFolder),
+      openMain,
     ),
   );
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.

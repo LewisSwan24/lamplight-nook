@@ -1884,6 +1884,8 @@ const SCENARIOS = {
       check(!wrong.length, `not put back byte for byte: ${wrong.join(', ')}`);
       check(!existsSync(join(site, 'pages')), 'the new page (or its folder) is still there');
       check((await shop.page.locator('.result-card .result-restored').textContent()) === L(shop).undone, 'the card does not say it was undone');
+      // The page it would open was the new one, now gone.
+      check(!(await shop.page.locator('.result-card .actions button', { hasText: shop.L.ui.openInBrowser }).count()), 'the card still offers to open the page that was taken away');
       await shop.shot(join(out, 'inplace-undone.png'));
       await shop.page.keyboard.press('Escape');
       await sleep(1500);
