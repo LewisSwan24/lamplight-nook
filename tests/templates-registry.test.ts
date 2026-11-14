@@ -21,11 +21,13 @@ describe('the template table', () => {
         expect(T[`${t.id}Fill`], `${lang} ${t.id}Fill`).toBeTruthy();
         if ('source' in t || 'photos' in t) expect(T[`${t.id}Hint`], `${lang} ${t.id}Hint`).toBeTruthy();
       }
+      // What can be handed over for a résumé or reading notes, and how a small tool stays safe.
+      for (const id of ['resume', 'notes', 'tool']) expect(T[`${id}Hint`], `${lang} ${id}Hint`).toBeTruthy();
     }
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool']);
   });
 
   it('has a picture and words for every piece a kind of work brings', () => {
@@ -43,6 +45,16 @@ describe('the template table', () => {
     expect(template('tidy').source).toEqual({ kind: 'folder' });
     expect(TEMPLATES.filter((t) => 'source' in t).map((t) => t.id)).toEqual(['edit', 'tidy']);
     expect(TEMPLATES.filter((t) => 'photos' in t).map((t) => t.id)).toEqual(['album']);
+  });
+
+  it('adds a résumé, reading notes, a travel guide and a small tool after the album, each with its own piece', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-5)).toEqual(['album', 'resume', 'notes', 'travel', 'tool']);
+    expect(TEMPLATES.slice(-4).map((t) => [t.icon, t.main, 'growth' in t ? t.growth : null])).toEqual([
+      [9, 'page', { id: 'briefcase', at: 1 }],
+      [10, 'writeup', { id: 'readinglamp', at: 1 }],
+      [11, 'index', { id: 'postcards', at: 1 }],
+      [12, 'page', { id: 'toolbox', at: 1 }],
+    ]);
   });
 
   it('repeats its steps in a round of changes, except research', () => {

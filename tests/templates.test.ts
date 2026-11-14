@@ -232,3 +232,40 @@ describe('phase 6 templates', () => {
     expect(collectOutputs(e, none).main).toBe(join(e, F.letter));
   });
 });
+
+describe('the four templates added in 1.1', () => {
+  it('a résumé is one printable page that never makes anything up', () => {
+    const p = commissionPrompt({ want: 'w', template: 'resume' });
+    expect(p).toContain(`"${F.resume}"`);
+    expect(p).toMatch(/Print to PDF/);
+    expect(p).toMatch(/Never invent experience/);
+  });
+
+  it('reading notes quote only what was handed over', () => {
+    const p = commissionPrompt({ want: 'w', template: 'notes' });
+    expect(p).toContain(`"${F.notes}"`);
+    expect(p).toMatch(/Never quote the book from memory/);
+  });
+
+  it('a travel guide dates and sources what changes, and only links to maps', () => {
+    const p = commissionPrompt({ want: 'w', template: 'travel' });
+    expect(p).toMatch(/named "index\.html"/);
+    expect(p).toMatch(/do not embed maps/);
+    expect(p).toMatch(/the date it was checked/);
+  });
+
+  it('a small tool is a page if it can be, and a script only lists until -Apply, tried on samples', () => {
+    const p = commissionPrompt({ want: 'w', template: 'tool' });
+    expect(p).toContain(`"${F.tool}"`);
+    expect(p).toContain(`-File "%~dp0${F.toolScript}"`);
+    expect(p).toMatch(/until it is run again with -Apply\. It never deletes anything/);
+    expect(p).toContain(`"${F.toolSamples}"`);
+  });
+
+  it('a résumé or a tool page is the main result', () => {
+    const d = dir();
+    const before = snapshot(d);
+    writeFileSync(join(d, F.resume), '<p>');
+    expect(collectOutputs(d, before).main).toBe(join(d, F.resume));
+  });
+});

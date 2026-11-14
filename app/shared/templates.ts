@@ -136,6 +136,47 @@ export const TEMPLATES = [
       'CSS and JavaScript inline, no build step; it must work when opened straight from disk. Clicking a photo shows it large.',
     ],
   },
+  {
+    id: 'resume', icon: 9, revise: true, main: 'page', growth: { id: 'briefcase', at: 1 },
+    steps: ({ language, files }) => [
+      'This is a résumé: one page, made to be printed.',
+      `Make it as a single self-contained page named "${files.resume}": CSS inline, laid out for one A4 page, with print styles so that the browser's "Print to PDF" gives one clean page.`,
+      `If the user handed anything over in "${files.materials}" (an old résumé, a list of what they have done), read it first and build on it.`,
+      'Never invent experience, schools, dates, job titles or numbers. Where something is missing, leave a clear blank in square brackets for the user to fill in.',
+      `Write it in ${language}. In your final reply, say in one or two sentences which kind of job you shaped it for.`,
+    ],
+  },
+  {
+    id: 'notes', icon: 10, revise: true, main: 'writeup', growth: { id: 'readinglamp', at: 1 },
+    steps: ({ language, files }) => [
+      'These are reading notes: do not make a web page.',
+      `Write them as "${files.notes}" in ${language}, in Markdown: a short paragraph on what the book is about, then the main ideas as a list, then quotations, then a few questions to think about.`,
+      `Quote only from what the user handed over in "${files.materials}", word for word, and say where each quotation came from. Never quote the book from memory; if there is nothing to quote from, leave the quotations out and say so.`,
+      'If you need basic facts about the book (its author, the year), send the researcher subagent to check them; if they cannot be found, say so instead of guessing.',
+    ],
+  },
+  {
+    id: 'travel', icon: 11, revise: true, main: 'index', growth: { id: 'postcards', at: 1 },
+    steps: ({ language }) => [
+      'This is a travel guide.',
+      'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
+      'Lay it out day by day, then a budget table, then a packing list. For each place give a link to it on a map; do not embed maps.',
+      'Send the researcher subagent to check what changes: opening hours, ticket prices, how to get there. Next to each such fact give its source and the date it was checked, and remind the user to check again before setting off.',
+      'If something cannot be found, say so instead of guessing.',
+      `Write it in ${language}.`,
+    ],
+  },
+  {
+    id: 'tool', icon: 12, revise: true, main: 'page', growth: { id: 'toolbox', at: 1 },
+    steps: ({ language, files }) => [
+      'This is a small tool.',
+      `If it can work inside a browser (reading files the user picks, changing text, working with a table, calculating), make it as a single self-contained page named "${files.tool}": CSS and JavaScript inline, no build step, working straight from disk. It reads only the files the user picks on the page and offers its results as a download.`,
+      `Only if it must change files on the computer (renaming or moving them, say), write a PowerShell script named "${files.toolScript}" instead, and next to it "${files.toolLauncher}", which runs it with a double click: powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0${files.toolScript}".`,
+      'Such a script only lists what it would do, and changes nothing until it is run again with -Apply. It never deletes anything.',
+      `Try it only on sample files you make in a folder named "${files.toolSamples}" inside this folder. Never point it at the user's own files.`,
+      `In your final reply, say in ${language} how to use it, in two or three short steps.`,
+    ],
+  },
 ] as const satisfies readonly TemplateSpec[];
 
 export type TemplateId = (typeof TEMPLATES)[number]['id'];

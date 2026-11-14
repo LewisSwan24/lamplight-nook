@@ -17,6 +17,10 @@ opening:
   - { id: tpl_letter_01, speaker: adeng, when: tpl_letter, bubbles: ["A letter. Let me find a good pen.", "\"{brief}\". First, how to begin."] }
   - { id: tpl_sheet_01, speaker: adeng, when: tpl_sheet, bubbles: ["A table. Straight lines first."], reply: { speaker: laoshi, bubbles: ["I'll check the totals."] } }
   - { id: tpl_plan_01, speaker: adeng, when: tpl_plan, bubbles: ["A good plan leaves some room.", "Pack a day too full and the next one stalls."] }
+  - { id: tpl_resume_01, speaker: adeng, when: tpl_resume, bubbles: ["A résumé. Nothing goes in that's made up.", "Gaps stay blank for you to fill."] }
+  - { id: tpl_notes_01, speaker: adeng, when: tpl_notes, bubbles: ["Reading notes.", "Quotes only from what you gave us."], reply: { speaker: xiaoju, bubbles: ["I'll look up the author and the year."] } }
+  - { id: tpl_travel_01, speaker: adeng, when: tpl_travel, bubbles: ["A travel guide. One day at a time first."], reply: { speaker: xiaoju, bubbles: ["I'll check opening hours and prices."] } }
+  - { id: tpl_tool_01, speaker: adeng, when: tpl_tool, bubbles: ["A small tool. A web page if it can be one."], reply: { speaker: laoshi, bubbles: ["Samples only when we try it."] } }
   - { id: handed_01, speaker: adeng, when: handed, bubbles: ["Thanks, I'll have a look at these first.", "\"{brief}\". Got it."], reply: { speaker: xiaoju, bubbles: ["I'll make copies!"] } }
   - { id: opening_01, speaker: adeng, bubbles: ["\"{brief}\". Got it.", "Clem, Flint, we've got work."] }
   - { id: opening_02, speaker: adeng, bubbles: ["So, \"{brief}\"?", "Let me put the kettle on. Have a seat.", "Now, where do we start."] }
@@ -273,6 +277,10 @@ grow:
   - { id: grow_letters, speaker: xiaoju, when: grow_letters, bubbles: ["Letters on the wall!", "They all came back to us."] }
   - { id: grow_ledger, speaker: laoshi, when: grow_ledger, bubbles: ["A ledger on the table.", "Keep it straight."] }
   - { id: grow_monitor, speaker: xiaoju, when: grow_monitor, bubbles: ["A computer on the little table!", "It even turns on."] }
+  - { id: grow_briefcase, speaker: adeng, when: grow_briefcase, bubbles: ["A briefcase by the wall.", "Anyone off to an interview can borrow it."] }
+  - { id: grow_readinglamp, speaker: xiaoju, when: grow_readinglamp, bubbles: ["A reading lamp on the table!", "Easier on the eyes at night."] }
+  - { id: grow_postcards, speaker: qingdai, when: grow_postcards, bubbles: ["Postcards pinned on the wall.", "All places we haven't been yet."] }
+  - { id: grow_toolbox, speaker: laoshi, when: grow_toolbox, bubbles: ["Toolbox goes here.", "Help yourself."] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["Fruit on the reading table!", "The tangerines are mine."] }

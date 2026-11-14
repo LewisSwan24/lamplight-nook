@@ -486,6 +486,36 @@
     - xiaoju: We have a schedule?
     - adeng: That's the point.
 
+- id: made_resume
+  when: idle
+  made: resume
+  turns:
+    - adeng: That résumé had a few blanks in brackets.
+    - laoshi: Better a blank than a guess.
+
+- id: made_notes
+  when: idle
+  made: notes
+  turns:
+    - xiaoju: Now I want to read that book too.
+    - adeng: The notes are on the shelf.
+
+- id: made_travel
+  when: idle
+  made: travel
+  turns:
+    - qingdai: I'd like to go to that place in the guide.
+    - xiaoju: I checked the tickets. Not expensive!
+    - qingdai: When the shop's quiet, then.
+
+- id: made_tool
+  when: idle
+  made: tool
+  turns:
+    - laoshi: Tried that little tool on samples only.
+    - adeng: Nobody's own files?
+    - laoshi: Not one.
+
 # Neighbours have heard what the shop does. `made:` a kind of work done; `mentions:` asks after the latest work.
 - id: postman_website
   when: idle

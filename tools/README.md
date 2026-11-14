@@ -6,7 +6,7 @@ Scripts for checking the app and making its pictures without spending money. The
 ## The stand-in Claude (`sim/claude.mjs`)
 
 An executable that speaks the Agent SDK's stream-json control protocol (initialize, hook callbacks,
-permission requests) and plays a scripted commission picked from the prompt: the demo, each of the eight
+permission requests) and plays a scripted commission picked from the prompt: the demo, each of the twelve
 templates, a round of changes, or a resumed run. It really writes the files into the commission folder,
 asks the app for permission like Claude Code does, and honours `--max-budget-usd` and `--resume`.
 It never touches the network.
@@ -64,7 +64,7 @@ main card in the smallest windows), `names` (`sim/names.mjs`: every control and 
 `grownline` (the line about what grew waits for its speaker), `crash` (the plug pulled mid-commission and with the result open, half-written files, the folder emptied or
 gone, Claude Code falling over), `keyboard` (a whole commission, the shelf, the garden and settings without the mouse),
 `passers` (people seen through the windows on their way to the door), `beds` (the vegetable beds at 0, 1, 4, 12, 25 and 60 works), `days` (thirty works: all on the shelf, the shop's days in the notebook), `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
-`templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
+`templates` (all twelve, then the works shelf), `revise` (another round, back and forward between versions),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
 slip holding twelve long-named files), `menus` (the toolbar's six buttons, labels and icon pixels, and what sits on each

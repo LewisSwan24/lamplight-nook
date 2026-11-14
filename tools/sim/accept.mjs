@@ -29,6 +29,10 @@ const W = {
     sheet: '帮我做一个记每月开销的表格。',
     plan: '帮我排一个四周学会游泳换气的计划。',
     album: '用这些照片做一本秋天出游的小相册。',
+    resume: '帮我写一份应聘图书馆管理员的简历。',
+    notes: '帮我给《瓦尔登湖》做一份读书笔记。',
+    travel: '帮我做一份杭州的旅行攻略，三天。',
+    tool: '帮我做一个把文本里的英文全改成大写的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
     tidy: '帮我看看这个文件夹该怎么整理：下载文件夹太乱了。',
     note: '页面底部加一行联系电话',
@@ -41,6 +45,10 @@ const W = {
     sheet: 'Make me a table for monthly spending.',
     plan: 'Plan out four weeks of learning to breathe while swimming for me.',
     album: 'Make a little album of these photos: our autumn trip.',
+    resume: 'Write me a résumé for a job as a librarian.',
+    notes: 'Make me reading notes on Walden.',
+    travel: 'Make me a travel guide for Edinburgh, three days.',
+    tool: 'Make me a small tool that turns the text in a file into capitals.',
     edit: 'Please edit this document: make it read more smoothly.',
     tidy: 'How should I tidy up this folder? My downloads are a mess.',
     note: 'Add a contact phone number at the bottom',
@@ -1705,7 +1713,7 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
-  /** All eight templates, one after another in the same shop; each leaves its file and a shelf item. */
+  /** All twelve templates, one after another in the same shop; each leaves its file and a shelf item. */
   async templates(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);
@@ -1719,6 +1727,10 @@ const SCENARIOS = {
       ['album', W[lang].album, 'index.html', s.photos],
       ['edit', W[lang].edit, `${F.revisedPrefix}letter-draft.txt`, null, s.doc],
       ['tidy', W[lang].tidy, F.tidyPlan, null, s.messy],
+      ['resume', W[lang].resume, F.resume, [s.note]],
+      ['notes', W[lang].notes, F.notes, [s.note]],
+      ['travel', W[lang].travel, 'index.html'],
+      ['tool', W[lang].tool, F.tool],
     ];
     const shop = await launch({ lang, home, speed: SPEED });
     try {
@@ -1735,6 +1747,8 @@ const SCENARIOS = {
         const dir = latestCommission(home);
         check(existsSync(join(dir, file)), `${template}: ${file} missing`);
         if (template === 'sheet') check(readFileSync(join(dir, file), 'utf8').charCodeAt(0) === 0xfeff, 'table has no BOM');
+        // The small tool made a page, so there is no script or launcher, and nothing ran on the computer.
+        if (template === 'tool') check(![F.toolScript, F.toolLauncher].some((f) => existsSync(join(dir, f))), 'the tool wrote a script it did not need');
         await shop.shot(join(out, `template-${template}.png`));
         await shop.page.keyboard.press('Escape');
         await sleep(1500);

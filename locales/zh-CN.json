@@ -174,6 +174,17 @@
       "sheetFill": "帮我做一个……的表格。",
       "planFill": "帮我排一个……的计划。",
       "albumFill": "用这些照片做一本……的小相册。",
+      "resume": "写简历",
+      "notes": "读书笔记",
+      "travel": "旅行攻略",
+      "tool": "小工具",
+      "resumeFill": "帮我写一份……的简历。",
+      "notesFill": "帮我给《……》做一份读书笔记。",
+      "travelFill": "帮我做一份……的旅行攻略，……天。",
+      "toolFill": "帮我做一个……的小工具。",
+      "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
+      "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
+      "toolHint": "能在浏览器里做的，就做成一个网页。要动电脑上的文件才写脚本，脚本先只列出要做的事，加上 -Apply 才动手。",
       "albumHint": "把照片递过来：拖到这张单子上，或点「递材料」。相册是一个网页，照片用的是复制件。",
       "needPhotos": "先把照片递过来，相册才有东西放。",
       "chooseFile": "选文件",
@@ -428,7 +439,11 @@
         "books": "一叠书",
         "letters": "信件板",
         "ledger": "账本",
-        "monitor": "小电脑"
+        "monitor": "小电脑",
+        "briefcase": "公文包",
+        "readinglamp": "读书灯",
+        "postcards": "明信片",
+        "toolbox": "工具箱"
       },
       "grownLine": "{thing}是做完第 {n} 单后添的。",
       "clock": "现在 {time}。",
@@ -517,7 +532,11 @@
         "books": "查过两回资料，这叠书就留下了。",
         "letters": "写过几封信，回信都钉在这儿。",
         "ledger": "做过两回表格，账也记得勤了。",
-        "monitor": "做过几回网页，这台小电脑就常开着。"
+        "monitor": "做过几回网页，这台小电脑就常开着。",
+        "briefcase": "帮人写过简历，这只公文包就放在这儿了。",
+        "readinglamp": "做过读书笔记，桌上就添了盏读书灯。",
+        "postcards": "做过旅行攻略，墙上就钉了几张明信片。",
+        "toolbox": "做过小工具，老石的工具箱就搬过来了。"
       }
     },
     "run": {
@@ -674,6 +693,12 @@
       "sheet": "表格.csv",
       "plan": "计划.md",
       "materials": "材料",
+      "resume": "简历.html",
+      "notes": "读书笔记.md",
+      "tool": "小工具.html",
+      "toolScript": "小工具.ps1",
+      "toolLauncher": "双击运行.cmd",
+      "toolSamples": "样例",
       "originalPrefix": "原稿-",
       "revisedPrefix": "修改版-"
     },
@@ -726,7 +751,11 @@
         "letter": "信",
         "sheet": "表格",
         "plan": "计划",
-        "album": "相册"
+        "album": "相册",
+        "resume": "简历",
+        "notes": "读书笔记",
+        "travel": "攻略",
+        "tool": "小工具"
       }
     },
     "mini": {
@@ -838,7 +867,11 @@
     "books": "一叠书",
     "letters": "一块信件板",
     "ledger": "一本账",
-    "monitor": "一台小电脑"
+    "monitor": "一台小电脑",
+    "briefcase": "一只公文包",
+    "readinglamp": "一盏读书灯",
+    "postcards": "几张明信片",
+    "toolbox": "一个工具箱"
   },
   "sceneText": {
     "study": {

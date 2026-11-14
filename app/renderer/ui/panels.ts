@@ -199,7 +199,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       tags, materialNote, materialHint);
 
     const needsSource = () => Boolean(chosen?.spec?.source);
-    const materialsHint = () => (chosen?.spec?.photos ? hintOf(chosen.id) : U.materials.hint);
+    // What to hand over: a template that needs no file or folder may say what helps (photos for the album, an old résumé).
+    const materialsHint = () => (chosen && !needsSource() && hintOf(chosen.id)) || U.materials.hint;
     const refresh = () => {
       chips.forEach((c, i) => c.classList.toggle('on', STICKERS[i] === chosen));
       sourceRow.hidden = !needsSource();

@@ -43,6 +43,14 @@ DRAWN = {
               'xxxxxxxxxxxxxx', 'xggggggggggggx', 'xgggyyggggggwx', 'xxxxxxxxxxxxxx'],
     'star': ['xxxxxxxxxxxx', 'xbbbbbbbbbbx', 'xbuuuuGuuubx', 'xbuuuGGGuubx', 'xbGGGGGGGGbx', 'xbuGGGGGGubx', 'xbuuGGGGuubx',
              'xbuGGuuGGubx', 'xbGuuuuuuGbx', 'xbbbbbbbbbbx', 'xxxxxxxxxxxx'],
+    'briefcase': ['....xxxxx....', '....x...x....', 'xxxxxxxxxxxxx', 'xbbbbbbbbbbbx', 'xbbbbbbbbbbbx', 'xxxxxxGxxxxxx',
+                  'xbbbbbGbbbbbx', 'xbbbbbbbbbbbx', 'xbbbbbbbbbbbx', 'xxxxxxxxxxxxx'],
+    'readinglamp': ['..xxxxx..', '.xgggggx.', 'xgggggggx', 'xxxxxxxxx', '...yyy...', '....x....', '....x....', '....x....',
+                    '...xxx...', '.xxGGGxx.', '.xGGGGGx.', '.xxxxxxx.'],
+    'postcards': ['xxxxrxxxx....', 'xuuuuuuux....', 'xuuuuuGux....', 'xgguuuggx....', 'xgggxxxxxrxxx', 'xgggxyyyyyssx',
+                  'xxxxxyllllssx', '....xyyyyyyyx', '....xylllllyx', '....xxxxxxxxx'],
+    'toolbox': ['.....xxxx.....', '.....x..x.....', '..xxxxxxxxxx..', '.xrrrrrrrrrrx.', 'xxxxxxxxxxxxxx', 'xrrrrrrrrrrrrx',
+                'xrrrrrlllrrrrx', 'xrrrrrrrrrrrrx', 'xrrrrrrrrrrrrx', 'xxxxxxxxxxxxxx'],
 }
 
 
@@ -79,11 +87,16 @@ def pieces_by_id():
         'letters': [(drawn('letters'), (146, 19))],  # a board of letters beside the calendar
         'ledger': [(drawn('ledger'), (155, 85))],  # a ledger on the big table
         'monitor': [(drawn('monitor'), (129, 133))],  # an old computer on the little table
+        'briefcase': [(drawn('briefcase'), (3, 77))],  # a briefcase on the floor by the left wall, under the pot plant
+        'readinglamp': [(drawn('readinglamp'), (125, 81))],  # a reading lamp at the left end of the big table, beside the album
+        'postcards': [(drawn('postcards'), (2, 22))],  # postcards pinned on the wall left of the windows
+        'toolbox': [(drawn('toolbox'), (36, 159))],  # a toolbox on the floor at the foot of the bookcase
     }
 
 # Works-shelf icons, 8x8 each, in this order (shared/growth.ts WORK_ICONS):
 # page (a framed picture), research (a blue book), edit (a letter), tidy (a wooden box), demo (a green ledger),
-# letter (a sealed envelope), sheet (a ruled table), plan (a calendar page), album (an instant photo).
+# letter (a sealed envelope), sheet (a ruled table), plan (a calendar page), album (an instant photo),
+# resume (a sheet with a photo), notes (an open book with a bookmark), travel (a suitcase), tool (a wrench).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -94,6 +107,10 @@ ICONS = {
     'sheet': ['gggggggg', 'gwlwwlwg', 'llllllll', 'gwlwwlwg', 'llllllll', 'gwlwwlwg', 'gggggggg', '........'],
     'plan': ['.r.rr.r.', 'rrrrrrrr', 'rwwwwwwr', 'rwlwlwlr', 'rwwwwwwr', 'rwlwrwlr', 'rrrrrrrr', '........'],
     'album': ['.wwwwww.', '.wuuuyw.', '.wuuuuw.', '.wgguuw.', '.wggggw.', '.wwwwww.', '.wwwwww.', '........'],
+    'resume': ['.dddddd.', '.dwwwwd.', '.duuwld.', '.duuwwd.', '.dwwwwd.', '.dlllld.', '.dwwwwd.', '.dddddd.'],
+    'notes': ['........', 'uwwddwwu', 'ullddllu', 'uwwddwwu', 'ullddlru', 'uwwddwru', 'uuuuuuru', '......r.'],
+    'travel': ['..kkkk..', '..k..k..', 'kkkkkkkk', 'kokookok', 'kokoskok', 'kokookok', 'kkkkkkkk', '.k....k.'],
+    'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
 }
 COLORS = {
     'b': (122, 82, 54, 255), 'y': (243, 226, 178, 255), 's': (226, 156, 84, 255), 'g': (104, 150, 96, 255),
@@ -101,7 +118,7 @@ COLORS = {
     'k': (120, 80, 48, 255), 'o': (176, 128, 80, 255), 'l': (150, 150, 150, 255), 'p': (214, 150, 150, 255),
     'x': (42, 34, 51, 255), 'G': (232, 184, 74, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool']
 
 
 def overlay(pieces):
