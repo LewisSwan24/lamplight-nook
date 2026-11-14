@@ -8,6 +8,7 @@ import { ANCHORS, CANVAS, pathBetween, seatsIn, standPoint, walkBetween } from '
 import { GUEST_DOOR, GUEST_SPOT } from '../app/renderer/game/guests';
 import { YOU_SEAT } from '../app/renderer/game/you';
 import { HOLIDAYS, SEASONS } from '../app/renderer/game/weather';
+import { STAFF } from '../app/shared/staff';
 import type { ActorId, AnchorId } from '../app/shared/types';
 import { readPng } from './png';
 
@@ -58,7 +59,6 @@ function along(points: Point[]): Point[] {
 
 const SITTING = (['cafe', 'study'] as const).flatMap((s) => Object.values(seatsIn(s).table ?? {}).filter((p) => p.chair));
 
-const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 const ANCHOR_IDS = Object.keys(ANCHORS) as AnchorId[];
 
 /** Each walk a character can take in the shop. */

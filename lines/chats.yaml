@@ -414,6 +414,57 @@
     - adeng: 我记得，粉笔灰抹了一脸。
     - qingdai: 那是故意的。
 
+# The apprentice (road-to-1.1.md A5) comes with the tenth work, so nothing with Xiaodou in it comes before.
+- id: apprentice_notes
+  when: idle
+  after: 10
+  turns:
+    - xiaodou: 阿灯哥，这个怎么记？
+    - adeng: 先写日子，再写谁要的。
+    - xiaodou: 记下了。
+
+- id: apprentice_mallet
+  when: idle
+  after: 10
+  turns:
+    - xiaodou: 老石，锤子能借我吗？
+    - laoshi: 先看我敲十遍。
+
+- id: apprentice_snacks
+  when: waiting
+  after: 10
+  turns:
+    - xiaoju: 小豆，跑腿的零食分你一半。
+    - xiaodou: 那下回我也带。
+
+- id: story_apprentice
+  when: idle
+  after: 10
+  once: true
+  turns:
+    - adeng: 小豆头一天来，在门口站了半天。
+    - xiaodou: 我在数台阶。
+    - qingdai: 一共几级？
+    - xiaodou: 三级。
+
+- id: baker_apprentice
+  when: idle
+  guest: baker
+  after: 10
+  turns:
+    - baker: 新来的孩子，跑得真勤快。
+    - xiaodou: 桂姨好！
+    - baker: 下回来店里拿面包边。
+
+- id: postman_apprentice
+  when: idle
+  guest: postman
+  after: 10
+  turns:
+    - postman: 今天在街口碰见小豆了。
+    - xiaodou: 我在找图书馆。
+    - postman: 下回跟着我走。
+
 # Further on as regulars: there is still more to say after the tenth.
 - id: regular_fifteen
   when: idle

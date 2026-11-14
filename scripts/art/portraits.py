@@ -16,7 +16,7 @@ OUT = ROOT / 'assets/ui/portraits.png'
 CELL = 16
 
 # Keep both orders in sync with app/renderer/ui/portraits.ts.
-STAFF = ['adeng', 'xiaoju', 'laoshi', 'qingdai']
+STAFF = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodou']
 EXPRESSIONS = ['calm', 'happy', 'troubled', 'unsure', 'serious']
 
 # Front-facing idle frame: row 1, direction slot 3 (down), first of 6 frames; 16x32 cells.
@@ -31,6 +31,7 @@ FACES = {
     'xiaoju': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
     'laoshi': {'eyes': [(5, 20), (10, 20)], 'glasses': True},
     'qingdai': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
+    'xiaodou': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
 }
 INK = (58, 58, 80, 255)
 BROW = (72, 54, 50, 255)

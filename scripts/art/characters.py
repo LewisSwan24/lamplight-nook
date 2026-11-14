@@ -38,6 +38,12 @@ STAFF = {
         'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
                    'Outfits/16x16/Outfit_24_04.png', 'Hairstyles/16x16/Hairstyle_19_07.png'],
     },
+    # The apprentice (road-to-1.1.md A5): red-bean hair with a sprout of a tuft, and a green shirt.
+    'xiaodou': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_17_01.png', 'Hairstyles/16x16/Hairstyle_03_03.png'],
+        'recolor': {'Hairstyles/16x16/Hairstyle_03_03.png': [((0, 45), '#9C3F2C')]},
+    },
 }
 
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and

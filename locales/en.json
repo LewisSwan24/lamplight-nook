@@ -18,6 +18,7 @@
     "xiaoju": "Clem",
     "laoshi": "Flint",
     "qingdai": "Iris",
+    "xiaodou": "Bean",
     "cat": "Chestnut"
   },
   "animals": {
@@ -507,6 +508,7 @@
         "xiaoju": "Clem",
         "laoshi": "Flint",
         "qingdai": "Iris",
+        "xiaodou": "Bean",
         "cat": "the cat"
       },
       "table": [
@@ -710,7 +712,8 @@
       "metLine": "{name} came by for the first time",
       "bedSprout": "the first vegetable went in out back",
       "bedRipe": "the first vegetable out back was ripe",
-      "bedFull": "the beds out back filled up"
+      "bedFull": "the beds out back filled up",
+      "apprentice": "Bean came to the shop as an apprentice"
     },
     "tray": {
       "sectionLabel": "When you're away",

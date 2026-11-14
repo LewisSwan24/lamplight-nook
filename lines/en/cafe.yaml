@@ -55,6 +55,12 @@ sub_go_qingdai:
   - { id: go_qd_02, speaker: adeng, bubbles: ["Colours are your department, Iris."], reply: { speaker: qingdai, bubbles: ["Leave it with me."] } }
   - { id: go_qd_03, speaker: qingdai, bubbles: ["I'll sketch it on the board first."] }
 
+sub_go_xiaodou:
+  - { id: go_xd_rain, speaker: adeng, when: sky_rain, bubbles: ["Bean, take an umbrella: {topic}."], reply: { speaker: xiaodou, bubbles: ["Got the one by the door!"] } }
+  - { id: go_xd_01, speaker: adeng, bubbles: ["Bean, one for you too: {topic}."], reply: { speaker: xiaodou, bubbles: ["Writing it down!"] } }
+  - { id: go_xd_02, speaker: adeng, bubbles: ["Clem's tied up. This one's yours."], reply: { speaker: xiaodou, bubbles: ["On my way."] } }
+  - { id: go_xd_03, speaker: xiaodou, bubbles: ["Clem's busy. I'll go!"] }
+
 sub_queue:
   - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["That can wait till Clem's back."] }
   - { id: sub_queue_02, speaker: adeng, bubbles: ["{who} has one on the go. This one queues."] }
@@ -74,6 +80,12 @@ sub_back_xiaoju:
   - { id: back_xj_01, speaker: xiaoju, bubbles: ["Found it, found it!", "{count} of them are any good.", "And this one's for you."] }
   - { id: back_xj_02, speaker: xiaoju, bubbles: ["It's freezing out there...", "Anyway, I found a really nice one."] }
   - { id: back_xj_03, speaker: xiaoju, bubbles: ["I'm back. Snacks first."] }
+
+sub_back_xiaodou:
+  - { id: back_xd_rain, speaker: xiaodou, when: sky_rain, bubbles: ["Wet shoes, dry notebook.", "It's all written down."] }
+  - { id: back_xd_01, speaker: xiaodou, bubbles: ["Back!", "Wrote it all down on the way."] }
+  - { id: back_xd_02, speaker: xiaodou, bubbles: ["Nearly took a wrong turn.", "Pip pointed me the right way."] }
+  - { id: back_xd_03, speaker: xiaodou, bubbles: ["Found it. It's all here.", "Clem's trick really works."] }
 
 sub_back_laoshi:
   - { id: back_ls_issue, speaker: laoshi, when: has_issues, bubbles: ["{issueCount} things wrong. Marked them."] }
@@ -247,6 +259,10 @@ garden:
   - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["Two eggs today.", "One for Wick, one for me."] }
   - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["One, two, three. All here."] }
   - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["No shoving. There's plenty."] }
+  - { id: garden_veg_xiaodou, speaker: xiaodou, when: spot_veg, bubbles: ["Is this a weed or a carrot?"] }
+  - { id: garden_veg_xiaodou_02, speaker: xiaodou, when: spot_veg, bubbles: ["Flint says water the roots.", "Noted."] }
+  - { id: garden_hens_xiaodou, speaker: xiaodou, when: spot_hens, bubbles: ["Not my shoelaces!"] }
+  - { id: garden_hens_xiaodou_02, speaker: xiaodou, when: spot_hens, bubbles: ["One handful. Spread it out."] }
   - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["Malt, come sit."] }
   - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["Malt, don't lick my book."] }
   - { id: garden_dog_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["Malt.", "No digging."] }
@@ -266,6 +282,7 @@ grow:
   - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["There's a sprout in the beds out back.", "Planted the day the first job was done."] }
   - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["First vegetable out back is ripe.", "Been growing since that first job."] }
   - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["The beds out back are full now.", "Every one of them from work we did together."] }
+  - { id: grow_apprentice, speaker: adeng, when: grow_apprentice, bubbles: ["We've an apprentice now. This is Bean.", "Clem can share the errands."], reply: { speaker: xiaodou, bubbles: ["I'm a very fast walker!"] } }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["There's a little painting on the wall.", "Bought it the day we finished the first job."] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the counter!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["Fairy lights over the windows.", "The shop looks warmer at night."] }

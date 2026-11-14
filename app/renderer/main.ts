@@ -31,6 +31,7 @@ import { onNotebookForget, showDataTrouble, onNotebookRevise, showNotebook } fro
 import { showShelf } from './ui/shelf';
 import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
+import { STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { showUpdateLetter } from './ui/letter';
@@ -269,7 +270,6 @@ function sayProgress() {
 
 // A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
 // says goes to the running commission. Nobody moves for the work while the meeting lasts.
-const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 let meetingOpen = false;
 let meetingCount = 0;
 function sayFrom(group: string, k = 0) {
@@ -332,13 +332,15 @@ window.lamplight.onDecision((req) => {
 let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string } = { done: 0, told: new Set(), made: {} };
 /** How many works were on the shelf before this result came back (the shelf only shows from the first). */
 let worksKept = 0;
-async function refreshShop(fresh: GrowthId[] = []) {
+/** `justFinished`: a work has just come back, so the apprentice it brings walks in rather than simply being there. */
+async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   const state = await window.lamplight.shopState();
   // The scene builds its props on its first frame; wait for it when the shop has only just opened.
   while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
   scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
   scene.growth.setWorks(state.works.map((w) => w.icon));
   scene.garden.setWorksDone(state.done);
+  stage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
 }
@@ -350,6 +352,8 @@ function noticeGrowth(ids: GrowthId[]) {
 const GROWTH_LINE_DELAY_MS = 4000;
 /** After anything new in the shop has had its word. */
 const BEDS_LINE_DELAY_MS = 10_000;
+/** After the apprentice has walked in from the street. */
+const APPRENTICE_LINE_DELAY_MS = 7000;
 const ONCE_RETRY_MS = 2_000;
 function noticeBeds(news: ReturnType<typeof bedNews>) {
   if (news) sayOnce(`grow_${news}`, BEDS_LINE_DELAY_MS);
@@ -426,7 +430,11 @@ onNotebookForget(() => {
 });
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
-  void refreshShop(result.grew ?? []).then(() => noticeBeds(bedNews(before, shopDays.done)));
+  void refreshShop(result.grew ?? [], true).then(() => {
+    noticeBeds(bedNews(before, shopDays.done));
+    // Adeng introduces the apprentice once they are through the door.
+    if (apprenticeNews(before, shopDays.done)) sayOnce('grow_apprentice', APPRENTICE_LINE_DELAY_MS);
+  });
   noticeGrowth(result.grew ?? []);
 });
 // A commission that stopped has its own card, which says what to do; putting a result card away first would end it.
@@ -493,7 +501,7 @@ function openProgress() {
     steps: boardSteps(),
     realPlan: stage.planIsReal,
     now: stage.latestDoing,
-    staff: STAFF.map((actor) => ({ actor, state: stage.actorInfo(actor).state, doing: stage.actorInfo(actor).doing ?? '' })),
+    staff: STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done)).map((actor) => ({ actor, state: stage.actorInfo(actor).state, doing: stage.actorInfo(actor).doing ?? '' })),
   }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed) });
 }
 
