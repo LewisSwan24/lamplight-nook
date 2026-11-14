@@ -56,6 +56,7 @@ const api: LamplightApi = {
   reviseCommission: (req) => ipcRenderer.invoke(IPC.reviseCommission, req),
   restorePrevious: (id) => ipcRenderer.invoke(IPC.restorePrevious, id),
   undoWork: (id) => ipcRenderer.invoke(IPC.undoWork, id),
+  exportWork: (id, as) => ipcRenderer.invoke(IPC.exportWork, id, as),
   onRawEvent: (cb) => on(IPC.rawEvent, cb),
   onAiEvent: (cb) => on(IPC.aiEvent, cb),
   onDecision: (cb) => on(IPC.decision, cb),

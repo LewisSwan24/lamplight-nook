@@ -6,6 +6,9 @@
   files without asking about each one, after keeping a copy of each as it was. "Undo this commission" on the result card
   puts your files back byte for byte and takes away what was new. Deleting, running commands, and changing settings
   folders, scripts or `package.json` still ask, and a folder over 100 MB is turned down before anything starts.
+- **Take a work away from the shelf.** "Take it away" saves a work as a zip wherever you choose, and a web page can go
+  as a PDF instead. A work done in your own folder takes only the files it changed or made. Nothing is uploaded: you get
+  the file and pass it on yourself.
 - **Four new kinds of commission:** a résumé, reading notes, a travel guide and a small tool. A résumé never invents
   experience, reading notes quote only what you hand over, and a travel guide says where each opening time and price
   came from.

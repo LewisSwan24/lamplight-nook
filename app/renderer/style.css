@@ -377,7 +377,9 @@ pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; 
 .work { display: flex; align-items: center; gap: 12px; padding: 7px 2px; border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
 .work-icon { flex: none; image-rendering: pixelated; background-repeat: no-repeat; }
 .work-text { flex: 1; min-width: 0; }
-.work-actions { display: flex; gap: 10px; flex: none; }
+/* Three actions in English would squeeze the name into a narrow column: they wrap to a second line instead. */
+.work-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; column-gap: 10px; row-gap: 2px; flex: none; max-width: 12em; }
+.work-actions .link, .work-note .link { white-space: nowrap; }
 .notebook-days li { list-style: none; }
 
 /* Where the shop is (ui/scenes.ts): two little pictures of the rooms. */

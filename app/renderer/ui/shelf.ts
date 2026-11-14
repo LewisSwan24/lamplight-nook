@@ -37,6 +37,21 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
       if (found === 'broad') note.replaceChildren(W.relinkBroad, ' ', note.querySelector('button')!);
       if (found === 'taken') note.replaceChildren(W.relinkTaken, ' ', note.querySelector('button')!);
     } }, W.relink)] : []));
+    // Taken away as a file the user saves and passes on themselves (road-to-1.1.md A8). A cancelled save changes nothing.
+    const takeAs = async (as: 'zip' | 'pdf') => {
+      const done = await api.exportWork(w.id, as);
+      if (done === 'gone') showGone();
+      if (done === 'empty') note.textContent = W.takeEmpty;
+      if (done === 'saved') note.textContent = W.taken;
+    };
+    // A page can also go as a PDF, so the user picks which; anything else is a zip straight away.
+    const take = () => {
+      if (!w.page) return void takeAs('zip');
+      note.replaceChildren(W.takeAs, ' ',
+        el('button.link.take-zip', { type: 'button', onclick: () => takeAs('zip') }, W.takeZip), ' ',
+        el('button.link.take-pdf', { type: 'button', onclick: () => takeAs('pdf') }, W.takePdf));
+      note.querySelector('button')!.focus();
+    };
     return el('li.work', {},
       workIconEl(w.icon),
       el('div.work-text', {},
@@ -45,7 +60,8 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
         note),
       el('div.work-actions', {},
         el('button.link', { type: 'button', onclick: async () => { if (!(await api.openWork(w.id))) showGone(); } }, W.open),
-        el('button.link', { type: 'button', onclick: () => revise(w.id, w.title) }, W.revise)));
+        el('button.link', { type: 'button', onclick: () => revise(w.id, w.title) }, W.revise),
+        el('button.link.work-take', { type: 'button', onclick: take }, W.take)));
   };
   const many = works.length > FEW_WORKS;
   const list = el('ul.works', { tabindex: 0 });
