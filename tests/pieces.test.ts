@@ -44,7 +44,7 @@ describe.each(SCENES)('the %s split into a room and its furniture', (scene) => {
 
   it('keeps every overlay above the furniture it lies on', () => {
     const under: string[] = [];
-    const names = readdirSync('assets/sprites').filter((f) => /^(grow|decor|weather)-.*\.png$/.test(f));
+    const names = readdirSync('assets/sprites').filter((f) => /^(grow|decor|weather|season)-.*\.png$/.test(f));
     for (const file of names) {
       const overlay = readPng(`assets/sprites/${file}`);
       const depth = pieces[scene].on[file.replace('.png', '')] ?? 1.5;

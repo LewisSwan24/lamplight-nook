@@ -158,6 +158,30 @@
     - xiaoju: And the lanterns are up!
     - laoshi: Nice and red.
 
+- id: lantern_riddle
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: "Riddles are up. Guess one, then dumplings!"
+    - laoshi: The answers are on the back.
+    - xiaoju: Who said you could look?
+
+- id: dragon_boat_zongzi
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - adeng: Auntie Olive taught us to wrap zongzi.
+    - xiaoju: Mine came apart in the pot.
+    - laoshi: Still edible. As porridge.
+
+- id: mid_autumn_moon
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - qingdai: "The moon's fullest tonight."
+    - adeng: "Let's close early and watch from the garden."
+    - xiaoju: "I'll bring the mooncakes!"
+
 # Neighbours dropping in (game/guests.ts): guest: baker (Auntie Olive from the bakery) or postman (Pip).
 # The guest speaks first; turns from staff who are out or in the garden are left out.
 - id: baker_fresh
@@ -685,3 +709,282 @@
     - xiaoju: While we wait, I sorted the bookcase.
     - laoshi: By height?
     - xiaoju: By how much I like them.
+
+# Past the twentieth commission (road-to-1.1.md A9) each neighbour has something for the season, and the old
+# friends for the lunar festivals; a festival comes first while its decorations are up.
+- id: baker_spring
+  when: idle
+  guest: baker
+  after: 20
+  season: spring
+  turns:
+    - baker: "Spring's here. I made green rice cakes."
+    - xiaoju: "They're green!"
+    - baker: Mugwort from the hill does that.
+
+- id: baker_summer
+  when: idle
+  guest: baker
+  after: 20
+  season: summer
+  turns:
+    - baker: Too hot to bake. Have some plum juice.
+    - laoshi: Into the fridge.
+
+- id: baker_autumn
+  when: idle
+  guest: baker
+  after: 20
+  season: autumn
+  turns:
+    - baker: Are your beds out back ready to pick?
+    - adeng: We saved you a pumpkin.
+    - baker: "Then I'll make pumpkin buns."
+
+- id: baker_winter
+  when: idle
+  guest: baker
+  after: 20
+  season: winter
+  turns:
+    - baker: Cold out. I roasted sweet potatoes.
+    - xiaoju: "I want the biggest!"
+    - baker: "They're all the same size."
+
+- id: baker_lantern
+  when: idle
+  guest: baker
+  after: 20
+  holiday: lantern
+  turns:
+    - baker: Lantern Festival. The dumplings are on.
+    - xiaoju: Black sesame?
+    - baker: Peanut too.
+
+- id: baker_dragon_boat
+  when: idle
+  guest: baker
+  after: 20
+  holiday: dragon_boat
+  turns:
+    - baker: Zongzi for the Dragon Boat Festival.
+    - adeng: You do this every year.
+    - baker: You fixed my price list. I remember.
+
+- id: baker_mid_autumn
+  when: idle
+  guest: baker
+  after: 20
+  holiday: mid_autumn
+  turns:
+    - baker: "Mooncakes, baked at home."
+    - qingdai: The rabbit on the box is lovely.
+    - baker: Copied from your painting.
+
+- id: postman_spring
+  when: idle
+  guest: postman
+  after: 20
+  season: spring
+  turns:
+    - postman: Spring post is all flower seeds.
+    - adeng: Any for us?
+    - postman: Sunflowers. Plant them out back.
+
+- id: postman_summer
+  when: idle
+  guest: postman
+  after: 20
+  season: summer
+  turns:
+    - postman: Scorching. Could I get some water?
+    - xiaoju: "Here, with ice."
+    - postman: Afternoon post will be late.
+
+- id: postman_autumn
+  when: idle
+  guest: postman
+  after: 20
+  season: autumn
+  turns:
+    - postman: Leaves have buried your letterbox.
+    - laoshi: "I'll sweep."
+
+- id: postman_winter
+  when: idle
+  guest: postman
+  after: 20
+  season: winter
+  turns:
+    - postman: End of year. Stacks of cards.
+    - adeng: Any for us?
+    - postman: "Seven. You're well liked."
+
+- id: postman_lantern
+  when: idle
+  guest: postman
+  after: 20
+  holiday: lantern
+  turns:
+    - postman: "Guessed three lantern riddles!"
+    - xiaoju: What did you win?
+    - postman: A little rabbit lantern.
+
+- id: postman_dragon_boat
+  when: idle
+  guest: postman
+  after: 20
+  holiday: dragon_boat
+  turns:
+    - postman: "Road by the river's shut. Post is late."
+    - adeng: Watching the dragon boats?
+    - postman: Just a peek on the way.
+
+- id: postman_mid_autumn
+  when: idle
+  guest: postman
+  after: 20
+  holiday: mid_autumn
+  turns:
+    - postman: Mid-Autumn letters home. Three rounds.
+    - adeng: Sit down and have a mooncake.
+
+- id: zhou_spring
+  when: idle
+  guest: mechanic
+  after: 20
+  season: spring
+  turns:
+    - mechanic: Spring. Everyone wants their tyres pumped.
+    - laoshi: Do mine too.
+
+- id: zhou_summer
+  when: idle
+  guest: mechanic
+  after: 20
+  season: summer
+  turns:
+    - mechanic: Garage is an oven. Can I sit by the fan?
+    - adeng: "Sit. The tea's still cool."
+
+- id: zhou_autumn
+  when: idle
+  guest: mechanic
+  after: 20
+  season: autumn
+  turns:
+    - mechanic: Good cycling weather. Hills on Sunday.
+    - qingdai: "Take me. I'll bring my paints."
+
+- id: zhou_winter
+  when: idle
+  guest: mechanic
+  after: 20
+  season: winter
+  turns:
+    - mechanic: "The cold's killed half a dozen batteries."
+    - laoshi: "I've a spare."
+    - mechanic: "I'll pay you back."
+
+- id: zhou_dragon_boat
+  when: idle
+  guest: mechanic
+  after: 20
+  holiday: dragon_boat
+  turns:
+    - mechanic: "I fixed the dragon boat team's drum."
+    - laoshi: Sounds right.
+
+- id: chen_spring
+  when: idle
+  guest: granny
+  after: 20
+  season: spring
+  turns:
+    - granny: "The peach tree's out. I took a photo."
+    - qingdai: "I'd like to paint it."
+
+- id: chen_summer
+  when: idle
+  guest: granny
+  after: 20
+  season: summer
+  turns:
+    - granny: "That's me at the seaside, young."
+    - xiaoju: "Granny, you were so stylish!"
+
+- id: chen_autumn
+  when: idle
+  guest: granny
+  after: 20
+  season: autumn
+  turns:
+    - granny: The persimmons are ripe. A basket for you.
+    - adeng: Just right with tea.
+
+- id: chen_winter
+  when: idle
+  guest: granny
+  after: 20
+  season: winter
+  turns:
+    - granny: "Cold out. I'll sit a while."
+    - adeng: Let me pour you something hot.
+    - granny: "It's warm in here."
+
+- id: chen_mid_autumn
+  when: idle
+  guest: granny
+  after: 20
+  holiday: mid_autumn
+  turns:
+    - granny: "My grandson's home for Mid-Autumn."
+    - adeng: The whole family together.
+    - granny: We took a family photo.
+
+- id: xiaohe_spring
+  when: idle
+  guest: student
+  after: 20
+  season: spring
+  turns:
+    - student: New term. Another proposal due.
+    - xiaoju: Picked a topic?
+    - student: Picked. Not written.
+
+- id: xiaohe_summer
+  when: idle
+  guest: student
+  after: 20
+  season: summer
+  turns:
+    - student: "Summer break. I'll write my thesis here."
+    - adeng: The seat by the window is cool.
+
+- id: xiaohe_autumn
+  when: idle
+  guest: student
+  after: 20
+  season: autumn
+  turns:
+    - student: "The ginkgo by the library's gone gold."
+    - qingdai: "I'll go and paint it."
+
+- id: xiaohe_winter
+  when: idle
+  guest: student
+  after: 20
+  season: winter
+  turns:
+    - student: "Exams are over!"
+    - xiaoju: How did they go?
+    - student: "Let's not."
+
+- id: xiaohe_lantern
+  when: idle
+  guest: student
+  after: 20
+  holiday: lantern
+  turns:
+    - student: Back to school before the Lantern Festival.
+    - adeng: Have some dumplings before you go.

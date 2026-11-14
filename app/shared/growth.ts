@@ -19,6 +19,15 @@ const COUNTED = [
   { id: 'portrait', at: 25 },
   { id: 'sunset', at: 35 },
   { id: 'star', at: 50 },
+  // Past fifty (road-to-1.1.md A9): a big piece at sixty, seventy-five and a hundred, small ones between.
+  { id: 'chime', at: 55 },
+  { id: 'aquarium', at: 60 },
+  { id: 'scroll', at: 65 },
+  { id: 'teapot', at: 70 },
+  { id: 'gramophone', at: 75 },
+  { id: 'cushion', at: 80 },
+  { id: 'hat', at: 90 },
+  { id: 'plaque', at: 100 },
 ] as const;
 type Growth = (typeof COUNTED)[number] | { id: BroughtId; at: number; work: TemplateId };
 export const GROWTH: Growth[] = [
@@ -66,19 +75,38 @@ export const BEDS = [
   { x: 22, y: 84 }, { x: 36, y: 84 }, { x: 56, y: 84 }, { x: 70, y: 84 },
   { x: 22, y: 112 }, { x: 36, y: 112 }, { x: 56, y: 112 }, { x: 70, y: 112 },
 ] as const;
-export type BedStage = 'empty' | 'sprout' | 'ripe';
+/** Northern hemisphere seasons (game/weather.ts decides which one it is). */
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+/** Growing up: empty, sprout, ripe. Once all are ripe the beds follow the seasons: young plants, ripe, harvest, straw. */
+export type BedStage = 'empty' | 'sprout' | 'ripe' | 'young' | 'harvest' | 'rest';
 const BED_EVERY = 3;
+const SEASON_STAGE: Record<Season, BedStage> = { spring: 'young', summer: 'ripe', autumn: 'harvest', winter: 'rest' };
 
-export function bedStages(done: number): BedStage[] {
+/** How far the beds have come with this many works, whatever the season. */
+function grownStages(done: number): BedStage[] {
   return BEDS.map((_, i) => {
     const planted = i * BED_EVERY + 1;
     return done >= planted + BED_EVERY ? 'ripe' : done >= planted ? 'sprout' : 'empty';
   });
 }
 
+/** The beds come up as works get finished; once they are all ripe, they turn with the seasons instead. */
+export function bedStages(done: number, season: Season): BedStage[] {
+  const grown = grownStages(done);
+  return grown.every((b) => b === 'ripe') ? grown.map(() => SEASON_STAGE[season]) : grown;
+}
+
+/**
+ * Which picture in garden-crops.png (scripts/art/garden.py, crop_sheet): the eight summer crops, a sprout, eight young
+ * spring plants, eight autumn crops, then straw.
+ */
+export function bedFrame(stage: Exclude<BedStage, 'empty'>, bed: number): number {
+  return { ripe: bed, sprout: 8, young: 9 + bed, harvest: 17 + bed, rest: 25 }[stage];
+}
+
 /** What is worth a word after finishing a work: the first sprout, the first ripe plant, all of them ripe. */
 export function bedNews(before: number, after: number): 'bed_sprout' | 'bed_ripe' | 'bed_full' | null {
-  const ripe = (done: number) => bedStages(done).filter((b) => b === 'ripe').length;
+  const ripe = (done: number) => grownStages(done).filter((b) => b === 'ripe').length;
   if (ripe(after) === BEDS.length && ripe(before) < BEDS.length) return 'bed_full';
   if (ripe(after) > 0 && ripe(before) === 0) return 'bed_ripe';
   if (after > 0 && before === 0) return 'bed_sprout';

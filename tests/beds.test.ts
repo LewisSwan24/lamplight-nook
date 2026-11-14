@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BEDS, bedNews, bedStages } from '../app/shared/growth';
+import { BEDS, bedFrame, bedNews, bedStages } from '../app/shared/growth';
 
-const ripe = (done: number) => bedStages(done).filter((b) => b === 'ripe').length;
-const sprouts = (done: number) => bedStages(done).filter((b) => b === 'sprout').length;
+const ripe = (done: number) => bedStages(done, 'summer').filter((b) => b === 'ripe').length;
+const sprouts = (done: number) => bedStages(done, 'summer').filter((b) => b === 'sprout').length;
 
 describe('the vegetable beds behind the shop', () => {
   it('are bare before anything has been made', () => {
@@ -28,8 +28,28 @@ describe('the vegetable beds behind the shop', () => {
     expect(sprouts(500)).toBe(0);
   });
 
+  it('keep growing the same way whatever the season until they are all ripe', () => {
+    for (const season of ['spring', 'summer', 'autumn', 'winter'] as const) {
+      for (let done = 0; done < 25; done++) expect(bedStages(done, season), `${season} ${done}`).toEqual(bedStages(done, 'summer'));
+    }
+  });
+
+  it('once full, follow the seasons: young plants in spring, ripe in summer, harvest in autumn, straw in winter', () => {
+    for (const done of [25, 60, 500]) {
+      expect(new Set(bedStages(done, 'spring'))).toEqual(new Set(['young']));
+      expect(new Set(bedStages(done, 'summer'))).toEqual(new Set(['ripe']));
+      expect(new Set(bedStages(done, 'autumn'))).toEqual(new Set(['harvest']));
+      expect(new Set(bedStages(done, 'winter'))).toEqual(new Set(['rest']));
+    }
+  });
+
+  it('are news only the first time they fill, not when the seasons turn', () => {
+    expect(bedNews(24, 25)).toBe('bed_full');
+    for (let done = 26; done <= 100; done++) expect(bedNews(done - 1, done)).toBeNull();
+  });
+
   it('sit inside the garden, one for each stage in order', () => {
-    expect(bedStages(0)).toHaveLength(BEDS.length);
+    expect(bedStages(0, 'summer')).toHaveLength(BEDS.length);
     for (const b of BEDS) {
       expect(b.x).toBeGreaterThanOrEqual(0);
       expect(b.x + 16).toBeLessThanOrEqual(320);
@@ -48,5 +68,26 @@ describe('the vegetable beds behind the shop', () => {
 
   it('say nothing when no new work was finished', () => {
     expect(bedNews(5, 5)).toBeNull();
+  });
+});
+
+describe('what the beds look like', () => {
+  it('has a picture for every stage of every bed, each season its own crop', async () => {
+    const { readPng } = await import('./png');
+    const sheet = readPng('assets/sprites/garden-crops.png');
+    const frames = sheet.width / 16;
+    const seen = new Set<number>();
+    for (const stage of ['sprout', 'ripe', 'young', 'harvest', 'rest'] as const) {
+      for (let i = 0; i < BEDS.length; i++) {
+        const f = bedFrame(stage, i);
+        expect(f, `${stage} ${i}`).toBeLessThan(frames);
+        let solid = 0;
+        for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (sheet.at(f * 16 + x, y).alpha > 0) solid++;
+        expect(solid, `${stage} ${i}`).toBeGreaterThan(4);
+        seen.add(f);
+      }
+    }
+    // The ripe summer crops, spring's young plants and autumn's harvest are all different pictures.
+    expect(seen.size).toBeGreaterThanOrEqual(8 * 3 + 2);
   });
 });

@@ -1,12 +1,16 @@
 import type { Look } from './daytime';
+import type { Season } from '../../shared/growth';
 
 /**
  * Weather and seasons outside the shop. They follow the calendar, not a forecast: nothing is looked up
  * online. Each day gets its own weather, picked from the date, so it stays the same all day and on reopening.
  */
-export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+export type { Season };
 export type Sky = 'clear' | 'rain' | 'snow' | 'petals' | 'leaves';
-export type Holiday = 'halloween' | 'christmas' | 'new_year';
+export const SEASONS: Season[] = ['spring', 'summer', 'autumn', 'winter'];
+/** The festivals the shop decorates for (Q-A5): the same for everyone, in either language. */
+export const HOLIDAYS = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn'] as const;
+export type Holiday = (typeof HOLIDAYS)[number];
 
 /** Northern hemisphere seasons by month. */
 export function seasonOf(date: Date): Season {
@@ -46,6 +50,17 @@ const LUNAR_NEW_YEAR: Record<number, [number, number]> = {
   2025: [0, 29], 2026: [1, 17], 2027: [1, 6], 2028: [0, 26], 2029: [1, 13], 2030: [1, 3],
   2031: [0, 23], 2032: [1, 11], 2033: [0, 31], 2034: [1, 19], 2035: [1, 8],
 };
+/** The Dragon Boat Festival (5th day of the 5th lunar month) and the Mid-Autumn Festival (15th of the 8th), same years. */
+const DRAGON_BOAT: Record<number, [number, number]> = {
+  2025: [4, 31], 2026: [5, 19], 2027: [5, 9], 2028: [4, 28], 2029: [5, 16], 2030: [5, 5],
+  2031: [5, 24], 2032: [5, 12], 2033: [5, 1], 2034: [5, 20], 2035: [5, 10],
+};
+const MID_AUTUMN: Record<number, [number, number]> = {
+  2025: [9, 6], 2026: [8, 25], 2027: [8, 15], 2028: [9, 3], 2029: [8, 22], 2030: [8, 12],
+  2031: [9, 1], 2032: [8, 19], 2033: [8, 8], 2034: [8, 27], 2035: [8, 16],
+};
+/** The Lantern Festival is the 15th day of the first month: fourteen days after New Year's day. */
+const LANTERN_AFTER = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Whole local days from b to a. */
@@ -56,18 +71,23 @@ function daysBetween(a: Date, b: Date): number {
 
 /**
  * Decorations go up a few days ahead: Halloween from 24 October, Christmas from 18 December until
- * New Year's Day, Lunar New Year from a week before until the Lantern Festival.
+ * New Year's Day, Lunar New Year from a week before, then the lanterns for the last three days up to the
+ * Lantern Festival, mugwort for the five days up to the Dragon Boat Festival, mooncakes for the week up to Mid-Autumn.
  */
 export function holidayOn(date: Date): Holiday | null {
   const m = date.getMonth();
   const d = date.getDate();
   if (m === 9 && d >= 24) return 'halloween';
   if ((m === 11 && d >= 18) || (m === 0 && d === 1)) return 'christmas';
-  const lny = LUNAR_NEW_YEAR[date.getFullYear()];
-  if (lny) {
-    const since = daysBetween(date, new Date(date.getFullYear(), lny[0], lny[1]));
-    if (since >= -7 && since <= 14) return 'new_year';
-  }
+  const year = date.getFullYear();
+  const since = (table: Record<number, [number, number]>) => (table[year] ? daysBetween(date, new Date(year, table[year][0], table[year][1])) : NaN);
+  const lny = since(LUNAR_NEW_YEAR);
+  if (lny >= -7 && lny < LANTERN_AFTER - 2) return 'new_year';
+  if (lny >= LANTERN_AFTER - 2 && lny <= LANTERN_AFTER) return 'lantern';
+  const dragon = since(DRAGON_BOAT);
+  if (dragon >= -4 && dragon <= 0) return 'dragon_boat';
+  const moon = since(MID_AUTUMN);
+  if (moon >= -6 && moon <= 0) return 'mid_autumn';
   return null;
 }
 
@@ -80,7 +100,7 @@ export function skyOn(date: Date): Sky {
 
 /**
  * Conditions for lines that fit today (lines/cafe.yaml `when`): sky_rain, sky_snow, sky_petals,
- * sky_leaves, and holiday_halloween, holiday_christmas, holiday_new_year.
+ * sky_leaves, and holiday_ with each of HOLIDAYS.
  */
 export function outsideFlags(outside: { sky: Sky; holiday: Holiday | null }): string[] {
   return [...(outside.sky === 'clear' ? [] : [`sky_${outside.sky}`]), ...(outside.holiday ? [`holiday_${outside.holiday}`] : [])];

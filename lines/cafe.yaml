@@ -68,6 +68,9 @@ sub_back_xiaoju:
   - { id: back_xj_halloween, speaker: xiaoju, when: holiday_halloween, bubbles: ["面包店在卖南瓜饼！", "我买了三个，一人一个。"] }
   - { id: back_xj_christmas, speaker: xiaoju, when: holiday_christmas, bubbles: ["街上的彩灯全亮了！", "图书馆门口也有一棵树。"] }
   - { id: back_xj_new_year, speaker: xiaoju, when: holiday_new_year, bubbles: ["街口在贴春联！", "邮局送了我一个红包袋。"] }
+  - { id: back_xj_lantern, speaker: xiaoju, when: holiday_lantern, bubbles: ["街上的花灯都挂起来了！", "有一盏兔子灯，我想要。"] }
+  - { id: back_xj_dragon_boat, speaker: xiaoju, when: holiday_dragon_boat, bubbles: ["河边在赛龙舟！", "锣鼓声隔两条街都听得见。"] }
+  - { id: back_xj_mid_autumn, speaker: xiaoju, when: holiday_mid_autumn, bubbles: ["面包店在卖月饼！", "桂姨给我们留了蛋黄的。"] }
   - { id: back_xj_01, speaker: xiaoju, bubbles: ["找到了找到了！", "有{count}个能用的——", "还有这个，给你的。"] }
   - { id: back_xj_02, speaker: xiaoju, bubbles: ["外面好冷……", "然后，我找到一个特别好看的。"] }
   - { id: back_xj_03, speaker: xiaoju, bubbles: ["回来啦。先分零食。"] }
@@ -204,6 +207,9 @@ app_open:
   - { id: open_halloween, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "今天有南瓜汤。"] }
   - { id: open_christmas, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，来啦。", "栗子把彩灯扯下来两回了。"] }
   - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，新年好。", "门上的福是小橘贴的。"] }
+  - { id: open_lantern, speaker: adeng, when: holiday_lantern, bubbles: ["{name}，元宵好。", "灯谜是小橘出的，猜猜看。"] }
+  - { id: open_dragon_boat, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}，来啦。", "桌上有粽子，甜的咸的都有。"] }
+  - { id: open_mid_autumn, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}，中秋好。", "月饼切好了，先拿一块。"] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}，来啦。", "「{lastCommission}」还好用吗？"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["来啦。怎么称呼你？"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
@@ -281,6 +287,15 @@ grow:
   - { id: grow_readinglamp, speaker: xiaoju, when: grow_readinglamp, bubbles: ["桌上多了盏读书灯！", "晚上看书不费眼了。"] }
   - { id: grow_postcards, speaker: qingdai, when: grow_postcards, bubbles: ["墙上钉了几张明信片。", "都是还没去过的地方。"] }
   - { id: grow_toolbox, speaker: laoshi, when: grow_toolbox, bubbles: ["工具箱放这儿了。", "要用自己拿。"] }
+  - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["窗边挂了串风铃。", "风一吹，叮叮当当。"] }
+  - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["六十单了，养了缸金鱼！", "一条叫小灯，一条叫阿屋。"], reply: { speaker: laoshi, bubbles: ["水我来换。"] } }
+  - { id: grow_scroll, speaker: adeng, when: grow_scroll, bubbles: ["墙上挂了幅字。", "老石写的，写了一整晚。"] }
+  - { id: grow_teapot, speaker: adeng, when: grow_teapot, bubbles: ["柜台上添了把茶壶。", "来的人都能喝一杯。"] }
+  - { id: grow_gramophone, speaker: laoshi, when: grow_gramophone, bubbles: ["七十五单。", "旧货市场淘的留声机，修好了。"], reply: { speaker: xiaoju, bubbles: ["放首慢歌！"] } }
+  - { id: grow_cushion, speaker: xiaoju, when: grow_cushion, bubbles: ["给栗子缝了个垫子！", "它还没赏脸躺过。"] }
+  - { id: grow_hat, speaker: qingdai, when: grow_hat, bubbles: ["门边挂了顶草帽。", "夏天出门写生戴。"] }
+  - { id: grow_plaque, speaker: adeng, when: grow_plaque, bubbles: ["一百单了。", "街坊凑钱，给店里做了块匾。"], reply: { speaker: laoshi, bubbles: ["挂正了。"] } }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
+  - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["书桌上添了把茶壶。", "来的人都能喝一杯。"] }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["阅读桌上有水果了！", "橘子是我的。"] }

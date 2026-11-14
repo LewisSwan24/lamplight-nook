@@ -467,7 +467,15 @@
         "briefcase": "公文包",
         "readinglamp": "读书灯",
         "postcards": "明信片",
-        "toolbox": "工具箱"
+        "toolbox": "工具箱",
+        "chime": "这串风铃",
+        "aquarium": "这缸金鱼",
+        "scroll": "这幅字",
+        "teapot": "这把茶壶",
+        "gramophone": "这台留声机",
+        "cushion": "这个垫子",
+        "hat": "这顶草帽",
+        "plaque": "这块匾"
       },
       "grownLine": "{thing}是做完第 {n} 单后添的。",
       "clock": "现在 {time}。",
@@ -636,6 +644,9 @@
       "bedsAnd": "，",
       "bedsRipe": "熟了 {n} 棵",
       "bedsSprout": "刚发芽 {n} 棵",
+      "bedsYoung": "春天新种的苗 {n} 棵",
+      "bedsHarvest": "等着收的 {n} 棵",
+      "bedsRest": "盖着稻草过冬的 {n} 块",
       "hotspotBoard": "黑板：看看整张计划",
       "hotspotWorks": "作品架：看看一起做过的东西"
     },
@@ -927,7 +938,15 @@
     "briefcase": "一只公文包",
     "readinglamp": "一盏读书灯",
     "postcards": "几张明信片",
-    "toolbox": "一个工具箱"
+    "toolbox": "一个工具箱",
+    "chime": "一串风铃",
+    "aquarium": "一缸金鱼",
+    "scroll": "一幅字",
+    "teapot": "一把茶壶",
+    "gramophone": "一台留声机",
+    "cushion": "栗子的垫子",
+    "hat": "一顶草帽",
+    "plaque": "一块匾"
   },
   "sceneText": {
     "study": {

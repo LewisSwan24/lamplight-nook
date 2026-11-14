@@ -12,7 +12,7 @@ function seeded(seed: number) {
 const chats = parseChats(readFileSync('lines/chats.yaml', 'utf8'));
 const everyone = () => true;
 
-const nothing = { made: {} };
+const nothing = { made: {}, done: 0 };
 
 describe('neighbours dropping in', () => {
   it('waits a while after opening, then comes every so often, never after dark', () => {
@@ -76,22 +76,22 @@ describe('what neighbours say', () => {
 
   it('picks a visit for the day, only with staff who are in', () => {
     const used = new Set<string>();
-    const rain = pickVisit(chats, 'postman', { sky: 'rain', holiday: null }, 'day', everyone, used, nothing, seeded(5));
+    const rain = pickVisit(chats, 'postman', { sky: 'rain', holiday: null, season: 'summer' }, 'day', everyone, used, nothing, seeded(5));
     expect(rain?.id).toBe('postman_rain');
     const noLaoshi = (who: string) => who !== 'laoshi';
     for (let i = 0; i < 20; i++) {
-      const v = pickVisit(chats, 'postman', { sky: 'clear', holiday: null }, 'day', noLaoshi, used, nothing, seeded(i));
+      const v = pickVisit(chats, 'postman', { sky: 'clear', holiday: null, season: 'summer' }, 'day', noLaoshi, used, nothing, seeded(i));
       expect(v?.guest).toBe('postman');
       expect(v?.turns.some((t) => t.speaker === 'laoshi')).toBe(false);
     }
-    const dawn = pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'dawn', everyone, new Set(), nothing, seeded(6));
+    const dawn = pickVisit(chats, 'baker', { sky: 'clear', holiday: null, season: 'summer' }, 'dawn', everyone, new Set(), nothing, seeded(6));
     expect(dawn?.id).toBe('baker_fresh');
   });
 
   it('goes through every visit before repeating one', () => {
     const used = new Set<string>();
-    const everyday = chats.filter((c) => c.guest === 'baker' && !c.sky && !c.holiday && !c.period && !c.made && !c.mentions);
-    const ids = everyday.map((_, i) => pickVisit(chats, 'baker', { sky: 'clear', holiday: null }, 'day', everyone, used, nothing, seeded(i + 10))!.id);
+    const everyday = chats.filter((c) => c.guest === 'baker' && !c.sky && !c.holiday && !c.period && !c.made && !c.mentions && !c.season && c.after === undefined);
+    const ids = everyday.map((_, i) => pickVisit(chats, 'baker', { sky: 'clear', holiday: null, season: 'summer' }, 'day', everyone, used, nothing, seeded(i + 10))!.id);
     expect(new Set(ids).size).toBe(everyday.length);
   });
 });
@@ -101,7 +101,7 @@ describe('neighbours who remember what the shop made', () => {
   const plain = chat('plain', {});
   const website = chat('website', { made: 'page' });
   const asks = chat('asks', { mentions: true });
-  const pick = (shop: { made: Record<string, number>; lastWork?: string }) => pickVisit([plain, website, asks], 'baker', { sky: 'clear', holiday: null }, 'day', () => true, new Set(), shop, () => 0)?.id;
+  const pick = (shop: { made: Record<string, number>; lastWork?: string }) => pickVisit([plain, website, asks], 'baker', { sky: 'clear', holiday: null, season: 'summer' }, 'day', () => true, new Set(), { done: 0, ...shop }, () => 0)?.id;
 
   it('asks about a kind of work only once the shop has done it, and asks first', () => {
     expect(pick({ made: {} })).toBe('plain');
@@ -143,5 +143,66 @@ describe('new neighbours, who come because of the work', () => {
         expect(all.filter((c) => c.guest === g).length, `${file} ${g}`).toBeGreaterThanOrEqual(3);
       }
     }
+  });
+});
+
+describe('what neighbours talk about after the twentieth', () => {
+  const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
+  const NEW_FESTIVALS = ['lantern', 'dragon_boat', 'mid_autumn'] as const;
+  const visit = (all: typeof chats, guest: (typeof GUEST_IDS)[number], outside: { sky: 'clear'; holiday: (typeof NEW_FESTIVALS)[number] | null; season: (typeof SEASONS)[number] }, done: number, used = new Set<string>()) =>
+    pickVisit(all, guest, outside, 'day', everyone, used, { made: {}, done }, seeded(done))!;
+
+  it('brings each neighbour something new for every season, in both languages', () => {
+    for (const file of ['lines/chats.yaml', 'lines/en/chats.yaml']) {
+      const all = parseChats(readFileSync(file, 'utf8'));
+      for (const guest of GUEST_IDS) {
+        for (const season of SEASONS) {
+          const topical = all.filter((c) => c.guest === guest && c.season === season);
+          expect(topical.length, `${file} ${guest} ${season}`).toBeGreaterThan(0);
+          for (const c of topical) expect(c.after, c.id).toBe(20);
+        }
+      }
+    }
+  });
+
+  it('keeps the season to itself and to a shop past twenty', () => {
+    for (const season of SEASONS) {
+      const later = visit(chats, 'baker', { sky: 'clear', holiday: null, season }, 20);
+      expect(later.season, season).toBe(season);
+      const earlier = visit(chats, 'baker', { sky: 'clear', holiday: null, season }, 19);
+      expect(earlier.season, season).toBeUndefined();
+      expect(earlier.after ?? 0).toBeLessThan(20);
+    }
+  });
+
+  it('turns over the topics as the seasons go round, without repeating within one', () => {
+    const used = new Set<string>();
+    const heard = SEASONS.map((season) => visit(chats, 'postman', { sky: 'clear', holiday: null, season }, 40, used).id);
+    expect(new Set(heard).size).toBe(4);
+  });
+
+  it('has the old friends greet the new festivals, in both languages, and the festival comes first', () => {
+    for (const file of ['lines/chats.yaml', 'lines/en/chats.yaml']) {
+      const all = parseChats(readFileSync(file, 'utf8'));
+      for (const holiday of NEW_FESTIVALS) {
+        for (const guest of ['baker', 'postman'] as const) {
+          expect(all.some((c) => c.guest === guest && c.holiday === holiday), `${file} ${guest} ${holiday}`).toBe(true);
+          const season = holiday === 'dragon_boat' ? 'summer' : holiday === 'mid_autumn' ? 'autumn' : 'winter';
+          expect(visit(all, guest, { sky: 'clear', holiday, season }, 30).holiday, `${file} ${guest} ${holiday}`).toBe(holiday);
+        }
+      }
+    }
+  });
+
+  it('only lets neighbours talk about the season', () => {
+    const staff = parseChats(`
+- id: staff_season
+  when: idle
+  season: spring
+  turns:
+    - adeng: 春天了。
+    - xiaoju: 嗯。
+`);
+    expect(lintChats(staff)).toHaveLength(1);
   });
 });

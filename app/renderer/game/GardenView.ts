@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { ActorId } from '../../shared/types';
 import type { Period } from './daytime';
-import { BEDS, type BedStage, bedStages } from '../../shared/growth';
+import { BEDS, type BedStage, type Season, bedFrame, bedStages } from '../../shared/growth';
 import { GardenAnimals } from './GardenAnimals';
 import { GARDEN_DOOR, GARDEN_DOOR_SPOT, GARDEN_X, type GardenSpot, type SpotId, pathInGarden } from './garden';
 import { CANVAS } from './layout';
@@ -9,9 +9,8 @@ import { WALK_SPEED } from './life';
 import { STAFF_ANIMS, animKey, facingTowards } from './sprites';
 import type { Sky } from './weather';
 
-/** The planters (scripts/art/garden.py, PLANTERS), and the sprout after the eight plants in garden-crops.png. */
+/** The planters (scripts/art/garden.py, PLANTERS). */
 const BEDS_BOX = { x: 20, y: 70, w: 66, h: 50 };
-const SPROUT_FRAME = 8;
 /** One-off chores (picking, watering) are done again every few seconds. */
 const CHORE_EVERY_MS = [2500, 4500] as const;
 
@@ -32,7 +31,10 @@ export class GardenView {
   hovered: 'door' | 'dog' | 'hens' | 'beds' | null = null;
   /** The plants in the beds, which come up as works get finished. */
   private plants: Phaser.GameObjects.Sprite[] = [];
-  beds: BedStage[] = bedStages(0);
+  beds: BedStage[] = bedStages(0, 'spring');
+  private done = 0;
+  /** Once the beds are full they follow the season (the scene sets it from the calendar). */
+  private season: Season = 'spring';
   /** Malt and the hens, who live out here. */
   readonly animals: GardenAnimals;
 
@@ -60,10 +62,17 @@ export class GardenView {
 
   /** How many works the shop has finished decides what is growing. */
   setWorksDone(done: number) {
-    this.beds = bedStages(done);
+    this.done = done;
+    this.beds = bedStages(done, this.season);
     this.beds.forEach((stage, i) => {
-      this.plants[i].setVisible(stage !== 'empty').setFrame(stage === 'ripe' ? i : SPROUT_FRAME);
+      if (stage === 'empty') this.plants[i].setVisible(false);
+      else this.plants[i].setVisible(true).setFrame(bedFrame(stage, i));
     });
+  }
+
+  setSeason(season: Season) {
+    this.season = season;
+    this.setWorksDone(this.done);
   }
 
   /** The weather and the hour, which send the animals in and out. */
