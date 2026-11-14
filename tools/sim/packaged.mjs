@@ -140,9 +140,14 @@ for (const [name, state] of Object.entries(FUSES)) {
   check(new RegExp(`${name}[^\\n]*${state}`).test(fuses.replace(/\[[0-9;]*m/g, '')), `fuse ${name} is ${state}`);
 }
 
-// Where the updater looks for new versions (package.json build.publish, app/main/updates.ts).
-const feed = existsSync(join(appDir, 'resources', 'app-update.yml')) ? readFileSync(join(appDir, 'resources', 'app-update.yml'), 'utf8') : '';
-check(/provider: github/.test(feed) && /owner: LewisSwan24/.test(feed) && /repo: lamplight-nook/.test(feed), 'the updater knows where the releases are (app-update.yml)');
+// Where the updater looks for new versions (package.json build.publish, app/main/updates.ts). electron-builder writes
+// app-update.yml only for an installer, so `npm run packaged` (a plain folder) has none and its look on opening fails
+// quietly; the win-unpacked folder `npm run dist` leaves has one, and that is checked when it is the app given.
+const feedFile = join(appDir, 'resources', 'app-update.yml');
+if (existsSync(feedFile)) {
+  const feed = readFileSync(feedFile, 'utf8');
+  check(/provider: github/.test(feed) && /owner: LewisSwan24/.test(feed) && /repo: lamplight-nook/.test(feed), 'the updater knows where the releases are (app-update.yml)');
+} else console.log('note app-update.yml is written only for the installer; this folder has none');
 
 const realData = join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), 'Lamplight Nook');
 const before = fingerprint(realData);
