@@ -201,7 +201,13 @@ export type CommissionResult = {
   round?: number;
   /** The work as it was before this round is kept and can be put back. */
   canRestore?: boolean;
+  /** Scripts it made that delete files or skip the preview: worth reading before a double click. */
+  scripts?: ScriptCheck[];
 };
+
+/** Why a script the shop made needs a look: it deletes files, or it changes them without a preview first. */
+export type ScriptRisk = 'deletes' | 'noPreview';
+export type ScriptCheck = { file: string; risks: ScriptRisk[] };
 
 /** Asking for changes to finished work: the notebook entry (the last commission when absent) and what to change. */
 export type ReviseRequest = { id?: string; ask: string };

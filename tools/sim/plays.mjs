@@ -52,6 +52,7 @@ const T = {
     notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
     travelDone: '攻略做好了：按天排的行程、预算表和要带的东西。开放时间和票价都注了出处和查的日期，出发前再核对一下。',
     toolDone: '小工具做好了：1. 打开小工具.html；2. 选一个文件；3. 点「下载结果」。它只读你选的文件，不动电脑上别的东西。',
+    toolScriptDone: '脚本写好了：1. 双击启动文件；2. 把文件夹拖进窗口；3. 看过要做的事再确认。',
     albumDone: (n) => `相册做好了：${n} 张照片排成一本，点一张能看大图。照片用的是复制件。`,
     reviseDone: (a) => `改好了：${a}。其他地方没动，上一版也留着。`,
     netRetry: '网络断了一下。',
@@ -114,6 +115,7 @@ const T = {
     notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
     travelDone: 'The travel guide is ready: day by day, a budget table and a packing list. Opening hours and prices carry their source and the date checked; check them again before you set off.',
     toolDone: 'The tool is ready: 1. Open tool.html. 2. Pick a file. 3. Click "Download the result". It only reads the file you pick.',
+    toolScriptDone: 'The script is ready: 1. Double-click the launcher. 2. Drop a folder on the window. 3. Look over what it will do, then confirm.',
     albumDone: (n) => `The album is ready: ${n} photos in one page, and clicking one shows it large. It uses copies of the photos.`,
     reviseDone: (a) => `Done: ${a}. Nothing else changed, and the last version is kept.`,
     netRetry: 'The connection dropped for a moment.',
@@ -177,8 +179,19 @@ export function pickPlay(prompt, state) {
   if (/This is a résumé/.test(prompt)) { state.vars.out = quoted(prompt, 'single self-contained page named'); return plays.resume; }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
   if (/This is a travel guide/.test(prompt)) { state.vars.out = 'index.html'; return plays.travel; }
-  // A small tool: the page in the browser only. The stand-in never writes or runs a PowerShell script.
-  if (/This is a small tool/.test(prompt)) { state.vars.out = quoted(prompt, 'single self-contained page named'); return plays.tool; }
+  // A small tool: a page in the browser, unless the request is to rename or delete files. Then it writes a script and
+  // its launcher, careful (a preview, -Apply to act) for renaming and careless (deletes at once) for deleting, so the
+  // result card's warning can be seen. The stand-in never runs either.
+  if (/This is a small tool/.test(prompt)) {
+    if (/改名|删|rename|delete/i.test(state.vars.want)) {
+      state.vars.out = quoted(prompt, 'PowerShell script named');
+      state.vars.launcher = quoted(prompt, 'and next to it');
+      state.vars.careless = /删|delete/i.test(state.vars.want);
+      return plays.toolScript;
+    }
+    state.vars.out = quoted(prompt, 'single self-contained page named');
+    return plays.tool;
+  }
   return plays.page;
 }
 
@@ -420,6 +433,24 @@ export const plays = {
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
 
+  toolScript: {
+    name: 'toolScript',
+    async run(s) {
+      const t = T[s.state.lang];
+      const { out, launcher, careless } = s.state.vars;
+      const p = planner(s, t.tool);
+      await p.start();
+      await s.step(() => s.think(1));
+      await p.next();
+      await s.step(() => s.write(out, careless ? CARELESS_SCRIPT : CAREFUL_SCRIPT));
+      await s.step(() => s.write(launcher, `@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0${out}"\r\n`));
+      await p.next();
+      await reviewer(s, t, out);
+      await p.end();
+      await s.finish(t.toolScriptDone);
+    },
+  },
+
   album: {
     name: 'album',
     async run(s, { scenario }) {
@@ -483,6 +514,23 @@ export const plays = {
     },
   },
 };
+
+/** What the tool template asks for: a preview by default, -Apply to act, nothing deleted. */
+const CAREFUL_SCRIPT = [
+  'param([string]$Path, [switch]$Apply)',
+  '# Only renames; nothing is deleted.',
+  'foreach ($f in Get-ChildItem -LiteralPath $Path -File) {',
+  '  $new = $f.LastWriteTime.ToString("yyyy-MM-dd_HHmmss") + $f.Extension',
+  '  if ($Apply) { Rename-Item -LiteralPath $f.FullName -NewName $new } else { Write-Host "$($f.Name) -> $new" }',
+  '}',
+  '',
+].join('\r\n');
+/** What it forbids: deleting, straight away, with no preview. */
+const CARELESS_SCRIPT = [
+  'param([string]$Path)',
+  'Get-ChildItem -LiteralPath $Path -Filter *.tmp | Remove-Item',
+  '',
+].join('\r\n');
 
 /**
  * The letter, the table, the plan, the résumé, the reading notes, the travel guide and the small tool: a short to-do

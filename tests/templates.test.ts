@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SUMMARY_RULE, collectOutputs, folderName, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
+import { SUMMARY_RULE, collectOutputs, scriptRisks, folderName, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
 import { classify } from '../app/main/risk-classifier';
 import { strings } from '../app/shared/i18n';
 
@@ -159,6 +159,79 @@ describe('listing a folder', () => {
     const lines = listFolder(root, 2, 5).trim().split('\n');
     expect(lines).toHaveLength(6);
     expect(lines[5]).toBe('... and 2 more not listed');
+  });
+});
+
+describe('scripts the shop made', () => {
+  // Shaped like the script the real run made on 2026-11-14: a preview by default, -Apply to rename, nothing deleted.
+  const careful = [
+    '<#',
+    '  只改名，不移动、不删除任何文件。Remove-Item is never used here.',
+    '#>',
+    'param([string]$Path, [switch]$Apply)',
+    '# Rename-Item only; del is not used',
+    'if (-not $Apply) { Write-Host "preview"; exit 0 }',
+    'Rename-Item -LiteralPath $a -NewName $b',
+  ].join('\n');
+
+  it('a script that previews first and never deletes is fine', () => {
+    expect(scriptRisks(careful, 'ps1')).toEqual([]);
+  });
+
+  it('any way of deleting is caught, whatever the case', () => {
+    for (const line of ['remove-item $f', 'Remove-Item -Recurse $d', 'rm $f', 'del $f', 'ri $f', '[IO.File]::Delete($f)', '[System.IO.Directory]::Delete($d, $true)', '$file.Delete()', 'Get-ChildItem | Remove-Item']) {
+      expect(scriptRisks(`param([switch]$Apply)\n${line}`, 'ps1'), line).toEqual(['deletes']);
+    }
+  });
+
+  it('a script with no -Apply changes files the moment it runs', () => {
+    expect(scriptRisks('Rename-Item $a $b', 'ps1')).toEqual(['noPreview']);
+    expect(scriptRisks('Remove-Item $a', 'ps1')).toEqual(['deletes', 'noPreview']);
+  });
+
+  it('a launcher may not skip the preview or delete on its own', () => {
+    expect(scriptRisks('@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tool.ps1" -Interactive', 'cmd')).toEqual([]);
+    expect(scriptRisks('powershell -File "%~dp0tool.ps1" -Apply', 'cmd')).toEqual(['noPreview']);
+    expect(scriptRisks('@echo off\r\ndel /q *.tmp', 'cmd')).toEqual(['deletes']);
+    expect(scriptRisks('rem del is never used\r\n:: neither is rd\r\necho hi', 'cmd')).toEqual([]);
+  });
+
+  it('the result lists only the scripts that need a look', () => {
+    const work = dir();
+    writeFileSync(join(work, 'tool.ps1'), careful);
+    writeFileSync(join(work, 'run.cmd'), 'powershell -File "%~dp0tool.ps1"');
+    writeFileSync(join(work, 'wipe.ps1'), 'Remove-Item $args[0]');
+    writeFileSync(join(work, 'notes.md'), 'Remove-Item');
+    expect(collectOutputs(work, new Set()).scripts).toEqual([{ file: 'wipe.ps1', risks: ['deletes', 'noPreview'] }]);
+    rmSync(join(work, 'wipe.ps1'));
+    expect(collectOutputs(work, new Set())).not.toHaveProperty('scripts');
+  });
+
+  it('a script changed in a later round is read again, not just new ones', () => {
+    const work = dir();
+    writeFileSync(join(work, 'tool.ps1'), careful);
+    const before = snapshot(work);
+    writeFileSync(join(work, 'tool.ps1'), 'Remove-Item $args[0]');
+    expect(collectOutputs(work, before).scripts).toEqual([{ file: 'tool.ps1', risks: ['deletes', 'noPreview'] }]);
+  });
+
+  it('a script saved as UTF-16 is read as such', () => {
+    const work = dir();
+    writeFileSync(join(work, 'wipe.ps1'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('param([switch]$Apply)\r\nRemove-Item $f', 'utf16le')]));
+    expect(collectOutputs(work, new Set()).scripts).toEqual([{ file: 'wipe.ps1', risks: ['deletes'] }]);
+  });
+
+  it('a folder that happens to be named like a script is left alone', () => {
+    const work = dir();
+    mkdirSync(join(work, 'odd.ps1'));
+    expect(() => collectOutputs(work, new Set())).not.toThrow();
+    expect(collectOutputs(work, new Set())).not.toHaveProperty('scripts');
+  });
+
+  it('a launcher passing -Apply cut short still skips the preview', () => {
+    expect(scriptRisks('powershell -File "%~dp0tool.ps1" -Ap', 'cmd')).toEqual(['noPreview']);
+    expect(scriptRisks('powershell -File "%~dp0tool.ps1" -App', 'cmd')).toEqual(['noPreview']);
+    expect(scriptRisks('powershell -File "%~dp0tool.ps1" -Path "%~1"', 'cmd')).toEqual([]);
   });
 });
 

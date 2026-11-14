@@ -1,9 +1,9 @@
 import { localDay } from '../shared/localday';
-import { copyFileSync, existsSync, lstatSync, readdirSync, writeFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { copyFileSync, existsSync, lstatSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import { strings } from '../shared/i18n';
 import { MAIN_FILES, template } from '../shared/templates';
-import type { CommissionForm } from '../shared/types';
+import type { CommissionForm, ScriptCheck, ScriptRisk } from '../shared/types';
 import { materialsSteps } from './materials';
 
 const F = strings.ui.files;
@@ -260,8 +260,52 @@ export function snapshot(dir: string): Set<string> {
  * else an edited document, else any page, else a Markdown write-up (a research summary, a tidy plan or a plan),
  * else a table or a letter (MAIN_FILES in shared/templates.ts).
  */
-export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string } {
-  const files = [...snapshot(workDir)].filter((f) => !before.has(f));
+export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string; scripts?: ScriptCheck[] } {
+  const all = [...snapshot(workDir)];
+  const files = all.filter((f) => !before.has(f));
   const main = Object.values(MAIN_FILES).reduce<string | undefined>((found, is) => found ?? files.find((f) => is(basename(f), F)), undefined);
-  return { files, main };
+  // Every script in the folder, not only new ones: a later round may have rewritten one that was fine.
+  const scripts = all.flatMap((f) => {
+    const kind = SCRIPT_KINDS[extname(f).toLowerCase()];
+    const risks = kind && lstatSync(f).isFile() ? scriptRisks(scriptText(f), kind) : [];
+    return risks.length ? [{ file: basename(f), risks }] : [];
+  });
+  return scripts.length ? { files, main, scripts } : { files, main };
+}
+
+/** Scripts the user could run with a double click, and which language each is read as. */
+const SCRIPT_KINDS: Record<string, 'ps1' | 'cmd'> = { '.ps1': 'ps1', '.cmd': 'cmd', '.bat': 'cmd' };
+
+/** A script's text: UTF-8, or UTF-16 when it starts with that byte order mark (what Windows PowerShell writes). */
+function scriptText(file: string): string {
+  const bytes = readFileSync(file);
+  return bytes[0] === 0xff && bytes[1] === 0xfe ? bytes.subarray(2).toString('utf16le') : bytes.toString('utf8');
+}
+
+/** Comments, which say what a script does not do as often as what it does. */
+const COMMENTS = {
+  ps1: (t: string) => t.replace(/<#[\s\S]*?#>/g, '').replace(/(^|\s)#.*$/gm, '$1'),
+  cmd: (t: string) => t.replace(/^\s*@?(rem\b|::).*$/gim, ''),
+};
+/** Deleting: a PowerShell cmdlet or one of its aliases, a .NET Delete call, or a batch command. */
+const DELETES = {
+  ps1: /(^|[\s|;({])(remove-item|ri|rm|rmdir|rd|del|erase)\b|::delete\s*\(|\.delete\s*\(/im,
+  cmd: /(^|[\s&|(@])(del|erase|rd|rmdir)\b|remove-item/im,
+};
+/** Changing files straight away: a script with no -Apply switch, or a launcher that passes it (PowerShell takes -Ap too). */
+const NO_PREVIEW = {
+  ps1: (code: string) => !/\$Apply\b/i.test(code),
+  cmd: (code: string) => /(^|\s)-ap(p|pl|ply)?\b/i.test(code),
+};
+
+/**
+ * What the user should know before running a script the shop made (road-to-1.1.md A7). The tool template asks for
+ * a preview by default, -Apply to act, and no deleting; this reads the script to see whether it kept to that.
+ */
+export function scriptRisks(text: string, kind: 'ps1' | 'cmd'): ScriptRisk[] {
+  const code = COMMENTS[kind](text);
+  return [
+    ...(DELETES[kind].test(code) ? ['deletes' as const] : []),
+    ...(NO_PREVIEW[kind](code) ? ['noPreview' as const] : []),
+  ];
 }

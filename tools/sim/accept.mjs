@@ -33,6 +33,8 @@ const W = {
     notes: '帮我给《瓦尔登湖》做一份读书笔记。',
     travel: '帮我做一份杭州的旅行攻略，三天。',
     tool: '帮我做一个把文本里的英文全改成大写的小工具。',
+    toolRename: '帮我做一个按日期给照片改名的小工具。',
+    toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
     tidy: '帮我看看这个文件夹该怎么整理：下载文件夹太乱了。',
     note: '页面底部加一行联系电话',
@@ -49,6 +51,8 @@ const W = {
     notes: 'Make me reading notes on Walden.',
     travel: 'Make me a travel guide for Edinburgh, three days.',
     tool: 'Make me a small tool that turns the text in a file into capitals.',
+    toolRename: 'Make me a small tool that renames photos by date.',
+    toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
     tidy: 'How should I tidy up this folder? My downloads are a mess.',
     note: 'Add a contact phone number at the bottom',
@@ -1756,6 +1760,30 @@ const SCENARIOS = {
       await shop.hotspot(shop.L.ui.access.hotspotWorks);
       await sleep(300);
       await shop.shot(join(out, 'shelf.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A small tool that has to change files comes as a script and a launcher. One that previews first and never deletes
+   * passes quietly; one that deletes at once gets a warning on the result card, naming the script.
+   */
+  async scripts(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const F = JSON.parse(readFileSync(join(ROOT, 'locales', `${lang}.json`), 'utf8')).ui.files;
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      for (const [want, careless] of [[W[lang].toolRename, false], [W[lang].toolWipe, true]]) {
+        const r = await runOne(shop, { template: 'tool', want });
+        check(r.ok, `${want} did not finish`);
+        const dir = latestCommission(home);
+        check([F.toolScript, F.toolLauncher].every((f) => existsSync(join(dir, f))), 'no script and launcher');
+        const warning = shop.page.locator('.result-card .result-script');
+        check((await warning.count()) === (careless ? 1 : 0), careless ? 'no warning for a script that deletes' : 'a careful script got a warning');
+        if (careless) check((await warning.textContent()).includes(F.toolScript), 'the warning does not name the script');
+        await shop.shot(join(out, `scripts-${careless ? 'careless' : 'careful'}.png`));
+        await shop.page.keyboard.press('Escape');
+        await sleep(1500);
+      }
     } finally { await shop.close(); }
   },
 
