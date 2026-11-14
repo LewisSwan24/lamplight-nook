@@ -6,7 +6,7 @@ import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const BOM = '﻿';
+const BOM = '';
 
 /** Text the plays say and write, per language. Player-facing words only appear in commission output. */
 const T = {
@@ -26,6 +26,10 @@ const T = {
     tool: ['弄清要做什么', '做成一个网页工具', '用样例试一试', '请老石检查'],
     materials: '看你递来的材料',
     revise: ['看看上一版', '照你说的改', '请老石再看一眼'],
+    lent: ['看看你原有的页面', '照你说的改原有的文件', '加一页联系方式', '请老石检查'],
+    lentMark: '小灯屋照你说的改过这里',
+    lentPage: '<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>联系我们</title></head>\n<body><h1>联系我们</h1><p>电话和地址写在这里。</p></body></html>\n',
+    lentDone: '在你原有的页面上改好了，还加了一页联系方式。别的文件都没动。',
     designBrief: '给页面定配色和布局，十五行以内。', designDesc: '定配色和布局', reviewDesc: '检查成品',
     designSummary: '配色：奶油白底、深棕字、一处橘色强调；上面标题，中间主体，底下一行说明。',
     researchBrief: '查一查这件事，只读，三到五句话总结。',
@@ -89,6 +93,10 @@ const T = {
     tool: ['Work out what it should do', 'Make it a page in the browser', 'Try it on samples', 'Ask Flint to check it'],
     materials: 'Look at the files you handed over',
     revise: ['Look at the last version', 'Make the change you asked for', 'Ask Flint for another look'],
+    lent: ['Look at your pages as they are', 'Change your files as you asked', 'Add a contact page', 'Ask Flint to check'],
+    lentMark: 'changed here by the shop, as you asked',
+    lentPage: '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Contact us</title></head>\n<body><h1>Contact us</h1><p>Phone and address go here.</p></body></html>\n',
+    lentDone: 'Your own pages are changed as you asked, and there is a new contact page. Nothing else was touched.',
     designBrief: 'Propose colours and layout for the page, under fifteen lines.', designDesc: 'Colours and layout', reviewDesc: 'Check the result',
     designSummary: 'Palette: cream background, dark brown text, one orange accent; title on top, the main part in the middle, a note at the bottom.',
     researchBrief: 'Look into this. Read only; sum it up in three to five sentences.',
@@ -161,6 +169,7 @@ export function pickPlay(prompt, state) {
   if (/node check\.js/.test(prompt)) return plays.demo;
   state.vars.want = want(prompt);
   state.vars.materialsDir = quoted(prompt, 'Copies are in the folder') ?? quoted(prompt, 'using the photos in the folder');
+  if (/This folder is the user's own/.test(prompt)) return plays.lent;
   if (/single self-contained page named "index\.html", using the photos/.test(prompt)) return plays.album;
   if (/write the findings as/.test(prompt)) { state.vars.out = quoted(prompt, 'write the findings as'); return plays.research; }
   if (/Write the edited version as/.test(prompt)) {
@@ -503,6 +512,34 @@ export const plays = {
       if (main) await reviewer(s, t, main);
       await p.end();
       await s.finish(t.reviseDone(ask));
+    },
+  },
+
+  /**
+   * Work in a folder the user lent: change two of their own pages or styles where they are (the first two .html or
+   * .css files by name), add a contact page in a new folder, and leave everything else alone.
+   */
+  lent: {
+    name: 'lent',
+    async run(s) {
+      const t = T[s.state.lang];
+      const p = planner(s, t.lent);
+      await p.start();
+      const theirs = readdirSync(s.cwd).filter((f) => /\.(html|css)$/.test(f)).sort().slice(0, 2);
+      for (const f of theirs) await s.step(() => s.read(f));
+      await p.next();
+      for (const f of theirs) {
+        await s.step(() => {
+          const mark = /\.css$/.test(f) ? `/* ${t.lentMark} */` : `<!-- ${t.lentMark} -->`;
+          return s.write(f, `${readFileSync(join(s.cwd, f), 'utf8').trimEnd()}\n${mark}\n`);
+        });
+      }
+      await p.next();
+      await s.step(() => s.write('pages/contact.html', t.lentPage));
+      await p.next();
+      await reviewer(s, t, theirs[0] ?? 'pages/contact.html');
+      await p.end();
+      await s.finish(t.lentDone);
     },
   },
 
