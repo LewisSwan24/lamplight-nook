@@ -145,6 +145,15 @@ describe('working in a lent folder', () => {
     expect(classify('Write', { file_path: join(site, 'new.html') }, ctx).keep).toBeUndefined();
   });
 
+  it('when two of their files differ only in capitals, only the exact one is changed quietly', () => {
+    // A folder can be case-sensitive on Windows too; then which one a third spelling means is not clear.
+    const twin = join(site, 'css', 'STYLE.css');
+    const twins = { ...ctx, preexisting: new Set([own, twin]) };
+    expect(classify('Edit', { file_path: own }, twins)).toMatchObject({ risk: 'safe', keep: own });
+    expect(classify('Edit', { file_path: twin }, twins)).toMatchObject({ risk: 'safe', keep: twin });
+    if (process.platform === 'win32') expect(classify('Edit', { file_path: join(site, 'css', 'Style.css') }, twins)).toEqual({ risk: 'serious', reason: expect.any(String) });
+  });
+
   it('still asks before changing settings in dot-folders, things that run, and package.json', () => {
     const theirs = ['.git/config', '.github/workflows/build.yml', '.vscode/settings.json', '.gitignore', 'tools/fix.ps1', 'run.bat', 'go.cmd', 'app.exe',
       'old.com', 'hello.vbs', 'build.sh', 'package.json'].map((p) => join(site, p));

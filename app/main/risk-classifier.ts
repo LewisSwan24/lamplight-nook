@@ -332,7 +332,10 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
     // In a lent folder, one of the user's files written as C:/x/a.html, or in other capitals on Windows, must still be
     // known as theirs, or it would be changed with no original kept.
     const full = resolve(ctx.workDir, p);
-    const own = [...(ctx.preexisting ?? [])].find((f) => sameFile(f, full));
+    const matches = ctx.preexisting?.has(full) ? [full] : [...(ctx.preexisting ?? [])].filter((f) => sameFile(f, full));
+    // Two of theirs that differ only in capitals (a case-sensitive folder): which one this means is not clear, so it asks.
+    if (matches.length > 1) return { risk: 'serious', reason: fill(R.overwrite, { name: basename(full) }) };
+    const own = matches[0];
     // Only the file tools: a command writing over the same file still asks, as nothing keeps the original for it.
     // And only an ordinary file of theirs, where a new file would need no card either.
     if (own && changesQuietly(ctx.workDir, own) && !pathVerdict({ ...ctx, preexisting: undefined }, own, true)) return { risk: 'safe', reason: R.write, keep: own };
