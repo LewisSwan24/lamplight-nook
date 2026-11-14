@@ -266,6 +266,9 @@ function globBase(pattern: string): string {
   return base === '' && pattern.startsWith('/') ? '/' : base;
 }
 
+/** The same file: Windows does not mind the case of a name. */
+const sameFile = (a: string, b: string) => (process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b);
+
 /** Files that run, which a quiet change could turn into something else. */
 const RUNS = /\.(ps1|psm1|cmd|bat|exe|com|msi|scr|lnk|vbs|sh)$/i;
 
@@ -325,13 +328,15 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
   if (WRITE_TOOLS.has(tool)) {
     const p = String(input.file_path ?? input.notebook_path ?? '');
     if (!p) return { risk: 'serious', reason: R.noTarget };
-    const full = abs(ctx.workDir, p);
+    if (!ctx.keepOriginal) return pathVerdict(ctx, p, true) || { risk: 'safe', reason: R.write };
+    // In a lent folder, one of the user's files written as C:/x/a.html, or in other capitals on Windows, must still be
+    // known as theirs, or it would be changed with no original kept.
+    const full = resolve(ctx.workDir, p);
+    const own = [...(ctx.preexisting ?? [])].find((f) => sameFile(f, full));
     // Only the file tools: a command writing over the same file still asks, as nothing keeps the original for it.
     // And only an ordinary file of theirs, where a new file would need no card either.
-    if (ctx.keepOriginal && ctx.preexisting?.has(full) && changesQuietly(ctx.workDir, full) && !pathVerdict({ ...ctx, preexisting: undefined }, full, true)) {
-      return { risk: 'safe', reason: R.write, keep: full };
-    }
-    return pathVerdict(ctx, p, true) || { risk: 'safe', reason: R.write };
+    if (own && changesQuietly(ctx.workDir, own) && !pathVerdict({ ...ctx, preexisting: undefined }, own, true)) return { risk: 'safe', reason: R.write, keep: own };
+    return pathVerdict(ctx, own ?? full, true) || { risk: 'safe', reason: R.write };
   }
 
   if (PLAN_TOOLS.has(tool)) return { risk: 'safe', reason: R.plan };

@@ -138,6 +138,10 @@ describe('working in a lent folder', () => {
   it('the file tools change the user\'s files without asking, once the original is kept', () => {
     expect(classify('Edit', { file_path: own }, ctx)).toMatchObject({ risk: 'safe', keep: own });
     expect(classify('Write', { file_path: 'css/style.css' }, ctx)).toMatchObject({ risk: 'safe', keep: own });
+    // The same file written with forward slashes is still theirs: its original must be kept too.
+    expect(classify('Write', { file_path: own.split('\\').join('/') }, ctx)).toMatchObject({ risk: 'safe', keep: own });
+    // Windows does not mind the case of a name, so neither does the shop there.
+    if (process.platform === 'win32') expect(classify('Edit', { file_path: own.toUpperCase() }, ctx)).toMatchObject({ risk: 'safe', keep: own });
     expect(classify('Write', { file_path: join(site, 'new.html') }, ctx).keep).toBeUndefined();
   });
 
