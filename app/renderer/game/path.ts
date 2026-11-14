@@ -52,11 +52,12 @@ function search(area: Area, from: Point, to: Point): Point[] {
   let order = 0;
   const open: Node[] = [];
   const best = new Map<string, number>();
+  // One order for the heap, shared by push and pop: ties go to the older node, so walks stay the same every time.
+  const f = (m: Node) => m.cost + left(m.p);
+  const before = (a: Node, b: Node) => f(a) < f(b) || (f(a) === f(b) && a.order < b.order);
   const push = (n: Node) => {
     open.push(n);
     let i = open.length - 1;
-    const f = (m: Node) => m.cost + left(m.p);
-    const before = (a: Node, b: Node) => f(a) < f(b) || (f(a) === f(b) && a.order < b.order);
     while (i > 0) {
       const up = (i - 1) >> 1;
       if (!before(open[i], open[up])) break;
@@ -65,8 +66,6 @@ function search(area: Area, from: Point, to: Point): Point[] {
     }
   };
   const pop = () => {
-    const f = (m: Node) => m.cost + left(m.p);
-    const before = (a: Node, b: Node) => f(a) < f(b) || (f(a) === f(b) && a.order < b.order);
     const top = open[0];
     const last = open.pop()!;
     if (open.length) {

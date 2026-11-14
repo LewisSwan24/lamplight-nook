@@ -1,7 +1,11 @@
 # Changelog
 
-## Unreleased
+## Unreleased (1.1)
 
+- **The notebook keeps a ledger of the month.** How many commissions and rounds, how long a round takes, why some
+  didn't finish, and how often an errand waited for a busy helper. It stays on this computer, and can be cleared on its own.
+- **The Claude Code version check works in the installed app.** A Claude Code that is a script used to open a second shop
+  instead of saying its version.
 - **The shop's birthday is no longer missed.** Closing the shop in the first few seconds of its birthday used to count
   the line as said, and a shop left open across midnight never noticed the day. It now counts once someone says it, and
   checks again when the day changes.

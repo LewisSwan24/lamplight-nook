@@ -44,6 +44,7 @@ const api: LamplightApi = {
   getMemory: () => ipcRenderer.invoke(IPC.getMemory),
   dataDamage: () => ipcRenderer.invoke(IPC.dataDamage),
   clearMemory: () => ipcRenderer.invoke(IPC.clearMemory),
+  clearStats: () => ipcRenderer.invoke(IPC.clearStats),
   openCommissionFolder: (id) => ipcRenderer.invoke(IPC.openCommissionFolder, id),
   recallForRevision: (id) => ipcRenderer.invoke(IPC.recallForRevision, id),
   shopState: () => ipcRenderer.invoke(IPC.shopState),

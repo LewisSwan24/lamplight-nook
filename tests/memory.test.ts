@@ -50,6 +50,26 @@ describe('memory store', () => {
     expect(store.get().commissions[0].choices).toEqual({ 'Main color?': 'mint', 'Font?': 'sans' });
   });
 
+  it('keeps how each round went, through a stop carried on and a round of changes', () => {
+    const file = fresh();
+    const round = (seconds: number, failure?: string) => ({ date: '2026-11-14', seconds, ...(failure ? { failure } : {}), helpers: {}, waits: 0, waitedSeconds: 0 });
+    const store = new MemoryStore(file);
+    store.remember({ ...memo('ledger', {}, 'failed'), folder: 'C:/works/ledger', rounds: [round(40, 'net')] }, []);
+    const done = store.remember({ ...memo('ledger'), folder: 'C:/works/ledger', rounds: [round(90)] }, []);
+    store.revise(done.id, 'bigger title', { result: 'done', choices: {}, round: round(30) }, []);
+    expect(new MemoryStore(file).find(done.id)!.rounds!.map((r) => r.seconds)).toEqual([40, 90, 30]);
+  });
+
+  it('forgets how the rounds went on its own, and keeps the works', () => {
+    const file = fresh();
+    const store = new MemoryStore(file);
+    store.remember({ ...memo('ledger'), rounds: [{ date: '2026-11-14', seconds: 9, helpers: {}, waits: 0, waitedSeconds: 0 }] }, []);
+    store.clearStats();
+    const after = new MemoryStore(file).get().commissions;
+    expect(after).toHaveLength(1);
+    expect(after[0].rounds).toBeUndefined();
+  });
+
   it('keeps a finished commission and a failed one that are in different folders', () => {
     const store = new MemoryStore(fresh());
     store.remember({ ...memo('ledger', {}, 'failed'), folder: 'C:/works/one' }, []);
