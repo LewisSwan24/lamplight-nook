@@ -3094,6 +3094,97 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The Store build's first open on a computer where the installer build has a shop (road-to-1.1.md A2): asked before
+   * anything else, the works and the ledger come over, the original is not changed, and the next open asks nothing.
+   * Saying no starts afresh; without an old shop nothing is asked.
+   */
+  async storemove(lang, out) {
+    const M = locale(lang).ui.moveIn;
+    const old = freshHome();
+    const works = [1, 2, 3].map((i) => ({
+      id: `c${Date.UTC(2026, 9, i)}`, title: `${lang === 'en' ? 'Old work' : '旧作品'} ${i}`, date: `2026-10-0${i}`, result: 'done',
+      choices: {}, asks: [], folder: join(old.documents, 'Lamplight Nook', `work-${i}`), main: 'index.html', costUsd: 0.4,
+      form: { want: `Make something ${i}`, template: 'page' },
+    }));
+    for (const w of works) {
+      mkdirSync(w.folder, { recursive: true });
+      writeFileSync(join(w.folder, 'index.html'), `<h1>${w.title}</h1>`);
+    }
+    const seed = {
+      'settings.json': JSON.stringify(onboarded(lang)),
+      'memory.json': JSON.stringify({ commissions: works, stuckNotes: [], greeted: works[2].id, shop: { done: 3, told: [], grown: [], met: [] } }),
+      'spend.json': JSON.stringify([{ key: 'a|s', usd: 0.5, month: '2026-09' }, { key: 'b|s', usd: 0.7, month: '2026-10' }]),
+      'data-version.json': JSON.stringify({ data: 3 }),
+      [`versions/${works[0].id}/index.html`]: '<h1>first try</h1>',
+      'api-key.bin': 'sealed by the other build',
+    };
+    for (const [name, text] of Object.entries(seed)) {
+      mkdirSync(join(old.data, name, '..'), { recursive: true });
+      writeFileSync(join(old.data, name), text);
+    }
+    const contents = (dir) => filesIn(dir).map((f) => `${f}:${createHash('sha256').update(readFileSync(join(dir, f))).digest('hex')}`);
+    const before = contents(old.data);
+
+    const home = freshHome();
+    let shop = await launch({ lang, home, speed: SPEED, store: true, oldData: old.data });
+    try {
+      const card = await shop.maybe('.move-in-card', 8000);
+      check(card, 'the Store build did not offer to bring the old shop over');
+      const text = await card.innerText();
+      check(text.includes(M.title) && text.includes('3') && text.includes('$1.20'), `the question does not say what is there: ${text}`);
+      check(await shop.page.locator('.welcome').count() === 0, 'the welcome came up before the question was answered');
+      const spills = await card.evaluate((c) => [...c.querySelectorAll('button, .card-title')].some((e) => e.scrollWidth > e.clientWidth + 1));
+      check(!spills, 'a button or the title is cut off');
+      await shop.shot(join(out, 'storemove-ask.png'));
+      await card.$('button.default').then((b) => b.click());
+      await sleep(2500);
+      check(await shop.page.locator('.welcome').count() === 0, 'the welcome came up after moving in');
+      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      await shop.page.waitForSelector('.shelf-card li.work');
+      check(await shop.page.locator('.shelf-card li.work').count() === 3, `the shelf shows ${await shop.page.locator('.shelf-card li.work').count()} of 3 works`);
+      const shelf = await shop.page.locator('.shelf-card').innerText();
+      for (const w of works) check(shelf.includes(w.title), `${w.title} is not on the shelf`);
+      await shop.shot(join(out, 'storemove-shelf.png'));
+      await shop.page.keyboard.press('Escape');
+      await shop.openSettings('work');
+      await shop.page.locator('.spend-months summary').click();
+      await shop.page.waitForSelector('.spend-book tr');
+      const rows = await shop.page.locator('.spend-book tr').allInnerTexts();
+      check(rows.length === 3 && rows[2].includes('$1.20'), `the ledger reads ${JSON.stringify(rows)}`);
+      check(existsSync(join(home.data, 'versions', works[0].id, 'index.html')), 'the kept versions did not come over');
+      check(!existsSync(join(home.data, 'api-key.bin')), 'the key came over, which the Store build cannot read');
+    } finally { await shop.close(); }
+    check(JSON.stringify(contents(old.data)) === JSON.stringify(before), 'the installer build\'s folder changed');
+
+    // Opened again: a shop of its own now, so nothing is asked.
+    shop = await launch({ lang, home, speed: SPEED, store: true, oldData: old.data });
+    try {
+      await sleep(2500);
+      check(await shop.page.locator('.move-in-card').count() === 0, 'asked again after moving in');
+    } finally { await shop.close(); }
+
+    // Saying no: the welcome, as for anyone new, and nothing copied.
+    const declined = freshHome();
+    shop = await launch({ lang, home: declined, speed: SPEED, store: true, oldData: old.data });
+    try {
+      const ask = await shop.maybe('.move-in-card', 8000);
+      check(ask, 'no question the second time round');
+      await ask.$('.actions button:not(.default)').then((b) => b.click());
+      check(await shop.maybe('.welcome', 8000), 'no welcome after starting afresh');
+      check(!existsSync(join(declined.data, 'memory.json')) && !existsSync(join(declined.data, 'spend.json')), 'something came over after no');
+    } finally { await shop.close(); }
+
+    // No old shop: nothing to ask.
+    const empty = freshHome();
+    shop = await launch({ lang, home: freshHome(), speed: SPEED, store: true, oldData: empty.data });
+    try {
+      check(await shop.maybe('.welcome', 8000), 'no welcome for a new Store user');
+      check(await shop.page.locator('.move-in-card').count() === 0, 'asked to move in with nothing to bring');
+    } finally { await shop.close(); }
+    check(JSON.stringify(contents(old.data)) === JSON.stringify(before), 'the installer build\'s folder changed');
+  },
+
   /** The Microsoft Store build: Claude Code missing, the steps are shown and the app offers no installer of its own. */
   async store(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });

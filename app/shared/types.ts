@@ -52,6 +52,9 @@ export type WriteResult = { opened: boolean; file?: string; cancelled?: boolean 
 /** A new version of the shop, for the postman's letter: its number and what is new in it, line by line ("· " starts a list item). */
 export type UpdateOffer = { version: string; notes: string[] };
 
+/** The Store build's first open, when the installer build on the same computer has a shop: how many works it holds and what its ledger adds up to (road-to-1.1.md A2). */
+export type MoveOffer = { works: number; spentUsd: number };
+
 /** Saving a pasted key:`verified` is false when Anthropic could not be reached to check it. */
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
@@ -141,6 +144,10 @@ export interface LamplightApi {
   getMemory(): Promise<Memory>;
   /** What could not be read when the shop opened. Asking takes it: it is said once. */
   dataDamage(): Promise<DataDamage>;
+  /** The Store build's first open: the installer build's shop to bring over, or null. Asking takes it: it is offered once a start. */
+  moveInOffer(): Promise<MoveOffer | null>;
+  /** The answer to that. Yes copies it over (the original stays where it is); false when the copy failed. */
+  moveIn(yes: boolean): Promise<boolean>;
   /** False, with nothing changed, while a commission runs. */
   clearMemory(): Promise<boolean>;
   /** Forget how the rounds went (the ledger page), keeping every work. */
@@ -317,6 +324,8 @@ export const IPC = {
   restorePrevious: 'commission:restore-previous',
   updateOffer: 'update:offer',
   downloadUpdate: 'update:download',
+  moveInOffer: 'data:move-in-offer',
+  moveIn: 'data:move-in',
 } as const;
 
 // -- Translation layer --

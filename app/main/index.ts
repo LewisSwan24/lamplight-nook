@@ -1,3 +1,4 @@
+import { oldInstallerData } from './store-home';
 import './locale-boot';
 import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
@@ -7,7 +8,7 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -15,6 +16,7 @@ import { type Revision, collectOutputs, commissionPrompt, commissionTitle, conti
 import { sessionExists } from './sessions';
 import { VersionStore, entriesIn, tooBigToLend } from './versions';
 import { backUp, migrate } from './migrate';
+import { moveIn, moveInOffer } from './move-in';
 import { Updates } from './updates';
 import { claudeVersion } from './claude-version';
 import { feedbackMail, mailtoUrl, osName } from './feedback';
@@ -670,6 +672,40 @@ ipcMain.handle(IPC.dataDamage, (): DataDamage => {
   spend.damaged = false;
   return damage;
 });
+/** The settings, the notebook, the ledger and the rest, read from the data folder (at the start, and again after moving in). */
+function openData() {
+  const dir = app.getPath('userData');
+  // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
+  const migrated = migrate(dir);
+  // Only how many: a change can quote a commission's title, and the log goes into the diagnostics file.
+  if (migrated.to !== migrated.from || migrated.changes.length) log?.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
+  settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'));
+  pending = new PendingStore(join(dir, 'pending.json'));
+  memory = new MemoryStore(join(dir, 'memory.json'));
+  versions = new VersionStore(join(dir, 'versions'));
+  spend = new SpendLedger(join(dir, 'spend.json'));
+  if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
+  leftover = pending.load();
+}
+/**
+ * The Store build's first open beside an installer build's shop (move-in.ts): asked once, before the shop opens.
+ * Yes copies it over and reads the data afresh; the original is never changed.
+ */
+let moveOffer: MoveOffer | null = null;
+ipcMain.handle(IPC.moveInOffer, (): MoveOffer | null => moveOffer);
+ipcMain.handle(IPC.moveIn, (_e, yes: boolean): boolean => {
+  moveOffer = null;
+  if (!yes || !oldInstallerData) return true;
+  try {
+    const brought = moveIn(oldInstallerData, app.getPath('userData'));
+    log?.info('moved in from the installer build', { brought });
+  } catch (err) {
+    log?.error('could not move in', err);
+    return false;
+  }
+  openData();
+  return true;
+});
 // A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
 ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
@@ -745,19 +781,11 @@ app.whenReady().then(() => {
   log.prune();
   log.info('app start', { version: app.getVersion(), packaged: app.isPackaged, platform: process.platform, release: release() });
   app.on('child-process-gone', (_e, details) => log?.warn('child process gone', details));
-  // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
-  const migrated = migrate(app.getPath('userData'));
-  // Only how many: a change can quote a commission's title, and the log goes into the diagnostics file.
-  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
-  settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
-  pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
-  memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
-  versions = new VersionStore(join(app.getPath('userData'), 'versions'));
+  // Looked at before anything is written: the Store build's own folder is still as it was.
+  moveOffer = moveInOffer(oldInstallerData, app.getPath('userData'));
+  openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
-  spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
-  if (memory.damage || settings.damaged || spend.damaged) log.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
-  leftover = pending.load();
   createWindow();
   startUpdates();
   tray.create();

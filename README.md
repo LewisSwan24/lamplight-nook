@@ -91,7 +91,11 @@ writes the package itself in the MSIX SDK layout (block map, content types, zip6
   not been installed; trying it needs a signature from a certificate the machine trusts. The command was: `Add-AppxPackage -AllowUnsigned .\Lamplight-Nook-<version>-test.msix` in PowerShell.
 - Tile images are in `assets/store/`, made from `assets/ui/icon.png`.
 - The listing text (both languages) is in `store/listing.md`.
-- The release workflow attaches the test package next to the installer.
+- The release workflow attaches the package next to the installer. It reads the three identity values from the
+  repository's variables of the same names, and builds the test package while they are unset.
+- The Store build keeps its data in `%APPDATA%\Lamplight Nook Store` (Windows holds it in the package's private
+  copy), not in the installer build's folder. On its first open it offers to copy the installer build's shop over;
+  the original is never changed (`app/main/move-in.ts`, road-to-1.1.md A2).
 
 On Linux the installer can be built too, with Wine on the PATH (electron-builder uses it to stamp the icon and
 version into the exe): `npm run build && npx electron-builder --win nsis --publish never`, then `npm run msix`.

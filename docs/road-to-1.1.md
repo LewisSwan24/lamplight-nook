@@ -33,7 +33,7 @@
 | A6 | 在已有文件夹里干活 | A7 | L | 否 | 约 $3 | 已完成，分支 `a6-inplace` |
 | A8 | 作品导出 | 无 | M | 否 | 否 | 已完成，分支 `a8-export` |
 | A1 | 自动更新和签名 | 无 | L | 少量 | 否 | 已完成，分支 `a1-update` |
-| A2 | 微软商店上架 | A1 | M | 否 | 否 | 未开始 |
+| A2 | 微软商店上架 | A1 | M | 否 | 否 | 仓库里的部分已完成，分支 `a2-store`；证书、真机安装、Partner Center 和审核等 Lewis |
 | A3 | 真机账目和遗留验证 | 无 | M | 否 | 约 $3 | 未开始 |
 | A9 | 第 20 单以后的成长 | 无 | L | 是 | 否 | 已完成，分支 `a9-growth` |
 | A5 | 学徒 | A4 | L | 是 | 约 $4 | 已完成，分支 `a5-apprentice` |
@@ -215,6 +215,59 @@
 
 **完成标准：** 测试包在真机装上、打开、跑一单替身委托。从安装包版换到商店版，作品和账本都在。商店审核通过，或者把被拒的原因记下来。
 
+**查到的（2026-11-15）：**
+
+- 商店版里 `process.windowsStore` 是 `true`，代码已经靠它认出商店版（`app/main/index.ts` 的 `storeBuild`）。
+- `scripts/msix.mjs` 写的清单只声明了 `runFullTrust`，入口是 `Windows.FullTrustApplication`。清单里没有 `desktop6:FileSystemWriteVirtualization`，也没有 `unvirtualizedResources`，所以写 AppData 时照默认规则虚拟化。
+- 默认规则（Windows 10 1903 以后）：在 AppData 里新建的文件和文件夹，都写进这个包自己的私有位置。别的程序看不到，卸载时一起删掉。打开文件时先找私有位置，找不到再去真实的 AppData。从真实位置打开的文件不虚拟化，改动直接写回原文件。1903 以前是所有写入都先复制一份再改。
+- 私有位置在 `%LOCALAPPDATA%\Packages\<包族名>\LocalCache\Roaming\...`。微软的页面只说是“每个用户、每个应用一份”，具体路径出自 Advanced Installer 的说明。
+- 安装版的数据在 `%APPDATA%\Lamplight Nook`。商店版要是也用这个文件夹，能读到旧数据，写的时候却会分成两半。小灯屋每次保存都先写一个新的 `.tmp` 文件再改名，新文件进了私有位置。于是商店版改过的笔记本和账本只留在私有位置，没改过的还在原处。安装版看不到前一半，卸载商店版时前一半跟着删掉。
+- 关掉虚拟化要在清单里写 `desktop6:FileSystemWriteVirtualization`，再声明受限能力 `unvirtualizedResources`。微软写明这个能力是给微软和合作方的某些电脑游戏用的，用了会妨碍干净卸载。上架时受限能力要单独申请。这条路不走。
+
+用到的资料：
+
+- [Understanding how packaged desktop apps run on Windows](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes)（微软，2026-09-30）：AppData 的读写规则、1903 前后的区别、卸载时删什么。
+- [Flexible virtualization](https://learn.microsoft.com/en-us/windows/msix/desktop/flexible-virtualization)（微软）：关掉虚拟化的两种写法，以及关掉以后不再随卸载清理。
+- [desktop6:FileSystemWriteVirtualization](https://learn.microsoft.com/en-us/uwp/schemas/appxpackage/uapmanifestschema/element-desktop6-filesystemwritevirtualization) 和 [App capability declarations](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/app-capability-declarations)（微软）：`unvirtualizedResources` 只给特定游戏用，受限能力上架要申请。
+- [Electron 的 process 文档](https://www.electronjs.org/docs/latest/api/process)：`process.windowsStore` 在 MSIX 包里是 `true`。
+- [How does Files Redirection work with MSIX?](https://www.advancedinstaller.com/msix-files-redirection.html)（Advanced Installer）：`LocalCache` 下的路径。这一条不是微软原文。
+
+**做法：**
+
+- 商店版一启动就把数据文件夹换成 `%APPDATA%\Lamplight Nook Store`（`app/main/store-home.ts`，比读语言设置还早）。这个文件夹从头新建，整个落在私有位置，读和写都在一处，不和安装版混。
+- 安装版的文件夹里有店，设置、笔记本、账本有一样就算。商店版自己还没有店的话，第一次打开时阿灯先问要不要搬过来，答完才开店。卡片上写着做好的作品有几件、账本上记了多少钱。卡片还说明原来那份不动，API Key 要重新填。
+- 点“搬过来”，复制设置、笔记本（连同 `memory.last-good.json`）、账本、数据版本标记和 `versions/`，照常跑一遍 `migrate()`，再重新读数据。旧文件夹只读不写，逻辑在 `app/main/move-in.ts`。作品本身在“文档”里，两个版本都能打开，不用搬。
+- 有几样不搬。API Key 用的是安装版自己的浏览器数据里的密钥，商店版解不开。没做完的委托留给开始它的那个版本。日志、录制和备份也不搬。
+- 旧文件夹没有数据版本标记时，删掉新文件夹开店时写下的那个，`migrate()` 才会把旧数据升上来。
+- 复制失败，阿灯说一声没搬成，店照新店开门。
+- 模拟时 `LAMPLIGHT_STORE=1` 扮商店版，`LAMPLIGHT_STORE_OLD_DATA` 指一个当作安装版的旧文件夹，两个变量都只在没打包时生效。模拟的商店版不换文件夹，仍用隔离出来的那个。
+- 场景 `storemove`：旧文件夹里放三件作品、两个月的账、一份留存版本和一把钥匙。商店版一打开就问。点“搬过来”后，作品架上三件都在，账本两个月加合计 $1.20，留存版本过来了，钥匙没过来，旧文件夹逐字节没变。再开一次不再问。另开一家点“不用了”，出来的是新店的欢迎卡，什么都没复制。没有旧数据时不问。
+- `release.yml` 打 MSIX 那一步改成从仓库变量读三项身份信息。变量没设时照旧打测试身份的包。
+
+**暂定：**
+
+- 商店版和安装版各用各的文件夹，搬家只搬一次。两个版本可以同时开着，各记各的账。
+- 卸载商店版，它的笔记本和账本会一起删掉，商店应用都是这样。作品在“文档”里，不受影响。
+- “只问一次”指商店版自己还没有店的时候才问。点了“不用了”但欢迎卡没走完就关店，下次还会问。
+- 搬过来以后，旧设置里的界面语言下次开店才生效。
+- 真正的商店版换文件夹那一步，模拟里走不到，要等 Lewis 装上测试包才算查过。
+
+**Lewis 要做的：**
+
+- [ ] 在 PowerShell 里生成测试证书。`Subject` 要和包的发布者一字不差：`New-SelfSignedCertificate -Type Custom -Subject "CN=Lamplight Nook Test" -KeyUsage DigitalSignature -FriendlyName "Lamplight Nook test" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")`，记下指纹。
+- [ ] 导出两份：`Export-PfxCertificate -Cert "Cert:\CurrentUser\My\<指纹>" -FilePath lamplight-test.pfx -Password (Read-Host -AsSecureString)` 用来签名，`Export-Certificate -Cert "Cert:\CurrentUser\My\<指纹>" -FilePath lamplight-test.cer` 用来信任。两份都别放进仓库。
+- [ ] 用管理员 PowerShell 信任它：`Import-Certificate -FilePath lamplight-test.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople`。
+- [ ] 打包。先 `npm run dist`，再设好 `$env:MSIX_IDENTITY_NAME="LamplightNook.Test"`、`$env:MSIX_PUBLISHER="CN=Lamplight Nook Test"`、`$env:MSIX_PUBLISHER_NAME="Lamplight Nook (test)"`，然后 `npm run msix`。不设这三个变量打出来的是免签名的测试身份，签不了名。
+- [ ] 签名。`signtool` 在 Windows SDK 里：`signtool sign /fd SHA256 /f lamplight-test.pfx /p <密码> dist\Lamplight-Nook-<版本>.msix`。
+- [ ] 安装：`Add-AppxPackage .\dist\Lamplight-Nook-<版本>.msix`。
+- [ ] 在用过安装版的电脑上，从开始菜单打开商店版。第一眼应该是搬家的问题，作品数和钱数要对得上。点“搬过来”，看作品架和设置里的账本，再把 API Key 填一次。
+- [ ] 看一眼文件。`%LOCALAPPDATA%\Packages\LamplightNook.Test_<一串字母>\LocalCache\Roaming\Lamplight Nook Store` 里应该有搬过来的文件，`%APPDATA%\Lamplight Nook` 的修改时间不变。
+- [ ] 跑一单替身委托，关店再开，作品和账本都在，也不会再问搬家。打开安装版，它的作品和账本也还在。
+- [ ] 试完卸载测试包：`Get-AppxPackage LamplightNook.Test | Remove-AppxPackage`，再从“受信任的人”里删掉这张测试证书。
+- [ ] 在 Partner Center 保留“小灯屋”和“Lamplight Nook”，到“产品身份”页抄下 `Name`、`Publisher` 和 `PublisherDisplayName`。
+- [ ] 在 GitHub 仓库的 Settings › Variables 里建 `MSIX_IDENTITY_NAME`、`MSIX_PUBLISHER`、`MSIX_PUBLISHER_NAME` 三个变量，`release.yml` 已经会读。
+- [ ] 打 rc 标签跑一次 `release.yml`，把产出的 MSIX 传到 Partner Center 提交审核，被拒就把原因记进第 7 节。
+
 ### A3 真机账目和遗留验证
 
 **现状：** 1.0 发布关卡里还有几项没做。花费没和 Console 对过，预算卡的“接着做”和“看看已经做好的”没真点过。声音、讲述人和缩放没有逐项记录。每周的真实回归在跑，但仓库里没有 `LAMPLIGHT_TEST_KEY`，日志写着 `HAS_KEY: false`，只跑了替身那一半。
@@ -369,4 +422,5 @@
 | 2026-11-15 | A1 | 分支 `a1-update`，未推送 | 单元测试 708 个全过，`tsc` 无错。新场景 `update` 中英文都过。商店版和关了开关的店，一次都没去问更新源。信上有版本号和店里语言的更新内容，另一种语言没出现。点“更新”之前没下载。之后的委托一直做完，店开着时没装。关店时才装，备份和当时的数据一字不差。委托做到一半选“停下并关闭”，下次开店照旧能接着做，安装排在停下之后。`firstrun`、`badsettings`、`stopclose`、`stopdone`、`upgrade`、`menus`、`cards`、`screens`、`store`、`days`、`passers`、`history` 中英文都过。两种语言的信、阿灯去取的那句和设置里的开关，截图都看过。英文开关原先折成两行，改短了，说明挪到下面一行。`npm run dist` 在本机打过一次，`latest.yml`、blockmap 和 `app-update.yml` 都有。`npm run packaged` 过：打包版里的 `electron-updater` 能载入，查不到更新源也只记一行。拿那次安装包解开的应用再跑一遍，真去问了 GitHub，回的是 404，因为仓库是私有的，见 A1 的暂定。真机上从 GitHub 装一次、更新一次放到 A12，没做 |
 | 2026-11-15 | A9 | 分支 `a9-growth`，未推送 | 单元测试 732 个全过，`tsc` 无错。`beds`、`days`、新场景 `seasons`、`history`、`behind`、`grownline`、`objects`、`thousand` 中英文 16/16。两种语言的截图都看过。季节看了店和菜园，节日看了咖啡馆的六个和书房的三个新节日，另有一百单时的两个房间。地上的新物件和摆设挡不挡路，由 `routes` 测试逐条走法核对，留声机因此挪过一次。农历表只核对了 2025 到 2035 年。没在真机上看，夜里和雨雪天的新物件也没专门截图；`passers`、`screens`、`study` 没跑 |
 | 2026-11-15 | A5 | 分支 `a5-apprentice`，未推送 | Q-A3 暂定表演角色，学徒叫小豆。单元测试 745 个全过，`tsc` 无错。新测试先跑过一遍，都是因为还没有学徒才没过。新场景 `apprentice` 中英文都过，`grownline`、`objects` 中英文 4/4。两种语言都看了截图：小豆走进前门、阿灯介绍、小豆回话、跑腿前答应、和小橘同时在外面、回到柜台说话，气泡都放得下。包裹署名和街上小窗的跑腿动作是看过截图后补的，包裹署名只有单元测试，没截到图。书房、夜里和雨天没专门看；没在真机上看 |
+| 2026-11-15 | A2 仓库里的部分 | 分支 `a2-store`，未推送 | 查了微软的文档。商店版和安装版共用一个文件夹的话，写入会分到真实位置和包的私有位置两处。关掉虚拟化要用受限能力，那只给特定游戏用。于是商店版改用自己的文件夹，第一次打开时问要不要把安装版的店搬过来。单元测试 754 个全过，`tsc` 无错；新的 9 个测试先跑过一遍，6 个因为还没写搬家的逻辑而没过。新场景 `storemove` 中英文都过，`upgrade`、`store` 中英文都过。两种语言的问题卡和搬完后的作品架截图都看过，文字放得下。真正的商店版换文件夹那一步只在模拟以外才走得到，没查过。证书、真机安装、Partner Center 和审核等 Lewis，步骤见 A2 一节 |
 | 2026-11-14 | A3 的一项 | 同上 | 旅行攻略停下时弹出预算卡，点“看看已经做好的”，文件管理器打开委托文件夹并选中这一单，算真点过一次。“接着做”还没点 |

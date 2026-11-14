@@ -68,6 +68,7 @@ gone, Claude Code falling over), `keyboard` (a whole commission, the shelf, the 
 `inplace` (work in a folder the user already has: the home folder and one over 100 MB refused on the slip, two files changed without a card and undone byte for byte with the new page gone and the other files untouched, and a folder grown past the cap refused before the work starts),
 `export` (take a work away from the shelf: a page's zip, unpacked by the system's own `tar`, matches its files byte for byte; its PDF has a sane page count, the page's words and its own stylesheet's, but not a stylesheet from elsewhere on the computer; the print window is gone afterwards; a cancelled save writes nothing; a work in a lent folder zips only the three files it touched),
 `update` (a new version from a local feed served by the scenario: the Store build and a shop with the switch off never ask; the postman brings the letter with the version and the notes in the shop's language only; nothing is fetched until "update"; a commission after that runs to the end; the install comes only as the shop closes, after a copy of the data that matches it; closing mid-commission with "stop and close" still offers to carry on next time, and installs after; the installer itself is never run, the log says when it would have been),
+`storemove` (the Store build's first open beside an installer build's shop: asked before anything else, with the works and the ledger total; "bring it over" puts the works on the shelf and the ledger in settings, leaves the key behind and the old folder byte for byte as it was; the next open asks nothing; "start afresh" gives the welcome and copies nothing; without an old shop nothing is asked),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
 slip holding twelve long-named files), `menus` (the toolbar's six buttons, labels and icon pixels, and what sits on each
@@ -91,7 +92,8 @@ checkouts, so that nothing deletes through them into `node_modules`.
 other than the stand-in, such as a path that does not exist, also gives the app a PATH with no `claude`
 on it, since a real Claude Code may sit next to node. `updateConfig` is an `app-update.yml` naming a local
 update feed (`LAMPLIGHT_UPDATE_CONFIG`, honoured only unpackaged); the app then looks there for new versions and
-writes a log line instead of running the installer it fetched.
+writes a log line instead of running the installer it fetched. `oldData`, with `store`, names a data folder the
+Store build treats as the installer build's and offers to bring over (`LAMPLIGHT_STORE_OLD_DATA`, honoured only unpackaged).
 Screenshots go to `sim-out/<lang>/` (git-ignored).
 
 ## Store and website pictures (`sim/store.mjs`)
