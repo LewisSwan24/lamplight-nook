@@ -2208,6 +2208,108 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The apprentice (road-to-1.1.md A5): not there before the tenth work, walks in with it and is introduced; then with
+   * three errands at once, Xiaoju takes the first, Xiaodou the second, and the third waits its turn.
+   */
+  async apprentice(lang, out) {
+    const intro = lang === 'en' ? "We've an apprentice now. This is Bean." : '店里来了个学徒，叫小豆。';
+    const queued = lang === 'en' ? "That can wait till Clem's back." : '等小橘回来再去。';
+    const seed = (done) => ({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [], stuckNotes: [], greeted: 'c1', shop: { done, told: [], grown: [], met: [] } }) });
+    const apprentice = (shop) => shop.page.evaluate(() => {
+      const { scene } = window.lamplightDebug;
+      const a = scene.actors.get('xiaodou');
+      return { visible: a.sprite.visible, alpha: a.sprite.alpha, at: scene.anchorOf('xiaodou'), outside: !!a.outside, moving: !!a.tween?.isPlaying(), talking: scene.speech.has('xiaodou') };
+    });
+    // Everything anyone says, by whom, and who is out of the front door at the same time.
+    const listen = (shop) => shop.page.evaluate(() => {
+      const { scene } = window.lamplightDebug;
+      const say = scene.say.bind(scene);
+      window.said = [];
+      scene.say = (id, text, bubble) => { if (text) window.said.push([id, text]); return say(id, text, bubble); };
+      window.outTogether = [];
+      setInterval(() => {
+        const out = ['xiaoju', 'xiaodou'].filter((id) => scene.actors.get(id).outside).join('+');
+        if (window.outTogether.at(-1) !== out) window.outTogether.push(out);
+      }, 100);
+    });
+    const said = (shop) => shop.page.evaluate(() => window.said);
+
+    // Nine works done: nobody new yet. The tenth brings the apprentice in at the front door.
+    let shop = await launch({ lang, home: freshHome(seed(9)), speed: 100 });
+    try {
+      await sleep(2000);
+      const before = await apprentice(shop);
+      check(!before.visible && before.at === null, `the apprentice is there before the tenth work: ${JSON.stringify(before)}`);
+      await listen(shop);
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the tenth work did not finish');
+      await shop.page.keyboard.press('Escape');
+      let arriving = null;
+      for (let i = 0; i < 40 && !arriving; i++, await sleep(150)) {
+        const a = await apprentice(shop);
+        if (a.visible && a.alpha === 1 && a.moving) arriving = a;
+      }
+      check(arriving, 'the apprentice never walked in');
+      await shop.shot(join(out, 'apprentice-arrive.png'));
+      for (let i = 0; i < 60 && !(await said(shop)).some(([, text]) => text === intro); i++) await sleep(500);
+      check((await said(shop)).some(([, text]) => text === intro), 'nobody introduced the apprentice');
+      await sleep(600);
+      await shop.shot(join(out, 'apprentice-intro.png'));
+      const reply = async () => (await said(shop)).some(([who]) => who === 'xiaodou');
+      for (let i = 0; i < 40 && !(await reply()); i++) await sleep(500);
+      check(await reply(), 'the apprentice said nothing on coming in');
+      await shop.shot(join(out, 'apprentice-reply.png'));
+      const here = await apprentice(shop);
+      check(here.at === 'counter' && !here.moving, `the apprentice is not at the counter: ${JSON.stringify(here)}`);
+    } finally { await shop.close(); }
+
+    // From then on the apprentice is simply there, and takes the errand Xiaoju is too busy for.
+    shop = await launch({ lang, home: freshHome(seed(10)), speed: 700, scenario: 'errands' });
+    try {
+      await sleep(2000);
+      const there = await apprentice(shop);
+      check(there.visible && there.at === 'counter' && !there.moving, `the apprentice did not open the shop at the counter: ${JSON.stringify(there)}`);
+      await shop.shot(join(out, 'apprentice-shop.png'));
+      await listen(shop);
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      const shots = new Set();
+      const r = await shop.workUntilDone({ onTick: async () => {
+        const a = await apprentice(shop);
+        // Answering Adeng before setting off; then both out of the front door at once.
+        if (!shots.has('go') && a.talking && !a.outside) {
+          shots.add('go');
+          await shop.shot(join(out, 'apprentice-errand-go.png'));
+        }
+        if (!shots.has('both') && (await shop.page.evaluate(() => window.outTogether)).includes('xiaoju+xiaodou')) {
+          shots.add('both');
+          await shop.shot(join(out, 'apprentice-errand-out.png'));
+        }
+      } });
+      check(r.ok, 'the commission with three errands did not finish');
+      const together = await shop.page.evaluate(() => window.outTogether);
+      check(together.includes('xiaoju+xiaodou'), `Xiaoju and the apprentice were never out together: ${JSON.stringify(together)}`);
+      check(shots.has('go') && shots.has('both'), `missing pictures: ${[...shots]}`);
+      check((await said(shop)).some(([who, text]) => who === 'adeng' && text === queued), 'the third errand did not wait its turn');
+      // Back in from the street with something to say, however long the walk back takes.
+      await shop.page.keyboard.press('Escape');
+      let back = false;
+      for (let i = 0; i < 60 && !back; i++) {
+        const a = await apprentice(shop);
+        back = !a.outside && a.talking && (await said(shop)).filter(([who]) => who === 'xiaodou').length >= 2;
+        if (!back) await sleep(250);
+      }
+      check(back, `the apprentice never came back in with a word: ${JSON.stringify(await said(shop))}`);
+      await shop.shot(join(out, 'apprentice-errand-back.png'));
+      for (let i = 0; i < 40 && ((await apprentice(shop)).moving || (await apprentice(shop)).at !== 'counter'); i++) await sleep(250);
+      const home = await apprentice(shop);
+      check(home.at === 'counter' && !home.outside, `the apprentice did not come back to the counter: ${JSON.stringify(home)}`);
+      await shop.shot(join(out, 'apprentice-after.png'));
+    } finally { await shop.close(); }
+  },
+
   /** Over the spending cap: the plain stop card, "carry on" more than once, and it still finishes. */
   async budget(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 1 }) });

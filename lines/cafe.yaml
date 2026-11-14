@@ -55,6 +55,12 @@ sub_go_qingdai:
   - { id: go_qd_02, speaker: adeng, bubbles: ["这次要耐看点，你来配颜色。"], reply: { speaker: qingdai, bubbles: ["我挑挑看。"] } }
   - { id: go_qd_03, speaker: qingdai, bubbles: ["我先去黑板上画几笔。"] }
 
+sub_go_xiaodou:
+  - { id: go_xd_rain, speaker: adeng, when: sky_rain, bubbles: ["小豆，带上伞再去：{topic}。"], reply: { speaker: xiaodou, bubbles: ["伞在门后，拿了！"] } }
+  - { id: go_xd_01, speaker: adeng, bubbles: ["小豆，你也跑一趟：{topic}。"], reply: { speaker: xiaodou, bubbles: ["好，我记下了！"] } }
+  - { id: go_xd_02, speaker: adeng, bubbles: ["小橘走不开，这件交给你。"], reply: { speaker: xiaodou, bubbles: ["我这就去。"] } }
+  - { id: go_xd_03, speaker: xiaodou, bubbles: ["小橘姐忙着，我去！"] }
+
 sub_queue:
   - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["等小橘回来再去。"] }
   - { id: sub_queue_02, speaker: adeng, bubbles: ["{who}手上还有一件，这个排队。"] }
@@ -74,6 +80,12 @@ sub_back_xiaoju:
   - { id: back_xj_01, speaker: xiaoju, bubbles: ["找到了找到了！", "有{count}个能用的——", "还有这个，给你的。"] }
   - { id: back_xj_02, speaker: xiaoju, bubbles: ["外面好冷……", "然后，我找到一个特别好看的。"] }
   - { id: back_xj_03, speaker: xiaoju, bubbles: ["回来啦。先分零食。"] }
+
+sub_back_xiaodou:
+  - { id: back_xd_rain, speaker: xiaodou, when: sky_rain, bubbles: ["鞋湿了，本子没湿。", "都记在上面了。"] }
+  - { id: back_xd_01, speaker: xiaodou, bubbles: ["回来了！", "一路上都记在本子上了。"] }
+  - { id: back_xd_02, speaker: xiaodou, bubbles: ["差点走错了路。", "问了阿信才找到。"] }
+  - { id: back_xd_03, speaker: xiaodou, bubbles: ["找到了，都在这儿。", "小橘姐教的法子真管用。"] }
 
 sub_back_laoshi:
   - { id: back_ls_issue, speaker: laoshi, when: has_issues, bubbles: ["{issueCount}处不对。标出来了。"] }
@@ -247,6 +259,10 @@ garden:
   - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["今天下了两个蛋！", "一个给阿灯，一个归我。"] }
   - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["一、二、三，一只没少。"] }
   - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["慢慢吃，都有份。"] }
+  - { id: garden_veg_xiaodou, speaker: xiaodou, when: spot_veg, bubbles: ["这棵是草还是菜？"] }
+  - { id: garden_veg_xiaodou_02, speaker: xiaodou, when: spot_veg, bubbles: ["老石说浇水要浇根。", "我记下了。"] }
+  - { id: garden_hens_xiaodou, speaker: xiaodou, when: spot_hens, bubbles: ["别啄我鞋带！"] }
+  - { id: garden_hens_xiaodou_02, speaker: xiaodou, when: spot_hens, bubbles: ["一把米，撒匀了。"] }
   - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["麦芽，来这儿坐。"] }
   - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["麦芽！别舔我的画本。"] }
   - { id: garden_dog_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["麦芽。", "别刨。"] }
@@ -266,6 +282,7 @@ grow:
   - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["后院菜地冒芽了。", "第一单做完那天种的。"] }
   - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["后院第一棵菜熟了。", "从第一单长到现在。"] }
   - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["后院的菜地都长满了。", "都是这些单子一点点攒下来的。"] }
+  - { id: grow_apprentice, speaker: adeng, when: grow_apprentice, bubbles: ["店里来了个学徒，叫小豆。", "跑腿的活，小橘能分一半出去了。"], reply: { speaker: xiaodou, bubbles: ["我腿脚快！"] } }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["墙上挂了幅小画。", "第一单做完那天买的。"] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["柜台上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["窗上挂了串小灯。", "晚上看，店里暖一点。"] }

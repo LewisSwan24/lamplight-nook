@@ -9,7 +9,7 @@ import type { TemplateId } from './templates';
 /** Scene anchors: characters only move between these points. */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
 
-export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'cat';
+export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'cat';
 /** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
 export type GuestId = 'baker' | 'postman' | 'mechanic' | 'granny' | 'student';
 /** Anyone who can say something in the shop. */

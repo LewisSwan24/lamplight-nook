@@ -63,6 +63,12 @@ export class Stage {
     });
   }
 
+  /** Xiaodou the apprentice is in the shop from the tenth work (shared/staff.ts); `walkIn` the day they come. */
+  setApprentice(here: boolean, walkIn: boolean) {
+    this.translator.apprentice = here;
+    this.scene.setApprentice(here, walkIn);
+  }
+
   /** Before a commission or replay starts: what it is about, and what memory may bring up. */
   setCommission(ctx: TranslateContext) {
     // Today's weather and holiday colour a few lines too (Xiaoju back from the rain, say).
@@ -111,13 +117,16 @@ export class Stage {
     // The connection dropped: the lamps flicker twice while Adeng waits to try again.
     if (e.kind === 'net_retry' && !this.catchingUp) this.scene.flickerLamps();
     // Work done while out on an errand: the street inset shows her going to the shop it belongs to.
-    if (e.kind === 'tool_start' && e.agent !== 'main' && !this.catchingUp) this.scene.errand(AGENT_ACTOR[e.agent], e.tool);
+    // With the apprentice out too, it is whichever of them the street shows.
+    if (e.kind === 'tool_start' && e.agent !== 'main' && !this.catchingUp) for (const who of this.translator.helpersOf(e.agent)) this.scene.errand(who, e.tool);
     // The user answered: release the freeze before the reactions are queued.
     if (e.kind === 'decision') for (const cmd of this.director.unfreeze()) void this.perform(cmd);
     for (const cmd of this.translator.translate(e)) {
       const now = this.director.submit(cmd);
       if (now) void this.perform(now);
     }
+    // What a helper brought back waits on the counter, from whoever brought it.
+    if (e.kind === 'subagent_stop' && e.target) showParcel(this.translator.returned, e.target);
   }
 
   /** Update card info, blackboard and parcels from an event. */
@@ -157,7 +166,6 @@ export class Stage {
     if (e.kind === 'done') this.board.forEach((s) => (s.status = 'done'));
     if (this.board.length) renderBoard(this.board);
 
-    if (e.kind === 'subagent_stop' && e.target) showParcel(actor, e.target);
   }
 
   /**

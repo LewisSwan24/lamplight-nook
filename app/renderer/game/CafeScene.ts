@@ -37,6 +37,7 @@ import leavesUrl from '../../../assets/sprites/weather-leaves.png';
 import petalsUrl from '../../../assets/sprites/weather-petals.png';
 import rainUrl from '../../../assets/sprites/weather-rain.png';
 import snowUrl from '../../../assets/sprites/weather-snow.png';
+import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import you1Url from '../../../assets/sprites/you-1.png';
 import you2Url from '../../../assets/sprites/you-2.png';
@@ -77,7 +78,7 @@ const DECOR_URLS: Record<Holiday, string> = {
 };
 const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerUrl, autumn: autumnUrl, winter: winterUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
@@ -328,6 +329,8 @@ export class CafeScene extends Phaser.Scene {
       this.hold(actor);
       this.scheduleIdle(actor);
     }
+    // The apprentice is not in the shop until the tenth work.
+    this.setApprentice(false, false);
     this.addLight();
     this.street = new StreetView(this);
     this.street.onClick = (id) => this.onActorClick(id);
@@ -419,6 +422,27 @@ export class CafeScene extends Phaser.Scene {
     const target = id === 'cup' ? this.cup : this.pieceImages.get(id === 'plant2' ? 'plant_r' : 'plant_l');
     if (!target || this.reducedMotion) return;
     this.tweens.add({ targets: target, x: target.x + 1, duration: 70, yoyo: true, repeat: 3 });
+  }
+
+  /**
+   * Xiaodou the apprentice is in the shop from the tenth work on (shared/staff.ts). The day they come, they walk in at
+   * the front door and over to the counter; on any later day they are simply there. Forgetting everything sends them off.
+   */
+  setApprentice(here: boolean, walkIn: boolean) {
+    const actor = this.actors.get('xiaodou')!;
+    if (here === actor.sprite.visible) return;
+    if (!here) {
+      // Out of sight beyond the front door, and not on the street either.
+      actor.trip++;
+      actor.tween?.stop();
+      actor.outside = true;
+      actor.at = 'door';
+      actor.sprite.setVisible(false).setAlpha(0);
+      return;
+    }
+    actor.sprite.setVisible(true);
+    if (walkIn && !this.reducedMotion) void this.walkTo('xiaodou', 'counter');
+    else this.place('xiaodou', 'counter');
   }
 
   /** Who is out on an errand. */

@@ -22,7 +22,8 @@ type CommandSpec = {
 
 export type Rule = CommandSpec & {
   on: AiEventKind;
-  when?: { agent?: OneOrMany; tool?: OneOrMany; risk?: OneOrMany; choice?: OneOrMany; failStreak?: { lt?: number; gte?: number } };
+  /** `by`: only when this helper takes the errand instead of the agent's own actor (the apprentice, for Xiaoju). */
+  when?: { agent?: OneOrMany; tool?: OneOrMany; risk?: OneOrMany; choice?: OneOrMany; by?: ActorId; failStreak?: { lt?: number; gte?: number } };
   extra?: CommandSpec[];
 };
 
@@ -38,11 +39,11 @@ const REVIEW_FAILED = pattern('reviewFailed');
 const has = (v: OneOrMany | undefined, x: string | undefined) =>
   v === undefined || (x !== undefined && (Array.isArray(v) ? v.includes(x) : v === x));
 
-export function matches(rule: Rule, e: AiEvent): boolean {
+export function matches(rule: Rule, e: AiEvent, by?: ActorId): boolean {
   if (rule.on !== e.kind) return false;
   const w = rule.when;
   if (!w) return true;
-  if (!has(w.agent, e.agent) || !has(w.tool, e.tool) || !has(w.risk, e.risk) || !has(w.choice, e.choice)) return false;
+  if (!has(w.agent, e.agent) || !has(w.tool, e.tool) || !has(w.risk, e.risk) || !has(w.choice, e.choice) || !has(w.by, by)) return false;
   if (w.failStreak) {
     const n = e.failStreak ?? 0;
     if (w.failStreak.lt !== undefined && !(n < w.failStreak.lt)) return false;
@@ -79,8 +80,17 @@ export type TranslateContext = {
  */
 export class Translator {
   readonly states = new StateMachine();
-  /** Subagents each helper is handling; Xiaoju and Laoshi take one at a time and the rest wait their turn. */
-  private errands = new Map<ActorId, number>();
+  /**
+   * Whether Xiaodou the apprentice has come to the shop (shared/staff.ts). Then Xiaoju's second errand goes to the
+   * apprentice instead of waiting; checks still wait for Laoshi, since the apprentice only runs errands.
+   */
+  apprentice = false;
+  /** Who is out on each helper's errands, in the order they set off. Each takes one at a time. */
+  private hands = new Map<ActorId, ActorId[]>();
+  /** Errands waiting for a free pair of hands, per helper. */
+  private waiting = new Map<ActorId, number>();
+  /** Who came back with the last subagent that finished: the parcel on the counter is theirs. */
+  returned: ActorId = 'xiaoju';
 
   constructor(private rules: Rule[], private anims: AnimTable, private ctx: TranslateContext = {}) {}
 
@@ -98,14 +108,15 @@ export class Translator {
   translate(e: AiEvent): CharacterCommand[] {
     if (e.kind === 'session_start') {
       this.states.reset();
-      this.errands.clear();
+      this.hands.clear();
+      this.waiting.clear();
     }
     if (e.kind === 'subagent_start' || e.kind === 'subagent_stop') return this.errand(e);
     return this.apply(e);
   }
 
-  private apply(e: AiEvent): CharacterCommand[] {
-    const rule = this.rules.find((r) => matches(r, e));
+  private apply(e: AiEvent, by?: ActorId): CharacterCommand[] {
+    const rule = this.rules.find((r) => matches(r, e, by));
     if (!rule) return [];
     const out: CharacterCommand[] = [];
     for (const spec of [rule, ...(rule.extra ?? [])]) {
@@ -116,27 +127,46 @@ export class Translator {
   }
 
   /**
-   * A helper already busy with one subagent doesn't start a second: Adeng says it will wait its turn,
-   * and when the helper finishes one it sets off on the next.
+   * A helper already busy with one subagent doesn't start a second: the apprentice, once there, takes Xiaoju's;
+   * otherwise Adeng says it will wait its turn. Whoever set off first is back first, and sets off on the next.
    */
   private errand(e: AiEvent): CharacterCommand[] {
-    const actor = AGENT_ACTOR[e.agent];
-    const n = this.errands.get(actor) ?? 0;
+    const lead = AGENT_ACTOR[e.agent];
+    const hands = this.hands.get(lead) ?? [];
+    this.hands.set(lead, hands);
+    const waiting = this.waiting.get(lead) ?? 0;
     if (e.kind === 'subagent_start') {
-      this.errands.set(actor, n + 1);
-      if (n === 0) return this.apply(e);
+      const free = [lead, ...(lead === 'xiaoju' && this.apprentice ? ['xiaodou' as const] : [])].find((a) => !hands.includes(a));
+      if (free) {
+        hands.push(free);
+        return this.apply(e, free);
+      }
+      this.waiting.set(lead, waiting + 1);
       return [{
         actor: 'adeng', state: this.states.get('adeng'), priority: PRIORITY.subagent,
-        line: { group: 'sub_queue', vars: { who: strings.actors[actor] }, flags: [`who_${actor}`] },
+        line: { group: 'sub_queue', vars: { who: strings.actors[lead] }, flags: [`who_${lead}`] },
       }];
     }
-    this.errands.set(actor, Math.max(0, n - 1));
-    const back = this.apply(e);
-    return n > 1 ? [...back, ...this.apply({ ...e, kind: 'subagent_start', target: undefined })] : back;
+    // A stop with nobody out (a replay joined part-way) brings back the helper's own actor.
+    const who = hands.shift() ?? lead;
+    this.returned = who;
+    const back = this.apply(e, who);
+    if (!waiting) return back;
+    this.waiting.set(lead, waiting - 1);
+    hands.push(who);
+    return [...back, ...this.apply({ ...e, kind: 'subagent_start', target: undefined }, who)];
+  }
+
+  /** Who is out on an agent's errands just now, or the agent's own actor when nobody is. */
+  helpersOf(agent: AiEvent['agent']): ActorId[] {
+    const lead = AGENT_ACTOR[agent];
+    const hands = this.hands.get(lead);
+    return hands?.length ? [...hands] : [lead];
   }
 
   private build(spec: CommandSpec, e: AiEvent): CharacterCommand | null {
     const actor = spec.actor === '{agent}' ? AGENT_ACTOR[e.agent] : spec.actor;
+    if (actor === 'xiaodou' && !this.apprentice) return null;
     const before = this.states.get(actor);
     if (!this.states.move(actor, spec.state)) return null;
     // Same state and nothing new to do (e.g. a tool succeeded while already working): no command.

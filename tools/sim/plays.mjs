@@ -34,6 +34,7 @@ const T = {
     designBrief: '给页面定配色和布局，十五行以内。', designDesc: '定配色和布局', reviewDesc: '检查成品',
     designSummary: '配色：奶油白底、深棕字、一处橘色强调；上面标题，中间主体，底下一行说明。',
     researchBrief: '查一查这件事，只读，三到五句话总结。',
+    errands: ['开门时间', '附近的店', '别人怎么做'],
     researchSummary: '找到三处说法：大体一致，只有一处日期不同，已注明。',
     reviewBrief: '检查做好的东西有没有问题，只读。',
     reviewSummary: '结论：基本通过。没有硬伤。',
@@ -101,6 +102,7 @@ const T = {
     designBrief: 'Propose colours and layout for the page, under fifteen lines.', designDesc: 'Colours and layout', reviewDesc: 'Check the result',
     designSummary: 'Palette: cream background, dark brown text, one orange accent; title on top, the main part in the middle, a note at the bottom.',
     researchBrief: 'Look into this. Read only; sum it up in three to five sentences.',
+    errands: ['opening hours', 'shops nearby', 'how others do it'],
     researchSummary: 'Found three sources: they mostly agree, one gives a different date, noted.',
     reviewBrief: 'Check the finished work for problems. Read only.',
     reviewSummary: 'Verdict: fine overall. Nothing broken.',
@@ -243,6 +245,16 @@ async function twist(s, t, scenario) {
       await s.say(t.netRetry);
       s.fail('API Error: Connection error. fetch failed (ECONNRESET)');
     });
+  }
+  // Three errands at once, each out a little longer than the one before (road-to-1.1.md A5): Xiaoju takes the first,
+  // the apprentice the second, and the third waits for whoever is back first.
+  if (scenario === 'errands') {
+    await s.step(() => Promise.all([3, 6, 10].map(async (slow, i) => {
+      await s.pause(i * 1.5);
+      return s.agent('researcher', t.errands[i], t.researchBrief, async (a) => {
+        await s.tool('WebSearch', { query: t.errands[i] }, { ...a, slow, effect: () => ({ text: 'Web search results (simulated).' }) });
+      }, t.researchSummary);
+    })));
   }
   if (scenario === 'longwait') await s.step(() => s.tool('Bash', { command: 'node --version', description: 'wait' }, { slow: 50, effect: () => ({ text: 'v22' }) }));
   if (scenario === 'stuck') {

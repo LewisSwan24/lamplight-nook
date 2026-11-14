@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ANCHORS, seatsIn, standPoint } from '../app/renderer/game/layout';
+import { STAFF } from '../app/shared/staff';
 import { readPng } from './png';
 
-const STAFF = ['adeng', 'xiaoju', 'laoshi', 'qingdai'] as const;
 const SCENES = ['cafe', 'study'] as const;
 type Piece = { name: string; x: number; y: number; w: number; h: number; sy: number; base: number };
 const pieces = JSON.parse(readFileSync('assets/sprites/pieces.json', 'utf8')) as Record<(typeof SCENES)[number], { pieces: Piece[]; on: Record<string, number> }>;

@@ -414,6 +414,57 @@
     - adeng: I remember. Chalk all over your face.
     - qingdai: That was on purpose.
 
+# The apprentice (road-to-1.1.md A5) comes with the tenth work, so nothing with Bean in it comes before.
+- id: apprentice_notes
+  when: idle
+  after: 10
+  turns:
+    - xiaodou: Wick, how do I write this one down?
+    - adeng: Date first, then who asked.
+    - xiaodou: Got it.
+
+- id: apprentice_mallet
+  when: idle
+  after: 10
+  turns:
+    - xiaodou: Flint, can I borrow the mallet?
+    - laoshi: Watch me use it ten times first.
+
+- id: apprentice_snacks
+  when: waiting
+  after: 10
+  turns:
+    - xiaoju: Bean, half my errand snacks are yours.
+    - xiaodou: I'll bring some next time.
+
+- id: story_apprentice
+  when: idle
+  after: 10
+  once: true
+  turns:
+    - adeng: First day here, Bean just stood at the door.
+    - xiaodou: I was counting the steps.
+    - qingdai: How many?
+    - xiaodou: Three.
+
+- id: baker_apprentice
+  when: idle
+  guest: baker
+  after: 10
+  turns:
+    - baker: Your new one runs about like anything.
+    - xiaodou: Hello, Auntie Olive!
+    - baker: Come by for the bread ends.
+
+- id: postman_apprentice
+  when: idle
+  guest: postman
+  after: 10
+  turns:
+    - postman: Ran into Bean at the corner today.
+    - xiaodou: I was looking for the library.
+    - postman: Follow me next time.
+
 # Further on as regulars: there is still more to say after the tenth.
 - id: regular_fifteen
   when: idle

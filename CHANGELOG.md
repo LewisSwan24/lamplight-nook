@@ -2,6 +2,10 @@
 
 ## Unreleased (1.1)
 
+- **An apprentice joins the shop.** With the tenth commission Bean walks in at the front door and starts at the counter.
+  When Clem is already out and a second errand comes up, Bean runs it instead of it waiting; a third still waits for
+  whoever is back first. Bean has their own lines, a story, and a word from the neighbours. No extra helper is started and
+  nothing extra is spent.
 - **The shop keeps growing after fifty.** Eight more pieces come between the 55th and the 100th commission, among them
   a tank of goldfish at 60, a gramophone at 75 and a carved sign at 100. Once the beds out back are full they follow the
   seasons: young plants in spring, a harvest in autumn, straw in winter. A vase on the big table changes with the season,

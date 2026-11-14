@@ -18,6 +18,7 @@
     "xiaoju": "小橘",
     "laoshi": "老石",
     "qingdai": "青黛",
+    "xiaodou": "小豆",
     "cat": "栗子"
   },
   "animals": {
@@ -507,6 +508,7 @@
         "xiaoju": "小橘",
         "laoshi": "老石",
         "qingdai": "青黛",
+        "xiaodou": "小豆",
         "cat": "小猫"
       },
       "table": [
@@ -710,7 +712,8 @@
       "bedSprout": "后院种下第一棵菜",
       "bedRipe": "后院第一棵菜熟了",
       "birthday": "小店满 {n} 岁了",
-      "bedFull": "后院菜地长满了"
+      "bedFull": "后院菜地长满了",
+      "apprentice": "小豆来店里当学徒"
     },
     "tray": {
       "sectionLabel": "不在眼前的时候",
