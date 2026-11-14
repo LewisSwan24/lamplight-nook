@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **The shop's birthday is no longer missed.** Closing the shop in the first few seconds of its birthday used to count
+  the line as said, and a shop left open across midnight never noticed the day. It now counts once someone says it, and
+  checks again when the day changes.
+- **The card about records that can't be read names the limit in force.** It used to give the one read at startup, even
+  if the limit was changed while the card waited its turn.
+
 ## 1.0.0 (2026-11-05)
 
 The running card and the road to 1.0.

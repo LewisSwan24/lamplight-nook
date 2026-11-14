@@ -314,10 +314,15 @@ const SCENARIOS = {
         await shop.page.locator('.welcome .actions button.default').last().click();
         await sleep(300);
       }
+      // Something else on the table holds the card back, and the limit changes while it waits.
+      await shop.page.evaluate(() => { const c = document.createElement('div'); c.className = 'card held'; document.getElementById('ui').append(c); });
       await shop.page.locator('.welcome .actions button.default').last().click();
+      await sleep(3000);
+      await shop.page.evaluate(() => window.lamplight.saveSettings({ budgetUsd: 1 }));
+      await shop.page.evaluate(() => document.querySelector('.card.held').remove());
       await shop.page.waitForSelector('.notebook-trouble', { timeout: 15_000 });
       const said = await shop.page.locator('.notebook-trouble').innerText();
-      check(said.includes('$3'), `the budget is not mentioned: ${said}`);
+      check(said.includes('$1') && !said.includes('$3'), `the budget it names is not the one in force: ${said}`);
       check(said.includes(N.troubleKept), 'the file put aside is not mentioned');
       await shop.shot(join(out, 'badsettings.png'));
     } finally {
@@ -430,16 +435,28 @@ const SCENARIOS = {
       setInterval(() => { window.heard.push(document.getElementById('labels').innerText); }, 200);
     });
     const heard = (shop) => shop.page.evaluate((w) => window.heard.some((h) => h.includes(w)), words);
+    const told = (h) => JSON.parse(readFileSync(join(h.data, 'memory.json'), 'utf8')).shop.told.includes('birthday_1');
+    const waitToHear = async (shop, ms) => {
+      let said = false;
+      for (const start = Date.now(); !said && Date.now() - start < ms; await sleep(500)) said = await heard(shop);
+      return said;
+    };
+    // Closed before anyone got to say it: it still comes the next time the shop opens that day.
     let shop = await launch({ lang, home, debug: true });
     try {
-      await listen(shop);
-      let said = false;
-      for (const start = Date.now(); !said && Date.now() - start < 40_000; await sleep(500)) said = await heard(shop);
-      check(said, 'nobody said it was the birthday');
+      await sleep(3000);
     } finally {
       await shop.close();
     }
-    check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.told.includes('birthday_1'), 'the shop did not remember saying it');
+    check(!told(home), 'it counted as said though the shop closed before anyone said it');
+    shop = await launch({ lang, home, debug: true });
+    try {
+      await listen(shop);
+      check(await waitToHear(shop, 40_000), 'nobody said it was the birthday');
+    } finally {
+      await shop.close();
+    }
+    check(told(home), 'the shop did not remember saying it');
     shop = await launch({ lang, home, debug: true });
     try {
       await listen(shop);
@@ -448,6 +465,21 @@ const SCENARIOS = {
     } finally {
       await shop.close();
     }
+    // Left open across midnight: said on the new day without opening the shop again.
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9);
+    const eve = { ...work, id: `c${new Date(now.getFullYear() - 1, now.getMonth(), now.getDate() + 1, 12).getTime()}` };
+    const later = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [eve], stuckNotes: [], greeted: eve.id, shop: { done: 1, told: [], grown: [], met: [] } }) });
+    shop = await launch({ lang, home: later, debug: true });
+    try {
+      await listen(shop);
+      await sleep(12_000);
+      check(!(await heard(shop)), 'it was said the day before the birthday');
+      await shop.page.clock.setFixedTime(tomorrow);
+      check(await waitToHear(shop, 90_000), 'nobody said it when the day turned to the birthday');
+    } finally {
+      await shop.close();
+    }
+    check(told(later), 'the shop did not remember saying it on the new day');
   },
 
   /** Asked on the way out mid-commission: going on really goes on, and stopping really can be carried on next time. */
