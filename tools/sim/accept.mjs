@@ -2269,7 +2269,7 @@ const SCENARIOS = {
         await shop.shot(join(out, `upgrade-${version}-shelf.png`));
         // Change the oldest piece of work again, from the shelf: same folder, one more round.
         const oldest = finished[0];
-        await shop.page.locator('.shelf-card li.work').last().locator('button.link').last().click();
+        await shop.page.locator('.shelf-card li.work').last().locator('.work-actions button.link', { hasText: shop.L.ui.shelf.revise }).click();
         await shop.page.waitForSelector('form.revise textarea');
         await shop.page.fill('form.revise textarea', W[lang].ask);
         await shop.page.locator('form.revise button.default').click();
