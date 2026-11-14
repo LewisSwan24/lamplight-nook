@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -27,6 +27,8 @@ import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
 import { RoundTally } from './tally';
 import { zip } from './zip';
+import { exportName, workEntries } from './export';
+import { pageToPdf } from './print';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
 import { copyMaterials, sortHandOver } from './materials';
@@ -369,14 +371,17 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     if (result.error !== 'cancelled') {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
-      const outputs = lent ? lentOutputs(job.workDir, versions.lentChanges(job.workDir)) : collectOutputs(job.workDir, before);
+      const changes = lent ? versions.lentChanges(job.workDir) : undefined;
+      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before);
       // The main file may sit in a subfolder of a lent one.
       const main = outputs.main ? relative(job.workDir, outputs.main) : undefined;
       const round = tally.result(Date.now(), result.ok, result.error);
-      // A lent folder's own files are counted afresh each round (versions.usersFiles), so they are not written down.
+      // A lent folder's own files are counted afresh each round (versions.usersFiles), so they are not written down;
+      // what this commission changed or made there is, because only that goes in its zip.
+      const touched = changes && [...changes.changed, ...changes.added].sort();
       const entry = r
-        ? memory.revise(r.id, r.ask, { ...outcome, main, round }, stuckHere)
-        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round] }, stuckHere);
+        ? memory.revise(r.id, r.ask, { ...outcome, main, round, touched }, stuckHere)
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched }, stuckHere);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
@@ -548,9 +553,45 @@ ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
   const memo = memory.find(id);
   if (!memo?.form?.inPlace || !memo.folder) return null;
   const skipped = versions.undo(memo.folder);
+  if (skipped) memory.undone(id, skipped);
   log?.info('undo lent work', { done: skipped !== null, skipped: skipped?.length });
   return skipped;
 });
+// "Take it away" from the works shelf (road-to-1.1.md A8): the work becomes a file saved where the user picks, for
+// them to pass on however they like. Nothing is uploaded or sent from here.
+ipcMain.handle(IPC.exportWork, async (_e, id: string, as: 'zip' | 'pdf'): Promise<ExportResult> => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  const folder = memo?.folder;
+  if (!memo || !folder || !existsSync(folder)) return 'gone';
+  return as === 'pdf' ? exportPdf(memo, folder) : exportZip(memo, folder);
+});
+async function exportZip(memo: CommissionMemo, folder: string): Promise<ExportResult> {
+  // In a folder the user lent, only what this commission touched: the rest is theirs and stays where it is.
+  const entries = workEntries(folder, memo.form?.inPlace ? memo.touched ?? [] : undefined);
+  if (!entries.length) return 'empty';
+  const to = await saveAs(exportName(memo.title, 'zip'), 'Zip', 'zip');
+  if (!to) return 'cancelled';
+  writeFileSync(to, zip(entries));
+  return saved(to);
+}
+async function exportPdf(memo: CommissionMemo, folder: string): Promise<ExportResult> {
+  const page = memo.main && join(folder, memo.main);
+  if (!page || !existsSync(page) || !insideForReal(folder, page)) return 'gone';
+  const to = await saveAs(exportName(memo.title, 'pdf'), 'PDF', 'pdf');
+  if (!to) return 'cancelled';
+  writeFileSync(to, await pageToPdf(page));
+  return saved(to);
+}
+/** Where the user wants the file (the desktop is offered first, as for the diagnostics); null if they cancel. */
+async function saveAs(name: string, kind: string, ext: string): Promise<string | null> {
+  const r = await dialog.showSaveDialog(win!, { defaultPath: join(app.getPath('desktop'), name), filters: [{ name: kind, extensions: [ext] }] });
+  return r.canceled || !r.filePath ? null : r.filePath;
+}
+function saved(file: string): ExportResult {
+  log?.info('work exported', { as: extname(file) });
+  shell.showItemInFolder(file);
+  return 'saved';
+}
 ipcMain.handle(IPC.retryCommission, async (): Promise<RunResult | null> => (lastFailed ? runJob(lastFailed, true) : null));
 ipcMain.handle(IPC.cancelCommission, () => current?.abort.abort());
 // A commission left over from a crash or an unexpected quit: offered once at startup.

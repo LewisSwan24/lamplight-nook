@@ -162,6 +162,8 @@ export interface LamplightApi {
    * what could not be put back because a link leads out of the folder (empty when all went back); null if nothing to undo.
    */
   undoWork(id: string): Promise<string[] | null>;
+  /** Save a finished work as a file where the user picks: its files in a zip, or its page as a PDF. Nothing is sent anywhere. */
+  exportWork(id: string, as: 'zip' | 'pdf'): Promise<ExportResult>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -278,6 +280,7 @@ export const IPC = {
   chooseSource: 'commission:choose-source',
   chooseLent: 'commission:choose-lent',
   undoWork: 'commission:undo',
+  exportWork: 'shop:export-work',
   handOver: 'commission:hand-over',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
@@ -389,6 +392,11 @@ export type CommissionMemo = {
   main?: string;
   /** How each round went, oldest first; kept on this computer only. Absent on works from before 1.1. */
   rounds?: RoundStat[];
+  /**
+   * In a folder the user lent (A6): the files this commission changed or made there, by path inside it with "/".
+   * Only these go in its zip (A8); the rest of the folder is the user's.
+   */
+  touched?: string[];
 };
 
 /** One round of a commission, for the notebook's ledger page. Never leaves the computer. */
@@ -415,7 +423,15 @@ export type ShopDays = {
 };
 
 /** A finished piece of work on the works shelf. */
-export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean; want?: string };
+export type Work = {
+  id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean;
+  /** Its main file is a web page, so it can also be taken away as a PDF. */
+  page: boolean;
+  want?: string;
+};
+
+/** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */
+export type ExportResult = 'saved' | 'cancelled' | 'gone' | 'empty';
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
 export type ShopState = ShopDays & { works: Work[] };
