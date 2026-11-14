@@ -1,9 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { inflateRawSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { exportName, workEntries } from '../app/main/export';
+import { exportName, printMayLoad, workEntries } from '../app/main/export';
 import { MemoryStore } from '../app/main/memory';
 import { zip } from '../app/main/zip';
 
@@ -71,6 +72,27 @@ describe('taking a work away (road-to-1.1.md A8)', () => {
     symlinkSync(join(base, 'elsewhere'), join(folder, 'out'), 'junction');
     rmSync(join(folder, 'css', 'style.css'));
     expect(workEntries(folder, ['index.html', 'css/style.css', 'out/private.txt']).map((e) => e.name)).toEqual(['index.html']);
+  });
+
+  it('lets the page being printed load only what is in its own folder', () => {
+    const { base, folder } = work();
+    mkdirSync(join(base, 'elsewhere'));
+    writeFileSync(join(base, 'elsewhere', 'private.txt'), 'not the work');
+    writeFileSync(join(base, 'beside.txt'), 'not the work either');
+    symlinkSync(join(base, 'elsewhere'), join(folder, 'out'), 'junction');
+    const may = (url: string) => printMayLoad(folder, url);
+    expect(may(pathToFileURL(join(folder, 'index.html')).href)).toBe(true);
+    expect(may(pathToFileURL(join(folder, 'img', 'logo.png')).href)).toBe(true);
+    expect(may(`${pathToFileURL(join(folder, 'css', 'style.css')).href}?v=2`)).toBe(true);
+    expect(may('data:image/png;base64,iVBORw0KGgo=')).toBe(true);
+    expect(may(pathToFileURL(join(base, 'beside.txt')).href)).toBe(false);
+    expect(may(`${pathToFileURL(folder).href}/../beside.txt`)).toBe(false);
+    expect(may(pathToFileURL(join(folder, 'out', 'private.txt')).href)).toBe(false);
+    expect(may('file://some-server/share/private.txt')).toBe(false);
+    expect(may('file:///C:/Windows/win.ini')).toBe(false);
+    expect(may('https://example.com/pixel.png')).toBe(false);
+    expect(may('http://127.0.0.1:8080/')).toBe(false);
+    expect(may('ftp://example.com/x')).toBe(false);
   });
 
   it('names the file after the work, with nothing Windows refuses', () => {

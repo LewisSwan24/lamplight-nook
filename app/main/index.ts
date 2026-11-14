@@ -579,7 +579,7 @@ async function exportPdf(memo: CommissionMemo, folder: string): Promise<ExportRe
   if (!page || !existsSync(page) || !insideForReal(folder, page)) return 'gone';
   const to = await saveAs(exportName(memo.title, 'pdf'), 'PDF', 'pdf');
   if (!to) return 'cancelled';
-  writeFileSync(to, await pageToPdf(page));
+  writeFileSync(to, await pageToPdf(folder, page));
   return saved(to);
 }
 /** Where the user wants the file (the desktop is offered first, as for the diagnostics); null if they cancel. */

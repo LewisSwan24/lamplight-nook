@@ -1,7 +1,8 @@
 import { lstatSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { folderName } from './commission';
-import { reallyInside } from './paths';
+import { isInside, reallyInside } from './paths';
 import { entriesIn } from './versions';
 import type { ZipEntry } from './zip';
 
@@ -16,6 +17,20 @@ export function workEntries(folder: string, touched?: string[]): ZipEntry[] {
     ? [...touched].sort().filter((rel) => lstatSync(join(folder, rel), { throwIfNoEntry: false })?.isFile() && reallyInside(folder, join(folder, rel)))
     : entriesIn(folder).filter((rel) => !rel.endsWith('/'));
   return files.map((rel) => ({ name: rel, data: readFileSync(join(folder, rel)) }));
+}
+
+/**
+ * What the page being printed may load: files in the work's own folder once links are followed, and data written into
+ * the page itself. Nothing from the network and no other file on the computer, so a PDF the user passes on cannot
+ * carry anything but the work. A file on another computer (file://server/...) is refused before the disk is asked,
+ * which would reach out to that computer.
+ */
+export function printMayLoad(folder: string, url: string): boolean {
+  const u = new URL(url);
+  if (u.protocol === 'data:') return true;
+  if (u.protocol !== 'file:' || u.host) return false;
+  const path = fileURLToPath(u);
+  return isInside(folder, path) && reallyInside(folder, path);
 }
 
 /** The name the save dialog offers: the work's own, made safe the way its folder's was. */

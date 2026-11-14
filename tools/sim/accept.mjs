@@ -8,10 +8,11 @@
 
 import { pathToFileURL } from 'node:url';
 import { closeSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { mainCards } from './cards.mjs';
+import { pdfSays, readPdf } from './pdftext.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
 
 const args = process.argv.slice(2);
@@ -79,6 +80,19 @@ function samples(home) {
   mkdirSync(messy, { recursive: true });
   for (const f of ['setup (1).exe', 'setup.exe', 'IMG_2031.jpg', 'report-final-final.docx']) writeFileSync(join(messy, f), 'x');
   return { photos, note, doc, messy };
+}
+
+/** Every file under a folder, by path inside it with "/", sorted. */
+const filesIn = (dir) => readdirSync(dir, { recursive: true }).map((p) => p.split(sep).join('/')).filter((p) => statSync(join(dir, p)).isFile()).sort();
+
+/** Unpack a zip with the system's own tool, not the shop's code, into a folder beside it. */
+function unzipped(file) {
+  const to = `${file}-out`;
+  mkdirSync(to);
+  const tar = process.platform === 'win32' ? join(process.env.SystemRoot, 'System32', 'tar.exe') : 'tar';
+  const run = spawnSync(tar, ['-xf', file, '-C', to], { encoding: 'utf8' });
+  check(run.status === 0, `could not unpack ${file}: ${run.stderr}`);
+  return to;
 }
 
 /** The newest commission folder under the shop's Documents. */
@@ -1911,6 +1925,120 @@ const SCENARIOS = {
       rmSync(big, { recursive: true, force: true });
       rmSync(join(home.home, 'grows'), { recursive: true, force: true });
     }
+  },
+
+  /**
+   * Taking a work away from the shelf (road-to-1.1.md A8): a page made in the shop's folder goes as a zip that unpacks to
+   * its files byte for byte, and as a PDF with its words on it; one done in a lent folder zips only the files it touched.
+   * The save dialog is answered here, and a cancelled save writes nothing.
+   */
+  async export(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const S = locale(lang).ui.shelf;
+    const takeTo = join(home.home, 'taken');
+    mkdirSync(takeTo);
+    const shop = await launch({ lang, home, speed: SPEED });
+    /** Answer the next save dialog with this path (null cancels it), and see what was shown in its folder. */
+    const saveAt = (path) => shop.app.evaluate(({ dialog, shell }, path) => {
+      globalThis.shown ??= [];
+      shell.showItemInFolder = (p) => { globalThis.shown.push(p); };
+      dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return path ? { canceled: false, filePath: path } : { canceled: true }; };
+    }, path);
+    const openShelf = async () => {
+      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      await shop.page.waitForSelector('.shelf-card li.work');
+      return shop.page.locator('.shelf-card li.work').first();
+    };
+    try {
+      // A page made in the shop's own folder, given a stylesheet and a picture beside it, as a bigger work would have.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'the page did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      const work = latestCommission(home);
+      mkdirSync(join(work, 'look'));
+      writeFileSync(join(work, 'look', 'look.css'), 'h1::after { content: " FROMTHESTYLESHEET"; }\n');
+      cpSync(join(ROOT, 'assets', 'ui', 'icon.png'), join(work, 'look', 'logo.png'));
+      // One from elsewhere on the computer, and one from the network, must not reach the PDF.
+      const outside = join(home.home, 'outside.css');
+      writeFileSync(outside, 'h1::before { content: "FROMOUTSIDE "; }\n');
+      const links = ['look/look.css', pathToFileURL(outside).href, 'http://127.0.0.1:9/far.css'].map((href) => `<link rel="stylesheet" href="${href}">`).join('');
+      const page = readFileSync(join(work, 'index.html'), 'utf8');
+      writeFileSync(join(work, 'index.html'), page.replace('</head>', `${links}</head>`).replace('<main>', '<main><img src="look/logo.png" alt="">'));
+      const title = /<h1>([^<]*)<\/h1>/.exec(page)[1];
+
+      let row = await openShelf();
+      await saveAt(join(takeTo, 'page.zip'));
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-zip').waitFor();
+      check((await row.locator('.work-note').innerText()).includes(S.takeAs), 'a page does not offer the PDF beside the zip');
+      await shop.shot(join(out, 'export-choose.png'));
+      await row.locator('.work-note .take-zip').click();
+      await sleep(800);
+      check((await row.locator('.work-note').innerText()) === S.taken, `after the zip the shelf says "${await row.locator('.work-note').innerText()}"`);
+      const offered = await shop.app.evaluate(() => globalThis.offered);
+      check(offered.endsWith('.zip') && !/[\\/:*?"<>|]/.test(offered.split(/[\\/]/).at(-1)), `the dialog offers the name ${offered}`);
+      const unpacked = unzipped(join(takeTo, 'page.zip'));
+      const want = filesIn(work);
+      check(want.includes('look/look.css') && JSON.stringify(filesIn(unpacked)) === JSON.stringify(want), `the zip holds ${filesIn(unpacked).join(', ')}, the work ${want.join(', ')}`);
+      const differ = want.filter((f) => !readFileSync(join(unpacked, f)).equals(readFileSync(join(work, f))));
+      check(!differ.length, `not the same bytes: ${differ.join(', ')}`);
+      await shop.shot(join(out, 'export-saved.png'));
+
+      const windows = await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
+      await saveAt(join(takeTo, 'page.pdf'));
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-pdf').click();
+      await shop.page.waitForFunction((said) => document.querySelector('.shelf-card li.work .work-note')?.textContent === said, S.taken, { timeout: 20_000 });
+      const pdf = readFileSync(join(takeTo, 'page.pdf'));
+      const { pages, text } = readPdf(pdf);
+      check(pdf.subarray(0, 5).toString() === '%PDF-' && pages >= 1 && pages <= 3, `the PDF has ${pages} pages`);
+      check(pdfSays(text, title) && pdfSays(text, 'FROMTHESTYLESHEET'), `the PDF does not carry the page's words or its stylesheet: ${text.slice(0, 300)}`);
+      check(!pdfSays(text, 'FROMOUTSIDE'), 'a stylesheet from outside the work reached the PDF');
+      check(await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length) === windows, 'the window that printed the page is still open');
+      const shown = await shop.app.evaluate(() => globalThis.shown);
+      check(shown.length === 2 && shown[1].endsWith('page.pdf'), `shown in its folder: ${shown}`);
+
+      // Cancelled: nothing is written, and the choice is still there to make.
+      await saveAt(null);
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-zip').click();
+      await sleep(500);
+      check(readdirSync(takeTo).join() === 'page.pdf,page.zip,page.zip-out', `a cancelled save wrote something: ${readdirSync(takeTo)}`);
+      check(await row.locator('.work-note .take-zip').isVisible(), 'the choice went away after a cancelled save');
+      await shop.page.keyboard.press('Escape');
+      await sleep(500);
+
+      // In a folder the user lent: only what this commission changed and made goes in the zip.
+      const site = join(home.home, 'site');
+      mkdirSync(join(site, 'img'), { recursive: true });
+      writeFileSync(join(site, 'index.html'), '<!doctype html>\r\n<html><body><main><h1>Our street fair</h1></main></body></html>\r\n');
+      writeFileSync(join(site, 'style.css'), 'body { background: #fffaf0; }\n');
+      writeFileSync(join(site, 'notes.txt'), 'Not part of the site.\n');
+      cpSync(join(ROOT, 'assets', 'ui', 'icon.png'), join(site, 'img', 'logo.png'));
+      const asked = lang === 'en' ? 'Add a contact page to this little site, and tidy up the home page and the styles.' : '帮我给这个小网站加一页联系方式，首页和样式也顺一顺。';
+      await shop.order({ template: 'page', want: asked });
+      await shop.pickFiles([site]);
+      await shop.page.locator('form.commission .lent-pick').click();
+      await sleep(400);
+      await shop.submit();
+      await shop.page.locator('form.commission .lent-confirm button.default').click();
+      check((await shop.workUntilDone()).ok, 'the work in the lent folder did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      row = await openShelf();
+      await saveAt(join(takeTo, 'site.zip'));
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-zip').click();
+      await sleep(800);
+      const lentOut = unzipped(join(takeTo, 'site.zip'));
+      const touched = ['index.html', 'pages/contact.html', 'style.css'];
+      check(JSON.stringify(filesIn(lentOut)) === JSON.stringify(touched), `the lent work's zip holds ${filesIn(lentOut).join(', ')}`);
+      check(touched.every((f) => readFileSync(join(lentOut, f)).equals(readFileSync(join(site, f)))), 'the lent work\'s files are not the same bytes');
+      await shop.shot(join(out, 'export-lent.png'));
+    } finally { await shop.close(); }
   },
 
   /** A meeting during the run: the note reaches the work. */
