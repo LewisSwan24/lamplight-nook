@@ -5,11 +5,12 @@ import { basename, dirname, extname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
+import { template } from '../shared/templates';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
+import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore } from './versions';
 import { migrate } from './migrate';
@@ -389,14 +390,15 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
 
 // Files and folders the user picked in a dialog this session: the only sources a commission may use.
 const picked = new Set<string>();
-ipcMain.handle(IPC.chooseSource, async (_e, kind: 'edit' | 'tidy'): Promise<SourcePick | null> => {
+ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<SourcePick | null> => {
   if (!win) return null;
-  const r = await dialog.showOpenDialog(win, kind === 'tidy'
+  const source = template(id).source!;
+  const r = await dialog.showOpenDialog(win, source.kind === 'folder'
     ? { properties: ['openDirectory'] }
-    : { properties: ['openFile'], filters: [{ name: strings.ui.templates.edit, extensions: EDITABLE }] });
+    : { properties: ['openFile'], filters: [{ name: strings.ui.templates[id], extensions: [...source.extensions] }] });
   const path = r.canceled ? undefined : r.filePaths[0];
   if (!path) return null;
-  if (kind === 'edit' && statSync(path).size > MAX_EDIT_BYTES) return { error: 'too-big' };
+  if (source.kind === 'file' && statSync(path).size > source.maxBytes) return { error: 'too-big' };
   picked.add(path);
   return { path, name: basename(path) };
 });

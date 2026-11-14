@@ -86,7 +86,20 @@ mkdirSync(samples, { recursive: true });
 const note = join(samples, 'notes.txt');
 writeFileSync(note, zh ? '房子在 3 楼，合同写着提前一个月通知。押金 3000 元。\n' : 'Flat on the 3rd floor; the lease asks for a month\'s notice. Deposit: 3000.\n');
 
-const COMMISSIONS: { name: string; form: Form; prepare?: (dir: string) => void; prompt: (form: Form) => string }[] = [
+const career = join(samples, zh ? '经历.txt' : 'experience.txt');
+writeFileSync(career, zh
+  ? '林小满。2022 年起在街角书店做店员，负责收银和上架。会做手冲咖啡，周末在社区咖啡角帮忙一年。高中毕业。\n'
+  : 'Sam Lin. Bookshop assistant on the corner since 2022: till and shelves. Makes pour-over coffee; helped at the community coffee corner on weekends for a year. Finished secondary school.\n');
+const excerpts = join(samples, zh ? '摘抄.txt' : 'excerpts.txt');
+writeFileSync(excerpts, zh
+  ? '《论语·学而》：学而时习之，不亦说乎？\n《论语·为政》：温故而知新，可以为师矣。\n我的想法：复习不是重复，是每次都看出点新东西。\n'
+  : 'Pride and Prejudice, ch. 1: "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife."\nMy note: the narrator is teasing everyone, not stating a fact.\n');
+
+/**
+ * The weekly three run unless --only names others. The four kinds added in 1.1 (road-to-1.1.md A7) run only when
+ * named, each with a cap of its own, since a résumé or a travel guide needs more room than $0.40.
+ */
+const COMMISSIONS: { name: string; form: Form; prepare?: (dir: string) => void; prompt: (form: Form) => string; capUsd?: number; named?: boolean }[] = [
   {
     name: 'page',
     form: { template: 'page', want: zh ? '帮我做一个记录每天喝了几杯水的小网页。' : 'Make me a small web page to count the glasses of water I drink.' },
@@ -104,6 +117,28 @@ const COMMISSIONS: { name: string; form: Form; prepare?: (dir: string) => void; 
     prepare: (dir) => prepareDemoFolder(dir, join(ROOT, 'demo', 'check.js')),
     prompt: (f) => demoPrompt(f),
   },
+  {
+    name: 'resume', named: true, capUsd: 0.75,
+    form: { template: 'resume', want: zh ? '帮我写一份应聘咖啡店店员的简历。' : 'Write me a résumé for a job as a café assistant.', materials: [career] },
+    prepare: (dir) => { copyMaterials(dir, [career]); },
+    prompt: (f) => commissionPrompt(f),
+  },
+  {
+    name: 'notes', named: true, capUsd: 0.75,
+    form: { template: 'notes', want: zh ? '帮我给《论语》前两篇做一份读书笔记。' : 'Make me reading notes on the first chapter of Pride and Prejudice.', materials: [excerpts] },
+    prepare: (dir) => { copyMaterials(dir, [excerpts]); },
+    prompt: (f) => commissionPrompt(f),
+  },
+  {
+    name: 'travel', named: true, capUsd: 0.75,
+    form: { template: 'travel', want: zh ? '帮我做一份杭州的旅行攻略，两天。' : 'Make me a travel guide for two days in Edinburgh.' },
+    prompt: (f) => commissionPrompt(f),
+  },
+  {
+    name: 'tool', named: true, capUsd: 0.75,
+    form: { template: 'tool', want: zh ? '帮我做一个小工具，把一个文件夹里的照片按拍摄日期改名。' : 'Make me a small tool that renames the photos in a folder by the date they were taken.' },
+    prompt: (f) => commissionPrompt(f),
+  },
 ];
 
 type Outcome = {
@@ -117,8 +152,9 @@ const shapes: Record<string, string[]> = {};
 let total = 0;
 
 for (const c of COMMISSIONS) {
-  if (ONLY && !ONLY.has(c.name)) continue;
-  if (BUDGET_USD !== null ? total + PER_RUN_USD > BUDGET_USD + 1e-9 : total >= STOP_AT_USD) {
+  if (ONLY ? !ONLY.has(c.name) : c.named) continue;
+  const cap = c.capUsd ?? PER_RUN_USD;
+  if (BUDGET_USD !== null ? total + cap > BUDGET_USD + 1e-9 : total >= STOP_AT_USD) {
     console.log(`Stopping before ${c.name}: $${total.toFixed(2)} spent so far.`);
     break;
   }
@@ -140,7 +176,7 @@ for (const c of COMMISSIONS) {
   const result = await runAgent({
     prompt: c.prompt(c.form), workDir: dir, recordingPath: recording, broker,
     emit: () => {}, onInit: (info) => { initVersion = info.claudeCodeVersion; },
-    credentials: { source: 'env', apiKey: key }, maxBudgetUsd: PER_RUN_USD,
+    credentials: { source: 'env', apiKey: key }, maxBudgetUsd: cap,
   });
   total += result.costUsd ?? 0;
 
@@ -162,17 +198,31 @@ for (const c of COMMISSIONS) {
   const checks: Record<string, boolean> = {
     finished: result.ok,
     'claude reported its version': Boolean(initVersion),
-    'a subagent went out and came back': has('subagent_start') && has('subagent_stop'),
     // Helpers sent off in the background would end a turn early and report done twice.
     'one result, at the end': events.filter((e) => e.kind === 'done').length === 1 && events.at(-1)?.kind === 'done',
     // A command line the shop could not read at all, so it asked; python or a delete asking is meant to happen.
     'every command line could be read': !raw.some((e) => e.source === 'permission'
       && (e.payload as Record<string, unknown>)?.reason === strings.risk.complexCommand),
   };
+  // A helper is part of the weekly three and the travel guide; the other new kinds may well do without one.
+  if (!c.named || c.name === 'travel') checks['a subagent went out and came back'] = has('subagent_start') && has('subagent_stop');
   // The demo states its plan in words; the other two are free to keep a to-do list, and the page usually does.
-  if (c.name !== 'demo') {
+  if (c.name !== 'demo' && !c.named) {
     checks['to-do list became the plan'] = events.some((e) => e.kind === 'plan' && (e.todos?.length ?? 0) > 0);
     checks['to-do list was ticked off'] = has('progress');
+  }
+  if (c.named) {
+    // Whatever it wrote, it wrote inside its own folder: never the user's files (the tool above all).
+    const written = hooks.filter((h) => h.name === 'PreToolUse' && ['Write', 'Edit'].includes(String(h.payload.tool_name)))
+      .map((h) => String((h.payload.tool_input as Record<string, unknown>)?.file_path ?? ''));
+    checks['wrote only inside its folder'] = written.length > 0 && written.every((f) => resolve(f).startsWith(resolve(dir)));
+    const F = strings.ui.files;
+    const made = { resume: [F.resume], notes: [F.notes], travel: ['index.html'], tool: [F.tool, F.toolScript] }[c.name as 'resume'] ?? [];
+    checks['made its file'] = made.some((f) => existsSync(join(dir, f)));
+  }
+  if (c.name === 'resume' || c.name === 'notes') {
+    checks['handed-over file was read'] = hooks.some((h) => h.name === 'PreToolUse' && h.payload.tool_name === 'Read'
+      && String((h.payload.tool_input as Record<string, unknown>)?.file_path ?? '').includes(strings.ui.files.materials));
   }
   if (c.name === 'letter-with-materials') {
     checks['handed-over file was read'] = hooks.some((h) => h.name === 'PreToolUse' && h.payload.tool_name === 'Read'

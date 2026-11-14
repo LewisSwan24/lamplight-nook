@@ -174,6 +174,17 @@
       "sheetFill": "Make me a table for ...",
       "planFill": "Plan out ... for me.",
       "albumFill": "Make a little album of these photos: ...",
+      "resume": "Write a résumé",
+      "notes": "Take reading notes",
+      "travel": "Plan a trip",
+      "tool": "Make a small tool",
+      "resumeFill": "Write me a résumé for ...",
+      "notesFill": "Make me reading notes on ...",
+      "travelFill": "Make me a travel guide for ..., ... days.",
+      "toolFill": "Make me a small tool that ...",
+      "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
+      "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
+      "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
       "albumHint": "Hand over the photos: drag them onto this slip, or use \"Hand over files\". The album is a web page made from copies.",
       "needPhotos": "Hand over a few photos first, so the album has something in it.",
       "chooseFile": "Choose file",
@@ -428,7 +439,11 @@
         "books": "Stack of books",
         "letters": "Letter board",
         "ledger": "Ledger",
-        "monitor": "Little computer"
+        "monitor": "Little computer",
+        "briefcase": "Briefcase",
+        "readinglamp": "Reading lamp",
+        "postcards": "Postcards",
+        "toolbox": "Toolbox"
       },
       "grownLine": "{thing} came after commission number {n}.",
       "clock": "It's {time}.",
@@ -517,7 +532,11 @@
         "books": "After two rounds of research, the books stayed.",
         "letters": "We wrote a few letters. The replies get pinned here.",
         "ledger": "After a couple of sheets we keep our own books better.",
-        "monitor": "After a few web pages, this little computer stays on."
+        "monitor": "After a few web pages, this little computer stays on.",
+        "briefcase": "We wrote someone a résumé, and this briefcase stayed.",
+        "readinglamp": "We made some reading notes, and a reading lamp went on the table.",
+        "postcards": "We made a travel guide, and postcards went up on the wall.",
+        "toolbox": "We made a small tool, and Flint brought his toolbox over."
       }
     },
     "run": {
@@ -674,6 +693,12 @@
       "sheet": "table.csv",
       "plan": "plan.md",
       "materials": "materials",
+      "resume": "resume.html",
+      "notes": "reading-notes.md",
+      "tool": "tool.html",
+      "toolScript": "tool.ps1",
+      "toolLauncher": "run.cmd",
+      "toolSamples": "samples",
       "originalPrefix": "original-",
       "revisedPrefix": "revised-"
     },
@@ -726,7 +751,11 @@
         "letter": "Letters",
         "sheet": "Tables",
         "plan": "Plans",
-        "album": "Albums"
+        "album": "Albums",
+        "resume": "Résumés",
+        "notes": "Reading notes",
+        "travel": "Travel guides",
+        "tool": "Tools"
       }
     },
     "mini": {
@@ -838,7 +867,11 @@
     "books": "a stack of books",
     "letters": "a board of letters",
     "ledger": "a ledger",
-    "monitor": "a little computer"
+    "monitor": "a little computer",
+    "briefcase": "a briefcase",
+    "readinglamp": "a reading lamp",
+    "postcards": "a few postcards",
+    "toolbox": "a toolbox"
   },
   "sceneText": {
     "study": {

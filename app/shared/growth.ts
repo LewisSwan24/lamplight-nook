@@ -1,13 +1,13 @@
-import type { CommissionTemplate } from './types';
+import { TEMPLATES, type BroughtId, type TemplateId } from './templates';
 
 /**
  * What the shop gathers as commissions get done together (plan.md R2.2). Each piece appears once the shop
  * has finished that many commissions with the user, and stays: nothing goes away for not opening the app.
- * A piece with `work` counts only that kind of work instead, so the shop comes to look like what was made in it.
- * Another round of changes on the same work counts for neither: it is still one piece of work.
+ * A piece with `work` counts only that kind of work instead (the templates say which), so the shop comes to look
+ * like what was made in it. Another round of changes on the same work counts for neither: it is still one piece of work.
  * The pictures are overlays made by scripts/art/growth.py (assets/sprites/grow-<id>.png).
  */
-export const GROWTH = [
+const COUNTED = [
   { id: 'painting', at: 1 },
   { id: 'plant', at: 2 },
   { id: 'lights', at: 3 },
@@ -19,14 +19,13 @@ export const GROWTH = [
   { id: 'portrait', at: 25 },
   { id: 'sunset', at: 35 },
   { id: 'star', at: 50 },
-  { id: 'album', at: 1, work: 'album' },
-  { id: 'calendar', at: 1, work: 'plan' },
-  { id: 'books', at: 2, work: 'research' },
-  { id: 'letters', at: 2, work: 'letter' },
-  { id: 'ledger', at: 2, work: 'sheet' },
-  { id: 'monitor', at: 3, work: 'page' },
 ] as const;
-export type GrowthId = (typeof GROWTH)[number]['id'];
+type Growth = (typeof COUNTED)[number] | { id: BroughtId; at: number; work: TemplateId };
+export const GROWTH: Growth[] = [
+  ...COUNTED,
+  ...TEMPLATES.flatMap((t) => ('growth' in t ? [{ id: t.growth.id, at: t.growth.at, work: t.id }] : [])),
+];
+export type GrowthId = Growth['id'];
 /** How many finished works of each kind. */
 export type Made = Partial<Record<WorkIcon, number>>;
 
@@ -35,11 +34,14 @@ export function grownBy(done: number, made: Made = {}): GrowthId[] {
   return GROWTH.filter((g) => ('work' in g ? (made[g.work] ?? 0) : done) >= g.at).map((g) => g.id);
 }
 
+export type WorkIcon = TemplateId | 'demo';
+/** The demo's icon on the works shelf; each template names its own. */
+const DEMO_ICON = 4;
 /** Icons on the works shelf, in the order of assets/sprites/works.png (8x8 each). */
-export const WORK_ICONS = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album'] as const;
-export type WorkIcon = (typeof WORK_ICONS)[number];
-export const workIcon = (form?: { demo?: boolean; template?: CommissionTemplate }): WorkIcon =>
-  form?.demo ? 'demo' : form?.template && form.template !== 'page' ? form.template : 'page';
+export const WORK_ICONS: readonly WorkIcon[] = Array.from({ length: TEMPLATES.length + 1 },
+  (_, i) => (i === DEMO_ICON ? 'demo' : TEMPLATES.find((t) => t.icon === i)!.id));
+export const workIcon = (form?: { demo?: boolean; template?: TemplateId }): WorkIcon =>
+  form?.demo ? 'demo' : form?.template ?? 'page';
 
 export function madeOf(works: { icon: WorkIcon }[]): Made {
   const made: Made = {};

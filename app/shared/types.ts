@@ -4,6 +4,7 @@ import type { SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
+import type { TemplateId } from './templates';
 
 /** Scene anchors: characters only move between these points. */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
@@ -107,7 +108,7 @@ export interface LamplightApi {
   spendMonths(): Promise<{ month: string; usd: number; commissions: number }[]>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
-  chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
+  chooseSource(template: CommissionTemplate): Promise<SourcePick | null>;
   /** Files dragged onto the counter or the form (paths from pathsOf), or picked in a dialog when none are given. */
   handOver(paths: string[] | null, already: Material[]): Promise<HandOver>;
   /** The paths of files dropped on the page (the preload reads them; the page can't). */
@@ -166,8 +167,8 @@ export interface LamplightApi {
   moveScene(scene: SceneId): Promise<boolean>;
 }
 
-/** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
-export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy' | 'letter' | 'sheet' | 'plan' | 'album';
+/** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares (shared/templates.ts). */
+export type CommissionTemplate = TemplateId;
 
 /**
  * The commission form: what the user wants, any particulars, who it's for.

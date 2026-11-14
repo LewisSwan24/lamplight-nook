@@ -17,6 +17,10 @@ opening:
   - { id: tpl_letter_01, speaker: adeng, when: tpl_letter, bubbles: ["写信啊，我去拿支好写的笔。", "{brief}，先想想开头。"] }
   - { id: tpl_sheet_01, speaker: adeng, when: tpl_sheet, bubbles: ["做表格，先把格子画齐。"], reply: { speaker: laoshi, bubbles: ["合计那栏我来对。"] } }
   - { id: tpl_plan_01, speaker: adeng, when: tpl_plan, bubbles: ["排计划要留点空。", "一天塞太满，第二天就不想动了。"] }
+  - { id: tpl_resume_01, speaker: adeng, when: tpl_resume, bubbles: ["写简历，没做过的一件都不写。", "缺的地方留空，等你来填。"] }
+  - { id: tpl_notes_01, speaker: adeng, when: tpl_notes, bubbles: ["读书笔记啊。", "摘录只从你给的里面摘。"], reply: { speaker: xiaoju, bubbles: ["作者和年份我去查。"] } }
+  - { id: tpl_travel_01, speaker: adeng, when: tpl_travel, bubbles: ["做旅行攻略，先把每天排开。"], reply: { speaker: xiaoju, bubbles: ["开放时间和票价我去查。"] } }
+  - { id: tpl_tool_01, speaker: adeng, when: tpl_tool, bubbles: ["小工具，能做成网页就做成网页。"], reply: { speaker: laoshi, bubbles: ["试的时候只用样例。"] } }
   - { id: handed_01, speaker: adeng, when: handed, bubbles: ["东西我收下了，先看看。", "{brief}……嗯，好。"], reply: { speaker: xiaoju, bubbles: ["我去复印一份！"] } }
   - { id: opening_01, speaker: adeng, bubbles: ["{brief}……嗯，好。", "小橘，老石，来活儿了。"] }
   - { id: opening_02, speaker: adeng, bubbles: ["是要{brief}吧？", "我先泡壶茶，你坐。", "我们从哪儿开始呢。"] }
@@ -273,6 +277,10 @@ grow:
   - { id: grow_letters, speaker: xiaoju, when: grow_letters, bubbles: ["墙上钉了几封信！", "都是寄回来的。"] }
   - { id: grow_ledger, speaker: laoshi, when: grow_ledger, bubbles: ["桌上多了本账。", "记清楚。"] }
   - { id: grow_monitor, speaker: xiaoju, when: grow_monitor, bubbles: ["小桌上多了台电脑！", "还能开机。"] }
+  - { id: grow_briefcase, speaker: adeng, when: grow_briefcase, bubbles: ["墙边多了只公文包。", "谁去面试都能拎着。"] }
+  - { id: grow_readinglamp, speaker: xiaoju, when: grow_readinglamp, bubbles: ["桌上多了盏读书灯！", "晚上看书不费眼了。"] }
+  - { id: grow_postcards, speaker: qingdai, when: grow_postcards, bubbles: ["墙上钉了几张明信片。", "都是还没去过的地方。"] }
+  - { id: grow_toolbox, speaker: laoshi, when: grow_toolbox, bubbles: ["工具箱放这儿了。", "要用自己拿。"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["阅读桌上有水果了！", "橘子是我的。"] }

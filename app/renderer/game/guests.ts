@@ -1,4 +1,5 @@
-import type { Made, WorkIcon } from '../../shared/growth';
+import type { Made } from '../../shared/growth';
+import { TEMPLATES } from '../../shared/templates';
 import type { GuestId, Speaker } from '../../shared/types';
 import type { Chat } from '../translator/lines';
 import type { Period } from './daytime';
@@ -14,15 +15,15 @@ import type { Holiday, Sky } from './weather';
 export const GUEST_IDS: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student'];
 /** Old friends of the shop, who come from the start. */
 const OLD_FRIENDS: GuestId[] = ['baker', 'postman'];
-/**
- * Those who come because of what the shop has done: Old Zhou from the garage once there has been a web page,
- * Granny Chen with her photographs once there has been an album, Xiaohe with her thesis once there has been research.
- */
-const BROUGHT_BY: [GuestId, WorkIcon][] = [['mechanic', 'page'], ['granny', 'album'], ['student', 'research']];
 
-/** Who may drop in, given what the shop has made. */
+/**
+ * Who may drop in, given what the shop has made: the old friends, and those a kind of work brings
+ * (shared/templates.ts): Old Zhou from the garage once there has been a web page, Granny Chen with her
+ * photographs once there has been an album, Xiaohe with her thesis once there has been research.
+ */
 export function welcomeGuests(made: Made): GuestId[] {
-  return [...OLD_FRIENDS, ...BROUGHT_BY.filter(([, work]) => made[work]).map(([guest]) => guest)];
+  const brought: GuestId[] = TEMPLATES.flatMap((t) => ('guest' in t && made[t.id] ? [t.guest] : []));
+  return GUEST_IDS.filter((g) => OLD_FRIENDS.includes(g) || brought.includes(g));
 }
 
 type Point = { x: number; y: number };

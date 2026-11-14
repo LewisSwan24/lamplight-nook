@@ -486,6 +486,36 @@
     - xiaoju: 咱们店哪有日程？
     - adeng: 所以才该排。
 
+- id: made_resume
+  when: idle
+  made: resume
+  turns:
+    - adeng: 那份简历，方括号留了好几处。
+    - laoshi: 不知道的就别写。
+
+- id: made_notes
+  when: idle
+  made: notes
+  turns:
+    - xiaoju: 那本书我也想读了。
+    - adeng: 笔记还在架子上。
+
+- id: made_travel
+  when: idle
+  made: travel
+  turns:
+    - qingdai: 攻略里那个地方，我也想去。
+    - xiaoju: 票价我查过，不贵！
+    - qingdai: 那就等店里不忙。
+
+- id: made_tool
+  when: idle
+  made: tool
+  turns:
+    - laoshi: 那个小工具，样例都试过了。
+    - adeng: 没碰人家的文件吧？
+    - laoshi: 一个都没碰。
+
 # Neighbours have heard what the shop does. `made:` a kind of work done; `mentions:` asks after the latest work.
 - id: postman_website
   when: idle

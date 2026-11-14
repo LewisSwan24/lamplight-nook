@@ -3,6 +3,7 @@ import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
+import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
@@ -118,17 +119,17 @@ export function showParcel(actor: ActorId, summary: string) {
 
 /** The commission form. Resolves with the form, or null if closed. */
 const T = U.templates;
-const TEMPLATES: { id: CommissionTemplate | 'demo'; label: string; fill: string }[] = [
+/**
+ * The stickers on the form: the demo, then every template (shared/templates.ts), named and filled in
+ * from the locale files by id.
+ */
+type Sticker = { id: CommissionTemplate | 'demo'; label: string; fill: string; spec?: TemplateSpec };
+const STICKERS: Sticker[] = [
   { id: 'demo', label: T.demo, fill: U.demoFill },
-  { id: 'page', label: T.page, fill: T.pageFill },
-  { id: 'research', label: T.research, fill: T.researchFill },
-  { id: 'edit', label: T.edit, fill: T.editFill },
-  { id: 'tidy', label: T.tidy, fill: T.tidyFill },
-  { id: 'letter', label: T.letter, fill: T.letterFill },
-  { id: 'sheet', label: T.sheet, fill: T.sheetFill },
-  { id: 'plan', label: T.plan, fill: T.planFill },
-  { id: 'album', label: T.album, fill: T.albumFill },
+  ...TEMPLATES.map((t) => ({ id: t.id, label: T[t.id], fill: T[`${t.id}Fill`], spec: t })),
 ];
+/** What a template says about the file, folder or photos it needs (`ui.templates.<id>Hint`). */
+const hintOf = (id: string) => (T as Record<string, string>)[`${id}Hint`];
 /** Pictures an album can show. */
 const PHOTO = /\.(jpe?g|png|gif|webp|bmp|avif)$/i;
 /** The blank in a template sentence (a Chinese or an English ellipsis), selected so typing replaces it. */
@@ -159,13 +160,13 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     want.addEventListener('input', () => want.setCustomValidity(''));
     const details = el('input', { type: 'text', placeholder: U.detailsPlaceholder }) as HTMLInputElement;
     const audience = el('input', { type: 'text', placeholder: U.audiencePlaceholder }) as HTMLInputElement;
-    let chosen: (typeof TEMPLATES)[number] | null = TEMPLATES[0];
+    let chosen: Sticker | null = STICKERS[0];
     let source: { path: string; name: string } | null = null;
     const sourceName = el('span.source-name');
     const sourceHint = el('div.hint.source-hint');
     const pickButton = el('button', { type: 'button', onclick: () => void pick() }) as HTMLButtonElement;
     const sourceRow = el('div.source-row', {}, el('div.source-line', {}, pickButton, sourceName), sourceHint);
-    const chips = TEMPLATES.map((t) => el('button.template-chip', { type: 'button', onclick: () => choose(t) }, t.label) as HTMLButtonElement);
+    const chips = STICKERS.map((t) => el('button.template-chip', { type: 'button', onclick: () => choose(t) }, t.label) as HTMLButtonElement);
     const done = (form: CommissionForm | null) => { openForm = null; resolve(form); closePanel(); };
 
     const materialHint = el('div.hint', {}, U.materials.hint);
@@ -189,7 +190,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       if (!r.items.length) return;
       sfx('open');
       // A reminder to hand something over has been answered.
-      materialHint.textContent = chosen?.id === 'album' ? T.albumHint : U.materials.hint;
+      materialHint.textContent = materialsHint();
       materialHint.classList.remove('warn');
     };
     const materialRow = el('div.material-row', {},
@@ -197,20 +198,22 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         el('button.link.material-add', { type: 'button', onclick: () => void add(null) }, U.materials.add)),
       tags, materialNote, materialHint);
 
-    const needsSource = () => chosen?.id === 'edit' || chosen?.id === 'tidy';
+    const needsSource = () => Boolean(chosen?.spec?.source);
+    // What to hand over: a template that needs no file or folder may say what helps (photos for the album, an old résumé).
+    const materialsHint = () => (chosen && !needsSource() && hintOf(chosen.id)) || U.materials.hint;
     const refresh = () => {
-      chips.forEach((c, i) => c.classList.toggle('on', TEMPLATES[i] === chosen));
+      chips.forEach((c, i) => c.classList.toggle('on', STICKERS[i] === chosen));
       sourceRow.hidden = !needsSource();
-      pickButton.textContent = chosen?.id === 'tidy' ? T.chooseFolder : T.chooseFile;
+      pickButton.textContent = chosen?.spec?.source?.kind === 'folder' ? T.chooseFolder : T.chooseFile;
       sourceName.textContent = source?.name ?? '';
-      sourceHint.textContent = chosen?.id === 'tidy' ? T.tidyHint : T.editHint;
+      sourceHint.textContent = needsSource() ? hintOf(chosen!.id) : '';
       sourceHint.classList.remove('warn');
-      materialHint.textContent = chosen?.id === 'album' ? T.albumHint : U.materials.hint;
+      materialHint.textContent = materialsHint();
       materialHint.classList.remove('warn');
     };
     // Picking a sticker again puts it back; text the user already wrote is only replaced if it was a template's.
-    const choose = (t: (typeof TEMPLATES)[number]) => {
-      const untouched = !want.value.trim() || TEMPLATES.some((x) => x.fill === want.value);
+    const choose = (t: Sticker) => {
+      const untouched = !want.value.trim() || STICKERS.some((x) => x.fill === want.value);
       chosen = chosen === t ? null : t;
       source = null;
       if (untouched) want.value = chosen?.fill ?? '';
@@ -220,7 +223,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       if (untouched && blank) want.setSelectionRange(blank.index, blank.index + blank[0].length);
     };
     const pick = async () => {
-      const r = await api.chooseSource(chosen?.id === 'tidy' ? 'tidy' : 'edit');
+      const r = await api.chooseSource(chosen!.id as CommissionTemplate);
       if (!r) return;
       if ('error' in r) {
         sourceHint.textContent = T.tooBig;
@@ -282,7 +285,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         pickButton.focus();
         return;
       }
-      if (chosen?.id === 'album' && !materials.some((m) => PHOTO.test(m.name))) {
+      if (chosen?.spec?.photos && !materials.some((m) => PHOTO.test(m.name))) {
         materialHint.textContent = T.needPhotos;
         materialHint.classList.add('warn');
         return;
@@ -294,7 +297,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         audience: audience.value.trim() || undefined,
         demo: chosen?.id === 'demo' && text === U.demoFill,
         template,
-        source: template === 'edit' || template === 'tidy' ? source?.path : undefined,
+        source: needsSource() ? source?.path : undefined,
         materials: chosen?.id === 'demo' ? undefined : materials.map((m) => m.path),
       });
     });
