@@ -212,7 +212,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       lentRow.hidden = !canLend();
       lentPick.textContent = lent ? L.pickAnother : L.pick;
       lentName.replaceChildren(...(lent ? [el('span.material-tag', {}, lent.name,
-        el('button.material-remove', { type: 'button', 'aria-label': fill(L.remove, { name: lent.name }), onclick: () => { lent = null; showLent(); } }, '×'))] : []));
+        el('button.material-remove', { type: 'button', 'aria-label': fill(L.remove, { name: lent.name }), onclick: () => { lent = null; showLent(); } }, '\u00D7'))] : []));
       lentHint.textContent = lent ? L.picked : '';
       lentHint.classList.remove('warn');
       // What is handed over would be copied in among the user's own files, so a lent folder takes none.

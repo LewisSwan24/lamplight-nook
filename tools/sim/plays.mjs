@@ -6,7 +6,8 @@ import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const BOM = '';
+// Written as an escape: an editor or tool that strips invisible characters would leave an empty string.
+const BOM = '\uFEFF';
 
 /** Text the plays say and write, per language. Player-facing words only appear in commission output. */
 const T = {
