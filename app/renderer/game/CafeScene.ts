@@ -937,9 +937,10 @@ export class CafeScene extends Phaser.Scene {
   /**
    * A neighbour drops in: in at the front door, over to the end of the counter, a few words with
    * whoever is about (turns from someone not in the shop are left out), then out again.
-   * Resolves once they have gone. sendGuestAway() cuts it short.
+   * Resolves once they have gone. sendGuestAway() cuts it short. `handed` is called as they hand over what they brought
+   * (the postman's letter about a new version), and never if they were sent away before that.
    */
-  async guestVisit(id: GuestId, turns: { speaker: Speaker; text: string }[]): Promise<void> {
+  async guestVisit(id: GuestId, turns: { speaker: Speaker; text: string }[], handed?: () => void): Promise<void> {
     if (this.guest || this.guestComing) return;
     const trip = ++this.guestTrip;
     const gone = () => trip !== this.guestTrip;
@@ -968,6 +969,7 @@ export class CafeScene extends Phaser.Scene {
       // Something for the shop: bread from the bakery, letters from the post.
       sprite.play(animKey(id, 'gift', 'left'), true);
       await wait(1000);
+      if (!gone()) handed?.();
       sprite.play(animKey(id, 'idle', 'left'), true);
       for (const t of turns) {
         if (gone()) break;

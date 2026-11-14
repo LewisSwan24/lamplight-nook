@@ -270,7 +270,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'mini';
+type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'mini' | 'updates';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -473,6 +473,8 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section.about', {},
         el('h4', {}, S.aboutLabel),
         el('div', {}, fill(S.version, { version })),
+        // The Store build is kept up to date by the Store, so there is nothing to switch.
+        env.store ? null : switchRows(api, settings, onChange, [['updates', S.updatesToggle]]),
         el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
         el('div', {}, S.creditFont),
         el('div', {}, S.creditSound),

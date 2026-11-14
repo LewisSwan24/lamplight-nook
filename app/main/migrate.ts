@@ -19,7 +19,20 @@ const MARKER = 'data-version.json';
 /** Data files copied aside before a migration touches anything. */
 const BACKED_UP = ['settings.json', 'memory.json', 'spend.json', 'pending.json'];
 
-export type MigrationResult = { from: number; to: number; backup?: string; changes: string[] };
+/**
+ * Copy the data files to backup/<date>-<label>/ (an upgrade's own copy, or the one before a new version goes in).
+ * The folder they went to, or undefined when there were none to copy. Throws when they cannot be copied.
+ */
+export function backUp(dir: string, label: string, now = new Date()): string | undefined {
+  const present = BACKED_UP.filter((f) => existsSync(join(dir, f)));
+  if (!present.length) return undefined;
+  const to = join(dir, 'backup', `${localDay(now)}-${label}`);
+  mkdirSync(to, { recursive: true });
+  for (const f of present) copyFileSync(join(dir, f), join(to, f));
+  return to;
+}
+
+export type MigrationResult ={ from: number; to: number; backup?: string; changes: string[] };
 
 type Step = (dir: string, now: Date) => string[];
 
@@ -53,15 +66,10 @@ const STEPS: Record<number, Step> = {
 export function migrate(dir: string, now = new Date()): MigrationResult {
   const from = readJson<{ data?: number }>(join(dir, MARKER))?.data ?? 1;
   if (from >= DATA_VERSION) return { from, to: from, changes: [] };
-  const present = BACKED_UP.filter((f) => existsSync(join(dir, f)));
   let backup: string | undefined;
   try {
     mkdirSync(dir, { recursive: true });
-    if (present.length) {
-      backup = join(dir, 'backup', `${localDay(now)}-v${from}`);
-      mkdirSync(backup, { recursive: true });
-      for (const f of present) copyFileSync(join(dir, f), join(backup, f));
-    }
+    backup = backUp(dir, `v${from}`, now);
   } catch (err) {
     // Without a copy aside, nothing is changed.
     return { from, to: from, changes: [`not migrated, no backup: ${err instanceof Error ? err.message : String(err)}`] };

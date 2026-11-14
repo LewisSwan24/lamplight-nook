@@ -417,6 +417,7 @@
       "noticesMissing": "授权清单没找到，重新安装一下小灯屋应该就好了。",
       "aboutLabel": "关于",
       "version": "小灯屋 {version}",
+      "updatesToggle": "有新版本时让阿信送信来（只看看，不会自己下载）",
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》《Modern Exteriors》《Modern Farm》",
       "creditLink": "limezu.itch.io",
       "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）",
@@ -811,6 +812,18 @@
       "done": "做好了，点我去看看",
       "failed": "没做成，点我回店里看看",
       "open": "回到店里"
+    },
+    "update": {
+      "postman": "小灯屋的信，做店的人寄来的。",
+      "thanks": "辛苦了阿信。",
+      "title": "小灯屋 {version} 出来了",
+      "intro": "阿信送来一封信：小灯屋出了新版本。点“更新”先把它取回来，等你关店时再装上，正在做的委托不会被打断。装之前会先把数据备份一份。",
+      "notesLabel": "这次有什么新东西",
+      "update": "更新",
+      "later": "先不了",
+      "fetching": "好，我这就去取。",
+      "ready": "新版本取回来了，关店时就装上。",
+      "failed": "新版本没取回来，下回阿信再送信来。"
     },
     "scene": {
       "label": "店开在哪",

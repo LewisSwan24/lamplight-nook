@@ -65,6 +65,8 @@ const api: LamplightApi = {
   onMiniState: (cb) => on(IPC.miniPush, cb),
   showShop: () => ipcRenderer.invoke(IPC.showShop),
   moveScene: (scene) => ipcRenderer.invoke(IPC.moveScene, scene),
+  onUpdate: (cb) => on(IPC.updateOffer, cb),
+  downloadUpdate: () => ipcRenderer.invoke(IPC.downloadUpdate),
 };
 
 contextBridge.exposeInMainWorld('lamplight', api);

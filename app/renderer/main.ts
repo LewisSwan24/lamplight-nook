@@ -5,7 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -33,6 +33,7 @@ import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
+import { showUpdateLetter } from './ui/letter';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, setWorking, syncToolbar, view } from './ui/toolbar';
@@ -156,6 +157,7 @@ setInterval(() => {
     void window.lamplight.markTold(talk.id);
   }
   tendGarden(!busy);
+  bringLetter(!busy && !blocked && scene.view === 'shop');
   dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
 }, 5000);
@@ -188,6 +190,28 @@ function welcome(guest: GuestId) {
   const present = (who: string) => scene.anchorOf(who as ActorId) !== null;
   const chat = pickVisit(ruleBook().chats, guest, scene.outside(), scene.period, present, heardVisits, shopDays);
   if (chat) void scene.guestVisit(guest, chat.turns.map((t) => ({ ...t, text: fill(t.text, { lastWork: shopDays.lastWork ?? '' }) })));
+}
+
+// A new version (road-to-1.1.md A1): the postman brings the letter once the shop is quiet and nothing lies over it,
+// at any hour. Sent away by work before he hands it over, he brings it again later.
+let letter: UpdateOffer | null = null;
+window.lamplight.onUpdate((offer) => { letter = offer; });
+function bringLetter(quiet: boolean) {
+  if (!letter || !quiet || scene.hasGuest() || document.querySelector('#ui > .card, #ui > form.card, .legal-backdrop')) return;
+  const offer = letter;
+  letter = null;
+  let handed = false;
+  void scene.guestVisit('postman', [{ speaker: 'postman', text: strings.ui.update.postman }, { speaker: 'adeng', text: strings.ui.update.thanks }], () => {
+    handed = true;
+    showUpdateLetter(offer, () => void fetchUpdate());
+  }).then(() => { if (!handed) letter ??= offer; });
+}
+/** "Update": Adeng goes to fetch it, and says when it is in hand (it goes in when the shop closes). */
+async function fetchUpdate() {
+  greet(strings.ui.update.fetching);
+  // The first line has its time even when the version is in hand at once.
+  const [fetched] = await Promise.all([window.lamplight.downloadUpdate(), wait(GREET_MS)]);
+  greet(fetched ? strings.ui.update.ready : strings.ui.update.failed);
 }
 
 // Out in the garden people say something about what they are doing, heard while you look out there.
@@ -561,9 +585,10 @@ function applySettings(s: Settings) {
 systemCalm.addEventListener('change', () => current && applySettings(current));
 
 // Adeng greets the user by name; the first visit walks through setup first.
+const GREET_MS = 3500;
 const greet = (text: string) => {
   scene.say('adeng', text);
-  setTimeout(() => scene.say('adeng', null), 3500);
+  setTimeout(() => scene.say('adeng', null), GREET_MS);
 };
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
@@ -635,6 +660,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showNotebook: () => showNotebook(api),
       showCaptionLog,
       showPending: (form: CommissionForm) => showPending(api, form, () => {}),
+      showUpdateLetter: (offer: UpdateOffer) => showUpdateLetter(offer, () => {}),
     };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };

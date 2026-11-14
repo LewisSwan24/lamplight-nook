@@ -49,7 +49,10 @@ export type Letter = { about: 'problem' | 'content'; diagnostics?: boolean; titl
 /** "Write to us": whether the mail program opened, the diagnostics file exported for it, or that the user cancelled the save. */
 export type WriteResult = { opened: boolean; file?: string; cancelled?: boolean };
 
-/** Saving a pasted key: `verified` is false when Anthropic could not be reached to check it. */
+/** A new version of the shop, for the postman's letter: its number and what is new in it, line by line ("· " starts a list item). */
+export type UpdateOffer = { version: string; notes: string[] };
+
+/** Saving a pasted key:`verified` is false when Anthropic could not be reached to check it. */
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
 /**
@@ -57,7 +60,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -174,6 +177,10 @@ export interface LamplightApi {
   showShop(): Promise<void>;
   /** Move the shop to another scene: saves it and reloads the page; false while a commission runs. */
   moveScene(scene: SceneId): Promise<boolean>;
+  /** A new version is out (road-to-1.1.md A1): the postman brings the letter. */
+  onUpdate(cb: (offer: UpdateOffer) => void): () => void;
+  /** The user said "update": fetch it, to go in when the shop closes. False if it could not be fetched. */
+  downloadUpdate(): Promise<boolean>;
 }
 
 /** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares (shared/templates.ts). */
@@ -308,6 +315,8 @@ export const IPC = {
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
   restorePrevious: 'commission:restore-previous',
+  updateOffer: 'update:offer',
+  downloadUpdate: 'update:download',
 } as const;
 
 // -- Translation layer --
