@@ -2,6 +2,11 @@
 
 ## Unreleased (1.1)
 
+- **Four new kinds of commission:** a résumé, reading notes, a travel guide and a small tool. A résumé never invents
+  experience, reading notes quote only what you hand over, and a travel guide says where each opening time and price
+  came from.
+- **A script the shop made is checked before you run it.** If a small tool comes as a script that deletes files, or
+  changes them without listing what it will do first, the result card says so and names the file.
 - **The notebook keeps a ledger of the month.** How many commissions and rounds, how long a round takes, why some
   didn't finish, and how often an errand waited for a busy helper. It stays on this computer, and can be cleared on its own.
 - **The Claude Code version check works in the installed app.** A Claude Code that is a script used to open a second shop

@@ -350,6 +350,9 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
     !result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
+    // A script that deletes or acts without a preview broke the tool template's rules: say so before anyone double-clicks it.
+    ...(result.scripts ?? []).map(({ file, risks }) => el('div.hint.warn.result-script', { role: 'note' },
+      fill(risks.length > 1 ? U.resultScriptBoth : risks[0] === 'deletes' ? U.resultScriptDeletes : U.resultScriptNoPreview, { file }))),
     note,
     result.ok && actions.firstWork ? el('div.hint.result-shelf', {}, U.resultShelf) : null,
     // Changing the work sits apart from opening it: a quieter row on the left.
