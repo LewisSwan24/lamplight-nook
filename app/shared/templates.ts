@@ -1,0 +1,145 @@
+import type { Strings } from './i18n';
+import type { GuestId } from './types';
+
+/**
+ * The ready-made kinds of commission (road-to-1.1.md A7), one record each, in the order of the stickers on the form.
+ * Their words stay in the locale files, looked up by id: `ui.templates.<id>` names the sticker, `<id>Fill` is
+ * what it writes in the request box, `<id>Hint` explains what to pick or hand over. Adding a kind means a record
+ * here, those strings, a shelf icon in works.png and, if it brings one, a growth picture.
+ * Pure data and string-building: both processes read it, and the files themselves are handled in app/main.
+ */
+
+type Files = Strings['ui']['files'];
+
+/** What a template's prompt is built from: the shop's words for its files, and the file or folder the user picked. */
+export type PromptParts = {
+  language: string;
+  files: Files;
+  /** Name of the picked file or folder. */
+  sourceName: string;
+  /** What the shop calls its copy of a picked file, and the edited version. */
+  original: string;
+  revised: string;
+};
+
+/**
+ * What the user picks besides writing the request, through the main process's dialog: a file (copied into the
+ * commission folder as the original) or a folder (listed into it; the shop never sees the folder itself).
+ */
+export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes: number } | { kind: 'folder' };
+
+/**
+ * What the result card opens, best first, matched on file names: a page the shop made, an edited document,
+ * any page, a write-up in Markdown, then a table or a letter.
+ */
+export const MAIN_FILES = {
+  index: (name: string) => /index\.html$/i.test(name),
+  revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
+  page: (name: string) => /\.html?$/i.test(name),
+  writeup: (name: string) => /\.md$/i.test(name),
+  table: (name: string) => /\.(csv|txt)$/i.test(name),
+};
+
+export type TemplateSpec = {
+  id: string;
+  /** Frame in assets/sprites/works.png for the works shelf. */
+  icon: number;
+  source?: SourceKind;
+  /** Needs at least one photo among the files handed over. */
+  photos?: boolean;
+  /** What it asks for on top of the request itself. File names are quoted so they are unambiguous. */
+  steps: (p: PromptParts) => string[];
+  /** Whether a round of changes repeats the steps: research only says how to look things up, which a change rarely needs. */
+  revise: boolean;
+  /** Which kind of file its result is (MAIN_FILES). */
+  main: keyof typeof MAIN_FILES;
+  /** A piece the shop gathers after this many of this kind (growth.ts; assets/sprites/grow-<id>.png). */
+  growth?: { id: string; at: number };
+  /** A neighbour who starts dropping in once there has been one (guests.ts). */
+  guest?: GuestId;
+};
+
+/** Text files the edit template accepts, and how big they may be. */
+export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json'];
+export const MAX_EDIT_BYTES = 1024 * 1024;
+
+export const TEMPLATES = [
+  {
+    id: 'page', icon: 0, revise: true, main: 'index', growth: { id: 'monitor', at: 3 }, guest: 'mechanic',
+    steps: () => [
+      'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
+      'Keep data in localStorage if the page needs to remember anything.',
+    ],
+  },
+  {
+    id: 'research', icon: 1, revise: false, main: 'writeup', growth: { id: 'books', at: 2 }, guest: 'student',
+    steps: ({ language, files }) => [
+      'This is a research commission: do not make a web page.',
+      `Send the researcher subagent to look it up, then write the findings as "${files.summary}" in ${language}:`,
+      'a three-sentence summary first, then the key points as a list, then the sources with their links.',
+      'Say plainly where sources disagree or where you are unsure.',
+    ],
+  },
+  {
+    id: 'edit', icon: 2, revise: true, main: 'revised', source: { kind: 'file', extensions: EDITABLE, maxBytes: MAX_EDIT_BYTES },
+    steps: ({ original, revised }) => [
+      `The document to work on is "${original}" in this folder, a copy of the user's file.`,
+      `Do not change "${original}". Write the edited version as "${revised}", in the same format.`,
+      'In your final reply, list the main changes in two to five short points.',
+    ],
+  },
+  {
+    id: 'tidy', icon: 3, revise: true, main: 'writeup', source: { kind: 'folder' },
+    steps: ({ language, files, sourceName }) => [
+      `"${files.listing}" lists what is in the user's folder "${sourceName}": relative path, size in bytes, last modified date. Folders end with "/".`,
+      'You cannot see that folder and must not try to look for it. Work only from the list.',
+      `Write a plan for tidying it up as "${files.tidyPlan}" in ${language}: a suggested folder layout, which files go where,`,
+      'and anything that looks like a duplicate, an old version or a leftover worth a look.',
+      'Do not move, rename or delete anything: the user carries out the plan themselves.',
+    ],
+  },
+  {
+    id: 'letter', icon: 5, revise: true, main: 'table', growth: { id: 'letters', at: 2 },
+    steps: ({ language, files }) => [
+      'This is a letter or an email: do not make a web page.',
+      `Write it as "${files.letter}" in ${language}, as plain text the user can copy straight into an email or onto paper.`,
+      'If it is an email, put a short subject line first, marked as the subject. Match the tone to who it is for; keep it warm and to the point.',
+      'Where you need a fact you do not have (a date, a name, an amount), leave a clear blank in square brackets instead of making it up.',
+      'Do not send it anywhere: the user sends it themselves.',
+    ],
+  },
+  {
+    id: 'sheet', icon: 6, revise: true, main: 'table', growth: { id: 'ledger', at: 2 },
+    steps: ({ language, files }) => [
+      'This is a table: do not make a web page.',
+      `Write it as "${files.sheet}": a CSV file in UTF-8 with a byte order mark, so it opens correctly in Excel and other spreadsheet apps.`,
+      'Put the column names in the first row. Leave rows for the user to fill in where that is the point of the table.',
+      'Where a total or a sum helps, use spreadsheet formulas such as =SUM(B2:B20) so it updates as the user fills it in.',
+      `Write the column names and any example rows in ${language}.`,
+    ],
+  },
+  {
+    id: 'plan', icon: 7, revise: true, main: 'writeup', growth: { id: 'calendar', at: 1 },
+    steps: ({ language, files }) => [
+      'This is a plan: do not make a web page.',
+      `Write it as "${files.plan}" in ${language}: one line on the goal first, then the plan as a table by day or by week (whichever fits),`,
+      'then a short checklist of what to prepare. Keep each step small enough to do in one sitting, and leave some slack for missed days.',
+      'If something depends on the user (their free time, a budget, a level), say what you assumed in one line at the top.',
+    ],
+  },
+  {
+    id: 'album', icon: 8, revise: true, main: 'index', photos: true, growth: { id: 'album', at: 1 }, guest: 'granny',
+    steps: ({ files }) => [
+      `Make a little photo album as a single self-contained page named "index.html", using the photos in the folder "${files.materials}".`,
+      `Show the photos straight from that folder with relative paths (for example "${files.materials}/photo.jpg"); do not copy, resize or change them.`,
+      'Look at each photo first so the order, the captions and the title fit what is in them. Keep captions short and kind; do not guess names of people.',
+      'CSS and JavaScript inline, no build step; it must work when opened straight from disk. Clicking a photo shows it large.',
+    ],
+  },
+] as const satisfies readonly TemplateSpec[];
+
+export type TemplateId = (typeof TEMPLATES)[number]['id'];
+/** The id of a growth piece some kind of work brings. */
+export type BroughtId = Extract<(typeof TEMPLATES)[number], { growth: object }>['growth']['id'];
+
+export const template = (id: TemplateId): TemplateSpec => TEMPLATES.find((t) => t.id === id)!;

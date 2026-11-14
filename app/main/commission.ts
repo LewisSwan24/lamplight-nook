@@ -2,14 +2,11 @@ import { localDay } from '../shared/localday';
 import { copyFileSync, existsSync, lstatSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { strings } from '../shared/i18n';
+import { MAIN_FILES, template } from '../shared/templates';
 import type { CommissionForm } from '../shared/types';
 import { materialsSteps } from './materials';
 
 const F = strings.ui.files;
-
-/** Text files the edit template accepts, and how big they may be. */
-export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json'];
-export const MAX_EDIT_BYTES = 1024 * 1024;
 
 /** How much of a folder the tidy template lists. */
 const LIST_DEPTH = 2;
@@ -107,70 +104,11 @@ const withNotes = (prompt: string, notes = '') => (notes ? `${prompt}\n\n${notes
 export const originalName = (source: string) => `${F.originalPrefix}${basename(source)}`;
 export const revisedName = (source: string) => `${F.revisedPrefix}${basename(source)}`;
 
-/** What each template asks for on top of the request itself. File names are quoted so they are unambiguous. */
+/** What the form's template asks for on top of the request itself (shared/templates.ts). */
 function templateSteps(form: CommissionForm): string[] {
-  switch (form.template) {
-    case 'page':
-      return [
-        'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
-        'Keep data in localStorage if the page needs to remember anything.',
-      ];
-    case 'research':
-      return [
-        'This is a research commission: do not make a web page.',
-        `Send the researcher subagent to look it up, then write the findings as "${F.summary}" in ${LANGUAGE}:`,
-        'a three-sentence summary first, then the key points as a list, then the sources with their links.',
-        'Say plainly where sources disagree or where you are unsure.',
-      ];
-    case 'edit': {
-      const source = form.source ?? '';
-      return [
-        `The document to work on is "${originalName(source)}" in this folder, a copy of the user's file.`,
-        `Do not change "${originalName(source)}". Write the edited version as "${revisedName(source)}", in the same format.`,
-        'In your final reply, list the main changes in two to five short points.',
-      ];
-    }
-    case 'tidy':
-      return [
-        `"${F.listing}" lists what is in the user's folder "${basename(form.source ?? '')}": relative path, size in bytes, last modified date. Folders end with "/".`,
-        'You cannot see that folder and must not try to look for it. Work only from the list.',
-        `Write a plan for tidying it up as "${F.tidyPlan}" in ${LANGUAGE}: a suggested folder layout, which files go where,`,
-        'and anything that looks like a duplicate, an old version or a leftover worth a look.',
-        'Do not move, rename or delete anything: the user carries out the plan themselves.',
-      ];
-    case 'letter':
-      return [
-        'This is a letter or an email: do not make a web page.',
-        `Write it as "${F.letter}" in ${LANGUAGE}, as plain text the user can copy straight into an email or onto paper.`,
-        'If it is an email, put a short subject line first, marked as the subject. Match the tone to who it is for; keep it warm and to the point.',
-        'Where you need a fact you do not have (a date, a name, an amount), leave a clear blank in square brackets instead of making it up.',
-        'Do not send it anywhere: the user sends it themselves.',
-      ];
-    case 'sheet':
-      return [
-        'This is a table: do not make a web page.',
-        `Write it as "${F.sheet}": a CSV file in UTF-8 with a byte order mark, so it opens correctly in Excel and other spreadsheet apps.`,
-        'Put the column names in the first row. Leave rows for the user to fill in where that is the point of the table.',
-        'Where a total or a sum helps, use spreadsheet formulas such as =SUM(B2:B20) so it updates as the user fills it in.',
-        `Write the column names and any example rows in ${LANGUAGE}.`,
-      ];
-    case 'plan':
-      return [
-        'This is a plan: do not make a web page.',
-        `Write it as "${F.plan}" in ${LANGUAGE}: one line on the goal first, then the plan as a table by day or by week (whichever fits),`,
-        'then a short checklist of what to prepare. Keep each step small enough to do in one sitting, and leave some slack for missed days.',
-        'If something depends on the user (their free time, a budget, a level), say what you assumed in one line at the top.',
-      ];
-    case 'album':
-      return [
-        `Make a little photo album as a single self-contained page named "index.html", using the photos in the folder "${strings.ui.files.materials}".`,
-        `Show the photos straight from that folder with relative paths (for example "${strings.ui.files.materials}/photo.jpg"); do not copy, resize or change them.`,
-        'Look at each photo first so the order, the captions and the title fit what is in them. Keep captions short and kind; do not guess names of people.',
-        'CSS and JavaScript inline, no build step; it must work when opened straight from disk. Clicking a photo shows it large.',
-      ];
-    default:
-      return [];
-  }
+  if (!form.template) return [];
+  const source = form.source ?? '';
+  return template(form.template).steps({ language: LANGUAGE, files: F, sourceName: basename(source), original: originalName(source), revised: revisedName(source) });
 }
 
 /** Prompt for an ordinary commission built from the form. */
@@ -219,7 +157,7 @@ export function revisePrompt(r: Revision, resumed: boolean, notes?: string): str
   if (r.form.audience) before.push(`Who it is for: ${r.form.audience}`);
   if (r.summary) before.push(`What the shop said it made: ${r.summary}`);
   before.push('The files are in this folder: look at them first.');
-  const steps = r.form.template && r.form.template !== 'research' ? templateSteps(r.form) : [];
+  const steps = r.form.template && template(r.form.template).revise ? templateSteps(r.form) : [];
   return withNotes([...before, ...steps, '', ask, '', REVISE_RULES].join('\n'), notes);
 }
 
@@ -277,9 +215,10 @@ export function prepareDemoFolder(workDir: string, checkScript: string) {
  * a copy of the file to edit, or a list of the folder to tidy. The user's own files are never touched.
  */
 export function prepareSource(workDir: string, form: CommissionForm) {
-  if (!form.source) return;
-  if (form.template === 'edit') copyFileSync(form.source, join(workDir, originalName(form.source)));
-  if (form.template === 'tidy') writeFileSync(join(workDir, F.listing), listFolder(form.source), 'utf8');
+  if (!form.source || !form.template) return;
+  const kind = template(form.template).source?.kind;
+  if (kind === 'file') copyFileSync(form.source, join(workDir, originalName(form.source)));
+  if (kind === 'folder') writeFileSync(join(workDir, F.listing), listFolder(form.source), 'utf8');
 }
 
 /** A plain-text list of a folder, two levels deep, hidden files and links left out, capped in length. */
@@ -319,14 +258,10 @@ export function snapshot(dir: string): Set<string> {
 /**
  * What the commission produced, for the result card. The main output is index.html if present,
  * else an edited document, else any page, else a Markdown write-up (a research summary, a tidy plan or a plan),
- * else a table or a letter.
+ * else a table or a letter (MAIN_FILES in shared/templates.ts).
  */
 export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string } {
   const files = [...snapshot(workDir)].filter((f) => !before.has(f));
-  const main = files.find((f) => /index\.html$/i.test(f))
-    ?? files.find((f) => basename(f).startsWith(F.revisedPrefix))
-    ?? files.find((f) => /\.html?$/i.test(f))
-    ?? files.find((f) => /\.md$/i.test(f))
-    ?? files.find((f) => /\.(csv|txt)$/i.test(f));
+  const main = Object.values(MAIN_FILES).reduce<string | undefined>((found, is) => found ?? files.find((f) => is(basename(f), F)), undefined);
   return { files, main };
 }

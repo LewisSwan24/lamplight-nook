@@ -1,31 +1,11 @@
 import Phaser from 'phaser';
-import paintingUrl from '../../../assets/sprites/grow-painting.png';
-import plantUrl from '../../../assets/sprites/grow-plant.png';
-import lightsUrl from '../../../assets/sprites/grow-lights.png';
-import fruitUrl from '../../../assets/sprites/grow-fruit.png';
-import guitarUrl from '../../../assets/sprites/grow-guitar.png';
-import bonsaiUrl from '../../../assets/sprites/grow-bonsai.png';
-import easelUrl from '../../../assets/sprites/grow-easel.png';
-import trophyUrl from '../../../assets/sprites/grow-trophy.png';
-import portraitUrl from '../../../assets/sprites/grow-portrait.png';
-import sunsetUrl from '../../../assets/sprites/grow-sunset.png';
-import starUrl from '../../../assets/sprites/grow-star.png';
-import albumUrl from '../../../assets/sprites/grow-album.png';
-import calendarUrl from '../../../assets/sprites/grow-calendar.png';
-import booksUrl from '../../../assets/sprites/grow-books.png';
-import lettersUrl from '../../../assets/sprites/grow-letters.png';
-import ledgerUrl from '../../../assets/sprites/grow-ledger.png';
-import monitorUrl from '../../../assets/sprites/grow-monitor.png';
 import worksUrl from '../../../assets/sprites/works.png';
 import { overlayDepth } from './pieces';
 import { GROWTH, SHELF_SLOTS, WORK_ICONS, type GrowthId, type WorkIcon } from '../../shared/growth';
 
-const URLS: Record<GrowthId, string> = {
-  painting: paintingUrl, plant: plantUrl, lights: lightsUrl, fruit: fruitUrl,
-  guitar: guitarUrl, bonsai: bonsaiUrl, easel: easelUrl, trophy: trophyUrl,
-  portrait: portraitUrl, sunset: sunsetUrl, star: starUrl,
-  album: albumUrl, calendar: calendarUrl, books: booksUrl, letters: lettersUrl, ledger: ledgerUrl, monitor: monitorUrl,
-};
+/** One overlay per piece, named after it: a kind of work that brings a new piece only adds the picture. */
+const URLS = import.meta.glob<string>('../../../assets/sprites/grow-*.png', { eager: true, import: 'default' });
+const url = (id: GrowthId) => URLS[`../../../assets/sprites/grow-${id}.png`];
 
 /** On the wall behind everyone, like the holiday decorations, and under them. */
 const DEPTH = 1.4;
@@ -35,7 +15,7 @@ const ICON = 8;
 const ICON_GAP = 2;
 
 export function preloadGrowth(load: Phaser.Loader.LoaderPlugin) {
-  for (const g of GROWTH) load.image(`grow-${g.id}`, URLS[g.id]);
+  for (const g of GROWTH) load.image(`grow-${g.id}`, url(g.id));
   load.spritesheet('works', worksUrl, { frameWidth: ICON, frameHeight: ICON });
 }
 
