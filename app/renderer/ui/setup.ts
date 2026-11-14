@@ -474,7 +474,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
         el('h4', {}, S.aboutLabel),
         el('div', {}, fill(S.version, { version })),
         // The Store build is kept up to date by the Store, so there is nothing to switch.
-        env.store ? null : switchRows(api, settings, onChange, [['updates', S.updatesToggle]]),
+        env.store ? null : el('div.updates-row', {}, switchRows(api, settings, onChange, [['updates', S.updatesToggle]]), el('div.hint', {}, S.updatesHint)),
         el('div', {}, S.creditArt, ' ', el('button.link', { onclick: () => api.openLink('limezu') }, S.creditLink)),
         el('div', {}, S.creditFont),
         el('div', {}, S.creditSound),

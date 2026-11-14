@@ -120,9 +120,10 @@ async function refuseRealFolders(app, home) {
  * store (play the Microsoft Store build), claudePath (where Claude Code is; a missing path means not installed;
  * 'sdk' the Agent SDK's own copy, for real runs),
  * args (more Electron switches), displayScale (Windows display scaling, such as 1.25: the window is sized without any
- * emulation, which would reset the device pixel ratio to 1).
+ * emulation, which would reset the device pixel ratio to 1), updateConfig (an app-update.yml naming a local update feed;
+ * the app honours it only unpackaged, and never runs the installer it fetches).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0, noWindow = false } = {}) {
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0, noWindow = false, updateConfig = '' } = {}) {
   const env = {
     PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(home),
     HOME: home.home,
@@ -140,6 +141,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
     ...(key ? { ANTHROPIC_API_KEY: typeof key === 'string' ? key : FAKE_KEY } : {}),
     ...(debug ? { LAMPLIGHT_DEBUG: '1' } : {}),
     ...(store ? { LAMPLIGHT_STORE: '1' } : {}),
+    ...(updateConfig ? { LAMPLIGHT_UPDATE_CONFIG: updateConfig } : {}),
     ...Object.fromEntries(Object.entries(simEnv).filter(([k]) => k.startsWith('SIM_'))),
     ...(process.env.XAUTHORITY ? { XAUTHORITY: process.env.XAUTHORITY } : {}),
   };

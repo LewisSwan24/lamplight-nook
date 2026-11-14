@@ -116,6 +116,9 @@ body.debug #debug { display: block; }
 .update-letter h4 { margin: 10px 0 2px; }
 .update-notes { font-size: 14px; line-height: 1.55; }
 .update-notes .note-item { padding-left: 1em; text-indent: -1em; }
+/* Settings, about: the switch for looking, with what it does lined up under its words. */
+.updates-row { margin: 4px 0 8px; }
+.updates-row .hint { margin-top: 0; padding-left: 24px; }
 .source-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .source-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .source-hint { margin-top: 2px; }

@@ -10,6 +10,8 @@ import { pathToFileURL } from 'node:url';
 import { closeSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { mainCards } from './cards.mjs';
 import { pdfSays, readPdf } from './pdftext.mjs';
@@ -123,6 +125,51 @@ function restoreHome(snap) {
     writeFileSync(p, readFileSync(p, 'utf8').split(inJson(old)).join(inJson(home.home)).split(old).join(home.home));
   }
   return home;
+}
+
+/**
+ * A local update feed, as electron-updater's generic provider reads it: latest.yml naming a newer version with notes in
+ * both languages, and its "installer" (a few made-up bytes, never run). `config` is the app-update.yml pointing at it;
+ * `asked` lists every file the app asked for.
+ */
+async function updateFeed(home, version = '1.1.1') {
+  const dir = join(home.home, 'feed');
+  mkdirSync(dir, { recursive: true });
+  const exe = `Lamplight-Nook-Setup-${version}.exe`;
+  const body = Buffer.from(`not a real installer, ${version}\n`.repeat(4000));
+  writeFileSync(join(dir, exe), body);
+  const sha512 = createHash('sha512').update(body).digest('base64');
+  const notes = [`## 小灯屋 ${version}`, '', `- ${UPDATE_NOTES['zh-CN']}`, '', `## Lamplight Nook ${version}`, '', `- ${UPDATE_NOTES.en}`, ''].join('\n');
+  writeFileSync(join(dir, 'latest.yml'), [
+    `version: ${version}`, 'files:', `  - url: ${exe}`, `    sha512: ${sha512}`, `    size: ${body.length}`,
+    `path: ${exe}`, `sha512: ${sha512}`, "releaseDate: '2026-11-15T00:00:00.000Z'", `releaseNotes: ${JSON.stringify(notes)}`, '',
+  ].join('\n'));
+  const asked = [];
+  const server = createServer((req, res) => {
+    const name = decodeURIComponent(new URL(req.url, 'http://feed').pathname.slice(1));
+    asked.push(name);
+    const file = join(dir, name);
+    if (!name || name.includes('..') || !existsSync(file)) return void res.writeHead(404).end();
+    res.writeHead(200, { 'content-length': statSync(file).size }).end(readFileSync(file));
+  });
+  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  const config = join(dir, 'app-update.yml');
+  writeFileSync(config, `provider: generic\nurl: http://127.0.0.1:${server.address().port}/\nupdaterCacheDirName: lamplight-nook-updater\n`);
+  return { config, exe, asked, close: () => server.close() };
+}
+/** What the new version's notes say, one line in each language. */
+const UPDATE_NOTES = { 'zh-CN': '有新版本时，邮差会送信来。', en: 'The postman brings word of new versions.' };
+
+/** The app's log lines so far (app/main/log.ts), each with its time. */
+const logLines = (home) => {
+  const dir = join(home.data, 'logs');
+  return existsSync(dir) ? readdirSync(dir).flatMap((f) => readFileSync(join(dir, f), 'utf8').split('\n')).filter(Boolean) : [];
+};
+const logged = (home, what) => logLines(home).filter((l) => l.includes(` ${what}`));
+async function waitForLog(home, what, count, timeout = 30_000) {
+  const until = Date.now() + timeout;
+  while (logged(home, what).length < count && Date.now() < until) await sleep(500);
+  return logged(home, what).length >= count;
 }
 
 const check = (cond, why) => { if (!cond) throw new Error(why); };
@@ -2234,6 +2281,105 @@ const SCENARIOS = {
    * legacy-out/) are opened by this version. Everything finished is still on the shelf and in the notebook,
    * the shop counts it, an old commission can be changed again, and 0.7.0's unfinished commission carries on.
    */
+  /**
+   * A new version from a local feed (road-to-1.1.md A1): the postman brings the letter with the version and the notes in
+   * the shop's language, nothing downloads until "update", a commission after that runs to the end untouched, and the
+   * version goes in only as the shop closes, after a copy of the data. Closing with "stop and close" mid-commission keeps
+   * its promise to carry on, and installs after. The Store build and a shop with the switch off never look.
+   * The dev build calls itself 1.0.0 (package.json), so the feed offers 1.1.1; the installer is never run, the log says when.
+   */
+  async update(lang, out) {
+    const U = locale(lang).ui.update;
+    const other = lang === 'en' ? 'zh-CN' : 'en';
+    const install = 'update install {';
+    for (const [why, opts] of [['the Store build', { store: true }], ['checking switched off', { settings: { updates: false } }]]) {
+      const home = freshHome({ 'settings.json': onboarded(lang, opts.settings) });
+      const feed = await updateFeed(home);
+      const shop = await launch({ lang, home, speed: SPEED, store: opts.store, updateConfig: feed.config });
+      try {
+        await sleep(7000);
+        check(feed.asked.length === 0, `${why} looked for a new version: ${feed.asked.join(', ')}`);
+        check(!(await shop.page.locator('.update-letter').count()), `${why} got a letter`);
+      } finally { await shop.close(); feed.close(); }
+    }
+
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const feed = await updateFeed(home);
+    const quit = (shop, answer) => {
+      const exit = new Promise((done) => shop.app.process().once('exit', done));
+      return shop.app.evaluate(({ app, dialog }, answer) => {
+        dialog.showMessageBoxSync = () => answer;
+        setTimeout(() => app.quit(), 100);
+      }, answer).catch(() => {}).then(() => Promise.race([exit, sleep(15_000)]));
+    };
+    const fetched = () => feed.asked.filter((name) => name === feed.exe).length;
+    // Fetched this many times before the shop opened: the letter alone must not fetch it again.
+    const letterThen = async (shop, before, shot) => {
+      const card = await shop.maybe('.update-letter', 60_000);
+      check(card, 'the postman brought no letter');
+      const text = await card.innerText();
+      check(text.includes('1.1.1') && text.includes(UPDATE_NOTES[lang]), `the letter does not say the version and what is new: ${text}`);
+      check(!text.includes(UPDATE_NOTES[other]), 'the letter has the notes in the other language too');
+      if (shot) await shop.shot(join(out, shot));
+      check(fetched() === before, `the new version was downloaded before anyone said so: ${feed.asked.join(', ')}`);
+      await shop.page.locator('.update-letter .actions button.default', { hasText: U.update }).click();
+    };
+
+    let shop = await launch({ lang, home, speed: SPEED, updateConfig: feed.config });
+    try {
+      await letterThen(shop, 0, 'update-letter.png');
+      check(await waitForLog(home, 'update downloaded {', 1), 'the new version was not downloaded after "update"');
+      check(fetched() === 1, 'the installer was not fetched from the feed');
+      await sleep(1500);
+      await shop.shot(join(out, 'update-fetched.png'));
+      // A commission with the new version waiting: it runs to the end, and nothing goes in meanwhile.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      await sleep(2000);
+      check(!logged(home, install).length, 'the update went in while a commission was under way');
+      const done = await shop.workUntilDone();
+      check(done.ok, `the commission did not finish: ${JSON.stringify(done).slice(0, 300)}`);
+      check(!logged(home, install).length, 'the update went in with the shop still open');
+      await shop.page.keyboard.press('Escape');
+      await shop.openSettings('about');
+      const toggle = shop.page.locator('.settings label.toggle', { hasText: locale(lang).ui.setup.updatesToggle });
+      check(await toggle.count() === 1, 'no switch for looking for new versions in settings');
+      check(await toggle.locator('input').isChecked(), 'looking for new versions is not on by default');
+      await shop.shot(join(out, 'update-settings.png'));
+      await shop.page.keyboard.press('Escape');
+      const closing = new Date().toISOString();
+      await quit(shop, 0);
+      const went = logged(home, install);
+      check(went.length === 1 && went[0].slice(0, 24) >= closing, `the update did not go in as the shop closed: ${went.join(' | ')}`);
+      check(logged(home, 'update installer not run (simulated)').length === 1, 'the stand-in for the installer was not reached');
+      const backup = join(home.data, 'backup', readdirSync(join(home.data, 'backup')).find((d) => d.endsWith('-before-1.1.1')) ?? '-');
+      check(existsSync(join(backup, 'memory.json')), 'no copy of the data before the update');
+      check(readFileSync(join(backup, 'memory.json'), 'utf8') === readFileSync(join(home.data, 'memory.json'), 'utf8'), 'the copy is not the data as it was');
+      check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.length === 1, 'the work done before the update is gone');
+    } finally { await shop.close(); }
+
+    // Closing mid-commission with "stop and close": stopped the way it always is, carried on next time, installed after.
+    const before = fetched();
+    shop = await launch({ lang, home, speed: 1500, updateConfig: feed.config });
+    try {
+      await letterThen(shop, before);
+      check(await waitForLog(home, 'update downloaded {', 2), 'the new version was not downloaded the second time');
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      await sleep(2500);
+      check(existsSync(join(home.data, 'pending.json')), 'the commission was not noted as under way');
+      const closing = new Date().toISOString();
+      await quit(shop, 1);
+      const went = logged(home, install);
+      check(went.length === 2 && went[1].slice(0, 24) >= closing, `the update did not go in after "stop and close": ${went.join(' | ')}`);
+      check(existsSync(join(home.data, 'pending.json')), 'the stopped commission will not be offered next time');
+    } finally { await shop.close(); feed.close(); }
+    shop = await launch({ lang, home, speed: SPEED });
+    try {
+      check(await shop.maybe('.pending-card', 10_000), 'the promise to carry on next time was not kept');
+    } finally { await shop.close(); }
+  },
+
   async upgrade(lang, out) {
     for (const version of ['0.5.0', '0.6.1', '0.7.0']) {
       const snap = join(ROOT, 'legacy-out', lang, version);
@@ -2443,6 +2589,7 @@ const SCENARIOS = {
       await has('.legal-links', 'about: legal');
       await has('.about', 'about: credits');
       check((await body()).includes(S.troubleText), 'about: trouble');
+      check((await body()).includes(S.updatesToggle), 'about: looking for new versions');
       await has('.write-us-row', 'about: writing to us');
       await shop.shot(join(out, 'menus-settings-about.png'));
     } finally { await shop.close(); }
@@ -2499,6 +2646,7 @@ const SCENARIOS = {
       { name: 'shelf', sel: '.shelf-card', w: 'form', open: () => window.lamplightDebug.ui.showShelf() },
       { name: 'notebook', sel: '.notebook', w: 'reading', open: () => window.lamplightDebug.ui.showNotebook() },
       { name: 'captions', sel: '.caption-card', w: 'reading', open: () => window.lamplightDebug.ui.showCaptionLog() },
+      { name: 'update-letter', sel: '.update-letter', w: 'reading', open: ({ long }) => window.lamplightDebug.ui.showUpdateLetter({ version: '1.1.1', notes: Array.from({ length: 16 }, (_, i) => (i % 4 ? `\u00B7 ${long.slice(0, 70)}` : long.slice(0, 12))) }) },
       ...['basics', 'furnish', 'sight', 'work', 'about'].map((tab) => ({ name: `settings-${tab}`, sel: '.card.settings', w: 'form', tab })),
       { name: 'legal-terms', sel: '.card.legal', w: 'reading', open: () => window.lamplightDebug.ui.showLegal('terms') },
       { name: 'legal-notices', sel: '.card.legal', w: 'reading', open: () => window.lamplightDebug.ui.showLegal('notices') },
@@ -2759,6 +2907,10 @@ const SCENARIOS = {
       check(!text.includes(shop.L.ui.setup.claudeInstall), 'the store build offers to run the installer');
       check(await shop.page.locator('.notice-card details.claude-manual[open]').count() === 1, 'the steps are not open');
       await shop.shot(join(out, 'store-steps.png'));
+      // The Store keeps it up to date, so there is no switch for looking.
+      await shop.page.keyboard.press('Escape');
+      await shop.openSettings('about');
+      check(!(await shop.page.locator('.settings').innerText()).includes(shop.L.ui.setup.updatesToggle), 'the store build offers to look for new versions');
     } finally { await shop.close(); }
   },
 
