@@ -111,12 +111,20 @@ function templateSteps(form: CommissionForm): string[] {
   return template(form.template).steps({ language: LANGUAGE, files: F, sourceName: basename(source), original: originalName(source), revised: revisedName(source) });
 }
 
+/**
+ * Working in a folder the user lent the shop (road-to-1.1.md A6). Their files can be put back if they don't like the
+ * result, but a deleted or renamed one only after they agreed to it, so the staff are asked to leave that alone.
+ */
+export const LENT_RULE = 'This folder is the user\'s own, with their files in it, not one the shop made for this. Change only what the request needs, '
+  + 'keep the names of their files, and do not delete, move or rename anything of theirs.';
+const lentSteps = (form: CommissionForm) => (form.inPlace ? [LENT_RULE] : []);
+
 /** Prompt for an ordinary commission built from the form. */
 export function commissionPrompt(form: CommissionForm, notes?: string): string {
   const lines = [`The user's request: ${form.want}`];
   if (form.details) lines.push(`Particulars: ${form.details}`);
   if (form.audience) lines.push(`Who it is for: ${form.audience}`);
-  const steps = [...templateSteps(form), ...materialsSteps(form.materials)];
+  const steps = [...lentSteps(form), ...templateSteps(form), ...materialsSteps(form.materials)];
   const body = steps.length ? `${lines.join('\n')}\n\n${steps.join('\n')}` : lines.join('\n');
   return withNotes(`${body}\n\n${HOUSE_RULES}`, notes);
 }
@@ -151,12 +159,12 @@ export type Revision = { ask: string; form: CommissionForm; summary?: string; re
 export function revisePrompt(r: Revision, resumed: boolean, notes?: string): string {
   const ask = `The user has looked at the finished work and asks for a change: "${r.ask}"`;
   const restored = r.restored ? ['Since your last round the user went back to the previous version of the files: work from the folder as it is now.'] : [];
-  if (resumed) return [ask, ...restored, '', REVISE_RULES].join('\n');
+  if (resumed) return [ask, ...restored, ...lentSteps(r.form), '', REVISE_RULES].join('\n');
   const before = [`Earlier the shop made this for the user. Their original request: ${r.form.demo ? strings.demo.brief : r.form.want}`];
   if (r.form.details) before.push(`Particulars: ${r.form.details}`);
   if (r.form.audience) before.push(`Who it is for: ${r.form.audience}`);
   if (r.summary) before.push(`What the shop said it made: ${r.summary}`);
-  before.push('The files are in this folder: look at them first.');
+  before.push('The files are in this folder: look at them first.', ...lentSteps(r.form));
   const steps = r.form.template && template(r.form.template).revise ? templateSteps(r.form) : [];
   return withNotes([...before, ...steps, '', ask, '', REVISE_RULES].join('\n'), notes);
 }
@@ -263,14 +271,34 @@ export function snapshot(dir: string): Set<string> {
 export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string; scripts?: ScriptCheck[] } {
   const all = [...snapshot(workDir)];
   const files = all.filter((f) => !before.has(f));
-  const main = Object.values(MAIN_FILES).reduce<string | undefined>((found, is) => found ?? files.find((f) => is(basename(f), F)), undefined);
   // Every script in the folder, not only new ones: a later round may have rewritten one that was fine.
-  const scripts = all.flatMap((f) => {
+  const scripts = scriptChecks(all);
+  return scripts.length ? { files, main: mainOf(files), scripts } : { files, main: mainOf(files) };
+}
+
+/** The main output among these files, in the order MAIN_FILES gives. */
+const mainOf = (files: string[]) => Object.values(MAIN_FILES).reduce<string | undefined>((found, is) => found ?? files.find((f) => is(basename(f), F)), undefined);
+
+/** Scripts among these files that need a look before a double click. */
+function scriptChecks(files: string[]): ScriptCheck[] {
+  return files.flatMap((f) => {
     const kind = SCRIPT_KINDS[extname(f).toLowerCase()];
     const risks = kind && lstatSync(f).isFile() ? scriptRisks(scriptText(f), kind) : [];
     return risks.length ? [{ file: basename(f), risks }] : [];
   });
-  return scripts.length ? { files, main, scripts } : { files, main };
+}
+
+/**
+ * What a commission in a lent folder produced, for the result card: the files it made, which of the user's it
+ * changed, and the main one. That may be one it changed (the user's own index.html with a new section, say).
+ * Only these are read for scripts: the rest of the folder is the user's business.
+ */
+export function lentOutputs(folder: string, { changed, added }: { changed: string[]; added: string[] }): { files: string[]; main?: string; scripts?: ScriptCheck[]; lent: { changed: string[]; added: string[] } } {
+  const files = added.map((p) => join(folder, p));
+  // A changed file may be one the user let the staff delete.
+  const touched = changed.map((p) => join(folder, p)).filter((f) => existsSync(f));
+  const scripts = scriptChecks([...files, ...touched]);
+  return { files, main: mainOf(files) ?? mainOf(touched), ...(scripts.length ? { scripts } : {}), lent: { changed, added } };
 }
 
 /** Scripts the user could run with a double click, and which language each is read as. */

@@ -1,7 +1,7 @@
 import './locale-boot';
 import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
-import { basename, dirname, extname, isAbsolute, join } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import { fill, locale, shorten, strings } from '../shared/i18n';
@@ -10,9 +10,9 @@ import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, 
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
+import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
 import { sessionExists } from './sessions';
-import { VersionStore } from './versions';
+import { VersionStore, entriesIn, tooBigToLend } from './versions';
 import { migrate } from './migrate';
 import { claudeVersion } from './claude-version';
 import { feedbackMail, mailtoUrl, osName } from './feedback';
@@ -335,6 +335,9 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   // A round of changes picks up the earlier session when Claude Code still has it; otherwise it starts afresh from the folder.
   const pickUp = !again && r?.fromSession && sessionExists(r.fromSession) ? r.fromSession : undefined;
   let finished = false;
+  // In a folder the user lent (A6): what is there as the round starts, so what it made can be told apart afterwards.
+  const lent = Boolean(job.form.inPlace);
+  const atStart = lent ? entriesIn(job.workDir) : [];
   try {
     const before = new Set(job.preexisting);
     const result = await runAgent({
@@ -351,10 +354,13 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       credentials: credentials(),
       maxBudgetUsd: settings.get().budgetUsd || undefined,
       preexisting: before,
+      keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
       abort,
       ...emitters,
       emitAi: (e) => { stuck.see(e); tally.see(e); emitters.emitAi(e); },
     });
+    // Whatever the outcome, even called off: what it made so far must go too if the user undoes it.
+    if (lent) versions.noteAdded(job.workDir, atStart, entriesIn(job.workDir));
     finished = result.ok;
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
@@ -363,17 +369,19 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     if (result.error !== 'cancelled') {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
-      const outputs = collectOutputs(job.workDir, before);
-      const main = outputs.main ? basename(outputs.main) : undefined;
+      const outputs = lent ? lentOutputs(job.workDir, versions.lentChanges(job.workDir)) : collectOutputs(job.workDir, before);
+      // The main file may sit in a subfolder of a lent one.
+      const main = outputs.main ? relative(job.workDir, outputs.main) : undefined;
       const round = tally.result(Date.now(), result.ok, result.error);
+      // A lent folder's own files are counted afresh each round (versions.usersFiles), so they are not written down.
       const entry = r
         ? memory.revise(r.id, r.ask, { ...outcome, main, round }, stuckHere)
-        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: job.preexisting, main, rounds: [round] }, stuckHere);
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round] }, stuckHere);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
         ok: result.ok, error: result.error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
-        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && versions.has(r.id)), grew,
+        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && versions.has(r.id)), canUndo: lent && versions.canUndo(job.workDir), grew,
       });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
@@ -403,6 +411,22 @@ ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<Sou
   return { path, name: basename(path) };
 });
 
+/**
+ * "Work in a folder I already have" (road-to-1.1.md A6): one the user picked here, not one that holds too much, and
+ * small enough that the original of every file in it can be kept. Refused when picked, so nothing starts that
+ * could not be undone.
+ */
+ipcMain.handle(IPC.chooseLent, async (): Promise<SourcePick | null> => {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
+  const path = r.canceled ? undefined : r.filePaths[0];
+  if (!path) return null;
+  if (holdsTooMuch(path)) return { error: 'broad' };
+  if (tooBigToLend(path)) return { error: 'too-big' };
+  picked.add(path);
+  return { path, name: basename(path) };
+});
+
 // Files handed over (dropped on the shop or picked): checked here, and only these may be copied in.
 ipcMain.handle(IPC.handOver, async (_e, paths: string[] | null, already: Material[]): Promise<HandOver> => {
   let list = Array.isArray(paths) ? paths.filter((p) => typeof p === 'string' && isAbsolute(p)) : null;
@@ -420,6 +444,7 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   if (form.source && !picked.has(form.source)) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   if (form.materials?.some((m) => !picked.has(m))) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
+  if (form.inPlace) return startLent(form, form.inPlace);
   if (form.demo) form = { ...form, materials: undefined };
   const workDir = commissionDir(settings.get().workRoot, folderName(commissionTitle(form)));
   mkdirSync(workDir, { recursive: true });
@@ -428,6 +453,18 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
   try { copyMaterials(workDir, form.materials ?? []); } catch (e) { return { ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
   return runJob({ form, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
 });
+
+/**
+ * A commission in a folder the user lent. Nothing is copied in: what they hand over would land among their own files.
+ * A folder grown too big since it was picked is refused here, before anything in it changes.
+ */
+function startLent(form: CommissionForm, folder: string): Promise<RunResult> {
+  if (!picked.has(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'source' });
+  if (tooBigToLend(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'tooBig' });
+  // An earlier work here can't be undone any more: putting its originals back would undo this one as well.
+  for (const c of memory.get().commissions) if (c.form?.inPlace && c.result === 'done' && overlaps(c.folder!, folder)) versions.dropLent(c.folder!);
+  return runJob({ form: { ...form, materials: undefined, source: undefined, demo: false }, workDir: folder, preexisting: versions.usersFiles(folder), startedAt: Date.now() }, false);
+}
 
 /**
  * Another round on finished work, in the same folder: what the shop made so far is kept aside first
@@ -439,10 +476,14 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   const memo = typeof req?.id === 'string' ? memory.find(req.id) : memory.latest();
   if (!memo || !ask) return { ok: false, recordingPath: '', workDir: '', error: 'gone' };
   if (!memo.folder || !existsSync(memo.folder)) return { ok: false, recordingPath: '', workDir: memo.folder ?? '', error: 'gone' };
-  const preexisting = memo.preexisting ?? [];
+  // In a folder the user lent, their files are counted again (they may have added some), and a round that could not
+  // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
+  const lent = Boolean(memo.form?.inPlace);
+  if (lent && tooBigToLend(memo.folder)) return { ok: false, recordingPath: '', workDir: '', error: 'tooBig' };
+  const preexisting = lent ? versions.usersFiles(memo.folder) : memo.preexisting ?? [];
   const restored = restoredSince.has(memo.id);
   restoredSince.delete(memo.id);
-  versions.save(memo.id, memo.folder, new Set(preexisting));
+  if (!lent) versions.save(memo.id, memo.folder, new Set(preexisting));
   const form = memo.form ?? { want: memo.title };
   return runJob({
     form, workDir: memo.folder, preexisting, startedAt: Date.now(),
@@ -483,11 +524,12 @@ ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
   if (!existsSync(main) || !statSync(main).isFile() || !insideForReal(folder, main)) return 'wrong';
   // A same-named main file is common, and the next round would change the other work's without asking.
   const others = memory.get().commissions.filter((c) => c.id !== memo.id && c.folder);
-  if (others.some((c) => insideForReal(c.folder!, folder) || insideForReal(folder, c.folder!))) return 'taken';
+  if (others.some((c) => overlaps(c.folder!, folder))) return 'taken';
   spend.moved(memo.folder, folder);
-  memory.relink(memo.id, folder);
   // What was kept of it came from the old folder; nothing may be put back over the new one.
   versions.drop(memo.id);
+  if (memo.form?.inPlace) versions.dropLent(memo.folder!);
+  memory.relink(memo.id, folder);
   restoredSince.delete(memo.id);
   return 'found';
 });
@@ -499,6 +541,15 @@ ipcMain.handle(IPC.restorePrevious, (_e, id: string): boolean => {
   if (ok) restoredSince.add(id);
   log?.info('restore previous', { ok });
   return ok;
+});
+// Undo a commission done in a folder the user lent: their files back as they were, what the shop made gone.
+ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
+  if (current || typeof id !== 'string') return null;
+  const memo = memory.find(id);
+  if (!memo?.form?.inPlace || !memo.folder) return null;
+  const skipped = versions.undo(memo.folder);
+  log?.info('undo lent work', { done: skipped !== null, skipped: skipped?.length });
+  return skipped;
 });
 ipcMain.handle(IPC.retryCommission, async (): Promise<RunResult | null> => (lastFailed ? runJob(lastFailed, true) : null));
 ipcMain.handle(IPC.cancelCommission, () => current?.abort.abort());
@@ -572,6 +623,8 @@ ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') 
  */
 const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']);
 const openable = (path: string) => OPENABLE.has(extname(path).toLowerCase());
+/** Two folders where one is inside the other (or they are the same), links followed. */
+const overlaps = (a: string, b: string) => insideForReal(a, b) || insideForReal(b, a);
 /** Inside the folder once links are followed, so a link inside cannot point the click somewhere else. */
 function insideForReal(dir: string, path: string): boolean {
   try {

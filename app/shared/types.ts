@@ -109,6 +109,8 @@ export interface LamplightApi {
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
   chooseSource(template: CommissionTemplate): Promise<SourcePick | null>;
+  /** Pick a folder of the user's own for the shop to work in; null if cancelled, an error if it can't be lent. */
+  chooseLent(): Promise<SourcePick | null>;
   /** Files dragged onto the counter or the form (paths from pathsOf), or picked in a dialog when none are given. */
   handOver(paths: string[] | null, already: Material[]): Promise<HandOver>;
   /** The paths of files dropped on the page (the preload reads them; the page can't). */
@@ -155,6 +157,11 @@ export interface LamplightApi {
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
   restorePrevious(id: string): Promise<boolean>;
+  /**
+   * Undo a commission done in the user's own folder: their files back as they were, the new ones gone. Resolves with
+   * what could not be put back because a link leads out of the folder (empty when all went back); null if nothing to undo.
+   */
+  undoWork(id: string): Promise<string[] | null>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -174,8 +181,9 @@ export type CommissionTemplate = TemplateId;
  * The commission form: what the user wants, any particulars, who it's for.
  * source: the file to edit or the folder to tidy, as picked in the main process's dialog.
  * materials: files the user handed over (dropped or picked); copies go into the commission folder.
+ * inPlace: a folder of the user's own to work in instead of a new one (road-to-1.1.md A6), picked in the main process's dialog.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[] };
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string };
 
 /** A file handed over with a commission. */
 export type Material = { path: string; name: string; size: number };
@@ -183,7 +191,7 @@ export type Material = { path: string; name: string; size: number };
 export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
-export type SourcePick = { path: string; name: string } | { error: 'too-big' };
+export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
@@ -201,6 +209,10 @@ export type CommissionResult = {
   round?: number;
   /** The work as it was before this round is kept and can be put back. */
   canRestore?: boolean;
+  /** Done in the user's own folder: which of their files it changed and which it made (paths inside the folder). */
+  lent?: { changed: string[]; added: string[] };
+  /** The whole commission in the user's own folder can be undone. */
+  canUndo?: boolean;
   /** Scripts it made that delete files or skip the preview: worth reading before a double click. */
   scripts?: ScriptCheck[];
 };
@@ -264,6 +276,8 @@ export const IPC = {
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
+  chooseLent: 'commission:choose-lent',
+  undoWork: 'commission:undo',
   handOver: 'commission:hand-over',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',

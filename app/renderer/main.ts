@@ -410,6 +410,7 @@ window.lamplight.onResult((result) => hasFailureCard(result.error) || showResult
   open: (path, how) => void window.lamplight.openOutput(path, how),
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
+  undo: (id) => window.lamplight.undoWork(id),
   firstWork: worksKept === 0,
   report: () => void window.lamplight.writeToUs({ about: 'content', title: lastWant ?? undefined }),
 }));

@@ -115,6 +115,13 @@ body.debug #debug { display: block; }
 .source-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .source-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .source-hint { margin-top: 2px; }
+/* Working in the user's own folder: a quiet link on the slip, and the slip turns into the question once. */
+.commission > [hidden], .lent-row[hidden], .material-row[hidden] { display: none; }
+.lent-row { margin: 6px 0 2px; }
+.lent-line { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.lent-hint:empty { display: none; }
+.lent-confirm p { margin: 8px 0; line-height: 1.6; }
+.result-lent .hint { overflow-wrap: anywhere; }
 .hint.warn { color: #a5452c; opacity: 1; }
 
 /* Decision dialog: background dimmed 40% */

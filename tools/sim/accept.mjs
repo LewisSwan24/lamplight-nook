@@ -7,7 +7,7 @@
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
 import { pathToFileURL } from 'node:url';
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
+import { closeSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -1812,6 +1812,105 @@ const SCENARIOS = {
       await sleep(800);
       check(readFileSync(join(dir, 'index.html'), 'utf8') === after, 'going forward again lost the change');
     } finally { await shop.close(); }
+  },
+
+  /**
+   * Work in a folder the user already has (road-to-1.1.md A6). Their home folder is refused as too much, and a folder
+   * over the cap is refused when picked and, if it grows past it after that, before the work starts. In a small site the
+   * staff change two of the user's files without a card each time and add one; undo puts the two back byte for byte,
+   * takes the new one away, and leaves the user's other files alone.
+   */
+  async inplace(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const site = join(home.home, 'site');
+    mkdirSync(join(site, 'img'), { recursive: true });
+    writeFileSync(join(site, 'index.html'), '<!doctype html>\r\n<html><body><main><h1>Our street fair</h1></main></body></html>\r\n');
+    writeFileSync(join(site, 'style.css'), 'body { background: #fffaf0; }\n');
+    writeFileSync(join(site, 'notes.txt'), 'Not part of the site.\n');
+    cpSync(join(ROOT, 'assets', 'ui', 'icon.png'), join(site, 'img', 'logo.png'));
+    const files = ['index.html', 'style.css', 'notes.txt', 'img/logo.png'];
+    const before = Object.fromEntries(files.map((f) => [f, readFileSync(join(site, f))]));
+    /** A folder with one file bigger than the cap (100 MB). */
+    const huge = (dir) => {
+      mkdirSync(dir, { recursive: true });
+      const fd = openSync(join(dir, 'video.bin'), 'w');
+      ftruncateSync(fd, 101 * 1024 * 1024);
+      closeSync(fd);
+    };
+    const big = join(home.home, 'big');
+    huge(big);
+    const L = shop => shop.L.ui.lent;
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      const want = lang === 'en' ? 'Add a contact page to this little site, and tidy up the home page and the styles.' : '帮我给这个小网站加一页联系方式，首页和样式也顺一顺。';
+      await shop.order({ template: 'page', want });
+      const hint = shop.page.locator('form.commission .lent-hint');
+      for (const [folder, says, name] of [[home.home, L(shop).broad, 'broad'], [big, L(shop).tooBig, 'too-big']]) {
+        await shop.pickFiles([folder]);
+        await shop.page.locator('form.commission .lent-pick').click();
+        await sleep(400);
+        check((await hint.textContent()) === says, `${name} folder: the slip says "${await hint.textContent()}"`);
+        await shop.shot(join(out, `inplace-${name}.png`));
+      }
+      await shop.pickFiles([site]);
+      await shop.page.locator('form.commission .lent-pick').click();
+      await sleep(400);
+      check((await shop.page.locator('form.commission .lent-name').textContent()).includes('site'), 'the slip does not name the folder');
+      check(await shop.page.locator('form.commission .material-row').isHidden(), 'handing over files is still offered for a lent folder');
+      await shop.shot(join(out, 'inplace-form.png'));
+      await shop.submit();
+      const agree = shop.page.locator('form.commission .lent-confirm');
+      check(await agree.isVisible(), 'no question before working in the folder');
+      check((await agree.textContent()).includes(L(shop).confirmUndo), 'the question does not promise the undo');
+      await shop.shot(join(out, 'inplace-confirm.png'));
+      await agree.locator('button.default').click();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      check(!r.seen.some((c) => c.serious), `a card asked about changing the user's files: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const changed = files.filter((f) => !readFileSync(join(site, f)).equals(before[f]));
+      check(changed.join() === 'index.html,style.css', `changed ${changed.join(', ') || 'nothing'}`);
+      check(existsSync(join(site, 'pages', 'contact.html')), 'the new page is missing');
+      const listed = await shop.page.locator('.result-card .result-lent').innerText();
+      check(['index.html', 'style.css', 'pages/contact.html'].every((f) => listed.includes(f)), `the result card lists: ${listed}`);
+      check(!listed.includes('notes.txt'), 'the result card lists a file that was not touched');
+      await shop.shot(join(out, 'inplace-result.png'));
+      await shop.page.locator('.result-undo').click();
+      await sleep(300);
+      check(files.every((f) => !readFileSync(join(site, f)).equals(before[f]) === (f === 'index.html' || f === 'style.css')), 'the first click on undo already changed something');
+      await shop.shot(join(out, 'inplace-undo-ask.png'));
+      await shop.page.locator('.result-undo').click();
+      await sleep(800);
+      const wrong = files.filter((f) => !readFileSync(join(site, f)).equals(before[f]));
+      check(!wrong.length, `not put back byte for byte: ${wrong.join(', ')}`);
+      check(!existsSync(join(site, 'pages')), 'the new page (or its folder) is still there');
+      check((await shop.page.locator('.result-card .result-restored').textContent()) === L(shop).undone, 'the card does not say it was undone');
+      // The page it would open was the new one, now gone.
+      check(!(await shop.page.locator('.result-card .actions button', { hasText: shop.L.ui.openInBrowser }).count()), 'the card still offers to open the page that was taken away');
+      await shop.shot(join(out, 'inplace-undone.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+
+      // Picked while small, grown past the cap since: refused before anything in it changes.
+      const grows = join(home.home, 'grows');
+      mkdirSync(grows);
+      writeFileSync(join(grows, 'index.html'), '<p>small</p>');
+      await shop.order({ template: 'page', want });
+      await shop.pickFiles([grows]);
+      await shop.page.locator('form.commission .lent-pick').click();
+      await sleep(400);
+      huge(grows);
+      await shop.submit();
+      await shop.page.locator('form.commission .lent-confirm button.default').click();
+      const title = shop.L.ui.run.tooBigTitle;
+      await shop.page.waitForFunction((title) => [...document.querySelectorAll('#ui .card .card-title')].some((e) => e.textContent === title), title, { timeout: 20_000 });
+      check(readFileSync(join(grows, 'index.html'), 'utf8') === '<p>small</p>', 'the grown folder was changed');
+      await shop.shot(join(out, 'inplace-grown.png'));
+    } finally {
+      await shop.close();
+      // A hundred megabytes each: not left behind in the temporary folder.
+      rmSync(big, { recursive: true, force: true });
+      rmSync(join(home.home, 'grows'), { recursive: true, force: true });
+    }
   },
 
   /** A meeting during the run: the note reaches the work. */

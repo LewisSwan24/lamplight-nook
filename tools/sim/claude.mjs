@@ -17,7 +17,7 @@
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pickPlay } from './plays.mjs';
 
 const env = process.env;
@@ -199,7 +199,9 @@ function makeStage(state) {
     return { ...res, input: finalInput };
   };
 
+  // Like the real Write tool, a file in a folder that is not there yet gets its folder.
   const write = (path, content, opts) => tool('Write', { file_path: join(cwd, path), content }, { ...opts, effect: () => {
+    mkdirSync(dirname(join(cwd, path)), { recursive: true });
     writeFileSync(join(cwd, path), content);
     return { text: `File created successfully at: ${join(cwd, path)}` };
   } });
