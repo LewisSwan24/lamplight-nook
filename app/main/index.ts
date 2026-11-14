@@ -4,6 +4,7 @@ import { arch, homedir, release } from 'node:os';
 import { basename, dirname, extname, isAbsolute, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
+import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
 import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
@@ -13,7 +14,8 @@ import { installCommand, locateClaude, runInstaller } from './claude-locator';
 import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore, entriesIn, tooBigToLend } from './versions';
-import { migrate } from './migrate';
+import { backUp, migrate } from './migrate';
+import { Updates } from './updates';
 import { claudeVersion } from './claude-version';
 import { feedbackMail, mailtoUrl, osName } from './feedback';
 import { MemoryStore, StuckTracker } from './memory';
@@ -263,7 +265,11 @@ ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
   // Where commissions are written is chosen in the folder dialog (chooseWorkRoot), never sent from the page.
   const { workRoot: _ignored, ...rest } = patch && typeof patch === 'object' ? patch : ({} as Partial<Settings>);
-  return settings.update(rest);
+  const looked = settings.get().updates;
+  const saved = settings.update(rest);
+  // Switched back on: look now rather than in up to six hours.
+  if (saved.updates && !looked) void updates?.check();
+  return saved;
 });
 ipcMain.handle(IPC.chooseWorkRoot, async (): Promise<Settings | null> => {
   if (!win) return null;
@@ -592,6 +598,45 @@ function saved(file: string): ExportResult {
   shell.showItemInFolder(file);
   return 'saved';
 }
+/**
+ * New versions from GitHub Releases (road-to-1.1.md A1, updates.ts). A development build has nothing to update unless a
+ * simulated run points it at a local feed: LAMPLIGHT_UPDATE_CONFIG names an app-update.yml (a generic provider and the
+ * feed's address), honoured only unpackaged. There the installer is never started; the log says when it would have been.
+ */
+let updates: Updates | undefined;
+function startUpdates() {
+  const simFeed = app.isPackaged ? undefined : process.env.LAMPLIGHT_UPDATE_CONFIG;
+  if (!app.isPackaged && !simFeed) return;
+  const { autoUpdater } = electronUpdater;
+  // Its own logging goes to the console; the shop writes the one line that matters (updates.ts).
+  autoUpdater.logger = null;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  if (simFeed) {
+    autoUpdater.updateConfigPath = simFeed;
+    autoUpdater.forceDevUpdateConfig = true;
+  }
+  updates = new Updates({
+    store: storeBuild(),
+    wanted: () => settings.get().updates,
+    updater: {
+      check: async () => {
+        const r = await autoUpdater.checkForUpdates();
+        return r?.isUpdateAvailable ? { version: r.updateInfo.version, notes: r.updateInfo.releaseNotes } : null;
+      },
+      download: async () => { await autoUpdater.downloadUpdate(); },
+      // Quietly, and the shop does not open again afterwards: the user has just closed it.
+      install: () => (simFeed ? log?.info('update installer not run (simulated)') : (autoUpdater as BaseUpdater).install(true, false)),
+    },
+    backUp: (version) => backUp(app.getPath('userData'), `before-${version}`),
+    tell: (offer) => send(IPC.updateOffer, offer),
+    log: log!,
+    lang: locale(),
+  });
+  // The first letter needs a page to arrive at.
+  win?.webContents.once('did-finish-load', () => updates?.start());
+}
+ipcMain.handle(IPC.downloadUpdate, (): Promise<boolean> => updates?.download() ?? Promise.resolve(false));
 ipcMain.handle(IPC.retryCommission, async (): Promise<RunResult | null> => (lastFailed ? runJob(lastFailed, true) : null));
 ipcMain.handle(IPC.cancelCommission, () => current?.abort.abort());
 // A commission left over from a crash or an unexpected quit: offered once at startup.
@@ -714,6 +759,7 @@ app.whenReady().then(() => {
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   leftover = pending.load();
   createWindow();
+  startUpdates();
   tray.create();
   win?.on('focus', () => tray.calm());
 }).catch((err: unknown) => {
@@ -733,5 +779,7 @@ app.on('will-quit', () => {
   mini.destroy();
   broker.cancelAll();
   current?.abort.abort();
+  // Closing for real, with any commission let finish or stopped just above: a new version fetched earlier goes in now.
+  updates?.quitting();
 });
 app.on('window-all-closed', () => app.quit());

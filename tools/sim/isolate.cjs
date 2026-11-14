@@ -65,8 +65,22 @@ if (process.env.SIM_OFFSCREEN) {
   const names = Object.keys(globalThis.__simElectron);
   const SHIM = 'sim-electron:shim';
   const source = `const e = globalThis.__simElectron;\n${names.map((n) => `export const ${n} = e.${n};`).join('\n')}\nexport default e;\n`;
+  // A CommonJS package the app imports (electron-updater) asks for Electron by a file address that does not exist: the
+  // name made into a path beside the app. It gets the same Electron, as CommonJS.
+  const CJS_SHIM = 'sim-electron:cjs';
+  const { existsSync } = require('node:fs');
+  const { fileURLToPath } = require('node:url');
+  const required = (specifier) => specifier.startsWith('file:') && specifier.endsWith('/electron') && !existsSync(fileURLToPath(specifier));
   registerHooks({
-    resolve: (specifier, context, next) => (specifier === 'electron' ? { url: SHIM, format: 'module', shortCircuit: true } : next(specifier, context)),
-    load: (url, context, next) => (url === SHIM ? { format: 'module', source, shortCircuit: true } : next(url, context)),
+    resolve: (specifier, context, next) => {
+      if (specifier === 'electron') return { url: SHIM, format: 'module', shortCircuit: true };
+      if (required(specifier)) return { url: CJS_SHIM, format: 'commonjs', shortCircuit: true };
+      return next(specifier, context);
+    },
+    load: (url, context, next) => {
+      if (url === SHIM) return { format: 'module', source, shortCircuit: true };
+      if (url === CJS_SHIM) return { format: 'commonjs', source: 'module.exports = globalThis.__simElectron;\n', shortCircuit: true };
+      return next(url, context);
+    },
   });
 }

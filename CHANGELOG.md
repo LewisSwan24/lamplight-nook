@@ -2,6 +2,10 @@
 
 ## Unreleased (1.1)
 
+- **The shop knows when there's a new version.** It looks when it opens and every six hours after, and the postman
+  brings a letter with the version number and what's new. Nothing downloads until you press Update, and the new version
+  goes in when you close the shop, never in the middle of a commission, after a copy of your data is put aside. A switch
+  in settings stops the looking; the Store version is kept up to date by the Store.
 - **The shop can work in a folder you already have.** Pick it on the slip and agree once; the staff then change your
   files without asking about each one, after keeping a copy of each as it was. "Undo this commission" on the result card
   puts your files back byte for byte and takes away what was new. Deleting, running commands, and changing settings

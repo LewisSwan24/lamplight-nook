@@ -417,6 +417,8 @@
       "noticesMissing": "The license list is missing. Reinstalling Lamplight Nook should bring it back.",
       "aboutLabel": "About",
       "version": "Lamplight Nook {version}",
+      "updatesToggle": "Have Pip bring word of new versions",
+      "updatesHint": "It only looks. Nothing downloads until you press Update.",
       "creditArt": "Pixel art for the shop and characters: LimeZu, Modern Interiors, Modern Exteriors and Modern Farm",
       "creditLink": "limezu.itch.io",
       "creditFont": "Handwriting font: LXGW WenKai (SIL Open Font License 1.1)",
@@ -811,6 +813,18 @@
       "done": "All done. Click to have a look.",
       "failed": "Didn't work out. Click to go back in.",
       "open": "Back to the shop"
+    },
+    "update": {
+      "postman": "Letter for the Nook. From the makers.",
+      "thanks": "Thanks, Pip.",
+      "title": "Lamplight Nook {version} is out",
+      "intro": "Pip brought a letter: there's a new version of Lamplight Nook. Press Update to fetch it now. It goes in when you close the shop, so nothing you've asked for gets cut short, and your data is backed up first.",
+      "notesLabel": "What's new",
+      "update": "Update",
+      "later": "Not now",
+      "fetching": "Right, I'll go and fetch it.",
+      "ready": "Got the new version. It goes in when you close up.",
+      "failed": "Couldn't fetch it. Pip will bring word again."
     },
     "scene": {
       "label": "Where the shop is",
