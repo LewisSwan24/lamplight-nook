@@ -1,5 +1,6 @@
 import { parse } from 'yaml';
 import { pattern, strings } from '../../shared/i18n';
+import { AGENT_ACTOR } from '../../shared/staff';
 import type { ActorId, AiEvent, AiEventKind, Bubble, CharacterCommand } from '../../shared/types';
 import { PRIORITY } from './director';
 import { type ActorState, StateMachine } from './state-machine';
@@ -30,8 +31,6 @@ export type AnimTable = Record<'staff' | 'cat', { available: string[]; fallback:
 export const parseRules = (text: string) => parse(text) as Rule[];
 export const parseAnimTable = (text: string) => parse(text) as AnimTable;
 
-/** Who performs an agent's events. Unrecognized subagents are played by Xiaoju. */
-const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', researcher: 'xiaoju', designer: 'qingdai', reviewer: 'laoshi', unknown: 'xiaoju' };
 
 const REVIEW_PASSED = pattern('reviewPassed');
 const REVIEW_FAILED = pattern('reviewFailed');

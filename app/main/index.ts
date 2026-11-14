@@ -24,6 +24,7 @@ import { Log } from './log';
 import { SettingsStore, defaultWorkRoot } from './settings';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
+import { RoundTally } from './tally';
 import { zip } from './zip';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
@@ -317,6 +318,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   mini.feed({ type: 'run', running: true });
   pending.save(job);
   const started = Date.now();
+  const tally = new RoundTally(started);
   log?.info('run start', { demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId) });
   // What goes in Adeng's notebook: the user's answers to questions, and where the work got stuck.
   const title = commissionTitle(job.form);
@@ -350,7 +352,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       preexisting: before,
       abort,
       ...emitters,
-      emitAi: (e) => { stuck.see(e); emitters.emitAi(e); },
+      emitAi: (e) => { stuck.see(e); tally.see(e); emitters.emitAi(e); },
     });
     finished = result.ok;
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
@@ -362,9 +364,10 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
       const outputs = collectOutputs(job.workDir, before);
       const main = outputs.main ? basename(outputs.main) : undefined;
+      const round = tally.result(Date.now(), result.ok, result.error);
       const entry = r
-        ? memory.revise(r.id, r.ask, { ...outcome, main }, stuckHere)
-        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: job.preexisting, main }, stuckHere);
+        ? memory.revise(r.id, r.ask, { ...outcome, main, round }, stuckHere)
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: job.preexisting, main, rounds: [round] }, stuckHere);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
@@ -542,6 +545,7 @@ ipcMain.handle(IPC.clearMemory, (): boolean => {
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
   return true;
 });
+ipcMain.handle(IPC.clearStats, () => memory.clearStats());
 // Only folders the notebook itself recorded, looked up by id.
 ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
   const folder = memory.get().commissions.find((c) => c.id === id)?.folder;

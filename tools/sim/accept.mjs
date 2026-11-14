@@ -92,7 +92,9 @@ function restoreHome(snap) {
   const old = readFileSync(join(snap, 'home.txt'), 'utf8').trim();
   for (const f of readdirSync(home.data).filter((n) => n.endsWith('.json'))) {
     const p = join(home.data, f);
-    writeFileSync(p, readFileSync(p, 'utf8').split(old).join(home.home));
+    // JSON keeps a Windows path with its backslashes doubled, so the old home is looked for in that form too.
+    const inJson = (path) => JSON.stringify(path).slice(1, -1);
+    writeFileSync(p, readFileSync(p, 'utf8').split(inJson(old)).join(inJson(home.home)).split(old).join(home.home));
   }
   return home;
 }
@@ -325,6 +327,42 @@ const SCENARIOS = {
       check(said.includes('$1') && !said.includes('$3'), `the budget it names is not the one in force: ${said}`);
       check(said.includes(N.troubleKept), 'the file put aside is not mentioned');
       await shop.shot(join(out, 'badsettings.png'));
+    } finally {
+      await shop.close();
+    }
+  },
+
+  /** How each round went, kept on this computer: a real round is written down, the ledger page sums the month, and clearing it keeps the works. */
+  async stats(lang, out) {
+    const N = locale(lang).ui.notebook;
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const round = (extra) => ({ date: day, seconds: 60, helpers: {}, waits: 0, waitedSeconds: 0, ...extra });
+    const earlier = { id: `c${new Date(`${day}T12:00:00`).getTime()}`, title: 'Earlier', date: day, result: 'done', choices: {}, folder: 'C:/nowhere', rounds: [round({ failure: 'net' }), round({ waits: 2, waitedSeconds: 30 })] };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [earlier], stuckNotes: [], greeted: earlier.id }) });
+    const shop = await launch({ lang, home, speed: SPEED, debug: true });
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions;
+    try {
+      const r = await runOne(shop, { template: 'demo' }, { answers: demoAnswers });
+      check(r.ok, `did not finish: ${JSON.stringify(r)}`);
+      const kept = saved().at(-1).rounds;
+      check(kept?.length === 1 && kept[0].seconds > 0 && !kept[0].failure, `the round was not written down: ${JSON.stringify(kept)}`);
+      check(kept[0].helpers.researcher === 1 && kept[0].helpers.reviewer === 1, `the errands were not counted: ${JSON.stringify(kept[0].helpers)}`);
+      await shop.page.keyboard.press('Escape');
+      await shop.page.evaluate(() => window.lamplightDebug.ui.showNotebook());
+      await shop.page.waitForSelector('.notebook-ledger');
+      const page = await shop.page.locator('.notebook-ledger').innerText();
+      const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k]);
+      check(page.includes(fill(N.ledgerKind.net, { n: '1' })), `the failure is not on the page: ${page}`);
+      check(page.includes(fill(N.ledgerSince, { date: day })), `it does not say since when: ${page}`);
+      check(page.includes(fill(N.ledgerWaits, { n: '2', time: fill(N.ledgerSeconds, { s: '30' }) })), `the waiting is not summed: ${page}`);
+      check(/\b2\b/.test(page) && /\b3\b/.test(page), `two works in three rounds are not counted: ${page}`);
+      await shop.shot(join(out, 'stats.png'));
+      await shop.page.locator('.notebook-ledger-clear').click();
+      await sleep(500);
+      check((await shop.page.locator('.notebook-ledger').innerText()).includes(N.ledgerCleared), 'clearing says nothing');
+      const after = saved();
+      check(after.length === 2 && after.every((c) => !c.rounds), `clearing lost works or kept rounds: ${JSON.stringify(after.map((c) => [c.title, c.rounds]))}`);
     } finally {
       await shop.close();
     }
@@ -1965,7 +2003,7 @@ const SCENARIOS = {
         await shop.page.waitForSelector('form.revise textarea');
         await shop.page.fill('form.revise textarea', W[lang].ask);
         await shop.page.locator('form.revise button.default').click();
-        check((await shop.workUntilDone()).ok, `${version}: changing old work did not finish`);
+        { const done = await shop.workUntilDone(); check(done.ok, `${version}: changing old work did not finish: ${JSON.stringify(done).slice(0, 300)}`); }
         const again = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.find((c) => c.id === oldest.id);
         check(again?.asks?.length === 1, `${version}: the round on old work was not noted`);
         check(readdirSync(oldest.folder).length > 0, `${version}: old folder is empty`);

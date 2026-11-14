@@ -133,12 +133,12 @@ export interface LamplightApi {
   addNote(text: string): Promise<boolean>;
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
-  /** The notebook could not be read when the shop opened: whether the last copy took its place. */
   /** What could not be read when the shop opened. Asking takes it: it is said once. */
   dataDamage(): Promise<DataDamage>;
-  /** Forget everything in the notebook. */
   /** False, with nothing changed, while a commission runs. */
   clearMemory(): Promise<boolean>;
+  /** Forget how the rounds went (the ledger page), keeping every work. */
+  clearStats(): Promise<void>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
   openCommissionFolder(id: string): Promise<boolean>;
   /** The shop's days and the works shelf. */
@@ -275,6 +275,7 @@ export const IPC = {
   dataDamage: 'data:damage',
   addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
+  clearStats: 'memory:clear-stats',
   openCommissionFolder: 'memory:open-folder',
   reviseCommission: 'commission:revise',
   shopState: 'shop:state',
@@ -365,6 +366,22 @@ export type CommissionMemo = {
   asks?: { ask: string; date: string }[];
   /** The main thing made, by name inside the folder (opened from the works shelf). */
   main?: string;
+  /** How each round went, oldest first; kept on this computer only. Absent on works from before 1.1. */
+  rounds?: RoundStat[];
+};
+
+/** One round of a commission, for the notebook's ledger page. Never leaves the computer. */
+export type RoundStat = {
+  /** YYYY-MM-DD */
+  date: string;
+  seconds: number;
+  /** Why the round did not finish; absent when it did. */
+  failure?: string;
+  /** Errands sent out, by helper. */
+  helpers: Partial<Record<AiEvent['agent'], number>>;
+  /** Errands that waited for a busy helper, and how long they waited in all. */
+  waits: number;
+  waitedSeconds: number;
 };
 
 /** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
