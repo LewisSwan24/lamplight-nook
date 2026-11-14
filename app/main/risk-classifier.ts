@@ -4,14 +4,22 @@ import { fill, strings } from '../shared/i18n';
 import type { Risk } from '../shared/types';
 import { isInside } from './paths';
 
-/** Risk level plus a plain-language reason shown on the confirmation card. */
-export type RiskVerdict = { risk: Risk; reason: string };
+/**
+ * Risk level plus a plain-language reason shown on the confirmation card. `keep`: one of the user's files in a lent
+ * folder, whose original must be kept before the step goes ahead.
+ */
+export type RiskVerdict = { risk: Risk; reason: string; keep?: string };
 
 export type RiskContext = {
   workDir: string;
   /** Files (absolute paths) that existed before the commission started. Overwriting or deleting them is serious. */
   preexisting?: Set<string>;
   home?: string;
+  /**
+   * Working in a folder the user lent the shop (road-to-1.1.md A6), which they agreed to once: the file tools may change
+   * their files without asking each time, and this keeps each original first.
+   */
+  keepOriginal?: (file: string) => void;
 };
 
 const R = strings.risk;
@@ -303,7 +311,11 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
   if (WRITE_TOOLS.has(tool)) {
     const p = String(input.file_path ?? input.notebook_path ?? '');
     if (!p) return { risk: 'serious', reason: R.noTarget };
-    return pathVerdict(ctx, p, true) || { risk: 'safe', reason: R.write };
+    const full = abs(ctx.workDir, p);
+    const verdict = pathVerdict(ctx, p, true);
+    // Only the file tools: a command writing over the same file still asks, as nothing keeps the original for it.
+    if (ctx.keepOriginal && verdict?.risk === 'serious' && ctx.preexisting?.has(full)) return { risk: 'safe', reason: R.write, keep: full };
+    return verdict || { risk: 'safe', reason: R.write };
   }
 
   if (PLAN_TOOLS.has(tool)) return { risk: 'safe', reason: R.plan };
