@@ -30,6 +30,7 @@ import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
 import { birthdayToday } from '../shared/days';
+import { localDay } from '../shared/localday';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
@@ -330,19 +331,28 @@ function noticeBeds(news: ReturnType<typeof bedNews>) {
   if (news) sayOnce(`grow_${news}`, BEDS_LINE_DELAY_MS);
 }
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
-/** Once a year, whenever the shop is opened that day. */
+/** Once a year, whenever the shop is opened that day or is still open when the day comes. */
+let birthdayWaiting = '';
 async function noticeBirthday() {
   const { works, done, told } = await window.lamplight.shopState();
   const age = birthdayToday(works, done);
-  if (!age || told.includes(`birthday_${age}`)) return;
-  void window.lamplight.markTold(`birthday_${age}`);
-  sayOnce('grow_birthday', BEDS_LINE_DELAY_MS);
+  const key = `birthday_${age}`;
+  if (!age || told.includes(key) || birthdayWaiting === key) return;
+  birthdayWaiting = key;
+  // Counted as said only once it has been: a shop closed before then says it the next time.
+  sayOnce('grow_birthday', BEDS_LINE_DELAY_MS, () => void window.lamplight.markTold(key));
 }
+let today = localDay(new Date());
+setInterval(() => {
+  if (localDay(new Date()) === today) return;
+  today = localDay(new Date());
+  void noticeBirthday();
+}, 60_000);
 /** The lines still to be said, one at a time; forgetting everything takes them back. */
 let onceLines: Promise<unknown> = Promise.resolve();
 let forgotten = 0;
 /** Said only once in the life of the shop, so it waits until someone is in the room to hear it, nothing lies over the shop, and the speaker is there and free. */
-function sayOnce(line: string, delay: number) {
+function sayOnce(line: string, delay: number, said?: () => void) {
   const due = Date.now() + delay;
   const asked = forgotten;
   onceLines = onceLines.then(async () => {
@@ -350,7 +360,10 @@ function sayOnce(line: string, delay: number) {
     while (asked === forgotten) {
       const turns = pickLine(ruleBook().lines.grow ?? [], [line], {}) ?? [];
       const unheard = document.hidden || scene.view !== 'shop' || document.querySelector('#ui > .card, #ui > form.card, .backdrop, .legal-backdrop');
-      if (!unheard && turns.every((t) => scene.anchorOf(t.speaker) !== null && !scene.busyTalking(t.speaker))) return stage.talk(turns);
+      if (!unheard && turns.every((t) => scene.anchorOf(t.speaker) !== null && !scene.busyTalking(t.speaker))) {
+        said?.();
+        return stage.talk(turns);
+      }
       await wait(ONCE_RETRY_MS);
     }
   });
@@ -584,7 +597,8 @@ async function openShop() {
   // Said once, when nothing else is on the table: a card that came up mid-commission would be pushed away unread.
   while (running || document.querySelector('#ui > .card, #ui > form.card, .backdrop')) await wait(ONCE_RETRY_MS);
   const damage = await api.dataDamage();
-  if (damage.notebook || damage.settings || damage.ledger) showDataTrouble(damage, settings.budgetUsd);
+  // Read again: the limit may have changed while the card waited.
+  if (damage.notebook || damage.settings || damage.ledger) showDataTrouble(damage, (await api.getSettings()).budgetUsd);
 }
 void openShop();
 
