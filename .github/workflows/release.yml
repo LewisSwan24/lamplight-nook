@@ -23,6 +23,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # Also writes latest.yml and the installer's blockmap, which the app's updater reads (package.json build.publish).
       - run: npm run dist
       # The Store test package (unsigned, test publisher) from the same unpacked app.
       - run: npm run msix
@@ -31,6 +32,8 @@ jobs:
           name: windows-installer
           path: |
             dist/*.exe
+            dist/*.exe.blockmap
+            dist/latest.yml
             dist/*.msix
       - name: Publish release
         shell: bash
@@ -39,4 +42,4 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then tag="$GITHUB_REF_NAME"; else tag="v$(node -p "require('./package.json').version")"; fi
           if [[ -f "release-notes/$tag.md" ]]; then notes=(--notes-file "release-notes/$tag.md"); else notes=(--generate-notes); fi
-          gh release create "$tag" dist/*.exe dist/*.msix --target "$GITHUB_SHA" --title "Lamplight Nook $tag" "${notes[@]}"
+          gh release create "$tag" dist/*.exe dist/*.exe.blockmap dist/latest.yml dist/*.msix --target "$GITHUB_SHA" --title "Lamplight Nook $tag" "${notes[@]}"

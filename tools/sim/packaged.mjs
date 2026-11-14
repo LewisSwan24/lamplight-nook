@@ -12,7 +12,7 @@
 // only isolate.cjs can open them off-screen, so they are moved there as soon as they can be reached.
 
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
@@ -140,6 +140,10 @@ for (const [name, state] of Object.entries(FUSES)) {
   check(new RegExp(`${name}[^\\n]*${state}`).test(fuses.replace(/\[[0-9;]*m/g, '')), `fuse ${name} is ${state}`);
 }
 
+// Where the updater looks for new versions (package.json build.publish, app/main/updates.ts).
+const feed = existsSync(join(appDir, 'resources', 'app-update.yml')) ? readFileSync(join(appDir, 'resources', 'app-update.yml'), 'utf8') : '';
+check(/provider: github/.test(feed) && /owner: LewisSwan24/.test(feed) && /repo: lamplight-nook/.test(feed), 'the updater knows where the releases are (app-update.yml)');
+
 const realData = join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), 'Lamplight Nook');
 const before = fingerprint(realData);
 
@@ -188,7 +192,11 @@ try {
   const made = existsSync(workRoot) ? readdirSync(workRoot) : [];
   check(made.length === 1, `the work is in the folder that was set (${made.join(', ')})`);
   check(problems.length === 0, `nothing failed to load${problems.length ? `: ${problems.slice(0, 5).map((p) => p.replace(/file:.*\/assets\//, '')).join('; ')}` : ''}`);
+  check(await run.page.locator('.update-letter').count() === 0, 'no letter about a version that is not newer');
   check(await stop(run), 'it closes by itself');
+  // It looked for a new version on opening, for real. Offline or not, that is only ever a line in the log.
+  const logs = join(home.data, 'logs');
+  result.update = readdirSync(logs).flatMap((f) => readFileSync(join(logs, f), 'utf8').split('\n')).filter((l) => l.includes(' update ')).map((l) => l.trim().slice(25, 200));
 
   // Next time: the work is still there, and without the switch the debug tools are not.
   run = await start(home, { debug: false });

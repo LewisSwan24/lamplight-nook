@@ -74,3 +74,17 @@ describe('Electron fuses', () => {
     });
   });
 });
+
+describe('update information', () => {
+  // electron-updater (app/main/updates.ts) reads app-update.yml in the installed app to find the releases, then
+  // latest.yml and the installer's blockmap from the newest release. electron-builder writes them only when it
+  // knows where releases go, even with --publish never; the release workflow attaches them.
+  it('is built for GitHub Releases and attached to every release', async () => {
+    const { readFileSync } = await import('node:fs');
+    const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+    expect(pkg.build.publish).toEqual([{ provider: 'github', owner: 'LewisSwan24', repo: 'lamplight-nook' }]);
+    const workflow = readFileSync(join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8');
+    const create = workflow.split('\n').find((l) => l.includes('gh release create')) ?? '';
+    for (const file of ['dist/*.exe', 'dist/*.exe.blockmap', 'dist/latest.yml']) expect(create).toContain(file);
+  });
+});
