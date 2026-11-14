@@ -467,7 +467,15 @@
         "briefcase": "Briefcase",
         "readinglamp": "Reading lamp",
         "postcards": "Postcards",
-        "toolbox": "Toolbox"
+        "toolbox": "Toolbox",
+        "chime": "These wind chimes",
+        "aquarium": "This fish tank",
+        "scroll": "This scroll",
+        "teapot": "This teapot",
+        "gramophone": "This gramophone",
+        "cushion": "This cushion",
+        "hat": "This straw hat",
+        "plaque": "This sign"
       },
       "grownLine": "{thing} came after commission number {n}.",
       "clock": "It's {time}.",
@@ -636,6 +644,9 @@
       "bedsAnd": ", ",
       "bedsRipe": "{n} ripe",
       "bedsSprout": "{n} sprouting",
+      "bedsYoung": "{n} young plants for spring",
+      "bedsHarvest": "{n} ready to harvest",
+      "bedsRest": "{n} resting under straw for the winter",
       "hotspotBoard": "The blackboard: see the whole plan",
       "hotspotWorks": "The works shelf: see what we made together"
     },
@@ -927,7 +938,15 @@
     "briefcase": "a briefcase",
     "readinglamp": "a reading lamp",
     "postcards": "a few postcards",
-    "toolbox": "a toolbox"
+    "toolbox": "a toolbox",
+    "chime": "some wind chimes",
+    "aquarium": "a tank of goldfish",
+    "scroll": "a hanging scroll",
+    "teapot": "a teapot",
+    "gramophone": "a gramophone",
+    "cushion": "a cushion for Chestnut",
+    "hat": "a straw hat",
+    "plaque": "a carved sign"
   },
   "sceneText": {
     "study": {

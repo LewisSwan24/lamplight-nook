@@ -7,6 +7,7 @@ import { GARDEN_AREA, GARDEN_DOOR_SPOT, SPOTS, pathInGarden, pathToBackDoor } fr
 import { ANCHORS, CANVAS, pathBetween, seatsIn, standPoint, walkBetween } from '../app/renderer/game/layout';
 import { GUEST_DOOR, GUEST_SPOT } from '../app/renderer/game/guests';
 import { YOU_SEAT } from '../app/renderer/game/you';
+import { HOLIDAYS, SEASONS } from '../app/renderer/game/weather';
 import type { ActorId, AnchorId } from '../app/shared/types';
 import { readPng } from './png';
 
@@ -105,9 +106,11 @@ describe('walking through the shop', () => {
     });
   }
 
-  for (const holiday of ['halloween', 'christmas', 'new_year']) {
-    it(`no walk crosses the ${holiday} decorations on the floor`, () => {
-      const decor = sprite(`decor-${holiday}.png`);
+  // What stands on the floor: every holiday's decorations, the season's, and the pieces the shop gathers past fifty.
+  const onFloor = [...HOLIDAYS.map((h) => `decor-${h}`), ...SEASONS.map((s) => `season-${s}`), 'grow-aquarium', 'grow-gramophone'];
+  for (const name of onFloor) {
+    it(`no walk crosses ${name} on the floor`, () => {
+      const decor = sprite(`${name}.png`);
       const crossed = new Set<string>();
       for (const walk of [...walks('cafe'), ...walks('study')]) {
         for (const p of along(walk.points)) {

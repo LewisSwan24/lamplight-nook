@@ -152,7 +152,7 @@ def overlays_on(pieces, name):
     sheet = Image.open(OUT / f'{name}-pieces.png').convert('RGBA')
     on = {}
     for path in sorted(OUT.glob('*.png')):
-        if not re.match(r'(grow|decor|weather)-', path.name):
+        if not re.match(r'(grow|decor|weather|season)-', path.name):
             continue
         overlay = Image.open(path).convert('RGBA')
         touched = [p['base'] for p in pieces if any(

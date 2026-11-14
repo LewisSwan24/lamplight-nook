@@ -204,6 +204,12 @@ async function checkBubbles(shop) {
   check(!clashes.length, `speech bubbles: ${clashes.join('; ')}`);
 }
 
+/** The pieces that come with the number of works done (app/shared/growth.ts COUNTED), and when. */
+const COUNTED_PIECES = [
+  ['painting', 1], ['plant', 2], ['lights', 3], ['fruit', 5], ['guitar', 8], ['bonsai', 12], ['easel', 16], ['trophy', 20], ['portrait', 25],
+  ['sunset', 35], ['star', 50], ['chime', 55], ['aquarium', 60], ['scroll', 65], ['teapot', 70], ['gramophone', 75], ['cushion', 80], ['hat', 90], ['plaque', 100],
+];
+
 const SCENARIOS = {
   /** Data files that cannot be read: nothing is written over, the shop says so, and work goes on. */
   async baddata(lang, out) {
@@ -987,15 +993,19 @@ const SCENARIOS = {
     }
   },
 
-  /** Past twenty works nothing drops off the shelf or the notebook, and the shop's days read right. */
+  /**
+   * A hundred works on (road-to-1.1.md A9): nothing drops off the shelf or the notebook, the shop's days read right, and
+   * every piece the shop gathers is out, in the cafe and in the study.
+   */
   async days(lang, out) {
     const N = locale(lang).ui.notebook;
     const day = (i) => Date.UTC(2026, 0, 1 + i);
-    const title = (i) => (i === 29 ? 'A very long name '.repeat(20).trim() : `work ${i + 1}`);
-    const commissions = Array.from({ length: 30 }, (_, i) => ({
+    const title = (i) => (i === 99 ? 'A very long name '.repeat(20).trim() : `work ${i + 1}`);
+    const commissions = Array.from({ length: 100 }, (_, i) => ({
       id: `c${day(i)}`, title: title(i), date: new Date(day(i)).toISOString().slice(0, 10), result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'page' },
     }));
-    const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 30, told: [], grown: [{ id: 'painting', date: '2026-01-01' }], met: [{ id: 'baker', date: '2026-01-03' }] } };
+    const grown = COUNTED_PIECES.map(([id, at]) => ({ id, date: new Date(day(at - 1)).toISOString().slice(0, 10) }));
+    const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 100, told: [], grown, met: [{ id: 'baker', date: '2026-01-03' }] } };
     const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) }), size: 'small', debug: true });
     const notebook = async () => {
       await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
@@ -1006,8 +1016,10 @@ const SCENARIOS = {
       await sleep(2500);
       await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
       await shop.page.waitForSelector('.shelf-card');
+      // The shelf shows forty at a time; the rest come with "more".
+      while (await shop.page.locator('.shelf-card li.works-more button').count()) await shop.page.locator('.shelf-card li.works-more button').click();
       const shelved = await shop.page.locator('.shelf-card ul.works > li.work').count();
-      check(shelved === 30, `${shelved} of 30 works on the shelf`);
+      check(shelved === 100, `${shelved} of 100 works on the shelf`);
       await shop.page.keyboard.press('Escape');
       await sleep(300);
 
@@ -1015,7 +1027,9 @@ const SCENARIOS = {
       const days = await shop.page.locator('.notebook-days').innerText();
       for (const line of [
         N.firstWork.replace('{title}', 'work 1'), N.nthWork.replace('{n}', '10').replace('{title}', 'work 10'), N.nthWork.replace('{n}', '25').replace('{title}', 'work 25'),
+        N.nthWork.replace('{n}', '50').replace('{title}', 'work 50'),
         N.bedRipe, N.bedFull, N.metLine.replace('{name}', locale(lang).guests.baker),
+        ...COUNTED_PIECES.filter(([, at]) => at > 50).map(([id]) => N.grewLine.replace('{item}', locale(lang).growth[id])),
       ]) check(days.includes(line), `not in the shop's days: ${line}`);
       check(await shop.page.locator('.notebook-pages').evaluate((p) => p.scrollTop) === 0, 'the notebook opens scrolled past the shop\'s days');
       const spills = await shop.page.locator('.notebook-pages').evaluate((p) => p.scrollWidth > p.clientWidth + 1);
@@ -1023,6 +1037,8 @@ const SCENARIOS = {
       await shop.shot(join(out, 'days.png'));
       await shop.page.keyboard.press('Escape');
       await sleep(300);
+      const missing = await shop.page.evaluate((ids) => ids.filter((id) => !window.lamplightDebug.scene.growth.shows(id)), COUNTED_PIECES.map(([id]) => id));
+      check(missing.length === 0, `not out in the shop at a hundred: ${missing}`);
 
       // Someone new comes in: the page says so next time.
       await shop.page.evaluate('void window.lamplightDebug.scene.guestVisit("postman", [])');
@@ -1057,34 +1073,64 @@ const SCENARIOS = {
     } finally {
       await fresh.close();
     }
+
+    // The shop at a hundred, in both rooms, by daylight and with nothing up for a festival.
+    for (const scene of ['cafe', 'study']) {
+      const full = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang, { scene }), 'memory.json': JSON.stringify(memory) }), size: 'large', debug: true });
+      try {
+        await full.page.waitForFunction(() => window.lamplightDebug?.scene?.growth?.shows('plaque'));
+        await full.page.evaluate(() => {
+          const { scene } = window.lamplightDebug;
+          scene.setWeather('clear', null, false);
+          scene.setPeriod('day', true);
+        });
+        await sleep(600);
+        await full.shot(join(out, `days-100-${scene}.png`));
+      } finally {
+        await full.close();
+      }
+    }
   },
 
-  /** The vegetable beds come up with the works finished, say so three times, and a round of changes does not count. */
+  /**
+   * The vegetable beds come up with the works finished, say so three times, and a round of changes does not count. Once
+   * full they follow the season (road-to-1.1.md A9), all the way to a hundred works.
+   */
   async beds(lang, out) {
     const seed = (done) => ({
       'settings.json': onboarded(lang),
       'memory.json': JSON.stringify({ commissions: [], stuckNotes: [], shop: { done, told: [], grown: [] } }),
     });
-    const expected = { 0: [0, 0], 1: [0, 1], 4: [1, 1], 12: [3, 1], 25: [8, 0], 60: [8, 0] };
-    for (const [done, [ripe, sprout]] of Object.entries(expected)) {
-      const shop = await launch({ lang, home: freshHome(seed(Number(done))), size: 'large', debug: true });
+    // Works done, season -> beds by stage. Before they are full the season makes no difference.
+    const expected = [
+      [0, 'autumn', {}], [1, 'winter', { sprout: 1 }], [4, 'spring', { ripe: 1, sprout: 1 }], [12, 'autumn', { ripe: 3, sprout: 1 }],
+      [25, 'summer', { ripe: 8 }], [60, 'spring', { young: 8 }], [100, 'summer', { ripe: 8 }], [100, 'autumn', { harvest: 8 }], [100, 'winter', { rest: 8 }],
+    ];
+    const WORDS = { ripe: 'bedsRipe', sprout: 'bedsSprout', young: 'bedsYoung', harvest: 'bedsHarvest', rest: 'bedsRest' };
+    for (const [done, season, stages] of expected) {
+      const shop = await launch({ lang, home: freshHome(seed(done)), size: 'large', debug: true });
       try {
         await sleep(2500);
-        await shop.page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        await shop.page.evaluate((season) => {
+          const { scene } = window.lamplightDebug;
+          scene.setWeather('clear', null, false);
+          scene.setSeason(season);
+          scene.setPeriod('day', true);
+        }, season);
         const beds = await shop.page.evaluate(() => window.lamplightDebug.scene.garden.beds);
-        const seen = [beds.filter((b) => b === 'ripe').length, beds.filter((b) => b === 'sprout').length];
-        check(seen.join() === [ripe, sprout].join(), `${done} works: ${seen} instead of ${ripe},${sprout}`);
+        const seen = Object.fromEntries(Object.keys(WORDS).map((k) => [k, beds.filter((b) => b === k).length]).filter(([, n]) => n));
+        check(JSON.stringify(seen) === JSON.stringify(stages), `${done} works in ${season}: ${JSON.stringify(seen)} instead of ${JSON.stringify(stages)}`);
         await shop.hotspot(shop.L.ui.access.hotspotGarden);
         await sleep(900);
         await shop.hotspot(shop.L.ui.access.hotspotBeds);
         await sleep(200);
         const A = shop.L.ui.access;
-        const says = [ripe && A.bedsRipe.replace('{n}', ripe), sprout && A.bedsSprout.replace('{n}', sprout)].filter(Boolean).join(A.bedsAnd);
-        const label = done === '0' ? A.bedsBare : `${A.hotspotBeds}${A.bedsSay}${says}`;
+        const says = Object.entries(stages).map(([stage, n]) => A[WORDS[stage]].replace('{n}', n)).join(A.bedsAnd);
+        const label = done === 0 ? A.bedsBare : `${A.hotspotBeds}${A.bedsSay}${says}`;
         check((await shop.page.locator('body').innerText()).includes(label), `${done} works: no "${label}" over the beds`);
-        await shop.page.screenshot({ path: join(out, `beds-${done}.png`) });
+        await shop.page.screenshot({ path: join(out, `beds-${done}-${season}.png`) });
         // Opening the shop again is not news: nobody brings the beds up.
-        if (done === '12') {
+        if (done === 12) {
           await shop.hotspot(shop.L.ui.access.hotspotShop);
           await sleep(13_000);
           await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
@@ -1548,6 +1594,58 @@ const SCENARIOS = {
           await shop.shot(join(out, `behind-${scene}-${holiday}.png`));
         }
       } finally { await shop.close(); }
+    }
+  },
+
+  /**
+   * Every season and every festival in a shop past a hundred works (road-to-1.1.md A9): the season's vase on the big
+   * table and the beds out back, each festival's decorations, and what the baker brings up for each of them.
+   */
+  async seasons(lang, out) {
+    const memory = { commissions: [], stuckNotes: [], greeted: 'c1', shop: { done: 100, told: [], grown: COUNTED_PIECES.map(([id]) => ({ id, date: '2026-10-20' })) } };
+    const says = lang === 'en'
+      ? { spring: 'green rice cakes', summer: 'plum juice', autumn: 'beds out back', winter: 'sweet potatoes', lantern: 'dumplings', dragon_boat: 'Zongzi', mid_autumn: 'Mooncakes' }
+      : { spring: '青团', summer: '酸梅汤', autumn: '后院的菜', winter: '红薯', lantern: '汤圆', dragon_boat: '粽子', mid_autumn: '月饼' };
+    const bakerSays = async (shop, words, what) => {
+      await shop.page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await shop.page.waitForFunction(() => !window.lamplightDebug.scene.hasGuest());
+      await shop.page.evaluate(() => window.lamplightDebug.welcome('baker'));
+      const said = await shop.page.waitForFunction((words) => window.lamplightDebug.scene.guest?.speech?.includes(words), words, { timeout: 15_000 }).then(() => true, () => false);
+      check(said, `the baker said nothing about ${what}`);
+    };
+    for (const scene of ['cafe', 'study']) {
+      const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang, { scene }), 'memory.json': JSON.stringify(memory) }), size: 'large', debug: true });
+      try {
+        await shop.page.waitForFunction(() => window.lamplightDebug?.scene?.growth?.shows('plaque'));
+        await sleep(1500);
+        for (const season of ['spring', 'summer', 'autumn', 'winter']) {
+          await shop.page.evaluate((season) => {
+            const { scene } = window.lamplightDebug;
+            scene.setWeather('clear', null, false);
+            scene.setSeason(season);
+            scene.setPeriod('day', true);
+          }, season);
+          if (scene === 'cafe') await bakerSays(shop, says[season], season);
+          await sleep(400);
+          await shop.shot(join(out, `seasons-${scene}-${season}.png`));
+          if (scene !== 'cafe') continue;
+          await shop.hotspot(shop.L.ui.access.hotspotGarden);
+          await sleep(1200);
+          await shop.shot(join(out, `seasons-garden-${season}.png`));
+          await shop.hotspot(shop.L.ui.access.hotspotShop);
+          await sleep(1200);
+        }
+        // The old festivals in the cafe; the three lunar ones (Q-A5) in both rooms.
+        const festivals = scene === 'cafe' ? ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn'] : ['lantern', 'dragon_boat', 'mid_autumn'];
+        for (const holiday of festivals) {
+          await shop.page.evaluate((holiday) => window.lamplightDebug.scene.setWeather('clear', holiday, false), holiday);
+          if (says[holiday]) await bakerSays(shop, says[holiday], holiday);
+          await sleep(400);
+          await shop.shot(join(out, `seasons-${scene}-${holiday}.png`));
+        }
+      } finally {
+        await shop.close();
+      }
     }
   },
 

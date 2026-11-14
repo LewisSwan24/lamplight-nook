@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { Director, PRIORITY } from '../app/renderer/translator/director';
-import { type Line, lintLines, openingTurns, parseLines, pickLine, toLineBook } from '../app/renderer/translator/lines';
+import { type Line, lintLines, openingTurns, parseChats, parseLines, pickLine, toLineBook } from '../app/renderer/translator/lines';
+import { HOLIDAYS } from '../app/renderer/game/weather';
 
 describe('dialogue library', () => {
   const lib = parseLines(readFileSync('lines/cafe.yaml', 'utf8'));
@@ -79,5 +80,17 @@ describe('lines for the day outside', () => {
     expect(back(['sky_rain', 'holiday_halloween'])).toBe('back_xj_rain');
     expect(back(['sky_rain', 'holiday_halloween'])).toBe('back_xj_halloween');
     expect(back(['sky_rain', 'holiday_halloween'])).toBe('back_xj_01');
+  });
+
+  it('greets every festival, has Xiaoju bring it back from errands and the staff talk about it, in both languages', () => {
+    for (const [cafe, chatsFile] of [['lines/cafe.yaml', 'lines/chats.yaml'], ['lines/en/cafe.yaml', 'lines/en/chats.yaml']]) {
+      const lines = parseLines(readFileSync(cafe, 'utf8'));
+      const chats = parseChats(readFileSync(chatsFile, 'utf8'));
+      for (const holiday of HOLIDAYS) {
+        expect(lines.app_open.some((l) => l.when === `holiday_${holiday}`), `${cafe} open ${holiday}`).toBe(true);
+        expect(lines.sub_back_xiaoju.some((l) => l.when === `holiday_${holiday}`), `${cafe} back ${holiday}`).toBe(true);
+        expect(chats.some((c) => !c.guest && c.holiday === holiday), `${chatsFile} ${holiday}`).toBe(true);
+      }
+    }
   });
 });

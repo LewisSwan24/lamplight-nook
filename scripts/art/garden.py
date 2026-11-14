@@ -37,6 +37,14 @@ PATH = [(152, y) for y in range(48, 112, T)] + [(x, 112) for x in range(120, 216
 PLANTER = (80, 234, 112, 256)
 PLANTERS = [(20, 70), (54, 70), (20, 98), (54, 98)]
 VEG = [(65, 178, 78, 192), (97, 178, 110, 192), (81, 83, 92, 93), (64, 84, 77, 94), (113, 81, 128, 96), (96, 81, 112, 96)]
+# Once the beds are full they follow the seasons (shared/growth.ts, bedFrame): young spring plants and autumn's crops
+# from the growth-stage sheets (file, frame), and straw over the soil in winter.
+GROWTH_STAGES = FARM / 'Crops_Growth_16x16'
+SPRING = [('Cabbage', 3), ('Carrot', 2), ('Radish', 3), ('Strawberry', 3), ('Cauliflower', 3), ('Wheat', 2), ('Radish', 2), ('Strawberry', 2)]
+AUTUMN = [('Pumpkin', 6), ('Wheat', 6), ('Carrot', 6), ('Cabbage', 6), ('Pepper', 6), ('Wheat', 5), ('Cauliflower', 6), ('Pumpkin', 5)]
+# Straw: pale and dark stalks lying every which way over a low mound.
+STRAW_LIGHT, STRAW_DARK = (222, 190, 112, 255), (176, 136, 72, 255)
+STRAW = ['...dl.ld.l....', '.ldlldlldldl..', 'ldlldldlldlldl', 'dlldlldldlldld', '.dldlldldldld.']
 # A sprout, drawn here: a stem and two leaves.
 LEAF, STEM = (112, 176, 84, 255), (70, 124, 60, 255)
 SPROUT = {(3, 15): STEM, (3, 14): STEM, (3, 13): STEM, (2, 12): LEAF, (1, 12): LEAF, (1, 11): LEAF, (4, 12): LEAF, (5, 12): LEAF, (5, 11): LEAF, (4, 11): LEAF, (2, 11): LEAF}
@@ -96,14 +104,32 @@ def build():
     return img
 
 
+def stage(name, frame):
+    """One growth stage, cropped to what is drawn: the sheets keep the plants in their top half, labels below. A plant
+    taller than a cell keeps its bottom (the pumpkin and its leaves, without the tallest leaf)."""
+    sheet = Image.open(GROWTH_STAGES / f'{name}_Growth_Stages_16x16.png').convert('RGBA')
+    cell = sheet.crop((frame * 16, 0, frame * 16 + 16, sheet.height // 2))
+    plant = cell.crop(cell.getbbox())
+    return plant.crop((0, max(0, plant.height - 16), plant.width, plant.height))
+
+
 def crop_sheet(crops):
-    """What grows in the beds (app/shared/growth.ts, BEDS): the eight plants, feet at the bottom left of a 16x16 cell, then a sprout."""
-    sheet = Image.new('RGBA', (16 * 9, 16), (0, 0, 0, 0))
+    """What grows in the beds (app/shared/growth.ts, BEDS and bedFrame): the eight summer plants, a sprout, eight young
+    spring plants, eight autumn crops and straw, each with its feet at the bottom left of a 16x16 cell."""
+    sheet = Image.new('RGBA', (16 * 26, 16), (0, 0, 0, 0))
     for i in range(8):
         veg = crops.crop(VEG[i % len(VEG)])
         sheet.alpha_composite(veg, (i * 16, 16 - veg.height))
     for (x, y), colour in SPROUT.items():
         sheet.putpixel((8 * 16 + x, y), colour)
+    for first, plants in ((9, SPRING), (17, AUTUMN)):
+        for i, (name, frame) in enumerate(plants):
+            plant = stage(name, frame)
+            sheet.alpha_composite(plant, ((first + i) * 16, 16 - plant.height))
+    for y, row in enumerate(STRAW):
+        for x, c in enumerate(row):
+            if c != '.':
+                sheet.putpixel((25 * 16 + x, 16 - len(STRAW) + y), STRAW_LIGHT if c == 'l' else STRAW_DARK)
     sheet.save(OUT / 'garden-crops.png')
 
 

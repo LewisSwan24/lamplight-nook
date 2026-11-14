@@ -2,6 +2,11 @@
 
 ## Unreleased (1.1)
 
+- **The shop keeps growing after fifty.** Eight more pieces come between the 55th and the 100th commission, among them
+  a tank of goldfish at 60, a gramophone at 75 and a carved sign at 100. Once the beds out back are full they follow the
+  seasons: young plants in spring, a harvest in autumn, straw in winter. A vase on the big table changes with the season,
+  the Lantern, Dragon Boat and Mid-Autumn festivals get their own decorations, and past the twentieth commission the
+  neighbours have something new to say every season.
 - **The shop knows when there's a new version.** It looks when it opens and every six hours after, and the postman
   brings a letter with the version number and what's new. Nothing downloads until you press Update, and the new version
   goes in when you close the shop, never in the middle of a commission, after a copy of your data is put aside. A switch

@@ -26,6 +26,13 @@ import streetUrl from '../../../assets/sprites/street.png';
 import christmasUrl from '../../../assets/sprites/decor-christmas.png';
 import halloweenUrl from '../../../assets/sprites/decor-halloween.png';
 import newYearUrl from '../../../assets/sprites/decor-new_year.png';
+import lanternUrl from '../../../assets/sprites/decor-lantern.png';
+import dragonBoatUrl from '../../../assets/sprites/decor-dragon_boat.png';
+import midAutumnUrl from '../../../assets/sprites/decor-mid_autumn.png';
+import springUrl from '../../../assets/sprites/season-spring.png';
+import summerUrl from '../../../assets/sprites/season-summer.png';
+import autumnUrl from '../../../assets/sprites/season-autumn.png';
+import winterUrl from '../../../assets/sprites/season-winter.png';
 import leavesUrl from '../../../assets/sprites/weather-leaves.png';
 import petalsUrl from '../../../assets/sprites/weather-petals.png';
 import rainUrl from '../../../assets/sprites/weather-rain.png';
@@ -54,18 +61,21 @@ import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { GardenView } from './GardenView';
 import { StreetView } from './StreetView';
-import { HOLIDAYS, SKIES, WeatherLayer } from './WeatherLayer';
+import { SKIES, WeatherLayer } from './WeatherLayer';
 import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
 import { INSET, VIEW } from './street';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT } from './guests';
 import { PASSER_FEET, WINDOW_PANES, passBy } from './passers';
-import { type Holiday, type Sky, holidayOn, skyOn, withWeather } from './weather';
+import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky, holidayOn, seasonOf, skyOn, withWeather } from './weather';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
-const DECOR_URLS: Record<Holiday, string> = { halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl };
+const DECOR_URLS: Record<Holiday, string> = {
+  halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl, lantern: lanternUrl, dragon_boat: dragonBoatUrl, mid_autumn: midAutumnUrl,
+};
+const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerUrl, autumn: autumnUrl, winter: winterUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
 const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
 /** The player's looks, in order (shared/avatars.ts). */
@@ -235,6 +245,7 @@ export class CafeScene extends Phaser.Scene {
     this.load.spritesheet('dog-sleep', dogSleepUrl, { frameWidth: 32, frameHeight: 48 });
     this.load.spritesheet('hens', hensUrl, { frameWidth: HEN_FRAME.width, frameHeight: HEN_FRAME.height });
     for (const h of HOLIDAYS) this.load.image(`decor-${h}`, DECOR_URLS[h]);
+    for (const s of SEASONS) this.load.image(`season-${s}`, SEASON_URLS[s]);
     for (const s of SKIES) this.load.image(`weather-${s}`, WEATHER_URLS[s]);
     for (const id of [...STAFF_IDS, ...GUEST_IDS]) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     YOU_SHEETS.slice(0, AVATAR_COUNT).forEach((url, i) => this.load.spritesheet(avatarKey(i + 1), url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height }));
@@ -580,16 +591,23 @@ export class CafeScene extends Phaser.Scene {
     tick();
   }
 
-  /** A new day may bring new weather or put the decorations up (checked every hour with the light). */
+  /** A new day may bring new weather, a new season or put the decorations up (checked every hour with the light). */
   private followCalendar(date: Date) {
     const sky = skyOn(date);
     const holiday = holidayOn(date);
+    if (seasonOf(date) !== this.weather.season) this.setSeason(seasonOf(date));
     if (sky !== this.weather.sky || holiday !== this.weather.holiday) this.setWeather(sky, holiday, false);
   }
 
-  /** Today's weather and holiday, for small talk about them. */
-  outside(): { sky: Sky; holiday: Holiday | null } {
-    return { sky: this.weather?.sky ?? 'clear', holiday: this.weather?.holiday ?? null };
+  /** Today's weather, holiday and season, for small talk about them. */
+  outside(): { sky: Sky; holiday: Holiday | null; season: Season } {
+    return { sky: this.weather?.sky ?? 'clear', holiday: this.weather?.holiday ?? null, season: this.weather?.season ?? 'spring' };
+  }
+
+  /** The season's piece in the shop and what grows in the garden (also for screenshots: lamplightDebug.scene.setSeason). */
+  setSeason(season: Season) {
+    this.weather.setSeason(season);
+    this.garden.setSeason(season);
   }
 
   /** Show a kind of weather and a holiday's decorations (also for screenshots: lamplightDebug.scene.setWeather). */
@@ -1296,8 +1314,9 @@ export class CafeScene extends Phaser.Scene {
   private bedsLabel(): string {
     const count = (stage: string) => this.garden.beds.filter((b) => b === stage).length;
     const A = strings.ui.access;
-    const says = [count('ripe') && fill(A.bedsRipe, { n: String(count('ripe')) }), count('sprout') && fill(A.bedsSprout, { n: String(count('sprout')) })];
-    return says.some(Boolean) ? `${A.hotspotBeds}${A.bedsSay}${says.filter(Boolean).join(A.bedsAnd)}` : A.bedsBare;
+    const words = { ripe: A.bedsRipe, sprout: A.bedsSprout, young: A.bedsYoung, harvest: A.bedsHarvest, rest: A.bedsRest };
+    const says = Object.entries(words).filter(([stage]) => count(stage)).map(([stage, say]) => fill(say, { n: String(count(stage)) }));
+    return says.length ? `${A.hotspotBeds}${A.bedsSay}${says.join(A.bedsAnd)}` : A.bedsBare;
   }
 
   /** In the garden view: the door's name on hover, and what anyone out there says. */

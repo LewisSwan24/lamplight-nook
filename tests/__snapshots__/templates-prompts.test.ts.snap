@@ -2237,6 +2237,38 @@ exports[`what each kind of work brings to the shop > growth pieces, shelf icons 
       "at": 50,
       "id": "star",
     },
+    {
+      "at": 55,
+      "id": "chime",
+    },
+    {
+      "at": 60,
+      "id": "aquarium",
+    },
+    {
+      "at": 65,
+      "id": "scroll",
+    },
+    {
+      "at": 70,
+      "id": "teapot",
+    },
+    {
+      "at": 75,
+      "id": "gramophone",
+    },
+    {
+      "at": 80,
+      "id": "cushion",
+    },
+    {
+      "at": 90,
+      "id": "hat",
+    },
+    {
+      "at": 100,
+      "id": "plaque",
+    },
   ],
   "icons": [
     "page",

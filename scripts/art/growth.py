@@ -51,6 +51,82 @@ DRAWN = {
                   'xxxxxyllllssx', '....xyyyyyyyx', '....xylllllyx', '....xxxxxxxxx'],
     'toolbox': ['.....xxxx.....', '.....x..x.....', '..xxxxxxxxxx..', '.xrrrrrrrrrrx.', 'xxxxxxxxxxxxxx', 'xrrrrrrrrrrrrx',
                 'xrrrrrlllrrrrx', 'xrrrrrrrrrrrrx', 'xrrrrrrrrrrrrx', 'xxxxxxxxxxxxxx'],
+    # Past fifty (road-to-1.1.md A9). c glass, a water, f goldfish, h brass shadow, m plum, t straw shadow; the rest as COLORS.
+    'chime': ['...x...', '...x...', '.xxxxx.', 'xcccccx', 'xcrcrcx', 'xcccccx', 'xxxxxxx', '.l.l.l.', '.l.l.l.', '.l.l.l.',
+              '...x...', '...x...', '..xwx..', '..xwx..', '..xwx..', '..xrx..', '..xxx..'],
+    'scroll': ['....x....', '...x.x...', '..x...x..', 'xkkkkkkkx', '.xyyyyyx.', '.xywwwyx.', '.xywxwyx.', '.xyxxxyx.',
+               '.xywxwyx.', '.xywwwyx.', '.xywxwyx.', '.xywxxyx.', '.xywxwyx.', '.xywwwyx.', '.xyxwwyx.', '.xywxxyx.',
+               '.xywwwyx.', '.xywwryx.', '.xyyyyyx.', 'xkkkkkkkx', '.x.....x.'],
+    'teapot': ['......xx.....', '....xxkkxx...', 'x..xkkkkkkxx.', 'xx.xoooooox.x', '.xxoyooooox.x', '..xoyooooooxx', '..xooooooox..', '...xxxxxxx...'],
+    'cushion': ['....xxxxxxxxxx....', '..xxmmmmmmmmmmxx..', 'Gxmmmmpmmmmpmmmmx.', 'xmmmmmmmmmmmmmmmmx',
+                '.xmmmmpmmmmpmmmmxG', '..xxmmmmmmmmmmxx..', '....xxxxxxxxxx....'],
+    'hat': ['......x......', '.....xx......', '....xxxxx....', '...xyyyyyx...', '...xyyyyyx...', '..xrrrrrrrx..',
+            'xxyyyyyyyyyxx', 'xyyoyyoyyoyyx', '.xxyyyyyyyxx.', '...xxxxxxx...'],
+    'plaque': [
+        '..rr...........................................rr..',
+        '.rrrr.........................................rrrr.',
+        'xxrrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxrrxx',
+        'xkrrkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkrrkx',
+        'xkkrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxrkkx',
+        'xkxnnnnnnGGnnnnnnnnnnnnnnGnnnnnnnnnnnnnnGGnnnnnnxkx',
+        'xkxnnnnnGnnGnnnnnnnnnnnnGGGnnnnnnnnnnnnGnnGnnnnnxkx',
+        'xkxnnnnnGnGnGGnnnnnnnnnGyyyGnnnnnnnnnGGnGnGnnnnnxkx',
+        'xkxnnnnnnGnnGnnnnnnnnnnGyyyGnnnnnnnnnnGnnGnnnnnnxkx',
+        'xkxnnnnnnnGGnnnnnnnnnnnnGGGnnnnnnnnnnnnGGnnnnnnnxkx',
+        'xkkxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxkkx',
+        'xkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkx',
+        'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    ],
+    'aquarium': [
+        '.xxxxxxxxxxxxxxxxxxxxxxxxxxx.',
+        'xcccccccccccccccccccccccccccx',
+        'xcaaaaaaaaaaaaaaaaaaaaaaaaacx',
+        'xcaaawaaaaaaaaaaaaaaaaaaaaacx',
+        'xcaaaaaagaaaaaaaaaaawaaaaaacx',
+        'xcaawaaagaaaaffaaaaaaaaaaaacx',
+        'xcaaaaagaaaaffwfaaaaaawaaaacx',
+        'xcaaaaagaaaaaffaaaaaaaaaaaacx',
+        'xcaaaaaagaaaaaaaaaaaaffaaaacx',
+        'xcaaaaaagaaaaaaaaaaafwffaaacx',
+        'xcaaaaagagaaaaaaaaaaaffaaaacx',
+        'xcoosooogooooosoooooooooosocx',
+        'xccccccccccccccccccccccccccxx'[:29],
+        'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        'xkbbbbbbbbbbbbbbbbbbbbbbbbbkx',
+        'xkbbbbbbbbbxGxbbbbbbbbbbbbbkx',
+        'xkbbbbbbbbbbbbbbbbbbbbbbbbbkx',
+        'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        '.xkx.....................xkx.',
+        '.xxx.....................xxx.',
+    ],
+    'gramophone': [
+        '..xxxxxx................',
+        '.xGGGGGGxx..............',
+        'xGhhhhhhGGx.............',
+        'xGhxxxxhhGGx............',
+        'xGhxxxxxhhGGx...........',
+        '.xGhhxxxhhsGGx..........',
+        '..xGGhhhhssGGx..........',
+        '...xxGGGsssGGx..........',
+        '.....xxGGsssGx..........',
+        '.......xxGssGx..........',
+        '.........xGsGx..........',
+        '..........xGsx..........',
+        '..........xGsx..........',
+        '..xxxxxxxxxGsxxxxxxx....',
+        '..xkkkkkxxxxxxxkkkkx....',
+        '..xkkkkxxxxrxxxxkkkx....',
+        '..xkkkkkxxxxxxxkkkkx....',
+        '..xxxxxxxxxxxxxxxxxx....',
+        '..xbbbbbbbbbbbbbbbbxx...',
+        '..xbbbbbbbbbbbbbbbbxGx..',
+        '..xbbbbbbbGGbbbbbbbxx...',
+        '..xbbbbbbbbbbbbbbbbx....',
+        '..xkbbbbbbbbbbbbbbkx....',
+        '..xxxxxxxxxxxxxxxxxx....',
+        '...xkx..........xkx.....',
+        '...xxx..........xxx.....',
+    ],
 }
 
 
@@ -91,6 +167,16 @@ def pieces_by_id():
         'readinglamp': [(drawn('readinglamp'), (125, 81))],  # a reading lamp at the left end of the big table, beside the album
         'postcards': [(drawn('postcards'), (2, 22))],  # postcards pinned on the wall left of the windows
         'toolbox': [(drawn('toolbox'), (36, 159))],  # a toolbox on the floor at the foot of the bookcase
+        # Past fifty (road-to-1.1.md A9): hung on what wall there is left, on the counter, and in two corners nobody walks
+        # through (tests/routes.test.ts). Each sits the same in the cafe and the study.
+        'chime': [(drawn('chime'), (44, 17))],  # wind chimes between the two windows
+        'aquarium': [(drawn('aquarium'), (4, 156))],  # sixty: a tank of goldfish in the corner below the bookcase
+        'scroll': [(drawn('scroll'), (82, 16))],  # Laoshi's calligraphy between the window and the blackboard
+        'teapot': [(drawn('teapot'), (227, 75))],  # a clay teapot on the counter, clear of the coffee machine
+        'gramophone': [(drawn('gramophone'), (30, 50))],  # seventy-five: a gramophone against the wall under the first window
+        'cushion': [(drawn('cushion'), (217, 99))],  # Chestnut's cushion, where the cat lies by the counter
+        'hat': [(drawn('hat'), (305, 18))],  # a straw hat on a peg right of the front door
+        'plaque': [(drawn('plaque'), (125, 1))],  # a hundred: a carved sign high on the back wall, red silk on its corners
     }
 
 # Works-shelf icons, 8x8 each, in this order (shared/growth.ts WORK_ICONS):
@@ -117,6 +203,8 @@ COLORS = {
     'u': (72, 104, 160, 255), 'w': (250, 246, 236, 255), 'd': (150, 130, 110, 255), 'r': (200, 72, 60, 255),
     'k': (120, 80, 48, 255), 'o': (176, 128, 80, 255), 'l': (150, 150, 150, 255), 'p': (214, 150, 150, 255),
     'x': (42, 34, 51, 255), 'G': (232, 184, 74, 255),
+    'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
+    'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255),
 }
 ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool']
 

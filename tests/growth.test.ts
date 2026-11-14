@@ -29,6 +29,18 @@ describe('the shop grows with the commissions done together', () => {
     expect(grownBy(49)).not.toContain('star');
   });
 
+  it('goes on to the hundredth, with a big piece at sixty, seventy-five and a hundred', () => {
+    const counted = GROWTH.filter((g) => !('work' in g)).map((g) => [g.id, g.at]);
+    expect(counted.slice(-8)).toEqual([
+      ['chime', 55], ['aquarium', 60], ['scroll', 65], ['teapot', 70], ['gramophone', 75], ['cushion', 80], ['hat', 90], ['plaque', 100],
+    ]);
+    expect(grownBy(59)).not.toContain('aquarium');
+    expect(grownBy(60)).toContain('aquarium');
+    expect(grownBy(75)).toContain('gramophone');
+    expect(grownBy(99)).not.toContain('plaque');
+    expect(grownBy(100)).toEqual(expect.arrayContaining(counted.map(([id]) => id)));
+  });
+
   it('gathers what fits the kind of work done', () => {
     expect(grownBy(0, { album: 1 })).toEqual(['album']);
     expect(grownBy(0, { research: 1 })).toEqual([]);
@@ -110,7 +122,7 @@ describe('the shop grows with the commissions done together', () => {
 describe('chats for regulars', () => {
   it('has more to say after the tenth, in both languages', () => {
     for (const file of ['lines/chats.yaml', 'lines/en/chats.yaml']) {
-      const later = parseChats(readFileSync(file, 'utf8')).filter((c) => (c.after ?? 0) > 10);
+      const later = parseChats(readFileSync(file, 'utf8')).filter((c) => !c.guest && (c.after ?? 0) > 10);
       expect(later.map((c) => c.after).sort((a, b) => a! - b!), file).toEqual([15, 20, 25, 30, 40, 50]);
     }
   });
