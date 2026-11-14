@@ -157,8 +157,11 @@ export interface LamplightApi {
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
   restorePrevious(id: string): Promise<boolean>;
-  /** Undo a commission done in the user's own folder: their files back as they were, the new ones gone. */
-  undoWork(id: string): Promise<boolean>;
+  /**
+   * Undo a commission done in the user's own folder: their files back as they were, the new ones gone. Resolves with
+   * what could not be put back because a link leads out of the folder (empty when all went back); null if nothing to undo.
+   */
+  undoWork(id: string): Promise<string[] | null>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;

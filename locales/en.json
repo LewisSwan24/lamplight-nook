@@ -232,6 +232,28 @@
       "busy": "The shop is busy with this one. Hand it over when it's done.",
       "drop": "Let go to hand it to Wick"
     },
+    "lent": {
+      "pick": "Work in a folder I already have…",
+      "pickAnother": "Pick another folder…",
+      "remove": "Don't work in “{name}”",
+      "picked": "The staff will change the files in this folder itself. Before a file is first changed, a copy of it is kept as it was, so you can undo the whole commission.",
+      "broad": "That's too much to hand over. The staff don't work across a whole drive, your home folder, Documents, Desktop or Downloads; pick a smaller folder inside.",
+      "tooBig": "That folder is too big (over 100 MB). The shop has to be able to keep a copy of everything in it before it can promise an undo. Try a smaller one.",
+      "confirmTitle": "Work right in “{name}”?",
+      "confirmText": "The staff will change the files already in this folder without asking about each one. Before any file is first changed, the shop keeps a copy of it as it was.",
+      "confirmUndo": "If you don't like the result, press “Undo this commission” on the result card: changed files go back as they were, new ones are taken away, and nothing else is touched. Deleting files and running commands still ask you first.",
+      "back": "Go back",
+      "go": "Yes, work here",
+      "changed": "Changed your files: {files}",
+      "added": "New: {files}",
+      "more": "and {n} more",
+      "undo": "Undo this commission",
+      "undoSure": "Yes, undo it",
+      "undoAsk": "Undoing puts your changed files back as they were and takes away the new ones. What this commission made will be gone.",
+      "undone": "Undone. The folder is as it was before the work started.",
+      "undoPartly": "Undone, except for these: {files}. Their folder now leads somewhere outside, and the shop won't write there.",
+      "undoFailed": "Couldn't undo it; it may have been undone already."
+    },
     "want": "What would you like?",
     "wantMissing": "Write a line about what you'd like first.",
     "details": "Anything particular?",
@@ -579,7 +601,9 @@
       "failedTitle": "This one stopped partway",
       "failedText": "The work stopped partway through, and I can't say why. What's done so far is safe, and you can carry on.",
       "goneTitle": "Can't find that commission's folder",
-      "goneText": "It may have been moved or deleted. If you still want it, hand in a new commission."
+      "goneText": "It may have been moved or deleted. If you still want it, hand in a new commission.",
+      "tooBigTitle": "That folder has grown",
+      "tooBigText": "It now holds over 100 MB, more than the shop can keep a copy of, so an undo couldn't be promised and the work hasn't started. Move some big files out, then hand it in again."
     },
     "toolbar": {
       "label": "Shop switches",
@@ -626,7 +650,16 @@
       "ledgerMinutes": "{m} min {s} s",
       "ledgerSeconds": "{s} s",
       "ledgerJoin": ", ",
-      "ledgerKind": {"net": "connection lost {n}×", "busy": "service busy {n}×", "billing": "out of credit {n}×", "auth": "key not accepted {n}×", "budget": "hit the limit {n}×", "failed": "an error {n}×", "no_api_key": "no key {n}×", "no_claude": "no Claude Code {n}×"},
+      "ledgerKind": {
+        "net": "connection lost {n}×",
+        "busy": "service busy {n}×",
+        "billing": "out of credit {n}×",
+        "auth": "key not accepted {n}×",
+        "budget": "hit the limit {n}×",
+        "failed": "an error {n}×",
+        "no_api_key": "no key {n}×",
+        "no_claude": "no Claude Code {n}×"
+      },
       "sectionText": "Wick notes down past commissions, the choices you made and where things got stuck. Only that, never your conversations.",
       "title": "Wick's notebook",
       "commissions": "Past commissions",

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { copyFileSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
+import { reallyInside } from './paths';
 
 /** A copy bigger than this is not kept; the result card then offers no way back. */
 export const MAX_VERSION_BYTES = 50 * 1024 * 1024;
@@ -186,24 +187,29 @@ export class VersionStore {
 
   /**
    * Undo the shop's work in a lent folder: the user's files go back byte for byte, what the shop made goes, and
-   * anything else is left alone. False when nothing was kept.
+   * anything else is left alone. Nothing is written or removed through a link that leads out of the folder; what was
+   * skipped for that is returned (empty when all went back), and kept for another try. Null when nothing was kept.
    */
-  undo(folder: string): boolean {
-    if (!this.canUndo(folder)) return false;
+  undo(folder: string): string[] | null {
+    if (!this.canUndo(folder)) return null;
     const { kept, added } = this.lent(folder);
+    const skipped: string[] = [];
     for (const rel of kept) {
-      mkdirSync(dirname(join(folder, rel)), { recursive: true });
-      copyFileSync(join(this.lentDir(folder), ORIGINALS, rel), join(folder, rel));
+      const path = join(folder, rel);
+      if (!reallyInside(folder, path)) { skipped.push(rel); continue; }
+      mkdirSync(dirname(path), { recursive: true });
+      copyFileSync(join(this.lentDir(folder), ORIGINALS, rel), path);
     }
     // Backwards, so what is in a folder goes before the folder.
     for (const rel of [...added].sort().reverse()) {
       const path = join(folder, rel);
+      if (!reallyInside(folder, dirname(path))) { if (!rel.endsWith('/')) skipped.push(rel); continue; }
       if (!rel.endsWith('/')) rmSync(path, { force: true });
       // A folder the shop made goes only when empty: the user may have put something of theirs in it since.
       else if (existsSync(path) && !readdirSync(path).length) rmSync(path, { recursive: true });
     }
-    this.dropLent(folder);
-    return true;
+    if (!skipped.length) this.dropLent(folder);
+    return skipped.sort();
   }
 
   dropLent(folder: string) {

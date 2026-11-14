@@ -1,8 +1,8 @@
 import { homedir } from 'node:os';
-import { basename, isAbsolute, join, resolve, sep } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
 import type { Risk } from '../shared/types';
-import { isInside } from './paths';
+import { isInside, reallyInside } from './paths';
 
 /**
  * Risk level plus a plain-language reason shown on the confirmation card. `keep`: one of the user's files in a lent
@@ -266,6 +266,18 @@ function globBase(pattern: string): string {
   return base === '' && pattern.startsWith('/') ? '/' : base;
 }
 
+/** Files that run, which a quiet change could turn into something else. */
+const RUNS = /\.(ps1|psm1|cmd|bat|exe|com|msi|scr|lnk|vbs|sh)$/i;
+
+/**
+ * Whether one of the user's files in a lent folder may be changed without a card: not settings or history in a
+ * dot-folder (.git, .github, .vscode...) or a dot-file, not anything that runs, and not package.json, whose scripts run code.
+ */
+function changesQuietly(workDir: string, full: string): boolean {
+  const parts = relative(workDir, full).split(/[\\/]/);
+  return !parts.some((part) => part.startsWith('.')) && !RUNS.test(full) && basename(full).toLowerCase() !== 'package.json';
+}
+
 function abs(workDir: string, p: string) {
   return isAbsolute(p) ? p : resolve(workDir, p);
 }
@@ -284,6 +296,8 @@ function pathVerdict(ctx: RiskContext, p: string, writing: boolean): RiskVerdict
   }
   if (!writing) return null;
   if (!isInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
+  // A folder the user lent may hold their own links and junctions, which could lead a write anywhere.
+  if (ctx.keepOriginal && !reallyInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
   if (ctx.preexisting?.has(full)) return { risk: 'serious', reason: fill(R.overwrite, { name }) };
   return null;
 }
@@ -312,10 +326,12 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
     const p = String(input.file_path ?? input.notebook_path ?? '');
     if (!p) return { risk: 'serious', reason: R.noTarget };
     const full = abs(ctx.workDir, p);
-    const verdict = pathVerdict(ctx, p, true);
     // Only the file tools: a command writing over the same file still asks, as nothing keeps the original for it.
-    if (ctx.keepOriginal && verdict?.risk === 'serious' && ctx.preexisting?.has(full)) return { risk: 'safe', reason: R.write, keep: full };
-    return verdict || { risk: 'safe', reason: R.write };
+    // And only an ordinary file of theirs, where a new file would need no card either.
+    if (ctx.keepOriginal && ctx.preexisting?.has(full) && changesQuietly(ctx.workDir, full) && !pathVerdict({ ...ctx, preexisting: undefined }, full, true)) {
+      return { risk: 'safe', reason: R.write, keep: full };
+    }
+    return pathVerdict(ctx, p, true) || { risk: 'safe', reason: R.write };
   }
 
   if (PLAN_TOOLS.has(tool)) return { risk: 'safe', reason: R.plan };

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -56,7 +56,7 @@ describe('a folder the user lends the shop', () => {
 
     expect(store.lentChanges(site)).toEqual({ changed: ['css/style.css', 'index.html', 'logo.png'], added: ['pages/contact.html'] });
     expect(store.canUndo(site)).toBe(true);
-    expect(store.undo(site)).toBe(true);
+    expect(store.undo(site)).toEqual([]);
     expect(read(join(site, 'index.html'))).toEqual(original.index);
     expect(read(join(site, 'css', 'style.css'))).toEqual(original.css);
     expect(read(join(site, 'logo.png'))).toEqual(original.logo);
@@ -97,6 +97,29 @@ describe('a folder the user lends the shop', () => {
     expect(store.usersFiles(site).sort()).toEqual([join(site, 'css', 'style.css'), join(site, 'index.html'), join(site, 'logo.png'), join(site, 'notes.txt')].sort());
   });
 
+  it('undo never reaches outside the folder through a link, and says what it could not put back', () => {
+    const { site, store } = lent();
+    const outside = mkdtempSync(join(tmpdir(), 'lamplight-outside-'));
+    writeFileSync(join(outside, 'contact.html'), 'someone else\'s');
+    const before = entriesIn(site);
+    store.keepOriginal(site, join(site, 'css', 'style.css'));
+    store.keepOriginal(site, join(site, 'index.html'));
+    writeFileSync(join(site, 'index.html'), 'changed');
+    mkdirSync(join(site, 'pages'));
+    writeFileSync(join(site, 'pages', 'contact.html'), 'new');
+    store.noteAdded(site, before, entriesIn(site));
+    // Both folders turned into links to somewhere else (a junction needs no special rights on Windows).
+    rmSync(join(site, 'css'), { recursive: true });
+    rmSync(join(site, 'pages'), { recursive: true });
+    symlinkSync(outside, join(site, 'css'), 'junction');
+    symlinkSync(outside, join(site, 'pages'), 'junction');
+    expect(store.undo(site)).toEqual(['css/style.css', 'pages/contact.html']);
+    expect(existsSync(join(outside, 'style.css'))).toBe(false);
+    expect(readFileSync(join(outside, 'contact.html'), 'utf8')).toBe('someone else\'s');
+    // What could be put back was.
+    expect(readFileSync(join(site, 'index.html'), 'utf8')).toBe('<h1>Mine</h1>\r\n');
+  });
+
   it('nothing is kept for a round that changed nothing, and dropping forgets what was kept', () => {
     const { site, store } = lent();
     store.noteAdded(site, entriesIn(site), entriesIn(site));
@@ -116,6 +139,27 @@ describe('working in a lent folder', () => {
     expect(classify('Edit', { file_path: own }, ctx)).toMatchObject({ risk: 'safe', keep: own });
     expect(classify('Write', { file_path: 'css/style.css' }, ctx)).toMatchObject({ risk: 'safe', keep: own });
     expect(classify('Write', { file_path: join(site, 'new.html') }, ctx).keep).toBeUndefined();
+  });
+
+  it('still asks before changing settings in dot-folders, things that run, and package.json', () => {
+    const theirs = ['.git/config', '.github/workflows/build.yml', '.vscode/settings.json', '.gitignore', 'tools/fix.ps1', 'run.bat', 'go.cmd', 'app.exe',
+      'old.com', 'hello.vbs', 'build.sh', 'package.json'].map((p) => join(site, p));
+    const quiet = ['site.js', 'data.json', 'img/logo.png', 'notes.md'].map((p) => join(site, p));
+    const both = { ...ctx, preexisting: new Set([...theirs, ...quiet]) };
+    for (const p of theirs) expect(classify('Edit', { file_path: p }, both), p).toEqual({ risk: 'serious', reason: expect.any(String) });
+    for (const p of quiet) expect(classify('Edit', { file_path: p }, both), p).toMatchObject({ risk: 'safe', keep: p });
+  });
+
+  it('a write through a link in the folder that lands outside it asks', () => {
+    const { site: real } = lent();
+    const outside = mkdtempSync(join(tmpdir(), 'lamplight-outside-'));
+    writeFileSync(join(outside, 'page.html'), 'someone else\'s');
+    symlinkSync(outside, join(real, 'linked'), 'junction');
+    const here = { workDir: real, preexisting: new Set([join(real, 'index.html'), join(real, 'linked', 'page.html')]), keepOriginal: () => {} };
+    expect(classify('Write', { file_path: join(real, 'linked', 'new.html') }, here).risk).toBe('serious');
+    expect(classify('Edit', { file_path: join(real, 'linked', 'page.html') }, here)).toEqual({ risk: 'serious', reason: expect.any(String) });
+    expect(classify('Write', { file_path: join(real, 'new', 'deep', 'page.html') }, here).risk).toBe('safe');
+    expect(classify('Edit', { file_path: join(real, 'index.html') }, here).risk).toBe('safe');
   });
 
   it('commands still ask, even one that only writes over a file', () => {

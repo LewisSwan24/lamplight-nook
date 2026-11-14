@@ -460,7 +460,7 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
  */
 function startLent(form: CommissionForm, folder: string): Promise<RunResult> {
   if (!picked.has(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'source' });
-  if (tooBigToLend(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: folder, error: 'tooBig' });
+  if (tooBigToLend(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'tooBig' });
   // An earlier work here can't be undone any more: putting its originals back would undo this one as well.
   for (const c of memory.get().commissions) if (c.form?.inPlace && c.result === 'done' && overlaps(c.folder!, folder)) versions.dropLent(c.folder!);
   return runJob({ form: { ...form, materials: undefined, source: undefined, demo: false }, workDir: folder, preexisting: versions.usersFiles(folder), startedAt: Date.now() }, false);
@@ -479,7 +479,7 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   // In a folder the user lent, their files are counted again (they may have added some), and a round that could not
   // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
   const lent = Boolean(memo.form?.inPlace);
-  if (lent && tooBigToLend(memo.folder)) return { ok: false, recordingPath: '', workDir: memo.folder, error: 'tooBig' };
+  if (lent && tooBigToLend(memo.folder)) return { ok: false, recordingPath: '', workDir: '', error: 'tooBig' };
   const preexisting = lent ? versions.usersFiles(memo.folder) : memo.preexisting ?? [];
   const restored = restoredSince.has(memo.id);
   restoredSince.delete(memo.id);
@@ -543,13 +543,13 @@ ipcMain.handle(IPC.restorePrevious, (_e, id: string): boolean => {
   return ok;
 });
 // Undo a commission done in a folder the user lent: their files back as they were, what the shop made gone.
-ipcMain.handle(IPC.undoWork, (_e, id: string): boolean => {
-  if (current || typeof id !== 'string') return false;
+ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
+  if (current || typeof id !== 'string') return null;
   const memo = memory.find(id);
-  if (!memo?.form?.inPlace || !memo.folder) return false;
-  const ok = versions.undo(memo.folder);
-  log?.info('undo lent work', { ok });
-  return ok;
+  if (!memo?.form?.inPlace || !memo.folder) return null;
+  const skipped = versions.undo(memo.folder);
+  log?.info('undo lent work', { done: skipped !== null, skipped: skipped?.length });
+  return skipped;
 });
 ipcMain.handle(IPC.retryCommission, async (): Promise<RunResult | null> => (lastFailed ? runJob(lastFailed, true) : null));
 ipcMain.handle(IPC.cancelCommission, () => current?.abort.abort());
