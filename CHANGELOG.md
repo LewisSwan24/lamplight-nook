@@ -2,6 +2,10 @@
 
 ## Unreleased (1.1)
 
+- **Moving to the Microsoft Store version.** The Store version keeps its data in a folder of its own, because Windows
+  would otherwise split a shared one between the real folder and the package's private copy. The first time it opens on
+  a computer where the installed version has a shop, Wick asks whether to bring it over: the works, the notebook and the
+  ledger are copied and the original is left as it was. The API key has to be pasted again.
 - **An apprentice joins the shop.** With the tenth commission Bean walks in at the front door and starts at the counter.
   When Clem is already out and a second errand comes up, Bean runs it instead of it waiting; a third still waits for
   whoever is back first. Bean has their own lines, a story, and a word from the neighbours. No extra helper is started and

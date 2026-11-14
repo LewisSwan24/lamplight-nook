@@ -35,6 +35,7 @@ import { STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { showUpdateLetter } from './ui/letter';
+import { askMoveIn } from './ui/move-in';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, setWorking, syncToolbar, view } from './ui/toolbar';
@@ -606,6 +607,16 @@ async function greetBack(name: string) {
 }
 async function openShop() {
   const api = window.lamplight;
+  // The Store build's first open beside the installer build's shop: brought over or not, before anything is read.
+  const move = await api.moveInOffer();
+  let moved: boolean | null = null;
+  if (move) {
+    const yes = await askMoveIn(move);
+    const ok = await api.moveIn(yes);
+    if (yes) moved = ok;
+  }
+  // Said instead of the usual welcome back: the shop the user knows has just come over. A failed copy changed nothing.
+  if (moved === false) greet(strings.ui.moveIn.failed);
   void refreshShop();
   void noticeBirthday();
   let settings = await api.getSettings();
@@ -619,6 +630,8 @@ async function openShop() {
     // First visit: point at the counter until it has been opened once.
     scene.setHint('counter', true);
     setTimeout(() => greet(S.greetHint), 4000);
+  } else if (moved) {
+    greet(fill(strings.ui.moveIn.moved, { name: settings.name }));
   } else if (settings.name) {
     setTimeout(() => void greetBack(settings.name), 1200);
   }

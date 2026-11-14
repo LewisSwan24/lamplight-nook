@@ -25,8 +25,13 @@ jobs:
       - run: npm test
       # Also writes latest.yml and the installer's blockmap, which the app's updater reads (package.json build.publish).
       - run: npm run dist
-      # The Store test package (unsigned, test publisher) from the same unpacked app.
+      # The Store package from the same unpacked app, unsigned: the Store signs what it publishes. Its identity comes from
+      # Partner Center's Product identity page through the repository's variables; until they are set it gets the test one.
       - run: npm run msix
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_NAME: ${{ vars.MSIX_PUBLISHER_NAME }}
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer

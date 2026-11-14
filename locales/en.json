@@ -828,6 +828,15 @@
       "failed": "Didn't work out. Click to go back in.",
       "open": "Back to the shop"
     },
+    "moveIn": {
+      "title": "Bring your shop over?",
+      "found": "Wick found the Lamplight Nook you installed from the website on this computer: {works} finished works, with {spent} in the ledger.",
+      "text": "Bring it over and your works, the notebook and the ledger carry on here. The original stays where it is, and the other version still opens. Your API key can't come along: paste it in Settings again afterwards.",
+      "move": "Bring it over",
+      "fresh": "No, start afresh",
+      "moved": "All moved in, {name}. Everything's here.",
+      "failed": "Couldn't bring it over. The original hasn't been touched."
+    },
     "update": {
       "postman": "Letter for the Nook. From the makers.",
       "thanks": "Thanks, Pip.",
