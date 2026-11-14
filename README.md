@@ -60,6 +60,11 @@ real recording without calling the API, and run two debug tasks. Raw events of e
 
 - Run the workflow from the Actions tab, or push a tag such as `v0.1.0`.
 - It creates a GitHub release with `Lamplight-Nook-Setup-<version>.exe` and the Store test package attached, tagged with the pushed tag or with the version in `package.json`. Bump the version before each release.
+- `latest.yml` and the installer's `.blockmap` go up with it. The installed app reads them to find new versions
+  (`electron-updater`, `app/main/updates.ts`): it looks on opening and every six hours, the postman brings a letter, and
+  only "Update" downloads. The new version installs silently when the user closes the shop, after the data files are
+  copied to `backup/<date>-before-<version>/`. The Store build never looks. A release without `latest.yml` is invisible
+  to installed apps.
 
 The build sets Electron's fuses (`build.electronFuses` in `package.json`): the packaged app does not run as plain
 Node, ignores `NODE_OPTIONS` and debugger flags, and loads only its own `app.asar`, whose hash is checked on
@@ -67,6 +72,7 @@ Windows. Playwright cannot attach to such a build (it needs the debugger flag), 
 unpackaged app.
 
 The installer is not code-signed yet, so Windows SmartScreen asks for confirmation ("More info", then "Run anyway").
+Updates work unsigned: the updater checks a signature only when `app-update.yml` names a publisher, and it names none.
 The installer does not include Claude Code. The app uses the copy installed on the machine
 (native installer location, `PATH`, or a global npm install; `LAMPLIGHT_CLAUDE_PATH` overrides the lookup)
 and shows a notice when none is found. Users paste their own Anthropic API key in the app
