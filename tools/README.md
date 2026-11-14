@@ -183,3 +183,12 @@ ever added to the repository.
 Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY`, taking a screenshot every few seconds into
 `real-out/`. The app's lowest cap is $1; `--cap` (default 0.40) lowers it for the test through a small wrapper
 around the SDK's Claude Code, so the app is unchanged (Linux and macOS). `--sim` runs it against the stand-in.
+
+## The ledger against the Console (`ledger-table.mjs`)
+
+`node tools/ledger-table.mjs <dataDir> [--month YYYY-MM]` prints the app's spend ledger as a Markdown table, for
+holding against the Anthropic Console's usage page (road-to-1.1.md A3). On Windows the data folder is
+`"%APPDATA%\Lamplight Nook"`. One row per session per month, named by the work's title from `memory.json` (the
+folder's name when the notebook no longer has it, or "forgotten" after the shop forgot everything), then each
+month's total and the grand total. It only reads `spend.json` and `memory.json` and writes nothing. These are
+Claude Code's own estimates, so a small difference from the Console is expected; write it down in section 7.
