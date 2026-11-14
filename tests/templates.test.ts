@@ -206,6 +206,33 @@ describe('scripts the shop made', () => {
     rmSync(join(work, 'wipe.ps1'));
     expect(collectOutputs(work, new Set())).not.toHaveProperty('scripts');
   });
+
+  it('a script changed in a later round is read again, not just new ones', () => {
+    const work = dir();
+    writeFileSync(join(work, 'tool.ps1'), careful);
+    const before = snapshot(work);
+    writeFileSync(join(work, 'tool.ps1'), 'Remove-Item $args[0]');
+    expect(collectOutputs(work, before).scripts).toEqual([{ file: 'tool.ps1', risks: ['deletes', 'noPreview'] }]);
+  });
+
+  it('a script saved as UTF-16 is read as such', () => {
+    const work = dir();
+    writeFileSync(join(work, 'wipe.ps1'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('param([switch]$Apply)\r\nRemove-Item $f', 'utf16le')]));
+    expect(collectOutputs(work, new Set()).scripts).toEqual([{ file: 'wipe.ps1', risks: ['deletes'] }]);
+  });
+
+  it('a folder that happens to be named like a script is left alone', () => {
+    const work = dir();
+    mkdirSync(join(work, 'odd.ps1'));
+    expect(() => collectOutputs(work, new Set())).not.toThrow();
+    expect(collectOutputs(work, new Set())).not.toHaveProperty('scripts');
+  });
+
+  it('a launcher passing -Apply cut short still skips the preview', () => {
+    expect(scriptRisks('powershell -File "%~dp0tool.ps1" -Ap', 'cmd')).toEqual(['noPreview']);
+    expect(scriptRisks('powershell -File "%~dp0tool.ps1" -App', 'cmd')).toEqual(['noPreview']);
+    expect(scriptRisks('powershell -File "%~dp0tool.ps1" -Path "%~1"', 'cmd')).toEqual([]);
+  });
 });
 
 describe('the main output', () => {

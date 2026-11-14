@@ -261,11 +261,13 @@ export function snapshot(dir: string): Set<string> {
  * else a table or a letter (MAIN_FILES in shared/templates.ts).
  */
 export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string; scripts?: ScriptCheck[] } {
-  const files = [...snapshot(workDir)].filter((f) => !before.has(f));
+  const all = [...snapshot(workDir)];
+  const files = all.filter((f) => !before.has(f));
   const main = Object.values(MAIN_FILES).reduce<string | undefined>((found, is) => found ?? files.find((f) => is(basename(f), F)), undefined);
-  const scripts = files.flatMap((f) => {
+  // Every script in the folder, not only new ones: a later round may have rewritten one that was fine.
+  const scripts = all.flatMap((f) => {
     const kind = SCRIPT_KINDS[extname(f).toLowerCase()];
-    const risks = kind ? scriptRisks(readFileSync(f, 'utf8'), kind) : [];
+    const risks = kind && lstatSync(f).isFile() ? scriptRisks(scriptText(f), kind) : [];
     return risks.length ? [{ file: basename(f), risks }] : [];
   });
   return scripts.length ? { files, main, scripts } : { files, main };
@@ -273,6 +275,12 @@ export function collectOutputs(workDir: string, before: Set<string>): { files: s
 
 /** Scripts the user could run with a double click, and which language each is read as. */
 const SCRIPT_KINDS: Record<string, 'ps1' | 'cmd'> = { '.ps1': 'ps1', '.cmd': 'cmd', '.bat': 'cmd' };
+
+/** A script's text: UTF-8, or UTF-16 when it starts with that byte order mark (what Windows PowerShell writes). */
+function scriptText(file: string): string {
+  const bytes = readFileSync(file);
+  return bytes[0] === 0xff && bytes[1] === 0xfe ? bytes.subarray(2).toString('utf16le') : bytes.toString('utf8');
+}
 
 /** Comments, which say what a script does not do as often as what it does. */
 const COMMENTS = {
@@ -284,10 +292,10 @@ const DELETES = {
   ps1: /(^|[\s|;({])(remove-item|ri|rm|rmdir|rd|del|erase)\b|::delete\s*\(|\.delete\s*\(/im,
   cmd: /(^|[\s&|(@])(del|erase|rd|rmdir)\b|remove-item/im,
 };
-/** Changing files straight away: a script with no -Apply switch, or a launcher that passes it. */
+/** Changing files straight away: a script with no -Apply switch, or a launcher that passes it (PowerShell takes -Ap too). */
 const NO_PREVIEW = {
   ps1: (code: string) => !/\$Apply\b/i.test(code),
-  cmd: (code: string) => /(^|\s)-Apply\b/i.test(code),
+  cmd: (code: string) => /(^|\s)-ap(p|pl|ply)?\b/i.test(code),
 };
 
 /**
