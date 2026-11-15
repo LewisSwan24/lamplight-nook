@@ -13,6 +13,7 @@ export const ALLOWED = ['MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.
 /** Packages under their own terms, checked by hand: name -> why it is fine. */
 export const REVIEWED = {
   '@anthropic-ai/claude-agent-sdk': 'Anthropic proprietary; used under Anthropic\'s legal agreements to drive the user\'s own Claude Code.',
+  argparse: 'Python Software Foundation License 2.0: permissive, no copyleft, shipping allowed with its notice. Comes with js-yaml, which electron-updater reads update feeds with.',
 };
 
 /** Electron and Chromium ship their own license files next to the app (LICENSE.electron.txt, LICENSES.chromium.html). */
@@ -65,6 +66,30 @@ export function importedPackages(dir) {
 
 const LICENSE_FILE = /^(licen[cs]e|copying|notice)(\.(md|txt|markdown))?$/i;
 
+/** The MIT terms as opensource.org gives them, for a package that names the license but leaves its text out. */
+const mit = (holder) => `MIT License
+
+Copyright (c) ${holder}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.`;
+
+/** Packages whose package.json names the license but which ship no text of it, checked by hand: name -> the text. */
+const MISSING_TEXT = {
+  // electron-updater's; package.json says MIT, author Vladimir Krivosheev.
+  'lazy-val': mit('Vladimir Krivosheev'),
+};
+
 /** A package and everything it depends on at run time (dependencies only: optional and peer ones are not shipped). */
 export function collect(roots, modules = join(ROOT, 'node_modules')) {
   const seen = new Map();
@@ -75,7 +100,7 @@ export function collect(roots, modules = join(ROOT, 'node_modules')) {
     const files = readdirSync(dir).filter((f) => LICENSE_FILE.test(f)).sort();
     const license = typeof pkg.license === 'string' ? pkg.license : pkg.license?.type ?? 'UNKNOWN';
     const repo = typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url;
-    seen.set(name, { name, version: pkg.version, license, homepage: pkg.homepage ?? repo ?? '', texts: files.map((f) => readFileSync(join(dir, f), 'utf8').trim()) });
+    seen.set(name, { name, version: pkg.version, license, homepage: pkg.homepage ?? repo ?? '', texts: files.length ? files.map((f) => readFileSync(join(dir, f), 'utf8').trim()) : MISSING_TEXT[name] ? [MISSING_TEXT[name]] : [] });
     for (const dep of Object.keys(pkg.dependencies ?? {})) visit(dep);
   };
   roots.forEach(visit);

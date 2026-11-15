@@ -102,6 +102,8 @@ const FAILURES: Record<string, Failure> = {
   billing: { title: R.billingTitle, text: R.billingText, link: ['billing', R.billingHow], retry: true, plain: true },
   auth: { title: R.authTitle, text: R.authText, link: ['apiKeys', R.authHow], retry: false, plain: true },
   gone: { title: R.goneTitle, text: R.goneText, retry: false, plain: false },
+  // The user's own folder grew past what can be kept since it was picked: nothing has started, nothing has changed.
+  tooBig: { title: R.tooBigTitle, text: R.tooBigText, retry: false, plain: false },
   failed: { title: R.failedTitle, text: R.failedText, retry: true, plain: false },
   budget: { title: R.budgetTitle, text: R.budgetText, retry: true, plain: true, retryLabel: R.budgetRetry },
 };

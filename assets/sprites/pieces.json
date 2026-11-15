@@ -114,12 +114,20 @@
   ],
   "on": {
    "decor-christmas": 143.1,
+   "decor-dragon_boat": 106.1,
+   "decor-mid_autumn": 106.1,
    "grow-album": 106.1,
    "grow-fruit": 106.1,
    "grow-ledger": 106.1,
    "grow-monitor": 158.1,
    "grow-plant": 94.1,
-   "grow-trophy": 152.1
+   "grow-readinglamp": 106.1,
+   "grow-teapot": 94.1,
+   "grow-trophy": 152.1,
+   "season-autumn": 106.1,
+   "season-spring": 106.1,
+   "season-summer": 106.1,
+   "season-winter": 106.1
   },
   "decor": [
    {
@@ -127,6 +135,18 @@
     "right": 162,
     "top": 66,
     "bottom": 85
+   },
+   {
+    "left": 147,
+    "right": 159,
+    "top": 79,
+    "bottom": 86
+   },
+   {
+    "left": 146,
+    "right": 159,
+    "top": 80,
+    "bottom": 86
    },
    {
     "left": 2,
@@ -148,6 +168,12 @@
     "w": 14,
     "h": 8
    },
+   "aquarium": {
+    "x": 4,
+    "y": 156,
+    "w": 29,
+    "h": 20
+   },
    "bonsai": {
     "x": 27,
     "y": 93,
@@ -160,11 +186,29 @@
     "w": 14,
     "h": 10
    },
+   "briefcase": {
+    "x": 3,
+    "y": 77,
+    "w": 13,
+    "h": 10
+   },
    "calendar": {
     "x": 129,
     "y": 19,
     "w": 12,
     "h": 12
+   },
+   "chime": {
+    "x": 44,
+    "y": 17,
+    "w": 7,
+    "h": 17
+   },
+   "cushion": {
+    "x": 217,
+    "y": 99,
+    "w": 18,
+    "h": 7
    },
    "easel": {
     "x": 302,
@@ -178,11 +222,23 @@
     "w": 14,
     "h": 17
    },
+   "gramophone": {
+    "x": 30,
+    "y": 50,
+    "w": 22,
+    "h": 26
+   },
    "guitar": {
     "x": 246,
     "y": 22,
     "w": 10,
     "h": 25
+   },
+   "hat": {
+    "x": 305,
+    "y": 18,
+    "w": 13,
+    "h": 10
    },
    "ledger": {
     "x": 155,
@@ -220,11 +276,35 @@
     "w": 12,
     "h": 14
    },
+   "plaque": {
+    "x": 125,
+    "y": 1,
+    "w": 51,
+    "h": 13
+   },
    "portrait": {
     "x": 262,
     "y": 24,
     "w": 13,
     "h": 15
+   },
+   "postcards": {
+    "x": 2,
+    "y": 22,
+    "w": 13,
+    "h": 10
+   },
+   "readinglamp": {
+    "x": 125,
+    "y": 81,
+    "w": 9,
+    "h": 12
+   },
+   "scroll": {
+    "x": 82,
+    "y": 16,
+    "w": 9,
+    "h": 21
    },
    "star": {
     "x": 164,
@@ -237,6 +317,18 @@
     "y": 24,
     "w": 13,
     "h": 15
+   },
+   "teapot": {
+    "x": 227,
+    "y": 75,
+    "w": 13,
+    "h": 8
+   },
+   "toolbox": {
+    "x": 36,
+    "y": 159,
+    "w": 14,
+    "h": 10
    },
    "trophy": {
     "x": 44,
@@ -361,15 +453,24 @@
   ],
   "on": {
    "decor-christmas": 102.1,
+   "decor-dragon_boat": 102.1,
    "decor-halloween": 157.1,
+   "decor-mid_autumn": 102.1,
    "grow-album": 102.1,
+   "grow-aquarium": 157.1,
    "grow-bonsai": 157.1,
    "grow-books": 157.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 97.1,
+   "grow-readinglamp": 102.1,
+   "grow-teapot": 97.1,
    "grow-trophy": 157.1,
+   "season-autumn": 102.1,
+   "season-spring": 102.1,
+   "season-summer": 102.1,
+   "season-winter": 102.1,
    "weather-leaves": 97.1
   },
   "decor": [
@@ -378,6 +479,18 @@
     "right": 162,
     "top": 66,
     "bottom": 85
+   },
+   {
+    "left": 147,
+    "right": 159,
+    "top": 79,
+    "bottom": 86
+   },
+   {
+    "left": 146,
+    "right": 159,
+    "top": 80,
+    "bottom": 86
    },
    {
     "left": 2,
@@ -399,6 +512,12 @@
     "w": 14,
     "h": 8
    },
+   "aquarium": {
+    "x": 4,
+    "y": 156,
+    "w": 29,
+    "h": 20
+   },
    "bonsai": {
     "x": 27,
     "y": 93,
@@ -411,11 +530,29 @@
     "w": 14,
     "h": 10
    },
+   "briefcase": {
+    "x": 3,
+    "y": 77,
+    "w": 13,
+    "h": 10
+   },
    "calendar": {
     "x": 129,
     "y": 19,
     "w": 12,
     "h": 12
+   },
+   "chime": {
+    "x": 44,
+    "y": 17,
+    "w": 7,
+    "h": 17
+   },
+   "cushion": {
+    "x": 217,
+    "y": 99,
+    "w": 18,
+    "h": 7
    },
    "easel": {
     "x": 302,
@@ -429,11 +566,23 @@
     "w": 14,
     "h": 17
    },
+   "gramophone": {
+    "x": 30,
+    "y": 50,
+    "w": 22,
+    "h": 26
+   },
    "guitar": {
     "x": 246,
     "y": 22,
     "w": 10,
     "h": 25
+   },
+   "hat": {
+    "x": 305,
+    "y": 18,
+    "w": 13,
+    "h": 10
    },
    "ledger": {
     "x": 155,
@@ -471,11 +620,35 @@
     "w": 12,
     "h": 14
    },
+   "plaque": {
+    "x": 125,
+    "y": 1,
+    "w": 51,
+    "h": 13
+   },
    "portrait": {
     "x": 262,
     "y": 24,
     "w": 13,
     "h": 15
+   },
+   "postcards": {
+    "x": 2,
+    "y": 22,
+    "w": 13,
+    "h": 10
+   },
+   "readinglamp": {
+    "x": 125,
+    "y": 81,
+    "w": 9,
+    "h": 12
+   },
+   "scroll": {
+    "x": 82,
+    "y": 16,
+    "w": 9,
+    "h": 21
    },
    "star": {
     "x": 164,
@@ -488,6 +661,18 @@
     "y": 24,
     "w": 13,
     "h": 15
+   },
+   "teapot": {
+    "x": 227,
+    "y": 75,
+    "w": 13,
+    "h": 8
+   },
+   "toolbox": {
+    "x": 36,
+    "y": 159,
+    "w": 14,
+    "h": 10
    },
    "trophy": {
     "x": 44,

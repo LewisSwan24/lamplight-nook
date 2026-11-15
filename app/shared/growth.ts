@@ -1,13 +1,13 @@
-import type { CommissionTemplate } from './types';
+import { TEMPLATES, type BroughtId, type TemplateId } from './templates';
 
 /**
  * What the shop gathers as commissions get done together (plan.md R2.2). Each piece appears once the shop
  * has finished that many commissions with the user, and stays: nothing goes away for not opening the app.
- * A piece with `work` counts only that kind of work instead, so the shop comes to look like what was made in it.
- * Another round of changes on the same work counts for neither: it is still one piece of work.
+ * A piece with `work` counts only that kind of work instead (the templates say which), so the shop comes to look
+ * like what was made in it. Another round of changes on the same work counts for neither: it is still one piece of work.
  * The pictures are overlays made by scripts/art/growth.py (assets/sprites/grow-<id>.png).
  */
-export const GROWTH = [
+const COUNTED = [
   { id: 'painting', at: 1 },
   { id: 'plant', at: 2 },
   { id: 'lights', at: 3 },
@@ -19,14 +19,22 @@ export const GROWTH = [
   { id: 'portrait', at: 25 },
   { id: 'sunset', at: 35 },
   { id: 'star', at: 50 },
-  { id: 'album', at: 1, work: 'album' },
-  { id: 'calendar', at: 1, work: 'plan' },
-  { id: 'books', at: 2, work: 'research' },
-  { id: 'letters', at: 2, work: 'letter' },
-  { id: 'ledger', at: 2, work: 'sheet' },
-  { id: 'monitor', at: 3, work: 'page' },
+  // Past fifty (road-to-1.1.md A9): a big piece at sixty, seventy-five and a hundred, small ones between.
+  { id: 'chime', at: 55 },
+  { id: 'aquarium', at: 60 },
+  { id: 'scroll', at: 65 },
+  { id: 'teapot', at: 70 },
+  { id: 'gramophone', at: 75 },
+  { id: 'cushion', at: 80 },
+  { id: 'hat', at: 90 },
+  { id: 'plaque', at: 100 },
 ] as const;
-export type GrowthId = (typeof GROWTH)[number]['id'];
+type Growth = (typeof COUNTED)[number] | { id: BroughtId; at: number; work: TemplateId };
+export const GROWTH: Growth[] = [
+  ...COUNTED,
+  ...TEMPLATES.flatMap((t) => ('growth' in t ? [{ id: t.growth.id, at: t.growth.at, work: t.id }] : [])),
+];
+export type GrowthId = Growth['id'];
 /** How many finished works of each kind. */
 export type Made = Partial<Record<WorkIcon, number>>;
 
@@ -35,11 +43,14 @@ export function grownBy(done: number, made: Made = {}): GrowthId[] {
   return GROWTH.filter((g) => ('work' in g ? (made[g.work] ?? 0) : done) >= g.at).map((g) => g.id);
 }
 
+export type WorkIcon = TemplateId | 'demo';
+/** The demo's icon on the works shelf; each template names its own. */
+const DEMO_ICON = 4;
 /** Icons on the works shelf, in the order of assets/sprites/works.png (8x8 each). */
-export const WORK_ICONS = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album'] as const;
-export type WorkIcon = (typeof WORK_ICONS)[number];
-export const workIcon = (form?: { demo?: boolean; template?: CommissionTemplate }): WorkIcon =>
-  form?.demo ? 'demo' : form?.template && form.template !== 'page' ? form.template : 'page';
+export const WORK_ICONS: readonly WorkIcon[] = Array.from({ length: TEMPLATES.length + 1 },
+  (_, i) => (i === DEMO_ICON ? 'demo' : TEMPLATES.find((t) => t.icon === i)!.id));
+export const workIcon = (form?: { demo?: boolean; template?: TemplateId }): WorkIcon =>
+  form?.demo ? 'demo' : form?.template ?? 'page';
 
 export function madeOf(works: { icon: WorkIcon }[]): Made {
   const made: Made = {};
@@ -64,19 +75,38 @@ export const BEDS = [
   { x: 22, y: 84 }, { x: 36, y: 84 }, { x: 56, y: 84 }, { x: 70, y: 84 },
   { x: 22, y: 112 }, { x: 36, y: 112 }, { x: 56, y: 112 }, { x: 70, y: 112 },
 ] as const;
-export type BedStage = 'empty' | 'sprout' | 'ripe';
+/** Northern hemisphere seasons (game/weather.ts decides which one it is). */
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+/** Growing up: empty, sprout, ripe. Once all are ripe the beds follow the seasons: young plants, ripe, harvest, straw. */
+export type BedStage = 'empty' | 'sprout' | 'ripe' | 'young' | 'harvest' | 'rest';
 const BED_EVERY = 3;
+const SEASON_STAGE: Record<Season, BedStage> = { spring: 'young', summer: 'ripe', autumn: 'harvest', winter: 'rest' };
 
-export function bedStages(done: number): BedStage[] {
+/** How far the beds have come with this many works, whatever the season. */
+function grownStages(done: number): BedStage[] {
   return BEDS.map((_, i) => {
     const planted = i * BED_EVERY + 1;
     return done >= planted + BED_EVERY ? 'ripe' : done >= planted ? 'sprout' : 'empty';
   });
 }
 
+/** The beds come up as works get finished; once they are all ripe, they turn with the seasons instead. */
+export function bedStages(done: number, season: Season): BedStage[] {
+  const grown = grownStages(done);
+  return grown.every((b) => b === 'ripe') ? grown.map(() => SEASON_STAGE[season]) : grown;
+}
+
+/**
+ * Which picture in garden-crops.png (scripts/art/garden.py, crop_sheet): the eight summer crops, a sprout, eight young
+ * spring plants, eight autumn crops, then straw.
+ */
+export function bedFrame(stage: Exclude<BedStage, 'empty'>, bed: number): number {
+  return { ripe: bed, sprout: 8, young: 9 + bed, harvest: 17 + bed, rest: 25 }[stage];
+}
+
 /** What is worth a word after finishing a work: the first sprout, the first ripe plant, all of them ripe. */
 export function bedNews(before: number, after: number): 'bed_sprout' | 'bed_ripe' | 'bed_full' | null {
-  const ripe = (done: number) => bedStages(done).filter((b) => b === 'ripe').length;
+  const ripe = (done: number) => grownStages(done).filter((b) => b === 'ripe').length;
   if (ripe(after) === BEDS.length && ripe(before) < BEDS.length) return 'bed_full';
   if (ripe(after) > 0 && ripe(before) === 0) return 'bed_ripe';
   if (after > 0 && before === 0) return 'bed_sprout';

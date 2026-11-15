@@ -187,6 +187,49 @@ describe('translation: cases not in the recording', () => {
     expect(show({ kind: 'subagent_stop', agent: 'unknown' })).toEqual(['xiaoju:returning@counter/sub_back_xiaoju']);
   });
 
+  it('once the apprentice has come, Xiaoju\'s second errand goes to Xiaodou; a third still waits its turn', () => {
+    const t = new Translator(rules, anims);
+    t.apprentice = true;
+    t.translate(ev({ kind: 'session_start' }));
+    const show = (e: Partial<AiEvent>) => t.translate(ev(e)).map((c) => `${c.actor}:${c.state}${c.moveTo ? '@' + c.moveTo : ''}${c.line ? '/' + c.line.group : ''}`);
+    expect(show({ kind: 'subagent_start', agent: 'researcher' })).toEqual(['xiaoju:out@door/sub_go_xiaoju', 'adeng:working']);
+    expect(show({ kind: 'subagent_start', agent: 'researcher' })).toEqual(['xiaodou:out@door/sub_go_xiaodou', 'adeng:working']);
+    const queued = t.translate(ev({ kind: 'subagent_start', agent: 'unknown' }));
+    expect(queued).toMatchObject([{ actor: 'adeng', line: { group: 'sub_queue', flags: ['who_xiaoju'] } }]);
+    // Whoever set off first is back first, and takes the errand that waited.
+    expect(show({ kind: 'subagent_stop', agent: 'researcher' })).toEqual([
+      'xiaoju:returning@counter/sub_back_xiaoju', 'xiaoju:out@door/sub_go_xiaoju', 'adeng:working',
+    ]);
+    expect(t.helpersOf('researcher')).toEqual(['xiaodou', 'xiaoju']);
+    expect(show({ kind: 'subagent_stop', agent: 'researcher' })).toEqual(['xiaodou:returning@counter/sub_back_xiaodou']);
+    // The parcel on the counter is from whoever brought it.
+    expect(t.returned).toBe('xiaodou');
+    expect(show({ kind: 'subagent_stop', agent: 'unknown' })).toEqual(['xiaoju:returning@counter/sub_back_xiaoju']);
+    expect(t.returned).toBe('xiaoju');
+    expect(t.helpersOf('researcher')).toEqual(['xiaoju']);
+    // Back at the counter, the apprentice is free for the next one again.
+    show({ kind: 'subagent_start', agent: 'researcher' });
+    expect(show({ kind: 'subagent_start', agent: 'researcher' })).toEqual(['xiaodou:out@door/sub_go_xiaodou', 'adeng:working']);
+  });
+
+  it('the apprentice only runs errands: a second check still waits for Laoshi', () => {
+    const t = new Translator(rules, anims);
+    t.apprentice = true;
+    t.translate(ev({ kind: 'session_start' }));
+    expect(t.translate(ev({ kind: 'subagent_start', agent: 'reviewer' }))[0]).toMatchObject({ actor: 'laoshi', moveTo: 'table' });
+    expect(t.translate(ev({ kind: 'subagent_start', agent: 'reviewer' }))).toMatchObject([{ actor: 'adeng', line: { group: 'sub_queue', flags: ['who_laoshi'] } }]);
+  });
+
+  it('the apprentice\'s lines are spoken by the apprentice', () => {
+    const t = new Translator(rules, anims);
+    t.apprentice = true;
+    t.translate(ev({ kind: 'session_start' }));
+    t.translate(ev({ kind: 'subagent_start', agent: 'researcher' }));
+    const d = new Director(toLineBook(lines));
+    const go = d.submit(t.translate(ev({ kind: 'subagent_start', agent: 'researcher', target: 'opening hours' }))[0]);
+    expect(go?.line?.vars._id).toMatch(/^go_xd_/);
+  });
+
   it('the demo colour question gets its own line; other questions get the general one', () => {
     const ask = (flags: string[]) => {
       const t = new Translator(rules, anims, { flags });

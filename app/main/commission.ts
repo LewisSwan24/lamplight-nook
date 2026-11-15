@@ -1,15 +1,12 @@
 import { localDay } from '../shared/localday';
-import { copyFileSync, existsSync, lstatSync, readdirSync, writeFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { copyFileSync, existsSync, lstatSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import { strings } from '../shared/i18n';
-import type { CommissionForm } from '../shared/types';
+import { MAIN_FILES, template } from '../shared/templates';
+import type { CommissionForm, ScriptCheck, ScriptRisk } from '../shared/types';
 import { materialsSteps } from './materials';
 
 const F = strings.ui.files;
-
-/** Text files the edit template accepts, and how big they may be. */
-export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json'];
-export const MAX_EDIT_BYTES = 1024 * 1024;
 
 /** How much of a folder the tidy template lists. */
 const LIST_DEPTH = 2;
@@ -107,78 +104,27 @@ const withNotes = (prompt: string, notes = '') => (notes ? `${prompt}\n\n${notes
 export const originalName = (source: string) => `${F.originalPrefix}${basename(source)}`;
 export const revisedName = (source: string) => `${F.revisedPrefix}${basename(source)}`;
 
-/** What each template asks for on top of the request itself. File names are quoted so they are unambiguous. */
+/** What the form's template asks for on top of the request itself (shared/templates.ts). */
 function templateSteps(form: CommissionForm): string[] {
-  switch (form.template) {
-    case 'page':
-      return [
-        'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
-        'Keep data in localStorage if the page needs to remember anything.',
-      ];
-    case 'research':
-      return [
-        'This is a research commission: do not make a web page.',
-        `Send the researcher subagent to look it up, then write the findings as "${F.summary}" in ${LANGUAGE}:`,
-        'a three-sentence summary first, then the key points as a list, then the sources with their links.',
-        'Say plainly where sources disagree or where you are unsure.',
-      ];
-    case 'edit': {
-      const source = form.source ?? '';
-      return [
-        `The document to work on is "${originalName(source)}" in this folder, a copy of the user's file.`,
-        `Do not change "${originalName(source)}". Write the edited version as "${revisedName(source)}", in the same format.`,
-        'In your final reply, list the main changes in two to five short points.',
-      ];
-    }
-    case 'tidy':
-      return [
-        `"${F.listing}" lists what is in the user's folder "${basename(form.source ?? '')}": relative path, size in bytes, last modified date. Folders end with "/".`,
-        'You cannot see that folder and must not try to look for it. Work only from the list.',
-        `Write a plan for tidying it up as "${F.tidyPlan}" in ${LANGUAGE}: a suggested folder layout, which files go where,`,
-        'and anything that looks like a duplicate, an old version or a leftover worth a look.',
-        'Do not move, rename or delete anything: the user carries out the plan themselves.',
-      ];
-    case 'letter':
-      return [
-        'This is a letter or an email: do not make a web page.',
-        `Write it as "${F.letter}" in ${LANGUAGE}, as plain text the user can copy straight into an email or onto paper.`,
-        'If it is an email, put a short subject line first, marked as the subject. Match the tone to who it is for; keep it warm and to the point.',
-        'Where you need a fact you do not have (a date, a name, an amount), leave a clear blank in square brackets instead of making it up.',
-        'Do not send it anywhere: the user sends it themselves.',
-      ];
-    case 'sheet':
-      return [
-        'This is a table: do not make a web page.',
-        `Write it as "${F.sheet}": a CSV file in UTF-8 with a byte order mark, so it opens correctly in Excel and other spreadsheet apps.`,
-        'Put the column names in the first row. Leave rows for the user to fill in where that is the point of the table.',
-        'Where a total or a sum helps, use spreadsheet formulas such as =SUM(B2:B20) so it updates as the user fills it in.',
-        `Write the column names and any example rows in ${LANGUAGE}.`,
-      ];
-    case 'plan':
-      return [
-        'This is a plan: do not make a web page.',
-        `Write it as "${F.plan}" in ${LANGUAGE}: one line on the goal first, then the plan as a table by day or by week (whichever fits),`,
-        'then a short checklist of what to prepare. Keep each step small enough to do in one sitting, and leave some slack for missed days.',
-        'If something depends on the user (their free time, a budget, a level), say what you assumed in one line at the top.',
-      ];
-    case 'album':
-      return [
-        `Make a little photo album as a single self-contained page named "index.html", using the photos in the folder "${strings.ui.files.materials}".`,
-        `Show the photos straight from that folder with relative paths (for example "${strings.ui.files.materials}/photo.jpg"); do not copy, resize or change them.`,
-        'Look at each photo first so the order, the captions and the title fit what is in them. Keep captions short and kind; do not guess names of people.',
-        'CSS and JavaScript inline, no build step; it must work when opened straight from disk. Clicking a photo shows it large.',
-      ];
-    default:
-      return [];
-  }
+  if (!form.template) return [];
+  const source = form.source ?? '';
+  return template(form.template).steps({ language: LANGUAGE, files: F, sourceName: basename(source), original: originalName(source), revised: revisedName(source) });
 }
+
+/**
+ * Working in a folder the user lent the shop (road-to-1.1.md A6). Their files can be put back if they don't like the
+ * result, but a deleted or renamed one only after they agreed to it, so the staff are asked to leave that alone.
+ */
+export const LENT_RULE = 'This folder is the user\'s own, with their files in it, not one the shop made for this. Change only what the request needs, '
+  + 'keep the names of their files, and do not delete, move or rename anything of theirs.';
+const lentSteps = (form: CommissionForm) => (form.inPlace ? [LENT_RULE] : []);
 
 /** Prompt for an ordinary commission built from the form. */
 export function commissionPrompt(form: CommissionForm, notes?: string): string {
   const lines = [`The user's request: ${form.want}`];
   if (form.details) lines.push(`Particulars: ${form.details}`);
   if (form.audience) lines.push(`Who it is for: ${form.audience}`);
-  const steps = [...templateSteps(form), ...materialsSteps(form.materials)];
+  const steps = [...lentSteps(form), ...templateSteps(form), ...materialsSteps(form.materials)];
   const body = steps.length ? `${lines.join('\n')}\n\n${steps.join('\n')}` : lines.join('\n');
   return withNotes(`${body}\n\n${HOUSE_RULES}`, notes);
 }
@@ -213,13 +159,13 @@ export type Revision = { ask: string; form: CommissionForm; summary?: string; re
 export function revisePrompt(r: Revision, resumed: boolean, notes?: string): string {
   const ask = `The user has looked at the finished work and asks for a change: "${r.ask}"`;
   const restored = r.restored ? ['Since your last round the user went back to the previous version of the files: work from the folder as it is now.'] : [];
-  if (resumed) return [ask, ...restored, '', REVISE_RULES].join('\n');
+  if (resumed) return [ask, ...restored, ...lentSteps(r.form), '', REVISE_RULES].join('\n');
   const before = [`Earlier the shop made this for the user. Their original request: ${r.form.demo ? strings.demo.brief : r.form.want}`];
   if (r.form.details) before.push(`Particulars: ${r.form.details}`);
   if (r.form.audience) before.push(`Who it is for: ${r.form.audience}`);
   if (r.summary) before.push(`What the shop said it made: ${r.summary}`);
-  before.push('The files are in this folder: look at them first.');
-  const steps = r.form.template && r.form.template !== 'research' ? templateSteps(r.form) : [];
+  before.push('The files are in this folder: look at them first.', ...lentSteps(r.form));
+  const steps = r.form.template && template(r.form.template).revise ? templateSteps(r.form) : [];
   return withNotes([...before, ...steps, '', ask, '', REVISE_RULES].join('\n'), notes);
 }
 
@@ -277,9 +223,10 @@ export function prepareDemoFolder(workDir: string, checkScript: string) {
  * a copy of the file to edit, or a list of the folder to tidy. The user's own files are never touched.
  */
 export function prepareSource(workDir: string, form: CommissionForm) {
-  if (!form.source) return;
-  if (form.template === 'edit') copyFileSync(form.source, join(workDir, originalName(form.source)));
-  if (form.template === 'tidy') writeFileSync(join(workDir, F.listing), listFolder(form.source), 'utf8');
+  if (!form.source || !form.template) return;
+  const kind = template(form.template).source?.kind;
+  if (kind === 'file') copyFileSync(form.source, join(workDir, originalName(form.source)));
+  if (kind === 'folder') writeFileSync(join(workDir, F.listing), listFolder(form.source), 'utf8');
 }
 
 /** A plain-text list of a folder, two levels deep, hidden files and links left out, capped in length. */
@@ -319,14 +266,74 @@ export function snapshot(dir: string): Set<string> {
 /**
  * What the commission produced, for the result card. The main output is index.html if present,
  * else an edited document, else any page, else a Markdown write-up (a research summary, a tidy plan or a plan),
- * else a table or a letter.
+ * else a table or a letter (MAIN_FILES in shared/templates.ts).
  */
-export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string } {
-  const files = [...snapshot(workDir)].filter((f) => !before.has(f));
-  const main = files.find((f) => /index\.html$/i.test(f))
-    ?? files.find((f) => basename(f).startsWith(F.revisedPrefix))
-    ?? files.find((f) => /\.html?$/i.test(f))
-    ?? files.find((f) => /\.md$/i.test(f))
-    ?? files.find((f) => /\.(csv|txt)$/i.test(f));
-  return { files, main };
+export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string; scripts?: ScriptCheck[] } {
+  const all = [...snapshot(workDir)];
+  const files = all.filter((f) => !before.has(f));
+  // Every script in the folder, not only new ones: a later round may have rewritten one that was fine.
+  const scripts = scriptChecks(all);
+  return scripts.length ? { files, main: mainOf(files), scripts } : { files, main: mainOf(files) };
+}
+
+/** The main output among these files, in the order MAIN_FILES gives. */
+const mainOf = (files: string[]) => Object.values(MAIN_FILES).reduce<string | undefined>((found, is) => found ?? files.find((f) => is(basename(f), F)), undefined);
+
+/** Scripts among these files that need a look before a double click. */
+function scriptChecks(files: string[]): ScriptCheck[] {
+  return files.flatMap((f) => {
+    const kind = SCRIPT_KINDS[extname(f).toLowerCase()];
+    const risks = kind && lstatSync(f).isFile() ? scriptRisks(scriptText(f), kind) : [];
+    return risks.length ? [{ file: basename(f), risks }] : [];
+  });
+}
+
+/**
+ * What a commission in a lent folder produced, for the result card: the files it made, which of the user's it
+ * changed, and the main one. That may be one it changed (the user's own index.html with a new section, say).
+ * Only these are read for scripts: the rest of the folder is the user's business.
+ */
+export function lentOutputs(folder: string, { changed, added }: { changed: string[]; added: string[] }): { files: string[]; main?: string; scripts?: ScriptCheck[]; lent: { changed: string[]; added: string[] } } {
+  const files = added.map((p) => join(folder, p));
+  // A changed file may be one the user let the staff delete.
+  const touched = changed.map((p) => join(folder, p)).filter((f) => existsSync(f));
+  const scripts = scriptChecks([...files, ...touched]);
+  return { files, main: mainOf(files) ?? mainOf(touched), ...(scripts.length ? { scripts } : {}), lent: { changed, added } };
+}
+
+/** Scripts the user could run with a double click, and which language each is read as. */
+const SCRIPT_KINDS: Record<string, 'ps1' | 'cmd'> = { '.ps1': 'ps1', '.cmd': 'cmd', '.bat': 'cmd' };
+
+/** A script's text: UTF-8, or UTF-16 when it starts with that byte order mark (what Windows PowerShell writes). */
+function scriptText(file: string): string {
+  const bytes = readFileSync(file);
+  return bytes[0] === 0xff && bytes[1] === 0xfe ? bytes.subarray(2).toString('utf16le') : bytes.toString('utf8');
+}
+
+/** Comments, which say what a script does not do as often as what it does. */
+const COMMENTS = {
+  ps1: (t: string) => t.replace(/<#[\s\S]*?#>/g, '').replace(/(^|\s)#.*$/gm, '$1'),
+  cmd: (t: string) => t.replace(/^\s*@?(rem\b|::).*$/gim, ''),
+};
+/** Deleting: a PowerShell cmdlet or one of its aliases, a .NET Delete call, or a batch command. */
+const DELETES = {
+  ps1: /(^|[\s|;({])(remove-item|ri|rm|rmdir|rd|del|erase)\b|::delete\s*\(|\.delete\s*\(/im,
+  cmd: /(^|[\s&|(@])(del|erase|rd|rmdir)\b|remove-item/im,
+};
+/** Changing files straight away: a script with no -Apply switch, or a launcher that passes it (PowerShell takes -Ap too). */
+const NO_PREVIEW = {
+  ps1: (code: string) => !/\$Apply\b/i.test(code),
+  cmd: (code: string) => /(^|\s)-ap(p|pl|ply)?\b/i.test(code),
+};
+
+/**
+ * What the user should know before running a script the shop made (road-to-1.1.md A7). The tool template asks for
+ * a preview by default, -Apply to act, and no deleting; this reads the script to see whether it kept to that.
+ */
+export function scriptRisks(text: string, kind: 'ps1' | 'cmd'): ScriptRisk[] {
+  const code = COMMENTS[kind](text);
+  return [
+    ...(DELETES[kind].test(code) ? ['deletes' as const] : []),
+    ...(NO_PREVIEW[kind](code) ? ['noPreview' as const] : []),
+  ];
 }

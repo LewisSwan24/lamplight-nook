@@ -7,11 +7,14 @@
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
 import { pathToFileURL } from 'node:url';
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { closeSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { mainCards } from './cards.mjs';
+import { pdfSays, readPdf } from './pdftext.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
 
 const args = process.argv.slice(2);
@@ -29,6 +32,12 @@ const W = {
     sheet: '帮我做一个记每月开销的表格。',
     plan: '帮我排一个四周学会游泳换气的计划。',
     album: '用这些照片做一本秋天出游的小相册。',
+    resume: '帮我写一份应聘图书馆管理员的简历。',
+    notes: '帮我给《瓦尔登湖》做一份读书笔记。',
+    travel: '帮我做一份杭州的旅行攻略，三天。',
+    tool: '帮我做一个把文本里的英文全改成大写的小工具。',
+    toolRename: '帮我做一个按日期给照片改名的小工具。',
+    toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
     tidy: '帮我看看这个文件夹该怎么整理：下载文件夹太乱了。',
     note: '页面底部加一行联系电话',
@@ -41,6 +50,12 @@ const W = {
     sheet: 'Make me a table for monthly spending.',
     plan: 'Plan out four weeks of learning to breathe while swimming for me.',
     album: 'Make a little album of these photos: our autumn trip.',
+    resume: 'Write me a résumé for a job as a librarian.',
+    notes: 'Make me reading notes on Walden.',
+    travel: 'Make me a travel guide for Edinburgh, three days.',
+    tool: 'Make me a small tool that turns the text in a file into capitals.',
+    toolRename: 'Make me a small tool that renames photos by date.',
+    toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
     tidy: 'How should I tidy up this folder? My downloads are a mess.',
     note: 'Add a contact phone number at the bottom',
@@ -69,6 +84,19 @@ function samples(home) {
   return { photos, note, doc, messy };
 }
 
+/** Every file under a folder, by path inside it with "/", sorted. */
+const filesIn = (dir) => readdirSync(dir, { recursive: true }).map((p) => p.split(sep).join('/')).filter((p) => statSync(join(dir, p)).isFile()).sort();
+
+/** Unpack a zip with the system's own tool, not the shop's code, into a folder beside it. */
+function unzipped(file) {
+  const to = `${file}-out`;
+  mkdirSync(to);
+  const tar = process.platform === 'win32' ? join(process.env.SystemRoot, 'System32', 'tar.exe') : 'tar';
+  const run = spawnSync(tar, ['-xf', file, '-C', to], { encoding: 'utf8' });
+  check(run.status === 0, `could not unpack ${file}: ${run.stderr}`);
+  return to;
+}
+
 /** The newest commission folder under the shop's Documents. */
 function latestCommission(home) {
   const found = [];
@@ -92,9 +120,56 @@ function restoreHome(snap) {
   const old = readFileSync(join(snap, 'home.txt'), 'utf8').trim();
   for (const f of readdirSync(home.data).filter((n) => n.endsWith('.json'))) {
     const p = join(home.data, f);
-    writeFileSync(p, readFileSync(p, 'utf8').split(old).join(home.home));
+    // JSON keeps a Windows path with its backslashes doubled, so the old home is looked for in that form too.
+    const inJson = (path) => JSON.stringify(path).slice(1, -1);
+    writeFileSync(p, readFileSync(p, 'utf8').split(inJson(old)).join(inJson(home.home)).split(old).join(home.home));
   }
   return home;
+}
+
+/**
+ * A local update feed, as electron-updater's generic provider reads it: latest.yml naming a newer version with notes in
+ * both languages, and its "installer" (a few made-up bytes, never run). `config` is the app-update.yml pointing at it;
+ * `asked` lists every file the app asked for.
+ */
+async function updateFeed(home, version = '1.1.1') {
+  const dir = join(home.home, 'feed');
+  mkdirSync(dir, { recursive: true });
+  const exe = `Lamplight-Nook-Setup-${version}.exe`;
+  const body = Buffer.from(`not a real installer, ${version}\n`.repeat(4000));
+  writeFileSync(join(dir, exe), body);
+  const sha512 = createHash('sha512').update(body).digest('base64');
+  const notes = [`## 小灯屋 ${version}`, '', `- ${UPDATE_NOTES['zh-CN']}`, '', `## Lamplight Nook ${version}`, '', `- ${UPDATE_NOTES.en}`, ''].join('\n');
+  writeFileSync(join(dir, 'latest.yml'), [
+    `version: ${version}`, 'files:', `  - url: ${exe}`, `    sha512: ${sha512}`, `    size: ${body.length}`,
+    `path: ${exe}`, `sha512: ${sha512}`, "releaseDate: '2026-11-15T00:00:00.000Z'", `releaseNotes: ${JSON.stringify(notes)}`, '',
+  ].join('\n'));
+  const asked = [];
+  const server = createServer((req, res) => {
+    const name = decodeURIComponent(new URL(req.url, 'http://feed').pathname.slice(1));
+    asked.push(name);
+    const file = join(dir, name);
+    if (!name || name.includes('..') || !existsSync(file)) return void res.writeHead(404).end();
+    res.writeHead(200, { 'content-length': statSync(file).size }).end(readFileSync(file));
+  });
+  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  const config = join(dir, 'app-update.yml');
+  writeFileSync(config, `provider: generic\nurl: http://127.0.0.1:${server.address().port}/\nupdaterCacheDirName: lamplight-nook-updater\n`);
+  return { config, exe, asked, close: () => server.close() };
+}
+/** What the new version's notes say, one line in each language. */
+const UPDATE_NOTES = { 'zh-CN': '有新版本时，邮差会送信来。', en: 'The postman brings word of new versions.' };
+
+/** The app's log lines so far (app/main/log.ts), each with its time. */
+const logLines = (home) => {
+  const dir = join(home.data, 'logs');
+  return existsSync(dir) ? readdirSync(dir).flatMap((f) => readFileSync(join(dir, f), 'utf8').split('\n')).filter(Boolean) : [];
+};
+const logged = (home, what) => logLines(home).filter((l) => l.includes(` ${what}`));
+async function waitForLog(home, what, count, timeout = 30_000) {
+  const until = Date.now() + timeout;
+  while (logged(home, what).length < count && Date.now() < until) await sleep(500);
+  return logged(home, what).length >= count;
 }
 
 const check = (cond, why) => { if (!cond) throw new Error(why); };
@@ -128,6 +203,12 @@ async function checkBubbles(shop) {
   });
   check(!clashes.length, `speech bubbles: ${clashes.join('; ')}`);
 }
+
+/** The pieces that come with the number of works done (app/shared/growth.ts COUNTED), and when. */
+const COUNTED_PIECES = [
+  ['painting', 1], ['plant', 2], ['lights', 3], ['fruit', 5], ['guitar', 8], ['bonsai', 12], ['easel', 16], ['trophy', 20], ['portrait', 25],
+  ['sunset', 35], ['star', 50], ['chime', 55], ['aquarium', 60], ['scroll', 65], ['teapot', 70], ['gramophone', 75], ['cushion', 80], ['hat', 90], ['plaque', 100],
+];
 
 const SCENARIOS = {
   /** Data files that cannot be read: nothing is written over, the shop says so, and work goes on. */
@@ -314,12 +395,53 @@ const SCENARIOS = {
         await shop.page.locator('.welcome .actions button.default').last().click();
         await sleep(300);
       }
+      // Something else on the table holds the card back, and the limit changes while it waits.
+      await shop.page.evaluate(() => { const c = document.createElement('div'); c.className = 'card held'; document.getElementById('ui').append(c); });
       await shop.page.locator('.welcome .actions button.default').last().click();
+      await sleep(3000);
+      await shop.page.evaluate(() => window.lamplight.saveSettings({ budgetUsd: 1 }));
+      await shop.page.evaluate(() => document.querySelector('.card.held').remove());
       await shop.page.waitForSelector('.notebook-trouble', { timeout: 15_000 });
       const said = await shop.page.locator('.notebook-trouble').innerText();
-      check(said.includes('$3'), `the budget is not mentioned: ${said}`);
+      check(said.includes('$1') && !said.includes('$3'), `the budget it names is not the one in force: ${said}`);
       check(said.includes(N.troubleKept), 'the file put aside is not mentioned');
       await shop.shot(join(out, 'badsettings.png'));
+    } finally {
+      await shop.close();
+    }
+  },
+
+  /** How each round went, kept on this computer: a real round is written down, the ledger page sums the month, and clearing it keeps the works. */
+  async stats(lang, out) {
+    const N = locale(lang).ui.notebook;
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const round = (extra) => ({ date: day, seconds: 60, helpers: {}, waits: 0, waitedSeconds: 0, ...extra });
+    const earlier = { id: `c${new Date(`${day}T12:00:00`).getTime()}`, title: 'Earlier', date: day, result: 'done', choices: {}, folder: 'C:/nowhere', rounds: [round({ failure: 'net' }), round({ waits: 2, waitedSeconds: 30 })] };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [earlier], stuckNotes: [], greeted: earlier.id }) });
+    const shop = await launch({ lang, home, speed: SPEED, debug: true });
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions;
+    try {
+      const r = await runOne(shop, { template: 'demo' }, { answers: demoAnswers });
+      check(r.ok, `did not finish: ${JSON.stringify(r)}`);
+      const kept = saved().at(-1).rounds;
+      check(kept?.length === 1 && kept[0].seconds > 0 && !kept[0].failure, `the round was not written down: ${JSON.stringify(kept)}`);
+      check(kept[0].helpers.researcher === 1 && kept[0].helpers.reviewer === 1, `the errands were not counted: ${JSON.stringify(kept[0].helpers)}`);
+      await shop.page.keyboard.press('Escape');
+      await shop.page.evaluate(() => window.lamplightDebug.ui.showNotebook());
+      await shop.page.waitForSelector('.notebook-ledger');
+      const page = await shop.page.locator('.notebook-ledger').innerText();
+      const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k]);
+      check(page.includes(fill(N.ledgerKind.net, { n: '1' })), `the failure is not on the page: ${page}`);
+      check(page.includes(fill(N.ledgerSince, { date: day })), `it does not say since when: ${page}`);
+      check(page.includes(fill(N.ledgerWaits, { n: '2', time: fill(N.ledgerSeconds, { s: '30' }) })), `the waiting is not summed: ${page}`);
+      check(/\b2\b/.test(page) && /\b3\b/.test(page), `two works in three rounds are not counted: ${page}`);
+      await shop.shot(join(out, 'stats.png'));
+      await shop.page.locator('.notebook-ledger-clear').click();
+      await sleep(500);
+      check((await shop.page.locator('.notebook-ledger').innerText()).includes(N.ledgerCleared), 'clearing says nothing');
+      const after = saved();
+      check(after.length === 2 && after.every((c) => !c.rounds), `clearing lost works or kept rounds: ${JSON.stringify(after.map((c) => [c.title, c.rounds]))}`);
     } finally {
       await shop.close();
     }
@@ -430,16 +552,28 @@ const SCENARIOS = {
       setInterval(() => { window.heard.push(document.getElementById('labels').innerText); }, 200);
     });
     const heard = (shop) => shop.page.evaluate((w) => window.heard.some((h) => h.includes(w)), words);
+    const told = (h) => JSON.parse(readFileSync(join(h.data, 'memory.json'), 'utf8')).shop.told.includes('birthday_1');
+    const waitToHear = async (shop, ms) => {
+      let said = false;
+      for (const start = Date.now(); !said && Date.now() - start < ms; await sleep(500)) said = await heard(shop);
+      return said;
+    };
+    // Closed before anyone got to say it: it still comes the next time the shop opens that day.
     let shop = await launch({ lang, home, debug: true });
     try {
-      await listen(shop);
-      let said = false;
-      for (const start = Date.now(); !said && Date.now() - start < 40_000; await sleep(500)) said = await heard(shop);
-      check(said, 'nobody said it was the birthday');
+      await sleep(3000);
     } finally {
       await shop.close();
     }
-    check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.told.includes('birthday_1'), 'the shop did not remember saying it');
+    check(!told(home), 'it counted as said though the shop closed before anyone said it');
+    shop = await launch({ lang, home, debug: true });
+    try {
+      await listen(shop);
+      check(await waitToHear(shop, 40_000), 'nobody said it was the birthday');
+    } finally {
+      await shop.close();
+    }
+    check(told(home), 'the shop did not remember saying it');
     shop = await launch({ lang, home, debug: true });
     try {
       await listen(shop);
@@ -448,6 +582,21 @@ const SCENARIOS = {
     } finally {
       await shop.close();
     }
+    // Left open across midnight: said on the new day without opening the shop again.
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9);
+    const eve = { ...work, id: `c${new Date(now.getFullYear() - 1, now.getMonth(), now.getDate() + 1, 12).getTime()}` };
+    const later = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [eve], stuckNotes: [], greeted: eve.id, shop: { done: 1, told: [], grown: [], met: [] } }) });
+    shop = await launch({ lang, home: later, debug: true });
+    try {
+      await listen(shop);
+      await sleep(12_000);
+      check(!(await heard(shop)), 'it was said the day before the birthday');
+      await shop.page.clock.setFixedTime(tomorrow);
+      check(await waitToHear(shop, 90_000), 'nobody said it when the day turned to the birthday');
+    } finally {
+      await shop.close();
+    }
+    check(told(later), 'the shop did not remember saying it on the new day');
   },
 
   /** Asked on the way out mid-commission: going on really goes on, and stopping really can be carried on next time. */
@@ -624,7 +773,7 @@ const SCENARIOS = {
   async thousand(lang, out) {
     const S = locale(lang).ui.shelf;
     const N = locale(lang).ui.notebook;
-    const kinds = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album'];
+    const kinds = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool'];
     const needle = lang === 'en' ? 'Needle in the haystack' : '草堆里的针';
     const day = (i) => Date.UTC(2024, 0, 1) + i * 86_400_000;
     const commissions = Array.from({ length: 1000 }, (_, i) => ({
@@ -696,7 +845,7 @@ const SCENARIOS = {
       await page.locator('.shelf-search').fill('');
 
       await page.locator('.kind-chip', { hasText: S.kinds.album }).click();
-      check((await page.locator('.works-count').innerText()) === S.found.replace('{n}', '125'), 'the album chip counts wrong');
+      check((await page.locator('.works-count').innerText()) === S.found.replace('{n}', String(commissions.filter((c) => c.form.template === 'album').length)), 'the album chip counts wrong');
       check(await page.locator('.kind-chip[aria-pressed=true]').count() === 1, 'more than one chip is pressed');
       await page.locator('.works-more button').click();
       check(await works() === 80, `the next page holds ${await works()} works`);
@@ -844,15 +993,19 @@ const SCENARIOS = {
     }
   },
 
-  /** Past twenty works nothing drops off the shelf or the notebook, and the shop's days read right. */
+  /**
+   * A hundred works on (road-to-1.1.md A9): nothing drops off the shelf or the notebook, the shop's days read right, and
+   * every piece the shop gathers is out, in the cafe and in the study.
+   */
   async days(lang, out) {
     const N = locale(lang).ui.notebook;
     const day = (i) => Date.UTC(2026, 0, 1 + i);
-    const title = (i) => (i === 29 ? 'A very long name '.repeat(20).trim() : `work ${i + 1}`);
-    const commissions = Array.from({ length: 30 }, (_, i) => ({
+    const title = (i) => (i === 99 ? 'A very long name '.repeat(20).trim() : `work ${i + 1}`);
+    const commissions = Array.from({ length: 100 }, (_, i) => ({
       id: `c${day(i)}`, title: title(i), date: new Date(day(i)).toISOString().slice(0, 10), result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'page' },
     }));
-    const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 30, told: [], grown: [{ id: 'painting', date: '2026-01-01' }], met: [{ id: 'baker', date: '2026-01-03' }] } };
+    const grown = COUNTED_PIECES.map(([id, at]) => ({ id, date: new Date(day(at - 1)).toISOString().slice(0, 10) }));
+    const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 100, told: [], grown, met: [{ id: 'baker', date: '2026-01-03' }] } };
     const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) }), size: 'small', debug: true });
     const notebook = async () => {
       await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
@@ -863,8 +1016,10 @@ const SCENARIOS = {
       await sleep(2500);
       await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
       await shop.page.waitForSelector('.shelf-card');
+      // The shelf shows forty at a time; the rest come with "more".
+      while (await shop.page.locator('.shelf-card li.works-more button').count()) await shop.page.locator('.shelf-card li.works-more button').click();
       const shelved = await shop.page.locator('.shelf-card ul.works > li.work').count();
-      check(shelved === 30, `${shelved} of 30 works on the shelf`);
+      check(shelved === 100, `${shelved} of 100 works on the shelf`);
       await shop.page.keyboard.press('Escape');
       await sleep(300);
 
@@ -872,7 +1027,9 @@ const SCENARIOS = {
       const days = await shop.page.locator('.notebook-days').innerText();
       for (const line of [
         N.firstWork.replace('{title}', 'work 1'), N.nthWork.replace('{n}', '10').replace('{title}', 'work 10'), N.nthWork.replace('{n}', '25').replace('{title}', 'work 25'),
+        N.nthWork.replace('{n}', '50').replace('{title}', 'work 50'),
         N.bedRipe, N.bedFull, N.metLine.replace('{name}', locale(lang).guests.baker),
+        ...COUNTED_PIECES.filter(([, at]) => at > 50).map(([id]) => N.grewLine.replace('{item}', locale(lang).growth[id])),
       ]) check(days.includes(line), `not in the shop's days: ${line}`);
       check(await shop.page.locator('.notebook-pages').evaluate((p) => p.scrollTop) === 0, 'the notebook opens scrolled past the shop\'s days');
       const spills = await shop.page.locator('.notebook-pages').evaluate((p) => p.scrollWidth > p.clientWidth + 1);
@@ -880,6 +1037,8 @@ const SCENARIOS = {
       await shop.shot(join(out, 'days.png'));
       await shop.page.keyboard.press('Escape');
       await sleep(300);
+      const missing = await shop.page.evaluate((ids) => ids.filter((id) => !window.lamplightDebug.scene.growth.shows(id)), COUNTED_PIECES.map(([id]) => id));
+      check(missing.length === 0, `not out in the shop at a hundred: ${missing}`);
 
       // Someone new comes in: the page says so next time.
       await shop.page.evaluate('void window.lamplightDebug.scene.guestVisit("postman", [])');
@@ -914,34 +1073,64 @@ const SCENARIOS = {
     } finally {
       await fresh.close();
     }
+
+    // The shop at a hundred, in both rooms, by daylight and with nothing up for a festival.
+    for (const scene of ['cafe', 'study']) {
+      const full = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang, { scene }), 'memory.json': JSON.stringify(memory) }), size: 'large', debug: true });
+      try {
+        await full.page.waitForFunction(() => window.lamplightDebug?.scene?.growth?.shows('plaque'));
+        await full.page.evaluate(() => {
+          const { scene } = window.lamplightDebug;
+          scene.setWeather('clear', null, false);
+          scene.setPeriod('day', true);
+        });
+        await sleep(600);
+        await full.shot(join(out, `days-100-${scene}.png`));
+      } finally {
+        await full.close();
+      }
+    }
   },
 
-  /** The vegetable beds come up with the works finished, say so three times, and a round of changes does not count. */
+  /**
+   * The vegetable beds come up with the works finished, say so three times, and a round of changes does not count. Once
+   * full they follow the season (road-to-1.1.md A9), all the way to a hundred works.
+   */
   async beds(lang, out) {
     const seed = (done) => ({
       'settings.json': onboarded(lang),
       'memory.json': JSON.stringify({ commissions: [], stuckNotes: [], shop: { done, told: [], grown: [] } }),
     });
-    const expected = { 0: [0, 0], 1: [0, 1], 4: [1, 1], 12: [3, 1], 25: [8, 0], 60: [8, 0] };
-    for (const [done, [ripe, sprout]] of Object.entries(expected)) {
-      const shop = await launch({ lang, home: freshHome(seed(Number(done))), size: 'large', debug: true });
+    // Works done, season -> beds by stage. Before they are full the season makes no difference.
+    const expected = [
+      [0, 'autumn', {}], [1, 'winter', { sprout: 1 }], [4, 'spring', { ripe: 1, sprout: 1 }], [12, 'autumn', { ripe: 3, sprout: 1 }],
+      [25, 'summer', { ripe: 8 }], [60, 'spring', { young: 8 }], [100, 'summer', { ripe: 8 }], [100, 'autumn', { harvest: 8 }], [100, 'winter', { rest: 8 }],
+    ];
+    const WORDS = { ripe: 'bedsRipe', sprout: 'bedsSprout', young: 'bedsYoung', harvest: 'bedsHarvest', rest: 'bedsRest' };
+    for (const [done, season, stages] of expected) {
+      const shop = await launch({ lang, home: freshHome(seed(done)), size: 'large', debug: true });
       try {
         await sleep(2500);
-        await shop.page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        await shop.page.evaluate((season) => {
+          const { scene } = window.lamplightDebug;
+          scene.setWeather('clear', null, false);
+          scene.setSeason(season);
+          scene.setPeriod('day', true);
+        }, season);
         const beds = await shop.page.evaluate(() => window.lamplightDebug.scene.garden.beds);
-        const seen = [beds.filter((b) => b === 'ripe').length, beds.filter((b) => b === 'sprout').length];
-        check(seen.join() === [ripe, sprout].join(), `${done} works: ${seen} instead of ${ripe},${sprout}`);
+        const seen = Object.fromEntries(Object.keys(WORDS).map((k) => [k, beds.filter((b) => b === k).length]).filter(([, n]) => n));
+        check(JSON.stringify(seen) === JSON.stringify(stages), `${done} works in ${season}: ${JSON.stringify(seen)} instead of ${JSON.stringify(stages)}`);
         await shop.hotspot(shop.L.ui.access.hotspotGarden);
         await sleep(900);
         await shop.hotspot(shop.L.ui.access.hotspotBeds);
         await sleep(200);
         const A = shop.L.ui.access;
-        const says = [ripe && A.bedsRipe.replace('{n}', ripe), sprout && A.bedsSprout.replace('{n}', sprout)].filter(Boolean).join(A.bedsAnd);
-        const label = done === '0' ? A.bedsBare : `${A.hotspotBeds}${A.bedsSay}${says}`;
+        const says = Object.entries(stages).map(([stage, n]) => A[WORDS[stage]].replace('{n}', n)).join(A.bedsAnd);
+        const label = done === 0 ? A.bedsBare : `${A.hotspotBeds}${A.bedsSay}${says}`;
         check((await shop.page.locator('body').innerText()).includes(label), `${done} works: no "${label}" over the beds`);
-        await shop.page.screenshot({ path: join(out, `beds-${done}.png`) });
+        await shop.page.screenshot({ path: join(out, `beds-${done}-${season}.png`) });
         // Opening the shop again is not news: nobody brings the beds up.
-        if (done === '12') {
+        if (done === 12) {
           await shop.hotspot(shop.L.ui.access.hotspotShop);
           await sleep(13_000);
           await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
@@ -1408,6 +1597,58 @@ const SCENARIOS = {
     }
   },
 
+  /**
+   * Every season and every festival in a shop past a hundred works (road-to-1.1.md A9): the season's vase on the big
+   * table and the beds out back, each festival's decorations, and what the baker brings up for each of them.
+   */
+  async seasons(lang, out) {
+    const memory = { commissions: [], stuckNotes: [], greeted: 'c1', shop: { done: 100, told: [], grown: COUNTED_PIECES.map(([id]) => ({ id, date: '2026-10-20' })) } };
+    const says = lang === 'en'
+      ? { spring: 'green rice cakes', summer: 'plum juice', autumn: 'beds out back', winter: 'sweet potatoes', lantern: 'dumplings', dragon_boat: 'Zongzi', mid_autumn: 'Mooncakes' }
+      : { spring: '青团', summer: '酸梅汤', autumn: '后院的菜', winter: '红薯', lantern: '汤圆', dragon_boat: '粽子', mid_autumn: '月饼' };
+    const bakerSays = async (shop, words, what) => {
+      await shop.page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await shop.page.waitForFunction(() => !window.lamplightDebug.scene.hasGuest());
+      await shop.page.evaluate(() => window.lamplightDebug.welcome('baker'));
+      const said = await shop.page.waitForFunction((words) => window.lamplightDebug.scene.guest?.speech?.includes(words), words, { timeout: 15_000 }).then(() => true, () => false);
+      check(said, `the baker said nothing about ${what}`);
+    };
+    for (const scene of ['cafe', 'study']) {
+      const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang, { scene }), 'memory.json': JSON.stringify(memory) }), size: 'large', debug: true });
+      try {
+        await shop.page.waitForFunction(() => window.lamplightDebug?.scene?.growth?.shows('plaque'));
+        await sleep(1500);
+        for (const season of ['spring', 'summer', 'autumn', 'winter']) {
+          await shop.page.evaluate((season) => {
+            const { scene } = window.lamplightDebug;
+            scene.setWeather('clear', null, false);
+            scene.setSeason(season);
+            scene.setPeriod('day', true);
+          }, season);
+          if (scene === 'cafe') await bakerSays(shop, says[season], season);
+          await sleep(400);
+          await shop.shot(join(out, `seasons-${scene}-${season}.png`));
+          if (scene !== 'cafe') continue;
+          await shop.hotspot(shop.L.ui.access.hotspotGarden);
+          await sleep(1200);
+          await shop.shot(join(out, `seasons-garden-${season}.png`));
+          await shop.hotspot(shop.L.ui.access.hotspotShop);
+          await sleep(1200);
+        }
+        // The old festivals in the cafe; the three lunar ones (Q-A5) in both rooms.
+        const festivals = scene === 'cafe' ? ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn'] : ['lantern', 'dragon_boat', 'mid_autumn'];
+        for (const holiday of festivals) {
+          await shop.page.evaluate((holiday) => window.lamplightDebug.scene.setWeather('clear', holiday, false), holiday);
+          if (says[holiday]) await bakerSays(shop, says[holiday], holiday);
+          await sleep(400);
+          await shop.shot(join(out, `seasons-${scene}-${holiday}.png`));
+        }
+      } finally {
+        await shop.close();
+      }
+    }
+  },
+
   /** Thirty commissions on: the shop has come to look like what was made in it, and the neighbours ask about it. */
   async history(lang, out) {
     const common = ['painting', 'plant', 'lights', 'fruit', 'guitar', 'bonsai', 'easel', 'trophy', 'portrait'];
@@ -1415,6 +1656,7 @@ const SCENARIOS = {
       { name: 'albums', scene: 'cafe', kinds: ['album', 'plan'], has: ['album', 'calendar'], lacks: ['books', 'letters', 'ledger', 'monitor'] },
       { name: 'reports', scene: 'cafe', kinds: ['research', 'letter', 'sheet', 'page'], has: ['books', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
       { name: 'reports', scene: 'study', kinds: ['research', 'letter', 'sheet', 'page'], has: ['books', 'letters', 'ledger', 'monitor'], lacks: ['album', 'calendar'] },
+      { name: 'odd-jobs', scene: 'cafe', kinds: ['resume', 'notes', 'travel', 'tool'], has: ['briefcase', 'readinglamp', 'postcards', 'toolbox'], lacks: ['album', 'calendar', 'books', 'letters', 'ledger', 'monitor'] },
     ];
     for (const { name, scene, kinds, has, lacks } of shops) {
       const title = kinds[0] === 'album' ? W[lang].page.slice(0, 4) : 'Q3';
@@ -1635,7 +1877,7 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
-  /** All eight templates, one after another in the same shop; each leaves its file and a shelf item. */
+  /** All twelve templates, one after another in the same shop; each leaves its file and a shelf item. */
   async templates(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);
@@ -1649,6 +1891,10 @@ const SCENARIOS = {
       ['album', W[lang].album, 'index.html', s.photos],
       ['edit', W[lang].edit, `${F.revisedPrefix}letter-draft.txt`, null, s.doc],
       ['tidy', W[lang].tidy, F.tidyPlan, null, s.messy],
+      ['resume', W[lang].resume, F.resume, [s.note]],
+      ['notes', W[lang].notes, F.notes, [s.note]],
+      ['travel', W[lang].travel, 'index.html'],
+      ['tool', W[lang].tool, F.tool],
     ];
     const shop = await launch({ lang, home, speed: SPEED });
     try {
@@ -1665,6 +1911,8 @@ const SCENARIOS = {
         const dir = latestCommission(home);
         check(existsSync(join(dir, file)), `${template}: ${file} missing`);
         if (template === 'sheet') check(readFileSync(join(dir, file), 'utf8').charCodeAt(0) === 0xfeff, 'table has no BOM');
+        // The small tool made a page, so there is no script or launcher, and nothing ran on the computer.
+        if (template === 'tool') check(![F.toolScript, F.toolLauncher].some((f) => existsSync(join(dir, f))), 'the tool wrote a script it did not need');
         await shop.shot(join(out, `template-${template}.png`));
         await shop.page.keyboard.press('Escape');
         await sleep(1500);
@@ -1672,6 +1920,30 @@ const SCENARIOS = {
       await shop.hotspot(shop.L.ui.access.hotspotWorks);
       await sleep(300);
       await shop.shot(join(out, 'shelf.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A small tool that has to change files comes as a script and a launcher. One that previews first and never deletes
+   * passes quietly; one that deletes at once gets a warning on the result card, naming the script.
+   */
+  async scripts(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const F = JSON.parse(readFileSync(join(ROOT, 'locales', `${lang}.json`), 'utf8')).ui.files;
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      for (const [want, careless] of [[W[lang].toolRename, false], [W[lang].toolWipe, true]]) {
+        const r = await runOne(shop, { template: 'tool', want });
+        check(r.ok, `${want} did not finish`);
+        const dir = latestCommission(home);
+        check([F.toolScript, F.toolLauncher].every((f) => existsSync(join(dir, f))), 'no script and launcher');
+        const warning = shop.page.locator('.result-card .result-script');
+        check((await warning.count()) === (careless ? 1 : 0), careless ? 'no warning for a script that deletes' : 'a careful script got a warning');
+        if (careless) check((await warning.textContent()).includes(F.toolScript), 'the warning does not name the script');
+        await shop.shot(join(out, `scripts-${careless ? 'careless' : 'careful'}.png`));
+        await shop.page.keyboard.press('Escape');
+        await sleep(1500);
+      }
     } finally { await shop.close(); }
   },
 
@@ -1701,6 +1973,219 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * Work in a folder the user already has (road-to-1.1.md A6). Their home folder is refused as too much, and a folder
+   * over the cap is refused when picked and, if it grows past it after that, before the work starts. In a small site the
+   * staff change two of the user's files without a card each time and add one; undo puts the two back byte for byte,
+   * takes the new one away, and leaves the user's other files alone.
+   */
+  async inplace(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const site = join(home.home, 'site');
+    mkdirSync(join(site, 'img'), { recursive: true });
+    writeFileSync(join(site, 'index.html'), '<!doctype html>\r\n<html><body><main><h1>Our street fair</h1></main></body></html>\r\n');
+    writeFileSync(join(site, 'style.css'), 'body { background: #fffaf0; }\n');
+    writeFileSync(join(site, 'notes.txt'), 'Not part of the site.\n');
+    cpSync(join(ROOT, 'assets', 'ui', 'icon.png'), join(site, 'img', 'logo.png'));
+    const files = ['index.html', 'style.css', 'notes.txt', 'img/logo.png'];
+    const before = Object.fromEntries(files.map((f) => [f, readFileSync(join(site, f))]));
+    /** A folder with one file bigger than the cap (100 MB). */
+    const huge = (dir) => {
+      mkdirSync(dir, { recursive: true });
+      const fd = openSync(join(dir, 'video.bin'), 'w');
+      ftruncateSync(fd, 101 * 1024 * 1024);
+      closeSync(fd);
+    };
+    const big = join(home.home, 'big');
+    huge(big);
+    const L = shop => shop.L.ui.lent;
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      const want = lang === 'en' ? 'Add a contact page to this little site, and tidy up the home page and the styles.' : '帮我给这个小网站加一页联系方式，首页和样式也顺一顺。';
+      await shop.order({ template: 'page', want });
+      const hint = shop.page.locator('form.commission .lent-hint');
+      for (const [folder, says, name] of [[home.home, L(shop).broad, 'broad'], [big, L(shop).tooBig, 'too-big']]) {
+        await shop.pickFiles([folder]);
+        await shop.page.locator('form.commission .lent-pick').click();
+        await sleep(400);
+        check((await hint.textContent()) === says, `${name} folder: the slip says "${await hint.textContent()}"`);
+        await shop.shot(join(out, `inplace-${name}.png`));
+      }
+      await shop.pickFiles([site]);
+      await shop.page.locator('form.commission .lent-pick').click();
+      await sleep(400);
+      check((await shop.page.locator('form.commission .lent-name').textContent()).includes('site'), 'the slip does not name the folder');
+      check(await shop.page.locator('form.commission .material-row').isHidden(), 'handing over files is still offered for a lent folder');
+      await shop.shot(join(out, 'inplace-form.png'));
+      await shop.submit();
+      const agree = shop.page.locator('form.commission .lent-confirm');
+      check(await agree.isVisible(), 'no question before working in the folder');
+      check((await agree.textContent()).includes(L(shop).confirmUndo), 'the question does not promise the undo');
+      await shop.shot(join(out, 'inplace-confirm.png'));
+      await agree.locator('button.default').click();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      check(!r.seen.some((c) => c.serious), `a card asked about changing the user's files: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const changed = files.filter((f) => !readFileSync(join(site, f)).equals(before[f]));
+      check(changed.join() === 'index.html,style.css', `changed ${changed.join(', ') || 'nothing'}`);
+      check(existsSync(join(site, 'pages', 'contact.html')), 'the new page is missing');
+      const listed = await shop.page.locator('.result-card .result-lent').innerText();
+      check(['index.html', 'style.css', 'pages/contact.html'].every((f) => listed.includes(f)), `the result card lists: ${listed}`);
+      check(!listed.includes('notes.txt'), 'the result card lists a file that was not touched');
+      await shop.shot(join(out, 'inplace-result.png'));
+      await shop.page.locator('.result-undo').click();
+      await sleep(300);
+      check(files.every((f) => !readFileSync(join(site, f)).equals(before[f]) === (f === 'index.html' || f === 'style.css')), 'the first click on undo already changed something');
+      await shop.shot(join(out, 'inplace-undo-ask.png'));
+      await shop.page.locator('.result-undo').click();
+      await sleep(800);
+      const wrong = files.filter((f) => !readFileSync(join(site, f)).equals(before[f]));
+      check(!wrong.length, `not put back byte for byte: ${wrong.join(', ')}`);
+      check(!existsSync(join(site, 'pages')), 'the new page (or its folder) is still there');
+      check((await shop.page.locator('.result-card .result-restored').textContent()) === L(shop).undone, 'the card does not say it was undone');
+      // The page it would open was the new one, now gone.
+      check(!(await shop.page.locator('.result-card .actions button', { hasText: shop.L.ui.openInBrowser }).count()), 'the card still offers to open the page that was taken away');
+      await shop.shot(join(out, 'inplace-undone.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+
+      // Picked while small, grown past the cap since: refused before anything in it changes.
+      const grows = join(home.home, 'grows');
+      mkdirSync(grows);
+      writeFileSync(join(grows, 'index.html'), '<p>small</p>');
+      await shop.order({ template: 'page', want });
+      await shop.pickFiles([grows]);
+      await shop.page.locator('form.commission .lent-pick').click();
+      await sleep(400);
+      huge(grows);
+      await shop.submit();
+      await shop.page.locator('form.commission .lent-confirm button.default').click();
+      const title = shop.L.ui.run.tooBigTitle;
+      await shop.page.waitForFunction((title) => [...document.querySelectorAll('#ui .card .card-title')].some((e) => e.textContent === title), title, { timeout: 20_000 });
+      check(readFileSync(join(grows, 'index.html'), 'utf8') === '<p>small</p>', 'the grown folder was changed');
+      await shop.shot(join(out, 'inplace-grown.png'));
+    } finally {
+      await shop.close();
+      // A hundred megabytes each: not left behind in the temporary folder.
+      rmSync(big, { recursive: true, force: true });
+      rmSync(join(home.home, 'grows'), { recursive: true, force: true });
+    }
+  },
+
+  /**
+   * Taking a work away from the shelf (road-to-1.1.md A8): a page made in the shop's folder goes as a zip that unpacks to
+   * its files byte for byte, and as a PDF with its words on it; one done in a lent folder zips only the files it touched.
+   * The save dialog is answered here, and a cancelled save writes nothing.
+   */
+  async export(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const S = locale(lang).ui.shelf;
+    const takeTo = join(home.home, 'taken');
+    mkdirSync(takeTo);
+    const shop = await launch({ lang, home, speed: SPEED });
+    /** Answer the next save dialog with this path (null cancels it), and see what was shown in its folder. */
+    const saveAt = (path) => shop.app.evaluate(({ dialog, shell }, path) => {
+      globalThis.shown ??= [];
+      shell.showItemInFolder = (p) => { globalThis.shown.push(p); };
+      dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return path ? { canceled: false, filePath: path } : { canceled: true }; };
+    }, path);
+    const openShelf = async () => {
+      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      await shop.page.waitForSelector('.shelf-card li.work');
+      return shop.page.locator('.shelf-card li.work').first();
+    };
+    try {
+      // A page made in the shop's own folder, given a stylesheet and a picture beside it, as a bigger work would have.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'the page did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      const work = latestCommission(home);
+      mkdirSync(join(work, 'look'));
+      writeFileSync(join(work, 'look', 'look.css'), 'h1::after { content: " FROMTHESTYLESHEET"; }\n');
+      cpSync(join(ROOT, 'assets', 'ui', 'icon.png'), join(work, 'look', 'logo.png'));
+      // One from elsewhere on the computer, and one from the network, must not reach the PDF.
+      const outside = join(home.home, 'outside.css');
+      writeFileSync(outside, 'h1::before { content: "FROMOUTSIDE "; }\n');
+      const links = ['look/look.css', pathToFileURL(outside).href, 'http://127.0.0.1:9/far.css'].map((href) => `<link rel="stylesheet" href="${href}">`).join('');
+      const page = readFileSync(join(work, 'index.html'), 'utf8');
+      writeFileSync(join(work, 'index.html'), page.replace('</head>', `${links}</head>`).replace('<main>', '<main><img src="look/logo.png" alt="">'));
+      const title = /<h1>([^<]*)<\/h1>/.exec(page)[1];
+
+      let row = await openShelf();
+      await saveAt(join(takeTo, 'page.zip'));
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-zip').waitFor();
+      check((await row.locator('.work-note').innerText()).includes(S.takeAs), 'a page does not offer the PDF beside the zip');
+      await shop.shot(join(out, 'export-choose.png'));
+      await row.locator('.work-note .take-zip').click();
+      await sleep(800);
+      check((await row.locator('.work-note').innerText()) === S.taken, `after the zip the shelf says "${await row.locator('.work-note').innerText()}"`);
+      const offered = await shop.app.evaluate(() => globalThis.offered);
+      check(offered.endsWith('.zip') && !/[\\/:*?"<>|]/.test(offered.split(/[\\/]/).at(-1)), `the dialog offers the name ${offered}`);
+      const unpacked = unzipped(join(takeTo, 'page.zip'));
+      const want = filesIn(work);
+      check(want.includes('look/look.css') && JSON.stringify(filesIn(unpacked)) === JSON.stringify(want), `the zip holds ${filesIn(unpacked).join(', ')}, the work ${want.join(', ')}`);
+      const differ = want.filter((f) => !readFileSync(join(unpacked, f)).equals(readFileSync(join(work, f))));
+      check(!differ.length, `not the same bytes: ${differ.join(', ')}`);
+      await shop.shot(join(out, 'export-saved.png'));
+
+      const windows = await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
+      await saveAt(join(takeTo, 'page.pdf'));
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-pdf').click();
+      await shop.page.waitForFunction((said) => document.querySelector('.shelf-card li.work .work-note')?.textContent === said, S.taken, { timeout: 20_000 });
+      const pdf = readFileSync(join(takeTo, 'page.pdf'));
+      const { pages, text } = readPdf(pdf);
+      check(pdf.subarray(0, 5).toString() === '%PDF-' && pages >= 1 && pages <= 3, `the PDF has ${pages} pages`);
+      check(pdfSays(text, title) && pdfSays(text, 'FROMTHESTYLESHEET'), `the PDF does not carry the page's words or its stylesheet: ${text.slice(0, 300)}`);
+      check(!pdfSays(text, 'FROMOUTSIDE'), 'a stylesheet from outside the work reached the PDF');
+      check(await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length) === windows, 'the window that printed the page is still open');
+      const shown = await shop.app.evaluate(() => globalThis.shown);
+      check(shown.length === 2 && shown[1].endsWith('page.pdf'), `shown in its folder: ${shown}`);
+
+      // Cancelled: nothing is written, and the choice is still there to make.
+      await saveAt(null);
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-zip').click();
+      await sleep(500);
+      check(readdirSync(takeTo).join() === 'page.pdf,page.zip,page.zip-out', `a cancelled save wrote something: ${readdirSync(takeTo)}`);
+      check(await row.locator('.work-note .take-zip').isVisible(), 'the choice went away after a cancelled save');
+      await shop.page.keyboard.press('Escape');
+      await sleep(500);
+
+      // In a folder the user lent: only what this commission changed and made goes in the zip.
+      const site = join(home.home, 'site');
+      mkdirSync(join(site, 'img'), { recursive: true });
+      writeFileSync(join(site, 'index.html'), '<!doctype html>\r\n<html><body><main><h1>Our street fair</h1></main></body></html>\r\n');
+      writeFileSync(join(site, 'style.css'), 'body { background: #fffaf0; }\n');
+      writeFileSync(join(site, 'notes.txt'), 'Not part of the site.\n');
+      cpSync(join(ROOT, 'assets', 'ui', 'icon.png'), join(site, 'img', 'logo.png'));
+      const asked = lang === 'en' ? 'Add a contact page to this little site, and tidy up the home page and the styles.' : '帮我给这个小网站加一页联系方式，首页和样式也顺一顺。';
+      await shop.order({ template: 'page', want: asked });
+      await shop.pickFiles([site]);
+      await shop.page.locator('form.commission .lent-pick').click();
+      await sleep(400);
+      await shop.submit();
+      await shop.page.locator('form.commission .lent-confirm button.default').click();
+      check((await shop.workUntilDone()).ok, 'the work in the lent folder did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      row = await openShelf();
+      await saveAt(join(takeTo, 'site.zip'));
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-zip').click();
+      await sleep(800);
+      const lentOut = unzipped(join(takeTo, 'site.zip'));
+      const touched = ['index.html', 'pages/contact.html', 'style.css'];
+      check(JSON.stringify(filesIn(lentOut)) === JSON.stringify(touched), `the lent work's zip holds ${filesIn(lentOut).join(', ')}`);
+      check(touched.every((f) => readFileSync(join(lentOut, f)).equals(readFileSync(join(site, f)))), 'the lent work\'s files are not the same bytes');
+      await shop.shot(join(out, 'export-lent.png'));
+    } finally { await shop.close(); }
+  },
+
   /** A meeting during the run: the note reaches the work. */
   async meeting(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
@@ -1720,6 +2205,108 @@ const SCENARIOS = {
       } });
       check(r.ok, 'did not finish');
       check(readFileSync(join(latestCommission(home), 'index.html'), 'utf8').includes(W[lang].note), 'the meeting note did not reach the page');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The apprentice (road-to-1.1.md A5): not there before the tenth work, walks in with it and is introduced; then with
+   * three errands at once, Xiaoju takes the first, Xiaodou the second, and the third waits its turn.
+   */
+  async apprentice(lang, out) {
+    const intro = lang === 'en' ? "We've an apprentice now. This is Bean." : '店里来了个学徒，叫小豆。';
+    const queued = lang === 'en' ? "That can wait till Clem's back." : '等小橘回来再去。';
+    const seed = (done) => ({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [], stuckNotes: [], greeted: 'c1', shop: { done, told: [], grown: [], met: [] } }) });
+    const apprentice = (shop) => shop.page.evaluate(() => {
+      const { scene } = window.lamplightDebug;
+      const a = scene.actors.get('xiaodou');
+      return { visible: a.sprite.visible, alpha: a.sprite.alpha, at: scene.anchorOf('xiaodou'), outside: !!a.outside, moving: !!a.tween?.isPlaying(), talking: scene.speech.has('xiaodou') };
+    });
+    // Everything anyone says, by whom, and who is out of the front door at the same time.
+    const listen = (shop) => shop.page.evaluate(() => {
+      const { scene } = window.lamplightDebug;
+      const say = scene.say.bind(scene);
+      window.said = [];
+      scene.say = (id, text, bubble) => { if (text) window.said.push([id, text]); return say(id, text, bubble); };
+      window.outTogether = [];
+      setInterval(() => {
+        const out = ['xiaoju', 'xiaodou'].filter((id) => scene.actors.get(id).outside).join('+');
+        if (window.outTogether.at(-1) !== out) window.outTogether.push(out);
+      }, 100);
+    });
+    const said = (shop) => shop.page.evaluate(() => window.said);
+
+    // Nine works done: nobody new yet. The tenth brings the apprentice in at the front door.
+    let shop = await launch({ lang, home: freshHome(seed(9)), speed: 100 });
+    try {
+      await sleep(2000);
+      const before = await apprentice(shop);
+      check(!before.visible && before.at === null, `the apprentice is there before the tenth work: ${JSON.stringify(before)}`);
+      await listen(shop);
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the tenth work did not finish');
+      await shop.page.keyboard.press('Escape');
+      let arriving = null;
+      for (let i = 0; i < 40 && !arriving; i++, await sleep(150)) {
+        const a = await apprentice(shop);
+        if (a.visible && a.alpha === 1 && a.moving) arriving = a;
+      }
+      check(arriving, 'the apprentice never walked in');
+      await shop.shot(join(out, 'apprentice-arrive.png'));
+      for (let i = 0; i < 60 && !(await said(shop)).some(([, text]) => text === intro); i++) await sleep(500);
+      check((await said(shop)).some(([, text]) => text === intro), 'nobody introduced the apprentice');
+      await sleep(600);
+      await shop.shot(join(out, 'apprentice-intro.png'));
+      const reply = async () => (await said(shop)).some(([who]) => who === 'xiaodou');
+      for (let i = 0; i < 40 && !(await reply()); i++) await sleep(500);
+      check(await reply(), 'the apprentice said nothing on coming in');
+      await shop.shot(join(out, 'apprentice-reply.png'));
+      const here = await apprentice(shop);
+      check(here.at === 'counter' && !here.moving, `the apprentice is not at the counter: ${JSON.stringify(here)}`);
+    } finally { await shop.close(); }
+
+    // From then on the apprentice is simply there, and takes the errand Xiaoju is too busy for.
+    shop = await launch({ lang, home: freshHome(seed(10)), speed: 700, scenario: 'errands' });
+    try {
+      await sleep(2000);
+      const there = await apprentice(shop);
+      check(there.visible && there.at === 'counter' && !there.moving, `the apprentice did not open the shop at the counter: ${JSON.stringify(there)}`);
+      await shop.shot(join(out, 'apprentice-shop.png'));
+      await listen(shop);
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      const shots = new Set();
+      const r = await shop.workUntilDone({ onTick: async () => {
+        const a = await apprentice(shop);
+        // Answering Adeng before setting off; then both out of the front door at once.
+        if (!shots.has('go') && a.talking && !a.outside) {
+          shots.add('go');
+          await shop.shot(join(out, 'apprentice-errand-go.png'));
+        }
+        if (!shots.has('both') && (await shop.page.evaluate(() => window.outTogether)).includes('xiaoju+xiaodou')) {
+          shots.add('both');
+          await shop.shot(join(out, 'apprentice-errand-out.png'));
+        }
+      } });
+      check(r.ok, 'the commission with three errands did not finish');
+      const together = await shop.page.evaluate(() => window.outTogether);
+      check(together.includes('xiaoju+xiaodou'), `Xiaoju and the apprentice were never out together: ${JSON.stringify(together)}`);
+      check(shots.has('go') && shots.has('both'), `missing pictures: ${[...shots]}`);
+      check((await said(shop)).some(([who, text]) => who === 'adeng' && text === queued), 'the third errand did not wait its turn');
+      // Back in from the street with something to say, however long the walk back takes.
+      await shop.page.keyboard.press('Escape');
+      let back = false;
+      for (let i = 0; i < 60 && !back; i++) {
+        const a = await apprentice(shop);
+        back = !a.outside && a.talking && (await said(shop)).filter(([who]) => who === 'xiaodou').length >= 2;
+        if (!back) await sleep(250);
+      }
+      check(back, `the apprentice never came back in with a word: ${JSON.stringify(await said(shop))}`);
+      await shop.shot(join(out, 'apprentice-errand-back.png'));
+      for (let i = 0; i < 40 && ((await apprentice(shop)).moving || (await apprentice(shop)).at !== 'counter'); i++) await sleep(250);
+      const home = await apprentice(shop);
+      check(home.at === 'counter' && !home.outside, `the apprentice did not come back to the counter: ${JSON.stringify(home)}`);
+      await shop.shot(join(out, 'apprentice-after.png'));
     } finally { await shop.close(); }
   },
 
@@ -1894,6 +2481,105 @@ const SCENARIOS = {
    * legacy-out/) are opened by this version. Everything finished is still on the shelf and in the notebook,
    * the shop counts it, an old commission can be changed again, and 0.7.0's unfinished commission carries on.
    */
+  /**
+   * A new version from a local feed (road-to-1.1.md A1): the postman brings the letter with the version and the notes in
+   * the shop's language, nothing downloads until "update", a commission after that runs to the end untouched, and the
+   * version goes in only as the shop closes, after a copy of the data. Closing with "stop and close" mid-commission keeps
+   * its promise to carry on, and installs after. The Store build and a shop with the switch off never look.
+   * The dev build calls itself 1.0.0 (package.json), so the feed offers 1.1.1; the installer is never run, the log says when.
+   */
+  async update(lang, out) {
+    const U = locale(lang).ui.update;
+    const other = lang === 'en' ? 'zh-CN' : 'en';
+    const install = 'update install {';
+    for (const [why, opts] of [['the Store build', { store: true }], ['checking switched off', { settings: { updates: false } }]]) {
+      const home = freshHome({ 'settings.json': onboarded(lang, opts.settings) });
+      const feed = await updateFeed(home);
+      const shop = await launch({ lang, home, speed: SPEED, store: opts.store, updateConfig: feed.config });
+      try {
+        await sleep(7000);
+        check(feed.asked.length === 0, `${why} looked for a new version: ${feed.asked.join(', ')}`);
+        check(!(await shop.page.locator('.update-letter').count()), `${why} got a letter`);
+      } finally { await shop.close(); feed.close(); }
+    }
+
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const feed = await updateFeed(home);
+    const quit = (shop, answer) => {
+      const exit = new Promise((done) => shop.app.process().once('exit', done));
+      return shop.app.evaluate(({ app, dialog }, answer) => {
+        dialog.showMessageBoxSync = () => answer;
+        setTimeout(() => app.quit(), 100);
+      }, answer).catch(() => {}).then(() => Promise.race([exit, sleep(15_000)]));
+    };
+    const fetched = () => feed.asked.filter((name) => name === feed.exe).length;
+    // Fetched this many times before the shop opened: the letter alone must not fetch it again.
+    const letterThen = async (shop, before, shot) => {
+      const card = await shop.maybe('.update-letter', 60_000);
+      check(card, 'the postman brought no letter');
+      const text = await card.innerText();
+      check(text.includes('1.1.1') && text.includes(UPDATE_NOTES[lang]), `the letter does not say the version and what is new: ${text}`);
+      check(!text.includes(UPDATE_NOTES[other]), 'the letter has the notes in the other language too');
+      if (shot) await shop.shot(join(out, shot));
+      check(fetched() === before, `the new version was downloaded before anyone said so: ${feed.asked.join(', ')}`);
+      await shop.page.locator('.update-letter .actions button.default', { hasText: U.update }).click();
+    };
+
+    let shop = await launch({ lang, home, speed: SPEED, updateConfig: feed.config });
+    try {
+      await letterThen(shop, 0, 'update-letter.png');
+      check(await waitForLog(home, 'update downloaded {', 1), 'the new version was not downloaded after "update"');
+      check(fetched() === 1, 'the installer was not fetched from the feed');
+      await sleep(1500);
+      await shop.shot(join(out, 'update-fetched.png'));
+      // A commission with the new version waiting: it runs to the end, and nothing goes in meanwhile.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      await sleep(2000);
+      check(!logged(home, install).length, 'the update went in while a commission was under way');
+      const done = await shop.workUntilDone();
+      check(done.ok, `the commission did not finish: ${JSON.stringify(done).slice(0, 300)}`);
+      check(!logged(home, install).length, 'the update went in with the shop still open');
+      await shop.page.keyboard.press('Escape');
+      await shop.openSettings('about');
+      const toggle = shop.page.locator('.settings label.toggle', { hasText: locale(lang).ui.setup.updatesToggle });
+      check(await toggle.count() === 1, 'no switch for looking for new versions in settings');
+      check(await toggle.locator('input').isChecked(), 'looking for new versions is not on by default');
+      await shop.shot(join(out, 'update-settings.png'));
+      await shop.page.keyboard.press('Escape');
+      const closing = new Date().toISOString();
+      await quit(shop, 0);
+      const went = logged(home, install);
+      check(went.length === 1 && went[0].slice(0, 24) >= closing, `the update did not go in as the shop closed: ${went.join(' | ')}`);
+      check(logged(home, 'update installer not run (simulated)').length === 1, 'the stand-in for the installer was not reached');
+      const backup = join(home.data, 'backup', readdirSync(join(home.data, 'backup')).find((d) => d.endsWith('-before-1.1.1')) ?? '-');
+      check(existsSync(join(backup, 'memory.json')), 'no copy of the data before the update');
+      check(readFileSync(join(backup, 'memory.json'), 'utf8') === readFileSync(join(home.data, 'memory.json'), 'utf8'), 'the copy is not the data as it was');
+      check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.length === 1, 'the work done before the update is gone');
+    } finally { await shop.close(); }
+
+    // Closing mid-commission with "stop and close": stopped the way it always is, carried on next time, installed after.
+    const before = fetched();
+    shop = await launch({ lang, home, speed: 1500, updateConfig: feed.config });
+    try {
+      await letterThen(shop, before);
+      check(await waitForLog(home, 'update downloaded {', 2), 'the new version was not downloaded the second time');
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      await sleep(2500);
+      check(existsSync(join(home.data, 'pending.json')), 'the commission was not noted as under way');
+      const closing = new Date().toISOString();
+      await quit(shop, 1);
+      const went = logged(home, install);
+      check(went.length === 2 && went[1].slice(0, 24) >= closing, `the update did not go in after "stop and close": ${went.join(' | ')}`);
+      check(existsSync(join(home.data, 'pending.json')), 'the stopped commission will not be offered next time');
+    } finally { await shop.close(); feed.close(); }
+    shop = await launch({ lang, home, speed: SPEED });
+    try {
+      check(await shop.maybe('.pending-card', 10_000), 'the promise to carry on next time was not kept');
+    } finally { await shop.close(); }
+  },
+
   async upgrade(lang, out) {
     for (const version of ['0.5.0', '0.6.1', '0.7.0']) {
       const snap = join(ROOT, 'legacy-out', lang, version);
@@ -1929,11 +2615,11 @@ const SCENARIOS = {
         await shop.shot(join(out, `upgrade-${version}-shelf.png`));
         // Change the oldest piece of work again, from the shelf: same folder, one more round.
         const oldest = finished[0];
-        await shop.page.locator('.shelf-card li.work').last().locator('button.link').last().click();
+        await shop.page.locator('.shelf-card li.work').last().locator('.work-actions button.link', { hasText: shop.L.ui.shelf.revise }).click();
         await shop.page.waitForSelector('form.revise textarea');
         await shop.page.fill('form.revise textarea', W[lang].ask);
         await shop.page.locator('form.revise button.default').click();
-        check((await shop.workUntilDone()).ok, `${version}: changing old work did not finish`);
+        { const done = await shop.workUntilDone(); check(done.ok, `${version}: changing old work did not finish: ${JSON.stringify(done).slice(0, 300)}`); }
         const again = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.find((c) => c.id === oldest.id);
         check(again?.asks?.length === 1, `${version}: the round on old work was not noted`);
         check(readdirSync(oldest.folder).length > 0, `${version}: old folder is empty`);
@@ -2103,6 +2789,7 @@ const SCENARIOS = {
       await has('.legal-links', 'about: legal');
       await has('.about', 'about: credits');
       check((await body()).includes(S.troubleText), 'about: trouble');
+      check((await body()).includes(S.updatesToggle), 'about: looking for new versions');
       await has('.write-us-row', 'about: writing to us');
       await shop.shot(join(out, 'menus-settings-about.png'));
     } finally { await shop.close(); }
@@ -2159,6 +2846,7 @@ const SCENARIOS = {
       { name: 'shelf', sel: '.shelf-card', w: 'form', open: () => window.lamplightDebug.ui.showShelf() },
       { name: 'notebook', sel: '.notebook', w: 'reading', open: () => window.lamplightDebug.ui.showNotebook() },
       { name: 'captions', sel: '.caption-card', w: 'reading', open: () => window.lamplightDebug.ui.showCaptionLog() },
+      { name: 'update-letter', sel: '.update-letter', w: 'reading', open: ({ long }) => window.lamplightDebug.ui.showUpdateLetter({ version: '1.1.1', notes: Array.from({ length: 16 }, (_, i) => (i % 4 ? `\u00B7 ${long.slice(0, 70)}` : long.slice(0, 12))) }) },
       ...['basics', 'furnish', 'sight', 'work', 'about'].map((tab) => ({ name: `settings-${tab}`, sel: '.card.settings', w: 'form', tab })),
       { name: 'legal-terms', sel: '.card.legal', w: 'reading', open: () => window.lamplightDebug.ui.showLegal('terms') },
       { name: 'legal-notices', sel: '.card.legal', w: 'reading', open: () => window.lamplightDebug.ui.showLegal('notices') },
@@ -2406,6 +3094,97 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The Store build's first open on a computer where the installer build has a shop (road-to-1.1.md A2): asked before
+   * anything else, the works and the ledger come over, the original is not changed, and the next open asks nothing.
+   * Saying no starts afresh; without an old shop nothing is asked.
+   */
+  async storemove(lang, out) {
+    const M = locale(lang).ui.moveIn;
+    const old = freshHome();
+    const works = [1, 2, 3].map((i) => ({
+      id: `c${Date.UTC(2026, 9, i)}`, title: `${lang === 'en' ? 'Old work' : '旧作品'} ${i}`, date: `2026-10-0${i}`, result: 'done',
+      choices: {}, asks: [], folder: join(old.documents, 'Lamplight Nook', `work-${i}`), main: 'index.html', costUsd: 0.4,
+      form: { want: `Make something ${i}`, template: 'page' },
+    }));
+    for (const w of works) {
+      mkdirSync(w.folder, { recursive: true });
+      writeFileSync(join(w.folder, 'index.html'), `<h1>${w.title}</h1>`);
+    }
+    const seed = {
+      'settings.json': JSON.stringify(onboarded(lang)),
+      'memory.json': JSON.stringify({ commissions: works, stuckNotes: [], greeted: works[2].id, shop: { done: 3, told: [], grown: [], met: [] } }),
+      'spend.json': JSON.stringify([{ key: 'a|s', usd: 0.5, month: '2026-09' }, { key: 'b|s', usd: 0.7, month: '2026-10' }]),
+      'data-version.json': JSON.stringify({ data: 3 }),
+      [`versions/${works[0].id}/index.html`]: '<h1>first try</h1>',
+      'api-key.bin': 'sealed by the other build',
+    };
+    for (const [name, text] of Object.entries(seed)) {
+      mkdirSync(join(old.data, name, '..'), { recursive: true });
+      writeFileSync(join(old.data, name), text);
+    }
+    const contents = (dir) => filesIn(dir).map((f) => `${f}:${createHash('sha256').update(readFileSync(join(dir, f))).digest('hex')}`);
+    const before = contents(old.data);
+
+    const home = freshHome();
+    let shop = await launch({ lang, home, speed: SPEED, store: true, oldData: old.data });
+    try {
+      const card = await shop.maybe('.move-in-card', 8000);
+      check(card, 'the Store build did not offer to bring the old shop over');
+      const text = await card.innerText();
+      check(text.includes(M.title) && text.includes('3') && text.includes('$1.20'), `the question does not say what is there: ${text}`);
+      check(await shop.page.locator('.welcome').count() === 0, 'the welcome came up before the question was answered');
+      const spills = await card.evaluate((c) => [...c.querySelectorAll('button, .card-title')].some((e) => e.scrollWidth > e.clientWidth + 1));
+      check(!spills, 'a button or the title is cut off');
+      await shop.shot(join(out, 'storemove-ask.png'));
+      await card.$('button.default').then((b) => b.click());
+      await sleep(2500);
+      check(await shop.page.locator('.welcome').count() === 0, 'the welcome came up after moving in');
+      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      await shop.page.waitForSelector('.shelf-card li.work');
+      check(await shop.page.locator('.shelf-card li.work').count() === 3, `the shelf shows ${await shop.page.locator('.shelf-card li.work').count()} of 3 works`);
+      const shelf = await shop.page.locator('.shelf-card').innerText();
+      for (const w of works) check(shelf.includes(w.title), `${w.title} is not on the shelf`);
+      await shop.shot(join(out, 'storemove-shelf.png'));
+      await shop.page.keyboard.press('Escape');
+      await shop.openSettings('work');
+      await shop.page.locator('.spend-months summary').click();
+      await shop.page.waitForSelector('.spend-book tr');
+      const rows = await shop.page.locator('.spend-book tr').allInnerTexts();
+      check(rows.length === 3 && rows[2].includes('$1.20'), `the ledger reads ${JSON.stringify(rows)}`);
+      check(existsSync(join(home.data, 'versions', works[0].id, 'index.html')), 'the kept versions did not come over');
+      check(!existsSync(join(home.data, 'api-key.bin')), 'the key came over, which the Store build cannot read');
+    } finally { await shop.close(); }
+    check(JSON.stringify(contents(old.data)) === JSON.stringify(before), 'the installer build\'s folder changed');
+
+    // Opened again: a shop of its own now, so nothing is asked.
+    shop = await launch({ lang, home, speed: SPEED, store: true, oldData: old.data });
+    try {
+      await sleep(2500);
+      check(await shop.page.locator('.move-in-card').count() === 0, 'asked again after moving in');
+    } finally { await shop.close(); }
+
+    // Saying no: the welcome, as for anyone new, and nothing copied.
+    const declined = freshHome();
+    shop = await launch({ lang, home: declined, speed: SPEED, store: true, oldData: old.data });
+    try {
+      const ask = await shop.maybe('.move-in-card', 8000);
+      check(ask, 'no question the second time round');
+      await ask.$('.actions button:not(.default)').then((b) => b.click());
+      check(await shop.maybe('.welcome', 8000), 'no welcome after starting afresh');
+      check(!existsSync(join(declined.data, 'memory.json')) && !existsSync(join(declined.data, 'spend.json')), 'something came over after no');
+    } finally { await shop.close(); }
+
+    // No old shop: nothing to ask.
+    const empty = freshHome();
+    shop = await launch({ lang, home: freshHome(), speed: SPEED, store: true, oldData: empty.data });
+    try {
+      check(await shop.maybe('.welcome', 8000), 'no welcome for a new Store user');
+      check(await shop.page.locator('.move-in-card').count() === 0, 'asked to move in with nothing to bring');
+    } finally { await shop.close(); }
+    check(JSON.stringify(contents(old.data)) === JSON.stringify(before), 'the installer build\'s folder changed');
+  },
+
   /** The Microsoft Store build: Claude Code missing, the steps are shown and the app offers no installer of its own. */
   async store(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
@@ -2419,6 +3198,10 @@ const SCENARIOS = {
       check(!text.includes(shop.L.ui.setup.claudeInstall), 'the store build offers to run the installer');
       check(await shop.page.locator('.notice-card details.claude-manual[open]').count() === 1, 'the steps are not open');
       await shop.shot(join(out, 'store-steps.png'));
+      // The Store keeps it up to date, so there is no switch for looking.
+      await shop.page.keyboard.press('Escape');
+      await shop.openSettings('about');
+      check(!(await shop.page.locator('.settings').innerText()).includes(shop.L.ui.setup.updatesToggle), 'the store build offers to look for new versions');
     } finally { await shop.close(); }
   },
 

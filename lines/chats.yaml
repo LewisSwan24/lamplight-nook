@@ -158,6 +158,30 @@
     - xiaoju: 灯笼也挂好啦！
     - laoshi: 红红火火。
 
+- id: lantern_riddle
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: 灯谜写好了，猜不出不许吃汤圆。
+    - laoshi: 谜底写在背面。
+    - xiaoju: ……谁让你翻的？
+
+- id: dragon_boat_zongzi
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - adeng: 粽子是桂姨教着包的。
+    - xiaoju: 我包的那个散了。
+    - laoshi: 煮成粥也能吃。
+
+- id: mid_autumn_moon
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - qingdai: 今晚的月亮最圆。
+    - adeng: 早点收工，去后院看。
+    - xiaoju: 我把月饼带上！
+
 # Neighbours dropping in (game/guests.ts): guest: baker (Auntie Gui from the bakery) or postman (Axin).
 # The guest speaks first; turns from staff who are out or in the garden are left out.
 - id: baker_fresh
@@ -390,6 +414,57 @@
     - adeng: 我记得，粉笔灰抹了一脸。
     - qingdai: 那是故意的。
 
+# The apprentice (road-to-1.1.md A5) comes with the tenth work, so nothing with Xiaodou in it comes before.
+- id: apprentice_notes
+  when: idle
+  after: 10
+  turns:
+    - xiaodou: 阿灯哥，这个怎么记？
+    - adeng: 先写日子，再写谁要的。
+    - xiaodou: 记下了。
+
+- id: apprentice_mallet
+  when: idle
+  after: 10
+  turns:
+    - xiaodou: 老石，锤子能借我吗？
+    - laoshi: 先看我敲十遍。
+
+- id: apprentice_snacks
+  when: waiting
+  after: 10
+  turns:
+    - xiaoju: 小豆，跑腿的零食分你一半。
+    - xiaodou: 那下回我也带。
+
+- id: story_apprentice
+  when: idle
+  after: 10
+  once: true
+  turns:
+    - adeng: 小豆头一天来，在门口站了半天。
+    - xiaodou: 我在数台阶。
+    - qingdai: 一共几级？
+    - xiaodou: 三级。
+
+- id: baker_apprentice
+  when: idle
+  guest: baker
+  after: 10
+  turns:
+    - baker: 新来的孩子，跑得真勤快。
+    - xiaodou: 桂姨好！
+    - baker: 下回来店里拿面包边。
+
+- id: postman_apprentice
+  when: idle
+  guest: postman
+  after: 10
+  turns:
+    - postman: 今天在街口碰见小豆了。
+    - xiaodou: 我在找图书馆。
+    - postman: 下回跟着我走。
+
 # Further on as regulars: there is still more to say after the tenth.
 - id: regular_fifteen
   when: idle
@@ -485,6 +560,36 @@
     - adeng: 替人排日程，自己的也该排排。
     - xiaoju: 咱们店哪有日程？
     - adeng: 所以才该排。
+
+- id: made_resume
+  when: idle
+  made: resume
+  turns:
+    - adeng: 那份简历，方括号留了好几处。
+    - laoshi: 不知道的就别写。
+
+- id: made_notes
+  when: idle
+  made: notes
+  turns:
+    - xiaoju: 那本书我也想读了。
+    - adeng: 笔记还在架子上。
+
+- id: made_travel
+  when: idle
+  made: travel
+  turns:
+    - qingdai: 攻略里那个地方，我也想去。
+    - xiaoju: 票价我查过，不贵！
+    - qingdai: 那就等店里不忙。
+
+- id: made_tool
+  when: idle
+  made: tool
+  turns:
+    - laoshi: 那个小工具，样例都试过了。
+    - adeng: 没碰人家的文件吧？
+    - laoshi: 一个都没碰。
 
 # Neighbours have heard what the shop does. `made:` a kind of work done; `mentions:` asks after the latest work.
 - id: postman_website
@@ -655,3 +760,282 @@
     - xiaoju: 等的时候，我把书架理了一遍。
     - laoshi: 按高矮排的？
     - xiaoju: 按我喜欢的排。
+
+# Past the twentieth commission (road-to-1.1.md A9) each neighbour has something for the season, and the old
+# friends for the lunar festivals; a festival comes first while its decorations are up.
+- id: baker_spring
+  when: idle
+  guest: baker
+  after: 20
+  season: spring
+  turns:
+    - baker: 开春了，做了青团。
+    - xiaoju: 绿的！
+    - baker: 艾草是后山采的。
+
+- id: baker_summer
+  when: idle
+  guest: baker
+  after: 20
+  season: summer
+  turns:
+    - baker: 天热，送一壶酸梅汤。
+    - laoshi: 放冰箱。
+
+- id: baker_autumn
+  when: idle
+  guest: baker
+  after: 20
+  season: autumn
+  turns:
+    - baker: 后院的菜该收了吧？
+    - adeng: 南瓜给您留了一个。
+    - baker: 那我做南瓜饼。
+
+- id: baker_winter
+  when: idle
+  guest: baker
+  after: 20
+  season: winter
+  turns:
+    - baker: 天冷，烤了红薯。
+    - xiaoju: 我要最大那个！
+    - baker: 都一样大。
+
+- id: baker_lantern
+  when: idle
+  guest: baker
+  after: 20
+  holiday: lantern
+  turns:
+    - baker: 元宵节，汤圆煮好了。
+    - xiaoju: 黑芝麻的？
+    - baker: 还有花生的。
+
+- id: baker_dragon_boat
+  when: idle
+  guest: baker
+  after: 20
+  holiday: dragon_boat
+  turns:
+    - baker: 粽子，一人两个。
+    - adeng: 每年都麻烦您。
+    - baker: 价目表的事，我还记着。
+
+- id: baker_mid_autumn
+  when: idle
+  guest: baker
+  after: 20
+  holiday: mid_autumn
+  turns:
+    - baker: 月饼，自家烤的。
+    - qingdai: 盒子上的兔子画得真好。
+    - baker: 照着你那张画的。
+
+- id: postman_spring
+  when: idle
+  guest: postman
+  after: 20
+  season: spring
+  turns:
+    - postman: 春天信多，都是寄花籽的。
+    - adeng: 有给我们的？
+    - postman: 一包向日葵，种后院。
+
+- id: postman_summer
+  when: idle
+  guest: postman
+  after: 20
+  season: summer
+  turns:
+    - postman: 太晒了，讨杯水。
+    - xiaoju: 给，加了冰。
+    - postman: 下午的信晚点到。
+
+- id: postman_autumn
+  when: idle
+  guest: postman
+  after: 20
+  season: autumn
+  turns:
+    - postman: 落叶把门口的信箱埋了。
+    - laoshi: 我去扫。
+
+- id: postman_winter
+  when: idle
+  guest: postman
+  after: 20
+  season: winter
+  turns:
+    - postman: 年底了，贺卡一大摞。
+    - adeng: 有给我们的？
+    - postman: 七张。你们人缘好。
+
+- id: postman_lantern
+  when: idle
+  guest: postman
+  after: 20
+  holiday: lantern
+  turns:
+    - postman: 街口猜灯谜，我猜中三个。
+    - xiaoju: 奖品呢？
+    - postman: 一盏小兔子灯。
+
+- id: postman_dragon_boat
+  when: idle
+  guest: postman
+  after: 20
+  holiday: dragon_boat
+  turns:
+    - postman: 今天河边封路，信晚到了。
+    - adeng: 去看龙舟了？
+    - postman: 顺路看了一眼。
+
+- id: postman_mid_autumn
+  when: idle
+  guest: postman
+  after: 20
+  holiday: mid_autumn
+  turns:
+    - postman: 中秋家书多，跑了三趟。
+    - adeng: 坐下吃块月饼。
+
+- id: zhou_spring
+  when: idle
+  guest: mechanic
+  after: 20
+  season: spring
+  turns:
+    - mechanic: 开春了，自行车都推来打气。
+    - laoshi: 给我也打一下。
+
+- id: zhou_summer
+  when: idle
+  guest: mechanic
+  after: 20
+  season: summer
+  turns:
+    - mechanic: 修车铺热得待不住，来吹会儿风扇。
+    - adeng: 坐，茶还凉着。
+
+- id: zhou_autumn
+  when: idle
+  guest: mechanic
+  after: 20
+  season: autumn
+  turns:
+    - mechanic: 秋天好骑车，周末去郊外。
+    - qingdai: 带上我，我去写生。
+
+- id: zhou_winter
+  when: idle
+  guest: mechanic
+  after: 20
+  season: winter
+  turns:
+    - mechanic: 电瓶冻坏了好几个。
+    - laoshi: 我那儿有备用的。
+    - mechanic: 改天还你。
+
+- id: zhou_dragon_boat
+  when: idle
+  guest: mechanic
+  after: 20
+  holiday: dragon_boat
+  turns:
+    - mechanic: 龙舟队的鼓是我修的。
+    - laoshi: 声音正。
+
+- id: chen_spring
+  when: idle
+  guest: granny
+  after: 20
+  season: spring
+  turns:
+    - granny: 院里的桃花开了，给你们拍了张。
+    - qingdai: 我想照着画下来。
+
+- id: chen_summer
+  when: idle
+  guest: granny
+  after: 20
+  season: summer
+  turns:
+    - granny: 这张是我年轻时在海边。
+    - xiaoju: 婆婆那时候好时髦！
+
+- id: chen_autumn
+  when: idle
+  guest: granny
+  after: 20
+  season: autumn
+  turns:
+    - granny: 柿子熟了，摘了一篮。
+    - adeng: 正好配茶。
+
+- id: chen_winter
+  when: idle
+  guest: granny
+  after: 20
+  season: winter
+  turns:
+    - granny: 外面冷，我坐一会儿。
+    - adeng: 给您倒杯热的。
+    - granny: 你们这儿暖和。
+
+- id: chen_mid_autumn
+  when: idle
+  guest: granny
+  after: 20
+  holiday: mid_autumn
+  turns:
+    - granny: 中秋了，孙子从外地回来。
+    - adeng: 一家人团圆。
+    - granny: 拍了张全家福。
+
+- id: xiaohe_spring
+  when: idle
+  guest: student
+  after: 20
+  season: spring
+  turns:
+    - student: 开学了，又要交开题报告。
+    - xiaoju: 题目定了吗？
+    - student: 定了，还没写。
+
+- id: xiaohe_summer
+  when: idle
+  guest: student
+  after: 20
+  season: summer
+  turns:
+    - student: 放暑假了，来这儿写论文。
+    - adeng: 窗边那个位置凉快。
+
+- id: xiaohe_autumn
+  when: idle
+  guest: student
+  after: 20
+  season: autumn
+  turns:
+    - student: 图书馆门口的银杏黄了。
+    - qingdai: 我也去画一张。
+
+- id: xiaohe_winter
+  when: idle
+  guest: student
+  after: 20
+  season: winter
+  turns:
+    - student: 期末考完了！
+    - xiaoju: 考得怎么样？
+    - student: 不想说。
+
+- id: xiaohe_lantern
+  when: idle
+  guest: student
+  after: 20
+  holiday: lantern
+  turns:
+    - student: 元宵前就要回学校了。
+    - adeng: 汤圆吃了再走。

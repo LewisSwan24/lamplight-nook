@@ -1,9 +1,10 @@
-import type { Made, WorkIcon } from '../../shared/growth';
+import type { Made } from '../../shared/growth';
+import { TEMPLATES } from '../../shared/templates';
 import type { GuestId, Speaker } from '../../shared/types';
 import type { Chat } from '../translator/lines';
 import type { Period } from './daytime';
 import { ANCHORS } from './layout';
-import type { Holiday, Sky } from './weather';
+import type { Holiday, Season, Sky } from './weather';
 
 /**
  * Neighbours who drop in now and then while the shop is quiet: Auntie Gui from the bakery down the
@@ -14,15 +15,15 @@ import type { Holiday, Sky } from './weather';
 export const GUEST_IDS: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student'];
 /** Old friends of the shop, who come from the start. */
 const OLD_FRIENDS: GuestId[] = ['baker', 'postman'];
-/**
- * Those who come because of what the shop has done: Old Zhou from the garage once there has been a web page,
- * Granny Chen with her photographs once there has been an album, Xiaohe with her thesis once there has been research.
- */
-const BROUGHT_BY: [GuestId, WorkIcon][] = [['mechanic', 'page'], ['granny', 'album'], ['student', 'research']];
 
-/** Who may drop in, given what the shop has made. */
+/**
+ * Who may drop in, given what the shop has made: the old friends, and those a kind of work brings
+ * (shared/templates.ts): Old Zhou from the garage once there has been a web page, Granny Chen with her
+ * photographs once there has been an album, Xiaohe with her thesis once there has been research.
+ */
 export function welcomeGuests(made: Made): GuestId[] {
-  return [...OLD_FRIENDS, ...BROUGHT_BY.filter(([, work]) => made[work]).map(([guest]) => guest)];
+  const brought: GuestId[] = TEMPLATES.flatMap((t) => ('guest' in t && made[t.id] ? [t.guest] : []));
+  return GUEST_IDS.filter((g) => OLD_FRIENDS.includes(g) || brought.includes(g));
 }
 
 type Point = { x: number; y: number };
@@ -73,15 +74,17 @@ export class VisitPlanner {
 
 /**
  * What a guest says on this visit: one of their chats whose staff are all in the shop and whose
- * weather, holiday and time of day fit, preferring ones for today's weather or holiday, without
- * repeating until all have been heard (`used` keeps track). What the shop has made comes up first too.
+ * weather, holiday, season and time of day fit, preferring a festival's, then ones for today's weather,
+ * season or time, without repeating until all have been heard (`used` keeps track). What the shop has made
+ * comes up first too. Past the twentieth commission (`after`) each neighbour has something for the season.
  */
 export function pickVisit(
-  chats: Chat[], guest: GuestId, outside: { sky: Sky; holiday: Holiday | null }, period: Period,
-  present: (who: Speaker) => boolean, used: Set<string>, shop: { made: Made; lastWork?: string }, rand: () => number = Math.random,
+  chats: Chat[], guest: GuestId, outside: { sky: Sky; holiday: Holiday | null; season: Season }, period: Period,
+  present: (who: Speaker) => boolean, used: Set<string>, shop: { made: Made; done: number; lastWork?: string }, rand: () => number = Math.random,
 ): Chat | null {
   const fits = chats.filter((c) => c.guest === guest && (!c.period || c.period === period)
-    && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday)
+    && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday) && (!c.season || c.season === outside.season)
+    && (c.after === undefined || shop.done >= c.after)
     && (!c.made || !!shop.made[c.made]) && (!c.mentions || !!shop.lastWork)
     && c.turns.every((t) => t.speaker === guest || present(t.speaker)));
   if (!fits.length) return null;
@@ -90,8 +93,9 @@ export function pickVisit(
     for (const c of fits) used.delete(c.id);
     fresh = fits;
   }
-  const special = fresh.filter((c) => c.sky || c.holiday || c.period || c.made || c.mentions);
-  const from = special.length ? special : fresh;
+  const festive = fresh.filter((c) => c.holiday);
+  const special = fresh.filter((c) => c.sky || c.season || c.period || c.made || c.mentions);
+  const from = festive.length ? festive : special.length ? special : fresh;
   const pick = from[Math.floor(rand() * from.length)];
   used.add(pick.id);
   return pick;

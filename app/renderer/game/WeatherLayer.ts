@@ -1,6 +1,6 @@
 import { overlayDepth } from './pieces';
 import Phaser from 'phaser';
-import { FALLING, type Holiday, type Sky, multiply } from './weather';
+import { FALLING, HOLIDAYS, type Holiday, type Season, type Sky, multiply } from './weather';
 
 /** Over the sky in the glass, under the room's light and shade, so night and dusk colour the rain too. */
 const GLASS_DEPTH = 0.6;
@@ -11,7 +11,6 @@ const WINDOW_AREA = { x: 16, y: 4, w: 64, h: 36 };
 /** And past the window by the clock. */
 const SIDE_WINDOW_AREA = { x: 197, y: 4, w: 28, h: 36 };
 
-export const HOLIDAYS: Holiday[] = ['halloween', 'christmas', 'new_year'];
 /** Weather that leaves a touch in the room: a wet umbrella, snow on the sills, leaves or petals blown in. */
 export const SKIES: Exclude<Sky, 'clear'>[] = ['rain', 'snow', 'leaves', 'petals'];
 
@@ -25,12 +24,15 @@ type Outdoor = { area: Area; mask: Phaser.Display.Masks.GeometryMask; depth: num
  */
 export class WeatherLayer {
   private decor: Phaser.GameObjects.Image;
+  /** The season's own small piece on the side window's sill (scripts/art/decor.py); a festival's decorations take its place. */
+  private seasonDecor: Phaser.GameObjects.Image;
   private touch: Phaser.GameObjects.Image;
   private emitters: Phaser.GameObjects.Particles.ParticleEmitter[] = [];
   /** The emitters of inset views, which take the light and come and go with their inset. */
   private insets: Phaser.GameObjects.Particles.ParticleEmitter[] = [];
   sky: Sky = 'clear';
   holiday: Holiday | null = null;
+  season: Season = 'spring';
   reducedMotion = false;
   private tint = 0xffffff;
   private outdoorsOn = false;
@@ -47,6 +49,13 @@ export class WeatherLayer {
     }
     this.decor = scene.add.image(0, 0, `decor-${HOLIDAYS[0]}`).setOrigin(0).setDepth(DECOR_DEPTH).setVisible(false);
     this.touch = scene.add.image(0, 0, `weather-${SKIES[0]}`).setOrigin(0).setDepth(DECOR_DEPTH).setVisible(false);
+    this.seasonDecor = scene.add.image(0, 0, `season-${this.season}`).setOrigin(0).setDepth(DECOR_DEPTH);
+  }
+
+  /** Put out the season's piece (it stays hidden while a festival is up). */
+  setSeason(season: Season) {
+    this.season = season;
+    this.seasonDecor.setTexture(`season-${season}`).setDepth(overlayDepth(`season-${season}`, DECOR_DEPTH));
   }
 
   /** Change what falls outside and which decorations are up. */
@@ -55,6 +64,7 @@ export class WeatherLayer {
     this.holiday = holiday;
     if (holiday) this.decor.setTexture(`decor-${holiday}`).setDepth(overlayDepth(`decor-${holiday}`, DECOR_DEPTH));
     this.decor.setVisible(!!holiday);
+    this.seasonDecor.setVisible(!holiday);
     if (sky !== 'clear') this.touch.setTexture(`weather-${sky}`).setDepth(overlayDepth(`weather-${sky}`, DECOR_DEPTH));
     this.touch.setVisible(sky !== 'clear');
     this.restart();

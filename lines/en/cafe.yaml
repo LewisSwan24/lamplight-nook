@@ -17,6 +17,10 @@ opening:
   - { id: tpl_letter_01, speaker: adeng, when: tpl_letter, bubbles: ["A letter. Let me find a good pen.", "\"{brief}\". First, how to begin."] }
   - { id: tpl_sheet_01, speaker: adeng, when: tpl_sheet, bubbles: ["A table. Straight lines first."], reply: { speaker: laoshi, bubbles: ["I'll check the totals."] } }
   - { id: tpl_plan_01, speaker: adeng, when: tpl_plan, bubbles: ["A good plan leaves some room.", "Pack a day too full and the next one stalls."] }
+  - { id: tpl_resume_01, speaker: adeng, when: tpl_resume, bubbles: ["A résumé. Nothing goes in that's made up.", "Gaps stay blank for you to fill."] }
+  - { id: tpl_notes_01, speaker: adeng, when: tpl_notes, bubbles: ["Reading notes.", "Quotes only from what you gave us."], reply: { speaker: xiaoju, bubbles: ["I'll look up the author and the year."] } }
+  - { id: tpl_travel_01, speaker: adeng, when: tpl_travel, bubbles: ["A travel guide. One day at a time first."], reply: { speaker: xiaoju, bubbles: ["I'll check opening hours and prices."] } }
+  - { id: tpl_tool_01, speaker: adeng, when: tpl_tool, bubbles: ["A small tool. A web page if it can be one."], reply: { speaker: laoshi, bubbles: ["Samples only when we try it."] } }
   - { id: handed_01, speaker: adeng, when: handed, bubbles: ["Thanks, I'll have a look at these first.", "\"{brief}\". Got it."], reply: { speaker: xiaoju, bubbles: ["I'll make copies!"] } }
   - { id: opening_01, speaker: adeng, bubbles: ["\"{brief}\". Got it.", "Clem, Flint, we've got work."] }
   - { id: opening_02, speaker: adeng, bubbles: ["So, \"{brief}\"?", "Let me put the kettle on. Have a seat.", "Now, where do we start."] }
@@ -51,6 +55,12 @@ sub_go_qingdai:
   - { id: go_qd_02, speaker: adeng, bubbles: ["Colours are your department, Iris."], reply: { speaker: qingdai, bubbles: ["Leave it with me."] } }
   - { id: go_qd_03, speaker: qingdai, bubbles: ["I'll sketch it on the board first."] }
 
+sub_go_xiaodou:
+  - { id: go_xd_rain, speaker: adeng, when: sky_rain, bubbles: ["Bean, take an umbrella: {topic}."], reply: { speaker: xiaodou, bubbles: ["Got the one by the door!"] } }
+  - { id: go_xd_01, speaker: adeng, bubbles: ["Bean, one for you too: {topic}."], reply: { speaker: xiaodou, bubbles: ["Writing it down!"] } }
+  - { id: go_xd_02, speaker: adeng, bubbles: ["Clem's tied up. This one's yours."], reply: { speaker: xiaodou, bubbles: ["On my way."] } }
+  - { id: go_xd_03, speaker: xiaodou, bubbles: ["Clem's busy. I'll go!"] }
+
 sub_queue:
   - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["That can wait till Clem's back."] }
   - { id: sub_queue_02, speaker: adeng, bubbles: ["{who} has one on the go. This one queues."] }
@@ -64,9 +74,18 @@ sub_back_xiaoju:
   - { id: back_xj_halloween, speaker: xiaoju, when: holiday_halloween, bubbles: ["The bakery has pumpkin buns!", "Got three. One each."] }
   - { id: back_xj_christmas, speaker: xiaoju, when: holiday_christmas, bubbles: ["The street lights are all up!", "There's a tree at the library too."] }
   - { id: back_xj_new_year, speaker: xiaoju, when: holiday_new_year, bubbles: ["They're putting up couplets outside!", "The post office gave me a red envelope."] }
+  - { id: back_xj_lantern, speaker: xiaoju, when: holiday_lantern, bubbles: ["The street's full of lanterns!", "There's a rabbit one I want."] }
+  - { id: back_xj_dragon_boat, speaker: xiaoju, when: holiday_dragon_boat, bubbles: ["They're racing dragon boats!", "You can hear the drums two streets away."] }
+  - { id: back_xj_mid_autumn, speaker: xiaoju, when: holiday_mid_autumn, bubbles: ["The bakery's selling mooncakes!", "Auntie Olive saved us the egg yolk ones."] }
   - { id: back_xj_01, speaker: xiaoju, bubbles: ["Found it, found it!", "{count} of them are any good.", "And this one's for you."] }
   - { id: back_xj_02, speaker: xiaoju, bubbles: ["It's freezing out there...", "Anyway, I found a really nice one."] }
   - { id: back_xj_03, speaker: xiaoju, bubbles: ["I'm back. Snacks first."] }
+
+sub_back_xiaodou:
+  - { id: back_xd_rain, speaker: xiaodou, when: sky_rain, bubbles: ["Wet shoes, dry notebook.", "It's all written down."] }
+  - { id: back_xd_01, speaker: xiaodou, bubbles: ["Back!", "Wrote it all down on the way."] }
+  - { id: back_xd_02, speaker: xiaodou, bubbles: ["Nearly took a wrong turn.", "Pip pointed me the right way."] }
+  - { id: back_xd_03, speaker: xiaodou, bubbles: ["Found it. It's all here.", "Clem's trick really works."] }
 
 sub_back_laoshi:
   - { id: back_ls_issue, speaker: laoshi, when: has_issues, bubbles: ["{issueCount} things wrong. Marked them."] }
@@ -200,6 +219,9 @@ app_open:
   - { id: open_halloween, speaker: adeng, when: holiday_halloween, bubbles: ["{name}, there you are.", "There's pumpkin soup today."] }
   - { id: open_christmas, speaker: adeng, when: holiday_christmas, bubbles: ["{name}, there you are.", "Chestnut's pulled the lights down twice."] }
   - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}, a good new year to you.", "Clem put the luck sign on the door."] }
+  - { id: open_lantern, speaker: adeng, when: holiday_lantern, bubbles: ["{name}, there you are.", "Lantern riddles today. Clem wrote them."] }
+  - { id: open_dragon_boat, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}, there you are.", "Zongzi on the table. Sweet and savoury."] }
+  - { id: open_mid_autumn, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}, there you are.", "Mid-Autumn mooncakes are cut. Take one."] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}, there you are.", "How's “{lastCommission}” working out?"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["Come in. What should I call you?"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
@@ -237,6 +259,10 @@ garden:
   - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["Two eggs today.", "One for Wick, one for me."] }
   - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["One, two, three. All here."] }
   - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["No shoving. There's plenty."] }
+  - { id: garden_veg_xiaodou, speaker: xiaodou, when: spot_veg, bubbles: ["Is this a weed or a carrot?"] }
+  - { id: garden_veg_xiaodou_02, speaker: xiaodou, when: spot_veg, bubbles: ["Flint says water the roots.", "Noted."] }
+  - { id: garden_hens_xiaodou, speaker: xiaodou, when: spot_hens, bubbles: ["Not my shoelaces!"] }
+  - { id: garden_hens_xiaodou_02, speaker: xiaodou, when: spot_hens, bubbles: ["One handful. Spread it out."] }
   - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["Malt, come sit."] }
   - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["Malt, don't lick my book."] }
   - { id: garden_dog_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["Malt.", "No digging."] }
@@ -256,6 +282,7 @@ grow:
   - { id: grow_bed_sprout, speaker: xiaoju, when: grow_bed_sprout, bubbles: ["There's a sprout in the beds out back.", "Planted the day the first job was done."] }
   - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["First vegetable out back is ripe.", "Been growing since that first job."] }
   - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["The beds out back are full now.", "Every one of them from work we did together."] }
+  - { id: grow_apprentice, speaker: adeng, when: grow_apprentice, bubbles: ["We've an apprentice now. This is Bean.", "Clem can share the errands."], reply: { speaker: xiaodou, bubbles: ["I'm a very fast walker!"] } }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["There's a little painting on the wall.", "Bought it the day we finished the first job."] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the counter!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["Fairy lights over the windows.", "The shop looks warmer at night."] }
@@ -273,6 +300,19 @@ grow:
   - { id: grow_letters, speaker: xiaoju, when: grow_letters, bubbles: ["Letters on the wall!", "They all came back to us."] }
   - { id: grow_ledger, speaker: laoshi, when: grow_ledger, bubbles: ["A ledger on the table.", "Keep it straight."] }
   - { id: grow_monitor, speaker: xiaoju, when: grow_monitor, bubbles: ["A computer on the little table!", "It even turns on."] }
+  - { id: grow_briefcase, speaker: adeng, when: grow_briefcase, bubbles: ["A briefcase by the wall.", "Anyone off to an interview can borrow it."] }
+  - { id: grow_readinglamp, speaker: xiaoju, when: grow_readinglamp, bubbles: ["A reading lamp on the table!", "Easier on the eyes at night."] }
+  - { id: grow_postcards, speaker: qingdai, when: grow_postcards, bubbles: ["Postcards pinned on the wall.", "All places we haven't been yet."] }
+  - { id: grow_toolbox, speaker: laoshi, when: grow_toolbox, bubbles: ["Toolbox goes here.", "Help yourself."] }
+  - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["Wind chimes by the window.", "They ring when the breeze comes in."] }
+  - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["Sixty jobs, so we got goldfish!", "One's called Wick Junior."], reply: { speaker: laoshi, bubbles: ["I'll change the water."] } }
+  - { id: grow_scroll, speaker: adeng, when: grow_scroll, bubbles: ["A scroll on the wall.", "Flint wrote it. Took him all night."] }
+  - { id: grow_teapot, speaker: adeng, when: grow_teapot, bubbles: ["A teapot on the counter.", "A cup for anyone who comes in."] }
+  - { id: grow_gramophone, speaker: laoshi, when: grow_gramophone, bubbles: ["Seventy-five.", "Gramophone from the flea market. Fixed it."], reply: { speaker: xiaoju, bubbles: ["Play something slow!"] } }
+  - { id: grow_cushion, speaker: xiaoju, when: grow_cushion, bubbles: ["Sewed Chestnut a cushion!", "Chestnut hasn't deigned to try it yet."] }
+  - { id: grow_hat, speaker: qingdai, when: grow_hat, bubbles: ["A straw hat by the door.", "For painting outside in summer."] }
+  - { id: grow_plaque, speaker: adeng, when: grow_plaque, bubbles: ["A hundred commissions.", "The neighbours chipped in for a sign."], reply: { speaker: laoshi, bubbles: ["It's straight."] } }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
+  - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["A teapot on the desk.", "A cup for anyone who comes in."] }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["Fruit on the reading table!", "The tangerines are mine."] }
