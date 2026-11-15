@@ -144,7 +144,7 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
 /** What the commission form needs from the main process. */
-export type FormApi = Pick<LamplightApi, 'chooseSource' | 'chooseLent' | 'handOver' | 'pathsOf' | 'consult' | 'consultFinish'>;
+export type FormApi = Pick<LamplightApi, 'chooseSource' | 'chooseLent' | 'handOver' | 'pathsOf' | 'consult' | 'consultFinish' | 'connections'>;
 const L = U.lent;
 const C = U.consult;
 /** How long Adeng's last word in a talk stays up before the slip comes back filled in. */
@@ -206,6 +206,21 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       el('div.material-head', {}, el('span.material-label', {}, U.materials.label),
         el('button.link.material-add', { type: 'button', onclick: () => void add(null) }, U.materials.add)),
       tags, materialNote, materialHint);
+
+    // "This one may use:" (road-to-1.3.md C4): the connections not paused, none ticked until the user ticks one.
+    const ticked = new Set<string>();
+    const linkRow = el('div.connection-row', { hidden: true });
+    void api.connections().then((view) => {
+      const usable = view.list.filter((c) => !c.paused);
+      // None while the user has paused them all in settings (C6).
+      if (!usable.length || view.allPaused) return;
+      linkRow.replaceChildren(el('span.material-label', {}, strings.ui.connections.slipLine), ...usable.map((c) => {
+        const box = el('input', { type: 'checkbox', value: c.id }) as HTMLInputElement;
+        box.addEventListener('change', () => { if (box.checked) ticked.add(c.id); else ticked.delete(c.id); });
+        return el('label.connection-tick', {}, box, c.label);
+      }));
+      linkRow.hidden = false;
+    });
 
     // "Work in a folder I already have" (road-to-1.1.md A6). Not for the demo, nor a template that brings its own file
     // or folder, nor the album, whose photos are handed over: those land in the shop's own folder.
@@ -371,6 +386,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         sourceRow,
         lentRow,
         materialRow,
+        linkRow,
         el('label', {}, U.details, details),
         el('label', {}, U.audience, audience),
         el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap,
@@ -451,6 +467,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         materials: chosen?.id === 'demo' || inPlace ? undefined : materials.map((m) => m.path),
         inPlace: inPlace?.path,
         consult: talkId ?? undefined,
+        connections: ticked.size ? [...ticked] : undefined,
       };
       if (inPlace) askToLend(filled, inPlace.name);
       else done(filled);

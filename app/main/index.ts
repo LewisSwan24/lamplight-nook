@@ -8,12 +8,12 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
+import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName, withConnections } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore, entriesIn, tooBigToLend } from './versions';
 import { backUp, migrate } from './migrate';
@@ -49,6 +49,11 @@ import { newSession, projectBackground } from './project-brief';
 import { localDay } from '../shared/localday';
 import { ProjectVersions, type Scope } from './project-versions';
 import { cleanScene } from '../shared/scenes';
+import { CONNECTION_ID, ConnectionStore } from './connections';
+import { ActionLog, ConnectionReads, RoundActions } from './action-log';
+import { type KindDef, offerOf, testKind } from './connection-kinds';
+import { type NookServer, connectionServers } from './nook-tools';
+import { randomUUID } from 'node:crypto';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -108,6 +113,11 @@ let versions: VersionStore;
 /** Every round's version of every project (B2), in the same folder as the lent folders' originals. */
 let projectVersions: ProjectVersions;
 let keys: KeyStore;
+/** The user's connections (road-to-1.3.md C4). */
+let connections: ConnectionStore;
+/** The record of outside actions (road-to-1.3.md C6), actions.jsonl in the data folder. */
+let actionLog: ActionLog;
+let connectionReads: ConnectionReads;
 let spend: SpendLedger;
 /** What the rounds under way may still spend (road-to-1.2.md B8). */
 const reservations = new Reservations();
@@ -333,6 +343,50 @@ ipcMain.handle(IPC.monthCapNews, (): number | null => {
   const raised = settings.raisedMonthCap ? settings.get().monthCapUsd : null;
   settings.raisedMonthCap = false;
   return raised;
+});
+/**
+ * The kinds of connection this build can make (road-to-1.3.md C4). C5 brings the real ones; until then only a development
+ * build has one, the test connection, whose secret a simulated run may name (LAMPLIGHT_TEST_SECRET) to look for it later.
+ */
+const connectionKinds = (): KindDef[] => (app.isPackaged ? [] : [testKind(() => process.env.LAMPLIGHT_TEST_SECRET || `test-${randomUUID()}`, join(app.getPath('userData'), 'test-outside'))]);
+const kindOf = (kind: unknown) => connectionKinds().find((k) => k.kind === kind);
+/** A connection's server for a round: its tools, each call noted as its last use; null for a kind this build cannot run. */
+function connectionServer(c: Connection): NookServer | null {
+  const def = kindOf(c.kind);
+  return def ? { name: c.id, tools: def.tools(c, () => connections.secret(c.id)), used: () => connections.used(c.id), connection: { id: c.id, label: c.label } } : null;
+}
+/** The shop's own tools, on every round (C1 brings the first). */
+const SHOP_SERVERS: NookServer[] = [];
+ipcMain.handle(IPC.connections, () => ({
+  list: connections.list().flatMap((c) => { const def = kindOf(c.kind); return def ? [{ ...c, grant: def.grant }] : []; }),
+  offers: connectionKinds().map(offerOf),
+  allPaused: settings.get().connectionsPaused,
+}));
+ipcMain.handle(IPC.actions, () => actionLog.list());
+/** Undo an outside action: only through its own kind, which removes only what that action made, in its own place. */
+ipcMain.handle(IPC.undoAction, (_e, id: unknown): boolean => {
+  const r = typeof id === 'string' ? actionLog.get(id) : undefined;
+  if (!r?.undo?.path || r.undo.done || !r.ok || r.kind !== 'outside') return false;
+  const c = connections.get(r.connection);
+  const def = c && kindOf(c.kind);
+  if (!def?.undo?.(r.tool, r.undo.path)) return false;
+  const done = actionLog.undone(r.id, fill(strings.ui.actions.undoSaid, { said: r.said }));
+  log?.info('outside action undone', { tool: r.tool, ok: Boolean(done) });
+  return Boolean(done);
+});
+ipcMain.handle(IPC.addConnection, (_e, kind: unknown) => {
+  const def = kindOf(kind);
+  if (!def) return null;
+  const made = connections.add(def.kind, def.label, def.config(), def.secret?.());
+  log?.info('connection added', { kind: def.kind, ok: Boolean(made) });
+  return made;
+});
+const connectionId = (id: unknown): id is string => typeof id === 'string' && CONNECTION_ID.test(id);
+ipcMain.handle(IPC.pauseConnection, (_e, id: unknown, on: unknown) => connectionId(id) && typeof on === 'boolean' && connections.pause(id, on));
+ipcMain.handle(IPC.removeConnection, (_e, id: unknown) => {
+  const gone = connectionId(id) && connections.remove(id);
+  if (gone) log?.info('connection removed');
+  return gone;
 });
 ipcMain.handle(IPC.setProjectCap, (_e, id: unknown, usd: unknown): boolean => {
   const ok = typeof id === 'string' && typeof usd === 'number' && memory.setProjectCap(id, usd);
@@ -658,7 +712,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
   pending.save(job);
   sendRuns();
   const tally = new RoundTally(started);
-  log?.info('run start', { run, demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId), together: runs.size });
+  log?.info('run start', { run, demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId), together: runs.size, connections: job.form.connections?.length ?? 0 });
   const r = job.revise;
   // A round of changes is a round inside a project: it starts with what the staff remember of it (B3), and carries the
   // project's preferences there instead of the questions answered on the rest of the shop's work.
@@ -677,14 +731,28 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
   // In a folder the user lent (A6): what is there as the round starts, so what it made can be told apart afterwards.
   const lent = Boolean(job.form.inPlace);
   const atStart = lent ? entriesIn(job.workDir) : [];
+  // The connections ticked on its slip (C4), kept with the slip for its later rounds and a schedule's.
+  // None while the user has paused them all (C6); one paused mid-round is refused at its next call.
+  const ticked = settings.get().connectionsPaused ? [] : connectionServers(job.form.connections, connections.list(), connectionServer);
+  // Every round is watched, ticked connections or not: a session that read through one keeps the web tools asking (C6).
+  const actions = new RoundActions({
+    run, project: project?.id, log: actionLog, paused: () => settings.get().connectionsPaused,
+    readFrom: connectionReads.get(again ? job.sessionId : pickUp),
+    onRead: (label) => { if (job.sessionId) connectionReads.set(job.sessionId, label); },
+  });
+  const told = ticked.map((s) => {
+    const c = connections.get(s.name)!;
+    return { server: `nook-${c.id}`, label: c.label, brief: kindOf(c.kind)!.brief };
+  });
   try {
     const before = new Set(job.preexisting);
     const result = await runAgent({
-      prompt: again ? continuePrompt(job.form, Boolean(job.sessionId), notes, revision)
+      prompt: withConnections(again ? continuePrompt(job.form, Boolean(job.sessionId), notes, revision)
         : revision ? revisePrompt(revision, Boolean(pickUp), notes)
-        : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes),
+        : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes), told),
+      nook: { servers: [...SHOP_SERVERS, ...ticked], run, project: project?.id, actions },
       resume: again ? job.sessionId : pickUp,
-      onSession: (id) => { job.sessionId = id; pending.save(job); },
+      onSession: (id) => { job.sessionId = id; pending.save(job); if (actions.readFrom) connectionReads.set(id, actions.readFrom); },
       onInit: (info) => log?.info('run session', info),
       onInput: (add) => { me.note = (text) => add(meetingNote(text)); },
       onUnreported: (estimate) => { me.unreported = estimate; },
@@ -1301,6 +1369,8 @@ function openData() {
   if (migrated.to !== migrated.from || migrated.changes.length) log?.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
   // The ledger first: settings from before the monthly cap take theirs from what was spent (budget.ts).
   spend = new SpendLedger(join(dir, 'spend.json'));
+  actionLog = new ActionLog(join(dir, 'actions.jsonl'));
+  connectionReads = new ConnectionReads(join(dir, 'connection-reads.json'));
   settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'), () => startingMonthCap(spend.months(), now()));
   pending = new PendingStore(join(dir, 'pending'), join(dir, 'pending.json'));
   schedules = new ScheduleStore(join(dir, 'schedules.json'));
@@ -1342,6 +1412,9 @@ ipcMain.handle(IPC.clearMemory, (): boolean => {
   memory.clear();
   versions.clear();
   spend.forget();
+  actionLog.clear();
+  // connection-reads.json stays: a session it marks may still be carried on, and must keep asking (C6). It holds only
+  // session ids and connection names, nothing that was read.
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
   return true;
 });
@@ -1410,6 +1483,7 @@ app.whenReady().then(() => {
   moveOffer = moveInOffer(oldInstallerData, app.getPath('userData'));
   openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
+  connections = new ConnectionStore(app.getPath('userData'), safeStorage);
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   createWindow();
   startUpdates();

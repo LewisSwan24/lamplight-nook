@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased (1.3)
+
+- **The groundwork for connections.** The notebook has a Connections page, and the commission slip a line saying which
+  connections a commission may use, none ticked unless you tick one. Making a connection first shows what it can read,
+  what it can do and whether that can be undone, what it never does, and how to end it; "Not now" is the default. A
+  connection can be paused or disconnected from its card, and disconnecting deletes its key and its settings. Keys are
+  kept encrypted by the system, as the API key is, and are masked in the log and the recordings. The first real
+  connections come later in 1.3; for now only a development build has one, for testing.
+
+- **Every outside action asks, and is written down.** Anything a connection would change outside the commission folder
+  asks you every time, "Not now" by default, and says how it can be undone, or that it cannot. Nothing is allowed for a
+  whole commission. Once a commission has read through a connection, searching or reading the web asks first. The notebook has an
+  Outside actions page listing what was done through each connection, never what was read or written, with Undo on
+  what can still be undone, and Settings can pause every connection at once.
+
 ## Unreleased (1.2)
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in

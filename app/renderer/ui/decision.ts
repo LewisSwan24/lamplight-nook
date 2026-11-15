@@ -75,6 +75,8 @@ function seriousCard(req: DecisionRequest, close: (id: string) => void) {
     el('dl', {},
       el('dt', {}, D.what), el('dd', {}, req.title),
       req.reason ? el('dt', {}, D.why) : null, req.reason ? el('dd', {}, req.reason) : null,
+      // An outside action says how it is undone, a final one that it cannot be (road-to-1.3.md C6).
+      req.undo ? el('dt', {}, D.undo) : null, req.undo ? el('dd', {}, req.undo) : null,
     ),
     req.detail ? el('details', {}, el('summary', {}, D.showDetail), el('pre', {}, req.detail)) : null,
     el('div.actions', {},

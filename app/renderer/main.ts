@@ -28,6 +28,7 @@ import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, sho
 import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
+import { showGrant } from './ui/connections';
 import { showShelf } from './ui/shelf';
 import { onProjectMeet, renderPins, showProjects, showTimeline } from './ui/projects';
 import { projectColor } from '../shared/project-colors';
@@ -780,7 +781,8 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showShelf: () => showShelf(api, () => {}, () => {}),
       showProjects: () => showProjects(api),
       showTimeline: (id: string) => showTimeline(api, id),
-      showNotebook: () => showNotebook(api),
+      showNotebook: (at?: 'connections') => showNotebook(api, at),
+      showGrant,
       showCaptionLog,
       showPending: (form: CommissionForm) => showPending(api, { run: 'r0', form }, () => {}),
       showInterrupted: (titles: string[]) => showInterrupted(titles.map((title, i) => ({ run: `r${i}`, state: 'interrupted', form: { want: title }, title })), { all: () => {}, each: () => {}, none: () => {} }),

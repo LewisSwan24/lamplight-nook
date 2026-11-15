@@ -8,6 +8,7 @@ import { MONTH_CAP_DEFAULT } from '../../main/budget';
 import { el } from './dom';
 import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
+import { actionsPage, connectionsPage } from './connections';
 
 const N = strings.ui.notebook;
 /** Past commissions drawn at a time; the shop keeps every one of them. */
@@ -135,10 +136,16 @@ export function onNotebookForget(fn: () => void) {
   forgotten = fn;
 }
 
-/** Adeng's notebook: everything the shop remembers, and a way to forget it all (asked twice). */
-export async function showNotebook(api: LamplightApi) {
-  const [memory, spent, talks] = await Promise.all([api.getMemory(), api.spendThisMonth(), api.consultsThisMonth()]);
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(api, memory, spent, talks, reviseOld));
+/**
+ * Adeng's notebook: everything the shop remembers, and a way to forget it all (asked twice). Its connections page
+ * (road-to-1.3.md C4) comes first when there is anything on it; `at` opens it there.
+ */
+export async function showNotebook(api: LamplightApi, at?: 'connections') {
+  const [memory, spent, talks, linked, done] = await Promise.all([api.getMemory(), api.spendThisMonth(), api.consultsThisMonth(), api.connections(), api.actions()]);
+  const links = connectionsPage(api, linked, () => showNotebook(api, 'connections'), done);
+  // What was done through them (C6) follows the connections.
+  const outside = actionsPage(api, done, linked);
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), ...pages(api, memory, spent, talks, reviseOld));
   const actions = el('div.actions');
   const ask = () => {
     actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));
@@ -171,4 +178,5 @@ export async function showNotebook(api: LamplightApi) {
   // Start at the top of the page, not at the first link further down.
   body.focus();
   body.scrollTop = 0;
+  if (at && links) links.scrollIntoView({ block: 'start' });
 }

@@ -22,8 +22,19 @@ export const looksLikeKey = (key: string) => KEY_SHAPE.test(key);
 /** Never show a key in full: keep the prefix and the last four characters. */
 export const keyHint = (key: string) => `sk-ant-...${key.slice(-4)}`;
 
-/** Replace anything shaped like an Anthropic key in a piece of text. */
-export const redactSecrets = (text: string) => text.replace(ANY_KEY, 'sk-ant-[redacted]');
+/**
+ * Secrets of other shapes the main process has seen (a connection's, road-to-1.3.md C4): put here when a connection is
+ * added or its secret is unlocked, and kept until the app closes.
+ */
+const known = new Set<string>();
+export const knowSecret = (secret: string) => { if (secret) known.add(secret); };
+
+/** Replace anything shaped like an Anthropic key, and every known secret, in a piece of text. Log and Recorder go through this. */
+export function redactSecrets(text: string): string {
+  let out = text.replace(ANY_KEY, 'sk-ant-[redacted]');
+  for (const secret of known) if (out.includes(secret)) out = out.split(secret).join('[redacted]');
+  return out;
+}
 
 /**
  * The user's own API key, encrypted with the OS and kept in the app's data folder.

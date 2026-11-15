@@ -16,6 +16,12 @@ describe('third-party notices', () => {
     expect(imported.some((n) => n.startsWith('node:'))).toBe(false);
   });
 
+  it('leaves out packages the app only takes types from, which are not shipped', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'imports-'));
+    writeFileSync(join(dir, 'a.ts'), "import type { X } from 'types-only';\nimport { y } from 'used';\nimport type {\n  Z,\n} from 'types-too';\n");
+    expect(importedPackages(dir)).toEqual(['used']);
+  });
+
   it('follows run-time dependencies and leaves Electron to its own license files', () => {
     const names = packages.map((p) => p.name);
     expect(names).toEqual(expect.arrayContaining(['phaser', 'eventemitter3', 'yaml', '@anthropic-ai/claude-agent-sdk']));
