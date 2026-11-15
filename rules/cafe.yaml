@@ -1,6 +1,8 @@
 # Cafe scene rules: AiEvent -> character commands.
 # Rules are checked top to bottom; the first whose `on` and `when` match wins. `extra` adds commands for other characters.
+# Xiaodou the apprentice gets no commands before coming to the shop (shared/staff.ts).
 # actor "{agent}" means whoever the event came from: main->adeng, researcher->xiaoju, designer->qingdai, reviewer->laoshi, unrecognized->xiaoju.
+# when.by: only when that helper takes the errand instead: Xiaodou the apprentice runs Xiaoju's second errand while she is out.
 # priority: chat < work < subagent < fail < ask < serious.
 # anim is an animation name; names the art doesn't have yet are mapped in anim-fallback.yaml.
 # Saved changes hot-reload in dev mode; `npm test` checks that every line group and animation exists.
@@ -16,6 +18,7 @@
     - { actor: xiaoju, state: ready, moveTo: shelf, anim: idle, priority: chat }
     - { actor: laoshi, state: ready, moveTo: corner, anim: read, priority: chat }
     - { actor: qingdai, state: ready, moveTo: board, anim: idle, priority: chat }
+    - { actor: xiaodou, state: ready, moveTo: counter, anim: idle, priority: chat }
 
 - on: plan
   actor: adeng
@@ -34,6 +37,27 @@
   priority: work
 
 # Subagents leave and come back
+# The apprentice takes the errand Xiaoju is too busy for: out of the front door, back to the counter.
+- on: subagent_start
+  when: { by: xiaodou }
+  actor: xiaodou
+  state: out
+  moveTo: door
+  anim: put_on_coat
+  lines: sub_go_xiaodou
+  priority: subagent
+  extra:
+    - { actor: adeng, state: working, anim: gift, priority: work }
+
+- on: subagent_stop
+  when: { by: xiaodou }
+  actor: xiaodou
+  state: returning
+  moveTo: counter
+  anim: gift
+  lines: sub_back_xiaodou
+  priority: subagent
+
 - on: subagent_start
   when: { agent: researcher }
   actor: xiaoju
@@ -322,6 +346,7 @@
     - { actor: xiaoju, state: idle, moveTo: shelf, anim: idle, priority: chat }
     - { actor: laoshi, state: idle, moveTo: corner, anim: read, priority: chat }
     - { actor: qingdai, state: idle, moveTo: board, anim: idle, priority: chat }
+    - { actor: xiaodou, state: idle, moveTo: counter, anim: idle, priority: chat }
     - { actor: cat, state: idle, moveTo: window, anim: sleep, priority: chat }
 
 - on: failed
@@ -361,3 +386,4 @@
     - { actor: xiaoju, state: idle, moveTo: shelf, anim: idle, priority: chat }
     - { actor: laoshi, state: idle, moveTo: corner, anim: read, priority: chat }
     - { actor: qingdai, state: idle, moveTo: board, anim: idle, priority: chat }
+    - { actor: xiaodou, state: idle, moveTo: counter, anim: idle, priority: chat }

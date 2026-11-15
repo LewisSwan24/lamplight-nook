@@ -56,8 +56,9 @@ function agentOf(agentId: string | undefined, known: Map<string, AiEvent['agent'
 export function makePermissionPolicy(ctx: RiskContext, broker: DecisionBroker, events: PolicyEvents, agents = new Map<string, AiEvent['agent']>()): CanUseTool {
   return async (tool, input, opts) => {
     const agentId = opts.agentID;
-    const { risk, reason } = classify(tool, input, ctx);
+    const { risk, reason, keep } = classify(tool, input, ctx);
     events.onRequest(tool, input, risk, reason, agentId);
+    if (keep) ctx.keepOriginal!(keep);
 
     if (tool === 'AskUserQuestion') {
       const questions = (Array.isArray(input.questions) ? input.questions : []) as Question[];

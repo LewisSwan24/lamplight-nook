@@ -1,6 +1,7 @@
 import { bedNews } from './growth';
 import { fill, strings } from './i18n';
 import { localDay } from './localday';
+import { apprenticeNews } from './staff';
 import type { Memory } from './types';
 
 /** Works worth their own line in the shop's days. */
@@ -31,7 +32,7 @@ const dayOf = (time: number) => localDay(new Date(time));
 
 /**
  * What has happened to this shop, newest first, read only from what it already remembers: works by name at the first and
- * at round numbers, what it gathered, who came for the first time, and how the vegetable beds did.
+ * at round numbers, what it gathered, who came for the first time, the apprentice, and how the vegetable beds did.
  */
 export function shopTimeline(memory: Memory, now = new Date()): DayEntry[] {
   const shop = memory.shop;
@@ -49,6 +50,7 @@ export function shopTimeline(memory: Memory, now = new Date()): DayEntry[] {
     if (ROUND_NUMBERS.has(n)) entries.push({ date, text: fill(N.nthWork, { n: String(n), title: w.title }) });
     const news = bedNews(n - 1, n);
     if (news) entries.push({ date, text: beds[news] });
+    if (apprenticeNews(n - 1, n)) entries.push({ date, text: N.apprentice });
   });
   if (before === 0 && works.length) {
     const first = new Date(madeAt(works[0].id));

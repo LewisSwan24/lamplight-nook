@@ -6,7 +6,7 @@ Scripts for checking the app and making its pictures without spending money. The
 ## The stand-in Claude (`sim/claude.mjs`)
 
 An executable that speaks the Agent SDK's stream-json control protocol (initialize, hook callbacks,
-permission requests) and plays a scripted commission picked from the prompt: the demo, each of the eight
+permission requests) and plays a scripted commission picked from the prompt: the demo, each of the twelve
 templates, a round of changes, or a resumed run. It really writes the files into the commission folder,
 asks the app for permission like Claude Code does, and honours `--max-budget-usd` and `--resume`.
 It never touches the network.
@@ -58,13 +58,17 @@ node tools/sim/accept.mjs                      # every scenario, Chinese and Eng
 node tools/sim/accept.mjs --lang en --only demo,board
 ```
 
-Scenarios: `baddata` (data files that cannot be read are put aside, and the works come back from the last copy), `badsettings` (settings that cannot be read: the shop says why and what the budget is now), `badstart` (the shop cannot open at all: it says so and quits), `stopclose` (asked on the way out mid-commission: keeping going keeps going, stopping can be carried on next time), `stopdone` (a commission that finishes just after "stop and close" is not offered again next time), `movedother` (a moved work cannot take another work's folder), `forgetbusy` (forgetting everything waits for the commission that is running), `birthday` (a year to the day after the first work, said once), `moved` (a work's folder was moved: the shelf takes the new place only if the work is there), `oneshop` (opening it twice brings the shop back rather than opening a second one), `screens` (Windows display scaling at 125%, 150% and 175% for real, with game pixels counted on the picture, and every
+Scenarios: `baddata` (data files that cannot be read are put aside, and the works come back from the last copy), `badsettings` (settings that cannot be read: the shop says why and what the budget is now, read when the card shows), `stats` (a round is written down with its errands, the notebook's ledger sums the month, clearing it keeps the works), `badstart` (the shop cannot open at all: it says so and quits), `stopclose` (asked on the way out mid-commission: keeping going keeps going, stopping can be carried on next time), `stopdone` (a commission that finishes just after "stop and close" is not offered again next time), `movedother` (a moved work cannot take another work's folder), `forgetbusy` (forgetting everything waits for the commission that is running), `birthday` (a year to the day after the first work, said once: still said after closing before anyone spoke, and when the day turns while the shop is open), `moved` (a work's folder was moved: the shelf takes the new place only if the work is there), `oneshop` (opening it twice brings the shop back rather than opening a second one), `screens` (Windows display scaling at 125%, 150% and 175% for real, with game pixels counted on the picture, and every
 main card in the smallest windows), `names` (`sim/names.mjs`: every control and every card has a name in Chromium's accessibility tree; not a test with a real screen reader), `contrast` (`sim/contrast.mjs`: each kind of text on every main card, against what is really behind it, to WCAG AA),
 `ledger` (fourteen months of spending and more runs than used to be kept), `thousand` (1000 works: how fast the shop, shelf and notebook open, finding one, one more commission),
 `grownline` (the line about what grew waits for its speaker), `crash` (the plug pulled mid-commission and with the result open, half-written files, the folder emptied or
 gone, Claude Code falling over), `keyboard` (a whole commission, the shelf, the garden and settings without the mouse),
-`passers` (people seen through the windows on their way to the door), `beds` (the vegetable beds at 0, 1, 4, 12, 25 and 60 works), `days` (thirty works: all on the shelf, the shop's days in the notebook), `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
-`templates` (all eight, then the works shelf), `revise` (another round, back and forward between versions),
+`passers` (people seen through the windows on their way to the door), `beds` (the vegetable beds from 0 to 100 works, and once full in each season), `days` (a hundred works: all on the shelf, the shop's days in the notebook, every piece out; leaves `days-100-cafe.png` and `days-100-study.png`), `seasons` (each season's vase and beds, each festival's decorations in the cafe and the three lunar ones in the study, and what the baker says for each), `demo`, `board` (the real plan on the blackboard), `materials` (handing over files),
+`templates` (all twelve, then the works shelf), `scripts` (a small tool that renames files comes as a careful script and passes quietly; one that deletes gets a warning on the result card), `revise` (another round, back and forward between versions),
+`inplace` (work in a folder the user already has: the home folder and one over 100 MB refused on the slip, two files changed without a card and undone byte for byte with the new page gone and the other files untouched, and a folder grown past the cap refused before the work starts),
+`export` (take a work away from the shelf: a page's zip, unpacked by the system's own `tar`, matches its files byte for byte; its PDF has a sane page count, the page's words and its own stylesheet's, but not a stylesheet from elsewhere on the computer; the print window is gone afterwards; a cancelled save writes nothing; a work in a lent folder zips only the three files it touched),
+`update` (a new version from a local feed served by the scenario: the Store build and a shop with the switch off never ask; the postman brings the letter with the version and the notes in the shop's language only; nothing is fetched until "update"; a commission after that runs to the end; the install comes only as the shop closes, after a copy of the data that matches it; closing mid-commission with "stop and close" still offers to carry on next time, and installs after; the installer itself is never run, the log says when it would have been),
+`storemove` (the Store build's first open beside an installer build's shop: asked before anything else, with the works and the ledger total; "bring it over" puts the works on the shelf and the ledger in settings, leaves the key behind and the old folder byte for byte as it was; the next open asks nothing; "start afresh" gives the welcome and copies nothing; without an old shop nothing is asked),
 `meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
 slip holding twelve long-named files), `menus` (the toolbar's six buttons, labels and icon pixels, and what sits on each
@@ -86,7 +90,10 @@ checkouts, so that nothing deletes through them into `node_modules`.
 
 `launch()` options worth knowing: `store` plays the Store build (`LAMPLIGHT_STORE=1`); `claudePath`
 other than the stand-in, such as a path that does not exist, also gives the app a PATH with no `claude`
-on it, since a real Claude Code may sit next to node.
+on it, since a real Claude Code may sit next to node. `updateConfig` is an `app-update.yml` naming a local
+update feed (`LAMPLIGHT_UPDATE_CONFIG`, honoured only unpackaged); the app then looks there for new versions and
+writes a log line instead of running the installer it fetched. `oldData`, with `store`, names a data folder the
+Store build treats as the installer build's and offers to bring over (`LAMPLIGHT_STORE_OLD_DATA`, honoured only unpackaged).
 Screenshots go to `sim-out/<lang>/` (git-ignored).
 
 ## Store and website pictures (`sim/store.mjs`)
@@ -176,3 +183,12 @@ ever added to the repository.
 Agent SDK's own Claude Code, with the same `LAMPLIGHT_TEST_KEY`, taking a screenshot every few seconds into
 `real-out/`. The app's lowest cap is $1; `--cap` (default 0.40) lowers it for the test through a small wrapper
 around the SDK's Claude Code, so the app is unchanged (Linux and macOS). `--sim` runs it against the stand-in.
+
+## The ledger against the Console (`ledger-table.mjs`)
+
+`node tools/ledger-table.mjs <dataDir> [--month YYYY-MM]` prints the app's spend ledger as a Markdown table, for
+holding against the Anthropic Console's usage page (road-to-1.1.md A3). On Windows the data folder is
+`"%APPDATA%\Lamplight Nook"`. One row per session per month, named by the work's title from `memory.json` (the
+folder's name when the notebook no longer has it, or "forgotten" after the shop forgot everything), then each
+month's total and the grand total. It only reads `spend.json` and `memory.json` and writes nothing. These are
+Claude Code's own estimates, so a small difference from the Console is expected; write it down in section 7.

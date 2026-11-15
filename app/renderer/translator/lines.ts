@@ -3,7 +3,7 @@ import type { WorkIcon } from '../../shared/growth';
 import { parse } from 'yaml';
 import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
-import type { Holiday, Sky } from '../game/weather';
+import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky } from '../game/weather';
 import { SCENES, forScene, type SceneId } from '../../shared/scenes';
 import type { LineBook } from './director';
 
@@ -26,6 +26,8 @@ export type Chat = {
   /** Only on a day with this weather, or while this holiday's decorations are up (game/weather.ts). */
   sky?: Sky;
   holiday?: Holiday;
+  /** A neighbour's topic for this season only (with `after`, what they bring up once the shop is a regular stop). */
+  season?: Season;
   /** A neighbour's visit (game/guests.ts): played when they drop in, never as everyday small talk. */
   guest?: GuestId;
   /** Only once the shop has finished this many commissions with the user (plan.md R2.3). */
@@ -50,6 +52,7 @@ export function parseChats(text: string): Chat[] {
     period: c.period,
     ...(c.sky ? { sky: c.sky } : {}),
     ...(c.holiday ? { holiday: c.holiday } : {}),
+    ...(c.season ? { season: c.season } : {}),
     ...(c.guest ? { guest: c.guest } : {}),
     ...(typeof c.after === 'number' ? { after: c.after } : {}),
     ...(c.once ? { once: true } : {}),
@@ -143,7 +146,7 @@ export function lintLines(lib: LineLibrary, S: Strings = strings): string[] {
   return problems;
 }
 
-/** The same rules for small talk, plus: at least two turns, unique ids, and a known `when`. */
+/** The same rules for small talk, plus: at least two turns, unique ids, a known `when`, and a season only for a neighbour. */
 export function lintChats(chats: Chat[], S: Strings = strings): string[] {
   const rules = rulesFor(S);
   const problems: string[] = [];
@@ -153,11 +156,13 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
     if (ids.has(key)) problems.push(fill(L.duplicateId, { id: chat.id }));
     ids.add(key);
     const badSky = chat.sky && !['rain', 'snow', 'petals', 'leaves'].includes(chat.sky);
-    const badHoliday = chat.holiday && !['halloween', 'christmas', 'new_year'].includes(chat.holiday);
+    const badHoliday = chat.holiday && !HOLIDAYS.includes(chat.holiday);
+    // Only neighbours bring up the season; the staff talk about the weather instead.
+    const badSeason = chat.season && (!SEASONS.includes(chat.season) || !chat.guest);
     // A visit opens with the guest, and only that guest comes along.
     const guests = chat.turns.map((t) => t.speaker).filter((s) => GUEST_IDS.includes(s as GuestId));
     const badGuest = chat.guest ? !GUEST_IDS.includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
-    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
+    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday || badSeason || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;

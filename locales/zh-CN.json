@@ -18,6 +18,7 @@
     "xiaoju": "小橘",
     "laoshi": "老石",
     "qingdai": "青黛",
+    "xiaodou": "小豆",
     "cat": "栗子"
   },
   "animals": {
@@ -174,6 +175,17 @@
       "sheetFill": "帮我做一个……的表格。",
       "planFill": "帮我排一个……的计划。",
       "albumFill": "用这些照片做一本……的小相册。",
+      "resume": "写简历",
+      "notes": "读书笔记",
+      "travel": "旅行攻略",
+      "tool": "小工具",
+      "resumeFill": "帮我写一份……的简历。",
+      "notesFill": "帮我给《……》做一份读书笔记。",
+      "travelFill": "帮我做一份……的旅行攻略，……天。",
+      "toolFill": "帮我做一个……的小工具。",
+      "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
+      "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
+      "toolHint": "能在浏览器里做的，就做成一个网页。要动电脑上的文件才写脚本，脚本先只列出要做的事，加上 -Apply 才动手。",
       "albumHint": "把照片递过来：拖到这张单子上，或点「递材料」。相册是一个网页，照片用的是复制件。",
       "needPhotos": "先把照片递过来，相册才有东西放。",
       "chooseFile": "选文件",
@@ -220,6 +232,28 @@
       "missing": "「{name}」找不到了。",
       "busy": "店里正忙着这一单，等做完再递新的吧。",
       "drop": "松手就递给阿灯"
+    },
+    "lent": {
+      "pick": "在我已有的文件夹里改…",
+      "pickAnother": "换一个文件夹…",
+      "remove": "不在「{name}」里改了",
+      "picked": "店员们会直接改这个文件夹里的文件。每个文件第一次被改之前，都会先存一份原样，不满意可以整单撤回。",
+      "broad": "这个位置太大了。整个磁盘、主文件夹、文档、桌面和下载，店员们都不进去干活，选里面一个小一点的文件夹吧。",
+      "tooBig": "这个文件夹太大了（超过 100MB）。小店要先存得下里面所有文件的原样，才敢保证能撤回，换个小一点的吧。",
+      "confirmTitle": "就在「{name}」里改？",
+      "confirmText": "店员们会直接改这个文件夹里原有的文件，不再一个个问你。每个文件第一次被改之前，小店都会先存一份原样。",
+      "confirmUndo": "不满意的话，在结果卡上点“撤回这一单”：改过的文件放回原样，新做的文件拿走，别的文件一概不动。删文件和跑命令照旧会先问你。",
+      "back": "回去再看看",
+      "go": "好，就在这里改",
+      "changed": "改了你原有的：{files}",
+      "added": "新做的：{files}",
+      "more": "等 {n} 个",
+      "undo": "撤回这一单",
+      "undoSure": "确定撤回",
+      "undoAsk": "撤回后，改过的文件放回原样，新做的拿走，这一单做的就都没了。",
+      "undone": "撤回好了，文件夹回到了开工前的样子。",
+      "undoPartly": "撤回了，只有这些没放回：{files}。它们所在的文件夹现在通向别处，小店不往那边写。",
+      "undoFailed": "没撤回成，可能已经撤回过了。"
     },
     "want": "想做什么",
     "wantMissing": "先写一句想做什么。",
@@ -384,6 +418,8 @@
       "noticesMissing": "授权清单没找到，重新安装一下小灯屋应该就好了。",
       "aboutLabel": "关于",
       "version": "小灯屋 {version}",
+      "updatesToggle": "有新版本时让阿信送信来",
+      "updatesHint": "只看看有没有新版本。你点了“更新”才会下载。",
       "creditArt": "场景与角色像素美术：LimeZu《Modern Interiors》《Modern Exteriors》《Modern Farm》",
       "creditLink": "limezu.itch.io",
       "creditFont": "手写字体：霞鹜文楷（LXGW WenKai，SIL Open Font License 1.1）",
@@ -428,7 +464,19 @@
         "books": "一叠书",
         "letters": "信件板",
         "ledger": "账本",
-        "monitor": "小电脑"
+        "monitor": "小电脑",
+        "briefcase": "公文包",
+        "readinglamp": "读书灯",
+        "postcards": "明信片",
+        "toolbox": "工具箱",
+        "chime": "这串风铃",
+        "aquarium": "这缸金鱼",
+        "scroll": "这幅字",
+        "teapot": "这把茶壶",
+        "gramophone": "这台留声机",
+        "cushion": "这个垫子",
+        "hat": "这顶草帽",
+        "plaque": "这块匾"
       },
       "grownLine": "{thing}是做完第 {n} 单后添的。",
       "clock": "现在 {time}。",
@@ -460,6 +508,7 @@
         "xiaoju": "小橘",
         "laoshi": "老石",
         "qingdai": "青黛",
+        "xiaodou": "小豆",
         "cat": "小猫"
       },
       "table": [
@@ -517,7 +566,11 @@
         "books": "查过两回资料，这叠书就留下了。",
         "letters": "写过几封信，回信都钉在这儿。",
         "ledger": "做过两回表格，账也记得勤了。",
-        "monitor": "做过几回网页，这台小电脑就常开着。"
+        "monitor": "做过几回网页，这台小电脑就常开着。",
+        "briefcase": "帮人写过简历，这只公文包就放在这儿了。",
+        "readinglamp": "做过读书笔记，桌上就添了盏读书灯。",
+        "postcards": "做过旅行攻略，墙上就钉了几张明信片。",
+        "toolbox": "做过小工具，老石的工具箱就搬过来了。"
       }
     },
     "run": {
@@ -560,7 +613,9 @@
       "failedTitle": "这单中途停了",
       "failedText": "活干到一半停下来了，我也说不清为什么。已经做好的部分都留着，可以接着做。",
       "goneTitle": "那单的文件夹找不到了",
-      "goneText": "可能被挪走或删掉了。想要的话，重新递一张委托单吧。"
+      "goneText": "可能被挪走或删掉了。想要的话，重新递一张委托单吧。",
+      "tooBigTitle": "这个文件夹变大了",
+      "tooBigText": "里面的文件已经超过 100MB，小店存不下全部原样，没法保证撤回，所以这单先不开工。挪走一些大文件，再递一次吧。"
     },
     "toolbar": {
       "label": "店里的开关",
@@ -591,10 +646,35 @@
       "bedsAnd": "，",
       "bedsRipe": "熟了 {n} 棵",
       "bedsSprout": "刚发芽 {n} 棵",
+      "bedsYoung": "春天新种的苗 {n} 棵",
+      "bedsHarvest": "等着收的 {n} 棵",
+      "bedsRest": "盖着稻草过冬的 {n} 块",
       "hotspotBoard": "黑板：看看整张计划",
       "hotspotWorks": "作品架：看看一起做过的东西"
     },
     "notebook": {
+      "ledgerTitle": "小店账簿",
+      "ledgerNone": "这个月还没有记录。",
+      "ledgerWorks": "这个月接了 {works} 单，做了 {rounds} 轮，平均每轮 {time}。",
+      "ledgerSpent": "这个月一共花了约 {cost}。",
+      "ledgerFailures": "没做完的有：{list}。",
+      "ledgerWaits": "跑腿排了 {n} 次队，一共等了 {time}。",
+      "ledgerSince": "从 {date} 开始记，只存在这台电脑上，不会发出去。",
+      "ledgerClear": "清掉这些记录",
+      "ledgerCleared": "记录清掉了，做过的委托都还在。",
+      "ledgerMinutes": "{m} 分 {s} 秒",
+      "ledgerSeconds": "{s} 秒",
+      "ledgerJoin": "、",
+      "ledgerKind": {
+        "net": "断网 {n} 次",
+        "busy": "服务忙 {n} 次",
+        "billing": "余额不足 {n} 次",
+        "auth": "Key 不对 {n} 次",
+        "budget": "到了上限 {n} 次",
+        "failed": "出错 {n} 次",
+        "no_api_key": "没有 Key {n} 次",
+        "no_claude": "没找到 Claude Code {n} 次"
+      },
       "sectionText": "阿灯会记下做过的委托、你做的选择和卡住过的地方，只记这些，不记聊天内容。",
       "title": "阿灯的小本子",
       "commissions": "做过的委托",
@@ -632,7 +712,8 @@
       "bedSprout": "后院种下第一棵菜",
       "bedRipe": "后院第一棵菜熟了",
       "birthday": "小店满 {n} 岁了",
-      "bedFull": "后院菜地长满了"
+      "bedFull": "后院菜地长满了",
+      "apprentice": "小豆来店里当学徒"
     },
     "tray": {
       "sectionLabel": "不在眼前的时候",
@@ -661,6 +742,12 @@
       "sheet": "表格.csv",
       "plan": "计划.md",
       "materials": "材料",
+      "resume": "简历.html",
+      "notes": "读书笔记.md",
+      "tool": "小工具.html",
+      "toolScript": "小工具.ps1",
+      "toolLauncher": "双击运行.cmd",
+      "toolSamples": "样例",
       "originalPrefix": "原稿-",
       "revisedPrefix": "修改版-"
     },
@@ -676,6 +763,9 @@
     "resultRevise": "再改改",
     "resultReport": "内容有问题？告诉我们",
     "resultShelf": "做好的东西会摆上墙边的作品架，以后点它就能找回来、接着改。",
+    "resultScriptDeletes": "{file} 里有删除文件的命令。运行前先打开看一遍，或者点“再改改”请店里拿掉。",
+    "resultScriptNoPreview": "{file} 一运行就会真的改动文件，不会先列出要做什么。运行前先打开看一遍。",
+    "resultScriptBoth": "{file} 里有删除文件的命令，而且一运行就动手，不会先列出要做什么。运行前先打开看一遍，或者点“再改改”请店里改掉。",
     "resultRestore": "换回上一版",
     "resultRestoreBack": "换回改过的那版",
     "resultRestored": "换好了，现在是上一版。",
@@ -697,6 +787,12 @@
       "relinkBroad": "那个文件夹里放的东西太多了。给这件作品单独建一个文件夹，再指给我。",
       "relinkTaken": "那里已经放着另一件作品。给这件作品单独建一个文件夹，再指给我。",
       "relinked": "找到了，以后就从那里打开。",
+      "take": "带走",
+      "takeAs": "带走成：",
+      "takeZip": "压缩包",
+      "takePdf": "PDF",
+      "taken": "存好了，已经在文件夹里给你选中。",
+      "takeEmpty": "文件夹里已经没有这件作品的东西可带走了。",
       "empty": "架子还空着。做好第一件，就摆在这儿。",
       "search": "找一件：名字、当时说的话或月份",
       "kindsLabel": "按种类看",
@@ -713,7 +809,11 @@
         "letter": "信",
         "sheet": "表格",
         "plan": "计划",
-        "album": "相册"
+        "album": "相册",
+        "resume": "简历",
+        "notes": "读书笔记",
+        "travel": "攻略",
+        "tool": "小工具"
       }
     },
     "mini": {
@@ -727,6 +827,27 @@
       "done": "做好了，点我去看看",
       "failed": "没做成，点我回店里看看",
       "open": "回到店里"
+    },
+    "moveIn": {
+      "title": "要把以前的店搬过来吗？",
+      "found": "阿灯在这台电脑上找到了从网站装的小灯屋：做好的作品有 {works} 件，账本上记着 {spent}。",
+      "text": "搬过来以后，作品、笔记本和账本都在这里接着用。原来那份不动，那边照样能打开。API Key 搬不过来，搬完要在设置里再填一次。",
+      "move": "搬过来",
+      "fresh": "不用了，从头开",
+      "moved": "{name}，都搬过来了，东西一样不少。",
+      "failed": "没搬成。原来那份一点没动。"
+    },
+    "update": {
+      "postman": "小灯屋的信，做店的人寄来的。",
+      "thanks": "辛苦了阿信。",
+      "title": "小灯屋 {version} 出来了",
+      "intro": "阿信送来一封信：小灯屋出了新版本。点“更新”先把它取回来，等你关店时再装上，正在做的委托不会被打断。装之前会先把数据备份一份。",
+      "notesLabel": "这次有什么新东西",
+      "update": "更新",
+      "later": "先不了",
+      "fetching": "好，我这就去取。",
+      "ready": "新版本取回来了，关店时就装上。",
+      "failed": "新版本没取回来，下回阿信再送信来。"
     },
     "scene": {
       "label": "店开在哪",
@@ -825,7 +946,19 @@
     "books": "一叠书",
     "letters": "一块信件板",
     "ledger": "一本账",
-    "monitor": "一台小电脑"
+    "monitor": "一台小电脑",
+    "briefcase": "一只公文包",
+    "readinglamp": "一盏读书灯",
+    "postcards": "几张明信片",
+    "toolbox": "一个工具箱",
+    "chime": "一串风铃",
+    "aquarium": "一缸金鱼",
+    "scroll": "一幅字",
+    "teapot": "一把茶壶",
+    "gramophone": "一台留声机",
+    "cushion": "栗子的垫子",
+    "hat": "一顶草帽",
+    "plaque": "一块匾"
   },
   "sceneText": {
     "study": {

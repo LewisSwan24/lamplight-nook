@@ -57,12 +57,12 @@ export type GardenSpot = {
 
 /** What there is to do out there, and who likes doing it. Places match scripts/art/garden.py. */
 export const SPOTS: GardenSpot[] = [
-  { id: 'veg', x: 54, y: 132, facing: 'up', anim: 'pick_up', who: ['xiaoju', 'laoshi'] },
+  { id: 'veg', x: 54, y: 132, facing: 'up', anim: 'pick_up', who: ['xiaoju', 'laoshi', 'xiaodou'] },
   { id: 'flowers', x: 140, y: 128, facing: 'down', anim: 'lift', who: ['xiaoju', 'adeng', 'qingdai'] },
   { id: 'bench', x: 296, y: 112, facing: 'left', anim: 'sit', who: ['adeng', 'laoshi'] },
   { id: 'lawn', x: 208, y: 140, facing: 'down', anim: 'read', who: ['adeng', 'xiaoju', 'qingdai'] },
   // Scattering grain for the hens in front of the henhouse (game/animals.ts).
-  { id: 'hens', x: 206, y: 106, facing: 'up', anim: 'pick_up', who: ['xiaoju', 'adeng'] },
+  { id: 'hens', x: 206, y: 106, facing: 'up', anim: 'pick_up', who: ['xiaoju', 'adeng', 'xiaodou'] },
   { id: 'sun', x: 122, y: 100, facing: 'down', anim: 'lie', who: ['cat'] },
 ];
 

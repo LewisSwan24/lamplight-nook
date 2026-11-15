@@ -61,10 +61,11 @@ describe('Claude Code version', () => {
 
 describe('asking a Claude Code for its version', () => {
   it('runs a real program directly', () => {
-    expect(versionCommand('C:/x/claude.exe', 'C:/app/app.exe')).toEqual({ file: 'C:/x/claude.exe', args: ['--version'] });
+    expect(versionCommand('C:/x/claude.exe')).toEqual({ file: 'C:/x/claude.exe', args: ['--version'] });
   });
 
-  it('runs a script through node, as the SDK does, since Windows cannot start one by itself', () => {
-    expect(versionCommand('C:/x/claude.mjs', 'C:/app/app.exe')).toEqual({ file: 'C:/app/app.exe', args: ['C:/x/claude.mjs', '--version'], env: { ELECTRON_RUN_AS_NODE: '1' } });
+  // The shipped app cannot run as Node (its fuse is off): asked to, it would open a second shop instead.
+  it('runs a script through the node on PATH, the one the SDK starts it with', () => {
+    expect(versionCommand('C:/x/claude.mjs')).toEqual({ file: 'node', args: ['C:/x/claude.mjs', '--version'] });
   });
 });

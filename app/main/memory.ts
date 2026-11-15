@@ -2,14 +2,17 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameS
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
+import { MAIN_FILES } from '../shared/templates';
 import { forgetAside, putAside } from './aside';
-import type { CommissionMemo, DataDamage, GuestId, Memory, Recall, ShopDays, ShopState } from '../shared/types';
+import type { CommissionMemo, DataDamage, GuestId, Memory, Recall, RoundStat, ShopDays, ShopState } from '../shared/types';
 
 /** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
 const RECENT_FOR_NOTES = 20;
 const MAX_NOTES = 10;
 /** Rounds of changes remembered per commission. */
 const MAX_ASKS = 10;
+/** Rounds kept per work for the ledger page; older ones drop off. */
+const MAX_ROUNDS = 50;
 
 const empty = (): Memory => ({ commissions: [], stuckNotes: [] });
 
@@ -72,7 +75,8 @@ export class MemoryStore {
     // answered before the stop still counts.
     const stopped = (c: CommissionMemo) => memo.folder && c.folder === memo.folder && c.result === 'failed';
     const before = this.data.commissions.find(stopped);
-    const entry: CommissionMemo = { ...memo, choices: { ...before?.choices, ...memo.choices }, id: `c${t}`, date };
+    const rounds = [...(before?.rounds ?? []), ...(memo.rounds ?? [])].slice(-MAX_ROUNDS);
+    const entry: CommissionMemo = { ...memo, choices: { ...before?.choices, ...memo.choices }, id: `c${t}`, date, ...(rounds.length ? { rounds } : {}) };
     this.data.commissions = this.data.commissions.filter((c) => !stopped(c));
     this.data.commissions.push(entry);
     this.note(memo.title, stuck, date);
@@ -84,7 +88,7 @@ export class MemoryStore {
    * Another round of changes to a commission already in the notebook: it moves to the top as the latest
    * work, keeps its first choices unless answered again, and remembers what was asked. Null if it is gone.
    */
-  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main'>>, stuck: string[], now = new Date()): CommissionMemo | null {
+  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main' | 'touched'>> & { round?: RoundStat }, stuck: string[], now = new Date()): CommissionMemo | null {
     const at = this.data.commissions.findIndex((c) => c.id === id);
     if (at < 0) return null;
     const date = localDay(now);
@@ -102,6 +106,9 @@ export class MemoryStore {
       // Trying the same round again (after a network failure, say) is still one round.
       asks: (old.asks?.at(-1)?.ask === ask ? old.asks : [...(old.asks ?? []), { ask, date }]).slice(-MAX_ASKS),
     };
+    if (update.round) entry.rounds = [...(old.rounds ?? []), update.round].slice(-MAX_ROUNDS);
+    // Every round's files belong to the work, whatever the folder still says about the earlier ones.
+    if (update.touched) entry.touched = [...new Set([...(old.touched ?? []), ...update.touched])].sort();
     this.data.commissions.push(entry);
     this.note(entry.title, stuck, date);
     this.save();
@@ -146,7 +153,8 @@ export class MemoryStore {
   /** The shop's days and the works shelf: finished commissions, latest first. */
   shopState(): ShopState {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
-      id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main), want: c.form?.want,
+      id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
+      page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want,
     }));
     return { ...structuredClone(this.shop()), works };
   }
@@ -166,6 +174,15 @@ export class MemoryStore {
     // The work itself is the shop's to change; the rest of what is there may be the user's.
     memo.preexisting = readdirSync(folder).filter((name) => name !== memo.main).map((name) => join(folder, name));
     delete memo.sessionId;
+    this.save();
+  }
+
+  /**
+   * A work in a lent folder was undone: the user's files are theirs again and what it made is gone. Only what could not
+   * be put back (`left`) is still the work's, to take away.
+   */
+  undone(id: string, left: string[]) {
+    this.data.commissions.find((c) => c.id === id)!.touched = left;
     this.save();
   }
 
@@ -193,6 +210,12 @@ export class MemoryStore {
    * Forget everything (the notebook's "clear" button), including the copies kept aside when the data
    * folder was upgraded (backup/<date>-v<n>/memory.json, see migrate.ts).
    */
+  /** Forget how the rounds went (the ledger page), keeping every work. */
+  clearStats() {
+    for (const c of this.data.commissions) delete c.rounds;
+    this.save();
+  }
+
   clear() {
     this.data = empty();
     rmSync(this.file, { force: true });

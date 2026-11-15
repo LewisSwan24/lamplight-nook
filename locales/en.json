@@ -18,6 +18,7 @@
     "xiaoju": "Clem",
     "laoshi": "Flint",
     "qingdai": "Iris",
+    "xiaodou": "Bean",
     "cat": "Chestnut"
   },
   "animals": {
@@ -174,6 +175,17 @@
       "sheetFill": "Make me a table for ...",
       "planFill": "Plan out ... for me.",
       "albumFill": "Make a little album of these photos: ...",
+      "resume": "Write a résumé",
+      "notes": "Take reading notes",
+      "travel": "Plan a trip",
+      "tool": "Make a small tool",
+      "resumeFill": "Write me a résumé for ...",
+      "notesFill": "Make me reading notes on ...",
+      "travelFill": "Make me a travel guide for ..., ... days.",
+      "toolFill": "Make me a small tool that ...",
+      "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
+      "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
+      "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
       "albumHint": "Hand over the photos: drag them onto this slip, or use \"Hand over files\". The album is a web page made from copies.",
       "needPhotos": "Hand over a few photos first, so the album has something in it.",
       "chooseFile": "Choose file",
@@ -220,6 +232,28 @@
       "missing": "“{name}” can't be found.",
       "busy": "The shop is busy with this one. Hand it over when it's done.",
       "drop": "Let go to hand it to Wick"
+    },
+    "lent": {
+      "pick": "Work in a folder I already have…",
+      "pickAnother": "Pick another folder…",
+      "remove": "Don't work in “{name}”",
+      "picked": "The staff will change the files in this folder itself. Before a file is first changed, a copy of it is kept as it was, so you can undo the whole commission.",
+      "broad": "That's too much to hand over. The staff don't work across a whole drive, your home folder, Documents, Desktop or Downloads; pick a smaller folder inside.",
+      "tooBig": "That folder is too big (over 100 MB). The shop has to be able to keep a copy of everything in it before it can promise an undo. Try a smaller one.",
+      "confirmTitle": "Work right in “{name}”?",
+      "confirmText": "The staff will change the files already in this folder without asking about each one. Before any file is first changed, the shop keeps a copy of it as it was.",
+      "confirmUndo": "If you don't like the result, press “Undo this commission” on the result card: changed files go back as they were, new ones are taken away, and nothing else is touched. Deleting files and running commands still ask you first.",
+      "back": "Go back",
+      "go": "Yes, work here",
+      "changed": "Changed your files: {files}",
+      "added": "New: {files}",
+      "more": "and {n} more",
+      "undo": "Undo this commission",
+      "undoSure": "Yes, undo it",
+      "undoAsk": "Undoing puts your changed files back as they were and takes away the new ones. What this commission made will be gone.",
+      "undone": "Undone. The folder is as it was before the work started.",
+      "undoPartly": "Undone, except for these: {files}. Their folder now leads somewhere outside, and the shop won't write there.",
+      "undoFailed": "Couldn't undo it; it may have been undone already."
     },
     "want": "What would you like?",
     "wantMissing": "Write a line about what you'd like first.",
@@ -384,6 +418,8 @@
       "noticesMissing": "The license list is missing. Reinstalling Lamplight Nook should bring it back.",
       "aboutLabel": "About",
       "version": "Lamplight Nook {version}",
+      "updatesToggle": "Have Pip bring word of new versions",
+      "updatesHint": "It only looks. Nothing downloads until you press Update.",
       "creditArt": "Pixel art for the shop and characters: LimeZu, Modern Interiors, Modern Exteriors and Modern Farm",
       "creditLink": "limezu.itch.io",
       "creditFont": "Handwriting font: LXGW WenKai (SIL Open Font License 1.1)",
@@ -428,7 +464,19 @@
         "books": "Stack of books",
         "letters": "Letter board",
         "ledger": "Ledger",
-        "monitor": "Little computer"
+        "monitor": "Little computer",
+        "briefcase": "Briefcase",
+        "readinglamp": "Reading lamp",
+        "postcards": "Postcards",
+        "toolbox": "Toolbox",
+        "chime": "These wind chimes",
+        "aquarium": "This fish tank",
+        "scroll": "This scroll",
+        "teapot": "This teapot",
+        "gramophone": "This gramophone",
+        "cushion": "This cushion",
+        "hat": "This straw hat",
+        "plaque": "This sign"
       },
       "grownLine": "{thing} came after commission number {n}.",
       "clock": "It's {time}.",
@@ -460,6 +508,7 @@
         "xiaoju": "Clem",
         "laoshi": "Flint",
         "qingdai": "Iris",
+        "xiaodou": "Bean",
         "cat": "the cat"
       },
       "table": [
@@ -517,7 +566,11 @@
         "books": "After two rounds of research, the books stayed.",
         "letters": "We wrote a few letters. The replies get pinned here.",
         "ledger": "After a couple of sheets we keep our own books better.",
-        "monitor": "After a few web pages, this little computer stays on."
+        "monitor": "After a few web pages, this little computer stays on.",
+        "briefcase": "We wrote someone a résumé, and this briefcase stayed.",
+        "readinglamp": "We made some reading notes, and a reading lamp went on the table.",
+        "postcards": "We made a travel guide, and postcards went up on the wall.",
+        "toolbox": "We made a small tool, and Flint brought his toolbox over."
       }
     },
     "run": {
@@ -560,7 +613,9 @@
       "failedTitle": "This one stopped partway",
       "failedText": "The work stopped partway through, and I can't say why. What's done so far is safe, and you can carry on.",
       "goneTitle": "Can't find that commission's folder",
-      "goneText": "It may have been moved or deleted. If you still want it, hand in a new commission."
+      "goneText": "It may have been moved or deleted. If you still want it, hand in a new commission.",
+      "tooBigTitle": "That folder has grown",
+      "tooBigText": "It now holds over 100 MB, more than the shop can keep a copy of, so an undo couldn't be promised and the work hasn't started. Move some big files out, then hand it in again."
     },
     "toolbar": {
       "label": "Shop switches",
@@ -591,10 +646,35 @@
       "bedsAnd": ", ",
       "bedsRipe": "{n} ripe",
       "bedsSprout": "{n} sprouting",
+      "bedsYoung": "{n} young plants for spring",
+      "bedsHarvest": "{n} ready to harvest",
+      "bedsRest": "{n} resting under straw for the winter",
       "hotspotBoard": "The blackboard: see the whole plan",
       "hotspotWorks": "The works shelf: see what we made together"
     },
     "notebook": {
+      "ledgerTitle": "The shop's ledger",
+      "ledgerNone": "Nothing kept this month yet.",
+      "ledgerWorks": "This month: {works} commissions, {rounds} rounds, {time} a round on average.",
+      "ledgerSpent": "About {cost} spent this month.",
+      "ledgerFailures": "Rounds that didn't finish: {list}.",
+      "ledgerWaits": "Errands waited their turn {n} times, {time} in all.",
+      "ledgerSince": "Kept since {date}, on this computer only. None of it is sent anywhere.",
+      "ledgerClear": "Clear these records",
+      "ledgerCleared": "Cleared. Every commission is still here.",
+      "ledgerMinutes": "{m} min {s} s",
+      "ledgerSeconds": "{s} s",
+      "ledgerJoin": ", ",
+      "ledgerKind": {
+        "net": "connection lost {n}×",
+        "busy": "service busy {n}×",
+        "billing": "out of credit {n}×",
+        "auth": "key not accepted {n}×",
+        "budget": "hit the limit {n}×",
+        "failed": "an error {n}×",
+        "no_api_key": "no key {n}×",
+        "no_claude": "no Claude Code {n}×"
+      },
       "sectionText": "Wick notes down past commissions, the choices you made and where things got stuck. Only that, never your conversations.",
       "title": "Wick's notebook",
       "commissions": "Past commissions",
@@ -632,7 +712,8 @@
       "metLine": "{name} came by for the first time",
       "bedSprout": "the first vegetable went in out back",
       "bedRipe": "the first vegetable out back was ripe",
-      "bedFull": "the beds out back filled up"
+      "bedFull": "the beds out back filled up",
+      "apprentice": "Bean came to the shop as an apprentice"
     },
     "tray": {
       "sectionLabel": "When you're away",
@@ -661,6 +742,12 @@
       "sheet": "table.csv",
       "plan": "plan.md",
       "materials": "materials",
+      "resume": "resume.html",
+      "notes": "reading-notes.md",
+      "tool": "tool.html",
+      "toolScript": "tool.ps1",
+      "toolLauncher": "run.cmd",
+      "toolSamples": "samples",
       "originalPrefix": "original-",
       "revisedPrefix": "revised-"
     },
@@ -676,6 +763,9 @@
     "resultRevise": "Change it a bit",
     "resultReport": "Something not right in this? Tell us",
     "resultShelf": "Finished work goes on the shelf by the wall. Click it any time to find this again or change it.",
+    "resultScriptDeletes": "{file} has a command that deletes files. Read it before you run it, or use \"Change it a bit\" to have it taken out.",
+    "resultScriptNoPreview": "{file} changes files as soon as it runs, without listing what it will do first. Read it before you run it.",
+    "resultScriptBoth": "{file} deletes files, and does it as soon as it runs, without listing what it will do first. Read it before you run it, or use \"Change it a bit\" to have it fixed.",
     "resultRestore": "Go back to the last version",
     "resultRestoreBack": "Go back to the changed version",
     "resultRestored": "Done, this is the last version again.",
@@ -697,6 +787,12 @@
       "relinkBroad": "That folder holds a lot more than this work. Give it a folder of its own and show me that one.",
       "relinkTaken": "Another work is already there. Give this one a folder of its own and show me that one.",
       "relinked": "Found it. It opens from there now.",
+      "take": "Take it away",
+      "takeAs": "Take it as:",
+      "takeZip": "a zip of its files",
+      "takePdf": "a PDF of the page",
+      "taken": "Saved. It's picked out for you in its folder.",
+      "takeEmpty": "Nothing of this work is left in the folder to take.",
       "empty": "The shelf is still empty. The first thing we finish goes right here.",
       "search": "Find one: a name, what you asked, a month",
       "kindsLabel": "By kind",
@@ -713,7 +809,11 @@
         "letter": "Letters",
         "sheet": "Tables",
         "plan": "Plans",
-        "album": "Albums"
+        "album": "Albums",
+        "resume": "Résumés",
+        "notes": "Reading notes",
+        "travel": "Travel guides",
+        "tool": "Tools"
       }
     },
     "mini": {
@@ -727,6 +827,27 @@
       "done": "All done. Click to have a look.",
       "failed": "Didn't work out. Click to go back in.",
       "open": "Back to the shop"
+    },
+    "moveIn": {
+      "title": "Bring your shop over?",
+      "found": "Wick found the Lamplight Nook you installed from the website on this computer: {works} finished works, with {spent} in the ledger.",
+      "text": "Bring it over and your works, the notebook and the ledger carry on here. The original stays where it is, and the other version still opens. Your API key can't come along: paste it in Settings again afterwards.",
+      "move": "Bring it over",
+      "fresh": "No, start afresh",
+      "moved": "All moved in, {name}. Everything's here.",
+      "failed": "Couldn't bring it over. The original hasn't been touched."
+    },
+    "update": {
+      "postman": "Letter for the Nook. From the makers.",
+      "thanks": "Thanks, Pip.",
+      "title": "Lamplight Nook {version} is out",
+      "intro": "Pip brought a letter: there's a new version of Lamplight Nook. Press Update to fetch it now. It goes in when you close the shop, so nothing you've asked for gets cut short, and your data is backed up first.",
+      "notesLabel": "What's new",
+      "update": "Update",
+      "later": "Not now",
+      "fetching": "Right, I'll go and fetch it.",
+      "ready": "Got the new version. It goes in when you close up.",
+      "failed": "Couldn't fetch it. Pip will bring word again."
     },
     "scene": {
       "label": "Where the shop is",
@@ -825,7 +946,19 @@
     "books": "a stack of books",
     "letters": "a board of letters",
     "ledger": "a ledger",
-    "monitor": "a little computer"
+    "monitor": "a little computer",
+    "briefcase": "a briefcase",
+    "readinglamp": "a reading lamp",
+    "postcards": "a few postcards",
+    "toolbox": "a toolbox",
+    "chime": "some wind chimes",
+    "aquarium": "a tank of goldfish",
+    "scroll": "a hanging scroll",
+    "teapot": "a teapot",
+    "gramophone": "a gramophone",
+    "cushion": "a cushion for Chestnut",
+    "hat": "a straw hat",
+    "plaque": "a carved sign"
   },
   "sceneText": {
     "study": {

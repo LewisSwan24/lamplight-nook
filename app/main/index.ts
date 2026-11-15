@@ -1,18 +1,23 @@
+import { oldInstallerData } from './store-home';
 import './locale-boot';
 import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { arch, homedir, release } from 'node:os';
-import { basename, dirname, extname, isAbsolute, join } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
+import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type HandOver, type Material, type WriteResult, type Letter } from '../shared/types';
+import { template } from '../shared/templates';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { EDITABLE, MAX_EDIT_BYTES, type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
+import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
 import { sessionExists } from './sessions';
-import { VersionStore } from './versions';
-import { migrate } from './migrate';
+import { VersionStore, entriesIn, tooBigToLend } from './versions';
+import { backUp, migrate } from './migrate';
+import { moveIn, moveInOffer } from './move-in';
+import { Updates } from './updates';
 import { claudeVersion } from './claude-version';
 import { feedbackMail, mailtoUrl, osName } from './feedback';
 import { MemoryStore, StuckTracker } from './memory';
@@ -24,7 +29,10 @@ import { Log } from './log';
 import { SettingsStore, defaultWorkRoot } from './settings';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
+import { RoundTally } from './tally';
 import { zip } from './zip';
+import { exportName, workEntries } from './export';
+import { pageToPdf } from './print';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
 import { copyMaterials, sortHandOver } from './materials';
@@ -259,7 +267,11 @@ ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
   // Where commissions are written is chosen in the folder dialog (chooseWorkRoot), never sent from the page.
   const { workRoot: _ignored, ...rest } = patch && typeof patch === 'object' ? patch : ({} as Partial<Settings>);
-  return settings.update(rest);
+  const looked = settings.get().updates;
+  const saved = settings.update(rest);
+  // Switched back on: look now rather than in up to six hours.
+  if (saved.updates && !looked) void updates?.check();
+  return saved;
 });
 ipcMain.handle(IPC.chooseWorkRoot, async (): Promise<Settings | null> => {
   if (!win) return null;
@@ -317,6 +329,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   mini.feed({ type: 'run', running: true });
   pending.save(job);
   const started = Date.now();
+  const tally = new RoundTally(started);
   log?.info('run start', { demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId) });
   // What goes in Adeng's notebook: the user's answers to questions, and where the work got stuck.
   const title = commissionTitle(job.form);
@@ -332,6 +345,9 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   // A round of changes picks up the earlier session when Claude Code still has it; otherwise it starts afresh from the folder.
   const pickUp = !again && r?.fromSession && sessionExists(r.fromSession) ? r.fromSession : undefined;
   let finished = false;
+  // In a folder the user lent (A6): what is there as the round starts, so what it made can be told apart afterwards.
+  const lent = Boolean(job.form.inPlace);
+  const atStart = lent ? entriesIn(job.workDir) : [];
   try {
     const before = new Set(job.preexisting);
     const result = await runAgent({
@@ -348,10 +364,13 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       credentials: credentials(),
       maxBudgetUsd: settings.get().budgetUsd || undefined,
       preexisting: before,
+      keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
       abort,
       ...emitters,
-      emitAi: (e) => { stuck.see(e); emitters.emitAi(e); },
+      emitAi: (e) => { stuck.see(e); tally.see(e); emitters.emitAi(e); },
     });
+    // Whatever the outcome, even called off: what it made so far must go too if the user undoes it.
+    if (lent) versions.noteAdded(job.workDir, atStart, entriesIn(job.workDir));
     finished = result.ok;
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
@@ -360,16 +379,22 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     if (result.error !== 'cancelled') {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
-      const outputs = collectOutputs(job.workDir, before);
-      const main = outputs.main ? basename(outputs.main) : undefined;
+      const changes = lent ? versions.lentChanges(job.workDir) : undefined;
+      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before);
+      // The main file may sit in a subfolder of a lent one.
+      const main = outputs.main ? relative(job.workDir, outputs.main) : undefined;
+      const round = tally.result(Date.now(), result.ok, result.error);
+      // A lent folder's own files are counted afresh each round (versions.usersFiles), so they are not written down;
+      // what this commission changed or made there is, because only that goes in its zip.
+      const touched = changes && [...changes.changed, ...changes.added].sort();
       const entry = r
-        ? memory.revise(r.id, r.ask, { ...outcome, main }, stuckHere)
-        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: job.preexisting, main }, stuckHere);
+        ? memory.revise(r.id, r.ask, { ...outcome, main, round, touched }, stuckHere)
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched }, stuckHere);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
         ok: result.ok, error: result.error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
-        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && versions.has(r.id)), grew,
+        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && versions.has(r.id)), canUndo: lent && versions.canUndo(job.workDir), grew,
       });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
@@ -386,14 +411,31 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
 
 // Files and folders the user picked in a dialog this session: the only sources a commission may use.
 const picked = new Set<string>();
-ipcMain.handle(IPC.chooseSource, async (_e, kind: 'edit' | 'tidy'): Promise<SourcePick | null> => {
+ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<SourcePick | null> => {
   if (!win) return null;
-  const r = await dialog.showOpenDialog(win, kind === 'tidy'
+  const source = template(id).source!;
+  const r = await dialog.showOpenDialog(win, source.kind === 'folder'
     ? { properties: ['openDirectory'] }
-    : { properties: ['openFile'], filters: [{ name: strings.ui.templates.edit, extensions: EDITABLE }] });
+    : { properties: ['openFile'], filters: [{ name: strings.ui.templates[id], extensions: [...source.extensions] }] });
   const path = r.canceled ? undefined : r.filePaths[0];
   if (!path) return null;
-  if (kind === 'edit' && statSync(path).size > MAX_EDIT_BYTES) return { error: 'too-big' };
+  if (source.kind === 'file' && statSync(path).size > source.maxBytes) return { error: 'too-big' };
+  picked.add(path);
+  return { path, name: basename(path) };
+});
+
+/**
+ * "Work in a folder I already have" (road-to-1.1.md A6): one the user picked here, not one that holds too much, and
+ * small enough that the original of every file in it can be kept. Refused when picked, so nothing starts that
+ * could not be undone.
+ */
+ipcMain.handle(IPC.chooseLent, async (): Promise<SourcePick | null> => {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
+  const path = r.canceled ? undefined : r.filePaths[0];
+  if (!path) return null;
+  if (holdsTooMuch(path)) return { error: 'broad' };
+  if (tooBigToLend(path)) return { error: 'too-big' };
   picked.add(path);
   return { path, name: basename(path) };
 });
@@ -415,6 +457,7 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   if (form.source && !picked.has(form.source)) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   if (form.materials?.some((m) => !picked.has(m))) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
+  if (form.inPlace) return startLent(form, form.inPlace);
   if (form.demo) form = { ...form, materials: undefined };
   const workDir = commissionDir(settings.get().workRoot, folderName(commissionTitle(form)));
   mkdirSync(workDir, { recursive: true });
@@ -423,6 +466,18 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
   try { copyMaterials(workDir, form.materials ?? []); } catch (e) { return { ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
   return runJob({ form, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
 });
+
+/**
+ * A commission in a folder the user lent. Nothing is copied in: what they hand over would land among their own files.
+ * A folder grown too big since it was picked is refused here, before anything in it changes.
+ */
+function startLent(form: CommissionForm, folder: string): Promise<RunResult> {
+  if (!picked.has(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'source' });
+  if (tooBigToLend(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'tooBig' });
+  // An earlier work here can't be undone any more: putting its originals back would undo this one as well.
+  for (const c of memory.get().commissions) if (c.form?.inPlace && c.result === 'done' && overlaps(c.folder!, folder)) versions.dropLent(c.folder!);
+  return runJob({ form: { ...form, materials: undefined, source: undefined, demo: false }, workDir: folder, preexisting: versions.usersFiles(folder), startedAt: Date.now() }, false);
+}
 
 /**
  * Another round on finished work, in the same folder: what the shop made so far is kept aside first
@@ -434,10 +489,14 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   const memo = typeof req?.id === 'string' ? memory.find(req.id) : memory.latest();
   if (!memo || !ask) return { ok: false, recordingPath: '', workDir: '', error: 'gone' };
   if (!memo.folder || !existsSync(memo.folder)) return { ok: false, recordingPath: '', workDir: memo.folder ?? '', error: 'gone' };
-  const preexisting = memo.preexisting ?? [];
+  // In a folder the user lent, their files are counted again (they may have added some), and a round that could not
+  // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
+  const lent = Boolean(memo.form?.inPlace);
+  if (lent && tooBigToLend(memo.folder)) return { ok: false, recordingPath: '', workDir: '', error: 'tooBig' };
+  const preexisting = lent ? versions.usersFiles(memo.folder) : memo.preexisting ?? [];
   const restored = restoredSince.has(memo.id);
   restoredSince.delete(memo.id);
-  versions.save(memo.id, memo.folder, new Set(preexisting));
+  if (!lent) versions.save(memo.id, memo.folder, new Set(preexisting));
   const form = memo.form ?? { want: memo.title };
   return runJob({
     form, workDir: memo.folder, preexisting, startedAt: Date.now(),
@@ -478,11 +537,12 @@ ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
   if (!existsSync(main) || !statSync(main).isFile() || !insideForReal(folder, main)) return 'wrong';
   // A same-named main file is common, and the next round would change the other work's without asking.
   const others = memory.get().commissions.filter((c) => c.id !== memo.id && c.folder);
-  if (others.some((c) => insideForReal(c.folder!, folder) || insideForReal(folder, c.folder!))) return 'taken';
+  if (others.some((c) => overlaps(c.folder!, folder))) return 'taken';
   spend.moved(memo.folder, folder);
-  memory.relink(memo.id, folder);
   // What was kept of it came from the old folder; nothing may be put back over the new one.
   versions.drop(memo.id);
+  if (memo.form?.inPlace) versions.dropLent(memo.folder!);
+  memory.relink(memo.id, folder);
   restoredSince.delete(memo.id);
   return 'found';
 });
@@ -495,6 +555,90 @@ ipcMain.handle(IPC.restorePrevious, (_e, id: string): boolean => {
   log?.info('restore previous', { ok });
   return ok;
 });
+// Undo a commission done in a folder the user lent: their files back as they were, what the shop made gone.
+ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
+  if (current || typeof id !== 'string') return null;
+  const memo = memory.find(id);
+  if (!memo?.form?.inPlace || !memo.folder) return null;
+  const skipped = versions.undo(memo.folder);
+  if (skipped) memory.undone(id, skipped);
+  log?.info('undo lent work', { done: skipped !== null, skipped: skipped?.length });
+  return skipped;
+});
+// "Take it away" from the works shelf (road-to-1.1.md A8): the work becomes a file saved where the user picks, for
+// them to pass on however they like. Nothing is uploaded or sent from here.
+ipcMain.handle(IPC.exportWork, async (_e, id: string, as: 'zip' | 'pdf'): Promise<ExportResult> => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  const folder = memo?.folder;
+  if (!memo || !folder || !existsSync(folder)) return 'gone';
+  return as === 'pdf' ? exportPdf(memo, folder) : exportZip(memo, folder);
+});
+async function exportZip(memo: CommissionMemo, folder: string): Promise<ExportResult> {
+  // In a folder the user lent, only what this commission touched: the rest is theirs and stays where it is.
+  const entries = workEntries(folder, memo.form?.inPlace ? memo.touched ?? [] : undefined);
+  if (!entries.length) return 'empty';
+  const to = await saveAs(exportName(memo.title, 'zip'), 'Zip', 'zip');
+  if (!to) return 'cancelled';
+  writeFileSync(to, zip(entries));
+  return saved(to);
+}
+async function exportPdf(memo: CommissionMemo, folder: string): Promise<ExportResult> {
+  const page = memo.main && join(folder, memo.main);
+  if (!page || !existsSync(page) || !insideForReal(folder, page)) return 'gone';
+  const to = await saveAs(exportName(memo.title, 'pdf'), 'PDF', 'pdf');
+  if (!to) return 'cancelled';
+  writeFileSync(to, await pageToPdf(folder, page));
+  return saved(to);
+}
+/** Where the user wants the file (the desktop is offered first, as for the diagnostics); null if they cancel. */
+async function saveAs(name: string, kind: string, ext: string): Promise<string | null> {
+  const r = await dialog.showSaveDialog(win!, { defaultPath: join(app.getPath('desktop'), name), filters: [{ name: kind, extensions: [ext] }] });
+  return r.canceled || !r.filePath ? null : r.filePath;
+}
+function saved(file: string): ExportResult {
+  log?.info('work exported', { as: extname(file) });
+  shell.showItemInFolder(file);
+  return 'saved';
+}
+/**
+ * New versions from GitHub Releases (road-to-1.1.md A1, updates.ts). A development build has nothing to update unless a
+ * simulated run points it at a local feed: LAMPLIGHT_UPDATE_CONFIG names an app-update.yml (a generic provider and the
+ * feed's address), honoured only unpackaged. There the installer is never started; the log says when it would have been.
+ */
+let updates: Updates | undefined;
+function startUpdates() {
+  const simFeed = app.isPackaged ? undefined : process.env.LAMPLIGHT_UPDATE_CONFIG;
+  if (!app.isPackaged && !simFeed) return;
+  const { autoUpdater } = electronUpdater;
+  // Its own logging goes to the console; the shop writes the one line that matters (updates.ts).
+  autoUpdater.logger = null;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  if (simFeed) {
+    autoUpdater.updateConfigPath = simFeed;
+    autoUpdater.forceDevUpdateConfig = true;
+  }
+  updates = new Updates({
+    store: storeBuild(),
+    wanted: () => settings.get().updates,
+    updater: {
+      check: async () => {
+        const r = await autoUpdater.checkForUpdates();
+        return r?.isUpdateAvailable ? { version: r.updateInfo.version, notes: r.updateInfo.releaseNotes } : null;
+      },
+      download: async () => { await autoUpdater.downloadUpdate(); },
+      // Quietly, and the shop does not open again afterwards: the user has just closed it.
+      install: () => (simFeed ? log?.info('update installer not run (simulated)') : (autoUpdater as BaseUpdater).install(true, false)),
+    },
+    backUp: (version) => backUp(app.getPath('userData'), `before-${version}`),
+    tell: (offer) => send(IPC.updateOffer, offer),
+    log: log!,
+    lang: locale(),
+  });
+  // The first letter needs a page to arrive at.
+  win?.webContents.once('did-finish-load', () => updates?.start());
+}
+ipcMain.handle(IPC.downloadUpdate, (): Promise<boolean> => updates?.download() ?? Promise.resolve(false));
 ipcMain.handle(IPC.retryCommission, async (): Promise<RunResult | null> => (lastFailed ? runJob(lastFailed, true) : null));
 ipcMain.handle(IPC.cancelCommission, () => current?.abort.abort());
 // A commission left over from a crash or an unexpected quit: offered once at startup.
@@ -528,6 +672,40 @@ ipcMain.handle(IPC.dataDamage, (): DataDamage => {
   spend.damaged = false;
   return damage;
 });
+/** The settings, the notebook, the ledger and the rest, read from the data folder (at the start, and again after moving in). */
+function openData() {
+  const dir = app.getPath('userData');
+  // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
+  const migrated = migrate(dir);
+  // Only how many: a change can quote a commission's title, and the log goes into the diagnostics file.
+  if (migrated.to !== migrated.from || migrated.changes.length) log?.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
+  settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'));
+  pending = new PendingStore(join(dir, 'pending.json'));
+  memory = new MemoryStore(join(dir, 'memory.json'));
+  versions = new VersionStore(join(dir, 'versions'));
+  spend = new SpendLedger(join(dir, 'spend.json'));
+  if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
+  leftover = pending.load();
+}
+/**
+ * The Store build's first open beside an installer build's shop (move-in.ts): asked once, before the shop opens.
+ * Yes copies it over and reads the data afresh; the original is never changed.
+ */
+let moveOffer: MoveOffer | null = null;
+ipcMain.handle(IPC.moveInOffer, (): MoveOffer | null => moveOffer);
+ipcMain.handle(IPC.moveIn, (_e, yes: boolean): boolean => {
+  moveOffer = null;
+  if (!yes || !oldInstallerData) return true;
+  try {
+    const brought = moveIn(oldInstallerData, app.getPath('userData'));
+    log?.info('moved in from the installer build', { brought });
+  } catch (err) {
+    log?.error('could not move in', err);
+    return false;
+  }
+  openData();
+  return true;
+});
 // A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
 ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
@@ -542,6 +720,7 @@ ipcMain.handle(IPC.clearMemory, (): boolean => {
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
   return true;
 });
+ipcMain.handle(IPC.clearStats, () => memory.clearStats());
 // Only folders the notebook itself recorded, looked up by id.
 ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean> => {
   const folder = memory.get().commissions.find((c) => c.id === id)?.folder;
@@ -566,6 +745,8 @@ ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') 
  */
 const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']);
 const openable = (path: string) => OPENABLE.has(extname(path).toLowerCase());
+/** Two folders where one is inside the other (or they are the same), links followed. */
+const overlaps = (a: string, b: string) => insideForReal(a, b) || insideForReal(b, a);
 /** Inside the folder once links are followed, so a link inside cannot point the click somewhere else. */
 function insideForReal(dir: string, path: string): boolean {
   try {
@@ -600,20 +781,13 @@ app.whenReady().then(() => {
   log.prune();
   log.info('app start', { version: app.getVersion(), packaged: app.isPackaged, platform: process.platform, release: release() });
   app.on('child-process-gone', (_e, details) => log?.warn('child process gone', details));
-  // Older versions' data is brought up to date (with a copy kept aside) before anything reads it.
-  const migrated = migrate(app.getPath('userData'));
-  // Only how many: a change can quote a commission's title, and the log goes into the diagnostics file.
-  if (migrated.to !== migrated.from || migrated.changes.length) log.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
-  settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'), app.getPath('documents'));
-  pending = new PendingStore(join(app.getPath('userData'), 'pending.json'));
-  memory = new MemoryStore(join(app.getPath('userData'), 'memory.json'));
-  versions = new VersionStore(join(app.getPath('userData'), 'versions'));
+  // Looked at before anything is written: the Store build's own folder is still as it was.
+  moveOffer = moveInOffer(oldInstallerData, app.getPath('userData'));
+  openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
-  spend = new SpendLedger(join(app.getPath('userData'), 'spend.json'));
-  if (memory.damage || settings.damaged || spend.damaged) log.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
-  leftover = pending.load();
   createWindow();
+  startUpdates();
   tray.create();
   win?.on('focus', () => tray.calm());
 }).catch((err: unknown) => {
@@ -633,5 +807,7 @@ app.on('will-quit', () => {
   mini.destroy();
   broker.cancelAll();
   current?.abort.abort();
+  // Closing for real, with any commission let finish or stopped just above: a new version fetched earlier goes in now.
+  updates?.quitting();
 });
 app.on('window-all-closed', () => app.quit());

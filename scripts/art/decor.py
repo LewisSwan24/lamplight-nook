@@ -1,8 +1,9 @@
 """Holiday decorations and weather touches for the cafe: transparent 320x180 overlays laid over cafe.png by the game.
 
 Halloween and Christmas pieces come from LimeZu Modern Interiors (assets/vendor/, not in the repo);
-the Lunar New Year lanterns and couplets and the weather touches are drawn here.
-Writes assets/sprites/decor-<holiday>.png and assets/sprites/weather-<sky>.png.
+the Lunar New Year lanterns and couplets, the other lunar festivals, the seasons' pieces on the side window's sill
+and the weather touches are drawn here.
+Writes assets/sprites/decor-<holiday>.png, season-<season>.png and weather-<sky>.png.
 Run: python3 scripts/art/decor.py
 """
 from pathlib import Path
@@ -53,7 +54,14 @@ LANTERN = [
 ]
 # A diamond of red paper with a gold dot, the 'fu' sign hung upside down on the door.
 FU = ['...r...', '..rrr..', '.rrgrr.', 'rrgggrr', '.rrgrr.', '..rrr..', '...r...']
-COLORS = {'r': (210, 60, 42, 255), 'd': (160, 38, 28, 255), 'g': (226, 176, 74, 255), 's': (90, 59, 40, 255)}
+COLORS = {
+    'r': (210, 60, 42, 255), 'd': (160, 38, 28, 255), 'g': (226, 176, 74, 255), 's': (90, 59, 40, 255),
+    # For the other festivals and the seasons: x outline, w paper white, o orange, p pink, L leaf, D dark leaf,
+    # m moon yellow, c mooncake, b wood, u porcelain blue, t twig, y wintersweet.
+    'x': (42, 34, 51, 255), 'w': (250, 246, 236, 255), 'o': (232, 128, 52, 255), 'p': (240, 156, 176, 255),
+    'L': (112, 168, 84, 255), 'D': (62, 112, 64, 255), 'm': (246, 216, 112, 255), 'c': (176, 112, 52, 255),
+    'b': (122, 82, 54, 255), 'u': (72, 104, 160, 255), 't': (92, 62, 44, 255), 'y': (244, 214, 80, 255),
+}
 # Couplets either side of the door: red strips with gold flecks.
 COUPLETS = [(283, 18), (305, 18)]
 
@@ -76,6 +84,85 @@ def new_year():
                 img.putpixel((x + dx, y + dy), COLORS['r'])
             if dy % 5 == 2:
                 img.putpixel((x + 1, y + dy), COLORS['g'])
+    return img
+
+
+# The other lunar festivals (Q-A5): something hung on the wall, something on the side window's sill (SILL_PIECE), and
+# for two of them something to eat where the season's vase stands on the big table, since that is put away meanwhile.
+SILL_PIECE = (198, 28)  # left edge and bottom row of what stands on the side window's sill
+# Lantern Festival: a string of little lanterns with riddle slips under the back wall's top, and a lotus lantern on the sill.
+SMALL_LANTERN = ['...s...', '..ggg..', '.RRRRR.', 'RRdRdRR', 'RRdRdRR', '.RRRRR.', '..ggg..', '...g...', '..g.g..', '...w...', '...w...']
+LOTUS = ['....p.....', '..p.pp.p..', '.pppwppp..', 'pppppppppp', '.pLLLLLLp.', '..xxxxxx..']
+# Dragon Boat Festival: mugwort and calamus hung by the blackboard, zongzi on the big table, a dragon boat on the sill.
+MUGWORT = ['...s....', '..s.s...', '...tt...', '...tt...', '..rrrr..', '..tDDt..', '.DLDDLD.', 'DLDLLDLD', '.DLLLLD.',
+           'DLDLLDLD', '.DLDDLD.', 'DLLDDLLD', '.D.LL.D.', 'D..LL..D', '...D....']
+ZONGZI_PLATE = ['..xL.xL.xL...', '.xLLxLLxLLx..', 'xLwLxLwLxLwLx', 'xxxxxxxxxxxxx', '.xwwwwwwwwwx.', '..xxxxxxxxx..']
+DRAGON_BOAT = ['LL..................', 'LDL.................', '.LrL..............r.', '..xrrrrrrrrrrrrrrrx.',
+               '..xgggggggggggggggx.', '...xrrrrrrrrrrrrrx..', '....xxxxxxxxxxxxx...']
+# Mid-Autumn: a round moon lantern by the blackboard, mooncakes on the big table, a rabbit lantern on the sill.
+MOON_LANTERN = ['...s...', '...s...', '..xxx..', '.xmmmx.', 'xmmmmmx', 'xmmwmmx', 'xmmmmmx', '.xmmmx.', '..xxx..', '...r...', '..r.r..']
+MOONCAKES = ['..xxx..xxx..', '.xcyccxcycx.', '.xcccxxxccx.', 'xxxxxcycxxxx', 'xwwwxcccxwwx', '.xwwwxxxwwx.', '..xxxxxxxx..']
+RABBIT = ['.p..p......', '.pw.pw.....', '.wwwwww....', 'wrwwwwwwww.', 'wwwwwwwwwww', '.wwwwwwwwww', '..x.x..x.x.']
+
+
+def draw_at(img, rows, x, y):
+    """Draw rows whose bottom-left corner is (x, y)."""
+    draw(img, rows, x, y - len(rows) + 1)
+
+
+def lantern():
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for x in range(122, 179):  # the string, sagging a pixel between the lanterns
+        img.putpixel((x, 13 + (1 if (x - 123) % 14 in range(7, 14) else 0)), COLORS['s'])
+    for x, colour in zip((123, 137, 151, 165), 'ropr'):
+        draw(img, [row.replace('R', colour) for row in SMALL_LANTERN], x, 13)
+    draw_at(img, LOTUS, SILL_PIECE[0] + 9, SILL_PIECE[1])
+    return img
+
+
+def dragon_boat():
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    draw(img, MUGWORT, 121, 15)
+    draw_at(img, ZONGZI_PLATE, TABLE_PIECE[0] - 3, TABLE_PIECE[1])
+    draw_at(img, DRAGON_BOAT, SILL_PIECE[0] + 4, SILL_PIECE[1])
+    return img
+
+
+def mid_autumn():
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    draw(img, MOON_LANTERN, 121, 15)
+    draw_at(img, MOONCAKES, TABLE_PIECE[0] - 2, TABLE_PIECE[1])
+    draw_at(img, RABBIT, SILL_PIECE[0] + 8, SILL_PIECE[1])
+    return img
+
+
+# The season's piece: a blue-and-white vase in the middle of the big table, with what is in season in it. A festival's
+# own things stand there instead while it is up (TABLE_PIECE), as the little Christmas tree does.
+VASE = ['..xxx..', '.xuwux.', '..xux..', '.xwuwx.', 'xuwuwux', 'xwuwuwx', '.xxxxx.']
+TABLE_PIECE = (149, 85)  # left edge and bottom row, clear of the album and the ledger
+SEASON_SPRIGS = {
+    # peach blossom
+    'spring': ['..pp.....pp..', '.pwp....pwpp.', '..pt.....tp..', '...t..pp.t...', 'pp.t.pwp.t...', 'pwpt..t.t..pp',
+               '.p.tt.t.t.pwp', '....t.ttt..tp', '.....ttt..t..', '......tttt...', '......t......', '......t......'],
+    # a lotus flower and its leaves
+    'summer': ['......p......', '.....ppp.....', '....ppwpp....', '....ppppp....', '.....ppp..LL.', '..LL..L..LDDL',
+               '.LDDL.L..LDLL', '.LLDL.L...L..', '..LL..L..L...', '....L.L.L....', '.....LLL.....', '......L......'],
+    # red maple leaves
+    'autumn': ['...r.....o...', '..rrr...ooo..', '.rrdrr.ooroo.', '..rrr...ooo..', '...t..r..t...', '....t.rr.t...',
+               'r...t.t.t..o.', 'rr..tt.tt.oo.', '.rt..ttt..t..', '..tt..t..t...', '....ttt.t....', '......t......'],
+    # wintersweet
+    'winter': ['..y.....y....', '.yty...yty...', '..t..y..t..y.', '..t.yty.t.yty', '...t.t..t..t.', '.y.t.t.t..t..',
+               'yty.tt.t.t...', '.t...t.tt....', '..t..ttt.....', '...t..t......', '....ttt......', '......t......'],
+}
+
+
+def season(name):
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    sprig = SEASON_SPRIGS[name]
+    vx, vy = TABLE_PIECE
+    # The sprig stands in the vase's mouth, centred on it.
+    draw_at(img, sprig, vx + len(VASE[0]) // 2 - len(sprig[0]) // 2, vy - len(VASE) + 1)
+    draw_at(img, VASE, vx, vy)
     return img
 
 
@@ -159,10 +246,15 @@ def build():
             img.alpha_composite(sheet.crop(rect), pos)
         img.save(OUT / f'decor-{name}.png')
     new_year().save(OUT / 'decor-new_year.png')
+    lantern().save(OUT / 'decor-lantern.png')
+    dragon_boat().save(OUT / 'decor-dragon_boat.png')
+    mid_autumn().save(OUT / 'decor-mid_autumn.png')
+    for name in SEASON_SPRIGS:
+        season(name).save(OUT / f'season-{name}.png')
     for sky, img in weather().items():
         img.save(OUT / f'weather-{sky}.png')
 
 
 if __name__ == '__main__':
     build()
-    print('built decor-*.png and weather-*.png')
+    print('built decor-*.png, season-*.png and weather-*.png')

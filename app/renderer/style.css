@@ -112,9 +112,23 @@ body.debug #debug { display: block; }
 .write-us-row { margin-top: 14px; }
 .write-lines { margin: 6px 0; padding-left: 1.2em; font-size: 0.9em; }
 .write-diag { margin-top: 6px; }
+/* The postman's letter about a new version: what is new in a smaller hand, list items hanging off their dots. */
+.update-letter h4 { margin: 10px 0 2px; }
+.update-notes { font-size: 14px; line-height: 1.55; }
+.update-notes .note-item { padding-left: 1em; text-indent: -1em; }
+/* Settings, about: the switch for looking, with what it does lined up under its words. */
+.updates-row { margin: 4px 0 8px; }
+.updates-row .hint { margin-top: 0; padding-left: 24px; }
 .source-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .source-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .source-hint { margin-top: 2px; }
+/* Working in the user's own folder: a quiet link on the slip, and the slip turns into the question once. */
+.commission > [hidden], .lent-row[hidden], .material-row[hidden] { display: none; }
+.lent-row { margin: 6px 0 2px; }
+.lent-line { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.lent-hint:empty { display: none; }
+.lent-confirm p { margin: 8px 0; line-height: 1.6; }
+.result-lent .hint { overflow-wrap: anywhere; }
 .hint.warn { color: #a5452c; opacity: 1; }
 
 /* Decision dialog: background dimmed 40% */
@@ -370,7 +384,9 @@ pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; 
 .work { display: flex; align-items: center; gap: 12px; padding: 7px 2px; border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
 .work-icon { flex: none; image-rendering: pixelated; background-repeat: no-repeat; }
 .work-text { flex: 1; min-width: 0; }
-.work-actions { display: flex; gap: 10px; flex: none; }
+/* Three actions in English would squeeze the name into a narrow column: they wrap to a second line instead. */
+.work-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; column-gap: 10px; row-gap: 2px; flex: none; max-width: 12em; }
+.work-actions .link, .work-note .link { white-space: nowrap; }
 .notebook-days li { list-style: none; }
 
 /* Where the shop is (ui/scenes.ts): two little pictures of the rooms. */

@@ -27,7 +27,8 @@ const api: LamplightApi = {
   exportDiagnostics: () => ipcRenderer.invoke(IPC.exportDiagnostics),
   writeToUs: (letter: Letter) => ipcRenderer.invoke(IPC.writeToUs, letter),
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
-  chooseSource: (kind) => ipcRenderer.invoke(IPC.chooseSource, kind),
+  chooseSource: (id) => ipcRenderer.invoke(IPC.chooseSource, id),
+  chooseLent: () => ipcRenderer.invoke(IPC.chooseLent),
   handOver: (paths, already) => ipcRenderer.invoke(IPC.handOver, paths, already),
   pathsOf: (files) => files.map((f) => { try { return webUtils.getPathForFile(f); } catch { return ''; } }).filter(Boolean),
   startCommission: (form) => ipcRenderer.invoke(IPC.startCommission, form),
@@ -43,7 +44,10 @@ const api: LamplightApi = {
   addNote: (text) => ipcRenderer.invoke(IPC.addNote, text),
   getMemory: () => ipcRenderer.invoke(IPC.getMemory),
   dataDamage: () => ipcRenderer.invoke(IPC.dataDamage),
+  moveInOffer: () => ipcRenderer.invoke(IPC.moveInOffer),
+  moveIn: (yes) => ipcRenderer.invoke(IPC.moveIn, yes),
   clearMemory: () => ipcRenderer.invoke(IPC.clearMemory),
+  clearStats: () => ipcRenderer.invoke(IPC.clearStats),
   openCommissionFolder: (id) => ipcRenderer.invoke(IPC.openCommissionFolder, id),
   recallForRevision: (id) => ipcRenderer.invoke(IPC.recallForRevision, id),
   shopState: () => ipcRenderer.invoke(IPC.shopState),
@@ -53,6 +57,8 @@ const api: LamplightApi = {
   markMet: (id) => ipcRenderer.invoke(IPC.markMet, id),
   reviseCommission: (req) => ipcRenderer.invoke(IPC.reviseCommission, req),
   restorePrevious: (id) => ipcRenderer.invoke(IPC.restorePrevious, id),
+  undoWork: (id) => ipcRenderer.invoke(IPC.undoWork, id),
+  exportWork: (id, as) => ipcRenderer.invoke(IPC.exportWork, id, as),
   onRawEvent: (cb) => on(IPC.rawEvent, cb),
   onAiEvent: (cb) => on(IPC.aiEvent, cb),
   onDecision: (cb) => on(IPC.decision, cb),
@@ -61,6 +67,8 @@ const api: LamplightApi = {
   onMiniState: (cb) => on(IPC.miniPush, cb),
   showShop: () => ipcRenderer.invoke(IPC.showShop),
   moveScene: (scene) => ipcRenderer.invoke(IPC.moveScene, scene),
+  onUpdate: (cb) => on(IPC.updateOffer, cb),
+  downloadUpdate: () => ipcRenderer.invoke(IPC.downloadUpdate),
 };
 
 contextBridge.exposeInMainWorld('lamplight', api);

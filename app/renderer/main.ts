@@ -5,7 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -30,8 +30,12 @@ import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
 import { birthdayToday } from '../shared/days';
+import { localDay } from '../shared/localday';
+import { STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
+import { showUpdateLetter } from './ui/letter';
+import { askMoveIn } from './ui/move-in';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, setWorking, syncToolbar, view } from './ui/toolbar';
@@ -155,6 +159,7 @@ setInterval(() => {
     void window.lamplight.markTold(talk.id);
   }
   tendGarden(!busy);
+  bringLetter(!busy && !blocked && scene.view === 'shop');
   dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
 }, 5000);
@@ -187,6 +192,28 @@ function welcome(guest: GuestId) {
   const present = (who: string) => scene.anchorOf(who as ActorId) !== null;
   const chat = pickVisit(ruleBook().chats, guest, scene.outside(), scene.period, present, heardVisits, shopDays);
   if (chat) void scene.guestVisit(guest, chat.turns.map((t) => ({ ...t, text: fill(t.text, { lastWork: shopDays.lastWork ?? '' }) })));
+}
+
+// A new version (road-to-1.1.md A1): the postman brings the letter once the shop is quiet and nothing lies over it,
+// at any hour. Sent away by work before he hands it over, he brings it again later.
+let letter: UpdateOffer | null = null;
+window.lamplight.onUpdate((offer) => { letter = offer; });
+function bringLetter(quiet: boolean) {
+  if (!letter || !quiet || scene.hasGuest() || document.querySelector('#ui > .card, #ui > form.card, .legal-backdrop')) return;
+  const offer = letter;
+  letter = null;
+  let handed = false;
+  void scene.guestVisit('postman', [{ speaker: 'postman', text: strings.ui.update.postman }, { speaker: 'adeng', text: strings.ui.update.thanks }], () => {
+    handed = true;
+    showUpdateLetter(offer, () => void fetchUpdate());
+  }).then(() => { if (!handed) letter ??= offer; });
+}
+/** "Update": Adeng goes to fetch it, and says when it is in hand (it goes in when the shop closes). */
+async function fetchUpdate() {
+  greet(strings.ui.update.fetching);
+  // The first line has its time even when the version is in hand at once.
+  const [fetched] = await Promise.all([window.lamplight.downloadUpdate(), wait(GREET_MS)]);
+  greet(fetched ? strings.ui.update.ready : strings.ui.update.failed);
 }
 
 // Out in the garden people say something about what they are doing, heard while you look out there.
@@ -244,7 +271,6 @@ function sayProgress() {
 
 // A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
 // says goes to the running commission. Nobody moves for the work while the meeting lasts.
-const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
 let meetingOpen = false;
 let meetingCount = 0;
 function sayFrom(group: string, k = 0) {
@@ -307,13 +333,15 @@ window.lamplight.onDecision((req) => {
 let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string } = { done: 0, told: new Set(), made: {} };
 /** How many works were on the shelf before this result came back (the shelf only shows from the first). */
 let worksKept = 0;
-async function refreshShop(fresh: GrowthId[] = []) {
+/** `justFinished`: a work has just come back, so the apprentice it brings walks in rather than simply being there. */
+async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   const state = await window.lamplight.shopState();
   // The scene builds its props on its first frame; wait for it when the shop has only just opened.
   while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
   scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
   scene.growth.setWorks(state.works.map((w) => w.icon));
   scene.garden.setWorksDone(state.done);
+  stage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
 }
@@ -325,24 +353,35 @@ function noticeGrowth(ids: GrowthId[]) {
 const GROWTH_LINE_DELAY_MS = 4000;
 /** After anything new in the shop has had its word. */
 const BEDS_LINE_DELAY_MS = 10_000;
+/** After the apprentice has walked in from the street. */
+const APPRENTICE_LINE_DELAY_MS = 7000;
 const ONCE_RETRY_MS = 2_000;
 function noticeBeds(news: ReturnType<typeof bedNews>) {
   if (news) sayOnce(`grow_${news}`, BEDS_LINE_DELAY_MS);
 }
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
-/** Once a year, whenever the shop is opened that day. */
+/** Once a year, whenever the shop is opened that day or is still open when the day comes. */
+let birthdayWaiting = '';
 async function noticeBirthday() {
   const { works, done, told } = await window.lamplight.shopState();
   const age = birthdayToday(works, done);
-  if (!age || told.includes(`birthday_${age}`)) return;
-  void window.lamplight.markTold(`birthday_${age}`);
-  sayOnce('grow_birthday', BEDS_LINE_DELAY_MS);
+  const key = `birthday_${age}`;
+  if (!age || told.includes(key) || birthdayWaiting === key) return;
+  birthdayWaiting = key;
+  // Counted as said only once it has been: a shop closed before then says it the next time.
+  sayOnce('grow_birthday', BEDS_LINE_DELAY_MS, () => void window.lamplight.markTold(key));
 }
+let today = localDay(new Date());
+setInterval(() => {
+  if (localDay(new Date()) === today) return;
+  today = localDay(new Date());
+  void noticeBirthday();
+}, 60_000);
 /** The lines still to be said, one at a time; forgetting everything takes them back. */
 let onceLines: Promise<unknown> = Promise.resolve();
 let forgotten = 0;
 /** Said only once in the life of the shop, so it waits until someone is in the room to hear it, nothing lies over the shop, and the speaker is there and free. */
-function sayOnce(line: string, delay: number) {
+function sayOnce(line: string, delay: number, said?: () => void) {
   const due = Date.now() + delay;
   const asked = forgotten;
   onceLines = onceLines.then(async () => {
@@ -350,7 +389,10 @@ function sayOnce(line: string, delay: number) {
     while (asked === forgotten) {
       const turns = pickLine(ruleBook().lines.grow ?? [], [line], {}) ?? [];
       const unheard = document.hidden || scene.view !== 'shop' || document.querySelector('#ui > .card, #ui > form.card, .backdrop, .legal-backdrop');
-      if (!unheard && turns.every((t) => scene.anchorOf(t.speaker) !== null && !scene.busyTalking(t.speaker))) return stage.talk(turns);
+      if (!unheard && turns.every((t) => scene.anchorOf(t.speaker) !== null && !scene.busyTalking(t.speaker))) {
+        said?.();
+        return stage.talk(turns);
+      }
       await wait(ONCE_RETRY_MS);
     }
   });
@@ -389,7 +431,11 @@ onNotebookForget(() => {
 });
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
-  void refreshShop(result.grew ?? []).then(() => noticeBeds(bedNews(before, shopDays.done)));
+  void refreshShop(result.grew ?? [], true).then(() => {
+    noticeBeds(bedNews(before, shopDays.done));
+    // Adeng introduces the apprentice once they are through the door.
+    if (apprenticeNews(before, shopDays.done)) sayOnce('grow_apprentice', APPRENTICE_LINE_DELAY_MS);
+  });
   noticeGrowth(result.grew ?? []);
 });
 // A commission that stopped has its own card, which says what to do; putting a result card away first would end it.
@@ -397,6 +443,7 @@ window.lamplight.onResult((result) => hasFailureCard(result.error) || showResult
   open: (path, how) => void window.lamplight.openOutput(path, how),
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
+  undo: (id) => window.lamplight.undoWork(id),
   firstWork: worksKept === 0,
   report: () => void window.lamplight.writeToUs({ about: 'content', title: lastWant ?? undefined }),
 }));
@@ -455,7 +502,7 @@ function openProgress() {
     steps: boardSteps(),
     realPlan: stage.planIsReal,
     now: stage.latestDoing,
-    staff: STAFF.map((actor) => ({ actor, state: stage.actorInfo(actor).state, doing: stage.actorInfo(actor).doing ?? '' })),
+    staff: STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done)).map((actor) => ({ actor, state: stage.actorInfo(actor).state, doing: stage.actorInfo(actor).doing ?? '' })),
   }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed) });
 }
 
@@ -547,9 +594,10 @@ function applySettings(s: Settings) {
 systemCalm.addEventListener('change', () => current && applySettings(current));
 
 // Adeng greets the user by name; the first visit walks through setup first.
+const GREET_MS = 3500;
 const greet = (text: string) => {
   scene.say('adeng', text);
-  setTimeout(() => scene.say('adeng', null), 3500);
+  setTimeout(() => scene.say('adeng', null), GREET_MS);
 };
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
@@ -559,6 +607,16 @@ async function greetBack(name: string) {
 }
 async function openShop() {
   const api = window.lamplight;
+  // The Store build's first open beside the installer build's shop: brought over or not, before anything is read.
+  const move = await api.moveInOffer();
+  let moved: boolean | null = null;
+  if (move) {
+    const yes = await askMoveIn(move);
+    const ok = await api.moveIn(yes);
+    if (yes) moved = ok;
+  }
+  // Said instead of the usual welcome back: the shop the user knows has just come over. A failed copy changed nothing.
+  if (moved === false) greet(strings.ui.moveIn.failed);
   void refreshShop();
   void noticeBirthday();
   let settings = await api.getSettings();
@@ -572,6 +630,8 @@ async function openShop() {
     // First visit: point at the counter until it has been opened once.
     scene.setHint('counter', true);
     setTimeout(() => greet(S.greetHint), 4000);
+  } else if (moved) {
+    greet(fill(strings.ui.moveIn.moved, { name: settings.name }));
   } else if (settings.name) {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
@@ -584,7 +644,8 @@ async function openShop() {
   // Said once, when nothing else is on the table: a card that came up mid-commission would be pushed away unread.
   while (running || document.querySelector('#ui > .card, #ui > form.card, .backdrop')) await wait(ONCE_RETRY_MS);
   const damage = await api.dataDamage();
-  if (damage.notebook || damage.settings || damage.ledger) showDataTrouble(damage, settings.budgetUsd);
+  // Read again: the limit may have changed while the card waited.
+  if (damage.notebook || damage.settings || damage.ledger) showDataTrouble(damage, (await api.getSettings()).budgetUsd);
 }
 void openShop();
 
@@ -620,6 +681,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showNotebook: () => showNotebook(api),
       showCaptionLog,
       showPending: (form: CommissionForm) => showPending(api, form, () => {}),
+      showUpdateLetter: (offer: UpdateOffer) => showUpdateLetter(offer, () => {}),
     };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };

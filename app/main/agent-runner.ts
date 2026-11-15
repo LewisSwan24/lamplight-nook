@@ -97,6 +97,8 @@ export type RunOptions = {
   broker?: DecisionBroker;
   /** Files that existed in the folder before the run; overwriting them needs confirmation. */
   preexisting?: Set<string>;
+  /** Working in a folder the user lent: keeps the original of each of their files before it is first changed. */
+  keepOriginal?: (file: string) => void;
   /** Abort the run (the user cancelled the commission or closed the app). */
   abort?: AbortController;
   /** Continue an earlier SDK session (retry after a network failure, or after the app closed mid-commission). */
@@ -143,7 +145,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, abort, resume, onSession, onInit, onInput, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -177,7 +179,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   const hooks = Object.fromEntries(HOOK_EVENTS.map((ev) => [ev, [{ hooks: [hookRecorder] }]]));
   const interim = interimPermission(workDir);
   const canUseTool: CanUseTool = broker
-    ? makePermissionPolicy({ workDir, preexisting }, broker, {
+    ? makePermissionPolicy({ workDir, preexisting, keepOriginal }, broker, {
         onRequest: (tool, input, risk, reason, agentId) =>
           record({ source: 'permission', name: tool, payload: { input, risk, reason, agent_id: agentId } }),
         onDecision: (tool, choice, risk, label, agentId) =>

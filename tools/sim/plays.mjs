@@ -6,7 +6,8 @@ import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const BOM = '﻿';
+// Written as an escape: an editor or tool that strips invisible characters would leave an empty string.
+const BOM = '\uFEFF';
 
 /** Text the plays say and write, per language. Player-facing words only appear in commission output. */
 const T = {
@@ -20,11 +21,20 @@ const T = {
     sheet: ['定好要哪几列', '写表头和示例行', '合计用公式', '请老石检查'],
     plan: ['弄清目标和时间', '按周排好每一步', '留出补课的余地', '列准备清单', '请老石检查'],
     album: ['看你递来的照片', '请青黛定版式', '排顺序、写图说', '做成相册网页', '请老石检查'],
+    resume: ['弄清投什么样的工作', '排好一页的版式', '写经历，缺的留空', '请老石检查'],
+    notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
+    travel: ['弄清去哪、几天', '请小橘查开放时间和票价', '按天排行程和预算', '请老石检查'],
+    tool: ['弄清要做什么', '做成一个网页工具', '用样例试一试', '请老石检查'],
     materials: '看你递来的材料',
     revise: ['看看上一版', '照你说的改', '请老石再看一眼'],
+    lent: ['看看你原有的页面', '照你说的改原有的文件', '加一页联系方式', '请老石检查'],
+    lentMark: '小灯屋照你说的改过这里',
+    lentPage: '<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>联系我们</title></head>\n<body><h1>联系我们</h1><p>电话和地址写在这里。</p></body></html>\n',
+    lentDone: '在你原有的页面上改好了，还加了一页联系方式。别的文件都没动。',
     designBrief: '给页面定配色和布局，十五行以内。', designDesc: '定配色和布局', reviewDesc: '检查成品',
     designSummary: '配色：奶油白底、深棕字、一处橘色强调；上面标题，中间主体，底下一行说明。',
     researchBrief: '查一查这件事，只读，三到五句话总结。',
+    errands: ['开门时间', '附近的店', '别人怎么做'],
     researchSummary: '找到三处说法：大体一致，只有一处日期不同，已注明。',
     reviewBrief: '检查做好的东西有没有问题，只读。',
     reviewSummary: '结论：基本通过。没有硬伤。',
@@ -44,6 +54,11 @@ const T = {
     letterDone: '信写好了：开头先说事，结尾留了感谢。不知道的日期和名字空在方括号里，填上就能寄。',
     sheetDone: '表格做好了：表头和几行示例都在，合计用的是公式，填数字会自动算。',
     planDone: '计划排好了：按周排，每一步都能在一次坐下来时做完，每周留了一天补课。',
+    resumeDone: '简历做好了：一页 A4，用浏览器打印成 PDF 就是干净的一页。不知道的地方留在方括号里，按办公室文职的方向写的。',
+    notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
+    travelDone: '攻略做好了：按天排的行程、预算表和要带的东西。开放时间和票价都注了出处和查的日期，出发前再核对一下。',
+    toolDone: '小工具做好了：1. 打开小工具.html；2. 选一个文件；3. 点「下载结果」。它只读你选的文件，不动电脑上别的东西。',
+    toolScriptDone: '脚本写好了：1. 双击启动文件；2. 把文件夹拖进窗口；3. 看过要做的事再确认。',
     albumDone: (n) => `相册做好了：${n} 张照片排成一本，点一张能看大图。照片用的是复制件。`,
     reviseDone: (a) => `改好了：${a}。其他地方没动，上一版也留着。`,
     netRetry: '网络断了一下。',
@@ -58,6 +73,10 @@ const T = {
     pageLead: '一个能记、能存的小页面。',
     entry: '记一笔', save: '存下', total: '合计',
     albumTitle: '我们的小相册', albumLead: '点一张照片看大图。',
+    resumeBody: (w) => `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>简历</title><style>@page{size:A4;margin:16mm}body{font:14px/1.6 system-ui,sans-serif;color:#222;max-width:180mm;margin:20px auto}h1{margin:0}h2{border-bottom:1px solid #999;font-size:15px}@media print{body{margin:0}}</style></head>\n<body><h1>[你的名字]</h1><p>[电话] · [邮箱] · 求职方向：${esc(w)}</p>\n<h2>经历</h2><p>[公司] · [职位] · [起止年月]</p><ul><li>[做过的事]</li></ul>\n<h2>教育</h2><p>[学校] · [专业] · [毕业年份]</p>\n<h2>技能</h2><ul><li>[技能]</li></ul></body></html>\n`,
+    notesBody: (w) => `# ${w}\n\n这本书讲的是：[一段话]。作者和年份没查到，先空着。\n\n## 要点\n- 第一个要点\n- 第二个要点\n\n## 摘录\n没有递来摘抄，摘录先空着。\n\n## 想一想\n- 哪一点和你的经历对得上？\n`,
+    travelBody: (w) => `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>旅行攻略</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:720px;margin:30px auto;padding:0 16px;color:#333}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head>\n<body><h1>${esc(w)}</h1>\n<h2>第 1 天</h2><p>上午：[景点]（<a href="https://www.openstreetmap.org/search?query=sight">在地图上看</a>）。开放时间 9:00 到 17:00（出处：示例网站，2026-11-14 查）。</p>\n<h2>预算</h2><table><tr><th>项目</th><th>金额</th></tr><tr><td>门票</td><td>[金额]</td></tr></table>\n<h2>要带的东西</h2><ul><li>身份证件</li><li>充电宝</li></ul>\n<p>开放时间和票价会变，出发前再核对一遍。</p></body></html>\n`,
+    toolBody: (w) => `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>小工具</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:560px;margin:30px auto;padding:0 16px}</style></head>\n<body><h1>${esc(w)}</h1><input type="file" id="pick"><button id="go">下载结果</button>\n<script>go.onclick=async()=>{const f=pick.files[0];if(!f)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([(await f.text()).toUpperCase()]));a.download='result-'+f.name;a.click()}</script></body></html>\n`,
     revisedHead: '（修改版）',
   },
   en: {
@@ -70,11 +89,20 @@ const T = {
     sheet: ['Choose the columns', 'Write the header and examples', 'Use formulas for the totals', 'Ask Flint to check it'],
     plan: ['Pin down the goal and the time', 'Lay out each week', 'Leave room for missed days', 'List what to prepare', 'Ask Flint to check it'],
     album: ['Look at the photos you gave', 'Ask Iris for the layout', 'Order them and write captions', 'Make the album page', 'Ask Flint to check it'],
+    resume: ['Work out the kind of job', 'Lay out one page', 'Write it up, blanks for gaps', 'Ask Flint to check it'],
+    notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
+    travel: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out the days and the budget', 'Ask Flint to check it'],
+    tool: ['Work out what it should do', 'Make it a page in the browser', 'Try it on samples', 'Ask Flint to check it'],
     materials: 'Look at the files you handed over',
     revise: ['Look at the last version', 'Make the change you asked for', 'Ask Flint for another look'],
+    lent: ['Look at your pages as they are', 'Change your files as you asked', 'Add a contact page', 'Ask Flint to check'],
+    lentMark: 'changed here by the shop, as you asked',
+    lentPage: '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Contact us</title></head>\n<body><h1>Contact us</h1><p>Phone and address go here.</p></body></html>\n',
+    lentDone: 'Your own pages are changed as you asked, and there is a new contact page. Nothing else was touched.',
     designBrief: 'Propose colours and layout for the page, under fifteen lines.', designDesc: 'Colours and layout', reviewDesc: 'Check the result',
     designSummary: 'Palette: cream background, dark brown text, one orange accent; title on top, the main part in the middle, a note at the bottom.',
     researchBrief: 'Look into this. Read only; sum it up in three to five sentences.',
+    errands: ['opening hours', 'shops nearby', 'how others do it'],
     researchSummary: 'Found three sources: they mostly agree, one gives a different date, noted.',
     reviewBrief: 'Check the finished work for problems. Read only.',
     reviewSummary: 'Verdict: fine overall. Nothing broken.',
@@ -94,6 +122,11 @@ const T = {
     letterDone: 'The letter is ready: it gets to the point first and ends with thanks. Dates and names I did not know are left in square brackets.',
     sheetDone: 'The table is ready: a header and a few example rows, with formulas for the total so it adds up as you fill it in.',
     planDone: 'The plan is ready: week by week, each step small enough for one sitting, with a spare day each week.',
+    resumeDone: 'The résumé is ready: one A4 page, and "Print to PDF" in the browser gives one clean page. What I did not know is left in square brackets. I shaped it for an office job.',
+    notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
+    travelDone: 'The travel guide is ready: day by day, a budget table and a packing list. Opening hours and prices carry their source and the date checked; check them again before you set off.',
+    toolDone: 'The tool is ready: 1. Open tool.html. 2. Pick a file. 3. Click "Download the result". It only reads the file you pick.',
+    toolScriptDone: 'The script is ready: 1. Double-click the launcher. 2. Drop a folder on the window. 3. Look over what it will do, then confirm.',
     albumDone: (n) => `The album is ready: ${n} photos in one page, and clicking one shows it large. It uses copies of the photos.`,
     reviseDone: (a) => `Done: ${a}. Nothing else changed, and the last version is kept.`,
     netRetry: 'The connection dropped for a moment.',
@@ -108,6 +141,10 @@ const T = {
     pageLead: 'A small page that remembers what you write.',
     entry: 'Add an entry', save: 'Save', total: 'Total',
     albumTitle: 'Our little album', albumLead: 'Click a photo to see it large.',
+    resumeBody: (w) => `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Résumé</title><style>@page{size:A4;margin:16mm}body{font:14px/1.6 system-ui,sans-serif;color:#222;max-width:180mm;margin:20px auto}h1{margin:0}h2{border-bottom:1px solid #999;font-size:15px}@media print{body{margin:0}}</style></head>\n<body><h1>[your name]</h1><p>[phone] · [email] · Aiming for: ${esc(w)}</p>\n<h2>Experience</h2><p>[company] · [job title] · [from and to]</p><ul><li>[what you did]</li></ul>\n<h2>Education</h2><p>[school] · [subject] · [year]</p>\n<h2>Skills</h2><ul><li>[skill]</li></ul></body></html>\n`,
+    notesBody: (w) => `# ${w}\n\nWhat the book is about: [one paragraph]. The author and year could not be found, so they are left out.\n\n## Main ideas\n- The first idea\n- The second idea\n\n## Quotations\nNothing was handed over to quote from, so there are none yet.\n\n## To think about\n- Which idea fits your own experience?\n`,
+    travelBody: (w) => `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Travel guide</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:720px;margin:30px auto;padding:0 16px;color:#333}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head>\n<body><h1>${esc(w)}</h1>\n<h2>Day 1</h2><p>Morning: [a sight] (<a href="https://www.openstreetmap.org/search?query=sight">see it on a map</a>). Open 9:00 to 17:00 (source: an example site, checked 2026-11-14).</p>\n<h2>Budget</h2><table><tr><th>Item</th><th>Amount</th></tr><tr><td>Tickets</td><td>[amount]</td></tr></table>\n<h2>Packing list</h2><ul><li>ID</li><li>A power bank</li></ul>\n<p>Opening hours and prices change: check them again before you set off.</p></body></html>\n`,
+    toolBody: (w) => `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Small tool</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:560px;margin:30px auto;padding:0 16px}</style></head>\n<body><h1>${esc(w)}</h1><input type="file" id="pick"><button id="go">Download the result</button>\n<script>go.onclick=async()=>{const f=pick.files[0];if(!f)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([(await f.text()).toUpperCase()]));a.download='result-'+f.name;a.click()}</script></body></html>\n`,
     revisedHead: '(revised)',
   },
 };
@@ -135,6 +172,7 @@ export function pickPlay(prompt, state) {
   if (/node check\.js/.test(prompt)) return plays.demo;
   state.vars.want = want(prompt);
   state.vars.materialsDir = quoted(prompt, 'Copies are in the folder') ?? quoted(prompt, 'using the photos in the folder');
+  if (/This folder is the user's own/.test(prompt)) return plays.lent;
   if (/single self-contained page named "index\.html", using the photos/.test(prompt)) return plays.album;
   if (/write the findings as/.test(prompt)) { state.vars.out = quoted(prompt, 'write the findings as'); return plays.research; }
   if (/Write the edited version as/.test(prompt)) {
@@ -150,6 +188,22 @@ export function pickPlay(prompt, state) {
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.sheet; }
   if (/This is a plan/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.plan; }
+  if (/This is a résumé/.test(prompt)) { state.vars.out = quoted(prompt, 'single self-contained page named'); return plays.resume; }
+  if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
+  if (/This is a travel guide/.test(prompt)) { state.vars.out = 'index.html'; return plays.travel; }
+  // A small tool: a page in the browser, unless the request is to rename or delete files. Then it writes a script and
+  // its launcher, careful (a preview, -Apply to act) for renaming and careless (deletes at once) for deleting, so the
+  // result card's warning can be seen. The stand-in never runs either.
+  if (/This is a small tool/.test(prompt)) {
+    if (/改名|删|rename|delete/i.test(state.vars.want)) {
+      state.vars.out = quoted(prompt, 'PowerShell script named');
+      state.vars.launcher = quoted(prompt, 'and next to it');
+      state.vars.careless = /删|delete/i.test(state.vars.want);
+      return plays.toolScript;
+    }
+    state.vars.out = quoted(prompt, 'single self-contained page named');
+    return plays.tool;
+  }
   return plays.page;
 }
 
@@ -191,6 +245,16 @@ async function twist(s, t, scenario) {
       await s.say(t.netRetry);
       s.fail('API Error: Connection error. fetch failed (ECONNRESET)');
     });
+  }
+  // Three errands at once, each out a little longer than the one before (road-to-1.1.md A5): Xiaoju takes the first,
+  // the apprentice the second, and the third waits for whoever is back first.
+  if (scenario === 'errands') {
+    await s.step(() => Promise.all([3, 6, 10].map(async (slow, i) => {
+      await s.pause(i * 1.5);
+      return s.agent('researcher', t.errands[i], t.researchBrief, async (a) => {
+        await s.tool('WebSearch', { query: t.errands[i] }, { ...a, slow, effect: () => ({ text: 'Web search results (simulated).' }) });
+      }, t.researchSummary);
+    })));
   }
   if (scenario === 'longwait') await s.step(() => s.tool('Bash', { command: 'node --version', description: 'wait' }, { slow: 50, effect: () => ({ text: 'v22' }) }));
   if (scenario === 'stuck') {
@@ -386,6 +450,28 @@ export const plays = {
   letter: simpleText('letter', (t, w) => t.letterBody(w), (t) => t.letterDone),
   sheet: simpleText('sheet', (t) => BOM + t.sheetRows.join('\r\n') + '\r\n', (t) => t.sheetDone),
   plan: simpleText('plan', (t, w) => t.planBody(w), (t) => t.planDone),
+  resume: simpleText('resume', (t, w) => t.resumeBody(w), (t) => t.resumeDone),
+  notes: simpleText('notes', (t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
+  travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
+  tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
+
+  toolScript: {
+    name: 'toolScript',
+    async run(s) {
+      const t = T[s.state.lang];
+      const { out, launcher, careless } = s.state.vars;
+      const p = planner(s, t.tool);
+      await p.start();
+      await s.step(() => s.think(1));
+      await p.next();
+      await s.step(() => s.write(out, careless ? CARELESS_SCRIPT : CAREFUL_SCRIPT));
+      await s.step(() => s.write(launcher, `@echo off\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0${out}"\r\n`));
+      await p.next();
+      await reviewer(s, t, out);
+      await p.end();
+      await s.finish(t.toolScriptDone);
+    },
+  },
 
   album: {
     name: 'album',
@@ -442,6 +528,34 @@ export const plays = {
     },
   },
 
+  /**
+   * Work in a folder the user lent: change two of their own pages or styles where they are (the first two .html or
+   * .css files by name), add a contact page in a new folder, and leave everything else alone.
+   */
+  lent: {
+    name: 'lent',
+    async run(s) {
+      const t = T[s.state.lang];
+      const p = planner(s, t.lent);
+      await p.start();
+      const theirs = readdirSync(s.cwd).filter((f) => /\.(html|css)$/.test(f)).sort().slice(0, 2);
+      for (const f of theirs) await s.step(() => s.read(f));
+      await p.next();
+      for (const f of theirs) {
+        await s.step(() => {
+          const mark = /\.css$/.test(f) ? `/* ${t.lentMark} */` : `<!-- ${t.lentMark} -->`;
+          return s.write(f, `${readFileSync(join(s.cwd, f), 'utf8').trimEnd()}\n${mark}\n`);
+        });
+      }
+      await p.next();
+      await s.step(() => s.write('pages/contact.html', t.lentPage));
+      await p.next();
+      await reviewer(s, t, theirs[0] ?? 'pages/contact.html');
+      await p.end();
+      await s.finish(t.lentDone);
+    },
+  },
+
   /** Only reached when a meeting note somehow comes first; just finish politely. */
   carryOn: {
     name: 'carryOn',
@@ -451,8 +565,28 @@ export const plays = {
   },
 };
 
-/** The letter, the table and the plan: a short to-do list, one text file, a review. */
-function simpleText(name, body, done) {
+/** What the tool template asks for: a preview by default, -Apply to act, nothing deleted. */
+const CAREFUL_SCRIPT = [
+  'param([string]$Path, [switch]$Apply)',
+  '# Only renames; nothing is deleted.',
+  'foreach ($f in Get-ChildItem -LiteralPath $Path -File) {',
+  '  $new = $f.LastWriteTime.ToString("yyyy-MM-dd_HHmmss") + $f.Extension',
+  '  if ($Apply) { Rename-Item -LiteralPath $f.FullName -NewName $new } else { Write-Host "$($f.Name) -> $new" }',
+  '}',
+  '',
+].join('\r\n');
+/** What it forbids: deleting, straight away, with no preview. */
+const CARELESS_SCRIPT = [
+  'param([string]$Path)',
+  'Get-ChildItem -LiteralPath $Path -Filter *.tmp | Remove-Item',
+  '',
+].join('\r\n');
+
+/**
+ * The letter, the table, the plan, the résumé, the reading notes, the travel guide and the small tool: a short to-do
+ * list, one file, a review. `research`: the researcher looks something up first (the book's facts, opening hours).
+ */
+function simpleText(name, body, done, { research = false } = {}) {
   return {
     name,
     async run(s, { scenario }) {
@@ -464,6 +598,7 @@ function simpleText(name, body, done) {
       await s.step(() => s.think(1));
       if (s.state.vars.materialsDir) { await p.next(); await lookAtMaterials(s); }
       await p.next();
+      if (research) await researcher(s, t, s.state.vars.want || name);
       await twist(s, t, scenario);
       await s.step(() => s.think(1));
       await p.next();

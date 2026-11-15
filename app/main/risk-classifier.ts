@@ -1,17 +1,25 @@
 import { homedir } from 'node:os';
-import { basename, isAbsolute, join, resolve, sep } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
 import type { Risk } from '../shared/types';
-import { isInside } from './paths';
+import { isInside, reallyInside } from './paths';
 
-/** Risk level plus a plain-language reason shown on the confirmation card. */
-export type RiskVerdict = { risk: Risk; reason: string };
+/**
+ * Risk level plus a plain-language reason shown on the confirmation card. `keep`: one of the user's files in a lent
+ * folder, whose original must be kept before the step goes ahead.
+ */
+export type RiskVerdict = { risk: Risk; reason: string; keep?: string };
 
 export type RiskContext = {
   workDir: string;
   /** Files (absolute paths) that existed before the commission started. Overwriting or deleting them is serious. */
   preexisting?: Set<string>;
   home?: string;
+  /**
+   * Working in a folder the user lent the shop (road-to-1.1.md A6), which they agreed to once: the file tools may change
+   * their files without asking each time, and this keeps each original first.
+   */
+  keepOriginal?: (file: string) => void;
 };
 
 const R = strings.risk;
@@ -258,6 +266,21 @@ function globBase(pattern: string): string {
   return base === '' && pattern.startsWith('/') ? '/' : base;
 }
 
+/** The same file: Windows does not mind the case of a name. */
+const sameFile = (a: string, b: string) => (process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b);
+
+/** Files that run, which a quiet change could turn into something else. */
+const RUNS = /\.(ps1|psm1|cmd|bat|exe|com|msi|scr|lnk|vbs|sh)$/i;
+
+/**
+ * Whether one of the user's files in a lent folder may be changed without a card: not settings or history in a
+ * dot-folder (.git, .github, .vscode...) or a dot-file, not anything that runs, and not package.json, whose scripts run code.
+ */
+function changesQuietly(workDir: string, full: string): boolean {
+  const parts = relative(workDir, full).split(/[\\/]/);
+  return !parts.some((part) => part.startsWith('.')) && !RUNS.test(full) && basename(full).toLowerCase() !== 'package.json';
+}
+
 function abs(workDir: string, p: string) {
   return isAbsolute(p) ? p : resolve(workDir, p);
 }
@@ -276,6 +299,8 @@ function pathVerdict(ctx: RiskContext, p: string, writing: boolean): RiskVerdict
   }
   if (!writing) return null;
   if (!isInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
+  // A folder the user lent may hold their own links and junctions, which could lead a write anywhere.
+  if (ctx.keepOriginal && !reallyInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
   if (ctx.preexisting?.has(full)) return { risk: 'serious', reason: fill(R.overwrite, { name }) };
   return null;
 }
@@ -303,7 +328,18 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
   if (WRITE_TOOLS.has(tool)) {
     const p = String(input.file_path ?? input.notebook_path ?? '');
     if (!p) return { risk: 'serious', reason: R.noTarget };
-    return pathVerdict(ctx, p, true) || { risk: 'safe', reason: R.write };
+    if (!ctx.keepOriginal) return pathVerdict(ctx, p, true) || { risk: 'safe', reason: R.write };
+    // In a lent folder, one of the user's files written as C:/x/a.html, or in other capitals on Windows, must still be
+    // known as theirs, or it would be changed with no original kept.
+    const full = resolve(ctx.workDir, p);
+    const matches = ctx.preexisting?.has(full) ? [full] : [...(ctx.preexisting ?? [])].filter((f) => sameFile(f, full));
+    // Two of theirs that differ only in capitals (a case-sensitive folder): which one this means is not clear, so it asks.
+    if (matches.length > 1) return { risk: 'serious', reason: fill(R.overwrite, { name: basename(full) }) };
+    const own = matches[0];
+    // Only the file tools: a command writing over the same file still asks, as nothing keeps the original for it.
+    // And only an ordinary file of theirs, where a new file would need no card either.
+    if (own && changesQuietly(ctx.workDir, own) && !pathVerdict({ ...ctx, preexisting: undefined }, own, true)) return { risk: 'safe', reason: R.write, keep: own };
+    return pathVerdict(ctx, own ?? full, true) || { risk: 'safe', reason: R.write };
   }
 
   if (PLAN_TOOLS.has(tool)) return { risk: 'safe', reason: R.plan };

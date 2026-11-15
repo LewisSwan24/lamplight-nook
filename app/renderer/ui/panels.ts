@@ -3,6 +3,7 @@ import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
+import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
@@ -118,17 +119,17 @@ export function showParcel(actor: ActorId, summary: string) {
 
 /** The commission form. Resolves with the form, or null if closed. */
 const T = U.templates;
-const TEMPLATES: { id: CommissionTemplate | 'demo'; label: string; fill: string }[] = [
+/**
+ * The stickers on the form: the demo, then every template (shared/templates.ts), named and filled in
+ * from the locale files by id.
+ */
+type Sticker = { id: CommissionTemplate | 'demo'; label: string; fill: string; spec?: TemplateSpec };
+const STICKERS: Sticker[] = [
   { id: 'demo', label: T.demo, fill: U.demoFill },
-  { id: 'page', label: T.page, fill: T.pageFill },
-  { id: 'research', label: T.research, fill: T.researchFill },
-  { id: 'edit', label: T.edit, fill: T.editFill },
-  { id: 'tidy', label: T.tidy, fill: T.tidyFill },
-  { id: 'letter', label: T.letter, fill: T.letterFill },
-  { id: 'sheet', label: T.sheet, fill: T.sheetFill },
-  { id: 'plan', label: T.plan, fill: T.planFill },
-  { id: 'album', label: T.album, fill: T.albumFill },
+  ...TEMPLATES.map((t) => ({ id: t.id, label: T[t.id], fill: T[`${t.id}Fill`], spec: t })),
 ];
+/** What a template says about the file, folder or photos it needs (`ui.templates.<id>Hint`). */
+const hintOf = (id: string) => (T as Record<string, string>)[`${id}Hint`];
 /** Pictures an album can show. */
 const PHOTO = /\.(jpe?g|png|gif|webp|bmp|avif)$/i;
 /** The blank in a template sentence (a Chinese or an English ellipsis), selected so typing replaces it. */
@@ -139,7 +140,8 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
 /** What the commission form needs from the main process. */
-export type FormApi = Pick<LamplightApi, 'chooseSource' | 'handOver' | 'pathsOf'>;
+export type FormApi = Pick<LamplightApi, 'chooseSource' | 'chooseLent' | 'handOver' | 'pathsOf'>;
+const L = U.lent;
 
 /** Why something couldn't be handed over, in the shop's words. */
 export function refusalText(r: HandOver['refused'][number]): string {
@@ -159,13 +161,13 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     want.addEventListener('input', () => want.setCustomValidity(''));
     const details = el('input', { type: 'text', placeholder: U.detailsPlaceholder }) as HTMLInputElement;
     const audience = el('input', { type: 'text', placeholder: U.audiencePlaceholder }) as HTMLInputElement;
-    let chosen: (typeof TEMPLATES)[number] | null = TEMPLATES[0];
+    let chosen: Sticker | null = STICKERS[0];
     let source: { path: string; name: string } | null = null;
     const sourceName = el('span.source-name');
     const sourceHint = el('div.hint.source-hint');
     const pickButton = el('button', { type: 'button', onclick: () => void pick() }) as HTMLButtonElement;
     const sourceRow = el('div.source-row', {}, el('div.source-line', {}, pickButton, sourceName), sourceHint);
-    const chips = TEMPLATES.map((t) => el('button.template-chip', { type: 'button', onclick: () => choose(t) }, t.label) as HTMLButtonElement);
+    const chips = STICKERS.map((t) => el('button.template-chip', { type: 'button', onclick: () => choose(t) }, t.label) as HTMLButtonElement);
     const done = (form: CommissionForm | null) => { openForm = null; resolve(form); closePanel(); };
 
     const materialHint = el('div.hint', {}, U.materials.hint);
@@ -189,7 +191,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       if (!r.items.length) return;
       sfx('open');
       // A reminder to hand something over has been answered.
-      materialHint.textContent = chosen?.id === 'album' ? T.albumHint : U.materials.hint;
+      materialHint.textContent = materialsHint();
       materialHint.classList.remove('warn');
     };
     const materialRow = el('div.material-row', {},
@@ -197,20 +199,52 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         el('button.link.material-add', { type: 'button', onclick: () => void add(null) }, U.materials.add)),
       tags, materialNote, materialHint);
 
-    const needsSource = () => chosen?.id === 'edit' || chosen?.id === 'tidy';
+    // "Work in a folder I already have" (road-to-1.1.md A6). Not for the demo, nor a template that brings its own file
+    // or folder, nor the album, whose photos are handed over: those land in the shop's own folder.
+    let lent: { path: string; name: string } | null = null;
+    const lentPick = el('button.link.lent-pick', { type: 'button', onclick: () => void pickLent() }) as HTMLButtonElement;
+    const lentName = el('span.lent-name');
+    const lentHint = el('div.hint.lent-hint', { role: 'status' });
+    const lentRow = el('div.lent-row', {}, el('div.lent-line', {}, lentPick, lentName), lentHint);
+    const canLend = () => chosen?.id !== 'demo' && !chosen?.spec?.source && !chosen?.spec?.photos;
+    const lending = () => (canLend() ? lent : null);
+    const showLent = () => {
+      lentRow.hidden = !canLend();
+      lentPick.textContent = lent ? L.pickAnother : L.pick;
+      lentName.replaceChildren(...(lent ? [el('span.material-tag', {}, lent.name,
+        el('button.material-remove', { type: 'button', 'aria-label': fill(L.remove, { name: lent.name }), onclick: () => { lent = null; showLent(); } }, '\u00D7'))] : []));
+      lentHint.textContent = lent ? L.picked : '';
+      lentHint.classList.remove('warn');
+      // What is handed over would be copied in among the user's own files, so a lent folder takes none.
+      materialRow.hidden = Boolean(lending());
+    };
+    const pickLent = async () => {
+      const r = await api.chooseLent();
+      if (!r) return;
+      lent = 'error' in r ? null : r;
+      showLent();
+      if (!('error' in r)) return;
+      lentHint.textContent = r.error === 'broad' ? L.broad : L.tooBig;
+      lentHint.classList.add('warn');
+    };
+
+    const needsSource = () => Boolean(chosen?.spec?.source);
+    // What to hand over: a template that needs no file or folder may say what helps (photos for the album, an old résumé).
+    const materialsHint = () => (chosen && !needsSource() && hintOf(chosen.id)) || U.materials.hint;
     const refresh = () => {
-      chips.forEach((c, i) => c.classList.toggle('on', TEMPLATES[i] === chosen));
+      chips.forEach((c, i) => c.classList.toggle('on', STICKERS[i] === chosen));
       sourceRow.hidden = !needsSource();
-      pickButton.textContent = chosen?.id === 'tidy' ? T.chooseFolder : T.chooseFile;
+      pickButton.textContent = chosen?.spec?.source?.kind === 'folder' ? T.chooseFolder : T.chooseFile;
       sourceName.textContent = source?.name ?? '';
-      sourceHint.textContent = chosen?.id === 'tidy' ? T.tidyHint : T.editHint;
+      sourceHint.textContent = needsSource() ? hintOf(chosen!.id) : '';
       sourceHint.classList.remove('warn');
-      materialHint.textContent = chosen?.id === 'album' ? T.albumHint : U.materials.hint;
+      materialHint.textContent = materialsHint();
       materialHint.classList.remove('warn');
+      showLent();
     };
     // Picking a sticker again puts it back; text the user already wrote is only replaced if it was a template's.
-    const choose = (t: (typeof TEMPLATES)[number]) => {
-      const untouched = !want.value.trim() || TEMPLATES.some((x) => x.fill === want.value);
+    const choose = (t: Sticker) => {
+      const untouched = !want.value.trim() || STICKERS.some((x) => x.fill === want.value);
       chosen = chosen === t ? null : t;
       source = null;
       if (untouched) want.value = chosen?.fill ?? '';
@@ -220,7 +254,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       if (untouched && blank) want.setSelectionRange(blank.index, blank.index + blank[0].length);
     };
     const pick = async () => {
-      const r = await api.chooseSource(chosen?.id === 'tidy' ? 'tidy' : 'edit');
+      const r = await api.chooseSource(chosen!.id as CommissionTemplate);
       if (!r) return;
       if ('error' in r) {
         sourceHint.textContent = T.tooBig;
@@ -231,21 +265,41 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       refresh();
     };
 
-    const form = el('form.card.paper.commission', {},
-      closeButton(),
+    const slip = [
       el('div.card-title', {}, U.commissionTitle),
       el('div.slip-body', {},
         el('div.hint', {}, T.label),
         el('div.template-row', {}, ...chips),
         el('label', {}, U.want, want),
         sourceRow,
+        lentRow,
         materialRow,
         el('label', {}, U.details, details),
         el('label', {}, U.audience, audience),
         el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
       ),
       el('div.actions', {}, el('button.default', { type: 'submit' }, U.submit)),
-    );
+    ];
+    // Working in the user's own folder is agreed to once, on the slip itself, so going back keeps what was written.
+    const agree = el('div.lent-confirm', { hidden: true });
+    const form = el('form.card.paper.commission', {}, closeButton(), ...slip, agree);
+    const askToLend = (filled: CommissionForm, name: string) => {
+      const showing = (on: boolean) => {
+        for (const part of slip) part.hidden = on;
+        agree.hidden = !on;
+        form.setAttribute('aria-label', on ? fill(L.confirmTitle, { name }) : U.commissionTitle);
+      };
+      const back = el('button', { type: 'button', onclick: () => { showing(false); lentPick.focus(); } }, L.back);
+      agree.replaceChildren(
+        el('div.card-title', {}, fill(L.confirmTitle, { name })),
+        el('p', {}, L.confirmText),
+        el('p', {}, L.confirmUndo),
+        el('div.actions', {}, back, el('button.default', { type: 'button', onclick: () => done(filled) }, L.go)),
+      );
+      showing(true);
+      // Going ahead changes the user's files: Enter alone should not do it.
+      back.focus();
+    };
     // Enter in a one-line box moves on instead of handing the commission in; only the button starts the work.
     const submitButton = form.querySelector<HTMLButtonElement>('button.default')!;
     for (const [box, next] of [[details, audience], [audience, submitButton]] as const) {
@@ -282,21 +336,25 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         pickButton.focus();
         return;
       }
-      if (chosen?.id === 'album' && !materials.some((m) => PHOTO.test(m.name))) {
+      if (chosen?.spec?.photos && !materials.some((m) => PHOTO.test(m.name))) {
         materialHint.textContent = T.needPhotos;
         materialHint.classList.add('warn');
         return;
       }
       const template = chosen && chosen.id !== 'demo' ? chosen.id : undefined;
-      done({
+      const inPlace = lending();
+      const filled: CommissionForm = {
         want: text,
         details: details.value.trim() || undefined,
         audience: audience.value.trim() || undefined,
         demo: chosen?.id === 'demo' && text === U.demoFill,
         template,
-        source: template === 'edit' || template === 'tidy' ? source?.path : undefined,
-        materials: chosen?.id === 'demo' ? undefined : materials.map((m) => m.path),
-      });
+        source: needsSource() ? source?.path : undefined,
+        materials: chosen?.id === 'demo' || inPlace ? undefined : materials.map((m) => m.path),
+        inPlace: inPlace?.path,
+      };
+      if (inPlace) askToLend(filled, inPlace.name);
+      else done(filled);
     });
     // Files dropped on the counter come in with the form; the demo has its own fixed material, so start blank.
     materials = [...handed.items];
@@ -313,6 +371,8 @@ export type ResultActions = {
   open: (path: string, how: 'open' | 'reveal') => void;
   revise?: (id: string) => void;
   restore?: (id: string) => Promise<boolean>;
+  /** Undo a commission done in the user's own folder. */
+  undo?: (id: string) => Promise<string[] | null>;
   /** The first piece of work ever: say once that it will be kept on the shelf, which only appears now. */
   firstWork?: boolean;
   /** Something in it is not right (Store policy 11.16): a letter to us about what the staff made. */
@@ -326,6 +386,9 @@ export type ResultActions = {
 export function showResult(result: CommissionResult, actions: ResultActions) {
   // A round may change nothing that can be pointed at; it still ends with a card, or it ends in silence.
   const target = result.main ?? result.files[0] ?? result.workDir;
+  /** What "show in folder" points at; after an undo that took the main file away, the folder itself. */
+  let shown = target;
+  const openMain = result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null;
   const { id } = result;
   const note = el('div.hint.result-restored', { role: 'status' });
   let back = false;
@@ -341,28 +404,66 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     note.textContent = back ? U.resultRestored : U.resultRestoredBack;
     restore.textContent = back ? U.resultRestoreBack : U.resultRestore;
   });
+  // Done in the user's own folder: what of theirs changed and what is new, and undoing all of it (asked twice, as it
+  // can't be taken back).
+  const lent = result.lent ? el('div.result-lent', {},
+    result.lent.changed.length ? el('div.hint', {}, fill(L.changed, { files: fileList(result.lent.changed) })) : null,
+    result.lent.added.length ? el('div.hint', {}, fill(L.added, { files: fileList(result.lent.added) })) : null) : null;
+  const undo = id && result.canUndo && actions.undo ? el('button.result-undo', { type: 'button' }, L.undo) as HTMLButtonElement : null;
+  undo?.addEventListener('click', async () => {
+    if (!undo.classList.contains('sure')) {
+      undo.classList.add('sure');
+      undo.textContent = L.undoSure;
+      note.textContent = L.undoAsk;
+      return;
+    }
+    undo.disabled = true;
+    const skipped = await actions.undo!(id!);
+    // A link in the folder that now leads out of it: those files are left for the user, and said by name.
+    note.textContent = !skipped ? L.undoFailed : skipped.length ? fill(L.undoPartly, { files: fileList(skipped) }) : L.undone;
+    undo.remove();
+    if (!skipped) return;
+    lent?.remove();
+    // A main file the commission made is gone with the rest: there is nothing to open, only the folder to show.
+    const slash = (p: string) => p.replace(/\\/g, '/');
+    if (result.main && result.lent!.added.some((p) => slash(result.main!).endsWith(`/${p}`))) {
+      openMain?.remove();
+      shown = result.workDir;
+    }
+  });
   const card = el('div.card.paper.result-card', {},
     closeButton(),
     el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${result.round === 1 ? U.resultRoundOne : fill(U.resultRound, { n: String(result.round) })}`) : null),
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
-    !result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop()),
+    // In the user's own folder the lists below name the files instead.
+    lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
+    // A script that deletes or acts without a preview broke the tool template's rules: say so before anyone double-clicks it.
+    ...(result.scripts ?? []).map(({ file, risks }) => el('div.hint.warn.result-script', { role: 'note' },
+      fill(risks.length > 1 ? U.resultScriptBoth : risks[0] === 'deletes' ? U.resultScriptDeletes : U.resultScriptNoPreview, { file }))),
     note,
     result.ok && actions.firstWork ? el('div.hint.result-shelf', {}, U.resultShelf) : null,
     // Changing the work sits apart from opening it: a quieter row on the left.
     result.ok && id && actions.revise ? el('div.actions.result-more', {},
       el('button.result-revise', { onclick: () => actions.revise!(id) }, U.resultRevise),
-      restore) : null,
+      restore, undo) : null,
     actions.report ? el('button.link.result-report', { type: 'button', onclick: actions.report }, U.resultReport) : null,
     el('div.actions', {},
-      el(`button${result.main ? '' : '.default'}`, { onclick: () => actions.open(target, 'reveal') }, U.openFolder),
-      result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null,
+      el(`button${result.main ? '' : '.default'}`, { onclick: () => actions.open(shown, 'reveal') }, U.openFolder),
+      openMain,
     ),
   );
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.
   card.addEventListener('panel-closed', clearWorkSigns);
   replaceOpen(card);
 }
+
+/** How many file names the result card spells out before it just counts the rest. */
+const NAMED_FILES = 5;
+const fileList = (paths: string[]) => {
+  const named = paths.slice(0, NAMED_FILES).join(strings.app.listSeparator);
+  return paths.length > NAMED_FILES ? `${named} ${fill(L.more, { n: String(paths.length - NAMED_FILES) })}` : named;
+};
 
 /** Wipe the blackboard and take the parcels off the counter: the work they belonged to is over. */
 export function clearWorkSigns() {

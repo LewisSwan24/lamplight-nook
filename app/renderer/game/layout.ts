@@ -41,7 +41,7 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
 };
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
-const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, cat: 0 };
+const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, xiaodou: -2, cat: 0 };
 const SLOT_GAP = 12;
 
 /** `chair`: there is a chair here, so the character can sit. */
@@ -67,6 +67,7 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
     adeng: { x: 92, y: 60, facing: 'up' },
     xiaoju: { x: 80, y: 60, facing: 'up' },
     laoshi: { x: 68, y: 60, facing: 'up' },
+    xiaodou: { x: 104, y: 70, facing: 'up' },
   },
   // Between the bookshelf and the left chair. The cat keeps its old place by the window.
   window: {
@@ -75,6 +76,7 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
     adeng: { x: 78, y: 60, facing: 'up' },
     laoshi: { x: 86, y: 60, facing: 'up' },
     qingdai: { x: 92, y: 68, facing: 'up' },
+    xiaodou: { x: 100, y: 60, facing: 'up' },
   },
   // Above the aisle: the study's sofa takes the floor below it.
   shelf: {
@@ -96,6 +98,8 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
     laoshi: { x: 264, y: 84, facing: 'down' },
     qingdai: { x: 276, y: 84, facing: 'left' },
     cat: { x: 226, y: 104, facing: 'right' },
+    // The apprentice's own place: in front of the counter, watching Adeng work and ready to run.
+    xiaodou: { x: 246, y: 106, facing: 'down' },
   },
 };
 
@@ -171,5 +175,6 @@ export const ACTORS: { id: ActorId; name: string; home: AnchorId; height: number
   { id: 'xiaoju', name: A.xiaoju, home: 'shelf', height: 30 },
   { id: 'laoshi', name: A.laoshi, home: 'corner', height: 30 },
   { id: 'qingdai', name: A.qingdai, home: 'board', height: 30 },
+  { id: 'xiaodou', name: A.xiaodou, home: 'counter', height: 30 },
   { id: 'cat', name: A.cat, home: 'window', height: 12 },
 ];

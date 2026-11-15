@@ -23,14 +23,22 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # Also writes latest.yml and the installer's blockmap, which the app's updater reads (package.json build.publish).
       - run: npm run dist
-      # The Store test package (unsigned, test publisher) from the same unpacked app.
+      # The Store package from the same unpacked app, unsigned: the Store signs what it publishes. Its identity comes from
+      # Partner Center's Product identity page through the repository's variables; until they are set it gets the test one.
       - run: npm run msix
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_NAME: ${{ vars.MSIX_PUBLISHER_NAME }}
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
           path: |
             dist/*.exe
+            dist/*.exe.blockmap
+            dist/latest.yml
             dist/*.msix
       - name: Publish release
         shell: bash
@@ -39,4 +47,4 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then tag="$GITHUB_REF_NAME"; else tag="v$(node -p "require('./package.json').version")"; fi
           if [[ -f "release-notes/$tag.md" ]]; then notes=(--notes-file "release-notes/$tag.md"); else notes=(--generate-notes); fi
-          gh release create "$tag" dist/*.exe dist/*.msix --target "$GITHUB_SHA" --title "Lamplight Nook $tag" "${notes[@]}"
+          gh release create "$tag" dist/*.exe dist/*.exe.blockmap dist/latest.yml dist/*.msix --target "$GITHUB_SHA" --title "Lamplight Nook $tag" "${notes[@]}"

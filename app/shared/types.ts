@@ -4,11 +4,12 @@ import type { SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
+import type { TemplateId } from './templates';
 
 /** Scene anchors: characters only move between these points. */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
 
-export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'cat';
+export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'cat';
 /** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
 export type GuestId = 'baker' | 'postman' | 'mechanic' | 'granny' | 'student';
 /** Anyone who can say something in the shop. */
@@ -48,7 +49,13 @@ export type Letter = { about: 'problem' | 'content'; diagnostics?: boolean; titl
 /** "Write to us": whether the mail program opened, the diagnostics file exported for it, or that the user cancelled the save. */
 export type WriteResult = { opened: boolean; file?: string; cancelled?: boolean };
 
-/** Saving a pasted key: `verified` is false when Anthropic could not be reached to check it. */
+/** A new version of the shop, for the postman's letter: its number and what is new in it, line by line ("· " starts a list item). */
+export type UpdateOffer = { version: string; notes: string[] };
+
+/** The Store build's first open, when the installer build on the same computer has a shop: how many works it holds and what its ledger adds up to (road-to-1.1.md A2). */
+export type MoveOffer = { works: number; spentUsd: number };
+
+/** Saving a pasted key:`verified` is false when Anthropic could not be reached to check it. */
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
 /**
@@ -56,7 +63,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -107,7 +114,9 @@ export interface LamplightApi {
   spendMonths(): Promise<{ month: string; usd: number; commissions: number }[]>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
-  chooseSource(kind: 'edit' | 'tidy'): Promise<SourcePick | null>;
+  chooseSource(template: CommissionTemplate): Promise<SourcePick | null>;
+  /** Pick a folder of the user's own for the shop to work in; null if cancelled, an error if it can't be lent. */
+  chooseLent(): Promise<SourcePick | null>;
   /** Files dragged onto the counter or the form (paths from pathsOf), or picked in a dialog when none are given. */
   handOver(paths: string[] | null, already: Material[]): Promise<HandOver>;
   /** The paths of files dropped on the page (the preload reads them; the page can't). */
@@ -133,12 +142,16 @@ export interface LamplightApi {
   addNote(text: string): Promise<boolean>;
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
-  /** The notebook could not be read when the shop opened: whether the last copy took its place. */
   /** What could not be read when the shop opened. Asking takes it: it is said once. */
   dataDamage(): Promise<DataDamage>;
-  /** Forget everything in the notebook. */
+  /** The Store build's first open: the installer build's shop to bring over, or null. Asking takes it: it is offered once a start. */
+  moveInOffer(): Promise<MoveOffer | null>;
+  /** The answer to that. Yes copies it over (the original stays where it is); false when the copy failed. */
+  moveIn(yes: boolean): Promise<boolean>;
   /** False, with nothing changed, while a commission runs. */
   clearMemory(): Promise<boolean>;
+  /** Forget how the rounds went (the ledger page), keeping every work. */
+  clearStats(): Promise<void>;
   /** Open the folder of a commission in the notebook; false if it is gone. */
   openCommissionFolder(id: string): Promise<boolean>;
   /** The shop's days and the works shelf. */
@@ -154,6 +167,13 @@ export interface LamplightApi {
   reviseCommission(req: ReviseRequest): Promise<RunResult>;
   /** Put back the work as it was before the last round of changes; false if there is no such copy. */
   restorePrevious(id: string): Promise<boolean>;
+  /**
+   * Undo a commission done in the user's own folder: their files back as they were, the new ones gone. Resolves with
+   * what could not be put back because a link leads out of the folder (empty when all went back); null if nothing to undo.
+   */
+  undoWork(id: string): Promise<string[] | null>;
+  /** Save a finished work as a file where the user picks: its files in a zip, or its page as a PDF. Nothing is sent anywhere. */
+  exportWork(id: string, as: 'zip' | 'pdf'): Promise<ExportResult>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -164,17 +184,22 @@ export interface LamplightApi {
   showShop(): Promise<void>;
   /** Move the shop to another scene: saves it and reloads the page; false while a commission runs. */
   moveScene(scene: SceneId): Promise<boolean>;
+  /** A new version is out (road-to-1.1.md A1): the postman brings the letter. */
+  onUpdate(cb: (offer: UpdateOffer) => void): () => void;
+  /** The user said "update": fetch it, to go in when the shop closes. False if it could not be fetched. */
+  downloadUpdate(): Promise<boolean>;
 }
 
-/** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares. */
-export type CommissionTemplate = 'page' | 'research' | 'edit' | 'tidy' | 'letter' | 'sheet' | 'plan' | 'album';
+/** Ready-made kinds of commission on the form; each shapes the prompt and what the shop prepares (shared/templates.ts). */
+export type CommissionTemplate = TemplateId;
 
 /**
  * The commission form: what the user wants, any particulars, who it's for.
  * source: the file to edit or the folder to tidy, as picked in the main process's dialog.
  * materials: files the user handed over (dropped or picked); copies go into the commission folder.
+ * inPlace: a folder of the user's own to work in instead of a new one (road-to-1.1.md A6), picked in the main process's dialog.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[] };
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string };
 
 /** A file handed over with a commission. */
 export type Material = { path: string; name: string; size: number };
@@ -182,7 +207,7 @@ export type Material = { path: string; name: string; size: number };
 export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
-export type SourcePick = { path: string; name: string } | { error: 'too-big' };
+export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
@@ -200,7 +225,17 @@ export type CommissionResult = {
   round?: number;
   /** The work as it was before this round is kept and can be put back. */
   canRestore?: boolean;
+  /** Done in the user's own folder: which of their files it changed and which it made (paths inside the folder). */
+  lent?: { changed: string[]; added: string[] };
+  /** The whole commission in the user's own folder can be undone. */
+  canUndo?: boolean;
+  /** Scripts it made that delete files or skip the preview: worth reading before a double click. */
+  scripts?: ScriptCheck[];
 };
+
+/** Why a script the shop made needs a look: it deletes files, or it changes them without a preview first. */
+export type ScriptRisk = 'deletes' | 'noPreview';
+export type ScriptCheck = { file: string; risks: ScriptRisk[] };
 
 /** Asking for changes to finished work: the notebook entry (the last commission when absent) and what to change. */
 export type ReviseRequest = { id?: string; ask: string };
@@ -257,6 +292,9 @@ export const IPC = {
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
+  chooseLent: 'commission:choose-lent',
+  undoWork: 'commission:undo',
+  exportWork: 'shop:export-work',
   handOver: 'commission:hand-over',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
@@ -275,6 +313,7 @@ export const IPC = {
   dataDamage: 'data:damage',
   addNote: 'commission:add-note',
   clearMemory: 'memory:clear',
+  clearStats: 'memory:clear-stats',
   openCommissionFolder: 'memory:open-folder',
   reviseCommission: 'commission:revise',
   shopState: 'shop:state',
@@ -283,6 +322,10 @@ export const IPC = {
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
   restorePrevious: 'commission:restore-previous',
+  updateOffer: 'update:offer',
+  downloadUpdate: 'update:download',
+  moveInOffer: 'data:move-in-offer',
+  moveIn: 'data:move-in',
 } as const;
 
 // -- Translation layer --
@@ -365,6 +408,27 @@ export type CommissionMemo = {
   asks?: { ask: string; date: string }[];
   /** The main thing made, by name inside the folder (opened from the works shelf). */
   main?: string;
+  /** How each round went, oldest first; kept on this computer only. Absent on works from before 1.1. */
+  rounds?: RoundStat[];
+  /**
+   * In a folder the user lent (A6): the files this commission changed or made there, by path inside it with "/".
+   * Only these go in its zip (A8); the rest of the folder is the user's.
+   */
+  touched?: string[];
+};
+
+/** One round of a commission, for the notebook's ledger page. Never leaves the computer. */
+export type RoundStat = {
+  /** YYYY-MM-DD */
+  date: string;
+  seconds: number;
+  /** Why the round did not finish; absent when it did. */
+  failure?: string;
+  /** Errands sent out, by helper. */
+  helpers: Partial<Record<AiEvent['agent'], number>>;
+  /** Errands that waited for a busy helper, and how long they waited in all. */
+  waits: number;
+  waitedSeconds: number;
 };
 
 /** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
@@ -377,7 +441,15 @@ export type ShopDays = {
 };
 
 /** A finished piece of work on the works shelf. */
-export type Work = { id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean; want?: string };
+export type Work = {
+  id: string; title: string; date: string; icon: WorkIcon; rounds: number; hasMain: boolean;
+  /** Its main file is a web page, so it can also be taken away as a PDF. */
+  page: boolean;
+  want?: string;
+};
+
+/** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */
+export type ExportResult = 'saved' | 'cancelled' | 'gone' | 'empty';
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
 export type ShopState = ShopDays & { works: Work[] };

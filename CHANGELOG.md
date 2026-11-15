@@ -1,5 +1,46 @@
 # Changelog
 
+## Unreleased (1.1)
+
+- **Moving to the Microsoft Store version.** The Store version keeps its data in a folder of its own, because Windows
+  would otherwise split a shared one between the real folder and the package's private copy. The first time it opens on
+  a computer where the installed version has a shop, Wick asks whether to bring it over: the works, the notebook and the
+  ledger are copied and the original is left as it was. The API key has to be pasted again.
+- **An apprentice joins the shop.** With the tenth commission Bean walks in at the front door and starts at the counter.
+  When Clem is already out and a second errand comes up, Bean runs it instead of it waiting; a third still waits for
+  whoever is back first. Bean has their own lines, a story, and a word from the neighbours. No extra helper is started and
+  nothing extra is spent.
+- **The shop keeps growing after fifty.** Eight more pieces come between the 55th and the 100th commission, among them
+  a tank of goldfish at 60, a gramophone at 75 and a carved sign at 100. Once the beds out back are full they follow the
+  seasons: young plants in spring, a harvest in autumn, straw in winter. A vase on the big table changes with the season,
+  the Lantern, Dragon Boat and Mid-Autumn festivals get their own decorations, and past the twentieth commission the
+  neighbours have something new to say every season.
+- **The shop knows when there's a new version.** It looks when it opens and every six hours after, and the postman
+  brings a letter with the version number and what's new. Nothing downloads until you press Update, and the new version
+  goes in when you close the shop, never in the middle of a commission, after a copy of your data is put aside. A switch
+  in settings stops the looking; the Store version is kept up to date by the Store.
+- **The shop can work in a folder you already have.** Pick it on the slip and agree once; the staff then change your
+  files without asking about each one, after keeping a copy of each as it was. "Undo this commission" on the result card
+  puts your files back byte for byte and takes away what was new. Deleting, running commands, and changing settings
+  folders, scripts or `package.json` still ask, and a folder over 100 MB is turned down before anything starts.
+- **Take a work away from the shelf.** "Take it away" saves a work as a zip wherever you choose, and a web page can go
+  as a PDF instead. A work done in your own folder takes only the files it changed or made. Nothing is uploaded: you get
+  the file and pass it on yourself.
+- **Four new kinds of commission:** a résumé, reading notes, a travel guide and a small tool. A résumé never invents
+  experience, reading notes quote only what you hand over, and a travel guide says where each opening time and price
+  came from.
+- **A script the shop made is checked before you run it.** If a small tool comes as a script that deletes files, or
+  changes them without listing what it will do first, the result card says so and names the file.
+- **The notebook keeps a ledger of the month.** How many commissions and rounds, how long a round takes, why some
+  didn't finish, and how often an errand waited for a busy helper. It stays on this computer, and can be cleared on its own.
+- **The Claude Code version check works in the installed app.** A Claude Code that is a script used to open a second shop
+  instead of saying its version.
+- **The shop's birthday is no longer missed.** Closing the shop in the first few seconds of its birthday used to count
+  the line as said, and a shop left open across midnight never noticed the day. It now counts once someone says it, and
+  checks again when the day changes.
+- **The card about records that can't be read names the limit in force.** It used to give the one read at startup, even
+  if the limit was changed while the card waited its turn.
+
 ## 1.0.0 (2026-11-05)
 
 The running card and the road to 1.0.

@@ -1,5 +1,7 @@
 import { fill, strings } from '../../shared/i18n';
 import { shopTimeline } from '../../shared/days';
+import { localMonth } from '../../shared/localday';
+import { monthStats } from '../../shared/stats';
 import { formatUsd } from '../../shared/money';
 import type { DataDamage, LamplightApi, Memory } from '../../shared/types';
 import { el } from './dom';
@@ -10,7 +12,34 @@ const N = strings.ui.notebook;
 /** Past commissions drawn at a time; the shop keeps every one of them. */
 const NOTEBOOK_PAGE = 20;
 
-function pages(api: LamplightApi, memory: Memory, revise?: (id: string, title: string) => void): HTMLElement[] {
+const duration = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = String(seconds % 60);
+  return m ? fill(N.ledgerMinutes, { m: String(m), s }) : fill(N.ledgerSeconds, { s });
+};
+
+/** This month at a glance, from what each round left behind; kept on this computer only, and clearable on its own. */
+function ledger(api: LamplightApi, memory: Memory, spent: number): HTMLElement | null {
+  const s = monthStats(memory, localMonth(new Date()));
+  if (!s.since) return null;
+  const kinds = N.ledgerKind as Record<string, string>;
+  const lines = s.rounds ? [
+    fill(N.ledgerWorks, { works: String(s.works), rounds: String(s.rounds), time: duration(s.averageSeconds) }),
+    spent ? fill(N.ledgerSpent, { cost: formatUsd(spent) }) : null,
+    s.failures.length ? fill(N.ledgerFailures, { list: s.failures.map((f) => fill(kinds[f.kind] ?? kinds.failed, { n: String(f.n) })).join(N.ledgerJoin) }) : null,
+    s.waits ? fill(N.ledgerWaits, { n: String(s.waits), time: duration(s.waitedSeconds) }) : null,
+  ] : [N.ledgerNone];
+  const section = el('section.notebook-ledger', {}, el('h4', {}, N.ledgerTitle),
+    ...lines.filter((l): l is string => Boolean(l)).map((l) => el('div', {}, l)),
+    el('div.notebook-choice', {}, fill(N.ledgerSince, { date: s.since })),
+    el('button.link.notebook-ledger-clear', { type: 'button', onclick: async () => {
+      await api.clearStats();
+      section.replaceChildren(el('h4', {}, N.ledgerTitle), el('div', {}, N.ledgerCleared));
+    } }, N.ledgerClear));
+  return section;
+}
+
+function pages(api: LamplightApi, memory: Memory, spent: number, revise?: (id: string, title: string) => void): HTMLElement[] {
   if (!memory.commissions.length && !memory.stuckNotes.length) return [el('div.notebook-empty', {}, N.empty)];
   const newest = [...memory.commissions].reverse();
   const entry = (c: Memory['commissions'][number]) =>
@@ -46,6 +75,7 @@ function pages(api: LamplightApi, memory: Memory, revise?: (id: string, title: s
     el('div', {}, fill(N.doneCount, { n: String(shop.done) })),
     el('ul', {}, ...shopTimeline(memory).map((d) => el('li', {}, el('span.notebook-date', {}, d.date), ' ', d.text)))) : null;
   return [
+    ledger(api, memory, spent),
     days,
     newest.length ? el('section', {}, el('h4', {}, N.commissions), commissions) : null,
     stuck.length ? el('section', {}, el('h4', {}, N.stuck), el('ul', {}, ...stuck)) : null,
@@ -80,8 +110,8 @@ export function onNotebookForget(fn: () => void) {
 
 /** Adeng's notebook: everything the shop remembers, and a way to forget it all (asked twice). */
 export async function showNotebook(api: LamplightApi) {
-  const memory = await api.getMemory();
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(api, memory, reviseOld));
+  const [memory, spent] = await Promise.all([api.getMemory(), api.spendThisMonth()]);
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(api, memory, spent, reviseOld));
   const actions = el('div.actions');
   const ask = () => {
     actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));
