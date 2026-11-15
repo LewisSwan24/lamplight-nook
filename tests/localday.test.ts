@@ -32,7 +32,7 @@ describe('the day on the wall, not the day in Greenwich', () => {
     store.markMet('baker', MORNING);
     expect(store.get().shop?.met).toEqual([{ id: 'baker', date: '2026-11-01' }]);
     const work = { id: `c${MORNING.getTime()}`, title: 'A', date: '2026-10-31', result: 'done', choices: {}, form: { want: 'x' } } as CommissionMemo;
-    const days = shopTimeline({ commissions: [work], stuckNotes: [], shop: { done: 1, grown: [], told: [] } });
+    const days = shopTimeline({ commissions: [work], stuckNotes: [], projects: [], shop: { done: 1, grown: [], told: [] } });
     expect(days[0].date).toBe('2026-11-01');
   });
 

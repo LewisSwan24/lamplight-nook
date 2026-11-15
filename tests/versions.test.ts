@@ -55,5 +55,12 @@ describe('previous versions', () => {
   it('refuses ids that are not notebook ids', () => {
     const { store, work, keep } = setup();
     expect(() => store.save('../x', work, keep)).toThrow();
+    expect(() => store.save('p../1', work, keep)).toThrow();
+  });
+
+  it('keeps versions under a project number as well as a commission number', () => {
+    const { store, work, keep } = setup();
+    store.save('p123', work, keep);
+    expect(store.has('p123')).toBe(true);
   });
 });

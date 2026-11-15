@@ -65,8 +65,8 @@ export class VersionStore {
   constructor(private root: string) {}
 
   private dir(id: string) {
-    // Ids come from the notebook (c<timestamp>); anything else is refused rather than used in a path.
-    if (!/^c\d+$/.test(id)) throw new Error(`bad commission id: ${id}`);
+    // Ids come from the notebook (c<timestamp>, or p<timestamp> for a project); anything else is refused rather than used in a path.
+    if (!/^[cp]\d+$/.test(id)) throw new Error(`bad commission id: ${id}`);
     return join(this.root, id);
   }
 

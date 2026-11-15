@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased (1.2)
+
+- **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in
+  full however long it runs, where a work used to keep only its last ten changes. Upgrading turns each work you already
+  have into a project of its own, after a copy of your data is put aside, and the works shelf looks just as it did. If
+  an older version of the shop is opened in between and saves the notebook, the projects are put back the next time this
+  one opens.
+
 ## Unreleased (1.1)
 
 - **Moving to the Microsoft Store version.** The Store version keeps its data in a folder of its own, because Windows
