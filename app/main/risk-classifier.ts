@@ -10,6 +10,15 @@ import { isInside, reallyInside } from './paths';
  */
 export type RiskVerdict = { risk: Risk; reason: string; keep?: string };
 
+/** A tool of the shop's own or of a connection, as the cards and the rules need it (road-to-1.3.md C4, C6). */
+export type NookEntry = { name?: string; kind: ToolKind; label: (input: unknown) => string; undoHow?: string; connection?: { id: string; label: string } };
+
+/**
+ * What a round with connections keeps an eye on (C6): whether the user paused every connection, which connection it has
+ * read from (its name), and where a declined step is written down.
+ */
+export type RoundWatch = { paused: () => boolean; readFrom?: string; refused: (t: NookEntry, input: unknown) => void };
+
 export type RiskContext = {
   workDir: string;
   /** Files (absolute paths) that existed before the commission started. Overwriting or deleting them is serious. */
@@ -21,13 +30,15 @@ export type RiskContext = {
    */
   keepOriginal?: (file: string) => void;
   /** The shop's own tools and the ticked connections of this round, by full name (mcp__nook-*, road-to-1.3.md C4). */
-  nook?: Map<string, { kind: ToolKind; label: (input: unknown) => string }>;
+  nook?: Map<string, NookEntry>;
+  /** The round's connections being watched (C6); none when no connection was ticked. */
+  round?: RoundWatch;
 };
 
 /**
  * A nook tool goes by the kind it declared: reading, and making new files in the commission folder, go ahead (the tick on
  * the slip, or the tool being the shop's own, is the agreement); changing anything outside asks every time, defaulting to
- * no, and so does anything that cannot be undone. C6 adds the rules on top of these.
+ * no, and so does anything that cannot be undone: these are fixed here, never a setting (C6).
  */
 const NOOK_RISK: Record<ToolKind, Risk> = { read: 'safe', make: 'safe', outside: 'serious', final: 'serious' };
 
@@ -318,7 +329,12 @@ function pathVerdict(ctx: RiskContext, p: string, writing: boolean): RiskVerdict
 export function classify(tool: string, input: Record<string, unknown>, ctx: RiskContext): RiskVerdict {
   if (ASK_TOOLS.has(tool)) return { risk: 'ask', reason: R.ask };
   if (DELEGATE_TOOLS.has(tool)) return { risk: 'safe', reason: R.delegate };
-  if (WEB_READ_TOOLS.has(tool)) return { risk: 'safe', reason: R.webRead };
+  if (WEB_READ_TOOLS.has(tool)) {
+    // Once the round has read something private through a connection, a web request could carry it off (C6), as with a
+    // file read from outside the folder: the user is asked first.
+    const label = ctx.round?.readFrom;
+    return label ? { risk: 'ask', reason: fill(R.webAfterConnection, { label }) } : { risk: 'safe', reason: R.webRead };
+  }
 
   if (READ_ONLY_TOOLS.has(tool)) {
     // Claude Code asks only for reads outside its folder. Anything read there could be sent on by a later
@@ -376,6 +392,7 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
   }
 
   const nook = ctx.nook?.get(tool);
+  if (nook?.connection && ctx.round?.paused()) return { risk: 'blocked', reason: R.connectionsPaused };
   if (nook) return { risk: NOOK_RISK[nook.kind], reason: R.nook[nook.kind] };
 
   // Any other tool (including MCP tools) is serious by default.

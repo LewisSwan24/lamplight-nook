@@ -212,7 +212,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     const linkRow = el('div.connection-row', { hidden: true });
     void api.connections().then((view) => {
       const usable = view.list.filter((c) => !c.paused);
-      if (!usable.length) return;
+      // None while the user has paused them all in settings (C6).
+      if (!usable.length || view.allPaused) return;
       linkRow.replaceChildren(el('span.material-label', {}, strings.ui.connections.slipLine), ...usable.map((c) => {
         const box = el('input', { type: 'checkbox', value: c.id }) as HTMLInputElement;
         box.addEventListener('change', () => { if (box.checked) ticked.add(c.id); else ticked.delete(c.id); });

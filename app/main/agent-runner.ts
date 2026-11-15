@@ -21,6 +21,7 @@ import { locateClaude } from './claude-locator';
 import { InputQueue } from './input-queue';
 import { agentEnv, type Credentials } from './api-key';
 import { estimateUsd, type Usage } from './prices';
+import type { RoundActions } from './action-log';
 import { mcpServersOf, toolsByName, type NookServer } from './nook-tools';
 
 /** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
@@ -119,9 +120,10 @@ export type RunOptions = {
   maxBudgetUsd?: number;
   /**
    * The shop's own tools and the connections ticked on the slip (road-to-1.3.md C4), run in this process as `sdk` MCP
-   * servers; the round's id and project go to each call. Nothing else is ever an MCP server.
+   * servers; the round's id and project go to each call. Nothing else is ever an MCP server. `actions` watches the
+   * connections' calls (C6): each written down, refused while paused, and web tools asking once one has been read from.
    */
-  nook?: { servers: NookServer[]; run: string; project?: string };
+  nook?: { servers: NookServer[]; run: string; project?: string; actions?: RoundActions };
 };
 
 /** After a result, how long the session stays open in case the agent picks up a note sent just before. */
@@ -189,9 +191,9 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   const interim = interimPermission(workDir);
   const servers = nook?.servers ?? [];
   const nookTools = toolsByName(servers);
-  const mcpServers = mcpServersOf(servers, { run: nook?.run ?? '', project: nook?.project, workDir, signal: abort?.signal ?? new AbortController().signal });
+  const mcpServers = mcpServersOf(servers, { run: nook?.run ?? '', project: nook?.project, workDir, signal: abort?.signal ?? new AbortController().signal }, nook?.actions);
   const canUseTool: CanUseTool = broker
-    ? makePermissionPolicy({ workDir, preexisting, keepOriginal, nook: nookTools }, broker, {
+    ? makePermissionPolicy({ workDir, preexisting, keepOriginal, nook: nookTools, round: nook?.actions }, broker, {
         onRequest: (tool, input, risk, reason, agentId) =>
           record({ source: 'permission', name: tool, payload: { input, risk, reason, agent_id: agentId } }),
         onDecision: (tool, choice, risk, label, agentId) =>
@@ -200,7 +202,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     : async (toolName, input, opts) => {
         const result = await interim(toolName, input, opts);
         // Debug tasks record the risk level without asking the user.
-        const { risk, reason } = classify(toolName, input, { workDir, nook: nookTools });
+        const { risk, reason } = classify(toolName, input, { workDir, nook: nookTools, round: nook?.actions });
         record({ source: 'permission', name: toolName, payload: { input, result, risk, reason, agent_id: opts.agentID } });
         return result;
       };

@@ -63,7 +63,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -154,6 +154,10 @@ export interface LamplightApi {
   pauseConnection(id: string, on: boolean): Promise<boolean>;
   /** Disconnect: its secret and its settings are gone. */
   removeConnection(id: string): Promise<boolean>;
+  /** The record of outside actions (road-to-1.3.md C6), oldest first. */
+  actions(): Promise<ActionRecord[]>;
+  /** Undo an outside action from its record: false when it cannot be (already undone, or not the shop's to remove). */
+  undoAction(id: string): Promise<boolean>;
   /** Set the most a project may cost (one of PROJECT_CAP_CHOICES; 0 for none); false for a project or amount there isn't. */
   setProjectCap(id: string, usd: number): Promise<boolean>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
@@ -309,7 +313,25 @@ export type Grant = {
 /** A kind of connection the shop can make now, with its card. */
 export type ConnectionOffer = { kind: ConnectionKind; label: string; grant: Grant };
 /** The connections page: the ones made, each with its card, and the kinds that can be added. */
-export type ConnectionsView = { list: (Connection & { grant: Grant })[]; offers: ConnectionOffer[] };
+export type ConnectionsView = { list: (Connection & { grant: Grant })[]; offers: ConnectionOffer[]; /** Every connection paused in settings (C6). */ allPaused?: boolean };
+/**
+ * One line of actions.jsonl (road-to-1.3.md C6): one call of a connection's tool, what was done and never what was read or
+ * written. `decision`: given is a read the tick on the slip agreed to; allowed and denied are the user's answer on the card.
+ * `undo`: an outside action's way back, and when it was taken. `undid`: this line is the undo of that one.
+ */
+export type ActionRecord = {
+  id: string;
+  t: string;
+  run: string; project?: string;
+  connection: string;
+  tool: string;
+  kind: ToolKind;
+  said: string;
+  decision: 'given' | 'allowed' | 'denied';
+  ok: boolean; error?: string;
+  undo?: { how: string; path?: string; done?: string };
+  undid?: string;
+};
 
 /** One line of a talk with Adeng before a commission (road-to-1.2.md B4). */
 export type ConsultLine = { who: 'you' | 'adeng'; text: string };
@@ -382,6 +404,8 @@ export type DecisionRequest = {
   reason?: string;
   /** Full command or path, shown collapsed. */
   detail?: string;
+  /** How the step can be undone, or that it cannot (C6), on the serious card. */
+  undo?: string;
   options: DecisionOption[];
   /** Option focused by default (and chosen by Esc on the serious card). */
   defaultId: string;
@@ -422,6 +446,8 @@ export const IPC = {
   addConnection: 'connections:add',
   pauseConnection: 'connections:pause',
   removeConnection: 'connections:remove',
+  actions: 'actions:list',
+  undoAction: 'actions:undo',
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',

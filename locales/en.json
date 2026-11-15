@@ -111,6 +111,8 @@
     "npx": "downloads and runs a package",
     "install": "installs packages",
     "readOutside": "reads something outside the commission folder",
+    "webAfterConnection": "This commission has read from \"{label}\", so it asks you before going online",
+    "connectionsPaused": "All connections are paused in settings",
     "safeCommand": "runs a read-only command in the commission folder",
     "unknownCommand": "wants to run \"{name}\" and I can't be sure what it does",
     "unknownTool": "wants to use a tool I don't know, \"{tool}\"",
@@ -732,10 +734,17 @@
       "notNow": "Not now",
       "storage": "This computer can't lock its key away safely, so it was not connected.",
       "slipLine": "This one may use:",
+      "recent": "Recent",
+      "allPaused": "All connections are paused in settings, so the slip does not list them for now.",
+      "settingsLabel": "Connections",
+      "pauseAll": "Pause all connections",
+      "pauseAllHint": "While on, the slip lists no connections, and a commission under way is refused the next time it uses one.",
       "kinds": {
         "test": {
           "label": "Test connection",
           "readNote": "read the note in the test connection",
+          "saveNote": "save a note in the test folder",
+          "saveNoteUndo": "Yes. Press Undo on the Outside actions page of the notebook, and the saved note is deleted.",
           "grant": {
             "reads": [
               "a test note that comes with the development build"
@@ -743,6 +752,10 @@
             "does": [
               {
                 "what": "show the note to the staff",
+                "undo": "yes"
+              },
+              {
+                "what": "save a note in the test folder, asking you every time",
                 "undo": "yes"
               }
             ],
@@ -754,6 +767,24 @@
           }
         }
       }
+    },
+    "actions": {
+      "title": "Outside actions",
+      "intro": "Everything the staff did through a connection: what it was, whether you agreed, and whether it worked. What was read or written is not kept.",
+      "none": "No outside actions yet.",
+      "filter": "Show",
+      "all": "All connections",
+      "gone": "A connection since removed",
+      "given": "agreed by the tick on the slip",
+      "allowed": "you allowed it",
+      "denied": "not allowed",
+      "paused": "connections were paused; not done",
+      "failed": "didn't work",
+      "undo": "Undo",
+      "undone": "Undone ({time})",
+      "undoSaid": "Undo: {said}",
+      "undoFailed": "It can't be undone now; what it made may already be gone.",
+      "more": "Earlier"
     },
     "notebook": {
       "ledgerTitle": "The shop's ledger",
