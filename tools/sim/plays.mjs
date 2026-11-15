@@ -255,6 +255,18 @@ async function twist(s, t, scenario) {
       s.fail('API Error: Connection error. fetch failed (ECONNRESET)');
     });
   }
+  // The computer goes to sleep mid-commission (road-to-1.2.md B7): the scenario says so with a file, and the connection the
+  // run was using dies with it. Carried on (--resume) after waking, it gets through.
+  if (scenario === 'sleepwake' && !s.state.vars.netDone) {
+    await s.step(async () => {
+      while (!existsSync(process.env.SIM_NET_DOWN)) await s.pause(0.2);
+      s.state.vars.netDone = true;
+      await s.say(t.netRetry);
+      s.fail('API Error: Connection error. fetch failed (ECONNRESET)');
+    });
+  }
+  // Held halfway while a file is there, so a scenario can shut the computer down with the round surely under way (B7).
+  if (scenario === 'hold') await s.step(async () => { while (existsSync(process.env.SIM_HOLD)) await s.pause(0.2); });
   // Three errands at once, each out a little longer than the one before (road-to-1.1.md A5): Xiaoju takes the first,
   // the apprentice the second, and the third waits for whoever is back first.
   if (scenario === 'errands') {

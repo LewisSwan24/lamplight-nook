@@ -39,11 +39,13 @@ export function nextTime(every: ScheduleEvery, after: Date): Date | null {
 
 /**
  * What a schedule does now: `run` once if it is due (the latest due time no more than MISSED_RUN_HOURS ago), the due
- * times it `missed` and skips, and when it is due `next` (null when a one-off is used up).
+ * times it `missed` and skips, and when it is due `next` (null when a one-off is used up). `held`: a round of it was
+ * interrupted and waits to be carried on (B7), so it does not run again and nothing counts as missed.
  */
-export function due(s: Schedule, now: Date): { run: boolean; missed: string[]; next: string | null } {
+export function due(s: Schedule, now: Date, held = false): { run: boolean; missed: string[]; next: string | null } {
   const first = new Date(s.next);
   if (!s.enabled || first > now) return { run: false, missed: [], next: s.next };
+  if (held) return { run: false, missed: [], next: nextTime(s.every, now)?.toISOString() ?? null };
   const times = [first];
   for (let t = nextTime(s.every, first); t && t <= now; t = nextTime(s.every, t)) times.push(t);
   const latest = times.at(-1)!;

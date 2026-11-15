@@ -23,6 +23,7 @@ export function mainCards(lang) {
     ['captions', '.caption-card', `${ui}.showCaptionLog()`],
     ['legal', '.card.legal', `${ui}.showLegal('terms')`],
     ['pending', '.pending-card', `${ui}.showPending({ want: ${text(long)} })`],
+    ['interrupted', '.interrupted-card', `${ui}.showInterrupted(${text([long, long])})`],
     ['update-letter', '.update-letter', `${ui}.showUpdateLetter({ version: '1.1.1', notes: ${text([long, ...Array.from({ length: 10 }, () => `\u00B7 ${long} ${long}`)])} })`],
     ['decision', '.dialog', `${ui}.showDecision({ id: 'q', kind: 'question', agent: 'main', tool: 'AskUserQuestion', title: ${text(long)}, defaultId: '0', options: [0, 1].map((i) => ({ id: String(i), label: ${text(long)}, hint: ${text(long)} })) })`],
     ['serious', '.serious', `${ui}.showDecision({ id: 's', kind: 'serious', agent: 'main', tool: 'Bash', title: ${text(long)}, reason: ${text(long)}, detail: ${text(long)}, defaultId: 'deny', options: [{ id: 'deny', label: 'no' }, { id: 'allow', label: 'yes' }] })`],

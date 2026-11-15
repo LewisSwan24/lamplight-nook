@@ -4,11 +4,11 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync,
 import { arch, homedir, release, tmpdir } from 'node:os';
 import { basename, dirname, extname, isAbsolute, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, powerMonitor, safeStorage, session, shell } from 'electron';
+import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, powerMonitor, powerSaveBlocker, safeStorage, session, shell } from 'electron';
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -23,6 +23,7 @@ import { claudeVersion } from './claude-version';
 import { feedbackMail, mailtoUrl, osName } from './feedback';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
+import { NETWORK_WAIT_MS, Sleep, resumeOnWake } from './resume';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
 import { diagnosticsEntries } from './diagnostics';
@@ -72,7 +73,9 @@ const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.clo
  * The rounds under way (road-to-1.2.md B5), by run id, two at most: each with its own way to stop it, its clock, where it got
  * stuck and what the user answered, and the meeting note it takes.
  */
-type Run = { id: string; job: Job; project: RunProject; abort: AbortController; started: number; stuck: StuckTracker; choices: Record<string, string>; note?: (text: string) => boolean };
+type Run = { id: string; job: Job; project: RunProject; abort: AbortController; started: number; stuck: StuckTracker; choices: Record<string, string>; note?: (text: string) => boolean;
+  /** What the stretch since Claude Code last reported would cost (B7), and whether that is in the ledger already. */
+  unreported?: () => number; counted?: boolean };
 const runs = new Map<string, Run>();
 /** Rounds waiting their turn: what starts one once it may, with what it may spend held, and how its caller hears it was called off. */
 type Waiting = Ticket & { title: string; grant?: Grant; go: (grant: Grant) => void; drop: () => void };
@@ -106,13 +109,18 @@ let versions: VersionStore;
 let projectVersions: ProjectVersions;
 let keys: KeyStore;
 let spend: SpendLedger;
-/** Rounds that failed, by run id, each offered as "try again"; and those left over from a crash, offered one at a time. */
-const failed = new Map<string, Job>();
 /** What the rounds under way may still spend (road-to-1.2.md B8). */
 const reservations = new Reservations();
-let leftovers: Job[] = [];
 /** Set once the user chose to stop and close, so the close prompt doesn't come back. */
 let quitting = false;
+/** Windows is shutting down or signing out (road-to-1.2.md B7): the rounds under way are interrupted, nothing new starts. */
+let ending = false;
+/** When the computer last slept and woke (B7). */
+const sleep = new Sleep();
+/** Rounds that failed for the network around a sleep: carried on by themselves once the network is back (B7). */
+const toWake = new Set<string>();
+/** Keeps the computer from sleeping by itself while a round runs (B7); closing the lid still puts it to sleep. */
+let awake: number | undefined;
 /** Set when the user quits from the tray, so closing doesn't just hide the window. */
 let leaving = false;
 
@@ -181,6 +189,9 @@ function createWindow() {
   win.on('minimize', updateMini);
   win.on('restore', updateMini);
   win.on('closed', () => mini.destroy());
+  // Windows asks before shutting down or signing out, then says it is happening: either way no question card (B7).
+  win.on('query-session-end', () => endSession('query'));
+  win.on('session-end', () => endSession('end'));
   win.webContents.on('render-process-gone', (_e, details) => log?.error('renderer gone', details));
   win.webContents.on('console-message', (e) => {
     // Electron passes the details on the event; only errors are worth keeping.
@@ -492,17 +503,20 @@ function refused(project: Project | undefined, workDir: string): RunResult | nul
  * it may spend already held; once it ends that is let go and the queue moves on. Called off while it waits, its caller
  * hears so and nothing was spent.
  */
-function queued(folder: string | undefined, project: Project | undefined, title: string, start: (run: string, grant: Grant) => Promise<RunResult>, by: Ticket['by'] = 'user'): Promise<RunResult> {
-  const id = runId(Date.now());
+function queued(folder: string | undefined, project: Project | undefined, title: string, start: (run: string, grant: Grant) => Promise<RunResult>, by: Ticket['by'] = 'user', id = runId(Date.now())): Promise<RunResult> {
   return new Promise((resolve) => {
     queue.add({
       id, folder, project: project?.id, by, title,
       go: (grant) => void start(id, grant).then((r) => {
         reservations.settle(id);
-        resolve(r);
+        // One that failed for the network around a sleep holds no place while it waits to be carried on (B5 rule 4).
+        void afterWake(r).then(resolve);
         pump();
       }),
-      drop: () => resolve({ run: id, ok: false, recordingPath: '', workDir: folder ?? '', error: 'cancelled' }),
+      drop: () => {
+        pending.clear(id);
+        resolve({ run: id, ok: false, recordingPath: '', workDir: folder ?? '', error: 'cancelled' });
+      },
     });
     pump();
     if (queue.queued.some((t) => t.id === id)) log?.info('run queued', { waits: queue.queued.find((t) => t.id === id)!.waits });
@@ -510,6 +524,7 @@ function queued(folder: string | undefined, project: Project | undefined, title:
 }
 /** Start what may start: two at most, one per project, first come first served, and only with the money for it held. */
 function pump() {
+  if (ending) return;
   const active = [...runs.values()].map((r) => ({ id: r.id, folder: r.job.workDir, project: r.project.id }));
   const projects = memory.get().projects;
   const starting = queue.take(active, overlaps, (t) => {
@@ -543,17 +558,80 @@ function sendRuns() {
   send(IPC.runs, list);
   tray.setRuns(list, settings.get().schedulesPaused);
 }
-/** Carry on a round that stopped (try again, or one left over from a crash): asked of the caps first, then queued. */
+/**
+ * Carry on a round that stopped (try again, left over from a crash, interrupted, or after waking): asked of the caps first,
+ * then queued, under a run id of its own. It always continues the same session when there is one (B7), and its record
+ * goes with it: written down as waiting, so closing the shop before its turn does not lose it.
+ */
 function carryOn(job: Job): Promise<RunResult> {
   const project = projectOf(job, true);
+  const id = runId(Date.now());
   const stop = refused(project, job.workDir);
   if (stop) {
     // It stays the one to carry on, once the cap allows.
-    const id = runId(Date.now());
-    failed.set(id, job);
+    pending.save({ ...job, run: id, state: 'failed', why: stop.error, at: Date.now() });
     return Promise.resolve({ ...stop, run: id, carryOn: true });
   }
-  return queued(job.workDir, project, project?.title ?? commissionTitle(job.form), (run, grant) => runJob(run, grant, job, true, project));
+  pending.save({ ...job, run: id, state: 'queued', at: Date.now() });
+  const done = queued(job.workDir, project, project?.title ?? commissionTitle(job.form), (run, grant) => runJob(run, grant, job, true, project), 'user', id);
+  // A scheduled round carried on is that schedule's round, not a missed one (B7).
+  return job.schedule ? done.then((r) => { scheduleRan(job.schedule!, r); return r; }) : done;
+}
+
+/**
+ * A round that failed for the network around a sleep (B7): once the computer is awake and the network is back, it is
+ * carried on, once. The user's "try again" may have got there first, and then this does nothing. With no network ten
+ * minutes after waking, the failure stands and its card comes up as usual.
+ */
+async function afterWake(r: RunResult): Promise<RunResult> {
+  if (!r.run || !toWake.delete(r.run)) return r;
+  for (;;) {
+    if (sleep.wokeAt !== undefined && net.isOnline()) break;
+    if (sleep.wokeAt !== undefined && Date.now() - sleep.wokeAt > NETWORK_WAIT_MS) return r;
+    await new Promise((go) => setTimeout(go, 2000));
+  }
+  const job = pending.take(r.run);
+  if (!job || ending) return r;
+  log?.info('auto resume', { run: r.run });
+  return carryOn({ ...job, autoResumed: true });
+}
+
+/**
+ * The stretch of a round since Claude Code last reported a total goes in the ledger as an estimate, once (B7): when the
+ * round ends without a result, or before the shop goes down under it, as it may not live to hear the end.
+ */
+function countUnreported(r: Run, usd = r.unreported?.() ?? 0): number {
+  if (r.counted) return 0;
+  r.counted = true;
+  return spend.estimate(r.job.workDir, r.job.sessionId, usd, now());
+}
+
+/** Keep the computer awake exactly while a round runs (B7). */
+function keepAwake() {
+  if (runs.size && awake === undefined) awake = powerSaveBlocker.start('prevent-app-suspension');
+  else if (!runs.size && awake !== undefined) {
+    powerSaveBlocker.stop(awake);
+    awake = undefined;
+  } else return;
+  log?.info('keep awake', { on: awake !== undefined });
+}
+
+/**
+ * Windows is shutting down or signing out (B7): every round under way or waiting is written down as interrupted before
+ * anything else, as the system may end the shop any moment; then they are stopped and the shop closes, without the
+ * question card. Next time it opens, one card lists them.
+ */
+function endSession(why: string) {
+  if (ending) return;
+  ending = true;
+  quitting = true;
+  leaving = true;
+  const cut = pending.interrupt(Date.now());
+  for (const r of runs.values()) countUnreported(r);
+  log?.info('session end', { why, interrupted: cut.length });
+  broker.cancelAll();
+  for (const r of runs.values()) r.abort.abort();
+  app.quit();
 }
 
 /**
@@ -571,7 +649,11 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
   const me: Run = { id: run, job, project: who, abort, started, stuck: new StuckTracker(), choices: {} };
   const { stuck, choices } = me;
   job.run = run;
+  job.state = 'running';
+  job.at = started;
+  delete job.why;
   runs.set(run, me);
+  keepAwake();
   mini.feed({ type: 'run', running: true });
   pending.save(job);
   sendRuns();
@@ -591,6 +673,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
   // A round of changes picks up the earlier session when Claude Code still has it; otherwise it starts afresh from the folder.
   const pickUp = !again && r?.fromSession && sessionExists(r.fromSession) ? r.fromSession : undefined;
   let finished = false;
+  let outcome: string | undefined;
   // In a folder the user lent (A6): what is there as the round starts, so what it made can be told apart afterwards.
   const lent = Boolean(job.form.inPlace);
   const atStart = lent ? entriesIn(job.workDir) : [];
@@ -604,6 +687,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       onSession: (id) => { job.sessionId = id; pending.save(job); },
       onInit: (info) => log?.info('run session', info),
       onInput: (add) => { me.note = (text) => add(meetingNote(text)); },
+      onUnreported: (estimate) => { me.unreported = estimate; },
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker: broker.forRun(run, who),
@@ -618,9 +702,11 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     // Whatever the outcome, even called off: what it made so far must go too if the user undoes it.
     if (lent) versions.noteAdded(job.workDir, atStart, entriesIn(job.workDir));
     finished = result.ok;
+    outcome = result.error;
     log?.info('run end', { run, ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
-    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now());
+    // What it spent since Claude Code last said is estimated from its tokens, on a line of its own (B7).
+    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now()) + countUnreported(me, result.estimatedUsd ?? 0);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     // Settled: the ledger has what the round cost. A month or project cap that set this round's limit and stopped it is
     // that cap's stop, not the per-round one. Caps it took past eight tenths are said once; a cap stop says it already.
@@ -631,7 +717,10 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     const near = warnings(capsFor(project), spent, memory.get().budgetSaid ?? [], localMonth(now()), project?.id);
     if (near.length) memory.budgetSaid(near.map((w) => w.key));
     const budget = stop || !near.length ? undefined : near.map(({ key: _, ...w }) => ({ ...w, ...(w.cap === 'project' ? { project: project!.title } : {}) }));
-    if (result.error !== 'cancelled') {
+    // Failed for the network around a sleep, it is carried on by itself (afterWake): no card, nothing in the notebook yet.
+    const waking = resumeOnWake(job, result.error, sleep, Date.now());
+    if (waking) toWake.add(run);
+    if (result.error !== 'cancelled' && !waking) {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
       const changes = lent ? versions.lentChanges(job.workDir) : undefined;
@@ -655,13 +744,17 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       const named = memory.get().projects.find((p) => p.id === entry?.project)?.title ?? who.title;
       notice(result.ok ? 'done' : error === 'budget' || stop ? 'budget' : 'failed', named, () => send(IPC.openResult, run));
     }
-    if (!result.ok && result.error !== 'cancelled') failed.set(run, job);
     return { ...result, run, ...stop, ...(stop ? { carryOn: true } : {}), error, spentThisRun, budget };
   } finally {
     broker.forget(run);
-    // Stopping on the way out promised it could be carried on, unless it got to the end first.
-    if (!quitting || finished) pending.clear(run);
+    // What is left to carry on (B7): interrupted by a shutdown it was written down already; stopping on the way out
+    // promised it could be carried on, unless it got to the end first; a failed round is offered again, even after closing.
+    if (ending) { /* written down as interrupted */ }
+    else if (finished || (outcome === 'cancelled' && !quitting)) pending.clear(run);
+    else if (quitting) pending.save({ ...job, state: 'stopped', at: Date.now() });
+    else pending.save({ ...job, state: 'failed', why: outcome ?? 'failed', at: Date.now() });
     runs.delete(run);
+    keepAwake();
     finishedIn.add(job.workDir);
     mini.feed({ type: 'run', running: runs.size > 0 });
     sendRuns();
@@ -720,7 +813,7 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
 });
 
 /** A new commission in a new folder, asked of the caps first, then queued; `by` a schedule goes after the user's own (B5 rule 2). */
-function startNew(form: CommissionForm, by: Ticket['by'] = 'user'): Promise<RunResult> {
+function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: string): Promise<RunResult> {
   const stop = refused(undefined, '');
   if (stop) return Promise.resolve(stop);
   const f = form.demo ? { ...form, materials: undefined } : form;
@@ -731,7 +824,7 @@ function startNew(form: CommissionForm, by: Ticket['by'] = 'user'): Promise<RunR
     if (f.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
     prepareSource(workDir, f);
     try { copyMaterials(workDir, f.materials ?? []); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
-    return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
+    return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now(), ...(schedule ? { schedule } : {}) }, false);
   }, by);
 }
 
@@ -760,7 +853,7 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   return reviseRound(memo, ask);
 });
 /** Another round on a commission's project, from the result card or a schedule (B6), queued behind its project's other rounds. */
-async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] = 'user'): Promise<RunResult> {
+async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] = 'user', schedule?: string): Promise<RunResult> {
   if (!memo.folder || !existsSync(memo.folder)) return { ok: false, recordingPath: '', workDir: memo.folder ?? '', error: 'gone' };
   // In a folder the user lent, their files are counted again (they may have added some), and a round that could not
   // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
@@ -782,7 +875,7 @@ async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] =
     // over (B3), and a fresh session reads far less each round.
     const fromSession = newSession(latest.rounds?.at(-1) ?? { date: latest.date }, localDay(now())) ? undefined : latest.sessionId;
     return runJob(run, grant, {
-      form, workDir: folder, preexisting, startedAt: Date.now(),
+      form, workDir: folder, preexisting, startedAt: Date.now(), ...(schedule ? { schedule } : {}),
       revise: { id: memo.id, ask, fromSession, summary: latest.summary, restored, ...(by === 'schedule' ? { scheduled: true } : {}) },
     }, false, project);
   }, by);
@@ -807,9 +900,12 @@ let scheduleTimer: ReturnType<typeof setTimeout> | undefined;
 function lookAtSchedules() {
   clearTimeout(scheduleTimer);
   if (!settings.get().schedulesPaused) {
+    // A schedule whose round is still to be carried on (interrupted, failed) does not run again meanwhile (B7).
+    const held = new Set(pending.list().map((j) => j.schedule));
     for (const s of schedules.list()) {
-      const d = due(s, now());
-      if (!d.run && !d.missed.length) continue;
+      const d = due(s, now(), held.has(s.id));
+      // Held (B7), its due time only moves on.
+      if (!d.run && !d.missed.length && d.next === s.next) continue;
       const missed = d.missed.at(-1);
       schedules.update(s.id, { next: d.next ?? s.next, enabled: d.next !== null, ...(missed ? { missed } : {}) });
       log?.info('schedule due', { run: d.run, missed: d.missed.length });
@@ -825,19 +921,23 @@ function lookAtSchedules() {
 function runScheduled(s: Schedule) {
   const project = memory.get().projects.find((p) => p.id === s.project);
   const title = project?.title ?? commissionTitle(s.form);
-  const start = project ? reviseRound(memory.find(project.commissions.at(-1)!)!, s.form.want, 'schedule') : startNew(s.form, 'schedule');
+  const start = project ? reviseRound(memory.find(project.commissions.at(-1)!)!, s.form.want, 'schedule', s.id) : startNew(s.form, 'schedule', s.id);
   void start.then((r) => {
     if (r.error === 'cancelled') return;
-    const at = now().toISOString();
     if (r.cap && !r.run) {
-      schedules.update(s.id, { last: { at, result: 'skipped', why: r.error } });
+      schedules.update(s.id, { last: { at: now().toISOString(), result: 'skipped', why: r.error } });
       notice('skipped', title);
       return;
     }
-    schedules.update(s.id, { last: { at, result: r.ok ? 'done' : 'failed', ...(r.error ? { why: r.error } : {}) } });
+    scheduleRan(s.id, r);
     // The page shows its card as for a round the user started.
     send(IPC.scheduled, { ...r, title });
   });
+}
+/** How a schedule's round went, for the project board; called off (the shop closing, the computer shutting down) is no outcome. */
+function scheduleRan(id: string, r: RunResult) {
+  if (r.error === 'cancelled' || !schedules.list().some((s) => s.id === id)) return;
+  schedules.update(id, { last: { at: now().toISOString(), result: r.ok ? 'done' : 'failed', ...(r.error ? { why: r.error } : {}) } });
 }
 /** When a schedule comes round, as set on the "do it regularly" card: checked here, as the page could send anything. */
 function cleanEvery(every: unknown): ScheduleEvery | null {
@@ -1147,11 +1247,10 @@ function startUpdates() {
   win?.webContents.once('did-finish-load', () => updates?.start());
 }
 ipcMain.handle(IPC.downloadUpdate, (): Promise<boolean> => updates?.download() ?? Promise.resolve(false));
+// Try again: once per round, so a second click, or the wake getting there first, does nothing (B7).
 ipcMain.handle(IPC.retryCommission, async (_e, run: unknown): Promise<RunResult | null> => {
-  const job = typeof run === 'string' ? failed.get(run) : undefined;
-  if (!job) return null;
-  failed.delete(run as string);
-  return carryOn(job);
+  const job = typeof run === 'string' ? pending.take(run) : undefined;
+  return job ? carryOn(job) : null;
 });
 // Stop a round under way, or call off one still in the queue: nothing was held or spent for that one yet (B5 rule 3).
 ipcMain.handle(IPC.cancelCommission, (_e, run: unknown) => {
@@ -1162,17 +1261,15 @@ ipcMain.handle(IPC.cancelCommission, (_e, run: unknown) => {
   waiting.drop();
   pump();
 });
-// A commission left over from a crash or an unexpected quit: offered once at startup, the earliest first.
-ipcMain.handle(IPC.pendingCommission, (): CommissionForm | null => (runs.size ? null : (leftovers[0]?.form ?? null)));
-ipcMain.handle(IPC.resumePending, async (): Promise<RunResult | null> => {
-  const job = leftovers.shift();
-  if (!job) return null;
-  // It carries on as a new round with a run id of its own.
-  pending.clear(job.run);
-  return carryOn(job);
+// Rounds left over from before (a crash, "stop and close", a failure, a shutdown): offered when the shop opens (B7).
+ipcMain.handle(IPC.pendingRounds, (): PendingRound[] => pending.left().map((j) => ({ run: j.run!, state: j.state ?? 'running', form: j.form, title: commissionTitle(j.form) })));
+// Each carries on as a new round with a run id of its own, once.
+ipcMain.handle(IPC.resumePending, async (_e, run: unknown): Promise<RunResult | null> => {
+  const job = typeof run === 'string' ? pending.take(run) : undefined;
+  return job ? carryOn(job) : null;
 });
-ipcMain.handle(IPC.dropPending, () => {
-  pending.clear(leftovers.shift()?.run);
+ipcMain.handle(IPC.dropPending, (_e, run: unknown) => {
+  if (typeof run === 'string') pending.take(run);
 });
 
 ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
@@ -1205,13 +1302,13 @@ function openData() {
   // The ledger first: settings from before the monthly cap take theirs from what was spent (budget.ts).
   spend = new SpendLedger(join(dir, 'spend.json'));
   settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'), () => startingMonthCap(spend.months(), now()));
-  pending = new PendingStore(join(dir, 'pending.json'));
+  pending = new PendingStore(join(dir, 'pending'), join(dir, 'pending.json'));
   schedules = new ScheduleStore(join(dir, 'schedules.json'));
   memory = new MemoryStore(join(dir, 'memory.json'));
   versions = new VersionStore(join(dir, 'versions'));
   projectVersions = new ProjectVersions(join(dir, 'versions'));
   if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
-  leftovers = pending.load();
+  pending.load();
 }
 /**
  * The Store build's first open beside an installer build's shop (move-in.ts): asked once, before the shop opens.
@@ -1327,7 +1424,25 @@ app.whenReady().then(() => {
   win?.on('focus', () => tray.calm());
   // Scheduled commissions once the page can show their rounds, and again on waking from sleep (B6).
   win?.webContents.once('did-finish-load', lookAtSchedules);
-  powerMonitor.on('resume', lookAtSchedules);
+  // Sleep (B7): when it went down, and on waking the time it came back; rounds that failed for the network around it carry on.
+  powerMonitor.on('suspend', () => {
+    sleep.suspend(Date.now());
+    log?.info('suspend', { running: runs.size });
+  });
+  powerMonitor.on('resume', () => {
+    sleep.resume(Date.now());
+    log?.info('resume');
+    lookAtSchedules();
+  });
+  // Sleep, waking and a shutdown played from a test, never in a packaged build.
+  if (!app.isPackaged) {
+    const asEmitter = (o: unknown) => o as { emit: (event: string, ...args: unknown[]) => boolean };
+    (globalThis as { __lamplightPower?: unknown }).__lamplightPower = {
+      suspend: () => asEmitter(powerMonitor).emit('suspend'),
+      resume: () => asEmitter(powerMonitor).emit('resume'),
+      shutdown: () => win && asEmitter(win).emit('session-end', { preventDefault: () => {}, reasons: ['shutdown'] }),
+    };
+  }
 }).catch((err: unknown) => {
   // Before the window there is nothing else to tell the user with, and a process with no window would stay until killed.
   log?.error('could not open', err);
@@ -1345,6 +1460,12 @@ app.on('will-quit', () => {
   putAwayLook();
   mini.destroy();
   broker.cancelAll();
+  // Stopped on the way out, written down as such now: the shop may be gone before the rounds end (B7). What they spent
+  // since they last said is estimated now for the same reason.
+  for (const r of runs.values()) {
+    if (!ending) pending.save({ ...r.job, state: 'stopped', at: Date.now() });
+    countUnreported(r);
+  }
   for (const r of runs.values()) r.abort.abort();
   // Closing for real, with any commission let finish or stopped just above: a new version fetched earlier goes in now.
   updates?.quitting();
