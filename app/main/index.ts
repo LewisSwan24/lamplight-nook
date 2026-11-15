@@ -1413,7 +1413,8 @@ ipcMain.handle(IPC.clearMemory, (): boolean => {
   versions.clear();
   spend.forget();
   actionLog.clear();
-  connectionReads.clear();
+  // connection-reads.json stays: a session it marks may still be carried on, and must keep asking (C6). It holds only
+  // session ids and connection names, nothing that was read.
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
   return true;
 });
