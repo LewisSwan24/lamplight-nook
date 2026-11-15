@@ -168,7 +168,7 @@ export class MemoryStore {
    * work, keeps its first choices unless answered again, and remembers what was asked. Its project gets one more round on
    * the timeline; `usd` is what the round cost. Null if it is gone.
    */
-  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main' | 'touched'>> & { round?: RoundStat; usd?: number }, stuck: string[], now = new Date()): CommissionMemo | null {
+  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main' | 'touched'>> & { round?: RoundStat; usd?: number }, stuck: string[], now = new Date(), fresh = false): CommissionMemo | null {
     const at = this.data.commissions.findIndex((c) => c.id === id);
     if (at < 0) return null;
     const date = localDay(now);
@@ -183,8 +183,8 @@ export class MemoryStore {
       sessionId: update.sessionId ?? old.sessionId,
       summary: update.summary ?? old.summary,
       main: update.main ?? old.main,
-      // Trying the same round again (after a network failure, say) is still one round.
-      asks: (old.asks?.at(-1)?.ask === ask ? old.asks : [...(old.asks ?? []), { ask, date }]).slice(-MAX_ASKS),
+      // Trying the same round again (after a network failure, say) is still one round; a scheduled one (`fresh`) never is.
+      asks: (!fresh && old.asks?.at(-1)?.ask === ask ? old.asks : [...(old.asks ?? []), { ask, date }]).slice(-MAX_ASKS),
     };
     if (update.round) entry.rounds = [...(old.rounds ?? []), update.round].slice(-MAX_ROUNDS);
     // Every round's files belong to the work, whatever the folder still says about the earlier ones.
@@ -194,7 +194,7 @@ export class MemoryStore {
     const round = { commission: id, date, ask, ...roundInfo(update.round, update.usd, update.summary) };
     const last = p.rounds.at(-1);
     // Trying the same round again, as with the asks above.
-    if (last?.commission === id && last.ask === ask) p.rounds[p.rounds.length - 1] = roundAgain(last, round);
+    if (!fresh && last?.commission === id && last.ask === ask) p.rounds[p.rounds.length - 1] = roundAgain(last, round);
     else p.rounds.push({ n: p.rounds.length + 1, ...round });
     this.rounded(p, update.choices, update.summary);
     this.note(entry.title, stuck, date);

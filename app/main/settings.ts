@@ -8,6 +8,12 @@ import { strings } from '../shared/i18n';
 import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type LanguageChoice, type Settings } from '../shared/types';
 import { MONTH_CAP_DEFAULT } from './budget';
 
+/**
+ * What Electron's setLoginItemSettings is given for "open in the tray when the computer starts" (road-to-1.2.md B6). The
+ * arguments stay the same switched off, so Windows finds the entry it made.
+ */
+export const loginItem = (on: boolean) => ({ openAtLogin: on, args: ['--tray'] });
+
 /** Default folder for commissions: ~/Documents/<app>/<commissions> (folder names come from the locale). */
 export const defaultWorkRoot = (documentsDir: string) => join(documentsDir, ...strings.app.commissionRoot);
 
@@ -34,7 +40,7 @@ export class SettingsStore {
 
   /** `firstMonthCap` decides the monthly cap for settings saved before there was one (budget.ts startingMonthCap). */
   constructor(private file: string, documentsDir: string, firstMonthCap = () => MONTH_CAP_DEFAULT) {
-    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, updates: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), budgetUsd: DEFAULT_BUDGET, monthCapUsd: MONTH_CAP_DEFAULT, language: 'system' };
+    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, mini: true, updates: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), budgetUsd: DEFAULT_BUDGET, monthCapUsd: MONTH_CAP_DEFAULT, language: 'system' };
     const saved = this.read();
     this.data = { ...defaults, ...saved };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
@@ -60,7 +66,7 @@ export class SettingsStore {
     const clean: Partial<Settings> = {};
     if (typeof patch.name === 'string') clean.name = patch.name.trim().slice(0, 20);
     if (typeof patch.workRoot === 'string' && patch.workRoot.trim()) clean.workRoot = patch.workRoot.trim();
-    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'notify', 'closeToTray', 'mini', 'updates'] as const) {
+    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'notify', 'closeToTray', 'openAtLogin', 'schedulesPaused', 'mini', 'updates'] as const) {
       if (typeof patch[flag] === 'boolean') clean[flag] = patch[flag];
     }
     const avatar = cleanAvatar(patch.avatar);

@@ -468,14 +468,33 @@ window.lamplight.onResult((result) => {
   noticeGrowth(result.grew ?? []);
 });
 // A commission that stopped has its own card, which says what to do; putting a result card away first would end it.
-window.lamplight.onResult((result) => hasFailureCard(result.error) || void whenFree().then(() => showResult(result, {
-  open: (path, how) => void window.lamplight.openOutput(path, how),
-  revise: (id) => void revise(id),
-  restore: (id) => window.lamplight.restorePrevious(id),
-  undo: (id) => window.lamplight.undoWork(id),
-  firstWork: worksKept === 0,
-  report: () => void window.lamplight.writeToUs({ about: 'content', title: result.project?.title ?? lastWant ?? undefined }),
-})));
+window.lamplight.onResult((result) => {
+  if (result.run) results.set(result.run, result);
+  if (!hasFailureCard(result.error)) resultCard(result);
+});
+/** The latest results by round, and the rounds whose card has been up: a notice clicked later brings its card back (B6). */
+const results = new Map<string, CommissionResult>();
+const resultShown = new Set<string>();
+function resultCard(result: CommissionResult) {
+  void whenFree().then(() => {
+    if (result.run) resultShown.add(result.run);
+    showResult(result, {
+      open: (path, how) => void window.lamplight.openOutput(path, how),
+      revise: (id) => void revise(id),
+      restore: (id) => window.lamplight.restorePrevious(id),
+      undo: (id) => window.lamplight.undoWork(id),
+      firstWork: worksKept === 0,
+      report: () => void window.lamplight.writeToUs({ about: 'content', title: result.project?.title ?? lastWant ?? undefined }),
+    });
+  });
+}
+// A notice about a finished round was clicked: its card is up, still to come after the one being read, or put away already.
+window.lamplight.onOpenResult((run) => {
+  const result = results.get(run);
+  if (result && resultShown.has(run) && !document.querySelector(`.result-card[data-run="${run}"]`)) resultCard(result);
+});
+// A scheduled round ended (B6): its sound and, if it stopped, its card, as for one the user started.
+window.lamplight.onScheduled((r) => void run(r.title, async () => r));
 /**
  * With two rounds at once (B5) one may end while the user is filling in the next slip, or reading the other's result: its
  * card waits until that is put away, rather than wiping it.

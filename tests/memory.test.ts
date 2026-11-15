@@ -55,6 +55,17 @@ describe('memory store', () => {
     expect(after.rounds[1].later).toBe(1);
   });
 
+  it('the same ask again is the same round tried again, but a scheduled one each time is a round of its own (road-to-1.2.md B6)', () => {
+    const store = new MemoryStore(fresh());
+    const c = store.remember(memo('report'), [], new Date('2026-11-15T10:00:00'));
+    store.revise(c.id, 'this week', { result: 'done', choices: {} }, [], new Date('2026-11-16T09:00:00'));
+    store.revise(c.id, 'this week', { result: 'done', choices: {} }, [], new Date('2026-11-16T09:30:00'));
+    expect(store.get().projects[0].rounds).toHaveLength(2);
+    store.revise(c.id, 'this week', { result: 'done', choices: {} }, [], new Date('2026-11-23T09:00:00'), true);
+    expect(store.get().projects[0].rounds.map((r) => [r.n, r.date])).toEqual([[1, '2026-11-15'], [2, '2026-11-16'], [3, '2026-11-23']]);
+    expect(store.find(c.id)!.asks).toHaveLength(2);
+  });
+
   it('starts with no projects, and forgets them with everything else', () => {
     const file = fresh();
     expect(new MemoryStore(file).get().projects).toEqual([]);

@@ -63,7 +63,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -229,6 +229,13 @@ export interface LamplightApi {
   saveBrief(id: string, brief: ProjectBrief): Promise<boolean>;
   /** "Forget this project": the staff remember nothing of it, and pick up no earlier session. */
   forgetProject(id: string): Promise<boolean>;
+  /** "Do it regularly" on a project (B6): the schedule kept, or null when a one-off's time has gone by. */
+  saveSchedule(project: string, want: string, every: ScheduleEvery): Promise<Schedule | null>;
+  removeSchedule(id: string): Promise<boolean>;
+  /** How a scheduled round ended (B6): the page shows its card as for a round the user started. */
+  onScheduled(cb: (r: RunResult & { title: string }) => void): () => void;
+  /** A notice about a finished round was clicked: its result card, again if it was put away. */
+  onOpenResult(cb: (run: string) => void): () => void;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -411,6 +418,10 @@ export const IPC = {
   archiveProject: 'project:archive',
   saveBrief: 'project:save-brief',
   forgetProject: 'project:forget',
+  saveSchedule: 'schedule:save',
+  removeSchedule: 'schedule:remove',
+  scheduled: 'schedule:result',
+  openResult: 'commission:open-result',
   updateOffer: 'update:offer',
   downloadUpdate: 'update:download',
   moveInOffer: 'data:move-in-offer',
@@ -640,6 +651,27 @@ export type ProjectRow = {
   lent: boolean;
   /** Its card colour, by its place among all the projects (shared/project-colors.ts). */
   color: number;
+  /** Its scheduled commissions (B6). */
+  schedules?: Schedule[];
+};
+
+/** How often a scheduled commission comes round (road-to-1.2.md B6). `time` is a local HH:MM, `at` a local YYYY-MM-DDTHH:MM. */
+export type ScheduleEvery = { kind: 'weekly'; weekday: number; time: string } | { kind: 'daily'; time: string } | { kind: 'once'; at: string };
+
+/**
+ * A scheduled commission, kept in schedules.json (B6). `project`: carried on in that project each time, or a new project
+ * each time without one. `next` is when it is due next; `last` how the latest time went; `missed` the latest due time it
+ * skipped, said on the project board.
+ */
+export type Schedule = {
+  id: string;
+  project?: string;
+  form: CommissionForm;
+  every: ScheduleEvery;
+  next: string;
+  last?: { at: string; result: 'done' | 'failed' | 'skipped'; why?: string };
+  missed?: string;
+  enabled: boolean;
 };
 
 /** One round on a project's timeline, with whether its version can still be had. */

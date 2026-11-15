@@ -1,7 +1,7 @@
-import { fill, strings } from '../../shared/i18n';
+import { fill, locale, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { projectColor } from '../../shared/project-colors';
-import type { LamplightApi, ProjectBrief, ProjectRow, TimelineRow } from '../../shared/types';
+import type { LamplightApi, ProjectBrief, ProjectRow, Schedule, ScheduleEvery, TimelineRow } from '../../shared/types';
 import { BRIEF_LAST_ROUND_CHARS, BRIEF_PREF_CHARS, BRIEF_PREFS_MAX } from '../../shared/types';
 import { el, layer } from './dom';
 import { duration } from './notebook';
@@ -28,25 +28,32 @@ function boardRow(api: LamplightApi, p: ProjectRow): HTMLElement {
   const why = q ? el('div.hint.project-waits', {}, q.waits === 'money' ? P.waitMoney : q.waits === 'project' ? P.waitProject : fill(P.waitSlot, { list: q.behind.join(strings.app.listSeparator) })) : null;
   const callOff = q ? el('button.link.project-call-off', { type: 'button', onclick: async () => { await api.cancelCommission(q.run); void showProjects(api, P.calledOff); } }, P.cancelQueued) : null;
   const meeting = p.status === 'running' ? el('button.link.project-meet', { type: 'button', onclick: () => meet(p) }, P.meet) : null;
+  // "Do it regularly" (B6): a project has a folder to carry on in, so a new commission still at work has none.
+  const regular = p.fresh ? null : el('button.link.project-regular', { type: 'button', onclick: () => void showSchedule(api, p) }, S.button);
   return el('li.project-row', {},
     swatch(p.color),
     el('div.project-text', {},
       name,
       el('div.hint', {}, p.fresh ? fill(P.touched, { date: p.touched }) : [fill(P.touched, { date: p.touched }), roundCount(p.rounds), fill(P.spent, { usd: formatUsd(p.usd) })].join(' · ')),
-      why, callOff, meeting),
+      ...(p.schedules ?? []).map((sc) => el('div.hint.project-schedule', {}, ...scheduleLines(sc).map((line) => el('div', {}, line)))),
+      why, el('div.project-actions', {}, callOff, meeting, regular)),
     el(`span.project-status.${p.status}`, {}, P.status[p.status]));
 }
 
 /** The project board (road-to-1.2.md B2): one row per project, latest touched first, the ones put away folded up. */
 export async function showProjects(api: LamplightApi, said = '') {
-  const rows = await api.projectBoard();
+  const [rows, settings] = await Promise.all([api.projectBoard(), api.getSettings()]);
   const out = rows.filter((p) => !p.archived);
   const away = rows.filter((p) => p.archived);
   renderPins(rows);
+  // Scheduled commissions only run while the shop is open, in the tray at least (B6).
+  const scheduled = rows.some((p) => p.schedules?.some((sc) => sc.enabled));
+  const warn = scheduled ? [settings.schedulesPaused ? S.paused : null, settings.openAtLogin ? null : S.closedNote].filter((x): x is string => x !== null) : [];
   replaceOpen(el('div.card.paper.project-card', { role: 'dialog' },
     closeButton(),
     withPortrait('adeng', 'happy', el('div.card-title', {}, P.title), el('div', {}, rows.length ? P.text : P.empty)),
     said ? el('div.hint.projects-note', { role: 'status' }, said) : null,
+    ...warn.map((w) => el('div.hint.projects-schedule-note', { role: 'note' }, w)),
     rows.length ? el('div.project-list', { tabindex: 0 },
       el('ul.projects', {}, ...out.map((p) => boardRow(api, p))),
       away.length ? el('details.projects-away', {}, el('summary', {}, fill(P.archived, { n: String(away.length) })),
@@ -55,6 +62,86 @@ export async function showProjects(api: LamplightApi, said = '') {
 }
 
 const B = P.brief;
+const S = P.schedule;
+
+/** A due time as the user reads it: the local date and time, without the year. */
+const stamp = (iso: string) => new Intl.DateTimeFormat(locale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+const everyText = (e: ScheduleEvery) => (e.kind === 'weekly' ? fill(S.lineWeekly, { weekday: S.weekdays[e.weekday], time: e.time })
+  : e.kind === 'daily' ? fill(S.lineDaily, { time: e.time }) : fill(S.lineOnce, { at: stamp(e.at) }));
+/** A schedule on the board: when it comes round and is next due, how the last time went, and a time it missed. */
+function scheduleLines(sc: Schedule): string[] {
+  const last = sc.last && fill(sc.last.result === 'done' ? S.done : sc.last.result === 'failed' ? S.failed : S.skipped, { at: stamp(sc.last.at) });
+  return [
+    sc.enabled ? fill(S.line, { every: everyText(sc.every), next: stamp(sc.next) }) : everyText(sc.every),
+    ...(last ? [last] : []),
+    ...(sc.missed ? [fill(S.missed, { at: stamp(sc.missed) })] : []),
+  ];
+}
+
+/** Local YYYY-MM-DDTHH:MM, as a date-and-time field takes it. */
+const localInput = (d: Date) => {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+/**
+ * "Do it regularly" on a project (road-to-1.2.md B6): what to do each time, and every week, every day or once. What is
+ * scheduled already is listed, each can be stopped.
+ */
+export async function showSchedule(api: LamplightApi, p: ProjectRow, said = '') {
+  const want = el('textarea.schedule-want', { rows: 2, maxlength: 2000, placeholder: S.wantPlaceholder, 'aria-label': S.want }) as HTMLTextAreaElement;
+  const kind = el('select.schedule-kind', { 'aria-label': S.every },
+    ...(['weekly', 'daily', 'once'] as const).map((k) => el('option', { value: k }, S[k]))) as HTMLSelectElement;
+  const weekday = el('select.schedule-weekday', { 'aria-label': S.weekday },
+    ...S.weekdays.map((d, i) => el('option', { value: i, selected: i === 1 }, d))) as HTMLSelectElement;
+  const time = el('input.schedule-time', { type: 'time', value: '09:00', 'aria-label': S.time }) as HTMLInputElement;
+  const tomorrow = new Date(Date.now() + 86_400_000);
+  tomorrow.setHours(9, 0, 0, 0);
+  const at = el('input.schedule-at', { type: 'datetime-local', value: localInput(tomorrow), 'aria-label': S.at }) as HTMLInputElement;
+  const field = (label: string, input: HTMLElement) => el('label.schedule-field', {}, el('span.schedule-label', {}, label), input);
+  const dayField = field(S.weekday, weekday);
+  const timeField = field(S.time, time);
+  const atField = field(S.at, at);
+  const shape = () => {
+    dayField.hidden = kind.value !== 'weekly';
+    timeField.hidden = kind.value === 'once';
+    atField.hidden = kind.value !== 'once';
+  };
+  kind.addEventListener('change', shape);
+  shape();
+  const note = el('div.hint.schedule-note', { role: 'status' }, said);
+  const save = async (e: Event) => {
+    e.preventDefault();
+    if (!want.value.trim()) return void (note.textContent = S.empty);
+    const every: ScheduleEvery = kind.value === 'weekly' ? { kind: 'weekly', weekday: Number(weekday.value), time: time.value }
+      : kind.value === 'daily' ? { kind: 'daily', time: time.value } : { kind: 'once', at: at.value };
+    const made = await api.saveSchedule(p.id, want.value, every);
+    if (!made) return void (note.textContent = S.past);
+    void showProjects(api, S.saved);
+  };
+  const list = (p.schedules ?? []).map((sc) => el('li.schedule-item', {},
+    el('div.schedule-what', {}, plain(sc.form.want)),
+    el('div.hint', {}, ...scheduleLines(sc).map((line) => el('div', {}, line))),
+    el('button.link.schedule-remove', { type: 'button', onclick: async () => {
+      await api.removeSchedule(sc.id);
+      const row = (await api.projectBoard()).find((r) => r.id === p.id);
+      if (row) void showSchedule(api, row, S.removed);
+    } }, S.remove)));
+  replaceOpen(el('form.card.paper.project-card.schedule-card', { role: 'dialog', onsubmit: save },
+    closeButton(),
+    el('div.card-title', {}, swatch(p.color), ' ', fill(S.title, { title: p.title })),
+    el('div.hint', {}, S.text),
+    el('div.schedule-body', {},
+      list.length ? el('section.schedule-list', {}, el('b', {}, S.list), el('ul.schedules', {}, ...list)) : null,
+      field(S.want, want),
+      el('div.schedule-when', {}, field(S.every, kind), dayField, timeField, atField)),
+    note,
+    el('div.actions', {},
+      el('button.schedule-back', { type: 'button', onclick: () => void showProjects(api) }, S.back),
+      el('button.default.schedule-save', { type: 'submit' }, S.save)),
+  ));
+  want.focus();
+}
 
 /**
  * "What the staff remember" at the top of a timeline (road-to-1.2.md B3): what the project is for, the preferences, where
