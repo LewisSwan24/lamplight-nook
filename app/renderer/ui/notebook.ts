@@ -8,7 +8,7 @@ import { MONTH_CAP_DEFAULT } from '../../main/budget';
 import { el } from './dom';
 import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
-import { connectionsPage } from './connections';
+import { actionsPage, connectionsPage } from './connections';
 
 const N = strings.ui.notebook;
 /** Past commissions drawn at a time; the shop keeps every one of them. */
@@ -141,9 +141,11 @@ export function onNotebookForget(fn: () => void) {
  * (road-to-1.3.md C4) comes first when there is anything on it; `at` opens it there.
  */
 export async function showNotebook(api: LamplightApi, at?: 'connections') {
-  const [memory, spent, talks, linked] = await Promise.all([api.getMemory(), api.spendThisMonth(), api.consultsThisMonth(), api.connections()]);
-  const links = connectionsPage(api, linked, () => showNotebook(api, 'connections'));
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...pages(api, memory, spent, talks, reviseOld));
+  const [memory, spent, talks, linked, done] = await Promise.all([api.getMemory(), api.spendThisMonth(), api.consultsThisMonth(), api.connections(), api.actions()]);
+  const links = connectionsPage(api, linked, () => showNotebook(api, 'connections'), done);
+  // What was done through them (C6) follows the connections.
+  const outside = actionsPage(api, done, linked);
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), ...pages(api, memory, spent, talks, reviseOld));
   const actions = el('div.actions');
   const ask = () => {
     actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));

@@ -1,6 +1,7 @@
 import type { CanUseTool } from '@anthropic-ai/claude-agent-sdk';
 import { fill, strings } from '../shared/i18n';
 import type { AiEvent, Choice, Risk } from '../shared/types';
+import { CONNECTIONS_PAUSED } from './action-log';
 import type { Asker } from './decision-broker';
 import { targetOf } from './event-normalizer';
 import { classify, type RiskContext } from './risk-classifier';
@@ -87,9 +88,13 @@ export function makePermissionPolicy(ctx: RiskContext, broker: Asker, events: Po
     }
 
     if (risk === 'safe') return { behavior: 'allow', updatedInput: input };
+    // A connection's step that does not go ahead is written down too (C6).
+    const nook = ctx.nook?.get(tool);
+    const refused = () => { if (nook?.connection) ctx.round?.refused(nook, input); };
     if (risk === 'blocked') {
       events.onDecision(tool, 'denied', risk, undefined, agentId);
-      return { behavior: 'deny', message: BLOCKED(reason) };
+      refused();
+      return { behavior: 'deny', message: nook?.connection && ctx.round?.paused() ? CONNECTIONS_PAUSED : BLOCKED(reason) };
     }
 
     const serious = risk === 'serious';
@@ -101,6 +106,8 @@ export function makePermissionPolicy(ctx: RiskContext, broker: Asker, events: Po
       title: action,
       reason,
       detail: String(input.command ?? input.file_path ?? JSON.stringify(input)),
+      // An outside action says how it is undone; one that cannot be, says so (C6).
+      ...(nook?.kind === 'outside' && nook.undoHow ? { undo: nook.undoHow } : nook?.kind === 'final' ? { undo: D.undoNo } : {}),
       options: [
         { id: 'deny', label: D.deny },
         { id: 'allow', label: serious ? fill(D.confirm, { action }) : D.allow },
@@ -109,6 +116,7 @@ export function makePermissionPolicy(ctx: RiskContext, broker: Asker, events: Po
     });
     const allowed = choice === 'allow';
     events.onDecision(tool, allowed ? 'allowed' : 'denied', risk, undefined, agentId);
+    if (!allowed) refused();
     return allowed ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: DECLINED };
   };
 }

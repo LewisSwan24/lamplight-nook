@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { classify, simpleCommands } from '../app/main/risk-classifier';
+import { classify, simpleCommands, type NookEntry } from '../app/main/risk-classifier';
 import { strings } from '../app/shared/i18n';
 
 // resolve: on Windows this gets a drive letter, as real folders there have.
@@ -148,5 +148,28 @@ describe('risk classifier', () => {
     expect(n('mcp__nook-k9__read_note').risk).toBe('serious');
     expect(r(kinds.read, {})).toBe('serious');
     expect(n('mcp__x__send').risk).toBe('serious');
+  });
+
+  it('once a round has read from a connection, web search and fetch ask first; without one they go ahead (C6)', () => {
+    const round = { paused: () => false, readFrom: undefined as string | undefined, refused: () => {} };
+    const web = (tool: string) => classify(tool, { url: 'https://example.com' }, { ...ctx, round });
+    expect(web('WebFetch').risk).toBe('safe');
+    expect(web('WebSearch').risk).toBe('safe');
+    round.readFrom = 'My calendar';
+    expect(web('WebFetch')).toEqual({ risk: 'ask', reason: strings.risk.webAfterConnection.replace('{label}', 'My calendar') });
+    expect(web('WebSearch').risk).toBe('ask');
+    // A commission with no connection ticked has no round to watch: as before.
+    expect(r('WebFetch', { url: 'https://example.com' })).toBe('safe');
+  });
+
+  it('with all connections paused, a connection\'s tools are refused; the shop\'s own are not (C6)', () => {
+    const nook = new Map<string, NookEntry>([
+      ['mcp__nook-k1__read_note', { kind: 'read' as const, label: () => 'read', connection: { id: 'k1', label: 'Test' } }],
+      ['mcp__nook-office__make_docx', { kind: 'make' as const, label: () => 'make' }],
+    ]);
+    const round = { paused: () => true, refused: () => {} };
+    expect(classify('mcp__nook-k1__read_note', {}, { ...ctx, nook, round })).toEqual({ risk: 'blocked', reason: strings.risk.connectionsPaused });
+    expect(classify('mcp__nook-office__make_docx', {}, { ...ctx, nook, round }).risk).toBe('safe');
+    expect(classify('mcp__nook-k1__read_note', {}, { ...ctx, nook, round: { ...round, paused: () => false } }).risk).toBe('safe');
   });
 });
