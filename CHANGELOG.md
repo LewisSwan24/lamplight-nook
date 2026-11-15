@@ -14,6 +14,13 @@
   which limit it is and where to change it. Past eight tenths of a limit, Wick says so once on the result card. Anyone
   who spent more than $20 in one of the last few months starts at $50, and is told so once.
 
+- **A project board and a timeline.** A new Projects button, and the blackboard while nothing is chalked on it, show
+  every project with when it was last touched, its rounds, what it cost and where it stands. Opening one shows a row
+  per round, and every round now keeps a version of the work, each file stored once however many rounds have it. Any
+  round can be opened to look at, gone back to (what is there now is kept first, so nothing is lost), or branched off
+  into a new project in a folder of its own. Each project keeps up to 200 MB of versions; past that the oldest go, all
+  but the first, and the timeline says which.
+
 ## Unreleased (1.1)
 
 - **Moving to the Microsoft Store version.** The Store version keeps its data in a folder of its own, because Windows

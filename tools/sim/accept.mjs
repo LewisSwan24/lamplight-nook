@@ -268,7 +268,7 @@ const SCENARIOS = {
       await shop.page.waitForSelector('.toolbar');
       await sleep(3000);
       check(await shop.page.locator('.notebook-trouble').count() === 0, 'the shop says it again after a reload');
-      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
       await shop.page.waitForSelector('.shelf-card');
       check(await shop.page.locator('.shelf-card li.work').count() === 3, 'the works did not come back');
       await shop.page.keyboard.press('Escape');
@@ -531,7 +531,7 @@ const SCENARIOS = {
     const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions[0];
     try {
       await shop.app.evaluate(({ shell }) => { globalThis.opened = []; shell.openPath = async (p) => { globalThis.opened.push(p); return ''; }; });
-      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
       await shop.page.waitForSelector('.shelf-card');
       const row = shop.page.locator('.shelf-card li.work');
       await row.locator('.work-actions button').first().click();
@@ -710,7 +710,7 @@ const SCENARIOS = {
     const shop = await launch({ lang, home, debug: true });
     const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.find((c) => c.id === works[1].id);
     try {
-      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
       await shop.page.waitForSelector('.shelf-card');
       const row = shop.page.locator('.shelf-card li.work', { hasText: 'Moved work' });
       await row.locator('.work-actions button').first().click();
@@ -831,7 +831,7 @@ const SCENARIOS = {
     };
     const works = () => page.locator('.shelf-card li.work').count();
     const openShelf = async () => {
-      await page.locator('.toolbar button.tool-btn').nth(1).click();
+      await page.locator('.toolbar button.tool-btn').nth(2).click();
       await page.waitForSelector('.shelf-card');
     };
     /** From the press to the card on screen, timed in the page so that the script's own clicking does not count. */
@@ -844,7 +844,7 @@ const SCENARIOS = {
     }, [button, card]);
     try {
       await sleep(2500);
-      times.shelf = await opening(1, '.shelf-card');
+      times.shelf = await opening(2, '.shelf-card');
       check(await page.evaluate(() => document.activeElement?.classList.contains('shelf-search')), 'the shelf does not open ready to search');
       check(await works() === 40, `the shelf draws ${await works()} works at first`);
       await shop.shot(join(out, 'thousand-shelf.png'));
@@ -890,7 +890,7 @@ const SCENARIOS = {
       await page.keyboard.press('Escape');
       await sleep(300);
 
-      times.notebook = await opening(2, '.notebook');
+      times.notebook = await opening(3, '.notebook');
       const entries = () => page.locator('.notebook-pages section:not(.notebook-days) > ul > li:not(.notebook-more)').count();
       check(await entries() === 20, `the notebook draws ${await entries()} commissions at first`);
       await page.locator('.notebook-more button').click();
@@ -1009,7 +1009,7 @@ const SCENARIOS = {
     try {
       await finishOne(shop);
       const { title } = JSON.parse(readFileSync(join(shop.home.data, 'memory.json'), 'utf8')).commissions[0];
-      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
       await shop.page.waitForSelector('.notebook');
       await shop.page.locator('.notebook .actions button').click();
       await shop.page.locator('.notebook .actions button', { hasText: L.ui.notebook.forgetYes }).click();
@@ -1041,13 +1041,13 @@ const SCENARIOS = {
     const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 100, told: [], grown, met: [{ id: 'baker', date: '2026-01-03' }] } };
     const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) }), size: 'small', debug: true });
     const notebook = async () => {
-      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
       await shop.page.waitForSelector('.notebook');
       await sleep(300);
     };
     try {
       await sleep(2500);
-      await shop.page.locator('.toolbar button.tool-btn').nth(1).click();
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
       await shop.page.waitForSelector('.shelf-card');
       // The shelf shows forty at a time; the rest come with "more".
       while (await shop.page.locator('.shelf-card li.works-more button').count()) await shop.page.locator('.shelf-card li.works-more button').click();
@@ -1100,7 +1100,7 @@ const SCENARIOS = {
     const fresh = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }) });
     try {
       await sleep(2500);
-      await fresh.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await fresh.page.locator('.toolbar button.tool-btn').nth(3).click();
       await fresh.page.waitForSelector('.notebook');
       check(await fresh.page.locator('.notebook-days').count() === 0, 'an empty shop has days');
     } finally {
@@ -1166,7 +1166,7 @@ const SCENARIOS = {
         if (done === 12) {
           await shop.hotspot(shop.L.ui.access.hotspotShop);
           await sleep(13_000);
-          await shop.page.locator('.toolbar button.tool-btn').nth(3).click();
+          await shop.page.locator('.toolbar button.tool-btn').nth(4).click();
           await shop.page.waitForSelector('.caption-card');
           const log = await shop.page.locator('.caption-card').innerText();
           check(!log.includes(lang === 'en' ? 'First vegetable' : '第一棵菜熟了'), 'the beds were news again on opening the shop');
@@ -2878,6 +2878,145 @@ const SCENARIOS = {
   },
 
   /**
+   * The project board and timeline (road-to-1.2.md B2): three projects, one of four rounds. The board's numbers match the
+   * notebook and the ledger, the timeline has a row per round with its cost and time, going back to round 2 gives round 2's
+   * files byte for byte and one more round, and branching off round 3 makes a new folder just like it while the project
+   * stays as it was. Seen in the cafe, at the smallest window, and in the study; the blackboard opens the board from the
+   * keyboard while nothing is chalked on it.
+   */
+  async projectboard(lang, out) {
+    const L = locale(lang);
+    const P = L.ui.projects;
+    const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k]);
+    const usd = (n) => '$' + n.toFixed(2);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const spentIn = (folder) => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8')).filter((e) => e.key.startsWith(folder + '|')).reduce((sum, e) => sum + e.usd, 0);
+    const snap = (dir) => JSON.stringify(Object.fromEntries(filesIn(dir).map((f) => [f, readFileSync(join(dir, f)).toString('base64')])));
+    const asks = [W[lang].ask, W[lang].note, lang === 'en' ? 'Make the title dark blue' : '标题换成深蓝色'];
+    let shop = await launch({ lang, home, speed: SPEED });
+    const page = () => shop.page;
+    /** The card fits the window: nothing pushed sideways, off the top or the bottom. */
+    const fits = async (selector, what) => {
+      const spill = await page().locator(selector).evaluate((c) => {
+        const box = c.getBoundingClientRect();
+        return c.scrollWidth > c.clientWidth + 1 || box.top < -1 || box.bottom > innerHeight + 1 || box.left < -1 || box.right > innerWidth + 1;
+      });
+      check(!spill, what + ' does not fit the window');
+    };
+    const openBoard = async () => {
+      await page().locator('.toolbar button.tool-btn').nth(1).click();
+      await page().waitForSelector('.project-card:not(.timeline-card)');
+      await sleep(300);
+    };
+    const roundRow = (n) => page().locator('.timeline li.round').filter({ has: page().locator('.round-head b', { hasText: new RegExp('^' + fill(P.round, { n: String(n) }) + '$') }) });
+    try {
+      // The project of four rounds: the first commission, then three rounds of changes; what each left in the folder.
+      check((await runOne(shop, { template: 'page', want: W[lang].page })).ok, 'the first round did not finish');
+      const dir = latestCommission(home);
+      const rounds = [snap(dir)];
+      for (const ask of asks) {
+        await page().locator('.result-revise').click();
+        await page().fill('form.revise textarea', ask);
+        await page().locator('form.revise button.default').click();
+        check((await shop.workUntilDone()).ok, 'a round of changes did not finish');
+        check(latestCommission(home) === dir, 'a round of changes went to a new folder');
+        rounds.push(snap(dir));
+      }
+      check(new Set(rounds).size === 4, 'two rounds left the same files');
+      await page().keyboard.press('Escape');
+      await sleep(800);
+      for (const [template, want] of [['letter', W[lang].letter], ['sheet', W[lang].sheet]]) {
+        check((await runOne(shop, { template, want })).ok, template + ' did not finish');
+        await page().keyboard.press('Escape');
+        await sleep(800);
+      }
+      const big = notebook().projects.find((x) => x.folder === dir);
+      check(notebook().projects.length === 3 && big.rounds.length === 4, 'the notebook has ' + notebook().projects.length + ' projects, the big one ' + big?.rounds.length + ' rounds');
+      check(big.rounds.every((r) => r.version), 'not every round has its version: ' + JSON.stringify(big.rounds.map((r) => r.version)));
+
+      // The blackboard has a card pinned for each, and opens the board from the keyboard.
+      check(await page().locator('#board-pins .pin-card').count() === 3, 'the blackboard has ' + await page().locator('#board-pins .pin-card').count() + ' cards pinned');
+      await shop.shot(join(out, 'projectboard-pins-cafe.png'));
+      await shop.hotspot(L.ui.access.hotspotBoard);
+      check(await shop.maybe('.project-card', 3000), 'the blackboard hotspot opens no project board');
+      await page().keyboard.press('Escape');
+      await sleep(300);
+
+      // The board: a row each, with the numbers the notebook and the ledger have.
+      await openBoard();
+      const rows = page().locator('.project-card li.project-row');
+      check(await rows.count() === 3, 'the board has ' + await rows.count() + ' rows');
+      for (const x of notebook().projects) {
+        const row = rows.filter({ has: page().locator('.project-open', { hasText: x.title }) });
+        const text = await row.innerText();
+        const want = [x.rounds.length === 1 ? P.roundsOne : fill(P.rounds, { n: String(x.rounds.length) }), fill(P.spent, { usd: usd(spentIn(x.folder)) }), x.rounds.at(-1).date, P.status.done];
+        check(want.every((w) => text.includes(w)), 'the row of ' + x.title + ' reads "' + text + '", not ' + JSON.stringify(want));
+      }
+      await fits('.project-card', 'the board');
+      await shop.shot(join(out, 'projectboard-board.png'));
+
+      // Its timeline: four rows, each with what it cost and how long it took.
+      await rows.filter({ has: page().locator('.project-open', { hasText: big.title }) }).locator('.project-open').click();
+      await page().waitForSelector('.timeline-card');
+      check(await page().locator('.timeline li.round').count() === 4, 'the timeline has ' + await page().locator('.timeline li.round').count() + ' rows');
+      for (const meta of await page().locator('.timeline .round-meta').allInnerTexts()) {
+        check(meta.includes('$') && !meta.includes(P.noCost) && meta.includes(fill(P.took, { time: '' }).trim()), 'a row reads "' + meta + '"');
+      }
+      await fits('.timeline-card', 'the timeline');
+      await shop.shot(join(out, 'projectboard-timeline.png'));
+
+      // Back to round 2: asked twice, then round 2's files byte for byte, and one more round.
+      const revert = roundRow(2).locator('.round-revert');
+      await revert.click();
+      check(snap(dir) === rounds[3], 'the first press already changed the folder');
+      await revert.click();
+      await page().waitForFunction(() => document.querySelectorAll('.timeline li.round').length === 5, null, { timeout: 10_000 });
+      check(snap(dir) === rounds[1], 'the folder is not round 2 byte for byte');
+      check(notebook().projects.find((x) => x.id === big.id).rounds.at(-1).restoredFrom === 2, 'the new round does not say it went back to round 2');
+      check((await page().locator('.timeline-note').innerText()) === fill(P.reverted, { n: '2' }), 'the timeline does not say it went back');
+      await shop.shot(join(out, 'projectboard-reverted.png'));
+
+      // Branching off round 3: a new folder just like it; the project stays as it was.
+      await roundRow(3).locator('.round-fork').click();
+      await page().waitForFunction((n) => document.querySelector('.timeline-note')?.textContent?.startsWith(n), fill(P.forked, { title: '' }).split('“')[0].split('《')[0], { timeout: 10_000 });
+      const fork = notebook().projects.find((x) => x.from?.project === big.id);
+      check(fork && fork.from.round === 3 && fork.folder !== dir, 'no new project branched off round 3: ' + JSON.stringify(fork));
+      check(snap(fork.folder) === rounds[2], 'the new folder is not round 3 byte for byte');
+      check(snap(dir) === rounds[1], 'branching off changed the project');
+      check(notebook().projects.length === 4, 'there are ' + notebook().projects.length + ' projects');
+      await shop.shot(join(out, 'projectboard-forked.png'));
+
+      // The smallest window: the board and the timeline still fit.
+      await page().keyboard.press('Escape');
+      await sleep(300);
+      await shop.resize([640, 360]);
+      await openBoard();
+      await fits('.project-card', 'the board at the smallest window');
+      await shop.shot(join(out, 'projectboard-small-board.png'));
+      await page().locator('.project-card .project-open', { hasText: big.title }).first().click();
+      await page().waitForSelector('.timeline-card');
+      await sleep(300);
+      await fits('.timeline-card', 'the timeline at the smallest window');
+      await shop.shot(join(out, 'projectboard-small-timeline.png'));
+    } finally { await shop.close(); }
+
+    // The study: the same blackboard, and the same board.
+    const settings = JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8'));
+    writeFileSync(join(home.data, 'settings.json'), JSON.stringify({ ...settings, scene: 'study' }, null, 2));
+    shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await sleep(1500);
+      await page().keyboard.press('Escape');
+      await page().waitForFunction(() => document.querySelectorAll('#board-pins .pin-card').length === 4, null, { timeout: 10_000 });
+      await shop.shot(join(out, 'projectboard-pins-study.png'));
+      await shop.hotspot(L.ui.access.hotspotBoard);
+      check(await shop.maybe('.project-card', 3000), 'the blackboard in the study opens no project board');
+      await shop.shot(join(out, 'projectboard-study.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
    * Projects (road-to-1.2.md B1): a 1.1 shop with five works, one that stopped and one in a lent folder, opens as five
    * projects of one with a copy of the old data aside, and the shelf is as it was. Opened again, nothing is migrated twice.
    * Saved since by 1.1, which drops the projects, it gets the same projects back on the next opening.
@@ -2985,7 +3124,7 @@ const SCENARIOS = {
   },
 
   /**
-   * The toolbar and settings as docs/information-structure.md lays them out: six buttons in order, labels that
+   * The toolbar and settings as docs/information-structure.md lays them out: seven buttons in order, labels that
    * show at once on hover and keyboard focus, pixel icons at whole real pixels, and the five settings tabs.
    */
   async menus(lang, out) {
@@ -2999,8 +3138,8 @@ const SCENARIOS = {
     const tipShown = (i) => buttons.nth(i).evaluate((b) => getComputedStyle(b, '::after').opacity === '1');
     const settingsFile = () => JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8'));
     try {
-      const want = [L.ui.toolbar.order, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.settings];
-      check(await buttons.count() === 6, `the toolbar has ${await buttons.count()} buttons`);
+      const want = [L.ui.toolbar.order, L.ui.projects.button, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.settings];
+      check(await buttons.count() === 7, `the toolbar has ${await buttons.count()} buttons`);
       for (const [i, label] of want.entries()) {
         check(await tip(i) === label, `button ${i} says ${await tip(i)}, not ${label}`);
         check(await buttons.nth(i).getAttribute('aria-label') === label, `button ${i} has no spoken name`);
@@ -3015,7 +3154,7 @@ const SCENARIOS = {
       await page.keyboard.press('Shift+Tab');
       check(await tipShown(0), 'the first button shows no label on keyboard focus');
       await page.evaluate(() => document.activeElement.blur());
-      await buttons.nth(5).hover();
+      await buttons.nth(6).hover();
       await page.screenshot({ path: join(out, 'menus-toolbar-tip.png') });
 
       // Whole real pixels at every window size.
@@ -3044,28 +3183,28 @@ const SCENARIOS = {
       check(await tip(0) === L.ui.toolbar.order, 'the first button did not go back after the work');
 
       // The shelf has words of its own when empty.
-      await buttons.nth(1).click();
+      await buttons.nth(2).click();
       const shelf = await shop.maybe('.shelf-card', 3000);
       check(shelf, 'the works button opens no shelf');
       check((await shelf.innerText()).includes(L.ui.shelf.empty), 'an empty shelf says nothing about being empty');
       await shop.shot(join(out, 'menus-shelf-empty.png'));
       await page.keyboard.press('Escape');
       await sleep(300);
-      await buttons.nth(2).click();
+      await buttons.nth(3).click();
       check(await shop.maybe('.notebook', 3000), 'the notebook button opens no notebook');
       await page.keyboard.press('Escape');
       await sleep(300);
-      await buttons.nth(3).click();
+      await buttons.nth(4).click();
       check(await shop.maybe('.caption-card', 3000), 'the captions button opens no record');
       await page.keyboard.press('Escape');
       await sleep(300);
       // Sound: keyboard focus stays on the button when it changes.
-      await buttons.nth(4).click();
+      await buttons.nth(5).click();
       await sleep(300);
       check(settingsFile().muted === true, 'the sound button did not mute');
-      check(await tip(4) === L.ui.toolbar.unmute, 'the sound button did not change its word');
-      check(await buttons.nth(4).evaluate((b) => b === document.activeElement), 'the sound button lost focus when it changed');
-      await buttons.nth(4).click();
+      check(await tip(5) === L.ui.toolbar.unmute, 'the sound button did not change its word');
+      check(await buttons.nth(5).evaluate((b) => b === document.activeElement), 'the sound button lost focus when it changed');
+      await buttons.nth(5).click();
       await sleep(300);
 
       // Settings: what sits on each tab.
@@ -3290,7 +3429,7 @@ const SCENARIOS = {
     const hints = () => page.evaluate(() => window.lamplightDebug.scene.hints());
     const places = () => page.evaluate(() => window.lamplightDebug.scene.hotspots().map((h) => h.id));
     const said = async (text) => {
-      await page.locator('.toolbar button.tool-btn').nth(3).click();
+      await page.locator('.toolbar button.tool-btn').nth(4).click();
       await page.waitForSelector('.caption-card');
       const log = await page.locator('.caption-card').innerText();
       const has = log.includes(text);

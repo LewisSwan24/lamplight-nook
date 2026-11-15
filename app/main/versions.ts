@@ -181,6 +181,11 @@ export class VersionStore {
     };
   }
 
+  /** Where the original of one of the user's files in a lent folder is kept, if the shop kept it. */
+  originalOf(folder: string, rel: string): string | undefined {
+    return this.lent(folder).kept.includes(rel) ? join(this.lentDir(folder), ORIGINALS, rel) : undefined;
+  }
+
   canUndo(folder: string): boolean {
     return existsSync(join(this.lentDir(folder), LENT));
   }

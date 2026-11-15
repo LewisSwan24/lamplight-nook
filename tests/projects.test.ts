@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../app/main/memory';
-import { addProjects, projectIdFor, projectSettled } from '../app/main/projects';
+import { addProjects, boardRow, projectIdFor, projectSettled, timelineRows } from '../app/main/projects';
 import type { CommissionMemo, Memory, RoundStat } from '../app/shared/types';
 
 const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-projects-')), 'memory.json');
@@ -151,5 +151,50 @@ describe('commissions without a project', () => {
     expect(JSON.parse(saved).projects).toHaveLength(2);
     new MemoryStore(file);
     expect(readFileSync(file, 'utf8')).toBe(saved);
+  });
+});
+
+describe('the project board and timeline (B2)', () => {
+  it('marks the rounds whose version was kept, and the row says which are kept and which are gone', () => {
+    const store = new MemoryStore(fresh());
+    const c = store.remember({ ...memo('tea shop page'), form: { want: 'a page for the tea shop' } }, [], DAY);
+    store.revise(c.id, 'bigger', { result: 'done', choices: {} }, [], DAY);
+    const id = c.project!;
+    store.versionKept(id, [1, 2]);
+    const p = store.get().projects[0];
+    const rows = timelineRows(p, store.get().commissions, (n) => n === 2);
+    expect(rows.map((r) => [r.what, r.kept, r.gone])).toEqual([['a page for the tea shop', false, true], ['bigger', true, false]]);
+    expect(boardRow(p, 1.5, 'done', 0)).toEqual({ id, title: 'tea shop page', touched: '2026-11-15', rounds: 2, usd: 1.5, status: 'done', archived: false, lent: false, color: 0 });
+  });
+
+  it('going back is one more round, under the latest commission', () => {
+    const store = new MemoryStore(fresh());
+    const c = store.remember(memo('page'), [], DAY);
+    store.revise(c.id, 'bigger', { result: 'done', choices: {} }, [], DAY);
+    expect(store.reverted(c.project!, 1, DAY)).toBe(3);
+    expect(store.get().projects[0].rounds[2]).toEqual({ n: 3, commission: c.id, date: '2026-11-15', restoredFrom: 1 });
+  });
+
+  it('branching off makes a new project of one done commission that remembers where it came from', () => {
+    const store = new MemoryStore(fresh());
+    const c = store.remember({ ...memo('page'), form: { want: 'a page', consult: 't1' }, sessionId: 's1', main: 'index.html' }, [], DAY);
+    const f = store.forked(store.find(c.id)!, { project: c.project!, round: 1 }, 'page (from round 1)', 'C:/works/fork', ['C:/works/fork/photo.png'], 'made it', DAY);
+    const p = store.get().projects.find((x) => x.id === f.project)!;
+    expect(p.from).toEqual({ project: c.project, round: 1 });
+    expect(p.rounds).toEqual([{ n: 1, commission: f.id, date: '2026-11-15', summary: 'made it' }]);
+    expect(f).toMatchObject({ result: 'done', folder: 'C:/works/fork', main: 'index.html', preexisting: ['C:/works/fork/photo.png'], form: { want: 'a page' } });
+    expect(f.sessionId).toBeUndefined();
+    expect(f.form?.consult).toBeUndefined();
+    expect(projectSettled(p, store.get().commissions)).toBe('done');
+  });
+
+  it('puts a project away and takes it out again', () => {
+    const store = new MemoryStore(fresh());
+    const c = store.remember(memo('page'), [], DAY);
+    expect(store.archive(c.project!, true)).toBe(true);
+    expect(store.get().projects[0].archived).toBe(true);
+    store.archive(c.project!, false);
+    expect(store.get().projects[0].archived).toBeUndefined();
+    expect(store.archive('p1', true)).toBe(false);
   });
 });

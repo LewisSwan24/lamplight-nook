@@ -1,4 +1,4 @@
-import type { CommissionMemo, Project, ProjectRound, RoundStat } from '../shared/types';
+import type { CommissionMemo, Project, ProjectRound, ProjectRow, ProjectStatus, RoundStat, TimelineRow } from '../shared/types';
 
 /** The project number that goes with a commission number: c123 is p123. */
 export const projectIdFor = (commission: string) => `p${commission.slice(1)}`;
@@ -87,4 +87,24 @@ export function projectFolders(project: Project, commissions: CommissionMemo[]):
 /** Done or stopped, as its latest commission came out. Whether it is running, queued or waiting is the main process's to say. */
 export function projectSettled(project: Project, commissions: CommissionMemo[]): 'done' | 'stopped' {
   return commissions.find((c) => c.id === project.commissions.at(-1))!.result === 'done' ? 'done' : 'stopped';
+}
+
+/** A project as the project board shows it (B2): what it cost and where it stands come from the ledger and the main process. */
+export function boardRow(project: Project, usd: number, status: ProjectStatus, color: number): ProjectRow {
+  return {
+    id: project.id, title: project.title, touched: project.rounds.at(-1)?.date ?? project.created, rounds: project.rounds.length, usd, status,
+    archived: Boolean(project.archived), lent: Boolean(project.lent), color,
+  };
+}
+
+/**
+ * A project's timeline, one row per round: what it was for (the change asked, or on a commission's first round the
+ * commission itself), and whether its version is still kept or has gone to keep the project under its cap.
+ */
+export function timelineRows(project: Project, commissions: CommissionMemo[], kept: (round: number) => boolean): TimelineRow[] {
+  return project.rounds.map((r) => {
+    const c = commissions.find((x) => x.id === r.commission);
+    const has = kept(r.n);
+    return { ...r, what: r.ask ?? c?.form?.want ?? c?.title ?? '', kept: has, gone: Boolean(r.version) && !has };
+  });
 }

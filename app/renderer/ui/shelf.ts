@@ -25,7 +25,7 @@ export function workIconEl(icon: WorkIcon): HTMLElement {
 }
 
 /** The works shelf: everything finished together, latest first, to find, open again or change a bit. */
-export async function showShelf(api: LamplightApi, revise: (id: string, title: string) => void) {
+export async function showShelf(api: LamplightApi, revise: (id: string, title: string) => void, project: (id: string) => void) {
   const { works } = await api.shopState();
   const row = (w: Work) => {
     const note = el('div.hint.work-note');
@@ -61,7 +61,8 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
       el('div.work-actions', {},
         el('button.link', { type: 'button', onclick: async () => { if (!(await api.openWork(w.id))) showGone(); } }, W.open),
         el('button.link', { type: 'button', onclick: () => revise(w.id, w.title) }, W.revise),
-        el('button.link.work-take', { type: 'button', onclick: take }, W.take)));
+        el('button.link.work-take', { type: 'button', onclick: take }, W.take),
+        el('button.link.work-project', { type: 'button', onclick: () => project(w.project) }, strings.ui.projects.seeProject)));
   };
   const many = works.length > FEW_WORKS;
   const list = el('ul.works', { tabindex: 0 });

@@ -19,7 +19,7 @@ let working = false;
 let paint = () => {};
 
 /** What the shop itself opens from the toolbar. */
-export type ToolbarActions = { order: () => void; shelf: () => void };
+export type ToolbarActions = { order: () => void; projects: () => void; shelf: () => void };
 
 /** A button's picture and its label, which shows at once on hover and keyboard focus (style.css). */
 function look(button: HTMLElement, icon: ToolIcon, label: string) {
@@ -30,7 +30,7 @@ function look(button: HTMLElement, icon: ToolIcon, label: string) {
 
 /**
  * Top-left buttons (the door, and its speech bubbles, take the top-right corner), most used first: a commission (or
- * how the one under way is going), the works shelf, Adeng's notebook, captions, sound, settings. Everything here can also
+ * how the one under way is going), the project board, the works shelf, Adeng's notebook, captions, sound, settings. Everything here can also
  * be reached without the scene (docs/information-structure.md). The strip along the bottom is a setting now.
  */
 export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void, act: ToolbarActions) {
@@ -43,6 +43,7 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
   const sound = button('sound', T.mute, async () => onChange(await api.saveSettings({ muted: !view.muted })));
   const bar = el('div.toolbar', { role: 'toolbar', 'aria-label': T.label },
     order,
+    button('projects', strings.ui.projects.button, act.projects),
     button('works', strings.ui.shelf.title, act.shelf),
     button('notebook', strings.ui.notebook.title, () => void showNotebook(api)),
     button('captions', strings.ui.access.captionsButton, showCaptionLog),
