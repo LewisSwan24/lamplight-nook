@@ -85,18 +85,38 @@ export class Translator {
    * apprentice instead of waiting; checks still wait for Laoshi, since the apprentice only runs errands.
    */
   apprentice = false;
-  /** Who is out on each helper's errands, in the order they set off. Each takes one at a time. */
-  private hands = new Map<ActorId, ActorId[]>();
-  /** Errands waiting for a free pair of hands, per helper. */
-  private waiting = new Map<ActorId, number>();
+  /** Who is out on each helper's errands, and for which round, in the order they set off. Each takes one at a time. */
+  private hands = new Map<ActorId, { actor: ActorId; run: string }[]>();
+  /** Errands waiting for a free pair of hands, per helper: the round each is for, in the order they came. */
+  private waiting = new Map<ActorId, string[]>();
+  /** What each round under way is about (B5): its brief and what memory brings to it. */
+  private ctxs = new Map<string, TranslateContext>();
+  /** The rounds under way, in the order they started; events from a replay count as one round with no id. */
+  readonly running: string[] = [];
   /** Who came back with the last subagent that finished: the parcel on the counter is theirs. */
   returned: ActorId = 'xiaoju';
 
   constructor(private rules: Rule[], private anims: AnimTable, private ctx: TranslateContext = {}) {}
 
-  /** A new commission (or a replay): its brief and what memory brings to it. */
-  setContext(ctx: TranslateContext) {
-    this.ctx = ctx;
+  /**
+   * A new commission (or a replay): its brief and what memory brings to it. Without a run, it is for the next round to
+   * start, which takes it as its own.
+   */
+  setContext(ctx: TranslateContext, run?: string) {
+    if (run === undefined) this.ctx = ctx;
+    else this.ctxs.set(run, ctx);
+  }
+
+  /**
+   * The rounds the main process says are still under way (B5). A round that ended without a last event of its own (a
+   * dropped connection, Claude Code gone) is let go here, so the next round alone starts the shop afresh.
+   */
+  keepRuns(live: string[]) {
+    for (const run of [...this.running]) {
+      if (run === '' || live.includes(run)) continue;
+      this.running.splice(this.running.indexOf(run), 1);
+      this.ctxs.delete(run);
+    }
   }
 
   /** Hot reload: swap rules and the animation table without touching current states. */
@@ -106,13 +126,24 @@ export class Translator {
   }
 
   translate(e: AiEvent): CharacterCommand[] {
+    const run = e.run ?? '';
     if (e.kind === 'session_start') {
-      this.states.reset();
-      this.hands.clear();
-      this.waiting.clear();
+      // Another round already at work keeps its people where they are (B5); only a shop with nothing on starts afresh.
+      if (!this.running.some((r) => r !== run)) {
+        this.states.reset();
+        this.hands.clear();
+        this.waiting.clear();
+      }
+      if (!this.running.includes(run)) this.running.push(run);
+      if (!this.ctxs.has(run)) this.ctxs.set(run, this.ctx);
     }
-    if (e.kind === 'subagent_start' || e.kind === 'subagent_stop') return this.errand(e);
-    return this.apply(e);
+    const out = e.kind === 'subagent_start' || e.kind === 'subagent_stop' ? this.errand(e) : this.apply(e);
+    if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') {
+      const i = this.running.indexOf(run);
+      if (i >= 0) this.running.splice(i, 1);
+      this.ctxs.delete(run);
+    }
+    return out;
   }
 
   private apply(e: AiEvent, by?: ActorId): CharacterCommand[] {
@@ -132,36 +163,40 @@ export class Translator {
    */
   private errand(e: AiEvent): CharacterCommand[] {
     const lead = AGENT_ACTOR[e.agent];
+    const run = e.run ?? '';
     const hands = this.hands.get(lead) ?? [];
     this.hands.set(lead, hands);
-    const waiting = this.waiting.get(lead) ?? 0;
+    const waiting = this.waiting.get(lead) ?? [];
+    this.waiting.set(lead, waiting);
     if (e.kind === 'subagent_start') {
-      const free = [lead, ...(lead === 'xiaoju' && this.apprentice ? ['xiaodou' as const] : [])].find((a) => !hands.includes(a));
+      const free = [lead, ...(lead === 'xiaoju' && this.apprentice ? ['xiaodou' as const] : [])].find((a) => !hands.some((h) => h.actor === a));
       if (free) {
-        hands.push(free);
+        hands.push({ actor: free, run });
         return this.apply(e, free);
       }
-      this.waiting.set(lead, waiting + 1);
+      waiting.push(run);
       return [{
         actor: 'adeng', state: this.states.get('adeng'), priority: PRIORITY.subagent,
         line: { group: 'sub_queue', vars: { who: strings.actors[lead] }, flags: [`who_${lead}`] },
       }];
     }
-    // A stop with nobody out (a replay joined part-way) brings back the helper's own actor.
-    const who = hands.shift() ?? lead;
+    // Whoever went out first for this round comes back. A stop with nobody out (a replay joined part-way) brings back the
+    // helper's own actor.
+    const mine = hands.findIndex((h) => h.run === run);
+    const who = (mine >= 0 ? hands.splice(mine, 1)[0] : hands.shift())?.actor ?? lead;
     this.returned = who;
     const back = this.apply(e, who);
-    if (!waiting) return back;
-    this.waiting.set(lead, waiting - 1);
-    hands.push(who);
-    return [...back, ...this.apply({ ...e, kind: 'subagent_start', target: undefined }, who)];
+    const next = waiting.shift();
+    if (next === undefined) return back;
+    hands.push({ actor: who, run: next });
+    return [...back, ...this.apply({ ...e, kind: 'subagent_start', target: undefined, run: next }, who)];
   }
 
   /** Who is out on an agent's errands just now, or the agent's own actor when nobody is. */
   helpersOf(agent: AiEvent['agent']): ActorId[] {
     const lead = AGENT_ACTOR[agent];
     const hands = this.hands.get(lead);
-    return hands?.length ? [...hands] : [lead];
+    return hands?.length ? hands.map((h) => h.actor) : [lead];
   }
 
   private build(spec: CommandSpec, e: AiEvent): CharacterCommand | null {
@@ -184,11 +219,12 @@ export class Translator {
     if (spec.bubble) cmd.bubble = spec.bubble;
     if (spec.lines) {
       const target = e.target ?? '';
+      const ctx = this.ctxs.get(e.run ?? '') ?? this.ctx;
       cmd.line = {
         group: spec.lines,
         // Variable names match the placeholders used in lines/cafe.yaml.
-        vars: { ...this.ctx.vars, target, file: target, topic: target, question: target, choice: target, brief: this.ctx.brief ?? strings.defaults.brief },
-        flags: [...(this.ctx.flags ?? []), ...(e.kind === 'subagent_stop' ? reviewFlags(e.target) : [])],
+        vars: { ...ctx.vars, target, file: target, topic: target, question: target, choice: target, brief: ctx.brief ?? strings.defaults.brief },
+        flags: [...(ctx.flags ?? []), ...(e.kind === 'subagent_stop' ? reviewFlags(e.target) : [])],
       };
       if (spec.own_lines) cmd.line.speaker = actor;
     }

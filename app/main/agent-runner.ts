@@ -11,7 +11,7 @@ import {
 import { strings } from '../shared/i18n';
 import type { AiEvent, RawAgentEvent, RunResult } from '../shared/types';
 import { REPLY_LANGUAGE } from './commission';
-import type { DecisionBroker } from './decision-broker';
+import type { Asker } from './decision-broker';
 import { EventNormalizer } from './event-normalizer';
 import { makePermissionPolicy } from './permission-policy';
 import { isInside } from './paths';
@@ -94,7 +94,7 @@ export type RunOptions = {
    * When given, permissions go through the risk classifier and the user decides questions and risky steps.
    * Without it (debug tasks), the interim rule applies.
    */
-  broker?: DecisionBroker;
+  broker?: Asker;
   /** Files that existed in the folder before the run; overwriting them needs confirmation. */
   preexisting?: Set<string>;
   /** Working in a folder the user lent: keeps the original of each of their files before it is first changed. */

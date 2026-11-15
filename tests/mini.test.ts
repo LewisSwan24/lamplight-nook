@@ -64,4 +64,13 @@ describe('the corner window line', () => {
   it('uses the plain line for every other status', () => {
     expect(miniLine({ status: 'done', pose: 'idle' }, M)).toBe(M.done);
   });
+
+  it('with two rounds at once (B5), names the project the line is about', () => {
+    const s = run({ type: 'run', running: true }, { type: 'ai', run: 'r2', project: 'Walden notes', event: { kind: 'tool_start', agent: 'main', plain: 'writing notes.md' } });
+    expect(miniLine(s, M)).toBe('Walden notes · writing notes.md');
+    const asked = nextMini(s, { type: 'ask', serious: false, run: 'r1', project: 'Reunion page' });
+    expect(miniLine(asked, M)).toBe(`Reunion page · ${M.waiting}`);
+    // One round alone: nothing in front, as before.
+    expect(miniLine(run({ type: 'ai', run: 'r1', event: { kind: 'tool_start', agent: 'main', plain: 'writing index.html' } }), M)).toBe('writing index.html');
+  });
 });

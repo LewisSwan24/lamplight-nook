@@ -44,6 +44,22 @@ describe('reserving at the start of a round', () => {
     expect(r.reserve('r3', 'p3', caps(3, 10), { month: 5, project: 0 })).toEqual({ refused: { cap: 'month', capUsd: 10, spentUsd: 5, leftUsd: 0 } });
   });
 
+  it('two rounds at once (B5), settled one at a time: the first to end frees only what it held', () => {
+    const r = new Reservations();
+    expect(r.reserve('r1', 'p1', caps(3, 6.5), { month: 2, project: 0 })).toEqual({ usd: 3, by: 'round' });
+    expect(r.reserve('r2', 'p2', caps(3, 6.5), { month: 2, project: 0 })).toEqual({ usd: 1.5, by: 'month' });
+    // A third is short of money only because of what the two hold: it waits in the queue (B5 rule 5).
+    expect('refused' in r.reserve('r3', 'p3', caps(3, 6.5), { month: 2, project: 0 })).toBe(true);
+    r.settle('r2');
+    expect(r.held()).toBe(3);
+    expect(r.held('p1')).toBe(3);
+    // r2 cost $1 in the ledger: the third now gets what is left beside r1's hold.
+    expect(r.reserve('r3', 'p3', caps(3, 6.5), { month: 3, project: 0 })).toEqual({ usd: 0.5, by: 'month' });
+    r.settle('r1');
+    r.settle('r3');
+    expect(r.held()).toBe(0);
+  });
+
   it('only rounds of the same project count against its cap', () => {
     const r = new Reservations();
     r.reserve('r1', 'p1', caps(3, 0, 5), { month: 0, project: 0 });

@@ -13,7 +13,8 @@ export const CONFIRM_DELAY_MS = 1000;
  * Show a decision. Questions and ordinary permissions use the watercolor dialog; serious steps use the
  * plain confirmation card. Resolves with the chosen option id.
  */
-export function showDecision(req: DecisionRequest): Promise<string> {
+/** `named`: two rounds are under way (B5), so the card says which project asks, before the question. */
+export function showDecision(req: DecisionRequest, named = false): Promise<string> {
   return new Promise((resolve) => {
     const backdrop = el('div.backdrop');
     const serious = req.kind === 'serious';
@@ -38,7 +39,8 @@ export function showDecision(req: DecisionRequest): Promise<string> {
       }
     };
     document.addEventListener('keydown', onKey, true);
-    backdrop.append(req.kind === 'serious' ? seriousCard(req, close) : dialog(req, close));
+    const title = named && req.project ? `${req.project.title} \u00B7 ${req.title}` : req.title;
+    backdrop.append(req.kind === 'serious' ? seriousCard({ ...req, title }, close) : dialog({ ...req, title }, close));
     layer().append(backdrop);
     // Serious mode: the music stops and a single alert is the only sound.
     if (serious) setSerious(true);

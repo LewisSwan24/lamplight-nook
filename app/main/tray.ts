@@ -67,7 +67,8 @@ export class ShopTray {
       this.notified.add(req.id);
       const note = new Notification({
         title: fill(T.notifyTitle, { who: strings.actors[AGENT_ACTOR[req.agent]] }),
-        body: req.kind === 'serious' ? `${T.notifySerious}: ${req.title}` : req.title,
+        // The project first, so two rounds' questions are told apart (B5).
+        body: `${req.project ? `${req.project.title} · ` : ''}${req.kind === 'serious' ? `${T.notifySerious}: ${req.title}` : req.title}`,
         silent: false,
       });
       note.on('click', () => this.show());

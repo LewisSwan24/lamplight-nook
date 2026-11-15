@@ -8,7 +8,7 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -30,7 +30,8 @@ import { Log } from './log';
 import { SettingsStore, defaultWorkRoot } from './settings';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
-import { type Caps, type CapKind, type Refusal, type Spent, Reservations, startingMonthCap, warnings } from './budget';
+import { type Caps, type CapKind, type Grant, type Refusal, type Spent, Reservations, startingMonthCap, warnings } from './budget';
+import { RunQueue, runId, type Ticket } from './runs';
 import { now, setClock } from './clock';
 import { localMonth } from '../shared/localday';
 import { RoundTally } from './tally';
@@ -59,15 +60,30 @@ let win: BrowserWindow | null = null;
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
 const broker = new DecisionBroker((req) => {
   send(IPC.decision, req);
-  mini.feed({ type: 'ask', serious: req.kind === 'serious' });
+  mini.feed({ type: 'ask', serious: req.kind === 'serious', run: req.run, project: many() ? req.project?.title : undefined });
   tray.attention(req, settings.get().notify);
+  sendRuns();
 });
 const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
 /** The lamp in the tray. Quitting from its menu closes for real, even with "close to tray" on. */
 const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.close(); });
-/** The commission currently running (one at a time), and the folder of the last one. */
-let current: { workDir: string; abort: AbortController; note?: (text: string) => boolean } | null = null;
-let lastWorkDir: string | null = null;
+/**
+ * The rounds under way (road-to-1.2.md B5), by run id, two at most: each with its own way to stop it, its clock, where it got
+ * stuck and what the user answered, and the meeting note it takes.
+ */
+type Run = { id: string; job: Job; project: RunProject; abort: AbortController; started: number; stuck: StuckTracker; choices: Record<string, string>; note?: (text: string) => boolean };
+const runs = new Map<string, Run>();
+/** Rounds waiting their turn: what starts one once it may, with what it may spend held, and how its caller hears it was called off. */
+type Waiting = Ticket & { title: string; grant?: Grant; go: (grant: Grant) => void; drop: () => void };
+const queue = new RunQueue<Waiting>();
+/** The folders of rounds finished since the shop opened, whose files their result cards may open. */
+const finishedIn = new Set<string>();
+/** The first round under way: the tray's step count follows it, and a meeting's note goes to it. */
+const lead = (): Run | undefined => runs.values().next().value;
+/** Two rounds at once: lines from each then say which project they are about. */
+const many = () => runs.size > 1;
+/** A round is working in this folder. */
+const busyIn = (folder: string) => [...runs.values()].some((r) => r.job.workDir === folder);
 /** The corner window shown while the shop is out of sight (plan.md R3). */
 const mini = new MiniWindow(join(here, '../preload/index.cjs'), (w) => {
   if (process.env.ELECTRON_RENDERER_URL) w.loadURL(`${process.env.ELECTRON_RENDERER_URL}/mini.html`);
@@ -87,11 +103,11 @@ let versions: VersionStore;
 let projectVersions: ProjectVersions;
 let keys: KeyStore;
 let spend: SpendLedger;
-/** The last commission that failed (offered as "try again"), and one left over from a crash. */
-let lastFailed: Job | null = null;
+/** Rounds that failed, by run id, each offered as "try again"; and those left over from a crash, offered one at a time. */
+const failed = new Map<string, Job>();
 /** What the rounds under way may still spend (road-to-1.2.md B8). */
 const reservations = new Reservations();
-let leftover: Job | null = null;
+let leftovers: Job[] = [];
 /** Set once the user chose to stop and close, so the close prompt doesn't come back. */
 let quitting = false;
 /** Set when the user quits from the tray, so closing doesn't just hide the window. */
@@ -133,7 +149,7 @@ function createWindow() {
       win?.hide();
       return;
     }
-    if (!current || quitting || !win) return;
+    if (!runs.size || quitting || !win) return;
     const R = strings.ui.run;
     const choice = dialog.showMessageBoxSync(win, {
       type: 'question', title: R.closeTitle, message: R.closeTitle, detail: R.closeText,
@@ -173,6 +189,19 @@ const emitters = {
     if (event.kind === 'done' || event.kind === 'failed' || event.kind === 'cancelled' || event.kind === 'session_start') tray.setStep(undefined);
   },
 };
+/** One round's events: each carries its run id and project (B5). The tray's step count follows the first round only. */
+function emittersFor(run: string, project: RunProject) {
+  return {
+    emit: emitters.emit,
+    emitAi: (event: AiEvent) => {
+      send(IPC.aiEvent, { ...event, raw: undefined, run, project });
+      mini.feed({ type: 'ai', run, project: many() ? project.title : undefined, event: { kind: event.kind, agent: event.agent, plain: event.plain, todos: event.todos } });
+      if (lead()?.id !== run) return;
+      if (event.agent === 'main' && event.todos) tray.setStep(stepCount(event.todos));
+      if (event.kind === 'done' || event.kind === 'failed' || event.kind === 'cancelled' || event.kind === 'session_start') tray.setStep(undefined);
+    },
+  };
+}
 
 // The key is only read in the main process; the renderer just gets a boolean.
 // Debug tools are for development; a packaged build hides them unless LAMPLIGHT_DEBUG=1.
@@ -282,7 +311,11 @@ ipcMain.handle(IPC.monthCapNews, (): number | null => {
   settings.raisedMonthCap = false;
   return raised;
 });
-ipcMain.handle(IPC.setProjectCap, (_e, id: unknown, usd: unknown): boolean => typeof id === 'string' && typeof usd === 'number' && memory.setProjectCap(id, usd));
+ipcMain.handle(IPC.setProjectCap, (_e, id: unknown, usd: unknown): boolean => {
+  const ok = typeof id === 'string' && typeof usd === 'number' && memory.setProjectCap(id, usd);
+  pump();
+  return ok;
+});
 
 /**
  * The talk with Adeng before a commission (road-to-1.2.md B4), one at a time: a slip opened afresh starts a new one. `said`
@@ -351,6 +384,8 @@ ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
   const saved = settings.update(rest);
   // Switched back on: look now rather than in up to six hours.
   if (saved.updates && !looked) void updates?.check();
+  // A higher monthly cap may let a round waiting for money start.
+  pump();
   return saved;
 });
 ipcMain.handle(IPC.chooseWorkRoot, async (): Promise<Settings | null> => {
@@ -370,7 +405,7 @@ ipcMain.on(IPC.scene, (e) => { e.returnValue = settings.get().scene; });
 // Moving waits while a commission runs: reloading the page would lose the stage that acts it out.
 ipcMain.handle(IPC.moveScene, (_e, scene: unknown): boolean => {
   const next = cleanScene(scene);
-  if (!next || current || !win) return false;
+  if (!next || runs.size || queue.queued.length || !win) return false;
   settings.update({ scene: next });
   mini.destroy();
   win.webContents.reload();
@@ -385,7 +420,7 @@ ipcMain.handle(IPC.legalNotices, (): string | null => {
   }
 });
 ipcMain.handle(IPC.relaunch, () => {
-  if (current) return false;
+  if (runs.size || queue.queued.length) return false;
   log?.info('relaunch for language', { language: settings.get().language });
   app.relaunch();
   app.exit(0);
@@ -424,49 +459,106 @@ function noteOn(cap: CapKind, caps: Caps, spent: Spent): Refusal {
 const capStop = (r: Refusal, project?: Project): { error: string; cap: BudgetNote } =>
   ({ error: r.cap === 'month' ? 'monthCap' : 'projectCap', cap: { ...r, ...(r.cap === 'project' ? { project: project!.title } : {}) } });
 /**
- * Whether a new round may start, asked before anything is made or kept for it (a new folder, the previous version): only
- * asking, so what it would hold goes straight back.
+ * Whether a new round may start at all, asked before anything is made or kept for it (a new folder, the previous version).
+ * Only the ledger counts here: what the rounds under way hold is theirs only until they end, so a round short of money
+ * because of them waits in the queue instead (B5 rule 5).
  */
 function refused(project: Project | undefined, workDir: string): RunResult | null {
-  const grant = reservations.reserve('asking', project?.id, capsFor(project), spentOn(project));
-  reservations.settle('asking');
+  const grant = new Reservations().reserve('asking', project?.id, capsFor(project), spentOn(project));
   return 'refused' in grant ? { ok: false, recordingPath: '', workDir, ...capStop(grant.refused, project) } : null;
+}
+
+/**
+ * Put a round in the queue (road-to-1.2.md B5) and start whatever may start. `start` runs it when its turn comes, with what
+ * it may spend already held; once it ends that is let go and the queue moves on. Called off while it waits, its caller
+ * hears so and nothing was spent.
+ */
+function queued(folder: string | undefined, project: Project | undefined, title: string, start: (run: string, grant: Grant) => Promise<RunResult>): Promise<RunResult> {
+  const id = runId(Date.now());
+  return new Promise((resolve) => {
+    queue.add({
+      id, folder, project: project?.id, by: 'user', title,
+      go: (grant) => void start(id, grant).then((r) => {
+        reservations.settle(id);
+        resolve(r);
+        pump();
+      }),
+      drop: () => resolve({ run: id, ok: false, recordingPath: '', workDir: folder ?? '', error: 'cancelled' }),
+    });
+    pump();
+    if (queue.queued.some((t) => t.id === id)) log?.info('run queued', { waits: queue.queued.find((t) => t.id === id)!.waits });
+  });
+}
+/** Start what may start: two at most, one per project, first come first served, and only with the money for it held. */
+function pump() {
+  const active = [...runs.values()].map((r) => ({ id: r.id, folder: r.job.workDir, project: r.project.id }));
+  const projects = memory.get().projects;
+  const starting = queue.take(active, overlaps, (t) => {
+    const p = projects.find((x) => x.id === t.project);
+    const grant = reservations.reserve(t.id, p?.id, capsFor(p), spentOn(p));
+    if ('refused' in grant) return false;
+    t.grant = grant;
+    return true;
+  });
+  for (const t of starting) t.go(t.grant!);
+  sendRuns();
+}
+/** The rounds under way and in the queue, as the page shows them: who is waiting for the user, and what each queued one waits for. */
+function runInfos(): RunInfo[] {
+  const under = [...runs.values()];
+  return [
+    ...under.map((r): RunInfo => ({ run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running' })),
+    ...queue.queued.map((t): RunInfo => {
+      const waits = t.waits ?? 'slot';
+      const behind = waits === 'money' ? [] : under.filter((r) => waits === 'slot' || (t.folder && overlaps(r.job.workDir, t.folder))).map((r) => r.project.title);
+      return { run: t.id, project: { id: t.project, title: t.title }, state: 'queued', waits, behind };
+    }),
+  ];
+}
+const sendRuns = () => send(IPC.runs, runInfos());
+/** Carry on a round that stopped (try again, or one left over from a crash): asked of the caps first, then queued. */
+function carryOn(job: Job): Promise<RunResult> {
+  const project = projectOf(job, true);
+  const stop = refused(project, job.workDir);
+  if (stop) {
+    // It stays the one to carry on, once the cap allows.
+    const id = runId(Date.now());
+    failed.set(id, job);
+    return Promise.resolve({ ...stop, run: id, carryOn: true });
+  }
+  return queued(job.workDir, project, project?.title ?? commissionTitle(job.form), (run, grant) => runJob(run, grant, job, true, project));
 }
 
 /**
  * Run a commission, fresh or continued. While it runs it is remembered on disk so it can be resumed after
  * a crash; once it ends (any outcome) that record goes away, and a failed run stays available for "try again".
  */
-async function runJob(job: Job, again: boolean): Promise<RunResult> {
-  if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
-  // What this round may spend is held from now until it is settled below (budget.ts). A round that cannot start stays the
-  // one to carry on, once the cap allows.
-  const project = projectOf(job, again);
-  const run = `r${Date.now()}`;
-  const grant = reservations.reserve(run, project?.id, capsFor(project), spentOn(project));
-  if ('refused' in grant) {
-    lastFailed = job;
-    return { ok: false, recordingPath: '', workDir: job.workDir, ...capStop(grant.refused, project), carryOn: true };
-  }
+async function runJob(run: string, grant: Grant, job: Job, again: boolean, project?: Project): Promise<RunResult> {
+  // What this round may spend was held as it left the queue, until it is settled once it ends (budget.ts, queued()).
   const abort = new AbortController();
-  current = { workDir: job.workDir, abort };
+  const started = Date.now();
+  const title = commissionTitle(job.form);
+  // A new commission has no project until it is written down; it goes by its own title until then.
+  const who: RunProject = { id: project?.id, title: project?.title ?? title };
+  // What goes in Adeng's notebook: the user's answers to questions, and where the work got stuck. Each round its own (B5).
+  const me: Run = { id: run, job, project: who, abort, started, stuck: new StuckTracker(), choices: {} };
+  const { stuck, choices } = me;
+  job.run = run;
+  runs.set(run, me);
   mini.feed({ type: 'run', running: true });
   pending.save(job);
-  const started = Date.now();
+  sendRuns();
   const tally = new RoundTally(started);
-  log?.info('run start', { demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId) });
-  // What goes in Adeng's notebook: the user's answers to questions, and where the work got stuck.
-  const title = commissionTitle(job.form);
+  log?.info('run start', { run, demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId), together: runs.size });
   const r = job.revise;
   // A round of changes is a round inside a project: it starts with what the staff remember of it (B3), and carries the
   // project's preferences there instead of the questions answered on the rest of the shop's work.
   const notes = memory.promptNotes(title, Boolean(r));
-  const choices: Record<string, string> = {};
-  const stuck = new StuckTracker();
-  broker.onAnswered = (req, choice) => {
+  broker.listen(run, (req, choice) => {
     const picked = req.kind === 'question' ? req.options.find((o) => o.id === choice && o.id !== 'delegate') : undefined;
     if (picked) choices[req.title] = picked.label;
-  };
+  });
+  const out = emittersFor(run, who);
   const background = r && project ? projectBackground(memory.projectBrief(project.id)!, project.rounds) : undefined;
   const revision: Revision | undefined = r && { ask: r.ask, form: job.form, summary: r.summary, restored: r.restored, background };
   // A round of changes picks up the earlier session when Claude Code still has it; otherwise it starts afresh from the folder.
@@ -484,22 +576,22 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       resume: again ? job.sessionId : pickUp,
       onSession: (id) => { job.sessionId = id; pending.save(job); },
       onInit: (info) => log?.info('run session', info),
-      onInput: (add) => { if (current) current.note = (text) => add(meetingNote(text)); },
+      onInput: (add) => { me.note = (text) => add(meetingNote(text)); },
       workDir: job.workDir,
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
-      broker,
+      broker: broker.forRun(run, who),
       credentials: credentials(),
       maxBudgetUsd: grant.usd,
       preexisting: before,
       keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
       abort,
-      ...emitters,
-      emitAi: (e) => { stuck.see(e); tally.see(e); emitters.emitAi(e); },
+      ...out,
+      emitAi: (e) => { stuck.see(e); tally.see(e); out.emitAi(e); },
     });
     // Whatever the outcome, even called off: what it made so far must go too if the user undoes it.
     if (lent) versions.noteAdded(job.workDir, atStart, entriesIn(job.workDir));
     finished = result.ok;
-    log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
+    log?.info('run end', { run, ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
     const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now());
     const costUsd = spend.forCommission(job.workDir) || undefined;
@@ -530,20 +622,20 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
-        ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
         id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
       });
     }
-    lastFailed = result.ok || result.error === 'cancelled' ? null : job;
-    return { ...result, ...stop, ...(stop ? { carryOn: true } : {}), error, spentThisRun, budget };
+    if (!result.ok && result.error !== 'cancelled') failed.set(run, job);
+    return { ...result, run, ...stop, ...(stop ? { carryOn: true } : {}), error, spentThisRun, budget };
   } finally {
-    reservations.settle(run);
-    broker.onAnswered = undefined;
+    broker.forget(run);
     // Stopping on the way out promised it could be carried on, unless it got to the end first.
-    if (!quitting || finished) pending.clear();
-    current = null;
-    lastWorkDir = job.workDir;
-    mini.feed({ type: 'run', running: false });
+    if (!quitting || finished) pending.clear(run);
+    runs.delete(run);
+    finishedIn.add(job.workDir);
+    mini.feed({ type: 'run', running: runs.size > 0 });
+    sendRuns();
   }
 }
 
@@ -592,19 +684,21 @@ ipcMain.handle(IPC.handOver, async (_e, paths: string[] | null, already: Materia
 });
 
 ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<RunResult> => {
-  if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   if (form.source && !picked.has(form.source)) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   if (form.materials?.some((m) => !picked.has(m))) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   const stop = refused(undefined, '');
   if (stop) return stop;
   if (form.inPlace) return startLent(form, form.inPlace);
-  if (form.demo) form = { ...form, materials: undefined };
-  const workDir = commissionDir(settings.get().workRoot, folderName(commissionTitle(form)));
-  mkdirSync(workDir, { recursive: true });
-  if (form.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
-  prepareSource(workDir, form);
-  try { copyMaterials(workDir, form.materials ?? []); } catch (e) { return { ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
-  return runJob({ form, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
+  const f = form.demo ? { ...form, materials: undefined } : form;
+  // Its folder is made when its turn comes, so one called off in the queue leaves nothing behind.
+  return queued(undefined, undefined, commissionTitle(f), async (run, grant) => {
+    const workDir = commissionDir(settings.get().workRoot, folderName(commissionTitle(f)));
+    mkdirSync(workDir, { recursive: true });
+    if (f.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
+    prepareSource(workDir, f);
+    try { copyMaterials(workDir, f.materials ?? []); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
+    return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now() }, false);
+  });
 });
 
 /**
@@ -614,9 +708,11 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
 function startLent(form: CommissionForm, folder: string): Promise<RunResult> {
   if (!picked.has(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'source' });
   if (tooBigToLend(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'tooBig' });
-  // An earlier work here can't be undone any more: putting its originals back would undo this one as well.
-  for (const c of memory.get().commissions) if (c.form?.inPlace && c.result === 'done' && overlaps(c.folder!, folder)) versions.dropLent(c.folder!);
-  return runJob({ form: { ...form, materials: undefined, source: undefined, demo: false }, workDir: folder, preexisting: versions.usersFiles(folder), startedAt: Date.now() }, false);
+  return queued(folder, undefined, commissionTitle(form), (run, grant) => {
+    // An earlier work here can't be undone any more: putting its originals back would undo this one as well.
+    for (const c of memory.get().commissions) if (c.form?.inPlace && c.result === 'done' && overlaps(c.folder!, folder)) versions.dropLent(c.folder!);
+    return runJob(run, grant, { form: { ...form, materials: undefined, source: undefined, demo: false }, workDir: folder, preexisting: versions.usersFiles(folder), startedAt: Date.now() }, false);
+  });
 }
 
 /**
@@ -624,7 +720,6 @@ function startLent(form: CommissionForm, folder: string): Promise<RunResult> {
  * (the "previous version"), then the staff pick up where they left off.
  */
 ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<RunResult> => {
-  if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   const ask = typeof req?.ask === 'string' ? req.ask.trim().slice(0, 2000) : '';
   const memo = typeof req?.id === 'string' ? memory.find(req.id) : memory.latest();
   if (!memo || !ask) return { ok: false, recordingPath: '', workDir: '', error: 'gone' };
@@ -633,20 +728,26 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
   const lent = Boolean(memo.form?.inPlace);
   if (lent && tooBigToLend(memo.folder)) return { ok: false, recordingPath: '', workDir: '', error: 'tooBig' };
-  const stop = refused(memory.get().projects.find((p) => p.id === memo.project), memo.folder);
+  const project = memory.get().projects.find((p) => p.id === memo.project);
+  const stop = refused(project, memo.folder);
   if (stop) return stop;
-  const preexisting = lent ? versions.usersFiles(memo.folder) : memo.preexisting ?? [];
-  const restored = restoredSince.has(memo.id);
-  restoredSince.delete(memo.id);
-  keepLatest(memo);
-  const form = memo.form ?? { want: memo.title };
-  // A session grown long, or left for over a week, is not picked up: the project background and the folder carry the work
-  // over (B3), and a fresh session reads far less each round.
-  const fromSession = newSession(memo.rounds?.at(-1) ?? { date: memo.date }, localDay(now())) ? undefined : memo.sessionId;
-  return runJob({
-    form, workDir: memo.folder, preexisting, startedAt: Date.now(),
-    revise: { id: memo.id, ask, fromSession, summary: memo.summary, restored },
-  }, false);
+  const folder = memo.folder;
+  // What the round starts from is kept when its turn comes: a round of the same project before it may still change it.
+  return queued(folder, project, project?.title ?? memo.title, (run, grant) => {
+    const latest = memory.find(memo.id)!;
+    const preexisting = lent ? versions.usersFiles(folder) : latest.preexisting ?? [];
+    const restored = restoredSince.has(memo.id);
+    restoredSince.delete(memo.id);
+    keepLatest(latest);
+    const form = latest.form ?? { want: latest.title };
+    // A session grown long, or left for over a week, is not picked up: the project background and the folder carry the work
+    // over (B3), and a fresh session reads far less each round.
+    const fromSession = newSession(latest.rounds?.at(-1) ?? { date: latest.date }, localDay(now())) ? undefined : latest.sessionId;
+    return runJob(run, grant, {
+      form, workDir: folder, preexisting, startedAt: Date.now(),
+      revise: { id: memo.id, ask, fromSession, summary: latest.summary, restored },
+    }, false, project);
+  });
 });
 ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState());
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
@@ -673,7 +774,7 @@ const restoredSince = new Set<string>();
 ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
   const memo = typeof id === 'string' ? memory.find(id) : undefined;
   // Not the one being worked on, and one with no main file gives nothing to recognise it by (the shelf offers neither).
-  if (!memo?.main || current?.workDir === memo.folder) return 'cancelled';
+  if (!memo?.main || (memo.folder && busyIn(memo.folder))) return 'cancelled';
   const r = await dialog.showOpenDialog(win!, { title: fill(strings.ui.shelf.relinkDialog, { main: memo.main }), properties: ['openDirectory'] });
   if (r.canceled) return 'cancelled';
   const folder = r.filePaths[0];
@@ -744,7 +845,7 @@ function previousRound(memo: CommissionMemo): number | undefined {
  */
 function revert(id: string, to: number): boolean {
   const p = memory.get().projects.find((x) => x.id === id);
-  if (current || !p || !projectVersions.has(p.id, to) || !existsSync(p.folder)) return false;
+  if (!p || busyIn(p.folder) || !projectVersions.has(p.id, to) || !existsSync(p.folder)) return false;
   const memo = memory.find(p.commissions.at(-1)!)!;
   const last = p.rounds.at(-1)!.n;
   projectVersions.save(p.id, last, p.folder, scopeOf(memo));
@@ -756,18 +857,35 @@ function revert(id: string, to: number): boolean {
   return true;
 }
 
-/** Where a project stands: at work, waiting for the user's answer, or how its latest commission came out. */
+/** Where a project stands: at work, waiting for the user's answer, in the queue (B5), or how its latest commission came out. */
 function statusOf(id: string): ProjectStatus {
   const p = memory.get().projects.find((x) => x.id === id)!;
-  if (current && current.workDir === p.folder) return broker.waiting ? 'waiting' : 'running';
+  const at = [...runs.values()].find((r) => r.project.id === p.id || r.job.workDir === p.folder);
+  if (at) return broker.waitingOn(at.id) ? 'waiting' : 'running';
+  if (queue.queued.some((t) => t.project === p.id)) return 'queued';
   return projectSettled(p, memory.get().commissions);
+}
+/** A queued round as the board shows it: called off from there, with why it waits and behind whom. */
+function queueNote(t: Waiting): ProjectRow['queue'] {
+  const info = runInfos().find((i) => i.run === t.id)!;
+  return { run: t.id, waits: info.waits!, behind: info.behind ?? [] };
 }
 const rowOf = (id: string): ProjectRow => {
   const all = memory.get().projects;
   const p = all.find((x) => x.id === id)!;
-  return boardRow(p, spentOn(p).project, statusOf(id), all.indexOf(p));
+  const waiting = queue.queued.find((t) => t.project === p.id);
+  return { ...boardRow(p, spentOn(p).project, statusOf(id), all.indexOf(p)), ...(waiting && statusOf(id) === 'queued' ? { queue: queueNote(waiting) } : {}) };
 };
-ipcMain.handle(IPC.projectBoard, (): ProjectRow[] => memory.get().projects.map((p) => rowOf(p.id)).sort((a, b) => b.touched.localeCompare(a.touched)));
+/** New commissions under way or in the queue have no project yet: each is a row of its own, in the colour its project will get. */
+function freshRows(): ProjectRow[] {
+  const count = memory.get().projects.length;
+  const row = (id: string, title: string, status: ProjectStatus, i: number): ProjectRow =>
+    ({ id, title, touched: localDay(now()), rounds: 0, usd: 0, status, archived: false, lent: false, color: count + i, fresh: true });
+  const under = [...runs.values()].filter((r) => !r.project.id).map((r, i) => row(r.id, r.project.title, broker.waitingOn(r.id) ? 'waiting' : 'running', i));
+  const waiting = queue.queued.filter((t) => !t.project).map((t, i) => ({ ...row(t.id, t.title, 'queued', under.length + i), queue: queueNote(t) }));
+  return [...under, ...waiting];
+}
+ipcMain.handle(IPC.projectBoard, (): ProjectRow[] => [...freshRows(), ...memory.get().projects.map((p) => rowOf(p.id)).sort((a, b) => b.touched.localeCompare(a.touched))]);
 ipcMain.handle(IPC.projectTimeline, (_e, id: string): ProjectTimeline | null => {
   const p = memory.get().projects.find((x) => x.id === id);
   if (!p) return null;
@@ -827,9 +945,9 @@ ipcMain.handle(IPC.forkProject, (_e, id: string, round: number): string | null =
 ipcMain.handle(IPC.archiveProject, (_e, id: string, on: boolean): boolean => typeof id === 'string' && memory.archive(id, Boolean(on)));
 // Undo a commission done in a folder the user lent: their files back as they were, what the shop made gone.
 ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
-  if (current || typeof id !== 'string') return null;
+  if (typeof id !== 'string') return null;
   const memo = memory.find(id);
-  if (!memo?.form?.inPlace || !memo.folder) return null;
+  if (!memo?.form?.inPlace || !memo.folder || [...runs.values()].some((r) => overlaps(r.job.workDir, memo.folder!))) return null;
   const skipped = versions.undo(memo.folder);
   if (skipped) memory.undone(id, skipped);
   log?.info('undo lent work', { done: skipped !== null, skipped: skipped?.length });
@@ -909,18 +1027,32 @@ function startUpdates() {
   win?.webContents.once('did-finish-load', () => updates?.start());
 }
 ipcMain.handle(IPC.downloadUpdate, (): Promise<boolean> => updates?.download() ?? Promise.resolve(false));
-ipcMain.handle(IPC.retryCommission, async (): Promise<RunResult | null> => (lastFailed ? runJob(lastFailed, true) : null));
-ipcMain.handle(IPC.cancelCommission, () => current?.abort.abort());
-// A commission left over from a crash or an unexpected quit: offered once at startup.
-ipcMain.handle(IPC.pendingCommission, (): CommissionForm | null => (current ? null : (leftover?.form ?? null)));
+ipcMain.handle(IPC.retryCommission, async (_e, run: unknown): Promise<RunResult | null> => {
+  const job = typeof run === 'string' ? failed.get(run) : undefined;
+  if (!job) return null;
+  failed.delete(run as string);
+  return carryOn(job);
+});
+// Stop a round under way, or call off one still in the queue: nothing was held or spent for that one yet (B5 rule 3).
+ipcMain.handle(IPC.cancelCommission, (_e, run: unknown) => {
+  if (typeof run !== 'string') return;
+  const waiting = queue.cancel(run);
+  if (!waiting) return runs.get(run)?.abort.abort();
+  log?.info('run called off in the queue');
+  waiting.drop();
+  pump();
+});
+// A commission left over from a crash or an unexpected quit: offered once at startup, the earliest first.
+ipcMain.handle(IPC.pendingCommission, (): CommissionForm | null => (runs.size ? null : (leftovers[0]?.form ?? null)));
 ipcMain.handle(IPC.resumePending, async (): Promise<RunResult | null> => {
-  const job = leftover;
-  leftover = null;
-  return job ? runJob(job, true) : null;
+  const job = leftovers.shift();
+  if (!job) return null;
+  // It carries on as a new round with a run id of its own.
+  pending.clear(job.run);
+  return carryOn(job);
 });
 ipcMain.handle(IPC.dropPending, () => {
-  leftover = null;
-  pending.clear();
+  pending.clear(leftovers.shift()?.run);
 });
 
 ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
@@ -929,6 +1061,7 @@ ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
     tray.calm();
     mini.feed({ type: 'answered' });
   }
+  sendRuns();
   return ok;
 });
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
@@ -957,7 +1090,7 @@ function openData() {
   versions = new VersionStore(join(dir, 'versions'));
   projectVersions = new ProjectVersions(join(dir, 'versions'));
   if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
-  leftover = pending.load();
+  leftovers = pending.load();
 }
 /**
  * The Store build's first open beside an installer build's shop (move-in.ts): asked once, before the shop opens.
@@ -981,11 +1114,11 @@ ipcMain.handle(IPC.moveIn, (_e, yes: boolean): boolean => {
 // A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
 ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
-  return Boolean(clean && current?.note?.(clean));
+  return Boolean(clean && lead()?.note?.(clean));
 });
 ipcMain.handle(IPC.clearMemory, (): boolean => {
   // What it is doing would go straight back in the notebook, and the ledger would count the round twice.
-  if (current) return false;
+  if (runs.size || queue.queued.length) return false;
   memory.clear();
   versions.clear();
   spend.forget();
@@ -1000,10 +1133,10 @@ ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean
   return (await shell.openPath(folder)) === '';
 });
 
-// Only files from the current or last commission folder can be opened from the renderer.
+// Only files from the folders of rounds under way or finished since the shop opened can be opened from the renderer.
 ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') => {
   if (typeof path !== 'string') return false;
-  const allowed = [current?.workDir, lastWorkDir].filter(Boolean) as string[];
+  const allowed = [...[...runs.values()].map((r) => r.job.workDir), ...finishedIn];
   if (!allowed.some((dir) => insideForReal(dir, path))) return false;
   if (how === 'reveal' || !openable(path)) shell.showItemInFolder(path);
   else await shell.openPath(path);
@@ -1079,7 +1212,7 @@ app.on('will-quit', () => {
   putAwayLook();
   mini.destroy();
   broker.cancelAll();
-  current?.abort.abort();
+  for (const r of runs.values()) r.abort.abort();
   // Closing for real, with any commission let finish or stopped just above: a new version fetched earlier goes in now.
   updates?.quitting();
 });

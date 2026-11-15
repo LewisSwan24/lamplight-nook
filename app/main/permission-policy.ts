@@ -1,7 +1,7 @@
 import type { CanUseTool } from '@anthropic-ai/claude-agent-sdk';
 import { fill, strings } from '../shared/i18n';
 import type { AiEvent, Choice, Risk } from '../shared/types';
-import type { DecisionBroker } from './decision-broker';
+import type { Asker } from './decision-broker';
 import { targetOf } from './event-normalizer';
 import { classify, type RiskContext } from './risk-classifier';
 
@@ -53,7 +53,7 @@ function agentOf(agentId: string | undefined, known: Map<string, AiEvent['agent'
  * - questions and "ask" calls open the decision dialog; serious calls open the confirmation card
  * - the default on the confirmation card is to decline
  */
-export function makePermissionPolicy(ctx: RiskContext, broker: DecisionBroker, events: PolicyEvents, agents = new Map<string, AiEvent['agent']>()): CanUseTool {
+export function makePermissionPolicy(ctx: RiskContext, broker: Asker, events: PolicyEvents, agents = new Map<string, AiEvent['agent']>()): CanUseTool {
   return async (tool, input, opts) => {
     const agentId = opts.agentID;
     const { risk, reason, keep } = classify(tool, input, ctx);

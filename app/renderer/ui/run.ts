@@ -10,6 +10,9 @@ const R = strings.ui.run;
 
 /** What the running card shows, read afresh each time it redraws. */
 export type ProgressView = {
+  /** The round the card is about (the first under way), and the other rounds, under way or in the queue (B5). */
+  run: string;
+  others: { title: string; queued: boolean }[];
   want: string;
   startedAt: number;
   budgetUsd: number;
@@ -33,8 +36,9 @@ const stateName = (state: string) => (strings.states as Record<string, string>)[
  * The one card for work under way, from the counter and the blackboard alike: how long it has taken, what the
  * limit is, what is happening now, the plan, who is doing what, a word in the middle, and a way to stop (asked twice).
  */
-export function showRunning(api: LamplightApi, view: () => ProgressView, act: { meet: () => void; actor: (actor: ActorId) => void }) {
+export function showRunning(api: LamplightApi, view: () => ProgressView, act: { meet: () => void; actor: (actor: ActorId) => void; another: () => void }) {
   const meta = el('div.hint');
+  const others = el('div.hint.progress-others');
   const now = el('div.progress-now');
   const heading = el('div.hint.progress-heading');
   const list = el('ol.plan-list');
@@ -49,13 +53,15 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   const ask = () => actions.replaceChildren(
     el('button.progress-cancel', { onclick: sure }, R.cancel),
     el('button.progress-meet', { onclick: act.meet }, R.progressMeet),
+    // Two rounds may be under way at once and more wait in the queue (B5): another commission is taken from here.
+    el('button.progress-another', { onclick: () => { closePanel(); act.another(); } }, R.another),
     el('button.default', { onclick: closePanel }, R.keepGoing),
   );
   const sure = () => {
     confirming = true;
     now.textContent = R.cancelConfirm;
     actions.replaceChildren(
-      el('button.progress-cancel', { onclick: () => { closePanel(); void api.cancelCommission(); } }, R.cancel),
+      el('button.progress-cancel', { onclick: () => { closePanel(); void api.cancelCommission(view().run); } }, R.cancel),
       el('button.default', { onclick: closePanel }, R.keepGoing),
     );
     actions.querySelector<HTMLElement>('button.default')!.focus();
@@ -63,6 +69,10 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   const draw = () => {
     const v = view();
     meta.textContent = [elapsedLine(v.startedAt, Date.now(), R), capLine(v.budgetUsd, R)].filter(Boolean).join(' \u00B7 ');
+    const under = v.others.filter((o) => !o.queued).map((o) => o.title);
+    const waiting = v.others.filter((o) => o.queued).map((o) => o.title);
+    others.textContent = [under.length ? fill(R.alsoRunning, { list: under.join(strings.app.listSeparator) }) : '', waiting.length ? fill(R.inQueue, { list: waiting.join(strings.app.listSeparator) }) : ''].filter(Boolean).join(' \u00B7 ');
+    others.hidden = !others.textContent;
     if (!confirming) now.textContent = v.now || v.steps.find((s) => s.status === 'doing')?.label || R.progressThinking;
     heading.textContent = planLine(v.steps, v.realPlan, R);
     const top = list.scrollTop;
@@ -75,7 +85,7 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   };
   const card = el('div.card.paper.running-card.plan-card', {},
     closeButton(),
-    withPortrait('adeng', 'calm', el('div.card-title.progress-title', { title: first.want }, fill(R.runningTitle, { want: first.want })), meta, el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), now)),
+    withPortrait('adeng', 'calm', el('div.card-title.progress-title', { title: first.want }, fill(R.runningTitle, { want: first.want })), meta, others, el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), now)),
     heading,
     list,
     el('div.progress-staff', {}, ...staff.map((s) => s.button)),

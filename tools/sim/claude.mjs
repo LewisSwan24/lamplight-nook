@@ -311,7 +311,7 @@ function makeStage(state) {
 
 async function run(prompt) {
   const old = resumeId ? loadState(resumeId) : null;
-  const state = old ?? { session: `sim-${Date.now().toString(36)}`, play: null, done: 0, notes: [], lang: null };
+  const state = old ?? { session: `sim-${Date.now().toString(36)}-${process.pid.toString(36)}`, play: null, done: 0, notes: [], lang: null };
   if (old) state.done = old.done; // carry on after the last finished step
   const play = pickPlay(prompt, state, system);
   state.play = play.name;

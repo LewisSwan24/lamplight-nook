@@ -204,6 +204,32 @@ async function checkBubbles(shop) {
   check(!clashes.length, `speech bubbles: ${clashes.join('; ')}`);
 }
 
+/**
+ * Another commission while one is under way (road-to-1.2.md B5): the counter shows the running card, and "take another
+ * commission" there opens the slip.
+ */
+async function another(shop, { template, want }) {
+  await shop.hotspot(shop.L.ui.access.hotspotCounter);
+  await shop.page.locator('.running-card .progress-another').click();
+  await shop.page.waitForSelector('form.commission');
+  const chip = shop.page.locator('form.commission .template-chip', { hasText: shop.L.ui.templates[template] });
+  if (!(await chip.getAttribute('class')).includes('on')) await chip.click();
+  await shop.page.fill('form.commission textarea', want);
+  await shop.submit();
+}
+/** Open the project board from the toolbar, and what each row says: its status, why it waits, and whether it can be called off. */
+async function boardRows(shop) {
+  await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.projects.button}"]`).click();
+  await shop.page.waitForSelector('.project-card:not(.timeline-card)');
+  await sleep(300);
+  return shop.page.locator('.project-card li.project-row').evaluateAll((rows) => rows.map((r) => ({
+    title: r.querySelector('.project-open, .project-name')?.textContent ?? '',
+    status: r.querySelector('.project-status')?.textContent ?? '',
+    waits: r.querySelector('.project-waits')?.textContent ?? '',
+    callOff: Boolean(r.querySelector('.project-call-off')),
+  })));
+}
+
 /** Open the slip at the counter, start a talk with Adeng (B4) and say each line, waiting for his answer to each. */
 async function talk(shop, lines) {
   await shop.order({});
@@ -1407,7 +1433,7 @@ const SCENARIOS = {
       await shop.order({ template: 'page', want: W[lang].page });
       await shop.submit();
       await sleep(5000);
-      return JSON.parse(readFileSync(join(shop.home.data, 'pending.json'), 'utf8')).workDir;
+      return JSON.parse(readFileSync(join(shop.home.data, 'pending.json'), 'utf8'))[0].workDir;
     };
     const pull = async (shop) => {
       // The app's own process: what Playwright started may be only a wrapper around it.
@@ -1513,7 +1539,10 @@ const SCENARIOS = {
     await shop.submit();
     await sleep(6000);
     check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) > 0, 'no plan on the blackboard to call off');
-    await shop.page.evaluate(() => window.lamplight.cancelCommission());
+    // Called off from the running card, asked twice (B5: by its run id, which the card knows).
+    await shop.hotspot(shop.L.ui.access.hotspotCounter);
+    await shop.page.locator('.running-card .progress-cancel').click();
+    await shop.page.locator('.running-card .progress-cancel').click();
     await sleep(2500);
     check(await shop.page.locator('#board').evaluate((b) => b.childElementCount) === 0, 'the blackboard kept the plan of a commission called off');
     await shop.close();
@@ -2597,6 +2626,135 @@ const SCENARIOS = {
       await shop.retry();
       r = await shop.workUntilDone();
       check(r.ok, 'did not finish after trying again');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Two commissions at once (road-to-1.2.md B5). The second is taken from the running card while the first is under way, and
+   * the stand-in runs both beside each other; a question asked while both are at work names its project. A third waits in
+   * the queue, the board says behind whom, and it starts by itself once one of the two is done. Each result card names its
+   * project, each project has its own folder, and the ledger has a line for each.
+   */
+  async parallel(lang, out) {
+    const L = locale(lang);
+    const P = L.ui.projects;
+    const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 5 }) });
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const ledger = () => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+    // The stand-in's page asks its colour question in this play (plays.mjs), so a question comes while both are at work.
+    const shop = await launch({ lang, home, speed: Math.max(SPEED, 700), scenario: 'projectmemo' });
+    try {
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
+      await another(shop, { template: 'research', want: W[lang].research });
+      check(await waitForLog(home, 'run start', 2, 10_000), 'the second commission did not start beside the first');
+      check(logged(home, 'run end').length === 0, 'the first had ended before the second started');
+      await sleep(1500);
+      await shop.shot(join(out, 'parallel-two.png'));
+      // The page's colour question, asked while both are at work, names its project before the question.
+      const asked = await shop.maybe('.backdrop .question', 30_000);
+      check(asked && logged(home, 'run end').length === 0, 'no question came while both were at work');
+      const q = await asked.innerText();
+      check(q.includes(' · '), `a question while two are at work does not name its project: ${q}`);
+      await shop.shot(join(out, 'parallel-ask.png'));
+      await shop.page.keyboard.press('1');
+      await sleep(600);
+      // The other round asks too, one card at a time, and is answered the other way: each answer must reach its own round.
+      const next = await shop.maybe('.backdrop .question', 20_000);
+      check(next, 'no question came from the other round');
+      const q2 = await next.innerText();
+      check(q2 !== q && q2.includes(' · '), `the second question reads ${q2}`);
+      await shop.page.keyboard.press('2');
+      await sleep(600);
+      await another(shop, { template: 'letter', want: W[lang].letter });
+      check(await waitForLog(home, 'run queued', 1, 10_000), 'the third commission did not wait in the queue');
+      check(logged(home, 'run start').length === 2, 'a third round started beside two');
+      const rows = await boardRows(shop);
+      const queued = rows.filter((r) => r.status === P.status.queued);
+      check(queued.length === 1 && queued[0].callOff && queued[0].waits.startsWith(P.waitSlot.split('{list}')[0]), `the board shows ${JSON.stringify(rows)}`);
+      check(rows.filter((r) => r.status === P.status.running || r.status === P.status.waiting).length === 2, `the board does not show the two at work: ${JSON.stringify(rows)}`);
+      await shop.shot(join(out, 'parallel-board.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(500);
+      // The three results, one card after another, each naming its project.
+      const named = [];
+      for (let i = 0; i < 3; i++) {
+        const r = await shop.workUntilDone();
+        check(r.ok, `result ${i + 1} did not come: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+        named.push(await shop.page.locator('.result-card .result-project').innerText());
+        if (i === 0) await shop.shot(join(out, 'parallel-result.png'));
+        // Put away. A question from the round still at work may come up over it first: that is answered (the default) and
+        // the card put away after; the next result may come straight after, so wait for this one to go.
+        await shop.page.evaluate(() => { document.querySelector('.result-card').dataset.seen = '1'; });
+        for (let k = 0; k < 10 && await shop.page.locator('.result-card[data-seen]').count(); k++) {
+          await shop.page.keyboard.press(await shop.page.locator('.backdrop').count() ? 'Enter' : 'Escape');
+          await sleep(600);
+        }
+        check(await shop.page.locator('.result-card[data-seen]').count() === 0, 'the result card would not go');
+        await sleep(800);
+      }
+      check(new Set(named).size === 3, `the result cards name ${JSON.stringify(named)}`);
+      // The third started by itself, after one of the two had ended.
+      const lines = logLines(home);
+      const at = (what, n) => lines.findIndex((l, i) => l.includes(` ${what}`) && lines.slice(0, i + 1).filter((x) => x.includes(` ${what}`)).length === n);
+      check(at('run start', 3) > at('run end', 1), 'the third started before a place was free');
+      const projects = notebook().projects;
+      check(projects.length === 3 && new Set(projects.map((p) => p.folder)).size === 3, `${projects.length} projects: ${JSON.stringify(projects.map((p) => p.folder))}`);
+      for (const p of projects) check(ledger().some((e) => e.key.startsWith(p.folder + '|') && e.usd > 0), `no line in the ledger for ${p.folder}`);
+      check(named.every((n) => projects.some((p) => n.includes(p.title))), `the cards name ${JSON.stringify(named)}, the projects are ${JSON.stringify(projects.map((p) => p.title))}`);
+      // The answers did not cross: each commission remembers the colour picked on the card that named it.
+      const colours = lang === 'en' ? ['Cream', 'Mint'] : ['奶油白', '浅薄荷'];
+      const memos = notebook().commissions;
+      const picked = (question) => Object.values(memos.find((c) => question.includes(c.title))?.choices ?? {});
+      check(JSON.stringify([picked(q), picked(q2)]) === JSON.stringify([[colours[0]], [colours[1]]]), `the answers went to ${JSON.stringify(memos.map((c) => [c.title, c.choices]))}`);
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The month has room for one round (road-to-1.2.md B5 rule 5): a second commission taken while it runs waits in the queue
+   * for money, the board says so and it can be called off; once the first has spent what it spent and let the rest go, the
+   * second starts by itself. Also at the smallest window.
+   */
+  async parallelcap(lang, out) {
+    const L = locale(lang);
+    const P = L.ui.projects;
+    // $10 a month with $6.80 spent: the first round holds $3, which leaves less than the fifty cents a round needs.
+    const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 3, monthCapUsd: 10 }), 'spend.json': JSON.stringify([{ key: 'C:/w/earlier|s', usd: 6.8, month: '2026-11' }]) });
+    const ledger = () => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+    const shop = await launch({ lang, home, speed: Math.max(SPEED, 900), clock: '2026-11-20T10:00' });
+    try {
+      await shop.order({ template: 'research', want: W[lang].research });
+      await shop.submit();
+      check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
+      await another(shop, { template: 'letter', want: W[lang].letter });
+      check(await waitForLog(home, 'run queued', 1, 10_000), 'the second did not wait in the queue');
+      check(logged(home, 'run start').length === 1, 'the second started with no money for it');
+      check(await shop.stopCard() === null, 'the second was turned away with a card instead of waiting');
+      const rows = await boardRows(shop);
+      const waiting = rows.find((r) => r.status === P.status.queued);
+      check(waiting && waiting.waits === P.waitMoney && waiting.callOff, `the board shows ${JSON.stringify(rows)}`);
+      await shop.shot(join(out, 'parallelcap-board.png'));
+      await shop.resize([640, 360]);
+      await sleep(600);
+      const spill = await shop.page.locator('.project-card').evaluate((c) => {
+        const box = c.getBoundingClientRect();
+        return c.scrollWidth > c.clientWidth + 1 || box.top < -1 || box.bottom > innerHeight + 1 || box.left < -1 || box.right > innerWidth + 1;
+      });
+      check(!spill, 'the board does not fit the smallest window');
+      await shop.shot(join(out, 'parallelcap-board-small.png'));
+      await shop.resize('medium');
+      await shop.page.keyboard.press('Escape');
+      await sleep(500);
+      let r = await shop.workUntilDone();
+      check(r.ok, `the first did not finish: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+      await shop.page.keyboard.press('Escape');
+      await sleep(800);
+      // What the first did not spend went back: the second starts by itself.
+      check(await waitForLog(home, 'run start', 2, 15_000), 'the second did not start once the money was there');
+      r = await shop.workUntilDone();
+      check(r.ok, `the second did not finish: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+      check(ledger().filter((e) => e.month === '2026-11').length === 3, `the ledger has ${JSON.stringify(ledger())}`);
     } finally { await shop.close(); }
   },
 
