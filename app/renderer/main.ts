@@ -29,6 +29,7 @@ import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
+import { renderPins, showProjects, showTimeline } from './ui/projects';
 import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
 import { STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
@@ -133,6 +134,13 @@ function drawLabels() {
         height: `${b.h * s}px`,
         fontSize: `${3.1 * s}px`,
       });
+    }
+    // The project cards pinned on the same slate, while nothing is chalked on it.
+    const pins = document.getElementById('board-pins');
+    if (pins) {
+      const b = BOARD_SLATE;
+      Object.assign(pins.style, { left: `${rect.left + b.x * s}px`, top: `${rect.top + b.y * s}px`, width: `${b.w * s}px`, height: `${b.h * s}px`, fontSize: `${s}px` });
+      pins.hidden = scene.boardInUse();
     }
   }
   requestAnimationFrame(drawLabels);
@@ -344,7 +352,12 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   stage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
+  const projects = await window.lamplight.projectBoard();
+  projectsKept = projects.length;
+  renderPins(projects);
 }
+/** How many projects there are: with any, the blackboard doubles as the project board when nothing is chalked on it. */
+let projectsKept = 0;
 /** Something new in the shop: someone says a word about it. */
 function noticeGrowth(ids: GrowthId[]) {
   const id = ids.at(-1);
@@ -416,7 +429,7 @@ function clickObject(id: ObjectId) {
   if (r.walk && !scene.reducedMotion) void scene.walkTo(speaker, r.walk);
   void stage.answer(speaker, r.say);
 }
-scene.onObjectClick = clickObject;
+scene.onObjectClick = (id) => (id === 'board' && projectsKept ? void showProjects(window.lamplight) : clickObject(id));
 scene.onYouClick = () => void stage.answer('adeng', strings.ui.objects.you);
 scene.boardInUse = () => running !== null || boardSteps().length > 0;
 scene.onBoardClick = () => {
@@ -424,7 +437,7 @@ scene.onBoardClick = () => {
   if (running) openProgress();
   else showPlan(boardSteps());
 };
-scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
+scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title), (project) => void showTimeline(window.lamplight, project));
 onNotebookForget(() => {
   forgotten++;
   void refreshShop();
@@ -641,7 +654,7 @@ async function openShop() {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
   // After the welcome, so that nothing on it can be pushed aside; the same two the scene opens.
-  mountToolbar(api, applySettings, { order: scene.onCounterClick, shelf: scene.onWorksClick });
+  mountToolbar(api, applySettings, { order: scene.onCounterClick, projects: () => void showProjects(api), shelf: scene.onWorksClick });
   syncToolbar(settings);
   // A commission left unfinished when the app last closed.
   const left = await api.pendingCommission();
@@ -686,7 +699,9 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showMonthCapNews,
       showMeeting: () => showMeeting(),
       showRevise: (title?: string) => showRevise(undefined, title),
-      showShelf: () => showShelf(api, () => {}),
+      showShelf: () => showShelf(api, () => {}, () => {}),
+      showProjects: () => showProjects(api),
+      showTimeline: (id: string) => showTimeline(api, id),
       showNotebook: () => showNotebook(api),
       showCaptionLog,
       showPending: (form: CommissionForm) => showPending(api, form, () => {}),

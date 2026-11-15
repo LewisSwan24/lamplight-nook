@@ -13,7 +13,7 @@ const N = strings.ui.notebook;
 /** Past commissions drawn at a time; the shop keeps every one of them. */
 const NOTEBOOK_PAGE = 20;
 
-const duration = (seconds: number) => {
+export const duration = (seconds: number) => {
   const m = Math.floor(seconds / 60);
   const s = String(seconds % 60);
   return m ? fill(N.ledgerMinutes, { m: String(m), s }) : fill(N.ledgerSeconds, { s });

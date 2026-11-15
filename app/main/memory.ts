@@ -274,6 +274,55 @@ export class MemoryStore {
     return true;
   }
 
+  /** These rounds of a project have a version kept now (B2). */
+  versionKept(id: string, rounds: number[]) {
+    for (const r of this.project(id).rounds) if (rounds.includes(r.n)) r.version = String(r.n);
+    this.save();
+  }
+
+  /**
+   * The project went back to the version of round `from`: one more round on its timeline, under its latest commission.
+   * Returns the new round's number.
+   */
+  reverted(id: string, from: number, now = new Date()): number {
+    const p = this.project(id);
+    const n = p.rounds.length + 1;
+    p.rounds.push({ n, commission: p.commissions.at(-1)!, date: localDay(now), restoredFrom: from });
+    this.save();
+    return n;
+  }
+
+  /**
+   * A new project branched off round `round` of another (B2), in its own folder: one commission, done, as the round left
+   * the work, which goes on from there with nothing of the old one's session, rounds or spending. Returns the commission.
+   */
+  forked(source: CommissionMemo, from: { project: string; round: number }, title: string, folder: string, preexisting: string[], summary: string | undefined, now = new Date()): CommissionMemo {
+    const date = localDay(now);
+    let t = now.getTime();
+    while (this.data.commissions.some((c) => c.id === `c${t}`)) t++;
+    const taken = new Set([...this.data.projects.map((p) => p.id), ...this.data.commissions.flatMap((c) => (c.project ? [c.project] : []))]);
+    const project = freeProjectId(projectIdFor(`c${t}`), taken);
+    const { consult: _, ...form } = source.form ?? { want: source.title };
+    const entry: CommissionMemo = {
+      id: `c${t}`, title, date, result: 'done', choices: { ...source.choices }, folder, form, preexisting, project,
+      ...(summary ? { summary } : {}), ...(source.main ? { main: source.main } : {}),
+    };
+    this.data.commissions.push(entry);
+    this.data.projects.push({ id: project, title, folder, created: date, commissions: [entry.id], rounds: [{ n: 1, commission: entry.id, date, ...(summary ? { summary } : {}) }], from });
+    this.save();
+    return structuredClone(entry);
+  }
+
+  /** Put a project away on the board, or take it out again. */
+  archive(id: string, on: boolean): boolean {
+    const p = this.data.projects.find((x) => x.id === id);
+    if (!p) return false;
+    if (on) p.archived = true;
+    else delete p.archived;
+    this.save();
+    return true;
+  }
+
   /** Forget how the rounds went (the ledger page), keeping every work. */
   clearStats() {
     for (const c of this.data.commissions) delete c.rounds;

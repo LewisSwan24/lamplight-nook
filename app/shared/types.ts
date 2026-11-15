@@ -202,6 +202,18 @@ export interface LamplightApi {
   undoWork(id: string): Promise<string[] | null>;
   /** Save a finished work as a file where the user picks: its files in a zip, or its page as a PDF. Nothing is sent anywhere. */
   exportWork(id: string, as: 'zip' | 'pdf'): Promise<ExportResult>;
+  /** The project board (B2): every project, latest touched first. */
+  projectBoard(): Promise<ProjectRow[]>;
+  /** A project's timeline, one row per round; null for a project there isn't. */
+  projectTimeline(id: string): Promise<ProjectTimeline | null>;
+  /** Open a round's version from a copy made for looking at; the project's folder is not touched. False if it is gone. */
+  openVersion(id: string, round: number): Promise<boolean>;
+  /** Go back to a round's version, keeping what is there now first: one more round on the timeline. False if it can't. */
+  revertProject(id: string, round: number): Promise<boolean>;
+  /** A new project in a new folder from a round's version; its id, or null (a lent folder, or the version is gone). */
+  forkProject(id: string, round: number): Promise<string | null>;
+  /** Put a project away on the board, or take it out again. */
+  archiveProject(id: string, on: boolean): Promise<boolean>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -369,6 +381,12 @@ export const IPC = {
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
   restorePrevious: 'commission:restore-previous',
+  projectBoard: 'project:board',
+  projectTimeline: 'project:timeline',
+  openVersion: 'project:open-version',
+  revertProject: 'project:revert',
+  forkProject: 'project:fork',
+  archiveProject: 'project:archive',
   updateOffer: 'update:offer',
   downloadUpdate: 'update:download',
   moveInOffer: 'data:move-in-offer',
@@ -557,6 +575,41 @@ export type Work = {
   want?: string;
   /** The project it belongs to, for going there from the shelf (B2). */
   project: string;
+};
+
+/** Where a project stands, on the project board (B2). Queued comes with B5. */
+export type ProjectStatus = 'running' | 'queued' | 'waiting' | 'done' | 'stopped';
+
+/** One project on the project board. */
+export type ProjectRow = {
+  id: string; title: string;
+  /** YYYY-MM-DD of its latest round. */
+  touched: string;
+  rounds: number;
+  /** What it cost in all, by the ledger, talks with Adeng included. */
+  usd: number;
+  status: ProjectStatus;
+  archived: boolean;
+  lent: boolean;
+  /** Its card colour, by its place among all the projects (shared/project-colors.ts). */
+  color: number;
+};
+
+/** One round on a project's timeline, with whether its version can still be had. */
+export type TimelineRow = ProjectRound & {
+  /** What the round was for: the change asked for, or the commission itself on its first round. */
+  what: string;
+  /** Its version is kept, so it can be opened, gone back to or branched off. */
+  kept: boolean;
+  /** It had a version once, and it went to keep the project under its cap. */
+  gone: boolean;
+};
+
+export type ProjectTimeline = {
+  project: ProjectRow;
+  rounds: TimelineRow[];
+  /** Branched off another project: its title then, and the round. */
+  from?: { title: string; round: number };
 };
 
 /** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */

@@ -1,14 +1,14 @@
 import { oldInstallerData } from './store-home';
 import './locale-boot';
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { arch, homedir, release } from 'node:os';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { arch, homedir, release, tmpdir } from 'node:os';
 import { basename, dirname, extname, isAbsolute, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -41,7 +41,8 @@ import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
 import { copyMaterials, sortHandOver } from './materials';
 import { stepCount } from '../shared/board';
-import { projectFolders } from './projects';
+import { boardRow, projectFolders, projectSettled, timelineRows } from './projects';
+import { ProjectVersions, type Scope } from './project-versions';
 import { cleanScene } from '../shared/scenes';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -80,6 +81,8 @@ let settings: SettingsStore;
 let pending: PendingStore;
 let memory: MemoryStore;
 let versions: VersionStore;
+/** Every round's version of every project (B2), in the same folder as the lent folders' originals. */
+let projectVersions: ProjectVersions;
 let keys: KeyStore;
 let spend: SpendLedger;
 /** The last commission that failed (offered as "try again"), and one left over from a crash. */
@@ -518,11 +521,12 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       const entry = r
         ? memory.revise(r.id, r.ask, { ...outcome, main, round, touched, usd: spentThisRun }, stuckHere)
         : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched, usd: spentThisRun }, stuckHere);
+      if (entry) keepRound(entry);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
         ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
-        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && versions.has(r.id)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
+        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
       });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
@@ -629,7 +633,7 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   const preexisting = lent ? versions.usersFiles(memo.folder) : memo.preexisting ?? [];
   const restored = restoredSince.has(memo.id);
   restoredSince.delete(memo.id);
-  if (!lent) versions.save(memo.id, memo.folder, new Set(preexisting));
+  keepLatest(memo);
   const form = memo.form ?? { want: memo.title };
   return runJob({
     form, workDir: memo.folder, preexisting, startedAt: Date.now(),
@@ -679,15 +683,132 @@ ipcMain.handle(IPC.relinkWork, async (_e, id: string) => {
   restoredSince.delete(memo.id);
   return 'found';
 });
+// The result card's "back to the last version": back to the round before the latest, so pressing it again comes forward.
 ipcMain.handle(IPC.restorePrevious, (_e, id: string): boolean => {
-  if (current || typeof id !== 'string') return false;
-  const memo = memory.find(id);
-  if (!memo?.folder || !versions.has(id)) return false;
-  const ok = versions.restore(id, memo.folder, new Set(memo.preexisting ?? []));
-  if (ok) restoredSince.add(id);
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  const to = memo && previousRound(memo);
+  const ok = Boolean(to && revert(memo.project!, to));
   log?.info('restore previous', { ok });
   return ok;
 });
+
+/** What goes in a version of a commission's work, and what going back may clear away (project-versions.ts). */
+const scopeOf = (memo: CommissionMemo): Scope => (memo.form?.inPlace
+  ? { touched: memo.touched ?? [], original: (rel) => versions.originalOf(memo.folder, rel) }
+  : { keep: new Set(memo.preexisting ?? []) });
+const projectFor = (memo: CommissionMemo) => memory.get().projects.find((p) => p.id === memo.project)!;
+
+/**
+ * Before a round of changes, the round it starts from must have its version: work from before projects has none, and
+ * its previous version kept the old way (versions/<commission>/) becomes the version of the round before that.
+ */
+function keepLatest(memo: CommissionMemo) {
+  const p = projectFor(memo);
+  const bare = p.rounds.filter((r) => !r.version);
+  for (const c of p.commissions) {
+    const older = bare.filter((r) => r.commission === c).at(-2);
+    if (older && projectVersions.takeOld(c, p.id, older.n)) memory.versionKept(p.id, [older.n]);
+  }
+  const last = p.rounds.at(-1)!;
+  if (projectVersions.has(p.id, last.n)) return;
+  projectVersions.save(p.id, last.n, memo.folder, scopeOf(memo));
+  memory.versionKept(p.id, [last.n]);
+}
+
+/** Every round ends with a version of the work, the round just written down for this commission (B2). */
+function keepRound(entry: CommissionMemo) {
+  const p = projectFor(entry);
+  const n = p.rounds.filter((r) => r.commission === entry.id).at(-1)!.n;
+  projectVersions.save(p.id, n, entry.folder, scopeOf(entry));
+  memory.versionKept(p.id, [n]);
+}
+
+/** The round before a commission's project's latest, when its version is kept: the result card's way back. */
+function previousRound(memo: CommissionMemo): number | undefined {
+  const p = projectFor(memo);
+  const before = p.rounds.at(-2)?.n;
+  return !p.lent && before && projectVersions.has(p.id, before) ? before : undefined;
+}
+
+/**
+ * Go back to round `to`'s version: what is in the folder now is kept first, as the latest round's version, so nothing is
+ * lost; then the round's files come back and the timeline gets one more round. Not while a round is under way.
+ */
+function revert(id: string, to: number): boolean {
+  const p = memory.get().projects.find((x) => x.id === id);
+  if (current || !p || !projectVersions.has(p.id, to) || !existsSync(p.folder)) return false;
+  const memo = memory.find(p.commissions.at(-1)!)!;
+  const last = p.rounds.at(-1)!.n;
+  projectVersions.save(p.id, last, p.folder, scopeOf(memo));
+  projectVersions.putBack(p.id, to, p.folder, scopeOf(memo));
+  const n = memory.reverted(p.id, to);
+  projectVersions.save(p.id, n, p.folder, scopeOf(memo));
+  memory.versionKept(p.id, [last, n]);
+  restoredSince.add(memo.id);
+  return true;
+}
+
+/** Where a project stands: at work, waiting for the user's answer, or how its latest commission came out. */
+function statusOf(id: string): ProjectStatus {
+  const p = memory.get().projects.find((x) => x.id === id)!;
+  if (current && current.workDir === p.folder) return broker.waiting ? 'waiting' : 'running';
+  return projectSettled(p, memory.get().commissions);
+}
+const rowOf = (id: string): ProjectRow => {
+  const all = memory.get().projects;
+  const p = all.find((x) => x.id === id)!;
+  return boardRow(p, spentOn(p).project, statusOf(id), all.indexOf(p));
+};
+ipcMain.handle(IPC.projectBoard, (): ProjectRow[] => memory.get().projects.map((p) => rowOf(p.id)).sort((a, b) => b.touched.localeCompare(a.touched)));
+ipcMain.handle(IPC.projectTimeline, (_e, id: string): ProjectTimeline | null => {
+  const p = memory.get().projects.find((x) => x.id === id);
+  if (!p) return null;
+  const from = p.from && memory.get().projects.find((x) => x.id === p.from!.project);
+  return {
+    project: rowOf(p.id), rounds: timelineRows(p, memory.get().commissions, (n) => projectVersions.has(p.id, n)),
+    ...(from ? { from: { title: from.title, round: p.from!.round } } : {}),
+  };
+});
+/** The copy last made of a version to look at; it goes when the next one is opened, and when the app closes. */
+let lookingAt: string | null = null;
+const putAwayLook = () => { if (lookingAt) rmSync(lookingAt, { recursive: true, force: true }); lookingAt = null; };
+ipcMain.handle(IPC.openVersion, async (_e, id: string, round: number): Promise<boolean> => {
+  const p = memory.get().projects.find((x) => x.id === id);
+  if (!p || !Number.isInteger(round) || !projectVersions.has(p.id, round)) return false;
+  putAwayLook();
+  lookingAt = mkdtempSync(join(tmpdir(), `lamplight-${p.id}-${round}-`));
+  projectVersions.extract(p.id, round, lookingAt);
+  const main = memory.find(p.rounds.find((r) => r.n === round)!.commission)?.main;
+  const file = main && existsSync(join(lookingAt, main)) ? join(lookingAt, main) : lookingAt;
+  log?.info('open version', { round });
+  return (await shell.openPath(file)) === '';
+});
+ipcMain.handle(IPC.revertProject, (_e, id: string, round: number): boolean => {
+  const ok = typeof id === 'string' && Number.isInteger(round) && revert(id, round);
+  log?.info('revert project', { ok, round });
+  return ok;
+});
+/**
+ * Branch a new project off a round: its files in a new folder, with the user's own files the work started from (what
+ * they handed over, the document to edit). Not from a lent folder, which would copy all of the user's folder.
+ */
+ipcMain.handle(IPC.forkProject, (_e, id: string, round: number): string | null => {
+  const p = memory.get().projects.find((x) => x.id === id);
+  if (!p || p.lent || !Number.isInteger(round) || !projectVersions.has(p.id, round)) return null;
+  const r = p.rounds.find((x) => x.n === round)!;
+  const source = memory.find(r.commission)!;
+  const title = fill(strings.ui.projects.forkTitle, { title: p.title, n: String(round) });
+  const folder = commissionDir(settings.get().workRoot, folderName(title));
+  mkdirSync(folder, { recursive: true });
+  projectVersions.extract(p.id, round, folder);
+  const theirs = (source.preexisting ?? []).filter((path) => existsSync(path));
+  for (const path of theirs) cpSync(path, join(folder, basename(path)), { recursive: true });
+  const entry = memory.forked(source, { project: p.id, round }, title, folder, theirs.map((path) => join(folder, basename(path))), r.summary);
+  keepRound(entry);
+  log?.info('fork project', { round });
+  return entry.project!;
+});
+ipcMain.handle(IPC.archiveProject, (_e, id: string, on: boolean): boolean => typeof id === 'string' && memory.archive(id, Boolean(on)));
 // Undo a commission done in a folder the user lent: their files back as they were, what the shop made gone.
 ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
   if (current || typeof id !== 'string') return null;
@@ -818,6 +939,7 @@ function openData() {
   pending = new PendingStore(join(dir, 'pending.json'));
   memory = new MemoryStore(join(dir, 'memory.json'));
   versions = new VersionStore(join(dir, 'versions'));
+  projectVersions = new ProjectVersions(join(dir, 'versions'));
   if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
   leftover = pending.load();
 }
@@ -938,6 +1060,7 @@ app.on('before-quit', () => {
 });
 // After the windows have gone: the question on closing can still be answered with "keep going", which cancels the quit.
 app.on('will-quit', () => {
+  putAwayLook();
   mini.destroy();
   broker.cancelAll();
   current?.abort.abort();
