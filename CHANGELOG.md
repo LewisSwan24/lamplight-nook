@@ -8,6 +8,12 @@
   an older version of the shop is opened in between and saves the notebook, the projects are put back the next time this
   one opens.
 
+- **A monthly limit, and a limit for each project.** Besides the most one round may spend, Settings now has the most all
+  work may spend in a month (from $10 to no limit, $20 to begin with), and each project in the notebook can have a limit
+  of its own. A round only gets what is left under all three; with less than $0.50 left, new work waits and a card says
+  which limit it is and where to change it. Past eight tenths of a limit, Wick says so once on the result card. Anyone
+  who spent more than $20 in one of the last few months starts at $50, and is told so once.
+
 ## Unreleased (1.1)
 
 - **Moving to the Microsoft Store version.** The Store version keeps its data in a folder of its own, because Windows

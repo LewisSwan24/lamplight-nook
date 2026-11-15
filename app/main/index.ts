@@ -8,7 +8,7 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
@@ -29,6 +29,9 @@ import { Log } from './log';
 import { SettingsStore, defaultWorkRoot } from './settings';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
+import { type Caps, type CapKind, type Refusal, type Spent, Reservations, startingMonthCap, warnings } from './budget';
+import { now, setClock } from './clock';
+import { localMonth } from '../shared/localday';
 import { RoundTally } from './tally';
 import { zip } from './zip';
 import { exportName, workEntries } from './export';
@@ -79,6 +82,8 @@ let keys: KeyStore;
 let spend: SpendLedger;
 /** The last commission that failed (offered as "try again"), and one left over from a crash. */
 let lastFailed: Job | null = null;
+/** What the rounds under way may still spend (road-to-1.2.md B8). */
+const reservations = new Reservations();
 let leftover: Job | null = null;
 /** Set once the user chose to stop and close, so the close prompt doesn't come back. */
 let quitting = false;
@@ -173,6 +178,8 @@ const storeBuild = () => process.windowsStore === true || (!app.isPackaged && pr
 /** The last Claude Code version written to the log as unusual, so it is noted once rather than on every check. */
 let lastNotedVersion: string | undefined;
 const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1';
+// The simulations move the shop to another day (clock.ts); a packaged build always keeps the computer's.
+if (!app.isPackaged && process.env.LAMPLIGHT_CLOCK) setClock(process.env.LAMPLIGHT_CLOCK);
 /** The key saved in the app wins over ANTHROPIC_API_KEY; a dev subscription only counts unpackaged. */
 const credentials = () => pickCredentials(keys.get(), process.env, app.isPackaged);
 ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
@@ -260,8 +267,15 @@ ipcMain.handle(IPC.installClaude, (): Promise<boolean> => {
 ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
-ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth());
+ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth(now()));
 ipcMain.handle(IPC.spendMonths, () => spend.months());
+ipcMain.handle(IPC.monthBudget, () => ({ capUsd: settings.get().monthCapUsd, spentUsd: spend.thisMonth(now()) }));
+ipcMain.handle(IPC.monthCapNews, (): number | null => {
+  const raised = settings.raisedMonthCap ? settings.get().monthCapUsd : null;
+  settings.raisedMonthCap = false;
+  return raised;
+});
+ipcMain.handle(IPC.setProjectCap, (_e, id: unknown, usd: unknown): boolean => typeof id === 'string' && typeof usd === 'number' && memory.setProjectCap(id, usd));
 
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
@@ -319,11 +333,55 @@ ipcMain.handle(IPC.runDebugTask, async (_e, kind: keyof typeof DEBUG_PROMPTS) =>
 });
 
 /**
+ * The project a round counts against: the one of the work being changed, or of a commission carried on after it stopped.
+ * A new commission starts a project of its own, which has no cap yet.
+ */
+function projectOf(job: Job, again: boolean): Project | undefined {
+  const notebook = memory.get();
+  const id = job.revise ? notebook.commissions.find((c) => c.id === job.revise!.id)?.project
+    : again ? notebook.commissions.find((c) => c.folder === job.workDir && c.result === 'failed')?.project : undefined;
+  return notebook.projects.find((p) => p.id === id);
+}
+const capsFor = (project?: Project): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd });
+/** What the ledger has this month and on the project: every folder its commissions worked in, all sessions. */
+function spentOn(project?: Project): Spent {
+  const folders = new Set([...(project ? [project.folder] : []), ...memory.get().commissions.filter((c) => c.folder && project?.commissions.includes(c.id)).map((c) => c.folder!)]);
+  return { month: spend.thisMonth(now()), project: [...folders].reduce((sum, f) => sum + spend.forCommission(f), 0) };
+}
+/** Where a cap stands once a round is settled. */
+function noteOn(cap: CapKind, caps: Caps, spent: Spent): Refusal {
+  const capUsd = cap === 'month' ? caps.monthUsd : caps.projectUsd!;
+  const spentUsd = cap === 'month' ? spent.month : spent.project;
+  return { cap, capUsd, spentUsd, leftUsd: Math.max(0, capUsd - spentUsd) };
+}
+/** A round a month or project cap stopped, or would not let start: the card says which and where it stands. */
+const capStop = (r: Refusal, project?: Project): { error: string; cap: BudgetNote } =>
+  ({ error: r.cap === 'month' ? 'monthCap' : 'projectCap', cap: { ...r, ...(r.cap === 'project' ? { project: project!.title } : {}) } });
+/**
+ * Whether a new round may start, asked before anything is made or kept for it (a new folder, the previous version): only
+ * asking, so what it would hold goes straight back.
+ */
+function refused(project: Project | undefined, workDir: string): RunResult | null {
+  const grant = reservations.reserve('asking', project?.id, capsFor(project), spentOn(project));
+  reservations.settle('asking');
+  return 'refused' in grant ? { ok: false, recordingPath: '', workDir, ...capStop(grant.refused, project) } : null;
+}
+
+/**
  * Run a commission, fresh or continued. While it runs it is remembered on disk so it can be resumed after
  * a crash; once it ends (any outcome) that record goes away, and a failed run stays available for "try again".
  */
 async function runJob(job: Job, again: boolean): Promise<RunResult> {
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
+  // What this round may spend is held from now until it is settled below (budget.ts). A round that cannot start stays the
+  // one to carry on, once the cap allows.
+  const project = projectOf(job, again);
+  const run = `r${Date.now()}`;
+  const grant = reservations.reserve(run, project?.id, capsFor(project), spentOn(project));
+  if ('refused' in grant) {
+    lastFailed = job;
+    return { ok: false, recordingPath: '', workDir: job.workDir, ...capStop(grant.refused, project), carryOn: true };
+  }
   const abort = new AbortController();
   current = { workDir: job.workDir, abort };
   mini.feed({ type: 'run', running: true });
@@ -362,7 +420,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker,
       credentials: credentials(),
-      maxBudgetUsd: settings.get().budgetUsd || undefined,
+      maxBudgetUsd: grant.usd,
       preexisting: before,
       keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
       abort,
@@ -374,8 +432,17 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
     finished = result.ok;
     log?.info('run end', { ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
-    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd);
+    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now());
     const costUsd = spend.forCommission(job.workDir) || undefined;
+    // Settled: the ledger has what the round cost. A month or project cap that set this round's limit and stopped it is
+    // that cap's stop, not the per-round one. Caps it took past eight tenths are said once; a cap stop says it already.
+    const spent = spentOn(project);
+    const stoppedBy = result.error === 'budget' && (grant.by === 'month' || grant.by === 'project') ? grant.by : null;
+    const stop = stoppedBy ? capStop(noteOn(stoppedBy, capsFor(project), spent), project) : undefined;
+    const error = stop?.error ?? result.error;
+    const near = warnings(capsFor(project), spent, memory.get().budgetSaid ?? [], localMonth(now()), project?.id);
+    if (near.length) memory.budgetSaid(near.map((w) => w.key));
+    const budget = stop || !near.length ? undefined : near.map(({ key: _, ...w }) => ({ ...w, ...(w.cap === 'project' ? { project: project!.title } : {}) }));
     if (result.error !== 'cancelled') {
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
@@ -393,13 +460,14 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
-        ok: result.ok, error: result.error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
-        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && versions.has(r.id)), canUndo: lent && versions.canUndo(job.workDir), grew,
+        ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && versions.has(r.id)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
       });
     }
     lastFailed = result.ok || result.error === 'cancelled' ? null : job;
-    return { ...result, spentThisRun };
+    return { ...result, ...stop, ...(stop ? { carryOn: true } : {}), error, spentThisRun, budget };
   } finally {
+    reservations.settle(run);
     broker.onAnswered = undefined;
     // Stopping on the way out promised it could be carried on, unless it got to the end first.
     if (!quitting || finished) pending.clear();
@@ -457,6 +525,8 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
   if (current) return { ok: false, recordingPath: '', workDir: current.workDir, error: 'busy' };
   if (form.source && !picked.has(form.source)) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
   if (form.materials?.some((m) => !picked.has(m))) return { ok: false, recordingPath: '', workDir: '', error: 'source' };
+  const stop = refused(undefined, '');
+  if (stop) return stop;
   if (form.inPlace) return startLent(form, form.inPlace);
   if (form.demo) form = { ...form, materials: undefined };
   const workDir = commissionDir(settings.get().workRoot, folderName(commissionTitle(form)));
@@ -493,6 +563,8 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
   const lent = Boolean(memo.form?.inPlace);
   if (lent && tooBigToLend(memo.folder)) return { ok: false, recordingPath: '', workDir: '', error: 'tooBig' };
+  const stop = refused(memory.get().projects.find((p) => p.id === memo.project), memo.folder);
+  if (stop) return stop;
   const preexisting = lent ? versions.usersFiles(memo.folder) : memo.preexisting ?? [];
   const restored = restoredSince.has(memo.id);
   restoredSince.delete(memo.id);
@@ -679,11 +751,12 @@ function openData() {
   const migrated = migrate(dir);
   // Only how many: a change can quote a commission's title, and the log goes into the diagnostics file.
   if (migrated.to !== migrated.from || migrated.changes.length) log?.info('data migrated', { from: migrated.from, to: migrated.to, changes: migrated.changes.length });
-  settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'));
+  // The ledger first: settings from before the monthly cap take theirs from what was spent (budget.ts).
+  spend = new SpendLedger(join(dir, 'spend.json'));
+  settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'), () => startingMonthCap(spend.months(), now()));
   pending = new PendingStore(join(dir, 'pending.json'));
   memory = new MemoryStore(join(dir, 'memory.json'));
   versions = new VersionStore(join(dir, 'versions'));
-  spend = new SpendLedger(join(dir, 'spend.json'));
   if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
   leftover = pending.load();
 }

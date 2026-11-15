@@ -22,12 +22,12 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { answerFirst, boardSteps, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { answerFirst, boardSteps, budgetLine, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
-import { closeRunning, hasFailureCard, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
+import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
-import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
-import { onNotebookForget, showDataTrouble, onNotebookRevise, showNotebook } from './ui/notebook';
+import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
+import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
 import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
@@ -480,7 +480,10 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     sfx(r.ok ? 'success' : 'fail');
     append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
     // No card to put away (called off, no key, no Claude Code): nothing is going on any more, so the plan goes now.
-    if (!r.ok && !showFailure(window.lamplight, r.error ?? '', () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) }, r.workDir)) clearWorkSigns();
+    // A cap's card offers to carry on only work that was under way; the vars say where the cap stands.
+    const again = r.cap && !r.carryOn ? null : () => void run(want, () => window.lamplight.retryCommission());
+    const cap: Record<string, string> = r.cap ? { spent: formatUsd(r.cap.spentUsd), cap: formatUsd(r.cap.capUsd), left: formatUsd(r.cap.leftUsd), project: r.cap.project ?? '' } : {};
+    if (!r.ok && !showFailure(window.lamplight, r.error ?? '', again, { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0), ...cap }, r.cap ? undefined : r.workDir, (r.budget ?? []).map(budgetLine))) clearWorkSigns();
   } finally {
     closeRunning();
     running = null;
@@ -521,7 +524,7 @@ async function newCommission(dropped: string[] = []) {
   const env = await window.lamplight.envStatus();
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped), () => { oldClaudeOk = true; void newCommission(dropped); });
   const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
-  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed);
+  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed, await window.lamplight.monthBudget());
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
@@ -545,6 +548,8 @@ async function revise(id: string, title?: string) {
   await run(ask, () => window.lamplight.reviseCommission({ id, ask }));
 }
 onNotebookRevise((id, title) => void revise(id, title));
+// A cap's card leads to where the cap is changed.
+onCapGo({ settings: () => void showSettings(window.lamplight, applySettings, 'work'), notebook: () => void showNotebook(window.lamplight) });
 
 /** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
 async function prepare(form: CommissionForm) {
@@ -646,6 +651,9 @@ async function openShop() {
   const damage = await api.dataDamage();
   // Read again: the limit may have changed while the card waited.
   if (damage.notebook || damage.settings || damage.ledger) showDataTrouble(damage, (await api.getSettings()).budgetUsd);
+  while (document.querySelector('#ui > .card')) await wait(ONCE_RETRY_MS);
+  const raised = await api.monthCapNews();
+  if (raised) showMonthCapNews(raised);
 }
 void openShop();
 
@@ -675,6 +683,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showNotReady: (env: EnvStatus) => showNotReady(api, env, () => {}),
       showTrialEnd: () => showTrialEnd(() => {}),
       showDataTrouble,
+      showMonthCapNews,
       showMeeting: () => showMeeting(),
       showRevise: (title?: string) => showRevise(undefined, title),
       showShelf: () => showShelf(api, () => {}),

@@ -2334,6 +2334,130 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The monthly cap (road-to-1.2.md B8): $10 a month and about $3.25 a commission. The third takes the month past eight
+   * tenths and Adeng says so once; the slip then says what is left, and the fourth is stopped before it starts, with a way
+   * to settings. In the next month work starts again. A shop from before the cap that spent more starts one step up and is
+   * told so once.
+   */
+  async monthcap(lang, out) {
+    const L = locale(lang);
+    const R = L.ui.run;
+    const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 5, monthCapUsd: 10 }) });
+    // 11.2 units of the stand-in's cost for a page: about $3.25 each.
+    const simEnv = { SIM_COST: '0.29' };
+    const ledger = () => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+    let shop = await launch({ lang, home, speed: SPEED, simEnv, clock: '2026-11-20T10:00' });
+    try {
+      for (let i = 1; i <= 3; i++) {
+        await shop.order({ template: 'page', want: W[lang].page });
+        await shop.submit();
+        const r = await shop.workUntilDone();
+        check(r.ok, `commission ${i} did not finish: ${JSON.stringify(r.stopped ?? r)}`);
+        const notes = await shop.page.locator('.result-card .result-budget').allInnerTexts();
+        check(notes.length === (i === 3 ? 1 : 0), `after commission ${i} Adeng said ${JSON.stringify(notes)}`);
+        if (i === 3) {
+          check(notes[0].includes('$10.00'), `the warning does not name the cap: ${notes[0]}`);
+          await shop.shot(join(out, 'monthcap-warn.png'));
+        }
+        await shop.page.keyboard.press('Escape');
+        await sleep(800);
+      }
+      check(ledger().every((e) => e.month === '2026-11'), `the spending is not in the shop's November: ${JSON.stringify(ledger())}`);
+      check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).budgetSaid?.includes('2026-11'), 'the notebook does not remember the warning');
+      await shop.order({ template: 'page', want: W[lang].page });
+      const slip = await shop.page.locator('form.commission .budget-note').innerText();
+      check(slip.includes(L.ui.budgetLeft.split('{left}')[0]) && slip.includes('$10.00'), `the slip does not say what is left: ${slip}`);
+      await shop.page.locator('form.commission .budget-note').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'monthcap-slip.png'));
+      await shop.submit();
+      const r = await shop.workUntilDone({ timeout: 20_000 });
+      check(!r.ok && r.stopped?.title === R.monthCapTitle, `the fourth was not stopped by the month: ${JSON.stringify(r).slice(0, 300)}`);
+      const buttons = await shop.page.locator('#ui .card.serious .actions button').allInnerTexts();
+      check(buttons.includes(R.capSettings) && !buttons.includes(R.budgetRetry), `the stop card offers ${JSON.stringify(buttons)}`);
+      check(ledger().length === 3, 'the stopped commission spent something');
+      await shop.shot(join(out, 'monthcap-stop.png'));
+      await shop.page.locator('#ui .card.serious button.cap-go').click();
+      await shop.page.waitForSelector('.settings select.month-cap');
+      await sleep(300);
+      check(await shop.page.locator('.settings select.month-cap').inputValue() === '10', 'settings do not show the monthly cap');
+      await shop.page.locator('.settings select.month-cap').scrollIntoViewIfNeeded();
+      const spills = await shop.page.locator('.card.settings').evaluate((c) => c.scrollWidth > c.clientWidth + 1);
+      check(!spills, 'the monthly cap pushes the settings sideways');
+      await shop.shot(join(out, 'monthcap-settings.png'));
+    } finally { await shop.close(); }
+
+    // A new month: the cap starts afresh.
+    shop = await launch({ lang, home, speed: SPEED, simEnv, clock: '2026-12-02T10:00' });
+    try {
+      await sleep(1500);
+      await shop.page.keyboard.press('Escape');
+      const r = await runOne(shop, { template: 'page', want: W[lang].page });
+      check(r.ok, `December's commission did not finish: ${JSON.stringify(r.stopped ?? r)}`);
+      check(await shop.page.locator('.result-card .result-budget').count() === 0, 'Adeng warned at a third of the cap');
+      check(ledger().some((e) => e.month === '2026-12'), 'December spent nothing');
+    } finally { await shop.close(); }
+
+    // A shop from before the cap that spent $26 last month starts at $50, and is told so once.
+    const old = freshHome({ 'settings.json': onboarded(lang), 'spend.json': JSON.stringify([{ key: 'C:/w/a|s', usd: 26, month: '2026-10' }]) });
+    shop = await launch({ lang, home: old, speed: SPEED, clock: '2026-11-20T10:00' });
+    try {
+      await shop.page.waitForSelector('.month-cap-news', { timeout: 20_000 });
+      const said = await shop.page.locator('.month-cap-news').innerText();
+      check(said.includes('$50.00') && said.includes('$20.00'), `the news reads ${said}`);
+      check(JSON.parse(readFileSync(join(old.data, 'settings.json'), 'utf8')).monthCapUsd === 50, 'the raised cap was not saved');
+      await shop.shot(join(out, 'monthcap-news.png'));
+    } finally { await shop.close(); }
+    shop = await launch({ lang, home: old, speed: SPEED, clock: '2026-11-20T10:00' });
+    try {
+      await sleep(6000);
+      check(await shop.page.locator('.month-cap-news').count() === 0, 'the news came again');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A project's cap (road-to-1.2.md B8), set in the notebook: a round of changes gets only what is left of it and stops at
+   * it, carrying on is stopped again, and a commission in another project goes ahead.
+   */
+  async projectcap(lang, out) {
+    const L = locale(lang);
+    const R = L.ui.run;
+    const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 5, monthCapUsd: 0 }) });
+    // About $4.50 a page, so a $5 project has just enough left for a round of changes to start.
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_COST: '0.4' } });
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    try {
+      check((await runOne(shop, { template: 'page', want: W[lang].page })).ok, 'the first work did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(600);
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      await shop.page.waitForSelector('.notebook select.project-cap');
+      await shop.page.locator('.notebook select.project-cap').selectOption('5');
+      await sleep(400);
+      check(notebook().projects[0].capUsd === 5, `the cap was not kept: ${JSON.stringify(notebook().projects[0])}`);
+      const spills = await shop.page.locator('.card.notebook').evaluate((c) => c.scrollWidth > c.clientWidth + 1);
+      check(!spills, 'the project cap pushes the notebook sideways');
+      await shop.page.locator('.notebook select.project-cap').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'projectcap-notebook.png'));
+      await shop.page.locator('.notebook .notebook-revise').first().click();
+      await shop.page.fill('form.revise textarea', W[lang].ask);
+      await shop.page.locator('form.revise button.default').click();
+      let r = await shop.workUntilDone();
+      check(!r.ok && r.stopped?.title === R.projectCapTitle, `the round of changes did not stop at the project cap: ${JSON.stringify(r).slice(0, 300)}`);
+      const buttons = await shop.page.locator('#ui .card.serious .actions button').allInnerTexts();
+      check(buttons.includes(R.capNotebook) && buttons.includes(R.budgetRetry), `the stop card offers ${JSON.stringify(buttons)}`);
+      await shop.shot(join(out, 'projectcap-stop.png'));
+      await shop.retry();
+      r = await shop.workUntilDone({ timeout: 20_000 });
+      check(!r.ok && r.stopped?.title === R.projectCapTitle, `carrying on was not stopped again: ${JSON.stringify(r).slice(0, 300)}`);
+      await shop.page.keyboard.press('Escape');
+      await sleep(600);
+      r = await runOne(shop, { template: 'page', want: W[lang].page });
+      check(r.ok, 'a commission in another project was held up');
+      check(notebook().projects.length === 2, `${notebook().projects.length} projects`);
+    } finally { await shop.close(); }
+  },
+
   /** A dropped connection: the stop card, try again, and the work continues from where it was. */
   async neterror(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });

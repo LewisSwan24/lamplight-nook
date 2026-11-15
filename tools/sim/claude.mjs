@@ -322,6 +322,9 @@ async function run(prompt) {
     // Falls over once: carrying on (--resume) gets through.
     if (SCENARIO === 'crash' && !resumeId) setTimeout(() => process.exit(1), 6 * SPEED);
     await play.run(stage, { scenario: SCENARIO, prompt });
+    // A finished session carries its total into a --resume too, as Claude Code's own does (a round of changes).
+    state.paid = (state.paid ?? 0) + stage.spent;
+    saveState(state);
   } catch (err) {
     if (!(err instanceof Stopped)) {
       process.stderr.write(`sim: ${err?.stack ?? err}\n`);

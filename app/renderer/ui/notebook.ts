@@ -3,7 +3,8 @@ import { shopTimeline } from '../../shared/days';
 import { localMonth } from '../../shared/localday';
 import { monthStats } from '../../shared/stats';
 import { formatUsd } from '../../shared/money';
-import type { DataDamage, LamplightApi, Memory } from '../../shared/types';
+import { PROJECT_CAP_CHOICES, type DataDamage, type LamplightApi, type Memory } from '../../shared/types';
+import { MONTH_CAP_DEFAULT } from '../../main/budget';
 import { el } from './dom';
 import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
@@ -42,6 +43,15 @@ function ledger(api: LamplightApi, memory: Memory, spent: number): HTMLElement |
 function pages(api: LamplightApi, memory: Memory, spent: number, revise?: (id: string, title: string) => void): HTMLElement[] {
   if (!memory.commissions.length && !memory.stuckNotes.length) return [el('div.notebook-empty', {}, N.empty)];
   const newest = [...memory.commissions].reverse();
+  // A project's cap (B8) sits with its latest commission, until projects have a board of their own (B2).
+  const capOf = (c: Memory['commissions'][number]) => {
+    const p = memory.projects.find((x) => x.id === c.project && x.commissions.at(-1) === c.id);
+    if (!p) return null;
+    const select = el('select.project-cap', { 'aria-label': `${N.projectCap} \u00B7 ${p.title}` }, ...PROJECT_CAP_CHOICES.map((usd) =>
+      el('option', { value: usd, selected: usd === (p.capUsd ?? 0) }, usd ? formatUsd(usd) : N.projectCapNone))) as HTMLSelectElement;
+    select.addEventListener('change', () => void api.setProjectCap(p.id, Number(select.value)));
+    return el('label.notebook-choice.project-cap-row', {}, N.projectCap, ' ', select);
+  };
   const entry = (c: Memory['commissions'][number]) =>
     el('li', {},
       el('div', {}, el('span.notebook-date', {}, c.date), ' ', el('b', {}, c.title), ' \u00B7 ', c.result === 'done' ? N.done : N.failed,
@@ -49,7 +59,8 @@ function pages(api: LamplightApi, memory: Memory, spent: number, revise?: (id: s
         c.folder && c.result === 'done' ? el('button.link.notebook-open', { type: 'button', onclick: () => void api.openCommissionFolder(c.id) }, N.openFolder) : null,
         c.folder && c.result === 'done' && revise ? el('button.link.notebook-revise', { type: 'button', onclick: () => revise(c.id, c.title) }, N.revise) : null),
       ...Object.entries(c.choices).map(([q, a]) => el('div.notebook-choice', {}, fill(N.choice, { q, a }))),
-      ...(c.asks ?? []).map((a) => el('div.notebook-choice', {}, fill(N.asked, { ask: a.ask }))));
+      ...(c.asks ?? []).map((a) => el('div.notebook-choice', {}, fill(N.asked, { ask: a.ask }))),
+      capOf(c));
   const commissions = el('ul');
   let drawn = 0;
   const more = el('li.notebook-more', {}, el('button.link', { type: 'button', onclick: () => {
@@ -95,6 +106,15 @@ export function showDataTrouble(damage: DataDamage, budget: number) {
     closeButton(),
     el('div.card-scroll', {}, withPortrait('adeng', 'unsure', el('div.card-title', {}, N.troubleTitle), ...said.map((s) => el('div', {}, s)))),
     el('div.actions', {}, el('button.default', { type: 'button', onclick: closePanel }, N.troubleOk))));
+}
+
+/** On upgrading: the shop now has a monthly cap, set above the default from what was spent before. Said once. */
+export function showMonthCapNews(capUsd: number) {
+  const R = strings.ui.run;
+  replaceOpen(el('div.card.paper.month-cap-news', {},
+    closeButton(),
+    withPortrait('adeng', 'calm', el('div.card-title', {}, R.monthCapNewsTitle), el('div', {}, fill(R.monthCapNewsText, { cap: formatUsd(capUsd), default: formatUsd(MONTH_CAP_DEFAULT) }))),
+    el('div.actions', {}, el('button.default', { type: 'button', onclick: closePanel }, R.capOk))));
 }
 
 /** "Change it a bit" on an old commission, set by the shop once it can take one (main.ts). */
