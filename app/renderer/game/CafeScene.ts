@@ -103,6 +103,13 @@ const FURNISH_URLS = import.meta.glob<string>('../../../assets/sprites/furnish-*
 const furnishUrl = (part: FurnishPart, choice: string) => FURNISH_URLS[`../../../assets/sprites/furnish-${SCENE}-${part}-${choice}.png`];
 /** Over the room, under the window glass and everything in it. */
 const FURNISH_DEPTH = 0.2;
+/**
+ * The crew flag over a head (B9): its pole this far right of the middle, its top this far above the feet and the pole this
+ * long, down to the hair; a bubble over the head (height + 2) still clears it.
+ */
+const FLAG = { x: 2, top: 29, pole: 8 } as const;
+/** The dark brown the pixel art is outlined in. */
+const INK = 0x3b2a1e;
 /** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
 const CUP_POS = SCENE === 'study' ? { x: 232, y: 62 } : { x: 256, y: 64 };
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
@@ -156,6 +163,10 @@ export class CafeScene extends Phaser.Scene {
   private actors = new Map<ActorId, Actor>();
   /** What each character is currently saying, and its mood bubble (either may be empty). */
   private speech = new Map<ActorId, { text: string; icon?: Bubble }>();
+  /** Two rounds at once (B9): the flag over each head working for one, in its project's colour. */
+  private flags = new Map<ActorId, Phaser.GameObjects.Graphics>();
+  /** Who works in the second crew just now, and so takes its places (layout.ts SECOND_SEATS). */
+  private second = new Set<ActorId>();
   /** A neighbour in the shop (at most one), what they are saying, and whether the pointer is over them. */
   private guest?: Guest;
   /** A neighbour has really come in. */
@@ -345,6 +356,44 @@ export class CafeScene extends Phaser.Scene {
     this.addDaylight();
   }
 
+  /** Where a character stands at an anchor, in its crew's places. */
+  private spot(anchor: AnchorId, id: ActorId) {
+    return standPoint(anchor, id, undefined, this.second.has(id));
+  }
+
+  /**
+   * Which round a character works for (B9): `color` puts a little flag in its project's colour over their head (null takes
+   * it down), `second` gives them the second crew's places.
+   */
+  setCrew(id: ActorId, color: string | null, second: boolean) {
+    if (second) this.second.add(id);
+    else this.second.delete(id);
+    const old = this.flags.get(id);
+    if (old?.getData('color') === color) return;
+    old?.destroy();
+    this.flags.delete(id);
+    const actor = this.actors.get(id);
+    if (!color || !actor) return;
+    // A pole and a pennant just over the hair, outlined like the rest of the pixel art; the lower row a shade darker.
+    const cloth = Phaser.Display.Color.HexStringToColor(color);
+    const g = this.add.graphics().setData('color', color);
+    g.fillStyle(INK).fillRect(FLAG.x, -FLAG.top, 1, FLAG.pole);
+    g.fillStyle(INK).fillRect(FLAG.x + 1, -FLAG.top, 6, 5);
+    g.fillStyle(cloth.color).fillRect(FLAG.x + 1, -FLAG.top + 1, 5, 3);
+    g.fillStyle(cloth.darken(20).color).fillRect(FLAG.x + 1, -FLAG.top + 3, 5, 1);
+    this.flags.set(id, g);
+  }
+
+  /** The flags showing, in canvas pixels, for keeping words off them. */
+  flagBoxes(): { left: number; top: number; right: number; bottom: number }[] {
+    return [...this.flags].flatMap(([id, g]) => {
+      const a = this.actors.get(id)!;
+      if (!g.visible) return [];
+      const top = a.sprite.y - FLAG.top;
+      return [{ left: a.sprite.x + FLAG.x, right: a.sprite.x + FLAG.x + 7, top, bottom: top + 5 }];
+    });
+  }
+
   update() {
     if (this.you) this.you.shadow.setPosition(this.you.sprite.x, this.you.sprite.y - 1).setDepth(this.you.sprite.depth - 0.5).setAlpha(0.28 * this.you.sprite.alpha);
     if (this.guest) this.guest.shadow.setPosition(this.guest.sprite.x, this.guest.sprite.y - 1).setDepth(this.guest.sprite.depth - 0.5).setAlpha(0.28 * this.guest.sprite.alpha);
@@ -361,6 +410,8 @@ export class CafeScene extends Phaser.Scene {
           .setPosition(a.sprite.x + x, a.sprite.y + y).setDepth(depth).setVisible(a.sprite.visible && !a.outside && !a.inGarden);
       }
       a.shadow.setPosition(a.sprite.x + (a.id === 'cat' && a.sprite.anims.getName() !== 'cat-walk' ? 3 : 0), a.sprite.y - 1).setDepth(a.sprite.depth - 0.5).setAlpha(0.28 * a.sprite.alpha);
+      this.flags.get(a.id)?.setPosition(a.sprite.x, a.sprite.y).setDepth(a.sprite.depth + 0.2).setAlpha(a.sprite.alpha)
+        .setVisible(a.sprite.visible && !a.outside && !a.inGarden && this.view === 'shop');
     }
   }
 
@@ -708,7 +759,7 @@ export class CafeScene extends Phaser.Scene {
 
   /** Sitting only makes sense on a chair; elsewhere the character stands. */
   private poseAt(anim: string, actor: Actor): string {
-    return anim === 'sit' && !standPoint(actor.at, actor.id).chair ? 'idle' : anim;
+    return anim === 'sit' && !this.spot(actor.at, actor.id).chair ? 'idle' : anim;
   }
 
   /** Switch a character to an animation (a name from STAFF_ANIMS); unknown names keep the current pose. */
@@ -719,7 +770,7 @@ export class CafeScene extends Phaser.Scene {
     actor.pose = this.poseAt(anim, actor);
     if (!actor.tween?.isPlaying()) {
       // Handing something over faces the nearest colleague; everything else faces the way the spot faces.
-      actor.facing = anim === 'gift' ? this.facingNearest(actor) : standPoint(actor.at, actorId).facing;
+      actor.facing = anim === 'gift' ? this.facingNearest(actor) : this.spot(actor.at, actorId).facing;
       this.hold(actor);
     }
   }
@@ -858,7 +909,7 @@ export class CafeScene extends Phaser.Scene {
   /** Come back in through the door, facing into the room. */
   private async enter(actor: Actor) {
     await Promise.all([this.street.comeBack(actor.id), this.passWindows(actor.id, 'in')]);
-    const spot = standPoint('door', actor.id);
+    const spot = this.spot('door', actor.id);
     actor.sprite.setPosition(spot.x, spot.y - 8).setAlpha(0).setDepth(spot.y);
     await this.openDoor();
     actor.sprite.play(animKey(actor.id, 'walk', 'down'), true);
@@ -880,7 +931,7 @@ export class CafeScene extends Phaser.Scene {
         if (actor.sprite.anims.isPlaying) actor.sprite.anims.pause();
         else actor.sprite.anims.resume();
       } else if (!busy && actor.pose === 'idle') {
-        const home = standPoint(actor.at, actor.id).facing;
+        const home = this.spot(actor.at, actor.id).facing;
         actor.facing = glanceFacing(home, Math.random());
         this.hold(actor);
         this.time.delayedCall(1200 + Math.random() * 1600, () => {
@@ -931,10 +982,10 @@ export class CafeScene extends Phaser.Scene {
     if (!actor.outside) actor.sprite.setAlpha(1);
     actor.at = anchor;
     if (actorId === 'cat') actor.sprite.anims.resume();
-    const path = pathBetween({ x: actor.sprite.x, y: actor.sprite.y }, anchor, actorId);
+    const path = pathBetween({ x: actor.sprite.x, y: actor.sprite.y }, anchor, actorId, undefined, this.second.has(actorId));
     if (path.length) {
       await this.followPath(actor, path);
-      actor.facing = standPoint(anchor, actorId).facing;
+      actor.facing = this.spot(anchor, actorId).facing;
       actor.pose = this.poseAt(actor.pose, actor);
       this.hold(actor);
     }
@@ -1194,7 +1245,7 @@ export class CafeScene extends Phaser.Scene {
   private faceGuest(on: boolean) {
     const adeng = this.actors.get('adeng')!;
     if (adeng.at !== 'counter' || adeng.outside || adeng.inGarden || adeng.tween?.isPlaying() || adeng.pose !== 'idle') return;
-    adeng.facing = on ? 'right' : standPoint('counter', 'adeng').facing;
+    adeng.facing = on ? 'right' : this.spot('counter', 'adeng').facing;
     this.hold(adeng);
   }
 
@@ -1289,7 +1340,7 @@ export class CafeScene extends Phaser.Scene {
     actor.tween?.stop();
     if (actor.inGarden) this.garden.remove(actorId);
     actor.inGarden = false;
-    const spot = standPoint(anchor, actorId);
+    const spot = this.spot(anchor, actorId);
     actor.at = anchor;
     actor.outside = anchor === 'door' && actorId !== 'cat';
     this.street.place(actorId, actor.outside, this.tintColor);

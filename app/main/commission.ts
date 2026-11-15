@@ -149,8 +149,14 @@ const REVISE_RULES = [
   REPLY_LANGUAGE,
 ].join('\n');
 
-/** A round of changes: the user's words, what the work was, and whether the folder was rolled back since. */
-export type Revision = { ask: string; form: CommissionForm; summary?: string; restored?: boolean };
+/**
+ * A round of changes: the user's words, what the work was, and whether the folder was rolled back since. Inside a project
+ * it starts with the project's background (B3, project-brief.ts).
+ */
+export type Revision = { ask: string; form: CommissionForm; summary?: string; restored?: boolean; background?: string };
+
+/** The project background goes before everything else in the prompt. */
+const withBackground = (prompt: string, background = '') => (background ? `${background}\n\n${prompt}` : prompt);
 
 /**
  * Prompt for changing finished work. With the earlier session resumed the agent remembers the work;
@@ -159,14 +165,14 @@ export type Revision = { ask: string; form: CommissionForm; summary?: string; re
 export function revisePrompt(r: Revision, resumed: boolean, notes?: string): string {
   const ask = `The user has looked at the finished work and asks for a change: "${r.ask}"`;
   const restored = r.restored ? ['Since your last round the user went back to the previous version of the files: work from the folder as it is now.'] : [];
-  if (resumed) return [ask, ...restored, ...lentSteps(r.form), '', REVISE_RULES].join('\n');
+  if (resumed) return withBackground([ask, ...restored, ...lentSteps(r.form), '', REVISE_RULES].join('\n'), r.background);
   const before = [`Earlier the shop made this for the user. Their original request: ${r.form.demo ? strings.demo.brief : r.form.want}`];
   if (r.form.details) before.push(`Particulars: ${r.form.details}`);
   if (r.form.audience) before.push(`Who it is for: ${r.form.audience}`);
   if (r.summary) before.push(`What the shop said it made: ${r.summary}`);
   before.push('The files are in this folder: look at them first.', ...lentSteps(r.form));
   const steps = r.form.template && template(r.form.template).revise ? templateSteps(r.form) : [];
-  return withNotes([...before, ...steps, '', ask, '', REVISE_RULES].join('\n'), notes);
+  return withBackground(withNotes([...before, ...steps, '', ask, '', REVISE_RULES].join('\n'), notes), r.background);
 }
 
 /** What the user said in a meeting, sent to the running commission. */

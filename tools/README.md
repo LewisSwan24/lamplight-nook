@@ -14,12 +14,13 @@ It never touches the network.
 | Variable | What |
 |---|---|
 | `SIM_SPEED` | milliseconds per step (default 700) |
-| `SIM_SCENARIO` | `budget` (expensive calls, so the cap is hit), `neterror` (one dropped connection), `longwait` (a slow command), `stuck` (three failures in a row) |
+| `SIM_SCENARIO` | `budget` (expensive calls, so the cap is hit), `neterror` (one dropped connection), `longwait` (a slow command), `stuck` (three failures in a row), `sleepwake` (the connection drops once `SIM_NET_DOWN` exists), `hold` (waits halfway while `SIM_HOLD` exists) |
 | `SIM_COST` | dollars per tool call (default 0.018) |
 | `SIM_STATE_DIR` | where sessions are kept for `--resume` |
 | `SIM_LOG` | log every protocol message to this file |
 | `SIM_CLAUDE_VERSION` | the version it claims, in `--version` and the init message (default 2.1.306) |
 | `SIM_TODOS` | `todowrite`: keep the to-do list with TodoWrite, as Claude Code did before TaskCreate / TaskUpdate |
+| `SIM_TOKENS` | `1`: each assistant message reports the tokens it used (otherwise zeros) |
 
 It plays what real runs showed (O5, Claude Code 2.1.306 and 2.1.317): the to-do list one item at a time with
 TaskCreate and TaskUpdate, the init listing the Agent tool as `Task`, a draft written from the shell with a
@@ -69,7 +70,7 @@ gone, Claude Code falling over), `keyboard` (a whole commission, the shelf, the 
 `export` (take a work away from the shelf: a page's zip, unpacked by the system's own `tar`, matches its files byte for byte; its PDF has a sane page count, the page's words and its own stylesheet's, but not a stylesheet from elsewhere on the computer; the print window is gone afterwards; a cancelled save writes nothing; a work in a lent folder zips only the three files it touched),
 `update` (a new version from a local feed served by the scenario: the Store build and a shop with the switch off never ask; the postman brings the letter with the version and the notes in the shop's language only; nothing is fetched until "update"; a commission after that runs to the end; the install comes only as the shop closes, after a copy of the data that matches it; closing mid-commission with "stop and close" still offers to carry on next time, and installs after; the installer itself is never run, the log says when it would have been),
 `storemove` (the Store build's first open beside an installer build's shop: asked before anything else, with the works and the ledger total; "bring it over" puts the works on the shelf and the ledger in settings, leaves the key behind and the old folder byte for byte as it was; the next open asks nothing; "start afresh" gives the welcome and copies nothing; without an old shop nothing is asked),
-`meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
+`meeting`, `budget` (hit the cap more than once and carry on), `neterror`, `sleepwake` (the computer sleeps mid-commission through the debug hook `globalThis.__lamplightPower`, only there when unpackaged; the connection is gone on waking and the round carries on by itself, once), `shutdown` (Windows shuts down with two rounds under way: no question card, one card next time lists both, "carry on with all" finishes them, each session's total in the ledger once), `furnish` (kept after a restart; the card stays clear of the rug, here and in `study`),
 `study`, `mini` (the corner window), `walk` (every main card fits at 1280x720, 1600x900 and 1920x1080, including a
 slip holding twelve long-named files), `menus` (the toolbar's six buttons, labels and icon pixels, and what sits on each
 settings tab), `cards` (every kind of card at the three sizes through the debug handles, with long sample text: inside the

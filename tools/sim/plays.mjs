@@ -78,6 +78,8 @@ const T = {
     travelBody: (w) => `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>旅行攻略</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:720px;margin:30px auto;padding:0 16px;color:#333}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head>\n<body><h1>${esc(w)}</h1>\n<h2>第 1 天</h2><p>上午：[景点]（<a href="https://www.openstreetmap.org/search?query=sight">在地图上看</a>）。开放时间 9:00 到 17:00（出处：示例网站，2026-11-14 查）。</p>\n<h2>预算</h2><table><tr><th>项目</th><th>金额</th></tr><tr><td>门票</td><td>[金额]</td></tr></table>\n<h2>要带的东西</h2><ul><li>身份证件</li><li>充电宝</li></ul>\n<p>开放时间和票价会变，出发前再核对一遍。</p></body></html>\n`,
     toolBody: (w) => `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>小工具</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:560px;margin:30px auto;padding:0 16px}</style></head>\n<body><h1>${esc(w)}</h1><input type="file" id="pick"><button id="go">下载结果</button>\n<script>go.onclick=async()=>{const f=pick.files[0];if(!f)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([(await f.text()).toUpperCase()]));a.download='result-'+f.name;a.click()}</script></body></html>\n`,
     revisedHead: '（修改版）',
+    consult: ['好呀！这是给谁看的？', '明白了。手上有什么材料吗，照片、菜单都行？', '差不多清楚了。想要什么样子：一页网页，还是打印出来的单子？', '都清楚了，可以点“就这样，写成单子”。'],
+    consultAudience: '店里的熟客',
   },
   en: {
     planDemo: 'Plan:\n1. Have Clem look up what expense pages usually have\n2. Write the page\n3. Check it with node check.js',
@@ -146,6 +148,8 @@ const T = {
     travelBody: (w) => `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Travel guide</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:720px;margin:30px auto;padding:0 16px;color:#333}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head>\n<body><h1>${esc(w)}</h1>\n<h2>Day 1</h2><p>Morning: [a sight] (<a href="https://www.openstreetmap.org/search?query=sight">see it on a map</a>). Open 9:00 to 17:00 (source: an example site, checked 2026-11-14).</p>\n<h2>Budget</h2><table><tr><th>Item</th><th>Amount</th></tr><tr><td>Tickets</td><td>[amount]</td></tr></table>\n<h2>Packing list</h2><ul><li>ID</li><li>A power bank</li></ul>\n<p>Opening hours and prices change: check them again before you set off.</p></body></html>\n`,
     toolBody: (w) => `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Small tool</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:560px;margin:30px auto;padding:0 16px}</style></head>\n<body><h1>${esc(w)}</h1><input type="file" id="pick"><button id="go">Download the result</button>\n<script>go.onclick=async()=>{const f=pick.files[0];if(!f)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([(await f.text()).toUpperCase()]));a.download='result-'+f.name;a.click()}</script></body></html>\n`,
     revisedHead: '(revised)',
+    consult: ['Lovely! Who is it for?', 'I see. Do you have anything to go on, photos or a menu?', 'Nearly there. What should it be: a web page, or a sheet to print?', 'All clear now. You can have it written up as a slip.'],
+    consultAudience: 'Regulars at the cafe',
   },
 };
 
@@ -158,9 +162,14 @@ const want = (prompt) => ((prompt.match(/The user's request: (.*)/) ?? [])[1] ??
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
-export function pickPlay(prompt, state) {
-  state.lang = /Simplified Chinese/.test(prompt) ? 'zh' : 'en';
+export function pickPlay(prompt, state, system = '') {
   state.vars ??= {};
+  // A talk with Adeng before a commission (B4): known by its own system prompt; each line is a --resume of the session.
+  if (/Before a commission is written, you chat/.test(system)) {
+    state.lang = /Simplified Chinese/.test(system) ? 'zh' : 'en';
+    return plays.consult;
+  }
+  state.lang = /Simplified Chinese/.test(prompt) ? 'zh' : 'en';
   if (/called the staff together/.test(prompt)) return plays.carryOn; // a note arrived as the first message: rare
   if (/asks for a change/.test(prompt)) {
     state.done = 0;
@@ -246,6 +255,18 @@ async function twist(s, t, scenario) {
       s.fail('API Error: Connection error. fetch failed (ECONNRESET)');
     });
   }
+  // The computer goes to sleep mid-commission (road-to-1.2.md B7): the scenario says so with a file, and the connection the
+  // run was using dies with it. Carried on (--resume) after waking, it gets through.
+  if (scenario === 'sleepwake' && !s.state.vars.netDone) {
+    await s.step(async () => {
+      while (!existsSync(process.env.SIM_NET_DOWN)) await s.pause(0.2);
+      s.state.vars.netDone = true;
+      await s.say(t.netRetry);
+      s.fail('API Error: Connection error. fetch failed (ECONNRESET)');
+    });
+  }
+  // Held halfway while a file is there, so a scenario can shut the computer down with the round surely under way (B7).
+  if (scenario === 'hold') await s.step(async () => { while (existsSync(process.env.SIM_HOLD)) await s.pause(0.2); });
   // Three errands at once, each out a little longer than the one before (road-to-1.1.md A5): Xiaoju takes the first,
   // the apprentice the second, and the third waits for whoever is back first.
   if (scenario === 'errands') {
@@ -255,6 +276,14 @@ async function twist(s, t, scenario) {
         await s.tool('WebSearch', { query: t.errands[i] }, { ...a, slow, effect: () => ({ text: 'Web search results (simulated).' }) });
       }, t.researchSummary);
     })));
+  }
+  // A question answered in a project's first round becomes one of its preferences (road-to-1.2.md B3).
+  if (scenario === 'projectmemo') {
+    await s.step(async () => {
+      const colors = s.state.lang === 'zh' ? ['奶油白', '浅薄荷'] : ['Cream', 'Mint'];
+      const picked = await s.ask(t.colorQ, t.colorH, colors.map((c, i) => ({ label: c, description: t.colorHints[i] })));
+      await s.say(picked ? t.pickColor(picked) : t.leftToMe(colors[0]));
+    });
   }
   if (scenario === 'longwait') await s.step(() => s.tool('Bash', { command: 'node --version', description: 'wait' }, { slow: 50, effect: () => ({ text: 'v22' }) }));
   if (scenario === 'stuck') {
@@ -553,6 +582,27 @@ export const plays = {
       await reviewer(s, t, theirs[0] ?? 'pages/contact.html');
       await p.end();
       await s.finish(t.lentDone);
+    },
+  },
+
+  /**
+   * A talk with Adeng (B4): one fixed line for each thing the user says, one call's cost each. Asked for the slip as JSON
+   * (--json-schema), it writes one from what it heard: the first line is the want, the rest the details.
+   */
+  consult: {
+    name: 'consult',
+    async run(s, { prompt, schema }) {
+      const t = T[s.state.lang];
+      const heard = (s.state.vars.heard ??= []);
+      await s.think(1);
+      s.charge();
+      if (!schema) {
+        heard.push(prompt.split('\n')[0]);
+        await s.finish(t.consult[Math.min(heard.length, t.consult.length) - 1]);
+        return;
+      }
+      const slip = { want: heard[0] ?? '', details: heard.slice(1).join(s.state.lang === 'zh' ? '；' : '; '), audience: t.consultAudience, template: 'page' };
+      await s.finish(JSON.stringify(slip), { structured_output: slip });
     },
   },
 

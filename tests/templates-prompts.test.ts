@@ -41,6 +41,14 @@ for (const lang of ['zh-CN', 'en'] as const) {
       expect(out).toMatchSnapshot();
     });
 
+    it('a round inside a project, with its background first', async () => {
+      const c = await inLanguage(lang);
+      const revision = { ask: 'ASK', form: form('page'), summary: 'S', background: 'BACKGROUND' };
+      const out = [c.revisePrompt(revision, true), c.revisePrompt(revision, false, 'NOTES'), c.continuePrompt(form('page'), false, 'NOTES', revision)];
+      for (const prompt of out) expect(prompt.startsWith('BACKGROUND\n\n')).toBe(true);
+      expect(out).toMatchSnapshot();
+    });
+
     it('the demo', async () => {
       const c = await inLanguage(lang);
       const demo: CommissionForm = { want: 'W', demo: true };

@@ -1,7 +1,7 @@
 import type { BoardStep } from '../../shared/board';
 import { fill, strings } from '../../shared/i18n';
 import { capLine, elapsedLine, planLine } from '../../shared/progress';
-import type { ActorId, CommissionForm, ExternalLink, LamplightApi } from '../../shared/types';
+import type { ActorId, ExternalLink, LamplightApi, PendingRound } from '../../shared/types';
 import { el } from './dom';
 import { clearWorkSigns, closeButton, closePanel, replaceOpen } from './panels';
 import { portraitEl, withPortrait } from './portraits';
@@ -10,6 +10,9 @@ const R = strings.ui.run;
 
 /** What the running card shows, read afresh each time it redraws. */
 export type ProgressView = {
+  /** The round the card is about (the first under way), and the other rounds, under way or in the queue (B5). */
+  run: string;
+  others: { title: string; queued: boolean }[];
   want: string;
   startedAt: number;
   budgetUsd: number;
@@ -33,8 +36,9 @@ const stateName = (state: string) => (strings.states as Record<string, string>)[
  * The one card for work under way, from the counter and the blackboard alike: how long it has taken, what the
  * limit is, what is happening now, the plan, who is doing what, a word in the middle, and a way to stop (asked twice).
  */
-export function showRunning(api: LamplightApi, view: () => ProgressView, act: { meet: () => void; actor: (actor: ActorId) => void }) {
+export function showRunning(api: LamplightApi, view: () => ProgressView, act: { meet: () => void; actor: (actor: ActorId) => void; another: () => void }) {
   const meta = el('div.hint');
+  const others = el('div.hint.progress-others');
   const now = el('div.progress-now');
   const heading = el('div.hint.progress-heading');
   const list = el('ol.plan-list');
@@ -49,13 +53,15 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   const ask = () => actions.replaceChildren(
     el('button.progress-cancel', { onclick: sure }, R.cancel),
     el('button.progress-meet', { onclick: act.meet }, R.progressMeet),
+    // Two rounds may be under way at once and more wait in the queue (B5): another commission is taken from here.
+    el('button.progress-another', { onclick: () => { closePanel(); act.another(); } }, R.another),
     el('button.default', { onclick: closePanel }, R.keepGoing),
   );
   const sure = () => {
     confirming = true;
     now.textContent = R.cancelConfirm;
     actions.replaceChildren(
-      el('button.progress-cancel', { onclick: () => { closePanel(); void api.cancelCommission(); } }, R.cancel),
+      el('button.progress-cancel', { onclick: () => { closePanel(); void api.cancelCommission(view().run); } }, R.cancel),
       el('button.default', { onclick: closePanel }, R.keepGoing),
     );
     actions.querySelector<HTMLElement>('button.default')!.focus();
@@ -63,6 +69,10 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   const draw = () => {
     const v = view();
     meta.textContent = [elapsedLine(v.startedAt, Date.now(), R), capLine(v.budgetUsd, R)].filter(Boolean).join(' \u00B7 ');
+    const under = v.others.filter((o) => !o.queued).map((o) => o.title);
+    const waiting = v.others.filter((o) => o.queued).map((o) => o.title);
+    others.textContent = [under.length ? fill(R.alsoRunning, { list: under.join(strings.app.listSeparator) }) : '', waiting.length ? fill(R.inQueue, { list: waiting.join(strings.app.listSeparator) }) : ''].filter(Boolean).join(' \u00B7 ');
+    others.hidden = !others.textContent;
     if (!confirming) now.textContent = v.now || v.steps.find((s) => s.status === 'doing')?.label || R.progressThinking;
     heading.textContent = planLine(v.steps, v.realPlan, R);
     const top = list.scrollTop;
@@ -75,7 +85,7 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   };
   const card = el('div.card.paper.running-card.plan-card', {},
     closeButton(),
-    withPortrait('adeng', 'calm', el('div.card-title.progress-title', { title: first.want }, fill(R.runningTitle, { want: first.want })), meta, el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), now)),
+    withPortrait('adeng', 'calm', el('div.card-title.progress-title', { title: first.want }, fill(R.runningTitle, { want: first.want })), meta, others, el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), now)),
     heading,
     list,
     el('div.progress-staff', {}, ...staff.map((s) => s.button)),
@@ -90,7 +100,7 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   const ticking = setInterval(() => { if (card.isConnected) draw(); else clearInterval(ticking); }, 15_000);
 }
 
-type Failure = { title: string; text: string; link?: [ExternalLink, string]; retry: boolean; plain: boolean; retryLabel?: string };
+type Failure = { title: string; text: string; link?: [ExternalLink, string]; retry: boolean; plain: boolean; retryLabel?: string; /** Where the cap that stopped it is changed. */ go?: 'settings' | 'notebook' };
 
 /**
  * Why a commission stopped, for the failures the user can do something about. Billing and key problems use
@@ -106,12 +116,22 @@ const FAILURES: Record<string, Failure> = {
   tooBig: { title: R.tooBigTitle, text: R.tooBigText, retry: false, plain: false },
   failed: { title: R.failedTitle, text: R.failedText, retry: true, plain: false },
   budget: { title: R.budgetTitle, text: R.budgetText, retry: true, plain: true, retryLabel: R.budgetRetry },
+  // A month or project cap (B8): carrying on is offered only for work already under way, and stops again until the cap allows it.
+  monthCap: { title: R.monthCapTitle, text: R.monthCapText, retry: true, plain: true, retryLabel: R.budgetRetry, go: 'settings' },
+  projectCap: { title: R.projectCapTitle, text: R.projectCapText, retry: true, plain: true, retryLabel: R.budgetRetry, go: 'notebook' },
 };
 
 /** Returns false when the failure needs no card: a commission that was called off. */
 export const hasFailureCard = (kind?: string) => Boolean(kind && FAILURES[kind]);
 
-export function showFailure(api: LamplightApi, kind: string, retry: () => void, vars: Record<string, string> = {}, workDir?: string): boolean {
+/** Opening settings or the notebook, from a cap's card; set by the shop (main.ts). */
+let goTo: Record<'settings' | 'notebook', () => void> = { settings: () => {}, notebook: () => {} };
+export function onCapGo(fn: typeof goTo) {
+  goTo = fn;
+}
+
+/** `retry` null: nothing to carry on, so no button for it. `notes`: caps the round took past eight tenths, said here too. */
+export function showFailure(api: LamplightApi, kind: string, retry: (() => void) | null, vars: Record<string, string> = {}, workDir?: string, notes: string[] = []): boolean {
   const f = FAILURES[kind];
   if (!f) return false;
   const card = el(f.plain ? 'div.card.serious' : 'div.card.paper', { 'onpanel-closed': clearWorkSigns },
@@ -120,22 +140,38 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void, 
     ...(f.plain
       ? [el('div.serious-title', {}, f.title), el('div', {}, fill(f.text, vars))]
       : [withPortrait('adeng', 'troubled', el('div.card-title', {}, f.title), el('div', {}, fill(f.text, vars)))]),
+    ...notes.map((n) => el('div.hint.result-budget', { role: 'note' }, n)),
     el('div.actions', {},
       f.link ? el('button', { onclick: () => api.openLink(f.link![0]) }, f.link[1]) : null,
       workDir ? el('button', { onclick: () => void api.openOutput(workDir, 'reveal') }, R.seeSoFar) : null,
+      f.go ? el('button.cap-go', { onclick: () => { closePanel(); goTo[f.go!](); } }, f.go === 'settings' ? R.capSettings : R.capNotebook) : null,
+      f.go && !retry ? el('button.default', { onclick: closePanel }, R.capOk) : null,
       // Carrying on keeps the plan on the blackboard; putting the card away ends the commission, so it goes too.
-      f.retry ? el('button.default', { onclick: () => { card.removeEventListener('panel-closed', clearWorkSigns); closePanel(); retry(); } }, f.retryLabel ?? R.retry) : null),
+      f.retry && retry ? el('button.default', { onclick: () => { card.removeEventListener('panel-closed', clearWorkSigns); closePanel(); retry(); } }, f.retryLabel ?? R.retry) : null),
   );
   replaceOpen(card);
   return true;
 }
 
-/** At startup: a commission was left unfinished last time. */
-export function showPending(api: LamplightApi, form: CommissionForm, resume: () => void) {
+/** At startup: a commission was left unfinished last time. `next`: what comes after it is answered either way (B7). */
+export function showPending(api: LamplightApi, round: Pick<PendingRound, 'run' | 'form'>, resume: () => void, next: () => void = () => {}) {
   replaceOpen(el('div.card.paper.pending-card.must-answer', {},
-    withPortrait('adeng', 'calm', el('div.card-title', {}, R.pendingTitle), el('div', {}, fill(R.pendingText, { want: form.want }))),
+    withPortrait('adeng', 'calm', el('div.card-title', {}, R.pendingTitle), el('div', {}, fill(R.pendingText, { want: round.form.want }))),
     el('div.actions', {},
-      el('button', { onclick: () => { closePanel(); void api.dropPending(); } }, R.drop),
-      el('button.default', { onclick: () => { closePanel(); resume(); } }, R.resume)),
+      el('button', { onclick: () => { closePanel(); void api.dropPending(round.run).then(next); } }, R.drop),
+      el('button.default', { onclick: () => { closePanel(); resume(); next(); } }, R.resume)),
+  ));
+}
+
+/** At startup: rounds the computer's shutting down interrupted (road-to-1.2.md B7), one card for all of them. */
+export function showInterrupted(rounds: PendingRound[], go: { all: () => void; each: () => void; none: () => void }) {
+  const pick = (fn: () => void) => () => { closePanel(); fn(); };
+  replaceOpen(el('div.card.paper.pending-card.interrupted-card.must-answer', {},
+    withPortrait('adeng', 'calm', el('div.card-title', {}, R.interruptedTitle), el('div', {}, R.interruptedText)),
+    el('ul.interrupted-list', {}, ...rounds.map((r) => el('li', {}, r.title))),
+    el('div.actions', {},
+      el('button', { onclick: pick(go.none) }, R.dropAll),
+      el('button', { onclick: pick(go.each) }, R.oneByOne),
+      el('button.default', { onclick: pick(go.all) }, R.resumeAll)),
   ));
 }

@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -32,8 +32,47 @@ describe('memory store', () => {
     const file = fresh();
     new MemoryStore(file).remember(memo('ledger', { 'Main color?': 'mint' }), ['node check.js'], new Date('2026-10-22T10:00:00Z'));
     const m = new MemoryStore(file).get();
-    expect(m.commissions).toEqual([{ id: expect.any(String), title: 'ledger', date: '2026-10-22', result: 'done', choices: { 'Main color?': 'mint' }, folder: '/work/ledger' }]);
+    expect(m.commissions).toEqual([{ id: expect.any(String), title: 'ledger', date: '2026-10-22', result: 'done', choices: { 'Main color?': 'mint' }, folder: '/work/ledger', project: expect.any(String) }]);
     expect(m.stuckNotes).toEqual([{ commission: 'ledger', note: 'node check.js', date: '2026-10-22' }]);
+  });
+
+  it('keeps projects across restarts, with what a later version wrote in them', () => {
+    const file = fresh();
+    const store = new MemoryStore(file);
+    const c = store.remember(memo('site'), [], new Date('2026-11-15T10:00:00'));
+    store.revise(c.id, 'add a blog', { result: 'done', choices: {}, usd: 0.25 }, []);
+    const before = store.get().projects;
+    expect(new MemoryStore(file).get().projects).toEqual(before);
+    // A field this version does not know yet (a project brief, say) is not dropped when the notebook is saved again.
+    const raw = JSON.parse(readFileSync(file, 'utf8'));
+    raw.projects[0].later = { kept: true };
+    raw.projects[0].rounds[1].later = 1;
+    writeFileSync(file, JSON.stringify(raw));
+    const again = new MemoryStore(file);
+    again.markTold('radio');
+    const after = new MemoryStore(file).get().projects[0] as unknown as Record<string, unknown> & { rounds: Record<string, unknown>[] };
+    expect(after.later).toEqual({ kept: true });
+    expect(after.rounds[1].later).toBe(1);
+  });
+
+  it('the same ask again is the same round tried again, but a scheduled one each time is a round of its own (road-to-1.2.md B6)', () => {
+    const store = new MemoryStore(fresh());
+    const c = store.remember(memo('report'), [], new Date('2026-11-15T10:00:00'));
+    store.revise(c.id, 'this week', { result: 'done', choices: {} }, [], new Date('2026-11-16T09:00:00'));
+    store.revise(c.id, 'this week', { result: 'done', choices: {} }, [], new Date('2026-11-16T09:30:00'));
+    expect(store.get().projects[0].rounds).toHaveLength(2);
+    store.revise(c.id, 'this week', { result: 'done', choices: {} }, [], new Date('2026-11-23T09:00:00'), true);
+    expect(store.get().projects[0].rounds.map((r) => [r.n, r.date])).toEqual([[1, '2026-11-15'], [2, '2026-11-16'], [3, '2026-11-23']]);
+    expect(store.find(c.id)!.asks).toHaveLength(2);
+  });
+
+  it('starts with no projects, and forgets them with everything else', () => {
+    const file = fresh();
+    expect(new MemoryStore(file).get().projects).toEqual([]);
+    const store = new MemoryStore(file);
+    store.remember(memo('site'), []);
+    store.clear();
+    expect(new MemoryStore(file).get().projects).toEqual([]);
   });
 
   it('keeps one entry when a stopped commission is carried on in the same folder', () => {
@@ -158,16 +197,16 @@ describe('memory store', () => {
     const store = new MemoryStore(file);
     store.remember(memo('ledger', { q: 'a' }), ['x']);
     store.clear();
-    expect(store.get()).toEqual({ commissions: [], stuckNotes: [] });
-    expect(new MemoryStore(file).get()).toEqual({ commissions: [], stuckNotes: [] });
+    expect(store.get()).toEqual({ commissions: [], stuckNotes: [], projects: [] });
+    expect(new MemoryStore(file).get()).toEqual({ commissions: [], stuckNotes: [], projects: [] });
   });
 
   it('treats a broken or odd file as an empty notebook', () => {
     const file = fresh();
     writeFileSync(file, '{oops');
-    expect(new MemoryStore(file).get()).toEqual({ commissions: [], stuckNotes: [] });
+    expect(new MemoryStore(file).get()).toEqual({ commissions: [], stuckNotes: [], projects: [] });
     writeFileSync(file, JSON.stringify({ commissions: [{ title: 1 }, null], stuckNotes: 'x' }));
-    expect(new MemoryStore(file).get()).toEqual({ commissions: [], stuckNotes: [] });
+    expect(new MemoryStore(file).get()).toEqual({ commissions: [], stuckNotes: [], projects: [] });
   });
 });
 

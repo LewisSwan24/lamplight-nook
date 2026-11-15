@@ -63,7 +63,7 @@ body.debug #debug { display: block; }
 /* Three widths and one rule for the window: a card only says which width it is. */
 :root { --card-small: 460px; --card-form: 500px; --card-reading: 600px; }
 .card, .dialog, .serious { --card-w: var(--card-small); box-sizing: border-box; width: min(var(--card-w), calc(92vw / var(--ui, 1))); max-height: calc(94vh / var(--ui, 1)); }
-.commission, .settings, .shelf-card, .meeting, .welcome, .dialog, .serious { --card-w: var(--card-form); }
+.commission, .settings, .shelf-card, .project-card, .meeting, .welcome, .dialog, .serious { --card-w: var(--card-form); }
 .notebook, .caption-card, .notice-card, .card.legal { --card-w: var(--card-reading); }
 .card-title { font-family: var(--hand); font-size: 21px; line-height: 1.3; margin-bottom: 6px; }
 .card .close, .parcel .close { position: absolute; right: 6px; top: 6px; width: 26px; height: 26px; padding: 0; border: none; border-radius: 6px; background: none; font: 20px/26px sans-serif; text-align: center; cursor: pointer; color: var(--ink); z-index: 1; }
@@ -90,8 +90,8 @@ body.debug #debug { display: block; }
 .actions button:hover, .commission button:hover, .sticker:hover { transform: translateY(-1px) rotate(-0.4deg); }
 .actions button:active, .commission button:active, .sticker:active { transform: translateY(1px); }
 .actions button:active::before, .commission button:active::before, .sticker:active::before { box-shadow: inset 0 0 8px rgba(122, 82, 54, 0.4); }
-.actions button.default { color: #fff; }
-.actions button.default::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
+.actions button.default, .actions button.consult-finish { color: #fff; }
+.actions button.default::before, .actions button.consult-finish::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
 .actions button:focus-visible, .sticker:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .commission label { display: block; margin: 8px 0; font-family: var(--hand); font-size: 17px; }
 .commission textarea, .commission input, .meeting textarea, .welcome input, .settings input { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 15px; background: rgba(255, 253, 248, 0.7) !important; border: none !important; border-bottom: 1.5px solid rgba(122, 82, 54, 0.45) !important; border-radius: 0 !important; }
@@ -128,6 +128,25 @@ body.debug #debug { display: block; }
 .lent-line { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .lent-hint:empty { display: none; }
 .lent-confirm p { margin: 8px 0; line-height: 1.6; }
+/* A talk with Adeng before the slip (B4): his lines on the left, the user's on the right, the box to say more at the bottom. */
+.consult-open { margin: 0 0 4px; }
+.consult-note:empty { display: none; }
+.consult { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.consult .speaker { margin-bottom: 4px; }
+.consult .portrait { --pp: 2px; }
+/* A short window: one line to type in, so the talk keeps the room. */
+@media (max-height: 480px) { .commission .consult-say { height: 2.7em; } .consult-log { min-height: 48px; } }
+.consult .speaker .hint { margin-top: 0; }
+.consult-log { flex: 1 1 auto; min-height: 64px; height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 6px 4px 0; }
+.consult-line { flex: none; max-width: 85%; padding: 5px 10px; border-radius: 10px; background: rgba(255, 253, 248, 0.8); box-shadow: inset 0 0 4px rgba(122, 82, 54, 0.22); line-height: 1.5; overflow-wrap: anywhere; }
+.consult-line b { margin-right: 6px; font-family: var(--hand); font-weight: normal; color: var(--accent); }
+.consult-line.you { align-self: flex-end; background: rgba(156, 199, 184, 0.3); }
+.consult-line.you b { color: var(--ink); }
+.consult-line.waiting { opacity: 0.65; font-style: italic; }
+.consult-input { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
+.commission .consult-input textarea { flex: 1 1 auto; min-width: 0; resize: none; }
+.consult .actions { flex-wrap: wrap; }
+.commission button:disabled { opacity: 0.5; cursor: default; transform: none; }
 .result-lent .hint { overflow-wrap: anywhere; }
 .hint.warn { color: #a5452c; opacity: 1; }
 
@@ -178,6 +197,11 @@ body.debug #debug { display: block; }
 .board .step.todo { opacity: 0.55; }
 .board .step.more { opacity: 0.55; font-size: 0.9em; }
 .board .step.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }
+/* Two rounds at once (B9): a column each, under a pin and a chalk line in its project's colour. */
+.board.two { flex-direction: row; align-items: center; gap: 0.4em; padding: 0 0.25em; }
+.board-col { position: relative; flex: 1 1 0; min-width: 0; padding-top: 0.45em; border-top: 0.2em solid var(--project); }
+.board-col .step { color: var(--project); font-size: 0.92em; }
+.board-pin { position: absolute; left: 50%; top: -0.55em; width: 0.7em; height: 0.7em; margin-left: -0.35em; background: var(--project); box-shadow: 0.15em 0.15em 0 rgba(0, 0, 0, 0.45); }
 .material-row { margin: 6px 0 2px; }
 .material-head { display: flex; align-items: baseline; gap: 10px; }
 .material-label { font-family: var(--hand); font-size: 16px; }
@@ -347,8 +371,10 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .spend-book tr { border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
 .spend-total th, .spend-total td { font-weight: bold; }
 .budget-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-.budget-row select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
+.budget-row select, .project-cap-row select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
 .result-cost { margin-top: 2px; }
+/* A cap past eight tenths (B8): a word from Adeng, plainer than a warning about a script. */
+.result-budget { color: #7a4f12; opacity: 1; }
 
 /* Installing Claude Code */
 .claude-steps, .key-steps { margin: 6px 0 2px; padding-left: 1.3em; font-size: 14px; }
@@ -389,6 +415,75 @@ pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; 
 .work-actions .link, .work-note .link { white-space: nowrap; }
 .notebook-days li { list-style: none; }
 
+/* The project board and a project's timeline (ui/projects.ts, road-to-1.2.md B2). */
+.project-list { margin-top: 10px; overflow-y: auto; }
+.projects { list-style: none; margin: 0; padding: 0; }
+.project-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
+.project-swatch { display: inline-block; flex: none; width: 14px; height: 18px; border: 1px solid rgba(59, 42, 30, 0.5); border-radius: 2px; vertical-align: -2px; }
+.project-text { flex: 1; min-width: 0; }
+.project-open { text-align: left; font-weight: bold; overflow-wrap: anywhere; }
+.project-status { flex: none; font-size: 13px; padding: 0 8px; border-radius: 10px; border: 1px solid rgba(122, 82, 54, 0.45); white-space: nowrap; }
+.project-status.running, .project-status.waiting { color: #fff; background: var(--accent); border-color: var(--accent); }
+.project-status.stopped { color: #8a3b2a; }
+.projects-away { margin-top: 8px; }
+/* Scheduled commissions (B6): on a project's row, and the "do it regularly" card. */
+.project-actions { display: flex; flex-wrap: wrap; column-gap: 14px; row-gap: 2px; }
+.project-actions:empty { display: none; }
+.project-actions .link, .schedule-remove { white-space: nowrap; }
+.project-schedule { overflow-wrap: anywhere; }
+.projects-schedule-note { margin-top: 6px; color: #8a3b2a; }
+.schedule-body { overflow-y: auto; margin-top: 8px; }
+.schedule-list { margin-bottom: 8px; }
+.schedules { list-style: none; margin: 4px 0 0; padding: 0; }
+.schedule-item { padding: 5px 2px; border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
+.schedule-what { overflow-wrap: anywhere; }
+.schedule-field { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.schedule-field[hidden] { display: none; }
+.schedule-label { font-size: 0.88em; color: #6b4f34; }
+.schedule-when { display: flex; flex-wrap: wrap; column-gap: 16px; align-items: flex-end; }
+.schedule-card textarea, .schedule-card input, .schedule-card select { box-sizing: border-box; font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 15px; padding: 4px 6px; color: inherit; background: rgba(255, 253, 248, 0.7); border: none; border-bottom: 1.5px solid rgba(122, 82, 54, 0.45); border-radius: 0; }
+.schedule-card textarea { display: block; width: 100%; resize: vertical; }
+.schedule-card textarea:focus, .schedule-card input:focus, .schedule-card select:focus { outline: none; border-bottom-color: var(--accent); background: rgba(255, 253, 248, 0.95); }
+.schedule-note:empty { display: none; }
+.schedule-card .actions { margin-top: 8px; }
+.projects-away summary { cursor: pointer; color: #6b4f34; }
+.timeline-scroll { margin-top: 8px; overflow-y: auto; }
+.timeline { list-style: none; margin: 0; padding: 0; }
+/* What the staff remember (B3), above the rounds and scrolling with them. */
+.brief { padding: 8px 10px; margin-bottom: 6px; background: rgba(255, 253, 248, 0.55); border: 1px dashed rgba(122, 82, 54, 0.45); border-radius: 8px; }
+.brief-item { margin-top: 6px; }
+.brief-label { font-size: 0.88em; color: #6b4f34; }
+.brief-text { overflow-wrap: anywhere; }
+.brief-prefs { margin: 2px 0 0; padding-left: 1.2em; }
+.brief-prefs li { overflow-wrap: anywhere; }
+.brief-prefs.editing { list-style: none; padding: 0; }
+.brief-prefs.editing li { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.brief-pref { flex: 1; min-width: 0; }
+.brief-remove, .brief-add { white-space: nowrap; }
+.brief-more { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; margin-top: 3px; }
+.brief-form textarea, .brief-form input { display: block; width: 100%; box-sizing: border-box; font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 15px; line-height: inherit; padding: 4px 6px; color: inherit; background: rgba(255, 253, 248, 0.7); border: none; border-bottom: 1.5px solid rgba(122, 82, 54, 0.45); border-radius: 0; }
+.brief-form textarea { resize: vertical; }
+.brief-form textarea:focus, .brief-form input:focus { outline: none; border-bottom-color: var(--accent); background: rgba(255, 253, 248, 0.95); }
+.brief-save-row { justify-content: flex-start; margin-top: 8px; }
+.brief-actions { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; row-gap: 4px; margin-top: 6px; }
+.brief-forget.sure { color: #8a3b2a; font-weight: bold; }
+.brief-note:empty { display: none; }
+.round { padding: 7px 2px; border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
+.round-what { overflow-wrap: anywhere; }
+.round-summary { color: #5f5040; font-size: 0.92em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.round-actions { display: flex; flex-wrap: wrap; column-gap: 14px; row-gap: 2px; margin-top: 2px; }
+.round-actions .link { white-space: nowrap; }
+.round-note:empty, .timeline-note:empty, .round-meta:empty { display: none; }
+.timeline-card .actions { margin-top: 8px; }
+/* The blackboard doubles as the project board while nothing is chalked on it: a card per project, pinned. */
+.board-pins { position: absolute; box-sizing: border-box; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 1.2em 1.4em; padding: 0.8em 1em; pointer-events: none; }
+.board-pins[hidden] { display: none; }
+.pin-card { position: relative; width: 5em; height: 4.4em; box-sizing: border-box; padding: 1.3em 0.8em 0; box-shadow: 0.3em 0.3em 0 rgba(0, 0, 0, 0.35); }
+.pin-head { position: absolute; left: 50%; top: -0.6em; width: 1.2em; height: 1.2em; margin-left: -0.6em; border-radius: 50%; background: #c8322b; }
+.pin-line { display: block; height: 0.6em; margin-bottom: 0.6em; background: rgba(59, 42, 30, 0.45); }
+.pin-line.short { width: 60%; }
+.garden-view #board-pins { visibility: hidden; }
+
 /* Where the shop is (ui/scenes.ts): two little pictures of the rooms. */
 .scene-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .scene-choice { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 4px 3px; background: rgba(255, 253, 248, 0.6); border: 1px solid rgba(122, 82, 54, 0.3); border-radius: 10px; cursor: pointer; font: inherit; color: inherit; }
@@ -404,6 +499,9 @@ pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; 
 .card, .dialog, .serious, .parcel, .detail-strip, .caption-bar, .moving { zoom: var(--ui, 1); }
 /* Cards with a long list never run off a small window: the card stops at the window's height and only its
    list scrolls (the paper behind it keeps covering the whole card). */
-.notebook, .settings, .shelf-card, .caption-card, .card.legal { display: flex; flex-direction: column; }
-.notebook > *, .settings > *, .shelf-card > *, .caption-card > *, .card.legal > * { flex-shrink: 0; }
-.notebook > .notebook-pages, .settings > .settings-body, .shelf-card > .works, .caption-card > .caption-list, .card.legal > .legal-body { flex: 0 1 auto; min-height: 0; }
+.notebook, .settings, .shelf-card, .project-card, .caption-card, .card.legal { display: flex; flex-direction: column; }
+.notebook > *, .settings > *, .shelf-card > *, .project-card > *, .caption-card > *, .card.legal > * { flex-shrink: 0; }
+.notebook > .notebook-pages, .settings > .settings-body, .shelf-card > .works, .project-card > .project-list, .project-card > .timeline-scroll, .project-card > .schedule-body,.caption-card > .caption-list, .card.legal > .legal-body { flex: 0 1 auto; min-height: 0; }
+/* The rounds a shutdown interrupted (B7): one line each, the list scrolls when there are many. */
+.interrupted-list { max-height: 7.5em; overflow-y: auto; margin: 8px 0 0; padding-left: 4px; list-style-position: inside; }
+.interrupted-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -63,19 +63,41 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
 
 /** The per-run caps offered in settings, in US dollars; 0 means no cap. */
 export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
+/** The monthly caps offered in settings, smallest first; 0 means no cap. */
+export const MONTH_CAP_CHOICES = [10, 20, 50, 100, 0] as const;
+/** The caps a project may have, in US dollars; 0 means no cap, which is where every project starts. */
+export const PROJECT_CAP_CHOICES = [0, 5, 10, 20, 50] as const;
+/** What the staff remember about a project (B3): this many preferences at most, of so many characters; and how long "where the last round left off" may be. */
+export const BRIEF_PREFS_MAX = 12;
+export const BRIEF_PREF_CHARS = 120;
+export const BRIEF_LAST_ROUND_CHARS = 500;
+/** The most one talk with Adeng before a commission may cost, in US dollars, and the most the user may say in it (Q-B1). */
+export const CONSULT_CAP_USD = 0.1;
+export const CONSULT_MESSAGES = 10;
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
 /** costUsd is Claude Code's estimate of what the session has cost so far; spentThisRun is this run's share of it. */
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
+/** A round left unfinished, as the card at opening lists it (road-to-1.2.md B7). */
+export type PendingRound = { run: string; state: 'running' | 'queued' | 'stopped' | 'failed' | 'interrupted'; form: CommissionForm; title: string };
+
+export type RunResult = { /** The round's run id (B5), for trying it again. */ run?: string; ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string;
+  /** Input tokens the last result reported, cache reads and writes included. */ contextTokens?: number;
+  /** A month or project cap stopped it (error monthCap or projectCap). */ cap?: BudgetNote;
+  /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
+  /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[];
+  /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number };
+
+/** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
+export type BudgetNote = { cap: 'month' | 'project'; capUsd: number; spentUsd: number; leftUsd: number; project?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export type DataDamage = { notebook: 'restored' | 'lost' | 'missing' | null; settings: boolean; ledger: boolean };
@@ -111,7 +133,22 @@ export interface LamplightApi {
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   /** Every month that cost anything, newest first. */
-  spendMonths(): Promise<{ month: string; usd: number; commissions: number }[]>;
+  spendMonths(): Promise<{ month: string; usd: number; estimated?: number; commissions: number }[]>;
+  /** This month's cap (0: none) and what has been spent under it. */
+  monthBudget(): Promise<{ capUsd: number; spentUsd: number }>;
+  /** The monthly cap, when it was set above the default on upgrading from what was spent before. Asking takes it: it is said once. */
+  monthCapNews(): Promise<number | null>;
+  /**
+   * One line in a talk with Adeng before a commission (B4): a new talk when `id` is null. `files` are the files handed over
+   * so far; only their names go to Claude.
+   */
+  consult(id: string | null, text: string, files: string[]): Promise<ConsultReply>;
+  /** "Write it up as a slip": the slip from the talk, for the user to look over. */
+  consultFinish(id: string): Promise<ConsultBrief>;
+  /** What the talks with Adeng this month cost, and how many there were. */
+  consultsThisMonth(): Promise<{ count: number; usd: number }>;
+  /** Set the most a project may cost (one of PROJECT_CAP_CHOICES; 0 for none); false for a project or amount there isn't. */
+  setProjectCap(id: string, usd: number): Promise<boolean>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
   chooseSource(template: CommissionTemplate): Promise<SourcePick | null>;
@@ -122,13 +159,16 @@ export interface LamplightApi {
   /** The paths of files dropped on the page (the preload reads them; the page can't). */
   pathsOf(files: File[]): string[];
   startCommission(form: CommissionForm): Promise<RunResult>;
-  /** Run the last failed commission again, continuing its session; null if there is none. */
-  retryCommission(): Promise<RunResult | null>;
-  cancelCommission(): Promise<void>;
-  /** A commission left unfinished when the app last closed, if any. */
-  pendingCommission(): Promise<CommissionForm | null>;
-  resumePending(): Promise<RunResult | null>;
-  dropPending(): Promise<void>;
+  /** Run a failed round again by its run id, continuing its session; null if there is none. */
+  retryCommission(run?: string): Promise<RunResult | null>;
+  /** Stop a round under way, or call one off that waits in the queue (B5), by its run id. */
+  cancelCommission(run: string): Promise<void>;
+  /** The rounds under way and waiting in the queue, whenever that changes (B5). */
+  onRuns(cb: (runs: RunInfo[]) => void): () => void;
+  /** Rounds left unfinished when the app last closed: crashed, stopped, failed or interrupted by a shutdown (B7). */
+  pendingRounds(): Promise<PendingRound[]>;
+  resumePending(run: string): Promise<RunResult | null>;
+  dropPending(run: string): Promise<void>;
   answerDecision(answer: DecisionAnswer): Promise<boolean>;
   /** Open a file or folder produced by the current commission (refused outside it). */
   openOutput(path: string, how: 'open' | 'reveal'): Promise<boolean>;
@@ -138,8 +178,11 @@ export interface LamplightApi {
   recallForRevision(id: string): Promise<Recall>;
   /** What Adeng may bring up as the shop opens; each past commission is brought up only once. */
   recallOnOpen(): Promise<Recall>;
-  /** Add a note from a meeting to the running commission; false if none is running or it has wrapped up. */
-  addNote(text: string): Promise<boolean>;
+  /**
+   * Add a note from a meeting to a round under way (B9: the one the meeting was called for), or to the first under way;
+   * false if none is running or it has wrapped up.
+   */
+  addNote(text: string, run?: string): Promise<boolean>;
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
   /** What could not be read when the shop opened. Asking takes it: it is said once. */
@@ -174,6 +217,29 @@ export interface LamplightApi {
   undoWork(id: string): Promise<string[] | null>;
   /** Save a finished work as a file where the user picks: its files in a zip, or its page as a PDF. Nothing is sent anywhere. */
   exportWork(id: string, as: 'zip' | 'pdf'): Promise<ExportResult>;
+  /** The project board (B2): every project, latest touched first. */
+  projectBoard(): Promise<ProjectRow[]>;
+  /** A project's timeline, one row per round; null for a project there isn't. */
+  projectTimeline(id: string): Promise<ProjectTimeline | null>;
+  /** Open a round's version from a copy made for looking at; the project's folder is not touched. False if it is gone. */
+  openVersion(id: string, round: number): Promise<boolean>;
+  /** Go back to a round's version, keeping what is there now first: one more round on the timeline. False if it can't. */
+  revertProject(id: string, round: number): Promise<boolean>;
+  /** A new project in a new folder from a round's version; its id, or null (a lent folder, or the version is gone). */
+  forkProject(id: string, round: number): Promise<string | null>;
+  /** Put a project away on the board, or take it out again. */
+  archiveProject(id: string, on: boolean): Promise<boolean>;
+  /** Keep what the user changed in "what the staff remember" (B3). False for a project there isn't, or not a brief. */
+  saveBrief(id: string, brief: ProjectBrief): Promise<boolean>;
+  /** "Forget this project": the staff remember nothing of it, and pick up no earlier session. */
+  forgetProject(id: string): Promise<boolean>;
+  /** "Do it regularly" on a project (B6): the schedule kept, or null when a one-off's time has gone by. */
+  saveSchedule(project: string, want: string, every: ScheduleEvery): Promise<Schedule | null>;
+  removeSchedule(id: string): Promise<boolean>;
+  /** How a scheduled round ended (B6): the page shows its card as for a round the user started. */
+  onScheduled(cb: (r: RunResult & { title: string }) => void): () => void;
+  /** A notice about a finished round was clicked: its result card, again if it was put away. */
+  onOpenResult(cb: (run: string) => void): () => void;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -199,7 +265,18 @@ export type CommissionTemplate = TemplateId;
  * materials: files the user handed over (dropped or picked); copies go into the commission folder.
  * inPlace: a folder of the user's own to work in instead of a new one (road-to-1.1.md A6), picked in the main process's dialog.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string };
+/** `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in. */
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string };
+
+/** One line of a talk with Adeng before a commission (road-to-1.2.md B4). */
+export type ConsultLine = { who: 'you' | 'adeng'; text: string };
+/**
+ * The slip a talk with Adeng wrote, with the talk's id. `fromChat`: no slip could be read, so the talk itself went into the
+ * details. `end`: the talk could go no further, because its cap (or the month's) was reached or Claude Code did not answer.
+ */
+export type ConsultBrief = { want: string; details?: string; audience?: string; template?: CommissionTemplate; consult: string; fromChat?: boolean; end?: 'cap' | 'trouble' };
+/** What Adeng says to a line in a talk: a reply, or the talk is over and here is the slip. */
+export type ConsultReply = { id: string; reply: string } | { id: string; brief: ConsultBrief };
 
 /** A file handed over with a commission. */
 export type Material = { path: string; name: string; size: number };
@@ -212,6 +289,9 @@ export type SourcePick = { path: string; name: string } | { error: 'too-big' | '
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
 export type CommissionResult = {
+  /** The round (B5) and the project it was for, which the card names. */
+  run?: string;
+  project?: RunProject;
   /** Why it stopped, when it did. */
   error?: string;
   ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number;
@@ -221,6 +301,8 @@ export type CommissionResult = {
   id?: string;
   /** What the shop gathered with this commission (a new commission done together), if anything. */
   grew?: GrowthId[];
+  /** Caps this round took past eight tenths, said once each (B8). */
+  budget?: BudgetNote[];
   /** Rounds of changes so far (0 for the first go). */
   round?: number;
   /** The work as it was before this round is kept and can be put back. */
@@ -260,6 +342,9 @@ export type DecisionRequest = {
   options: DecisionOption[];
   /** Option focused by default (and chosen by Esc on the serious card). */
   defaultId: string;
+  /** The round asking (B5) and its project, whose name goes before the title. */
+  run?: string;
+  project?: RunProject;
 };
 
 export type DecisionAnswer = { id: string; choice: string };
@@ -284,11 +369,18 @@ export const IPC = {
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
   spendMonths: 'spend:months',
+  monthBudget: 'budget:month',
+  monthCapNews: 'budget:month-cap-news',
+  setProjectCap: 'budget:project-cap',
+  consult: 'consult:say',
+  consultFinish: 'consult:finish',
+  consultsThisMonth: 'consult:month',
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',
   writeToUs: 'app:write-to-us',
   runDebugTask: 'debug:run-task',
+  runs: 'commission:runs',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
@@ -299,7 +391,7 @@ export const IPC = {
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
   cancelCommission: 'commission:cancel',
-  pendingCommission: 'commission:pending',
+  pendingRounds: 'commission:pending',
   resumePending: 'commission:resume-pending',
   dropPending: 'commission:drop-pending',
   result: 'commission:result',
@@ -322,6 +414,18 @@ export const IPC = {
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
   restorePrevious: 'commission:restore-previous',
+  projectBoard: 'project:board',
+  projectTimeline: 'project:timeline',
+  openVersion: 'project:open-version',
+  revertProject: 'project:revert',
+  forkProject: 'project:fork',
+  archiveProject: 'project:archive',
+  saveBrief: 'project:save-brief',
+  forgetProject: 'project:forget',
+  saveSchedule: 'schedule:save',
+  removeSchedule: 'schedule:remove',
+  scheduled: 'schedule:result',
+  openResult: 'commission:open-result',
   updateOffer: 'update:offer',
   downloadUpdate: 'update:download',
   moveInOffer: 'data:move-in-offer',
@@ -361,7 +465,20 @@ export type AiEvent = {
   /** For `plan` and `progress` events from Claude's own to-do list: the whole list as it stands. */
   todos?: Todo[];
   raw?: unknown;
+  /** The round it comes from (r<time>, road-to-1.2.md B5), and that round's project; absent in replays. */
+  run?: string;
+  project?: RunProject;
 };
+
+/**
+ * A round under way or in the queue (road-to-1.2.md B5): at work, waiting for the user's answer, or queued, and then why
+ * (no free place, its project at work, not enough money) and behind which rounds. `color` is its project's card colour, the
+ * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9).
+ */
+export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[] };
+
+/** The project a round works on, as the shop names it: its id once it has one (a new commission gets it as it ends), and its title. */
+export type RunProject = { id?: string; title: string };
 
 /** Mood bubbles shown above a character; `heart` is only for the cat. */
 export type Bubble = 'idea' | 'sweat' | 'question' | 'note' | 'tea' | 'alert' | 'dots' | 'zzz' | 'heart';
@@ -382,6 +499,8 @@ export type CharacterCommand = {
   line?: { group: string; vars: Record<string, string>; flags?: string[]; speaker?: ActorId };
   bubble?: Bubble;
   priority: number;
+  /** The round it is for (B9): whose crew the actor is working in, and whose project name a line carries. */
+  run?: string;
 };
 
 /** One commission in Adeng's notebook (summaries only, never the conversation). */
@@ -415,6 +534,70 @@ export type CommissionMemo = {
    * Only these go in its zip (A8); the rest of the folder is the user's.
    */
   touched?: string[];
+  /** The project it belongs to (1.2). Every commission has one once the notebook is open (projects.ts). */
+  project?: string;
+};
+
+/**
+ * One piece of work the shop goes on doing for weeks (road-to-1.2.md B1): a folder with all its commissions, every round
+ * and every version. Fields marked with a later work package are written by that package.
+ */
+export type Project = {
+  /** p<time>, the number of its first commission's c<time> unless another project has it. */
+  id: string;
+  /** Its first commission's title to begin with; the user can change it. */
+  title: string;
+  folder: string;
+  /** In a folder the user lent (A6). */
+  lent?: boolean;
+  /** YYYY-MM-DD */
+  created: string;
+  /** Commission ids, oldest first. */
+  commissions: string[];
+  /** The timeline, oldest first, never cut short. */
+  rounds: ProjectRound[];
+  /** What the staff remember about it (B3). */
+  brief?: ProjectBrief;
+  /** The most it may cost in all, in US dollars (B8). */
+  capUsd?: number;
+  /** Talks with Adeng before a commission went in (B4), by consult number. */
+  consults?: string[];
+  /** The project and round it was branched off from (B2). */
+  from?: { project: string; round: number };
+  archived?: boolean;
+};
+
+/** One round on a project's timeline: a new commission's first round, or a round of changes to one. */
+export type ProjectRound = {
+  /** 1, 2, 3... along the timeline. */
+  n: number;
+  commission: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** The change asked for; absent on a commission's first round, which is the commission itself. */
+  ask?: string;
+  /** What the staff said they made. */
+  summary?: string;
+  /** What this round cost, by the ledger; absent on rounds from before 1.2. */
+  usd?: number;
+  seconds?: number;
+  /** Why the round did not finish; absent when it did. */
+  failure?: string;
+  /** The version kept after this round (B2). */
+  version?: string;
+  /** This round went back to the version of round n (B2). */
+  restoredFrom?: number;
+};
+
+/** What the staff remember about a project between rounds (B3). */
+export type ProjectBrief = {
+  purpose: string;
+  prefs: string[];
+  lastRound?: string;
+  /** YYYY-MM-DD, the last time the user changed it. */
+  edited?: string;
+  /** The user had the project forgotten after this many rounds: the changes asked for until then stay out of the prompt. */
+  forgotAt?: number;
 };
 
 /** One round of a commission, for the notebook's ledger page. Never leaves the computer. */
@@ -429,6 +612,8 @@ export type RoundStat = {
   /** Errands that waited for a busy helper, and how long they waited in all. */
   waits: number;
   waitedSeconds: number;
+  /** Input tokens the round's result reported (B3): past 150k the next round starts a new session. */
+  contextTokens?: number;
 };
 
 /** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
@@ -446,6 +631,70 @@ export type Work = {
   /** Its main file is a web page, so it can also be taken away as a PDF. */
   page: boolean;
   want?: string;
+  /** The project it belongs to, for going there from the shelf (B2). */
+  project: string;
+};
+
+/** Where a project stands, on the project board (B2). Queued comes with B5. */
+export type ProjectStatus = 'running' | 'queued' | 'waiting' | 'done' | 'stopped';
+
+/** One project on the project board. */
+export type ProjectRow = {
+  id: string; title: string;
+  /** YYYY-MM-DD of its latest round. */
+  touched: string;
+  rounds: number;
+  /** What it cost in all, by the ledger, talks with Adeng included. */
+  usd: number;
+  status: ProjectStatus;
+  /** Waiting in the queue (B5): the round, so it can be called off, why it waits and behind whom. */
+  queue?: { run: string; waits: 'slot' | 'project' | 'money'; behind: string[] };
+  /** A new commission under way or queued (B5): no project until its first round ends, so the row has no timeline yet. */
+  fresh?: boolean;
+  archived: boolean;
+  lent: boolean;
+  /** Its card colour, by its place among all the projects (shared/project-colors.ts). */
+  color: number;
+  /** Its scheduled commissions (B6). */
+  schedules?: Schedule[];
+};
+
+/** How often a scheduled commission comes round (road-to-1.2.md B6). `time` is a local HH:MM, `at` a local YYYY-MM-DDTHH:MM. */
+export type ScheduleEvery = { kind: 'weekly'; weekday: number; time: string } | { kind: 'daily'; time: string } | { kind: 'once'; at: string };
+
+/**
+ * A scheduled commission, kept in schedules.json (B6). `project`: carried on in that project each time, or a new project
+ * each time without one. `next` is when it is due next; `last` how the latest time went; `missed` the latest due time it
+ * skipped, said on the project board.
+ */
+export type Schedule = {
+  id: string;
+  project?: string;
+  form: CommissionForm;
+  every: ScheduleEvery;
+  next: string;
+  last?: { at: string; result: 'done' | 'failed' | 'skipped'; why?: string };
+  missed?: string;
+  enabled: boolean;
+};
+
+/** One round on a project's timeline, with whether its version can still be had. */
+export type TimelineRow = ProjectRound & {
+  /** What the round was for: the change asked for, or the commission itself on its first round. */
+  what: string;
+  /** Its version is kept, so it can be opened, gone back to or branched off. */
+  kept: boolean;
+  /** It had a version once, and it went to keep the project under its cap. */
+  gone: boolean;
+};
+
+export type ProjectTimeline = {
+  project: ProjectRow;
+  rounds: TimelineRow[];
+  /** Branched off another project: its title then, and the round. */
+  from?: { title: string; round: number };
+  /** What the staff remember about it (B3). */
+  brief: ProjectBrief;
 };
 
 /** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */
@@ -458,10 +707,13 @@ export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {
   commissions: CommissionMemo[];
   stuckNotes: StuckNote[];
+  projects: Project[];
   /** Absent until the first commission is finished. */
   shop?: ShopDays;
   /** Id of the last commission already brought up when the app opened. */
   greeted?: string;
+  /** Months (YYYY-MM) and projects whose cap Adeng has said is nearly reached (B8): each is said once. */
+  budgetSaid?: string[];
 };
 /** What may be brought up in a line: `when` flags that hold, and values for the line's placeholders. */
 export type Recall = { flags: string[]; vars: Record<string, string> };

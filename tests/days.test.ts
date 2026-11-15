@@ -31,7 +31,7 @@ describe('the shop\'s birthday', () => {
 
   it('is in the shop\'s days once it has come round', () => {
     const made = new Date(2024, 2, 14, 12).getTime();
-    const m: Memory = { commissions: [{ id: `c${made}`, title: 'first', date: '2024-03-14', result: 'done', choices: {}, folder: 'x' }], stuckNotes: [], shop: { done: 1, grown: [], told: [] } };
+    const m: Memory = { commissions: [{ id: `c${made}`, title: 'first', date: '2024-03-14', result: 'done', choices: {}, folder: 'x' }], stuckNotes: [], projects: [], shop: { done: 1, grown: [], told: [] } };
     const said = shopTimeline(m, on(2026, 2, 13)).map((e) => e.text);
     expect(said).toContain(N.birthday.replace('{n}', '1'));
     expect(said).not.toContain(N.birthday.replace('{n}', '2'));
@@ -43,13 +43,13 @@ const work = (n: number, over: Partial<CommissionMemo> = {}): CommissionMemo => 
   id: `c${day(n).getTime()}`, title: `work ${n}`, date: day(n).toISOString().slice(0, 10), result: 'done', choices: {}, form: { want: 'x' }, ...over,
 } as CommissionMemo);
 const memory = (works: CommissionMemo[], shop: Partial<NonNullable<Memory['shop']>> = {}): Memory => ({
-  commissions: works, stuckNotes: [], shop: { done: works.filter((w) => w.result === 'done').length, grown: [], told: [], ...shop },
+  commissions: works, stuckNotes: [], projects: [], shop: { done: works.filter((w) => w.result === 'done').length, grown: [], told: [], ...shop },
 });
 const texts = (m: Memory) => shopTimeline(m).map((e) => e.text);
 
 describe('the days of the shop', () => {
   it('has nothing to say before anything has been made', () => {
-    expect(shopTimeline({ commissions: [], stuckNotes: [] })).toEqual([]);
+    expect(shopTimeline({ commissions: [], stuckNotes: [], projects: [] })).toEqual([]);
   });
 
   it('starts with the first work, by name', () => {

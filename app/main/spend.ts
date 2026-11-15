@@ -4,9 +4,12 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, w
 import { basename, dirname, join } from 'node:path';
 
 /** What a session cost in one month, as Claude Code estimated it. A session spanning months has one entry for each. */
-type Entry = { key: string; usd: number; month: string };
+type Entry = { key: string; usd: number; month: string; /** Estimated from tokens: a stretch Claude Code never reported (B7). */ estimated?: true };
 
 const month = localMonth;
+/** The part of a key before the session: a commission's folder, or `consult:<id>` for a talk with Adeng (B4). */
+const folderOf = (key: string) => key.slice(0, key.lastIndexOf('|'));
+const isConsult = (key: string) => key.startsWith('consult:');
 
 /**
  * What the commissions cost, from the totals Claude Code reports (an estimate, not Anthropic's bill).
@@ -27,7 +30,7 @@ export class SpendLedger {
   record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date()): number {
     if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return 0;
     const key = `${workDir}|${sessionId ?? ''}`;
-    const earlier = this.entries.filter((e) => e.key === key);
+    const earlier = this.entries.filter((e) => e.key === key && !e.estimated);
     const reported = earlier.reduce((sum, e) => sum + e.usd, 0);
     // Running totals only grow: a lower figure never shrinks what was spent. What is new goes to this month, and what
     // a session cost last month stays last month's. Under a millionth of a dollar is only the rounding of the sum.
@@ -39,6 +42,18 @@ export class SpendLedger {
     }
     this.save();
     return Math.max(grew, 0);
+  }
+
+  /**
+   * A stretch of a session that stopped before Claude Code reported what it cost (called off, the computer shut down),
+   * estimated from its tokens (road-to-1.2.md B7). Kept on a line of its own, apart from the session's reported total, so
+   * the total's growth later is still counted once; returns what it added.
+   */
+  estimate(workDir: string, sessionId: string | undefined, usd: number, now = new Date()): number {
+    if (!(usd > 0.000001)) return 0;
+    this.entries.push({ key: `${workDir}|${sessionId ?? ''}`, usd, month: month(now), estimated: true });
+    this.save();
+    return usd;
   }
 
   /** A commission's folder moved: what it cost goes with it. */
@@ -53,9 +68,10 @@ export class SpendLedger {
   forget() {
     const anonymous = new Map<string, number>();
     this.entries = this.entries.map((e) => {
-      const folder = e.key.slice(0, e.key.lastIndexOf('|'));
+      const folder = folderOf(e.key);
       if (!anonymous.has(folder)) anonymous.set(folder, anonymous.size + 1);
-      return { ...e, key: `${anonymous.get(folder)}|` };
+      // A talk with Adeng stays a talk, so the ledger still shows it apart.
+      return { ...e, key: `${isConsult(e.key) ? 'consult:' : ''}${anonymous.get(folder)}|` };
     });
     this.save();
     forgetAside(this.file);
@@ -80,12 +96,19 @@ export class SpendLedger {
     return this.entries.filter((e) => e.month === m).reduce((sum, e) => sum + e.usd, 0);
   }
 
-  /** Each month that cost anything, newest first, and how many commissions it went on. */
-  months(): { month: string; usd: number; commissions: number }[] {
+  /** What the talks with Adeng this month cost, and how many there were. */
+  consultsThisMonth(now = new Date()): { count: number; usd: number } {
+    const here = this.entries.filter((e) => e.month === month(now) && isConsult(e.key));
+    return { count: new Set(here.map((e) => folderOf(e.key))).size, usd: here.reduce((sum, e) => sum + e.usd, 0) };
+  }
+
+  /** Each month that cost anything, newest first, and how many commissions it went on (talks with Adeng are not commissions). */
+  months(): { month: string; usd: number; estimated?: number; commissions: number }[] {
     const months = new Set(this.entries.map((e) => e.month));
     return [...months].sort().reverse().map((m) => {
       const here = this.entries.filter((e) => e.month === m);
-      return { month: m, usd: here.reduce((sum, e) => sum + e.usd, 0), commissions: new Set(here.map((e) => e.key.slice(0, e.key.lastIndexOf('|')))).size };
+      const estimated = here.filter((e) => e.estimated).reduce((sum, e) => sum + e.usd, 0);
+      return { month: m, usd: here.reduce((sum, e) => sum + e.usd, 0), ...(estimated ? { estimated } : {}), commissions: new Set(here.filter((e) => !isConsult(e.key)).map((e) => folderOf(e.key))).size };
     });
   }
 

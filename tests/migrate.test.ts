@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DATA_VERSION, migrate } from '../app/main/migrate';
 import { MemoryStore } from '../app/main/memory';
+import { projectSettled } from '../app/main/projects';
 import { PendingStore } from '../app/main/pending';
 import { SettingsStore } from '../app/main/settings';
 import { grownBy } from '../app/shared/growth';
@@ -53,6 +54,100 @@ describe('neighbours from before the shop kept count', () => {
 
   it('leaves a shop that has no history alone', () => {
     expect(at({ commissions: [], stuckNotes: [] }).shop).toBeUndefined();
+  });
+});
+
+describe('every work becomes a project (1.2)', () => {
+  const stat = (date: string, seconds: number, failure?: string) => ({ date, seconds, ...(failure ? { failure } : {}), helpers: {}, waits: 0, waitedSeconds: 0 });
+  /** A 1.1 shop: a plain work, one changed three times, one that stopped, one in a lent folder, and one from 1.0 changed twice. */
+  const shop11 = () => ({
+    commissions: [
+      { id: 'c1001', title: '签到页', date: '2026-11-02', result: 'done', choices: { '颜色？': '薄荷' }, folder: 'C:/works/a', main: 'index.html', summary: '做好了签到页', sessionId: 's1', rounds: [stat('2026-11-02', 80)] },
+      { id: 'c1003', title: '记账表', date: '2026-11-03', result: 'failed', choices: {}, folder: 'C:/works/c', rounds: [stat('2026-11-03', 40, 'network')] },
+      { id: 'c1004', title: 'Tidy my notes', date: '2026-11-04', result: 'done', choices: {}, folder: 'C:/mine', form: { want: 'tidy', inPlace: 'C:/mine' }, touched: ['a.md'], rounds: [stat('2026-11-04', 30)] },
+      { id: 'c1000', title: '旧作品', date: '2026-11-05', result: 'done', choices: {}, folder: 'C:/works/old', asks: [{ ask: '大一点', date: '2026-10-01' }, { ask: '再亮一点', date: '2026-11-05' }], rounds: [stat('2026-11-05', 25)] },
+      { id: 'c1002', title: '旅行攻略', date: '2026-11-06', result: 'done', choices: {}, folder: 'C:/works/b', summary: '第三轮改好了',
+        asks: [{ ask: '加一天', date: '2026-11-04' }, { ask: '换个颜色', date: '2026-11-05' }, { ask: '加地图', date: '2026-11-06' }],
+        rounds: [stat('2026-11-03', 100), stat('2026-11-04', 50), stat('2026-11-05', 20, 'budget'), stat('2026-11-06', 35)] },
+    ],
+    stuckNotes: [], shop: { done: 4, grown: [], told: [], met: [] }, greeted: 'c1002',
+  });
+  const at = () => {
+    const data = mkdtempSync(join(tmpdir(), 'lamplight-projects-'));
+    writeFileSync(join(data, 'data-version.json'), JSON.stringify({ data: 3 }));
+    writeFileSync(join(data, 'memory.json'), JSON.stringify(shop11(), null, 2));
+    writeFileSync(join(data, 'memory.last-good.json'), JSON.stringify(shop11(), null, 2));
+    return data;
+  };
+
+  it('turns each into a project of one, keeping every commission as it was', () => {
+    const data = at();
+    const r = migrate(data, NOW);
+    expect(r).toMatchObject({ from: 3, to: 4, backup: join(data, 'backup', '2026-11-04-v3') });
+    expect(read(join(r.backup!, 'memory.json'))).toEqual(shop11());
+    const after = read<Memory>(join(data, 'memory.json'));
+    expect(after.projects.map((p) => [p.id, p.title, p.folder, p.commissions])).toEqual([
+      ['p1001', '签到页', 'C:/works/a', ['c1001']], ['p1003', '记账表', 'C:/works/c', ['c1003']], ['p1004', 'Tidy my notes', 'C:/mine', ['c1004']],
+      ['p1000', '旧作品', 'C:/works/old', ['c1000']], ['p1002', '旅行攻略', 'C:/works/b', ['c1002']],
+    ]);
+    expect(after.commissions.map(({ project, ...c }) => c)).toEqual(shop11().commissions);
+    expect(after.commissions.map((c) => c.project)).toEqual(['p1001', 'p1003', 'p1004', 'p1000', 'p1002']);
+    expect(after).toMatchObject({ stuckNotes: [], shop: shop11().shop, greeted: 'c1002' });
+    // The spare copy goes the same way, so taking its place later brings no older notebook back.
+    expect(read(join(data, 'memory.last-good.json'))).toEqual(after);
+  });
+
+  it('builds the timeline from the first round and every change, with how long each took', () => {
+    const data = at();
+    migrate(data, NOW);
+    const p = (id: string) => read<Memory>(join(data, 'memory.json')).projects.find((x) => x.id === id)!;
+    expect(p('p1001')).toEqual({ id: 'p1001', title: '签到页', folder: 'C:/works/a', created: '2026-11-02', commissions: ['c1001'], rounds: [{ n: 1, commission: 'c1001', date: '2026-11-02', summary: '做好了签到页', seconds: 80 }] });
+    expect(p('p1002').created).toBe('2026-11-03');
+    expect(p('p1002').rounds).toEqual([
+      { n: 1, commission: 'c1002', date: '2026-11-03', seconds: 100 },
+      { n: 2, commission: 'c1002', date: '2026-11-04', ask: '加一天', seconds: 50 },
+      { n: 3, commission: 'c1002', date: '2026-11-05', ask: '换个颜色', seconds: 20, failure: 'budget' },
+      { n: 4, commission: 'c1002', date: '2026-11-06', ask: '加地图', seconds: 35, summary: '第三轮改好了' },
+    ]);
+    // Changed under 1.0, then once more under 1.1: only that last round was timed.
+    expect(p('p1000').rounds).toEqual([
+      { n: 1, commission: 'c1000', date: '2026-10-01' },
+      { n: 2, commission: 'c1000', date: '2026-10-01', ask: '大一点' },
+      { n: 3, commission: 'c1000', date: '2026-11-05', ask: '再亮一点', seconds: 25 },
+    ]);
+    expect(p('p1000').rounds.some((r) => 'usd' in r)).toBe(false);
+  });
+
+  it('keeps a work that stopped as a stopped project, and a lent folder as lent', () => {
+    const data = at();
+    migrate(data, NOW);
+    const { projects, commissions } = read<Memory>(join(data, 'memory.json'));
+    const stopped = projects.find((x) => x.id === 'p1003')!;
+    expect(stopped.rounds).toEqual([{ n: 1, commission: 'c1003', date: '2026-11-03', seconds: 40, failure: 'network' }]);
+    expect(projectSettled(stopped, commissions)).toBe('stopped');
+    expect(projects.find((x) => x.id === 'p1004')!.lent).toBe(true);
+    expect(projects.filter((x) => x.lent).map((x) => x.id)).toEqual(['p1004']);
+  });
+
+  it('changes nothing the second time', () => {
+    const data = at();
+    migrate(data, NOW);
+    const once = readFileSync(join(data, 'memory.json'), 'utf8');
+    expect(migrate(data, NOW)).toEqual({ from: 4, to: 4, changes: [] });
+    // Even with the version marker lost, running the step again finds nothing to do.
+    writeFileSync(join(data, 'data-version.json'), JSON.stringify({ data: 3 }));
+    expect(migrate(data, NOW).changes).toEqual([]);
+    expect(readFileSync(join(data, 'memory.json'), 'utf8')).toBe(once);
+  });
+
+  it('gives every commission of the oldest shops a project', () => {
+    for (const version of ['0.5.0', '0.6.1', '0.7.0']) {
+      const { data, memory } = homeFrom(version);
+      migrate(data, NOW);
+      const after = new MemoryStore(join(data, 'memory.json')).get();
+      expect(after.projects.map((p) => p.commissions)).toEqual(memory.commissions.map((c) => [c.id]));
+      expect(after.commissions.every((c) => after.projects.some((p) => p.id === c.project))).toBe(true);
+    }
   });
 });
 
@@ -125,7 +220,7 @@ describe('upgrading the data folder', () => {
 
     const settings = new SettingsStore(join(data, 'settings.json'), join(data, 'docs')).get();
     expect(settings).toMatchObject({ name: '小林', budgetUsd: 5, language: 'zh-CN', onboarded: true });
-    const job = new PendingStore(join(data, 'pending.json')).load();
+    const [job] = new PendingStore(join(data, 'pending'), join(data, 'pending.json')).load();
     expect(job?.form.template).toBe('research');
     expect(job?.sessionId).toBeTruthy();
   });

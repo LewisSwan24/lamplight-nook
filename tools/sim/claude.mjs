@@ -8,12 +8,15 @@
 //
 // Environment:
 //   SIM_SPEED      milliseconds per step (default 700); 0 runs as fast as possible
-//   SIM_SCENARIO   a twist on the play: budget | neterror | longwait | stuck | crash (default none)
+//   SIM_SCENARIO   a twist on the play: budget | neterror | longwait | stuck | crash | sleepwake | hold (default none)
 //   SIM_COST       dollars charged per tool call (default 0.018)
 //   SIM_STATE_DIR  where sessions are kept so --resume can continue them (default <tmp>/lamplight-sim)
 //   SIM_LOG        append every message in and out to this file
 //   SIM_CLAUDE_VERSION  the version to claim (default 2.1.306, the one the SDK was built for)
 //   SIM_TODOS           todowrite: keep the to-do list with TodoWrite, as Claude Code did before the Task* tools
+//   SIM_TOKENS          1: each assistant message reports the tokens it used, as real ones do (otherwise zeros)
+//   SIM_NET_DOWN        sleepwake: the connection drops once this file exists (gone with the sleep)
+//   SIM_HOLD            hold: the play waits at its twist while this file exists
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -35,6 +38,8 @@ const argOf = (name) => {
 const VERSION = env.SIM_CLAUDE_VERSION ?? '2.1.306';
 /** The tools for Claude's own to-do list: TaskCreate / TaskUpdate since 2.1.2xx (seen in real runs of 2.1.306 and 2.1.317). */
 const TODOS = env.SIM_TODOS === 'todowrite' ? 'todowrite' : 'tasks';
+/** What each assistant message says it used: one call of a few thousand tokens, mostly read from the cache. */
+const USAGE = env.SIM_TOKENS === '1' ? { input_tokens: 2000, output_tokens: 150, cache_read_input_tokens: 8000 } : { input_tokens: 0, output_tokens: 0 };
 const PLAN_TOOLS = ['TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 if (argv.includes('--version')) {
   process.stdout.write(`${VERSION} (Claude Code)\n`);
@@ -55,6 +60,8 @@ const nextId = (p) => `${p}${Date.now().toString(36)}${(++seq).toString(36)}`;
 
 const pending = new Map();
 let hooks = {};
+/** The system prompt the SDK sends with initialize: how a talk with Adeng (B4) is told from a commission. */
+let system = '';
 const request = (req) => new Promise((resolve) => {
   const id = nextId('sim_req_');
   pending.set(id, resolve);
@@ -69,7 +76,10 @@ function onLine(line) {
   const m = JSON.parse(line);
   log('<', m);
   if (m.type === 'control_request') {
-    if (m.request.subtype === 'initialize') hooks = m.request.hooks ?? {};
+    if (m.request.subtype === 'initialize') {
+      hooks = m.request.hooks ?? {};
+      system = [m.request.systemPrompt ?? []].flat().join('\n');
+    }
     out({ type: 'control_response', response: { subtype: 'success', request_id: m.request_id, response: {} } });
   } else if (m.type === 'control_response') {
     pending.get(m.response.request_id)?.(m.response);
@@ -119,7 +129,7 @@ function makeStage(state) {
   };
   const assistant = (content, parent = null) => out({
     type: 'assistant', parent_tool_use_id: parent, session_id: session, uuid: nextId('u'),
-    message: { id: nextId('msg_sim_'), type: 'message', role: 'assistant', model: 'sim', content, stop_reason: null, usage: { input_tokens: 0, output_tokens: 0 } },
+    message: { id: nextId('msg_sim_'), type: 'message', role: 'assistant', model: 'sim', content, stop_reason: null, usage: USAGE },
   });
   const userResult = (toolUseId, content, isError, parent = null) => out({
     type: 'user', parent_tool_use_id: parent, session_id: session, uuid: nextId('u'),
@@ -293,10 +303,10 @@ function makeStage(state) {
   return {
     cwd, state, step, tool, write, edit, read, agent, ask, todo, say, think, notes, pause, charge,
     get spent() { return spent; },
-    finish: async (text) => {
+    finish: async (text, extra = {}) => {
       assistant([{ type: 'text', text }]);
       await hook('Stop', { stop_hook_active: false, last_assistant_message: text, background_tasks: [] });
-      result('success', { is_error: false, result: text });
+      result('success', { is_error: false, result: text, ...extra });
     },
     fail: (text) => { saveState(state); result('error_during_execution', { is_error: true, errors: [text] }); throw new Stopped(); },
   };
@@ -306,9 +316,9 @@ function makeStage(state) {
 
 async function run(prompt) {
   const old = resumeId ? loadState(resumeId) : null;
-  const state = old ?? { session: `sim-${Date.now().toString(36)}`, play: null, done: 0, notes: [], lang: null };
+  const state = old ?? { session: `sim-${Date.now().toString(36)}-${process.pid.toString(36)}`, play: null, done: 0, notes: [], lang: null };
   if (old) state.done = old.done; // carry on after the last finished step
-  const play = pickPlay(prompt, state);
+  const play = pickPlay(prompt, state, system);
   state.play = play.name;
   saveState(state);
   out({
@@ -321,7 +331,10 @@ async function run(prompt) {
   try {
     // Falls over once: carrying on (--resume) gets through.
     if (SCENARIO === 'crash' && !resumeId) setTimeout(() => process.exit(1), 6 * SPEED);
-    await play.run(stage, { scenario: SCENARIO, prompt });
+    await play.run(stage, { scenario: SCENARIO, prompt, schema: argOf('--json-schema') });
+    // A finished session carries its total into a --resume too, as Claude Code's own does (a round of changes).
+    state.paid = (state.paid ?? 0) + stage.spent;
+    saveState(state);
   } catch (err) {
     if (!(err instanceof Stopped)) {
       process.stderr.write(`sim: ${err?.stack ?? err}\n`);

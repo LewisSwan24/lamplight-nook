@@ -3,23 +3,30 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SettingsStore, defaultWorkRoot } from '../app/main/settings';
+import { SettingsStore, defaultWorkRoot, loginItem } from '../app/main/settings';
 
 const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-settings-')), 'settings.json');
 
 describe('settings store', () => {
   it('starts with the default work folder and no name', () => {
     const s = new SettingsStore(fresh(), '/docs').get();
-    expect(s).toEqual({ name: '', avatar: 1, workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, mini: true, updates: true, scene: 'cafe', furnish: cleanFurnishings(undefined), budgetUsd: 3, language: 'system' });
+    expect(s).toEqual({ name: '', avatar: 1, workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, mini: true, updates: true, scene: 'cafe', furnish: cleanFurnishings(undefined), budgetUsd: 3, monthCapUsd: 20, language: 'system' });
   });
 
   it('saves and reloads changes', () => {
     const file = fresh();
-    new SettingsStore(file, '/docs').update({ name: '  Lin  ', avatar: 5, onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, mini: false, updates: false, scene: 'study', budgetUsd: 5, language: 'en' });
-    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', avatar: 5, workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, mini: false, updates: false, scene: 'study', furnish: cleanFurnishings(undefined), budgetUsd: 5, language: 'en' });
+    new SettingsStore(file, '/docs').update({ name: '  Lin  ', avatar: 5, onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, openAtLogin: true, schedulesPaused: true, mini: false, updates: false, scene: 'study', budgetUsd: 5, monthCapUsd: 100, language: 'en' });
+    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', avatar: 5, workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, openAtLogin: true, schedulesPaused: true, mini: false, updates: false, scene: 'study', furnish: cleanFurnishings(undefined), budgetUsd: 5, monthCapUsd: 100, language: 'en' });
   });
 
-  it('ignores empty folders and unknown fields', () => {
+  it('opening at login is off at first, and starts the shop in the tray (road-to-1.2.md B6)', () => {
+    expect(new SettingsStore(fresh(), '/docs').get().openAtLogin).toBe(false);
+    expect(loginItem(true)).toEqual({ openAtLogin: true, args: ['--tray'] });
+    // Switched off with the same arguments, so Windows finds the entry it made.
+    expect(loginItem(false)).toEqual({ openAtLogin: false, args: ['--tray'] });
+  });
+
+  it('ignores empty folders and fields it does not know', () => {
     const file = fresh();
     const s = new SettingsStore(file, '/docs').update({ workRoot: '  ', evil: 1 } as never);
     expect(s.workRoot).toBe(defaultWorkRoot('/docs'));

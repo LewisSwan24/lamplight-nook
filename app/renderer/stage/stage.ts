@@ -1,5 +1,6 @@
 import { plainOf } from '../../main/event-normalizer';
-import { strings } from '../../shared/i18n';
+import { fill, strings } from '../../shared/i18n';
+import { STAFF } from '../../shared/staff';
 import type { ActorId, AiEvent, CharacterCommand } from '../../shared/types';
 import type { CafeScene } from '../game/CafeScene';
 import { outsideFlags } from '../game/weather';
@@ -18,6 +19,18 @@ const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', research
 
 /** Fill `{name}` placeholders in a line. The Director only picks lines whose placeholders can all be filled. */
 const fillLine = (text: string, vars: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_m, k: string) => vars[k] ?? '');
+
+/** States that mean someone is no longer working for a round: their flag comes down. */
+const OFF_DUTY = ['idle', 'wrapping', 'low'];
+/** Standing ready is not working for a round: a helper sent home ready gets no flag, and one back from an errand drops it. */
+const READY = 'ready';
+/**
+ * Longest project name in front of a line, in half-width places: a bubble has little room. Chinese characters take two,
+ * so eight of them fit, or sixteen letters.
+ */
+const TITLE_WIDTH = 16;
+/** From the CJK radicals on, characters are full width. */
+const FULL_WIDTH = 0x2e80;
 
 const emptyInfo = (): ActorInfo => ({ state: 'idle', stats: { writes: 0, runs: 0, fails: 0 }, raw: [] });
 
@@ -41,9 +54,21 @@ export class Stage {
    */
   private owner = new Map<ActorId, ActorId>();
   private info = new Map<ActorId, ActorInfo>();
-  private board: BoardStep[] = [];
-  /** The board shows Claude's own to-do list: the guessed three steps stop following events. */
-  private realPlan = false;
+  /**
+   * Each round's plan (B5). `real`: it is Claude's own to-do list, and the guessed three steps stop following events. The
+   * blackboard and the running card show the lead round's: the first under way, until it ends while another goes on.
+   */
+  private plans = new Map<string, { board: BoardStep[]; real: boolean }>();
+  private lead = '';
+  private get board(): BoardStep[] { return this.plans.get(this.lead)?.board ?? []; }
+  private get realPlan(): boolean { return this.plans.get(this.lead)?.real ?? false; }
+  /**
+   * The rounds under way (B9), by run, with the project's name and card colour. With two at once, each crew wears a flag
+   * in its colour, the blackboard has a column for each, and lines carry the project's name.
+   */
+  private projects = new Map<string, { title: string; color: string }>();
+  /** Which round each actor works for just now: the flag over their head, and the crew whose places they take. */
+  private wearing = new Map<ActorId, string>();
   /** The latest thing anyone started doing, for the running card. */
   private latest = '';
   /** The window is hidden or minimized: skip the acting and keep the shop's state current (see skip). */
@@ -75,14 +100,56 @@ export class Stage {
     this.translator.setContext({ ...ctx, flags: [...(ctx.flags ?? []), ...outsideFlags(this.scene.outside())] });
   }
 
-  /** A meeting: new commands wait instead of moving anyone. */
-  holdStill() {
-    this.director.freeze();
+  /** A meeting: new commands for the crew at it wait instead of moving them; everyone else carries on (B9). */
+  holdStill(crew: ActorId[]) {
+    this.director.hold(crew);
   }
 
-  /** The meeting is over: play each character's latest command, dropping stale ones. */
+  /** The meeting is over: play each of the crew's latest command, dropping stale ones. */
   carryOn() {
-    for (const cmd of this.director.unfreeze()) void this.perform(cmd);
+    for (const cmd of this.director.letGo()) void this.perform(cmd);
+  }
+
+  /** The rounds under way, from the main process (B9): their projects' names and colours. */
+  setRuns(list: { run: string; title: string; color: string }[]) {
+    this.projects = new Map(list.map((r) => [r.run, { title: r.title, color: r.color }]));
+    for (const [actor, run] of [...this.wearing]) if (!this.projects.has(run)) this.wearing.delete(actor);
+    this.redress();
+    // With nothing under way the blackboard is the result card's to clear; drawing here would bring back a plan it took off.
+    if (list.length) this.drawBoard();
+  }
+
+  /** Who leads a round (B9), who works for which just now, and whether two are under way. */
+  leadOf(run?: string): ActorId { return this.translator.leadOf(run); }
+  crewOf(actor: ActorId): string | undefined { return this.wearing.get(actor) ?? this.translator.crews().get(actor); }
+  get together(): boolean { return this.projects.size > 1; }
+
+  /** Flags over the heads of whoever works for a round, while two are under way; and which crew's places each takes. */
+  redress() {
+    for (const actor of STAFF) {
+      const run = this.crewOf(actor);
+      const color = this.together && run !== undefined ? this.projects.get(run)?.color ?? null : null;
+      this.scene.setCrew(actor, color, run !== undefined && this.leadOf(run) === 'qingdai');
+    }
+  }
+
+  /** A line with its project's name in front, while two rounds are under way; as it is otherwise. */
+  private named(run: string | undefined, text: string): string {
+    const p = run !== undefined && this.together ? this.projects.get(run) : undefined;
+    if (!p || !text) return text;
+    let room = TITLE_WIDTH;
+    const kept = [...p.title].filter((c) => (room -= c.codePointAt(0)! >= FULL_WIDTH ? 2 : 1) >= 0);
+    const title = kept.length < [...p.title].length ? `${kept.slice(0, -1).join('').trimEnd()}…` : p.title;
+    return fill(strings.ui.run.crewSays, { project: title, text });
+  }
+
+  /** The blackboard: the lead round's plan; with two under way, a column for each, Adeng's crew on the left (B9). */
+  private drawBoard() {
+    const both = this.translator.running.filter((r) => this.projects.has(r) && this.plans.has(r));
+    if (this.together && both.length > 1) {
+      both.sort((a, b) => Number(this.leadOf(a) !== 'adeng') - Number(this.leadOf(b) !== 'adeng'));
+      renderBoard(this.board, both.slice(0, 2).map((r) => ({ color: this.projects.get(r)!.color, steps: this.plans.get(r)!.board })));
+    } else if (this.board.length) renderBoard(this.board);
   }
 
   /** How far the commission has got, from the blackboard: steps done, steps left, the step under way. */
@@ -101,17 +168,26 @@ export class Stage {
 
   handle(e: AiEvent) {
     this.onEvent(e);
+    const run = e.run ?? '';
     if (e.kind === 'session_start') {
-      this.director.resetCommission();
-      this.info.clear();
+      // A round starting while another is at work leaves the shop as it is (B5); only the first starts it afresh.
+      const alone = !this.translator.running.some((r) => r !== run);
+      if (alone) {
+        this.director.resetCommission();
+        this.info.clear();
+        this.latest = '';
+        this.plans.clear();
+      }
       const B = strings.ui.board;
-      this.realPlan = false;
-      this.latest = '';
-      this.board = [
-        { key: 'research', label: B.research, status: 'todo' },
-        { key: 'write', label: B.write, status: 'todo' },
-        { key: 'check', label: B.check, status: 'todo' },
-      ];
+      this.plans.set(run, {
+        real: false,
+        board: [
+          { key: 'research', label: B.research, status: 'todo' },
+          { key: 'write', label: B.write, status: 'todo' },
+          { key: 'check', label: B.check, status: 'todo' },
+        ],
+      });
+      if (alone || !this.translator.running.includes(this.lead)) this.lead = run;
     }
     this.track(e);
     // The connection dropped: the lamps flicker twice while Adeng waits to try again.
@@ -125,8 +201,35 @@ export class Stage {
       const now = this.director.submit(cmd);
       if (now) void this.perform(now);
     }
+    // A round that ended takes its flags with it.
+    if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') {
+      for (const [actor, r] of [...this.wearing]) if (r === run) this.wearing.delete(actor);
+      this.redress();
+    }
     // What a helper brought back waits on the counter, from whoever brought it.
     if (e.kind === 'subagent_stop' && e.target) showParcel(this.translator.returned, e.target);
+    if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') this.ended(run);
+  }
+
+  /** The rounds still under way, from the main process: any other has ended, whether or not its last event came. */
+  keepRuns(live: string[]) {
+    const gone = this.translator.running.filter((run) => run !== '' && !live.includes(run));
+    this.translator.keepRuns(live);
+    for (const run of gone) this.ended(run);
+  }
+
+  /**
+   * A round has ended. Its plan stays on the blackboard while nothing else is at work; with another round going on, the
+   * blackboard shows that one's plan instead.
+   */
+  private ended(run: string) {
+    const next = this.translator.running[0];
+    if (run !== this.lead) this.plans.delete(run);
+    else if (next !== undefined) {
+      this.plans.delete(run);
+      this.lead = next;
+      this.drawBoard();
+    }
   }
 
   /** Update card info, blackboard and parcels from an event. */
@@ -141,21 +244,24 @@ export class Stage {
     if (e.kind === 'tool_start' && (e.tool === 'Bash' || e.tool === 'PowerShell')) info.stats.runs++;
     if (e.kind === 'tool_fail') info.stats.fails++;
 
+    // Each round keeps its own plan (B5); the blackboard shows the lead round's.
+    const plan = this.plans.get(e.run ?? '');
+    if (!plan) return;
     if ((e.kind === 'plan' || e.kind === 'progress') && e.agent === 'main' && e.todos?.length) {
-      this.board = stepsOf(e.todos);
-      this.realPlan = true;
+      plan.board = stepsOf(e.todos);
+      plan.real = true;
     }
     const step = (key: string, status: BoardStep['status']) => {
-      if (this.realPlan) return;
-      const s = this.board.find((b) => b.key === key);
+      if (plan.real) return;
+      const s = plan.board.find((b) => b.key === key);
       if (s && !(s.status === 'done' && status === 'doing')) s.status = status;
     };
     if (e.kind === 'subagent_start' && e.agent === 'researcher') step('research', 'doing');
     if (e.kind === 'subagent_stop' && e.agent === 'researcher') step('research', 'done');
     // Qingdai's step only appears on the board once she is asked for a design.
     if (e.kind === 'subagent_start' && e.agent === 'designer') {
-      if (!this.realPlan && !this.board.some((b) => b.key === 'design')) {
-        this.board.splice(this.board.findIndex((b) => b.key === 'write'), 0, { key: 'design', label: strings.ui.board.design, status: 'todo' });
+      if (!plan.real && !plan.board.some((b) => b.key === 'design')) {
+        plan.board.splice(plan.board.findIndex((b) => b.key === 'write'), 0, { key: 'design', label: strings.ui.board.design, status: 'todo' });
       }
       step('design', 'doing');
     }
@@ -163,8 +269,8 @@ export class Stage {
     if (e.kind === 'tool_start' && e.agent === 'main' && (e.tool === 'Write' || e.tool === 'Edit')) step('write', 'doing');
     if (e.kind === 'subagent_start' && e.agent === 'reviewer') { step('write', 'done'); step('check', 'doing'); }
     if (e.kind === 'subagent_stop' && e.agent === 'reviewer') step('check', 'done');
-    if (e.kind === 'done') this.board.forEach((s) => (s.status = 'done'));
-    if (this.board.length) renderBoard(this.board);
+    if (e.kind === 'done') plan.board.forEach((s) => (s.status = 'done'));
+    if (plan.board.length && ((e.run ?? '') === this.lead || this.together)) this.drawBoard();
 
   }
 
@@ -184,18 +290,27 @@ export class Stage {
     const info = this.info.get(actor) ?? emptyInfo();
     this.info.set(actor, info);
     info.state = cmd.state;
+    // Working for a round (B9): its flag goes up, and its crew's places are theirs; done, or sent home, it comes down.
+    if (cmd.run !== undefined && actor !== 'cat') {
+      const leading = this.translator.crews().get(actor) !== undefined;
+      if (OFF_DUTY.includes(cmd.state) || (cmd.state === READY && !leading)) this.wearing.delete(actor);
+      else if (cmd.state !== READY) this.wearing.set(actor, cmd.run);
+      this.redress();
+    }
     if (this.catchingUp) return this.skip(cmd, info);
     const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
     if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
     if (replaced()) return;
     this.scene.play(actor, cmd.anim, cmd.prop);
-    // Handing something over: Adeng turns to whoever brings it.
-    if (cmd.anim === 'gift' && actor !== 'adeng') this.scene.lookAt('adeng', actor);
+    // Handing something over: the round's lead turns to whoever brings it.
+    const lead = this.leadOf(cmd.run);
+    if (cmd.anim === 'gift' && actor !== lead) this.scene.lookAt(lead, actor);
     const sound = ACTION_SOUNDS[cmd.action ?? cmd.anim ?? ''];
     if (sound) this.scene.onSound?.(sound);
     const vars = cmd.line?.vars ?? {};
     const split = (text: string | undefined, who: ActorId) => (text ? text.split('\n').map((b) => ({ who, text: fillLine(b, vars) })) : []);
-    const turns = [...split(vars._text, (vars._speaker as ActorId) || actor), ...split(vars._reply, vars._replyBy as ActorId)];
+    const [speaker, replyBy] = this.voices(cmd);
+    const turns = [...split(vars._text, speaker), ...(replyBy ? split(vars._reply, replyBy) : [])];
     const own = turns.filter((t) => t.who === actor).map((t) => t.text);
     if (own.length) info.lastLine = own.join('');
     if (!turns.length && cmd.bubble) this.show(actor, actor, '', cmd.bubble);
@@ -204,7 +319,7 @@ export class Stage {
       if (i) await this.wait(SPEAK_MS);
       if (replaced()) return;
       if (last && last !== t.who) this.hide(actor, last);
-      this.show(actor, t.who, t.text, t.who === actor ? cmd.bubble : undefined);
+      this.show(actor, t.who, this.named(cmd.run, t.text), t.who === actor ? cmd.bubble : undefined);
       for (const other of turns) if (other.who !== t.who) this.scene.lookAt(other.who, t.who);
       last = t.who;
     }
@@ -228,12 +343,26 @@ export class Stage {
     if (cmd.moveTo) this.scene.place(actor, cmd.moveTo);
     this.scene.play(actor, cmd.anim);
     const vars = cmd.line?.vars ?? {};
-    const said = (text: string | undefined, who: ActorId) => text?.split('\n').forEach((b) => this.scene.onSay?.(who, fillLine(b, vars)));
-    said(vars._text, (vars._speaker as ActorId) || actor);
-    said(vars._reply, vars._replyBy as ActorId);
-    if (vars._text && ((vars._speaker as ActorId) || actor) === actor) info.lastLine = fillLine(vars._text.replace(/\n/g, ''), vars);
+    const said = (text: string | undefined, who: ActorId) => text?.split('\n').forEach((b) => this.scene.onSay?.(who, this.named(cmd.run, fillLine(b, vars))));
+    const [speaker, replyBy] = this.voices(cmd);
+    said(vars._text, speaker);
+    if (replyBy) said(vars._reply, replyBy);
+    if (vars._text && speaker === actor) info.lastLine = fillLine(vars._text.replace(/\n/g, ''), vars);
     // A microtask, not a timer: timers in a hidden window are throttled and would let commands pile up.
     void Promise.resolve().then(() => this.done(actor));
+  }
+
+  /**
+   * Who says a command's line and who answers. Adeng's lines in a round Qingdai leads are hers (B9); an answer she would
+   * give herself is left out.
+   */
+  private voices(cmd: CharacterCommand): [ActorId, ActorId | undefined] {
+    const vars = cmd.line?.vars ?? {};
+    const lead = this.leadOf(cmd.run);
+    const as = (who: ActorId) => (who === 'adeng' ? lead : who);
+    const speaker = as((vars._speaker as ActorId) || cmd.actor);
+    const replyBy = vars._replyBy ? as(vars._replyBy as ActorId) : undefined;
+    return [speaker, replyBy === speaker ? undefined : replyBy];
   }
 
   private done(actor: ActorId) {
@@ -242,6 +371,8 @@ export class Stage {
     if (settled) {
       this.scene.play(actor, 'idle');
       this.actorInfo(actor).state = settled;
+      // Back from an errand and handed it over: no longer at work for that round, unless leading it.
+      if (settled === 'ready' && this.translator.crews().get(actor) === undefined && this.wearing.delete(actor)) this.redress();
     }
     const next = this.director.finished(actor);
     if (next) void this.perform(next);

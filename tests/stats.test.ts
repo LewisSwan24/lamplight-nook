@@ -4,7 +4,7 @@ import type { CommissionMemo, Memory, RoundStat } from '../app/shared/types';
 
 const round = (date: string, seconds: number, extra: Partial<RoundStat> = {}): RoundStat => ({ date, seconds, helpers: {}, waits: 0, waitedSeconds: 0, ...extra });
 const work = (id: string, rounds?: RoundStat[]): CommissionMemo => ({ id, title: id, date: '2026-11-01', result: 'done', choices: {}, folder: `/w/${id}`, rounds });
-const memory = (...commissions: CommissionMemo[]): Memory => ({ commissions, stuckNotes: [] });
+const memory = (...commissions: CommissionMemo[]): Memory => ({ commissions, stuckNotes: [], projects: [] });
 
 describe("the shop's ledger page for a month", () => {
   it('counts works and rounds in that month only, with the average time', () => {

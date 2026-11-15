@@ -59,6 +59,16 @@ export function boardWindow(steps: BoardStep[], lines = BOARD_LINES): { shown: B
   return { shown, more: steps.length - start - shown.length };
 }
 
+/**
+ * Two rounds at once (road-to-1.2.md B9): the board splits into two columns of two lines each. A column shows the step
+ * under way (or the next) and the one after it; once all is done, the last two.
+ */
+export function boardPair(steps: BoardStep[]): BoardStep[] {
+  const current = steps.findIndex((s) => s.status !== 'done');
+  const start = current < 0 ? steps.length - 2 : Math.min(current, steps.length - 2);
+  return steps.slice(Math.max(0, start), Math.max(0, start) + 2);
+}
+
 /** Where the work is, for "step 3 of 5": the step under way (or the next one), and the total. */
 export function stepCount(todos: Todo[]): { n: number; total: number } | undefined {
   if (!todos.length) return undefined;
