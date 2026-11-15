@@ -2,7 +2,7 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import type { ActorId, BudgetNote, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
+import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -144,8 +144,11 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
 /** What the commission form needs from the main process. */
-export type FormApi = Pick<LamplightApi, 'chooseSource' | 'chooseLent' | 'handOver' | 'pathsOf'>;
+export type FormApi = Pick<LamplightApi, 'chooseSource' | 'chooseLent' | 'handOver' | 'pathsOf' | 'consult' | 'consultFinish'>;
 const L = U.lent;
+const C = U.consult;
+/** How long Adeng's last word in a talk stays up before the slip comes back filled in. */
+const LAST_WORD_MS = 1600;
 
 /** Why something couldn't be handed over, in the shop's words. */
 export function refusalText(r: HandOver['refused'][number]): string {
@@ -270,11 +273,100 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       refresh();
     };
 
+    // A talk with Adeng first (road-to-1.2.md B4): the slip turns into a chat, and "write it up" fills the slip in for the
+    // user to look over. Only the names of the files handed over go to Claude.
+    let talkId: string | null = null;
+    const consultNote = el('div.hint.consult-note', { role: 'status' });
+    const talkLog = el('div.consult-log', { role: 'log' });
+    const say = el('textarea.consult-say', { rows: 2, placeholder: C.placeholder, 'aria-label': C.inputLabel }) as HTMLTextAreaElement;
+    const sendButton = el('button.consult-send', { type: 'button', onclick: () => void send() }, C.send) as HTMLButtonElement;
+    const finishButton = el('button.consult-finish', { type: 'button', disabled: true, onclick: () => void finish() }, C.finish) as HTMLButtonElement;
+    const backButton = el('button.consult-back', { type: 'button', onclick: () => showTalk(false) }, C.back) as HTMLButtonElement;
+    const talkView = el('div.consult', { hidden: true },
+      el('div.card-title', {}, C.title),
+      withPortrait('adeng', 'calm', el('div.hint', {}, fill(C.limits, { cap: formatUsd(CONSULT_CAP_USD), n: String(CONSULT_MESSAGES) }))),
+      talkLog,
+      el('div.consult-input', {}, say, sendButton),
+      el('div.actions', {}, backButton, finishButton));
+    const line = (who: 'you' | 'adeng', text: string, waiting = false) => {
+      const node = el(`div.consult-line.${who}${waiting ? '.waiting' : ''}`, {}, waiting ? null : el('b', {}, who === 'adeng' ? strings.actors.adeng : C.you), text);
+      talkLog.append(node);
+      talkLog.scrollTop = talkLog.scrollHeight;
+      return node;
+    };
+    // While Adeng answers nothing else can be said; the slip can be written up once there has been a reply.
+    const busy = (on: boolean) => {
+      for (const b of [say, sendButton, backButton]) b.disabled = on;
+      finishButton.disabled = on || !talkId;
+    };
+    const showTalk = (on: boolean) => {
+      for (const part of slip) part.hidden = on;
+      talkView.hidden = !on;
+      form.setAttribute('aria-label', on ? C.title : U.commissionTitle);
+      (on ? say : want).focus();
+    };
+    const openTalk = () => {
+      if (!talkLog.childElementCount) line('adeng', C.hello);
+      showTalk(true);
+    };
+    const fillFrom = (brief: ConsultBrief) => {
+      talkId = brief.consult;
+      chosen = STICKERS.find((s) => s.id === brief.template) ?? null;
+      source = null;
+      want.value = brief.want;
+      details.value = brief.details ?? '';
+      audience.value = brief.audience ?? '';
+      refresh();
+      consultNote.textContent = brief.fromChat ? C.filledChat : C.filled;
+      showTalk(false);
+      // The note on what Adeng wrote sits over the want, both in view even on the smallest window.
+      consultNote.scrollIntoView({ block: 'start' });
+    };
+    // The cap reached, or no answer: Adeng says so, and the slip comes back with what was said.
+    const lastWord = async (brief: ConsultBrief) => {
+      if (brief.end) {
+        line('adeng', brief.end === 'cap' ? C.cap : C.trouble);
+        await new Promise((r) => setTimeout(r, LAST_WORD_MS));
+      }
+      fillFrom(brief);
+    };
+    const send = async () => {
+      const text = say.value.trim();
+      if (!text) return;
+      say.value = '';
+      line('you', text);
+      const thinking = line('adeng', C.thinking, true);
+      busy(true);
+      const r = await api.consult(talkId, text, materials.map((m) => m.name));
+      thinking.remove();
+      talkId = r.id;
+      if ('brief' in r) await lastWord(r.brief);
+      else line('adeng', r.reply);
+      busy(false);
+      if (!talkView.hidden) say.focus();
+    };
+    const finish = async () => {
+      const writing = line('adeng', C.writing, true);
+      busy(true);
+      const brief = await api.consultFinish(talkId!);
+      writing.remove();
+      await lastWord(brief);
+      busy(false);
+    };
+    // Enter says it; Shift+Enter starts a new line.
+    say.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+      e.preventDefault();
+      void send();
+    });
+
     const slip = [
       el('div.card-title', {}, U.commissionTitle),
       el('div.slip-body', {},
+        el('button.link.consult-open', { type: 'button', onclick: openTalk }, C.open),
         el('div.hint', {}, T.label),
         el('div.template-row', {}, ...chips),
+        consultNote,
         el('label', {}, U.want, want),
         sourceRow,
         lentRow,
@@ -288,7 +380,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     ];
     // Working in the user's own folder is agreed to once, on the slip itself, so going back keeps what was written.
     const agree = el('div.lent-confirm', { hidden: true });
-    const form = el('form.card.paper.commission', {}, closeButton(), ...slip, agree);
+    const form = el('form.card.paper.commission', {}, closeButton(), ...slip, agree, talkView);
     const askToLend = (filled: CommissionForm, name: string) => {
       const showing = (on: boolean) => {
         for (const part of slip) part.hidden = on;
@@ -358,6 +450,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         source: needsSource() ? source?.path : undefined,
         materials: chosen?.id === 'demo' || inPlace ? undefined : materials.map((m) => m.path),
         inPlace: inPlace?.path,
+        consult: talkId ?? undefined,
       };
       if (inPlace) askToLend(filled, inPlace.name);
       else done(filled);

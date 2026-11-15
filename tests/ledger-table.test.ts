@@ -71,3 +71,20 @@ describe('the ledger table for checking against the Console', () => {
     expect(readdirSync(dir).map((f) => `${f}:${statSync(join(dir, f)).mtimeMs}`)).toEqual(before);
   });
 });
+
+describe('talks with Adeng in the ledger table (B4)', () => {
+  it('are one row of their own each month, named as talks with how many there were', () => {
+    const table = formatLedger([
+      { key: '/w/a|s9', usd: 2, month: '2026-11' },
+      { key: 'consult:t1|k1', usd: 0.04, month: '2026-11' },
+      { key: 'consult:t2|k2', usd: 0.03, month: '2026-11' },
+      { key: 'consult:t3|k3', usd: 0.01, month: '2026-10' },
+    ], [{ folder: '/w/a', title: '小工具' }]);
+    const lines = table.split('\n');
+    expect(lines).toContain('| 2026-11 | 商量（2 次） |  | 0.0700 |');
+    expect(lines).toContain('| 2026-10 | 商量（1 次） |  | 0.0100 |');
+    expect(lines.filter((l) => l.includes('consult:'))).toEqual([]);
+    expect(lines).toContain('| 2026-11 | **合计** |  | **2.0700** |');
+    expect(lines.at(-1)).toBe('| **总计** |  |  | **2.0800** |');
+  });
+});

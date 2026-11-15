@@ -75,6 +75,15 @@ export function addProjects(notebook: { commissions: CommissionMemo[]; projects:
   return [...groups.keys()];
 }
 
+/**
+ * Where the ledger keeps what a project cost: every folder its commissions worked in, and its talks with Adeng before a
+ * commission went in (B4).
+ */
+export function projectFolders(project: Project, commissions: CommissionMemo[]): string[] {
+  const folders = commissions.filter((c) => c.folder && project.commissions.includes(c.id)).map((c) => c.folder!);
+  return [...new Set([project.folder, ...folders]), ...(project.consults ?? []).map((id) => `consult:${id}`)];
+}
+
 /** Done or stopped, as its latest commission came out. Whether it is running, queued or waiting is the main process's to say. */
 export function projectSettled(project: Project, commissions: CommissionMemo[]): 'done' | 'stopped' {
   return commissions.find((c) => c.id === project.commissions.at(-1))!.result === 'done' ? 'done' : 'stopped';

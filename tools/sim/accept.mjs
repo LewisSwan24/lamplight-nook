@@ -204,6 +204,39 @@ async function checkBubbles(shop) {
   check(!clashes.length, `speech bubbles: ${clashes.join('; ')}`);
 }
 
+/** Open the slip at the counter, start a talk with Adeng (B4) and say each line, waiting for his answer to each. */
+async function talk(shop, lines) {
+  await shop.order({});
+  await shop.page.locator('form.commission .consult-open').click();
+  await shop.page.waitForSelector('.consult-say');
+  for (const line of lines) {
+    const before = await shop.page.locator('.consult-line.adeng:not(.waiting)').count();
+    await shop.page.fill('.consult-say', line);
+    await shop.page.locator('.consult-send').click();
+    await shop.page.waitForFunction((n) => document.querySelectorAll('.consult-line.adeng:not(.waiting)').length > n, before, { timeout: 20_000 });
+  }
+}
+/** "That's it, write up the slip": wait for the slip to come back filled in. */
+async function writeUp(shop) {
+  await shop.page.locator('.consult-finish').click();
+  await shop.page.waitForSelector('.consult', { state: 'hidden', timeout: 20_000 });
+  await sleep(300);
+}
+/** What the slip says now, the sticker picked and the note on top. */
+const slipValues = (shop) => shop.page.evaluate(() => {
+  const f = document.querySelector('form.commission');
+  const inputs = f.querySelectorAll('.slip-body input[type=text]');
+  return { want: f.querySelector('.slip-body textarea').value, details: inputs[0].value, audience: inputs[1].value, chip: f.querySelector('.template-chip.on')?.textContent ?? '', note: f.querySelector('.consult-note').textContent };
+});
+/** The slip, or the talk in its place, fits the window: nothing pushed sideways or off the top or bottom. */
+async function noSpill(shop, what) {
+  const spill = await shop.page.locator('form.commission').evaluate((f) => {
+    const box = f.getBoundingClientRect();
+    return f.scrollWidth > f.clientWidth + 1 || box.top < -1 || box.bottom > innerHeight + 1;
+  });
+  check(!spill, `${what} does not fit the window`);
+}
+
 /** The pieces that come with the number of works done (app/shared/growth.ts COUNTED), and when. */
 const COUNTED_PIECES = [
   ['painting', 1], ['plant', 2], ['lights', 3], ['fruit', 5], ['guitar', 8], ['bonsai', 12], ['easel', 16], ['trophy', 20], ['portrait', 25],
@@ -2455,6 +2488,99 @@ const SCENARIOS = {
       r = await runOne(shop, { template: 'page', want: W[lang].page });
       check(r.ok, 'a commission in another project was held up');
       check(notebook().projects.length === 2, `${notebook().projects.length} projects`);
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Talking it over with Adeng first (road-to-1.2.md B4): three lines of chat, "write it up" fills the slip, the slip goes in
+   * and the work starts, the talk goes on the project, and the notebook's ledger has it on a line of its own. Then the same
+   * at the smallest window.
+   */
+  async consult(lang, out) {
+    const L = locale(lang);
+    const C = L.ui.consult;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const said = lang === 'en' ? [W.en.page, 'Mostly my aunts and uncles.', 'I have a few old photos.'] : [W['zh-CN'].page, '主要给家里的长辈看。', '有几张老照片。'];
+    const ledger = () => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+    try {
+      await talk(shop, said);
+      const lines = await shop.page.locator('.consult-log .consult-line.adeng:not(.waiting)').allInnerTexts();
+      check(lines.length === 4 && lines.every((l) => l.length > 6), `Adeng said ${JSON.stringify(lines)}`);
+      await noSpill(shop, 'the talk');
+      await shop.shot(join(out, 'consult-chat.png'));
+      const talks = ledger().filter((e) => e.key.startsWith('consult:'));
+      check(talks.length === 1 && /^consult:t\d+\|sim-/.test(talks[0].key), `the ledger has ${JSON.stringify(talks)}`);
+      await writeUp(shop);
+      const slip = await slipValues(shop);
+      check(slip.want === said[0], `the slip wants ${slip.want}`);
+      check(slip.audience === (lang === 'en' ? 'Regulars at the cafe' : '店里的熟客'), `the slip is for ${slip.audience}`);
+      check(slip.details.includes(said[1]) && slip.details.includes(said[2]), `the details read ${slip.details}`);
+      check(slip.chip === L.ui.templates.page, `the sticker picked is ${slip.chip}`);
+      check(slip.note === C.filled, `the slip says ${slip.note}`);
+      await noSpill(shop, 'the filled slip');
+      await shop.shot(join(out, 'consult-form.png'));
+      const id = ledger().find((e) => e.key.startsWith('consult:')).key.split('|')[0].slice('consult:'.length);
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, `the commission from the talk did not finish: ${JSON.stringify(r.stopped ?? r)}`);
+      const notebook = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+      check(JSON.stringify(notebook.projects[0].consults) === JSON.stringify([id]), `the project has ${JSON.stringify(notebook.projects[0].consults)}`);
+      check(notebook.commissions[0].form.want === said[0], 'the commission is not the slip the talk wrote');
+      await shop.page.keyboard.press('Escape');
+      await sleep(600);
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      await shop.page.waitForSelector('.notebook-ledger');
+      const page = await shop.page.locator('.notebook-ledger').innerText();
+      const talked = ledger().filter((e) => e.key.startsWith('consult:')).reduce((s, e) => s + e.usd, 0);
+      check(page.includes(L.ui.notebook.ledgerConsults.replace('{n}', '1').replace('{cost}', `$${talked.toFixed(2)}`)), `the ledger page reads ${page}`);
+      await shop.shot(join(out, 'consult-notebook.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(400);
+
+      // The smallest window: the talk and the slip it fills still fit.
+      await shop.resize([640, 360]);
+      await talk(shop, said.slice(0, 1));
+      await noSpill(shop, 'the talk at the smallest window');
+      await shop.shot(join(out, 'consult-small-chat.png'));
+      await writeUp(shop);
+      await noSpill(shop, 'the slip at the smallest window');
+      await shop.shot(join(out, 'consult-small-form.png'));
+    } finally { await shop.close(); }
+  },
+
+  /** A talk that reaches its cap: Adeng says to write the slip, and it is filled from the talk with no more paid turns. */
+  async consultcap(lang, out) {
+    const L = locale(lang);
+    const C = L.ui.consult;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    // $0.045 a line: the third line is over the talk's $0.10.
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_COST: '0.045' } });
+    const said = lang === 'en' ? [W.en.page, 'Mostly my aunts and uncles.', 'I have a few old photos.'] : [W['zh-CN'].page, '主要给家里的长辈看。', '有几张老照片。'];
+    const spent = () => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8')).filter((e) => e.key.startsWith('consult:')).reduce((s, e) => s + e.usd, 0);
+    try {
+      await talk(shop, said.slice(0, 2));
+      await shop.page.fill('.consult-say', said[2]);
+      await shop.page.locator('.consult-send').click();
+      await shop.page.waitForSelector(`.consult-line.adeng:has-text("${C.cap}")`, { timeout: 20_000 });
+      await shop.shot(join(out, 'consultcap-chat.png'));
+      await shop.page.waitForSelector('.consult', { state: 'hidden', timeout: 10_000 });
+      const slip = await slipValues(shop);
+      check(slip.want === said[0], `the slip wants ${slip.want}`);
+      check(said.every((s) => slip.details.includes(s)) && slip.details.includes(L.actors.adeng), `the details read ${slip.details}`);
+      check(slip.note === C.filledChat, `the slip says ${slip.note}`);
+      const atCap = spent();
+      check(atCap > 0.1 && atCap < 0.2, `the talk cost ${atCap}`);
+      await shop.shot(join(out, 'consultcap-form.png'));
+      // Past the cap, another word and "write it up" cost nothing more.
+      await shop.page.locator('form.commission .consult-open').click();
+      await shop.page.fill('.consult-say', said[1]);
+      await shop.page.locator('.consult-send').click();
+      await shop.page.waitForSelector('.consult', { state: 'hidden', timeout: 10_000 });
+      check(spent() === atCap, `the talk went on spending: ${spent()}`);
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, `the commission from the talk did not finish: ${JSON.stringify(r.stopped ?? r)}`);
     } finally { await shop.close(); }
   },
 

@@ -74,6 +74,9 @@ export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 export const MONTH_CAP_CHOICES = [10, 20, 50, 100, 0] as const;
 /** The caps a project may have, in US dollars; 0 means no cap, which is where every project starts. */
 export const PROJECT_CAP_CHOICES = [0, 5, 10, 20, 50] as const;
+/** The most one talk with Adeng before a commission may cost, in US dollars, and the most the user may say in it (Q-B1). */
+export const CONSULT_CAP_USD = 0.1;
+export const CONSULT_MESSAGES = 10;
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
@@ -126,6 +129,15 @@ export interface LamplightApi {
   monthBudget(): Promise<{ capUsd: number; spentUsd: number }>;
   /** The monthly cap, when it was set above the default on upgrading from what was spent before. Asking takes it: it is said once. */
   monthCapNews(): Promise<number | null>;
+  /**
+   * One line in a talk with Adeng before a commission (B4): a new talk when `id` is null. `files` are the files handed over
+   * so far; only their names go to Claude.
+   */
+  consult(id: string | null, text: string, files: string[]): Promise<ConsultReply>;
+  /** "Write it up as a slip": the slip from the talk, for the user to look over. */
+  consultFinish(id: string): Promise<ConsultBrief>;
+  /** What the talks with Adeng this month cost, and how many there were. */
+  consultsThisMonth(): Promise<{ count: number; usd: number }>;
   /** Set the most a project may cost (one of PROJECT_CAP_CHOICES; 0 for none); false for a project or amount there isn't. */
   setProjectCap(id: string, usd: number): Promise<boolean>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
@@ -215,7 +227,18 @@ export type CommissionTemplate = TemplateId;
  * materials: files the user handed over (dropped or picked); copies go into the commission folder.
  * inPlace: a folder of the user's own to work in instead of a new one (road-to-1.1.md A6), picked in the main process's dialog.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string };
+/** `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in. */
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string };
+
+/** One line of a talk with Adeng before a commission (road-to-1.2.md B4). */
+export type ConsultLine = { who: 'you' | 'adeng'; text: string };
+/**
+ * The slip a talk with Adeng wrote, with the talk's id. `fromChat`: no slip could be read, so the talk itself went into the
+ * details. `end`: the talk could go no further, because its cap (or the month's) was reached or Claude Code did not answer.
+ */
+export type ConsultBrief = { want: string; details?: string; audience?: string; template?: CommissionTemplate; consult: string; fromChat?: boolean; end?: 'cap' | 'trouble' };
+/** What Adeng says to a line in a talk: a reply, or the talk is over and here is the slip. */
+export type ConsultReply = { id: string; reply: string } | { id: string; brief: ConsultBrief };
 
 /** A file handed over with a commission. */
 export type Material = { path: string; name: string; size: number };
@@ -305,6 +328,9 @@ export const IPC = {
   monthBudget: 'budget:month',
   monthCapNews: 'budget:month-cap-news',
   setProjectCap: 'budget:project-cap',
+  consult: 'consult:say',
+  consultFinish: 'consult:finish',
+  consultsThisMonth: 'consult:month',
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',

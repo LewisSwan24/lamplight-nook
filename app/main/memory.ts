@@ -110,6 +110,10 @@ export class MemoryStore {
         commissions: [entry.id], rounds: [{ n: 1, ...round }],
       });
     }
+    // The talk with Adeng the slip came out of goes on the project, once.
+    const talk = memo.form?.consult;
+    const joined = this.project(entry.project!);
+    if (talk && !joined.consults?.includes(talk)) joined.consults = [...(joined.consults ?? []), talk];
     this.note(memo.title, stuck, date);
     this.save();
     return structuredClone(entry);

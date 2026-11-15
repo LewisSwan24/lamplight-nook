@@ -55,6 +55,8 @@ const nextId = (p) => `${p}${Date.now().toString(36)}${(++seq).toString(36)}`;
 
 const pending = new Map();
 let hooks = {};
+/** The system prompt the SDK sends with initialize: how a talk with Adeng (B4) is told from a commission. */
+let system = '';
 const request = (req) => new Promise((resolve) => {
   const id = nextId('sim_req_');
   pending.set(id, resolve);
@@ -69,7 +71,10 @@ function onLine(line) {
   const m = JSON.parse(line);
   log('<', m);
   if (m.type === 'control_request') {
-    if (m.request.subtype === 'initialize') hooks = m.request.hooks ?? {};
+    if (m.request.subtype === 'initialize') {
+      hooks = m.request.hooks ?? {};
+      system = [m.request.systemPrompt ?? []].flat().join('\n');
+    }
     out({ type: 'control_response', response: { subtype: 'success', request_id: m.request_id, response: {} } });
   } else if (m.type === 'control_response') {
     pending.get(m.response.request_id)?.(m.response);
@@ -293,10 +298,10 @@ function makeStage(state) {
   return {
     cwd, state, step, tool, write, edit, read, agent, ask, todo, say, think, notes, pause, charge,
     get spent() { return spent; },
-    finish: async (text) => {
+    finish: async (text, extra = {}) => {
       assistant([{ type: 'text', text }]);
       await hook('Stop', { stop_hook_active: false, last_assistant_message: text, background_tasks: [] });
-      result('success', { is_error: false, result: text });
+      result('success', { is_error: false, result: text, ...extra });
     },
     fail: (text) => { saveState(state); result('error_during_execution', { is_error: true, errors: [text] }); throw new Stopped(); },
   };
@@ -308,7 +313,7 @@ async function run(prompt) {
   const old = resumeId ? loadState(resumeId) : null;
   const state = old ?? { session: `sim-${Date.now().toString(36)}`, play: null, done: 0, notes: [], lang: null };
   if (old) state.done = old.done; // carry on after the last finished step
-  const play = pickPlay(prompt, state);
+  const play = pickPlay(prompt, state, system);
   state.play = play.name;
   saveState(state);
   out({
@@ -321,7 +326,7 @@ async function run(prompt) {
   try {
     // Falls over once: carrying on (--resume) gets through.
     if (SCENARIO === 'crash' && !resumeId) setTimeout(() => process.exit(1), 6 * SPEED);
-    await play.run(stage, { scenario: SCENARIO, prompt });
+    await play.run(stage, { scenario: SCENARIO, prompt, schema: argOf('--json-schema') });
     // A finished session carries its total into a --resume too, as Claude Code's own does (a round of changes).
     state.paid = (state.paid ?? 0) + stage.spent;
     saveState(state);
