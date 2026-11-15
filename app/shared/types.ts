@@ -63,19 +63,29 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
 
 /** The per-run caps offered in settings, in US dollars; 0 means no cap. */
 export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
+/** The monthly caps offered in settings, smallest first; 0 means no cap. */
+export const MONTH_CAP_CHOICES = [10, 20, 50, 100, 0] as const;
+/** The caps a project may have, in US dollars; 0 means no cap, which is where every project starts. */
+export const PROJECT_CAP_CHOICES = [0, 5, 10, 20, 50] as const;
 
 /** Pages the renderer may open in the browser (install guides and credits). */
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
 /** costUsd is Claude Code's estimate of what the session has cost so far; spentThisRun is this run's share of it. */
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string };
+export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string;
+  /** A month or project cap stopped it (error monthCap or projectCap). */ cap?: BudgetNote;
+  /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
+  /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[] };
+
+/** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
+export type BudgetNote = { cap: 'month' | 'project'; capUsd: number; spentUsd: number; leftUsd: number; project?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export type DataDamage = { notebook: 'restored' | 'lost' | 'missing' | null; settings: boolean; ledger: boolean };
@@ -112,6 +122,12 @@ export interface LamplightApi {
   spendThisMonth(): Promise<number>;
   /** Every month that cost anything, newest first. */
   spendMonths(): Promise<{ month: string; usd: number; commissions: number }[]>;
+  /** This month's cap (0: none) and what has been spent under it. */
+  monthBudget(): Promise<{ capUsd: number; spentUsd: number }>;
+  /** The monthly cap, when it was set above the default on upgrading from what was spent before. Asking takes it: it is said once. */
+  monthCapNews(): Promise<number | null>;
+  /** Set the most a project may cost (one of PROJECT_CAP_CHOICES; 0 for none); false for a project or amount there isn't. */
+  setProjectCap(id: string, usd: number): Promise<boolean>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
   /** Pick the file to edit or the folder to tidy; null if cancelled. */
   chooseSource(template: CommissionTemplate): Promise<SourcePick | null>;
@@ -221,6 +237,8 @@ export type CommissionResult = {
   id?: string;
   /** What the shop gathered with this commission (a new commission done together), if anything. */
   grew?: GrowthId[];
+  /** Caps this round took past eight tenths, said once each (B8). */
+  budget?: BudgetNote[];
   /** Rounds of changes so far (0 for the first go). */
   round?: number;
   /** The work as it was before this round is kept and can be put back. */
@@ -284,6 +302,9 @@ export const IPC = {
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
   spendMonths: 'spend:months',
+  monthBudget: 'budget:month',
+  monthCapNews: 'budget:month-cap-news',
+  setProjectCap: 'budget:project-cap',
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',
@@ -527,6 +548,8 @@ export type Memory = {
   shop?: ShopDays;
   /** Id of the last commission already brought up when the app opened. */
   greeted?: string;
+  /** Months (YYYY-MM) and projects whose cap Adeng has said is nearly reached (B8): each is said once. */
+  budgetSaid?: string[];
 };
 /** What may be brought up in a line: `when` flags that hold, and values for the line's placeholders. */
 export type Recall = { flags: string[]; vars: Record<string, string> };

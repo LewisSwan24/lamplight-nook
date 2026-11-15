@@ -6,6 +6,7 @@ import { MAIN_FILES } from '../shared/templates';
 import { forgetAside, putAside } from './aside';
 import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
 import type { CommissionMemo, DataDamage, GuestId, Memory, Project, Recall, RoundStat, ShopDays, ShopState } from '../shared/types';
+import { PROJECT_CAP_CHOICES } from '../shared/types';
 
 /** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
 const RECENT_FOR_NOTES = 20;
@@ -252,6 +253,23 @@ export class MemoryStore {
    * Forget everything (the notebook's "clear" button), including the copies kept aside when the data
    * folder was upgraded (backup/<date>-v<n>/memory.json, see migrate.ts).
    */
+  /** Months and projects whose cap Adeng has now said is nearly reached (B8). */
+  budgetSaid(keys: string[]) {
+    const said = this.data.budgetSaid ?? [];
+    this.data.budgetSaid = [...said, ...keys.filter((k) => !said.includes(k))];
+    this.save();
+  }
+
+  /** The most a project may cost in all: one of the choices, 0 for no cap. False for a project or amount there isn't. */
+  setProjectCap(id: string, usd: number): boolean {
+    const p = this.data.projects.find((x) => x.id === id);
+    if (!p || !(PROJECT_CAP_CHOICES as readonly number[]).includes(usd)) return false;
+    if (usd) p.capUsd = usd;
+    else delete p.capUsd;
+    this.save();
+    return true;
+  }
+
   /** Forget how the rounds went (the ledger page), keeping every work. */
   clearStats() {
     for (const c of this.data.commissions) delete c.rounds;
@@ -333,6 +351,7 @@ export class MemoryStore {
         projects: Array.isArray(m.projects) ? m.projects.filter((p) => p && typeof p.id === 'string' && Array.isArray(p.commissions) && Array.isArray(p.rounds)) : [],
         stuckNotes: Array.isArray(m.stuckNotes) ? m.stuckNotes.filter((n) => n && typeof n.note === 'string' && typeof n.commission === 'string') : [],
         greeted: typeof m.greeted === 'string' ? m.greeted : undefined,
+        budgetSaid: Array.isArray(m.budgetSaid) ? m.budgetSaid.filter((k) => typeof k === 'string') : undefined,
         shop: m.shop && typeof m.shop.done === 'number'
           ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [], met: Array.isArray(m.shop.met) ? m.shop.met : undefined }
           : undefined,

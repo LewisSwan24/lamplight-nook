@@ -90,7 +90,7 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   const ticking = setInterval(() => { if (card.isConnected) draw(); else clearInterval(ticking); }, 15_000);
 }
 
-type Failure = { title: string; text: string; link?: [ExternalLink, string]; retry: boolean; plain: boolean; retryLabel?: string };
+type Failure = { title: string; text: string; link?: [ExternalLink, string]; retry: boolean; plain: boolean; retryLabel?: string; /** Where the cap that stopped it is changed. */ go?: 'settings' | 'notebook' };
 
 /**
  * Why a commission stopped, for the failures the user can do something about. Billing and key problems use
@@ -106,12 +106,22 @@ const FAILURES: Record<string, Failure> = {
   tooBig: { title: R.tooBigTitle, text: R.tooBigText, retry: false, plain: false },
   failed: { title: R.failedTitle, text: R.failedText, retry: true, plain: false },
   budget: { title: R.budgetTitle, text: R.budgetText, retry: true, plain: true, retryLabel: R.budgetRetry },
+  // A month or project cap (B8): carrying on is offered only for work already under way, and stops again until the cap allows it.
+  monthCap: { title: R.monthCapTitle, text: R.monthCapText, retry: true, plain: true, retryLabel: R.budgetRetry, go: 'settings' },
+  projectCap: { title: R.projectCapTitle, text: R.projectCapText, retry: true, plain: true, retryLabel: R.budgetRetry, go: 'notebook' },
 };
 
 /** Returns false when the failure needs no card: a commission that was called off. */
 export const hasFailureCard = (kind?: string) => Boolean(kind && FAILURES[kind]);
 
-export function showFailure(api: LamplightApi, kind: string, retry: () => void, vars: Record<string, string> = {}, workDir?: string): boolean {
+/** Opening settings or the notebook, from a cap's card; set by the shop (main.ts). */
+let goTo: Record<'settings' | 'notebook', () => void> = { settings: () => {}, notebook: () => {} };
+export function onCapGo(fn: typeof goTo) {
+  goTo = fn;
+}
+
+/** `retry` null: nothing to carry on, so no button for it. `notes`: caps the round took past eight tenths, said here too. */
+export function showFailure(api: LamplightApi, kind: string, retry: (() => void) | null, vars: Record<string, string> = {}, workDir?: string, notes: string[] = []): boolean {
   const f = FAILURES[kind];
   if (!f) return false;
   const card = el(f.plain ? 'div.card.serious' : 'div.card.paper', { 'onpanel-closed': clearWorkSigns },
@@ -120,11 +130,14 @@ export function showFailure(api: LamplightApi, kind: string, retry: () => void, 
     ...(f.plain
       ? [el('div.serious-title', {}, f.title), el('div', {}, fill(f.text, vars))]
       : [withPortrait('adeng', 'troubled', el('div.card-title', {}, f.title), el('div', {}, fill(f.text, vars)))]),
+    ...notes.map((n) => el('div.hint.result-budget', { role: 'note' }, n)),
     el('div.actions', {},
       f.link ? el('button', { onclick: () => api.openLink(f.link![0]) }, f.link[1]) : null,
       workDir ? el('button', { onclick: () => void api.openOutput(workDir, 'reveal') }, R.seeSoFar) : null,
+      f.go ? el('button.cap-go', { onclick: () => { closePanel(); goTo[f.go!](); } }, f.go === 'settings' ? R.capSettings : R.capNotebook) : null,
+      f.go && !retry ? el('button.default', { onclick: closePanel }, R.capOk) : null,
       // Carrying on keeps the plan on the blackboard; putting the card away ends the commission, so it goes too.
-      f.retry ? el('button.default', { onclick: () => { card.removeEventListener('panel-closed', clearWorkSigns); closePanel(); retry(); } }, f.retryLabel ?? R.retry) : null),
+      f.retry && retry ? el('button.default', { onclick: () => { card.removeEventListener('panel-closed', clearWorkSigns); closePanel(); retry(); } }, f.retryLabel ?? R.retry) : null),
   );
   replaceOpen(card);
   return true;

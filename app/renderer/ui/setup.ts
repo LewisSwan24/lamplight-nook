@@ -2,7 +2,7 @@ import { fill, locale, strings } from '../../shared/i18n';
 import { monthName } from '../../shared/localday';
 import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
-import { BUDGET_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
+import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closeButton, closePanel, nameCard, replaceOpen } from './panels';
 import { el, layer } from './dom';
@@ -288,6 +288,9 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
   const select = el('select', { 'aria-label': S.budgetLabel }, ...BUDGET_CHOICES.map((usd) =>
     el('option', { value: usd, selected: usd === settings.budgetUsd }, usd ? formatUsd(usd) : S.budgetNone))) as HTMLSelectElement;
   select.addEventListener('change', async () => changed(await api.saveSettings({ budgetUsd: Number(select.value) })));
+  const monthCap = el('select.month-cap', { 'aria-label': S.monthCapLabel }, ...MONTH_CAP_CHOICES.map((usd) =>
+    el('option', { value: usd, selected: usd === settings.monthCapUsd }, usd ? formatUsd(usd) : S.budgetNone))) as HTMLSelectElement;
+  monthCap.addEventListener('change', async () => changed(await api.saveSettings({ monthCapUsd: Number(monthCap.value) })));
   const book = el('table.spend-book');
   const months = el('details.spend-months', { ontoggle: async () => {
     if (!months.open) return;
@@ -304,7 +307,9 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
     el('div', {}, fill(S.spendMonth, { cost: formatUsd(month) })),
     months,
     el('label.budget-row', {}, S.budgetLabel, ' ', select),
-    el('div.hint', {}, S.budgetHint));
+    el('div.hint', {}, S.budgetHint),
+    el('label.budget-row', {}, S.monthCapLabel, ' ', monthCap),
+    el('div.hint', {}, S.monthCapHint));
 }
 
 type LegalPage = 'privacy' | 'terms' | 'notices';
@@ -439,7 +444,8 @@ function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Setting
 }
 
 /** Settings, in the five tabs of docs/information-structure.md: who you are, the shop, sight and sound, working, and about. */
-export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void) {
+/** `tab`: open on that tab rather than the one last looked at. */
+export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void, tab?: SettingsTab) {
   const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name, 'aria-label': S.nameLabel }) as HTMLInputElement;
   name.addEventListener('change', async () => onChange(await api.saveSettings({ name: name.value })));
@@ -515,6 +521,6 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       tabs[next].focus();
     });
   });
-  pick(lastTab);
+  pick(tab ?? lastTab);
   replaceOpen(card);
 }

@@ -2,14 +2,18 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
+import type { ActorId, BudgetNote, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
 import { withPortrait } from './portraits';
+import { WARN_SHARE } from '../../main/budget';
 
 const U = strings.ui;
+
+/** A cap a round took past eight tenths (B8), as Adeng puts it on the card that follows. */
+export const budgetLine = (n: BudgetNote) => fill(n.cap === 'month' ? U.resultBudgetMonth : U.resultBudgetProject, { spent: formatUsd(n.spentUsd), cap: formatUsd(n.capUsd), left: formatUsd(n.leftUsd), project: n.project ?? '' });
 
 /** What a character card shows. Everything here comes from real events. */
 export type ActorInfo = {
@@ -153,7 +157,8 @@ export function refusalText(r: HandOver['refused'][number]): string {
 let openForm: { add: (paths: string[] | null) => Promise<void> } | null = null;
 export const commissionFormOpen = () => openForm;
 
-export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }): Promise<CommissionForm | null> {
+/** `month`: this month's cap and what went under it; once past eight tenths, the slip says what is left. */
+export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }, month = { capUsd: 0, spentUsd: 0 }): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     // The empty-box reminder in the shop's own words (and language), not the browser's.
@@ -276,7 +281,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         materialRow,
         el('label', {}, U.details, details),
         el('label', {}, U.audience, audience),
-        el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
+        el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap,
+          month.capUsd && month.spentUsd >= WARN_SHARE * month.capUsd ? ` ${fill(U.budgetLeft, { left: formatUsd(Math.max(0, month.capUsd - month.spentUsd)), cap: formatUsd(month.capUsd) })}` : null),
       ),
       el('div.actions', {}, el('button.default', { type: 'submit' }, U.submit)),
     ];
@@ -438,6 +444,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
+    ...(result.budget ?? []).map((n) => el('div.hint.result-budget', { role: 'note' }, budgetLine(n))),
     // A script that deletes or acts without a preview broke the tool template's rules: say so before anyone double-clicks it.
     ...(result.scripts ?? []).map(({ file, risks }) => el('div.hint.warn.result-script', { role: 'note' },
       fill(risks.length > 1 ? U.resultScriptBoth : risks[0] === 'deletes' ? U.resultScriptDeletes : U.resultScriptNoPreview, { file }))),
