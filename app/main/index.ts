@@ -388,8 +388,8 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       // what this commission changed or made there is, because only that goes in its zip.
       const touched = changes && [...changes.changed, ...changes.added].sort();
       const entry = r
-        ? memory.revise(r.id, r.ask, { ...outcome, main, round, touched }, stuckHere)
-        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched }, stuckHere);
+        ? memory.revise(r.id, r.ask, { ...outcome, main, round, touched, usd: spentThisRun }, stuckHere)
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched, usd: spentThisRun }, stuckHere);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {

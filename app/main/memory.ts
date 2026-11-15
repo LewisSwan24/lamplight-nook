@@ -4,7 +4,8 @@ import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
 import { MAIN_FILES } from '../shared/templates';
 import { forgetAside, putAside } from './aside';
-import type { CommissionMemo, DataDamage, GuestId, Memory, Recall, RoundStat, ShopDays, ShopState } from '../shared/types';
+import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
+import type { CommissionMemo, DataDamage, GuestId, Memory, Project, Recall, RoundStat, ShopDays, ShopState } from '../shared/types';
 
 /** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
 const RECENT_FOR_NOTES = 20;
@@ -14,7 +15,10 @@ const MAX_ASKS = 10;
 /** Rounds kept per work for the ledger page; older ones drop off. */
 const MAX_ROUNDS = 50;
 
-const empty = (): Memory => ({ commissions: [], stuckNotes: [] });
+const empty = (): Memory => ({ commissions: [], stuckNotes: [], projects: [] });
+
+/** A commission entry the notebook can use; anything else in the file is left out when it is read. */
+export const readable = (c: CommissionMemo | null | undefined): c is CommissionMemo => Boolean(c && typeof c.title === 'string' && c.choices && typeof c.choices === 'object');
 
 /**
  * Adeng's notebook (tech 8): past commissions with the choices the user made, and the places where the
@@ -28,6 +32,8 @@ export class MemoryStore {
 
   constructor(private file: string) {
     this.data = this.open();
+    // An older version that saved the notebook since the data step lost its projects (road-to-1.2.md B1).
+    if (addProjects(this.data).length) this.save();
   }
 
   private get lastGood() {
@@ -65,8 +71,11 @@ export class MemoryStore {
     return structuredClone(this.data);
   }
 
-  /** Write down a finished (or failed) commission and what got stuck along the way. Returns its entry. */
-  remember(memo: Omit<CommissionMemo, 'id' | 'date'>, stuck: string[], now = new Date()): CommissionMemo {
+  /**
+   * Write down a finished (or failed) commission and what got stuck along the way. Returns its entry. It starts a project
+   * of its own, or joins `memo.project`; `usd` is what this round cost.
+   */
+  remember({ usd, ...memo }: Omit<CommissionMemo, 'id' | 'date'> & { usd?: number }, stuck: string[], now = new Date()): CommissionMemo {
     const date = localDay(now);
     // Ids are c<time>; two entries in the same millisecond still get different ones.
     let t = now.getTime();
@@ -79,16 +88,42 @@ export class MemoryStore {
     const entry: CommissionMemo = { ...memo, choices: { ...before?.choices, ...memo.choices }, id: `c${t}`, date, ...(rounds.length ? { rounds } : {}) };
     this.data.commissions = this.data.commissions.filter((c) => !stopped(c));
     this.data.commissions.push(entry);
+    const round = { commission: entry.id, date, ...roundInfo(memo.rounds?.at(-1), usd, memo.summary) };
+    if (before) {
+      // Still the round it stopped in, of the same project.
+      const p = this.project(before.project!);
+      p.commissions = p.commissions.map((id) => (id === before.id ? entry.id : id));
+      for (const r of p.rounds) if (r.commission === before.id) r.commission = entry.id;
+      const at = p.rounds.map((r) => r.commission).lastIndexOf(entry.id);
+      p.rounds[at] = roundAgain(p.rounds[at], round);
+      entry.project = p.id;
+    } else if (memo.project) {
+      const p = this.project(memo.project);
+      p.commissions.push(entry.id);
+      p.rounds.push({ n: p.rounds.length + 1, ...round });
+    } else {
+      const taken = new Set([...this.data.projects.map((p) => p.id), ...this.data.commissions.flatMap((c) => (c.project ? [c.project] : []))]);
+      entry.project = freeProjectId(projectIdFor(entry.id), taken);
+      this.data.projects.push({
+        id: entry.project, title: entry.title, folder: entry.folder, ...(entry.form?.inPlace ? { lent: true } : {}), created: date,
+        commissions: [entry.id], rounds: [{ n: 1, ...round }],
+      });
+    }
     this.note(memo.title, stuck, date);
     this.save();
     return structuredClone(entry);
   }
 
+  private project(id: string): Project {
+    return this.data.projects.find((p) => p.id === id)!;
+  }
+
   /**
    * Another round of changes to a commission already in the notebook: it moves to the top as the latest
-   * work, keeps its first choices unless answered again, and remembers what was asked. Null if it is gone.
+   * work, keeps its first choices unless answered again, and remembers what was asked. Its project gets one more round on
+   * the timeline; `usd` is what the round cost. Null if it is gone.
    */
-  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main' | 'touched'>> & { round?: RoundStat }, stuck: string[], now = new Date()): CommissionMemo | null {
+  revise(id: string, ask: string, update: Pick<CommissionMemo, 'result' | 'choices'> & Partial<Pick<CommissionMemo, 'costUsd' | 'sessionId' | 'summary' | 'main' | 'touched'>> & { round?: RoundStat; usd?: number }, stuck: string[], now = new Date()): CommissionMemo | null {
     const at = this.data.commissions.findIndex((c) => c.id === id);
     if (at < 0) return null;
     const date = localDay(now);
@@ -110,6 +145,12 @@ export class MemoryStore {
     // Every round's files belong to the work, whatever the folder still says about the earlier ones.
     if (update.touched) entry.touched = [...new Set([...(old.touched ?? []), ...update.touched])].sort();
     this.data.commissions.push(entry);
+    const p = this.project(entry.project!);
+    const round = { commission: id, date, ask, ...roundInfo(update.round, update.usd, update.summary) };
+    const last = p.rounds.at(-1);
+    // Trying the same round again, as with the asks above.
+    if (last?.commission === id && last.ask === ask) p.rounds[p.rounds.length - 1] = roundAgain(last, round);
+    else p.rounds.push({ n: p.rounds.length + 1, ...round });
     this.note(entry.title, stuck, date);
     this.save();
     return structuredClone(entry);
@@ -154,7 +195,7 @@ export class MemoryStore {
   shopState(): ShopState {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
       id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
-      page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want,
+      page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
     }));
     return { ...structuredClone(this.shop()), works };
   }
@@ -171,6 +212,7 @@ export class MemoryStore {
   relink(id: string, folder: string) {
     const memo = this.data.commissions.find((c) => c.id === id)!;
     memo.folder = folder;
+    this.project(memo.project!).folder = folder;
     // The work itself is the shop's to change; the rest of what is there may be the user's.
     memo.preexisting = readdirSync(folder).filter((name) => name !== memo.main).map((name) => join(folder, name));
     delete memo.sessionId;
@@ -286,7 +328,9 @@ export class MemoryStore {
       const m = JSON.parse(readFileSync(file, 'utf8')) as Partial<Memory>;
       if (!Array.isArray(m.commissions)) return null;
       return {
-        commissions: m.commissions.filter((c) => c && typeof c.title === 'string' && c.choices && typeof c.choices === 'object'),
+        commissions: m.commissions.filter(readable),
+        // Kept whole, so what a later version wrote in them survives this one saving the notebook.
+        projects: Array.isArray(m.projects) ? m.projects.filter((p) => p && typeof p.id === 'string' && Array.isArray(p.commissions) && Array.isArray(p.rounds)) : [],
         stuckNotes: Array.isArray(m.stuckNotes) ? m.stuckNotes.filter((n) => n && typeof n.note === 'string' && typeof n.commission === 'string') : [],
         greeted: typeof m.greeted === 'string' ? m.greeted : undefined,
         shop: m.shop && typeof m.shop.done === 'number'

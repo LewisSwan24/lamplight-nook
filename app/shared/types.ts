@@ -415,6 +415,68 @@ export type CommissionMemo = {
    * Only these go in its zip (A8); the rest of the folder is the user's.
    */
   touched?: string[];
+  /** The project it belongs to (1.2). Every commission has one once the notebook is open (projects.ts). */
+  project?: string;
+};
+
+/**
+ * One piece of work the shop goes on doing for weeks (road-to-1.2.md B1): a folder with all its commissions, every round
+ * and every version. Fields marked with a later work package are written by that package.
+ */
+export type Project = {
+  /** p<time>, the number of its first commission's c<time> unless another project has it. */
+  id: string;
+  /** Its first commission's title to begin with; the user can change it. */
+  title: string;
+  folder: string;
+  /** In a folder the user lent (A6). */
+  lent?: boolean;
+  /** YYYY-MM-DD */
+  created: string;
+  /** Commission ids, oldest first. */
+  commissions: string[];
+  /** The timeline, oldest first, never cut short. */
+  rounds: ProjectRound[];
+  /** What the staff remember about it (B3). */
+  brief?: ProjectBrief;
+  /** The most it may cost in all, in US dollars (B8). */
+  capUsd?: number;
+  /** Talks with Adeng before a commission went in (B4), by consult number. */
+  consults?: string[];
+  /** The project and round it was branched off from (B2). */
+  from?: { project: string; round: number };
+  archived?: boolean;
+};
+
+/** One round on a project's timeline: a new commission's first round, or a round of changes to one. */
+export type ProjectRound = {
+  /** 1, 2, 3... along the timeline. */
+  n: number;
+  commission: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** The change asked for; absent on a commission's first round, which is the commission itself. */
+  ask?: string;
+  /** What the staff said they made. */
+  summary?: string;
+  /** What this round cost, by the ledger; absent on rounds from before 1.2. */
+  usd?: number;
+  seconds?: number;
+  /** Why the round did not finish; absent when it did. */
+  failure?: string;
+  /** The version kept after this round (B2). */
+  version?: string;
+  /** This round went back to the version of round n (B2). */
+  restoredFrom?: number;
+};
+
+/** What the staff remember about a project between rounds (B3). */
+export type ProjectBrief = {
+  purpose: string;
+  prefs: string[];
+  lastRound?: string;
+  /** YYYY-MM-DD, the last time the user changed it. */
+  edited?: string;
 };
 
 /** One round of a commission, for the notebook's ledger page. Never leaves the computer. */
@@ -446,6 +508,8 @@ export type Work = {
   /** Its main file is a web page, so it can also be taken away as a PDF. */
   page: boolean;
   want?: string;
+  /** The project it belongs to, for going there from the shelf (B2). */
+  project: string;
 };
 
 /** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */
@@ -458,6 +522,7 @@ export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {
   commissions: CommissionMemo[];
   stuckNotes: StuckNote[];
+  projects: Project[];
   /** Absent until the first commission is finished. */
   shop?: ShopDays;
   /** Id of the last commission already brought up when the app opened. */

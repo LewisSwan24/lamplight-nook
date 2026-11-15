@@ -2628,6 +2628,80 @@ const SCENARIOS = {
   },
 
   /**
+   * Projects (road-to-1.2.md B1): a 1.1 shop with five works, one that stopped and one in a lent folder, opens as five
+   * projects of one with a copy of the old data aside, and the shelf is as it was. Opened again, nothing is migrated twice.
+   * Saved since by 1.1, which drops the projects, it gets the same projects back on the next opening.
+   */
+  async projects(lang, out) {
+    const home = freshHome();
+    const day = (d) => `2026-11-0${d}`;
+    const stat = (d, seconds, failure) => ({ date: day(d), seconds, ...(failure ? { failure } : {}), helpers: {}, waits: 0, waitedSeconds: 0 });
+    const work = (i, title, extra = {}) => ({
+      id: `c${Date.UTC(2026, 10, i)}`, title, date: day(i), result: 'done', choices: {}, folder: join(home.documents, 'Lamplight Nook', `work-${i}`),
+      main: 'index.html', form: { want: title, template: 'page' }, rounds: [stat(i, 60)], ...extra,
+    });
+    const T = lang === 'en' ? ['Sign-in page', 'Travel guide', 'Spending table', 'My notes', 'Pomodoro timer'] : ['签到页', '旅行攻略', '记账表', '我的笔记', '番茄钟'];
+    const lent = join(home.home, 'My notes');
+    const works = [
+      work(1, T[0]),
+      work(2, T[1], { asks: [{ ask: W[lang].ask, date: day(3) }, { ask: W[lang].note, date: day(4) }, { ask: W[lang].ask, date: day(5) }], rounds: [stat(2, 90), stat(3, 30), stat(4, 20, 'network'), stat(5, 40)] }),
+      work(3, T[2], { result: 'failed', main: undefined, rounds: [stat(3, 25, 'network')] }),
+      work(4, T[3], { folder: lent, form: { want: T[3], template: 'page', inPlace: lent }, touched: ['index.html'] }),
+      work(5, T[4]),
+    ];
+    for (const w of works) {
+      mkdirSync(w.folder, { recursive: true });
+      writeFileSync(join(w.folder, 'index.html'), `<h1>${w.title}</h1>`);
+    }
+    writeFileSync(join(lent, 'mine.txt'), 'the user\'s own');
+    const seed = { commissions: works, stuckNotes: [], greeted: works[4].id, shop: { done: 4, told: [], grown: [], met: [] } };
+    for (const [name, text] of Object.entries({ 'settings.json': onboarded(lang), 'memory.json': seed, 'data-version.json': { data: 3 } })) writeFileSync(join(home.data, name), JSON.stringify(text, null, 2));
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const shelf = async (shot) => {
+      const shop = await launch({ lang, home, speed: SPEED });
+      try {
+        await sleep(3000);
+        await shop.page.keyboard.press('Escape');
+        await shop.hotspot(shop.L.ui.access.hotspotWorks);
+        await shop.page.waitForSelector('.shelf-card li.work');
+        const titles = await shop.page.locator('.shelf-card li.work .work-text b').allInnerTexts();
+        if (shot) await shop.shot(join(out, shot));
+        return titles;
+      } finally { await shop.close(); }
+    };
+
+    const titles = await shelf('projects-shelf.png');
+    const done = works.filter((w) => w.result === 'done').reverse().map((w) => w.title);
+    check(JSON.stringify(titles) === JSON.stringify(done), `the shelf shows ${JSON.stringify(titles)}, not ${JSON.stringify(done)}`);
+    check(JSON.parse(readFileSync(join(home.data, 'data-version.json'), 'utf8')).data === 4, 'the data folder is not at version 4');
+    const backups = readdirSync(join(home.data, 'backup'));
+    check(backups.length === 1 && backups[0].endsWith('-v3'), `the old data was not kept aside once: ${backups}`);
+    check(JSON.stringify(JSON.parse(readFileSync(join(home.data, 'backup', backups[0], 'memory.json'), 'utf8'))) === JSON.stringify(seed), 'the copy aside is not the 1.1 notebook');
+    const first = notebook();
+    check(first.projects.length === 5, `${first.projects.length} projects, not 5`);
+    for (const w of works) {
+      const c = first.commissions.find((x) => x.id === w.id);
+      const p = first.projects.find((x) => x.id === c?.project);
+      check(p && p.commissions.length === 1 && p.commissions[0] === w.id && p.title === w.title && p.folder === w.folder, `${w.title} is not a project of its own`);
+      check(p.rounds.length === 1 + (w.asks?.length ?? 0), `${w.title} has ${p.rounds.length} rounds`);
+      check(Boolean(p.lent) === Boolean(w.form.inPlace), `${w.title}: lent is ${p.lent}`);
+    }
+    check(first.projects.find((p) => p.commissions[0] === works[2].id).rounds[0].failure === 'network', 'the work that stopped does not say why');
+
+    // Opened again: nothing migrated twice.
+    await shelf();
+    const again = notebook();
+    check(JSON.stringify(again.projects) === JSON.stringify(first.projects), 'the projects changed on the second opening');
+    check(readdirSync(join(home.data, 'backup')).length === 1, 'a second copy of the data was made');
+
+    // 1.1 saved the notebook in between: its projects are gone, the version marker still says 4.
+    const { projects: _, ...saved } = again;
+    writeFileSync(join(home.data, 'memory.json'), JSON.stringify(saved, null, 2));
+    check(JSON.stringify(await shelf('projects-rebuilt.png')) === JSON.stringify(done), 'the shelf changed after 1.1 saved the notebook');
+    check(JSON.stringify(notebook().projects) === JSON.stringify(first.projects), 'the projects did not come back as they were');
+  },
+
+  /**
    * An old Claude Code: the counter says so and offers the update, the settings show the version, and the
    * user can still go ahead. A current one shows its version and asks nothing.
    */
