@@ -181,6 +181,8 @@ export function pickPlay(prompt, state, system = '') {
   if (/node check\.js/.test(prompt)) return plays.demo;
   state.vars.want = want(prompt);
   state.vars.materialsDir = quoted(prompt, 'Copies are in the folder') ?? quoted(prompt, 'using the photos in the folder');
+  // A commission that may use a connection (road-to-1.3.md C4) reads it once and writes down what it got.
+  if (/The user let this commission use these connections/.test(prompt)) return plays.connect;
   if (/This folder is the user's own/.test(prompt)) return plays.lent;
   if (/single self-contained page named "index\.html", using the photos/.test(prompt)) return plays.album;
   if (/write the findings as/.test(prompt)) { state.vars.out = quoted(prompt, 'write the findings as'); return plays.research; }
@@ -328,6 +330,29 @@ f.onsubmit=(e)=>{e.preventDefault();items.push({item:item.value,amount:amount.va
 }
 
 export const plays = {
+  /**
+   * A commission with a connection ticked (C4): call the first tool of each connection's server (nook-k<digits>) once, and
+   * keep what came back in a text file. With SIM_ECHO_SECRET it also repeats that string, out loud and in the call, as
+   * a model that has somehow seen a secret would; the shop must mask it in its log and recordings.
+   */
+  connect: {
+    name: 'connect',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const echo = process.env.SIM_ECHO_SECRET;
+      await s.step(() => s.think(1));
+      const got = [];
+      for (const server of s.servers.filter((n) => /^nook-k\d+$/.test(n))) {
+        const [name] = await s.mcpTools(server);
+        const r = await s.step(() => s.mcp(server, name, echo ? { about: echo } : {}));
+        if (r?.text) got.push(r.text);
+      }
+      if (echo) await s.step(() => s.say(`(sim) ${echo}`));
+      await s.step(() => s.write(zh ? '连接里读到的.txt' : 'from-connection.txt', `${got.join('\n')}\n`));
+      await s.finish(zh ? '我读了测试连接里的便条，把它抄进了一个文本文件。' : 'I read the note in the test connection and copied it into a text file.');
+    },
+  },
+
   /** The fixed demo commission, step for step as the storyboard has it. */
   demo: {
     name: 'demo',

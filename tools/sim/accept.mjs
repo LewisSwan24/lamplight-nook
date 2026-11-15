@@ -1931,6 +1931,117 @@ const SCENARIOS = {
   },
 
   /** Handing over files: copies in the materials folder, originals untouched, the agent reads them. */
+  /**
+   * Connections (road-to-1.3.md C4), with the test connection only a development build has: its authorisation card from
+   * the notebook ("not now" is the default), connected, ticked on a slip (none is ticked to begin with), read once by the
+   * staff without a card, then disconnected. The secret it was made with, which the stand-in repeats out loud and in its
+   * call, is nowhere in the log or the recordings.
+   */
+  async connect(lang, out) {
+    const SECRET = `nook-test-secret-${Date.now().toString(36)}-must-not-be-kept`;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, testSecret: SECRET, simEnv: { SIM_ECHO_SECRET: SECRET } });
+    const { page, L } = shop;
+    const K = L.ui.connections;
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'connections.json'), 'utf8')).connections;
+    const openNotebook = async () => {
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      await page.waitForSelector('.notebook .notebook-connections');
+      await sleep(400);
+    };
+    const slipLists = async () => {
+      await shop.order({});
+      await sleep(500);
+      const n = await page.locator('form.commission .connection-row:not([hidden]) input[type=checkbox]').count();
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      return n;
+    };
+    try {
+      check(await slipLists() === 0, 'the slip lists connections before there are any');
+      await openNotebook();
+      check((await page.locator('.notebook-connections').innerText()).includes(K.none), 'the connections page does not say there are none');
+      await page.locator('.notebook-connections .connection-add[data-kind="test"]').click();
+      await page.waitForSelector('.grant-card');
+      await sleep(400);
+      const card = await page.locator('.grant-card').innerText();
+      for (const part of [K.reads, K.does, K.never, K.howDisconnect, K.connect, K.notNow]) check(card.includes(part), `the authorisation card has no "${part}"`);
+      check((await page.locator('.grant-card button.default').innerText()).trim() === K.notNow, 'the card does not default to "not now"');
+      await shop.shot(join(out, 'connect-grant.png'));
+      // Enter does what the default does: nothing is connected.
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('.notebook .notebook-connections');
+      await sleep(400);
+      check(!existsSync(join(home.data, 'connections.json')), '"not now" made a connection');
+
+      // On the smallest window, connected this time.
+      await shop.resize([640, 360]);
+      await page.locator('.notebook-connections .connection-add[data-kind="test"]').click();
+      await page.waitForSelector('.grant-card');
+      await sleep(400);
+      await shop.shot(join(out, 'connect-grant-small.png'));
+      await page.locator('.grant-card .grant-connect').click();
+      await page.waitForSelector('.notebook .connection');
+      await sleep(500);
+      await shop.shot(join(out, 'connect-page-small.png'));
+      await shop.resize('medium');
+      await page.locator('.notebook .connection-grant summary').click();
+      await sleep(400);
+      await shop.shot(join(out, 'connect-page.png'));
+      const made = saved();
+      check(made.length === 1 && made[0].kind === 'test' && made[0].hasSecret && /^k\d+$/.test(made[0].id), `connections.json: ${JSON.stringify(made)}`);
+      check(existsSync(join(home.data, 'connections.bin')), 'the secret was not kept in connections.bin');
+      for (const f of ['connections.json', 'connections.bin']) check(!readFileSync(join(home.data, f)).toString('utf8').includes(SECRET), `${f} holds the secret as written`);
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      // The slip lists it, unticked; ticked, the staff read it once, with no card to answer.
+      await shop.order({ want: W[lang].page });
+      const tick = page.locator('form.commission .connection-row input[type=checkbox]');
+      await tick.first().waitFor({ state: 'visible', timeout: 5000 });
+      check(await tick.count() === 1, `the slip lists ${await tick.count()} connections`);
+      check(!(await tick.first().isChecked()), 'the connection is ticked before the user ticks it');
+      check((await page.locator('form.commission .connection-row').innerText()).includes(K.slipLine), 'the slip does not say what may be used');
+      await tick.first().check();
+      await shop.shot(join(out, 'connect-slip.png'));
+      await shop.resize([640, 360]);
+      await page.locator('form.commission .connection-row').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'connect-slip-small.png'));
+      await shop.resize('medium');
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      check(!r.seen.length, `reading a ticked connection asked: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const dir = latestCommission(home);
+      const file = join(dir, lang === 'zh-CN' ? '连接里读到的.txt' : 'from-connection.txt');
+      check(existsSync(file) && readFileSync(file, 'utf8').includes('Test note'), 'the note did not come through the connection');
+      const memo = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1);
+      check(memo.form?.connections?.[0] === made[0].id, 'the commission did not keep its connection for later rounds');
+      check(Boolean(saved()[0].lastUsed), 'the connection does not say when it was last used');
+      await page.keyboard.press('Escape');
+      await sleep(1500);
+
+      // Disconnected: secret and settings gone, and the slip lists nothing again.
+      await openNotebook();
+      await page.locator('.notebook .connection-disconnect').click();
+      await sleep(300);
+      check(await page.locator('.notebook .connection-keep.default').count() === 1, 'disconnecting is not asked first');
+      await page.locator('.notebook .connection-disconnect-yes').click();
+      await page.waitForFunction(() => !document.querySelector('.notebook .connection'), null, { timeout: 5000 });
+      check(saved().length === 0, 'the connection is still in connections.json');
+      check(!existsSync(join(home.data, 'connections.bin')), 'its secret is still in connections.bin');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      check(await slipLists() === 0, 'the slip still lists a connection that is gone');
+    } finally { await shop.close(); }
+    // Said out loud and passed in a call: the log and the recordings keep none of it, and the call is in them.
+    const recDir = join(home.data, 'recordings');
+    const recorded = readdirSync(recDir).map((f) => readFileSync(join(recDir, f), 'utf8')).join('\n');
+    check(!logLines(home).join('\n').includes(SECRET) && !recorded.includes(SECRET), 'the secret is in the log or a recording');
+    check(recorded.includes('[redacted]'), 'the stand-in never repeated the secret, so nothing was looked for');
+    check(/mcp__nook-k\d+__read_note/.test(recorded), 'the recording has no call of the connection\'s tool');
+  },
+
   async materials(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);
@@ -4007,6 +4118,7 @@ const SCENARIOS = {
       { name: 'revise', sel: 'form.meeting.revise', w: 'form', open: ({ long }) => window.lamplightDebug.ui.showRevise(long.slice(0, 20)) },
       { name: 'shelf', sel: '.shelf-card', w: 'form', open: () => window.lamplightDebug.ui.showShelf() },
       { name: 'notebook', sel: '.notebook', w: 'reading', open: () => window.lamplightDebug.ui.showNotebook() },
+      { name: 'grant', sel: '.grant-card', w: 'small', open: ({ long }) => void window.lamplightDebug.ui.showGrant({ kind: 'test', label: long.slice(0, 24), grant: { reads: [long, long.slice(0, 30)], does: [{ what: long, undo: 'yes' }, { what: long.slice(0, 40), undo: 'no' }], never: [long, long.slice(0, 20)], disconnect: long } }) },
       { name: 'captions', sel: '.caption-card', w: 'reading', open: () => window.lamplightDebug.ui.showCaptionLog() },
       { name: 'update-letter', sel: '.update-letter', w: 'reading', open: ({ long }) => window.lamplightDebug.ui.showUpdateLetter({ version: '1.1.1', notes: Array.from({ length: 16 }, (_, i) => (i % 4 ? `\u00B7 ${long.slice(0, 70)}` : long.slice(0, 12))) }) },
       ...['basics', 'furnish', 'sight', 'work', 'about'].map((tab) => ({ name: `settings-${tab}`, sel: '.card.settings', w: 'form', tab })),

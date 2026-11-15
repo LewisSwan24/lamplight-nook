@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
-import type { Risk } from '../shared/types';
+import type { Risk, ToolKind } from '../shared/types';
 import { isInside, reallyInside } from './paths';
 
 /**
@@ -20,7 +20,16 @@ export type RiskContext = {
    * their files without asking each time, and this keeps each original first.
    */
   keepOriginal?: (file: string) => void;
+  /** The shop's own tools and the ticked connections of this round, by full name (mcp__nook-*, road-to-1.3.md C4). */
+  nook?: Map<string, { kind: ToolKind; label: (input: unknown) => string }>;
 };
+
+/**
+ * A nook tool goes by the kind it declared: reading, and making new files in the commission folder, go ahead (the tick on
+ * the slip, or the tool being the shop's own, is the agreement); changing anything outside asks every time, defaulting to
+ * no, and so does anything that cannot be undone. C6 adds the rules on top of these.
+ */
+const NOOK_RISK: Record<ToolKind, Risk> = { read: 'safe', make: 'safe', outside: 'serious', final: 'serious' };
 
 const R = strings.risk;
 
@@ -365,6 +374,9 @@ export function classify(tool: string, input: Record<string, unknown>, ctx: Risk
     }
     return { risk: 'serious', reason: fill(R.unknownCommand, { name }) };
   }
+
+  const nook = ctx.nook?.get(tool);
+  if (nook) return { risk: NOOK_RISK[nook.kind], reason: R.nook[nook.kind] };
 
   // Any other tool (including MCP tools) is serious by default.
   return { risk: 'serious', reason: fill(R.unknownTool, { tool }) };

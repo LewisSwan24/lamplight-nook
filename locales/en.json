@@ -113,7 +113,13 @@
     "readOutside": "reads something outside the commission folder",
     "safeCommand": "runs a read-only command in the commission folder",
     "unknownCommand": "wants to run \"{name}\" and I can't be sure what it does",
-    "unknownTool": "wants to use a tool I don't know, \"{tool}\""
+    "unknownTool": "wants to use a tool I don't know, \"{tool}\"",
+    "nook": {
+      "read": "only reads, and changes nothing",
+      "make": "only makes new files in this commission's folder",
+      "outside": "changes something outside this commission's folder, which can be undone",
+      "final": "cannot be undone once done"
+    }
   },
   "patterns": {
     "planWords": "plan|steps|first,|next,|then I|计划|步骤",
@@ -697,6 +703,56 @@
       "bedsRest": "{n} resting under straw for the winter",
       "hotspotBoard": "The blackboard: the whole plan, or the project board when nothing is under way",
       "hotspotWorks": "The works shelf: see what we made together"
+    },
+    "connections": {
+      "title": "Connections",
+      "intro": "Once connected, the staff may use these things from outside the shop. Tick which ones a commission may use on its slip; unticked, they stay out.",
+      "none": "No connections yet.",
+      "add": "Connect: {label}",
+      "added": "Connected {date}",
+      "lastUsed": "Last used {date}",
+      "neverUsed": "Not used yet",
+      "paused": "Paused",
+      "pause": "Pause",
+      "resume": "Resume",
+      "disconnect": "Disconnect",
+      "disconnectAsk": "Disconnect \"{label}\"?",
+      "disconnectYes": "Disconnect",
+      "keep": "Keep it",
+      "grantShow": "What it may do",
+      "grantTitle": "Connect \"{label}\"?",
+      "reads": "It can read",
+      "does": "It can",
+      "never": "It never",
+      "howDisconnect": "To disconnect",
+      "undoYes": "can be undone",
+      "undoNo": "cannot be undone",
+      "connect": "Connect",
+      "notNow": "Not now",
+      "storage": "This computer can't lock its key away safely, so it was not connected.",
+      "slipLine": "This one may use:",
+      "kinds": {
+        "test": {
+          "label": "Test connection",
+          "readNote": "read the note in the test connection",
+          "grant": {
+            "reads": [
+              "a test note that comes with the development build"
+            ],
+            "does": [
+              {
+                "what": "show the note to the staff",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "go on the internet",
+              "touch any other file on your computer"
+            ],
+            "disconnect": "Press Disconnect on the Connections page of the notebook. The note and its key are deleted; the record of what it did stays."
+          }
+        }
+      }
     },
     "notebook": {
       "ledgerTitle": "The shop's ledger",
