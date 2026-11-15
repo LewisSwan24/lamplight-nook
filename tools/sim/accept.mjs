@@ -208,8 +208,8 @@ async function checkBubbles(shop) {
  * Another commission while one is under way (road-to-1.2.md B5): the counter shows the running card, and "take another
  * commission" there opens the slip.
  */
-async function another(shop, { template, want }) {
-  await shop.hotspot(shop.L.ui.access.hotspotCounter);
+async function another(shop, { template, want }, counter = shop.L.ui.access.hotspotCounter) {
+  await shop.hotspot(counter);
   await shop.page.locator('.running-card .progress-another').click();
   await shop.page.waitForSelector('form.commission');
   const chip = shop.page.locator('form.commission .template-chip', { hasText: shop.L.ui.templates[template] });
@@ -2684,11 +2684,12 @@ const SCENARIOS = {
         check(r.ok, `result ${i + 1} did not come: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
         named.push(await shop.page.locator('.result-card .result-project').innerText());
         if (i === 0) await shop.shot(join(out, 'parallel-result.png'));
-        // Put away. A question from the round still at work may come up over it first: that is answered (the default) and
-        // the card put away after; the next result may come straight after, so wait for this one to go.
+        // Put away. A question from the round still at work may come up over it first: that is answered with its first
+        // option (the colour question has no default, so Enter would do nothing) and the card put away after; the next
+        // result may come straight after, so wait for this one to go.
         await shop.page.evaluate(() => { document.querySelector('.result-card').dataset.seen = '1'; });
         for (let k = 0; k < 10 && await shop.page.locator('.result-card[data-seen]').count(); k++) {
-          await shop.page.keyboard.press(await shop.page.locator('.backdrop').count() ? 'Enter' : 'Escape');
+          await shop.page.keyboard.press(await shop.page.locator('.backdrop').count() ? '1' : 'Escape');
           await sleep(600);
         }
         check(await shop.page.locator('.result-card[data-seen]').count() === 0, 'the result card would not go');
@@ -2756,6 +2757,98 @@ const SCENARIOS = {
       check(r.ok, `the second did not finish: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
       check(ledger().filter((e) => e.month === '2026-11').length === 3, `the ledger has ${JSON.stringify(ledger())}`);
     } finally { await shop.close(); }
+  },
+
+  /**
+   * Two crews at once (road-to-1.2.md B9): Adeng's and Qingdai's, each under its project's flag, the blackboard in two
+   * columns; both after the same errand runner; a meeting for one project while the other crew carries on. In the cafe
+   * and the study, each moment by day and by night.
+   */
+  async crowd(lang, out) {
+    const P = locale(lang).ui.projects;
+    // Bits of the lines a lead says when an errand has to wait for a runner (lines/cafe.yaml sub_queue).
+    const queued = lang === 'en' ? ["can wait till Clem's back", 'has one on the go', 'hold it till'] : ['等小橘回来再去', '手上还有一件', '先放着，等'];
+    // The apprentice is in: four pairs of hands for two crews, and three errands for each round (plays.mjs errands).
+    const memory = { commissions: [], stuckNotes: [], greeted: 'c1', shop: { done: 10, told: [], grown: [], met: [] } };
+    for (const room of ['cafe', 'study']) {
+      const home = freshHome({ 'settings.json': onboarded(lang, { scene: room }), 'memory.json': JSON.stringify(memory) });
+      const shop = await launch({ lang, home, speed: 1200, scenario: 'errands' });
+      const look = () => shop.page.evaluate(() => {
+        const { scene, stage } = window.lamplightDebug;
+        const who = ['adeng', 'qingdai', 'xiaoju', 'xiaodou', 'laoshi'];
+        return {
+          together: stage.together,
+          crew: Object.fromEntries(who.map((a) => [a, stage.crewOf(a) ?? null])),
+          at: Object.fromEntries(who.map((a) => [a, scene.anchorOf(a)])),
+          moving: who.filter((a) => scene.actors.get(a).tween?.isPlaying()),
+          flags: scene.flagBoxes().length,
+          columns: document.querySelectorAll('#board .board-col').length,
+          says: [...scene.speech].map(([id, s]) => [id, s.text]),
+        };
+      });
+      // Each moment by day and by night: the period changes at once, the work goes on.
+      const shoot = async (name) => {
+        for (const period of ['day', 'night']) {
+          await shop.page.evaluate((p) => window.lamplightDebug.scene.setPeriod(p, true), period);
+          await sleep(250);
+          await checkBubbles(shop);
+          await shop.shot(join(out, `crowd-${room}-${period}-${name}.png`));
+        }
+        await shop.page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      };
+      // A question card that comes up is answered with its first option, so the work goes on.
+      const answer = async () => { if (await shop.page.locator('.backdrop').count()) { await shop.page.keyboard.press('1'); await sleep(500); } };
+      try {
+        // The light settles first: a change of light still under way would take back the night set for a picture.
+        await sleep(4500);
+        await shop.order({ template: 'page', want: W[lang].page });
+        await shop.submit();
+        check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
+        await another(shop, { template: 'research', want: W[lang].research }, room === 'study' ? locale(lang).sceneText.study.ui.access.hotspotCounter : undefined);
+        check(await waitForLog(home, 'run start', 2, 10_000), 'the second commission did not start beside the first');
+        await shop.page.keyboard.press('Escape');
+        const seen = new Set();
+        for (let i = 0; i < 240 && seen.size < 2; i++, await sleep(250)) {
+          await answer();
+          const s = await look();
+          const { adeng, qingdai } = s.crew;
+          // Both crews at work, each under its own flag, a column each on the blackboard.
+          if (!seen.has('working') && s.together && adeng && qingdai && adeng !== qingdai && s.flags >= 2 && s.columns === 2 && !s.moving.includes('qingdai')) {
+            seen.add('working');
+            await shoot('working');
+          }
+          // One crew's errand has to wait: the runner it wants is out for the other.
+          if (!seen.has('errand') && s.together && s.says.some(([who, text]) => (who === 'adeng' || who === 'qingdai') && queued.some((q) => text.includes(q)))) {
+            seen.add('errand');
+            await shoot('errand');
+          }
+        }
+        check(seen.has('working'), 'the two crews were never seen at work at once under their flags');
+        check(seen.has('errand'), 'neither crew ever waited for the same errand runner');
+        // A meeting for the first project at work, from its card on the project board.
+        const rows = await boardRows(shop);
+        check(rows.filter((r) => r.status === P.status.running).length === 2, `the board does not show two at work: ${JSON.stringify(rows)}`);
+        const title = await shop.page.locator('.project-card li.project-row:has(.project-meet)').first().locator('.project-open, .project-name').innerText();
+        await shop.page.locator('.project-card .project-meet').first().click();
+        await shop.page.waitForSelector('form.meeting textarea', { timeout: 5000 });
+        check((await shop.page.locator('form.meeting').innerText()).includes(title), 'the meeting card does not name its project');
+        const run = await shop.page.evaluate((t) => window.lamplightDebug.stage.projects && [...window.lamplightDebug.stage.projects].find(([, p]) => p.title === t)?.[0], title);
+        let s = await look();
+        for (let i = 0; i < 40; i++, await sleep(250)) {
+          s = await look();
+          const crew = Object.entries(s.crew).filter(([, r]) => r === run).map(([a]) => a);
+          if (crew.length && crew.every((a) => s.at[a] === 'board' && !s.moving.includes(a))) break;
+        }
+        const lead = await shop.page.evaluate((r) => window.lamplightDebug.stage.leadOf(r), run);
+        check(s.at[lead] === 'board', `${lead} did not come to the blackboard for the meeting: ${JSON.stringify(s.at)}`);
+        const other = lead === 'adeng' ? 'qingdai' : 'adeng';
+        check(s.crew[other] && s.crew[other] !== run, `the other crew stopped for the meeting: ${JSON.stringify(s.crew)}`);
+        await shop.page.fill('form.meeting textarea', W[lang].note);
+        await shoot('meeting');
+        await shop.page.locator('form.meeting button.default').click();
+        await sleep(800);
+      } finally { await shop.close(); }
+    }
   },
 
   /** Furnishing: pick a wall, curtains and a rug; they stay after a restart; the study keeps its own. */

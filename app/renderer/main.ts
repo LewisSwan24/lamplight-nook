@@ -29,7 +29,8 @@ import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
-import { renderPins, showProjects, showTimeline } from './ui/projects';
+import { onProjectMeet, renderPins, showProjects, showTimeline } from './ui/projects';
+import { projectColor } from '../shared/project-colors';
 import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
 import { STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
@@ -112,7 +113,9 @@ function drawLabels() {
       const cards = Array.from(document.querySelectorAll('.card, .parcel, .dialog, .serious')).map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0);
       const board = ZONES.find((z) => z.id === 'board')!;
       const chalk = { left: rect.left + board.x * s, right: rect.left + (board.x + board.w) * s, top: rect.top + board.y * s, bottom: rect.top + (board.y + board.h) * s };
-      for (const [key, place] of placeBubbles(bubbles, cards, [chalk], window.innerWidth)) {
+      // The crews' flags (B9) stay in sight too.
+      const flags = scene.flagBoxes().map((f) => ({ left: rect.left + f.left * s, right: rect.left + f.right * s, top: rect.top + f.top * s, bottom: rect.top + f.bottom * s }));
+      for (const [key, place] of placeBubbles(bubbles, cards, [chalk], window.innerWidth, flags)) {
         const el = labelEls.get(key)!;
         el.style.left = `${place.x}px`;
         el.style.top = `${place.y}px`;
@@ -277,38 +280,51 @@ function sayProgress() {
   void stage.talk(turns);
 }
 
-// A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
-// says goes to the running commission. Nobody moves for the work while the meeting lasts.
+// A meeting about one round: the bell on the counter calls one about the first under way, at the big table; a project's
+// card on the board calls one about that project's round, at the blackboard (road-to-1.2.md B9). Its crew comes over:
+// everyone in the shop but whoever works for another round, who carry on. What the user says goes to that round, and
+// the crew at the meeting does not move for the work while it lasts. One meeting at a time.
 let meetingOpen = false;
 let meetingCount = 0;
-function sayFrom(group: string, k = 0) {
+/** A line said at the meeting, by those at it; Adeng's lines are said by the crew's lead. */
+function sayFrom(group: string, k = 0, crew: ActorId[] = STAFF, lead: ActorId = 'adeng') {
   const lines = ruleBook().lines[group] ?? [];
   const turns = pickLine([...lines.slice(k % Math.max(1, lines.length)), ...lines.slice(0, k % Math.max(1, lines.length))], [], {});
-  const present = (turns ?? []).filter((t) => scene.anchorOf(t.speaker) !== null);
+  const voiced = (turns ?? []).map((t) => ({ ...t, speaker: t.speaker === 'adeng' ? lead : t.speaker }));
+  const present = voiced.filter((t, i) => crew.includes(t.speaker) && scene.anchorOf(t.speaker) !== null && voiced.findIndex((x) => x.speaker === t.speaker) === i);
   return present.length ? stage.talk(present) : Promise.resolve();
 }
-async function meeting() {
-  if (!running || meetingOpen) return;
+async function meeting(run = live()[0]?.run, place: AnchorId = 'table') {
+  const about = live().find((r) => r.run === run);
+  if (!about || meetingOpen) return;
   scene.setHint('bell', false);
   meetingOpen = true;
   sfx('ding');
-  stage.holdStill();
-  const here = STAFF.filter((a) => scene.anchorOf(a) !== null);
+  const lead = stage.leadOf(about.run);
+  const here = STAFF.filter((a) => scene.anchorOf(a) !== null && (stage.crewOf(a) ?? about.run) === about.run);
+  stage.holdStill(here);
   const before = new Map(here.map((a) => [a, scene.anchorOf(a)!]));
-  void sayFrom('meeting_call', meetingCount);
-  // The card opens straight away; everyone gathers at the table meanwhile.
-  const gathered = Promise.all(here.map((a) => scene.walkTo(a, 'table')));
-  const note = await showMeeting(current?.avatar);
+  // Qingdai's crew meets on her side of the blackboard: whoever joins it takes the second crew's places for the meeting.
+  if (lead === 'qingdai') for (const a of here) if (stage.crewOf(a) === undefined) scene.setCrew(a, null, true);
+  void sayFrom('meeting_call', meetingCount, here, lead);
+  // The card opens straight away; the crew gathers meanwhile.
+  const gathered = Promise.all(here.map((a) => scene.walkTo(a, place)));
+  const note = await showMeeting(current?.avatar, stage.together || place === 'board' ? about.project.title : undefined, lead);
   await gathered;
-  const heard = note ? await window.lamplight.addNote(note) : false;
-  if (note) void sayFrom(heard ? 'meeting_heard' : 'meeting_late', meetingCount);
+  const heard = note ? await window.lamplight.addNote(note, about.run) : false;
+  if (note) void sayFrom(heard ? 'meeting_heard' : 'meeting_late', meetingCount, here, lead);
   meetingCount++;
   stage.carryOn();
+  stage.redress();
   // Whoever no command has sent elsewhere goes back to where they were.
-  for (const [a, spot] of before) if (scene.anchorOf(a) === 'table' && spot !== 'table') void scene.walkTo(a, spot);
+  for (const [a, spot] of before) if (scene.anchorOf(a) === place && spot !== place) void scene.walkTo(a, spot);
   meetingOpen = false;
 }
 scene.onBellClick = () => void meeting();
+onProjectMeet((row) => {
+  const r = live().find((x) => x.project.id === row.id || x.run === row.id);
+  if (r) void meeting(r.run, 'board');
+});
 
 // Frame pacing: 30 a second while anything is going on, 15 once the shop has been quiet for a while.
 let lastInput = Date.now();
@@ -479,6 +495,7 @@ window.lamplight.onRuns((list) => {
   runList = list;
   const now = live();
   stage.keepRuns(now.map((r) => r.run));
+  stage.setRuns(now.map((r) => ({ run: r.run, title: r.project.title, color: projectColor(r.color) })));
   running = now[0]?.project.title ?? null;
   if (!was && now.length) void workBegins(now[0].project.title);
   if (was && !now.length) workEnds();

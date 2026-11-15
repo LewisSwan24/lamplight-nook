@@ -612,6 +612,7 @@
       "progressPlanCount": "计划 · 做完 {done} 件，共 {total} 件",
       "progressMeet": "插句话",
       "another": "再接一单",
+      "crewSays": "{project}：{text}",
       "alsoRunning": "同时在做：{list}",
       "inQueue": "排着队：{list}",
       "queued": "“{title}”先排着，前面的做完就开工。",
@@ -773,7 +774,8 @@
       "text": "想补充或改什么？大家都听着。",
       "placeholder": "比如：页面再加一个“本月合计”",
       "send": "就这些",
-      "never": "算了"
+      "never": "算了",
+      "projectText": "“{title}”想补充或改什么？这一组都听着。"
     },
     "files": {
       "summary": "总结.md",
@@ -835,6 +837,7 @@
       "waitProject": "等这个项目手上的一轮做完",
       "waitMoney": "在等钱：上限剩下的不够开工",
       "cancelQueued": "不做了",
+      "meet": "开个会",
       "calledOff": "这一单不做了，没花钱。",
       "archived": "收起来的 {n} 个",
       "archive": "收起来",

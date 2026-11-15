@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EventNormalizer } from '../app/main/event-normalizer';
-import { boardWindow, plainTodo, stepCount, stepsOf, todosOf } from '../app/shared/board';
+import { boardPair, boardWindow, plainTodo, stepCount, stepsOf, todosOf } from '../app/shared/board';
 import { MINI_IDLE, type MiniEvent, nextMini } from '../app/shared/mini';
 import type { RawAgentEvent } from '../app/shared/types';
 
@@ -52,6 +52,15 @@ describe('blackboard from Claude\'s to-do list', () => {
     expect(lines(4)).toBe(4);
     expect(lines(5)).toBe(4);
     expect(lines(12)).toBe(4);
+  });
+
+  it('with two rounds at once (B9), each column gets two lines: the step under way and the next', () => {
+    const pair = (...s: string[]) => boardPair(stepsOf(todosOf({ todos: list(...s) }))).map((x) => x.label);
+    expect(pair('completed', 'in_progress', 'pending', 'pending')).toEqual(['Step 2', 'Step 3']);
+    expect(pair('pending', 'pending', 'pending')).toEqual(['Step 1', 'Step 2']);
+    expect(pair('completed', 'completed', 'in_progress')).toEqual(['Step 2', 'Step 3']);
+    expect(pair('completed', 'completed', 'completed')).toEqual(['Step 2', 'Step 3']);
+    expect(pair('in_progress')).toEqual(['Step 1']);
   });
 
   it('counts "step n of total" from the item under way, or the next one', () => {

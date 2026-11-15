@@ -612,6 +612,7 @@
       "progressPlanCount": "Plan · {done} of {total} done",
       "progressMeet": "Say something",
       "another": "Take another commission",
+      "crewSays": "{project}: {text}",
       "alsoRunning": "Also under way: {list}",
       "inQueue": "In the queue: {list}",
       "queued": "“{title}” is in the queue: it starts once the work ahead of it is done.",
@@ -773,7 +774,8 @@
       "text": "Anything to add or change? Everyone's listening.",
       "placeholder": "e.g. add a total for the month too",
       "send": "That's it",
-      "never": "Never mind"
+      "never": "Never mind",
+      "projectText": "Anything to add or change on “{title}”? This crew is listening."
     },
     "files": {
       "summary": "summary.md",
@@ -835,6 +837,7 @@
       "waitProject": "Waiting for this project's round under way",
       "waitMoney": "Waiting for money: not enough left under the cap",
       "cancelQueued": "Call it off",
+      "meet": "Call a meeting",
       "calledOff": "Called off. Nothing was spent.",
       "archived": "{n} put away",
       "archive": "Put it away",

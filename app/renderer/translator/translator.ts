@@ -93,6 +93,11 @@ export class Translator {
   private ctxs = new Map<string, TranslateContext>();
   /** The rounds under way, in the order they started; events from a replay count as one round with no id. */
   readonly running: string[] = [];
+  /**
+   * Who leads each round (B9): Adeng, unless he already leads another; then Qingdai, from her seat by the blackboard. The
+   * helpers are shared by both crews.
+   */
+  private leads = new Map<string, ActorId>();
   /** Who came back with the last subagent that finished: the parcel on the counter is theirs. */
   returned: ActorId = 'xiaoju';
 
@@ -114,9 +119,35 @@ export class Translator {
   keepRuns(live: string[]) {
     for (const run of [...this.running]) {
       if (run === '' || live.includes(run)) continue;
-      this.running.splice(this.running.indexOf(run), 1);
-      this.ctxs.delete(run);
+      this.let(run);
     }
+  }
+
+  /** A round is over: it is no longer under way, and nobody works for it any more. */
+  private let(run: string) {
+    const i = this.running.indexOf(run);
+    if (i >= 0) this.running.splice(i, 1);
+    this.ctxs.delete(run);
+    for (const hands of this.hands.values()) for (let k = hands.length - 1; k >= 0; k--) if (hands[k].run === run) hands.splice(k, 1);
+  }
+
+  /** Who leads a round: Adeng for the first under way (and for replays), Qingdai for a second beside it. */
+  leadOf(run = ''): ActorId {
+    return this.leads.get(run) ?? 'adeng';
+  }
+
+  /** Who is working for which round just now (B9): each round's lead, and whoever is on one of its errands. */
+  crews(): Map<ActorId, string> {
+    const out = new Map<ActorId, string>();
+    for (const run of this.running) out.set(this.leadOf(run), run);
+    for (const hands of this.hands.values()) for (const h of hands) out.set(h.actor, h.run);
+    return out;
+  }
+
+  /** Working for another round under way: a round's start or end does not send them home. */
+  private elsewhere(actor: ActorId, run: string): boolean {
+    const r = this.crews().get(actor);
+    return r !== undefined && r !== run;
   }
 
   /** Hot reload: swap rules and the animation table without touching current states. */
@@ -134,27 +165,41 @@ export class Translator {
         this.hands.clear();
         this.waiting.clear();
       }
-      if (!this.running.includes(run)) this.running.push(run);
+      // A round's lead stays known after it ends, for its last lines still to be said.
+      if (!this.running.includes(run)) {
+        this.running.push(run);
+        this.leads.set(run, this.running.some((r) => r !== run && this.leadOf(r) === 'adeng') ? 'qingdai' : 'adeng');
+      }
       if (!this.ctxs.has(run)) this.ctxs.set(run, this.ctx);
     }
     const out = e.kind === 'subagent_start' || e.kind === 'subagent_stop' ? this.errand(e) : this.apply(e);
-    if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') {
-      const i = this.running.indexOf(run);
-      if (i >= 0) this.running.splice(i, 1);
-      this.ctxs.delete(run);
-    }
+    if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') this.let(run);
     return out;
   }
 
+  /**
+   * The rule's commands, each actor once: in the round Qingdai leads, her own design is not handed to herself. Those the
+   * rule brings along (everyone home at the end, say) leave alone whoever works for another round.
+   */
   private apply(e: AiEvent, by?: ActorId): CharacterCommand[] {
     const rule = this.rules.find((r) => matches(r, e, by));
     if (!rule) return [];
     const out: CharacterCommand[] = [];
-    for (const spec of [rule, ...(rule.extra ?? [])]) {
-      const cmd = this.build(spec, e);
+    const seen = new Set<ActorId>();
+    for (const [i, spec] of [rule, ...(rule.extra ?? [])].entries()) {
+      const actor = this.actorOf(spec, e);
+      if (seen.has(actor) || (i > 0 && this.elsewhere(actor, e.run ?? ''))) continue;
+      seen.add(actor);
+      const cmd = this.build(spec, e, actor, i === 0);
       if (cmd) out.push(cmd);
     }
     return out;
+  }
+
+  /** Who plays a rule's part: Adeng's is the round's lead's. */
+  private actorOf(spec: CommandSpec, e: AiEvent): ActorId {
+    if (spec.actor === '{agent}') return e.agent === 'main' ? this.leadOf(e.run) : AGENT_ACTOR[e.agent];
+    return spec.actor === 'adeng' ? this.leadOf(e.run) : spec.actor;
   }
 
   /**
@@ -175,8 +220,10 @@ export class Translator {
         return this.apply(e, free);
       }
       waiting.push(run);
+      // Whoever leads the round says it will wait its turn.
+      const boss = this.leadOf(e.run);
       return [{
-        actor: 'adeng', state: this.states.get('adeng'), priority: PRIORITY.subagent,
+        actor: boss, state: this.states.get(boss), priority: PRIORITY.subagent, ...(e.run !== undefined ? { run: e.run } : {}),
         line: { group: 'sub_queue', vars: { who: strings.actors[lead] }, flags: [`who_${lead}`] },
       }];
     }
@@ -199,8 +246,7 @@ export class Translator {
     return hands?.length ? hands.map((h) => h.actor) : [lead];
   }
 
-  private build(spec: CommandSpec, e: AiEvent): CharacterCommand | null {
-    const actor = spec.actor === '{agent}' ? AGENT_ACTOR[e.agent] : spec.actor;
+  private build(spec: CommandSpec, e: AiEvent, actor: ActorId, own = true): CharacterCommand | null {
     if (actor === 'xiaodou' && !this.apprentice) return null;
     const before = this.states.get(actor);
     if (!this.states.move(actor, spec.state)) return null;
@@ -208,7 +254,10 @@ export class Translator {
     if (before === spec.state && !spec.moveTo && !spec.lines && !spec.bubble && spec.priority === 'chat') return null;
 
     const cmd: CharacterCommand = { actor, state: spec.state, priority: PRIORITY[spec.priority] };
-    if (spec.moveTo) cmd.moveTo = spec.moveTo;
+    if (e.run !== undefined) cmd.run = e.run;
+    // The counter is Adeng's place: Qingdai's crew takes and hands over its work at her seat by the blackboard instead. Those
+    // a rule only brings along (everyone home at the start or the end) go to their own places.
+    if (spec.moveTo) cmd.moveTo = spec.moveTo === 'counter' && own && this.leadOf(e.run) === 'qingdai' ? 'board' : spec.moveTo;
     if (spec.anim) {
       const a = resolveAnim(this.anims, actor, spec.anim);
       cmd.anim = a.anim;

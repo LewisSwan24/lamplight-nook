@@ -16,6 +16,10 @@ const plain = (s: string) => s.replace(/[*#`]+/g, '').replace(/\s+/g, ' ').trim(
 const roundCount = (n: number) => (n === 1 ? P.roundsOne : fill(P.rounds, { n: String(n) }));
 const swatch = (color: number) => el('span.project-swatch', { 'aria-hidden': 'true', style: `background:${projectColor(color)}` });
 
+/** "Call a meeting" on a project at work (B9): the page holds it, about that project's round. */
+let meet: (p: ProjectRow) => void = () => {};
+export const onProjectMeet = (cb: (p: ProjectRow) => void) => { meet = cb; };
+
 /** One project on the board: what it is called, when it was last touched, its rounds and spending, and where it stands. */
 function boardRow(api: LamplightApi, p: ProjectRow): HTMLElement {
   const q = p.queue;
@@ -23,12 +27,13 @@ function boardRow(api: LamplightApi, p: ProjectRow): HTMLElement {
   const name = p.fresh ? el('span.project-name', {}, p.title) : el('button.link.project-open', { type: 'button', onclick: () => void showTimeline(api, p.id) }, p.title);
   const why = q ? el('div.hint.project-waits', {}, q.waits === 'money' ? P.waitMoney : q.waits === 'project' ? P.waitProject : fill(P.waitSlot, { list: q.behind.join(strings.app.listSeparator) })) : null;
   const callOff = q ? el('button.link.project-call-off', { type: 'button', onclick: async () => { await api.cancelCommission(q.run); void showProjects(api, P.calledOff); } }, P.cancelQueued) : null;
+  const meeting = p.status === 'running' ? el('button.link.project-meet', { type: 'button', onclick: () => meet(p) }, P.meet) : null;
   return el('li.project-row', {},
     swatch(p.color),
     el('div.project-text', {},
       name,
       el('div.hint', {}, p.fresh ? fill(P.touched, { date: p.touched }) : [fill(P.touched, { date: p.touched }), roundCount(p.rounds), fill(P.spent, { usd: formatUsd(p.usd) })].join(' · ')),
-      why, callOff),
+      why, callOff, meeting),
     el(`span.project-status.${p.status}`, {}, P.status[p.status]));
 }
 
