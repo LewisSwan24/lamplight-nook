@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -41,14 +41,27 @@ describe('normalizer: retries and cancelling', () => {
 });
 
 describe('unfinished commissions', () => {
-  it('remembers a running job until it is cleared', () => {
-    const store = new PendingStore(join(mkdtempSync(join(tmpdir(), 'lamplight-pending-')), 'pending.json'));
-    expect(store.load()).toBeNull();
-    const job = { form: { want: 'ledger' }, workDir: '/work/x', preexisting: [], sessionId: 's1', startedAt: 1 };
+  it('remembers each running job until it is cleared, two at once by their run ids (B5)', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'lamplight-pending-')), 'pending.json');
+    const store = new PendingStore(file);
+    expect(store.load()).toEqual([]);
+    const job = { run: 'r1', form: { want: 'ledger' }, workDir: '/work/x', preexisting: [], sessionId: 's1', startedAt: 1 };
+    const other = { run: 'r2', form: { want: 'notes' }, workDir: '/work/y', preexisting: [], startedAt: 2 };
     store.save(job);
-    expect(store.load()).toEqual(job);
-    store.clear();
-    expect(store.load()).toBeNull();
+    store.save(other);
+    store.save({ ...job, sessionId: 's2' });
+    expect(new PendingStore(file).load()).toEqual([{ ...job, sessionId: 's2' }, other]);
+    store.clear('r1');
+    expect(new PendingStore(file).load()).toEqual([other]);
+    store.clear('r2');
+    expect(existsSync(file)).toBe(false);
+  });
+
+  it('reads the one job an older version left', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'lamplight-pending-')), 'pending.json');
+    const old = { form: { want: 'ledger' }, workDir: '/work/x', preexisting: [], startedAt: 1 };
+    writeFileSync(file, JSON.stringify(old));
+    expect(new PendingStore(file).load()).toEqual([old]);
   });
 
   it('continues the session when there is one, otherwise restarts from the folder', () => {

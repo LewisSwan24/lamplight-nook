@@ -212,6 +212,56 @@ describe('translation: cases not in the recording', () => {
     expect(show({ kind: 'subagent_start', agent: 'researcher' })).toEqual(['xiaodou:out@door/sub_go_xiaodou', 'adeng:working']);
   });
 
+  it('two rounds at once (B5): the second one starting does not wipe out the first, and each errand comes back to its own round', () => {
+    const t = new Translator(rules, anims);
+    t.apprentice = true;
+    const show = (e: Partial<AiEvent>) => t.translate(ev(e)).map((c) => `${c.actor}:${c.state}${c.moveTo ? '@' + c.moveTo : ''}${c.line ? '/' + c.line.group : ''}`);
+    t.translate(ev({ kind: 'session_start', run: 'r1' }));
+    expect(show({ kind: 'subagent_start', agent: 'researcher', run: 'r1' })).toEqual(['xiaoju:out@door/sub_go_xiaoju', 'adeng:working']);
+    // The second round starts while Xiaoju is out for the first: she is still out.
+    t.translate(ev({ kind: 'session_start', run: 'r2' }));
+    expect(t.helpersOf('researcher')).toEqual(['xiaoju']);
+    expect(show({ kind: 'subagent_start', agent: 'researcher', run: 'r2' })).toEqual(['xiaodou:out@door/sub_go_xiaodou', 'adeng:working']);
+    // A third errand, for the first round, waits for a free pair of hands.
+    expect(t.translate(ev({ kind: 'subagent_start', agent: 'researcher', run: 'r1' }))).toMatchObject([{ actor: 'adeng', line: { group: 'sub_queue' } }]);
+    // The second round's errand comes back first: it was Xiaodou's, not Xiaoju's, and she takes the one waiting.
+    expect(show({ kind: 'subagent_stop', agent: 'researcher', run: 'r2' })).toEqual([
+      'xiaodou:returning@counter/sub_back_xiaodou', 'xiaodou:out@door/sub_go_xiaodou', 'adeng:working',
+    ]);
+    expect(t.returned).toBe('xiaodou');
+    expect(show({ kind: 'subagent_stop', agent: 'researcher', run: 'r1' })).toEqual(['xiaoju:returning@counter/sub_back_xiaoju']);
+    expect(show({ kind: 'subagent_stop', agent: 'researcher', run: 'r1' })).toEqual(['xiaodou:returning@counter/sub_back_xiaodou']);
+  });
+
+  it('two rounds at once (B5): each round\'s lines speak of its own commission', () => {
+    const t = new Translator(rules, anims);
+    t.setContext({ brief: 'reunion page' }, 'r1');
+    t.translate(ev({ kind: 'session_start', run: 'r1' }));
+    t.setContext({ brief: 'walden notes' }, 'r2');
+    t.translate(ev({ kind: 'session_start', run: 'r2' }));
+    const briefOf = (run: string) => t.translate(ev({ kind: 'session_start', run })).find((c) => c.line)?.line?.vars.brief;
+    expect(briefOf('r1')).toBe('reunion page');
+    expect(briefOf('r2')).toBe('walden notes');
+    // Once a round has ended, the shop is free for a fresh start again.
+    t.translate(ev({ kind: 'done', run: 'r1' }));
+    t.translate(ev({ kind: 'done', run: 'r2' }));
+    expect(t.running).toEqual([]);
+  });
+
+  it('two rounds at once (B5): a round that stopped without a last event of its own is let go when the main process says so', () => {
+    const t = new Translator(rules, anims);
+    t.translate(ev({ kind: 'session_start', run: 'r1' }));
+    t.translate(ev({ kind: 'subagent_start', agent: 'researcher', run: 'r1' }));
+    t.translate(ev({ kind: 'net_error', run: 'r1' }));
+    expect(t.running).toEqual(['r1']);
+    t.keepRuns([]);
+    expect(t.running).toEqual([]);
+    // The next round alone starts the shop afresh: Xiaoju is no longer out for the one that stopped.
+    t.translate(ev({ kind: 'session_start', run: 'r2' }));
+    expect(t.helpersOf('researcher')).toEqual(['xiaoju']);
+    expect(t.translate(ev({ kind: 'subagent_start', agent: 'researcher', run: 'r2' }))[0]).toMatchObject({ actor: 'xiaoju', moveTo: 'door' });
+  });
+
   it('the apprentice only runs errands: a second check still waits for Laoshi', () => {
     const t = new Translator(rules, anims);
     t.apprentice = true;

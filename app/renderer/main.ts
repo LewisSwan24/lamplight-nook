@@ -5,7 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -333,7 +333,7 @@ scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 let decisions = Promise.resolve();
 window.lamplight.onDecision((req) => {
   decisions = decisions.then(async () => {
-    const choice = await showDecision(req);
+    const choice = await showDecision(req, live().length > 1);
     await window.lamplight.answerDecision({ id: req.id, choice });
   }).catch((e) => append(`decision failed: ${e}`));
 });
@@ -452,32 +452,48 @@ window.lamplight.onResult((result) => {
   noticeGrowth(result.grew ?? []);
 });
 // A commission that stopped has its own card, which says what to do; putting a result card away first would end it.
-window.lamplight.onResult((result) => hasFailureCard(result.error) || showResult(result, {
+window.lamplight.onResult((result) => hasFailureCard(result.error) || void whenFree().then(() => showResult(result, {
   open: (path, how) => void window.lamplight.openOutput(path, how),
   revise: (id) => void revise(id),
   restore: (id) => window.lamplight.restorePrevious(id),
   undo: (id) => window.lamplight.undoWork(id),
   firstWork: worksKept === 0,
-  report: () => void window.lamplight.writeToUs({ about: 'content', title: lastWant ?? undefined }),
-}));
+  report: () => void window.lamplight.writeToUs({ about: 'content', title: result.project?.title ?? lastWant ?? undefined }),
+})));
+/**
+ * With two rounds at once (B5) one may end while the user is filling in the next slip, or reading the other's result: its
+ * card waits until that is put away, rather than wiping it.
+ */
+async function whenFree() {
+  while (document.querySelector('#ui form.commission, #ui form.revise, #ui .result-card, #ui .consult')) await wait(ONCE_RETRY_MS);
+}
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
 let running: string | null = null;
-/** How long into the first commission Adeng says what the bell and the blackboard are for. */
-const FIRST_HINT_MS = 5000;
-/** What the last commission (or round of changes) was, for a report about what came back. */
-let lastWant: string | null = null;
-async function run(want: string, start: () => Promise<RunResult | null>) {
-  running = want;
+/** The rounds under way and in the queue, as the main process last said (road-to-1.2.md B5). */
+let runList: RunInfo[] = [];
+const live = () => runList.filter((r) => r.state !== 'queued');
+window.lamplight.onRuns((list) => {
+  const was = live().length > 0;
+  const fresh = list.filter((r) => r.state === 'queued' && !runList.some((x) => x.run === r.run));
+  runList = list;
+  const now = live();
+  stage.keepRuns(now.map((r) => r.run));
+  running = now[0]?.project.title ?? null;
+  if (!was && now.length) void workBegins(now[0].project.title);
+  if (was && !now.length) workEnds();
+  // A round that has to wait is said so once, with why.
+  for (const r of fresh) greet(fill(r.waits === 'money' ? strings.ui.run.queuedMoney : strings.ui.run.queued, { title: r.project.title }));
+  refreshRunning();
+});
+/** The first round starts: you come in with the slip and wait by the lamp while it is made. */
+async function workBegins(want: string) {
   setWorking(true);
-  lastWant = want;
   scene.showShop();
   tendGarden(false);
   scene.sendGuestAway();
-  // You come in with the slip and wait by the lamp while it is made.
   void scene.youArrive();
   runStartedAt = Date.now();
-  runBudget = (await window.lamplight.getSettings()).budgetUsd;
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
   scene.setBell(true);
@@ -487,31 +503,46 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     scene.setHint('board', true);
     setTimeout(() => { if (running === want) greet(strings.ui.run.firstHint); }, FIRST_HINT_MS);
   }
-  try {
-    const r = await start();
-    if (!r) return;
-    sfx(r.ok ? 'success' : 'fail');
-    append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
-    // No card to put away (called off, no key, no Claude Code): nothing is going on any more, so the plan goes now.
-    // A cap's card offers to carry on only work that was under way; the vars say where the cap stands.
-    const again = r.cap && !r.carryOn ? null : () => void run(want, () => window.lamplight.retryCommission());
-    const cap: Record<string, string> = r.cap ? { spent: formatUsd(r.cap.spentUsd), cap: formatUsd(r.cap.capUsd), left: formatUsd(r.cap.leftUsd), project: r.cap.project ?? '' } : {};
-    if (!r.ok && !showFailure(window.lamplight, r.error ?? '', again, { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0), ...cap }, r.cap ? undefined : r.workDir, (r.budget ?? []).map(budgetLine))) clearWorkSigns();
-  } finally {
-    closeRunning();
-    running = null;
-    setWorking(false);
-    scene.setHint('bell', false);
-    scene.setHint('board', false);
-    runMaterials = [];
-    scene.setFormWaiting(true);
-    scene.setBell(false);
-    void scene.youLeave();
-  }
+  runBudget = (await window.lamplight.getSettings()).budgetUsd;
+}
+/** The last round under way has ended. */
+function workEnds() {
+  closeRunning();
+  setWorking(false);
+  scene.setHint('bell', false);
+  scene.setHint('board', false);
+  runMaterials = [];
+  scene.setFormWaiting(true);
+  scene.setBell(false);
+  void scene.youLeave();
+}
+/** How long into the first commission Adeng says what the bell and the blackboard are for. */
+const FIRST_HINT_MS = 5000;
+/** What the last commission (or round of changes) was, for a report about what came back. */
+let lastWant: string | null = null;
+/**
+ * One round, from asking for it to its card. The shop's look while work is under way follows the main process's list of
+ * rounds (onRuns above), since a round may wait in the queue first and two may run at once (B5).
+ */
+async function run(want: string, start: () => Promise<RunResult | null>) {
+  lastWant = want;
+  const r = await start();
+  if (!r) return;
+  sfx(r.ok ? 'success' : 'fail');
+  append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
+  if (r.ok) return;
+  // No card to put away (called off, no key, no Claude Code): with nothing else going on, the plan goes now.
+  // A cap's card offers to carry on only work that was under way; the vars say where the cap stands.
+  const again = r.cap && !r.carryOn ? null : () => void run(want, () => window.lamplight.retryCommission(r.run));
+  const cap: Record<string, string> = r.cap ? { spent: formatUsd(r.cap.spentUsd), cap: formatUsd(r.cap.capUsd), left: formatUsd(r.cap.leftUsd), project: r.cap.project ?? '' } : {};
+  if (hasFailureCard(r.error)) await whenFree();
+  if (!showFailure(window.lamplight, r.error ?? '', again, { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0), ...cap }, r.cap ? undefined : r.workDir, (r.budget ?? []).map(budgetLine)) && !live().some((x) => x.run !== r.run)) clearWorkSigns();
 }
 /** The one card for work under way. */
 function openProgress() {
   showRunning(window.lamplight, () => ({
+    run: live()[0]?.run ?? '',
+    others: runList.slice(1).map((r) => ({ title: r.project.title, queued: r.state === 'queued' })),
     want: running ?? '',
     startedAt: runStartedAt,
     budgetUsd: runBudget,
@@ -519,7 +550,7 @@ function openProgress() {
     realPlan: stage.planIsReal,
     now: stage.latestDoing,
     staff: STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done)).map((actor) => ({ actor, state: stage.actorInfo(actor).state, doing: stage.actorInfo(actor).doing ?? '' })),
-  }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed) });
+  }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed), another: () => void newCommission([], true) });
 }
 
 /** The user chose to go ahead with an old Claude Code; not asked again until the app restarts. */
@@ -527,9 +558,10 @@ let oldClaudeOk = false;
 /** What the shop needs before a commission: Claude Code, a key, and (unless waved through) a recent enough Claude Code. */
 const notReady = (env: EnvStatus) => !env.hasClaude || !env.hasApiKey || (env.claudeCompat === 'old' && !oldClaudeOk);
 
-async function newCommission(dropped: string[] = []) {
+/** `another`: asked for from the running card, so a second commission is taken while the first is under way (B5). */
+async function newCommission(dropped: string[] = [], another = false) {
   if (answerFirst()) return;
-  if (running) {
+  if (running && !another) {
     if (dropped.length) return greet(strings.ui.materials.busy);
     return openProgress();
   }
@@ -550,7 +582,7 @@ async function newCommission(dropped: string[] = []) {
  * `title` is shown when the commission was picked from the notebook rather than the card just handed over.
  */
 async function revise(id: string, title?: string) {
-  if (running) return openProgress();
+  // Another round may be under way: this one runs beside it, or waits in the queue behind its own project's (B5).
   const env = await window.lamplight.envStatus();
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void revise(id, title), () => { oldClaudeOk = true; void revise(id, title); });
   const ask = await showRevise(current?.avatar, title);

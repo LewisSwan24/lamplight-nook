@@ -18,16 +18,22 @@ const swatch = (color: number) => el('span.project-swatch', { 'aria-hidden': 'tr
 
 /** One project on the board: what it is called, when it was last touched, its rounds and spending, and where it stands. */
 function boardRow(api: LamplightApi, p: ProjectRow): HTMLElement {
+  const q = p.queue;
+  // A new commission waiting in the queue has no project yet, so nothing to open; any queued round can be called off.
+  const name = p.fresh ? el('span.project-name', {}, p.title) : el('button.link.project-open', { type: 'button', onclick: () => void showTimeline(api, p.id) }, p.title);
+  const why = q ? el('div.hint.project-waits', {}, q.waits === 'money' ? P.waitMoney : q.waits === 'project' ? P.waitProject : fill(P.waitSlot, { list: q.behind.join(strings.app.listSeparator) })) : null;
+  const callOff = q ? el('button.link.project-call-off', { type: 'button', onclick: async () => { await api.cancelCommission(q.run); void showProjects(api, P.calledOff); } }, P.cancelQueued) : null;
   return el('li.project-row', {},
     swatch(p.color),
     el('div.project-text', {},
-      el('button.link.project-open', { type: 'button', onclick: () => void showTimeline(api, p.id) }, p.title),
-      el('div.hint', {}, [fill(P.touched, { date: p.touched }), roundCount(p.rounds), fill(P.spent, { usd: formatUsd(p.usd) })].join(' · '))),
+      name,
+      el('div.hint', {}, p.fresh ? fill(P.touched, { date: p.touched }) : [fill(P.touched, { date: p.touched }), roundCount(p.rounds), fill(P.spent, { usd: formatUsd(p.usd) })].join(' · ')),
+      why, callOff),
     el(`span.project-status.${p.status}`, {}, P.status[p.status]));
 }
 
 /** The project board (road-to-1.2.md B2): one row per project, latest touched first, the ones put away folded up. */
-export async function showProjects(api: LamplightApi) {
+export async function showProjects(api: LamplightApi, said = '') {
   const rows = await api.projectBoard();
   const out = rows.filter((p) => !p.archived);
   const away = rows.filter((p) => p.archived);
@@ -35,6 +41,7 @@ export async function showProjects(api: LamplightApi) {
   replaceOpen(el('div.card.paper.project-card', { role: 'dialog' },
     closeButton(),
     withPortrait('adeng', 'happy', el('div.card-title', {}, P.title), el('div', {}, rows.length ? P.text : P.empty)),
+    said ? el('div.hint.projects-note', { role: 'status' }, said) : null,
     rows.length ? el('div.project-list', { tabindex: 0 },
       el('ul.projects', {}, ...out.map((p) => boardRow(api, p))),
       away.length ? el('details.projects-away', {}, el('summary', {}, fill(P.archived, { n: String(away.length) })),

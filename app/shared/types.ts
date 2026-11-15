@@ -86,7 +86,7 @@ export const CONSULT_MESSAGES = 10;
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
 /** costUsd is Claude Code's estimate of what the session has cost so far; spentThisRun is this run's share of it. */
-export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string;
+export type RunResult = { /** The round's run id (B5), for trying it again. */ run?: string; ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string;
   /** Input tokens the last result reported, cache reads and writes included. */ contextTokens?: number;
   /** A month or project cap stopped it (error monthCap or projectCap). */ cap?: BudgetNote;
   /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
@@ -155,9 +155,12 @@ export interface LamplightApi {
   /** The paths of files dropped on the page (the preload reads them; the page can't). */
   pathsOf(files: File[]): string[];
   startCommission(form: CommissionForm): Promise<RunResult>;
-  /** Run the last failed commission again, continuing its session; null if there is none. */
-  retryCommission(): Promise<RunResult | null>;
-  cancelCommission(): Promise<void>;
+  /** Run a failed round again by its run id, continuing its session; null if there is none. */
+  retryCommission(run?: string): Promise<RunResult | null>;
+  /** Stop a round under way, or call one off that waits in the queue (B5), by its run id. */
+  cancelCommission(run: string): Promise<void>;
+  /** The rounds under way and waiting in the queue, whenever that changes (B5). */
+  onRuns(cb: (runs: RunInfo[]) => void): () => void;
   /** A commission left unfinished when the app last closed, if any. */
   pendingCommission(): Promise<CommissionForm | null>;
   resumePending(): Promise<RunResult | null>;
@@ -272,6 +275,9 @@ export type SourcePick = { path: string; name: string } | { error: 'too-big' | '
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
 export type CommissionResult = {
+  /** The round (B5) and the project it was for, which the card names. */
+  run?: string;
+  project?: RunProject;
   /** Why it stopped, when it did. */
   error?: string;
   ok: boolean; workDir: string; files: string[]; main?: string; costUsd?: number;
@@ -322,6 +328,9 @@ export type DecisionRequest = {
   options: DecisionOption[];
   /** Option focused by default (and chosen by Esc on the serious card). */
   defaultId: string;
+  /** The round asking (B5) and its project, whose name goes before the title. */
+  run?: string;
+  project?: RunProject;
 };
 
 export type DecisionAnswer = { id: string; choice: string };
@@ -357,6 +366,7 @@ export const IPC = {
   exportDiagnostics: 'app:export-diagnostics',
   writeToUs: 'app:write-to-us',
   runDebugTask: 'debug:run-task',
+  runs: 'commission:runs',
   rawEvent: 'ai:raw-event',
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
@@ -437,7 +447,19 @@ export type AiEvent = {
   /** For `plan` and `progress` events from Claude's own to-do list: the whole list as it stands. */
   todos?: Todo[];
   raw?: unknown;
+  /** The round it comes from (r<time>, road-to-1.2.md B5), and that round's project; absent in replays. */
+  run?: string;
+  project?: RunProject;
 };
+
+/**
+ * A round under way or in the queue (road-to-1.2.md B5): at work, waiting for the user's answer, or queued, and then why
+ * (no free place, its project at work, not enough money) and behind which rounds.
+ */
+export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; waits?: 'slot' | 'project' | 'money'; behind?: string[] };
+
+/** The project a round works on, as the shop names it: its id once it has one (a new commission gets it as it ends), and its title. */
+export type RunProject = { id?: string; title: string };
 
 /** Mood bubbles shown above a character; `heart` is only for the cat. */
 export type Bubble = 'idea' | 'sweat' | 'question' | 'note' | 'tea' | 'alert' | 'dots' | 'zzz' | 'heart';
@@ -604,6 +626,10 @@ export type ProjectRow = {
   /** What it cost in all, by the ledger, talks with Adeng included. */
   usd: number;
   status: ProjectStatus;
+  /** Waiting in the queue (B5): the round, so it can be called off, why it waits and behind whom. */
+  queue?: { run: string; waits: 'slot' | 'project' | 'money'; behind: string[] };
+  /** A new commission under way or queued (B5): no project until its first round ends, so the row has no timeline yet. */
+  fresh?: boolean;
   archived: boolean;
   lent: boolean;
   /** Its card colour, by its place among all the projects (shared/project-colors.ts). */

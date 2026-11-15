@@ -533,6 +533,8 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   const card = el('div.card.paper.result-card', {},
     closeButton(),
     el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${result.round === 1 ? U.resultRoundOne : fill(U.resultRound, { n: String(result.round) })}`) : null),
+    // Which project it was for: with two rounds at once, two cards may come one after the other (B5).
+    result.project ? el('div.hint.result-project', {}, fill(U.resultProject, { title: result.project.title })) : null,
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),

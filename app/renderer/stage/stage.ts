@@ -41,9 +41,14 @@ export class Stage {
    */
   private owner = new Map<ActorId, ActorId>();
   private info = new Map<ActorId, ActorInfo>();
-  private board: BoardStep[] = [];
-  /** The board shows Claude's own to-do list: the guessed three steps stop following events. */
-  private realPlan = false;
+  /**
+   * Each round's plan (B5). `real`: it is Claude's own to-do list, and the guessed three steps stop following events. The
+   * blackboard and the running card show the lead round's: the first under way, until it ends while another goes on.
+   */
+  private plans = new Map<string, { board: BoardStep[]; real: boolean }>();
+  private lead = '';
+  private get board(): BoardStep[] { return this.plans.get(this.lead)?.board ?? []; }
+  private get realPlan(): boolean { return this.plans.get(this.lead)?.real ?? false; }
   /** The latest thing anyone started doing, for the running card. */
   private latest = '';
   /** The window is hidden or minimized: skip the acting and keep the shop's state current (see skip). */
@@ -101,17 +106,26 @@ export class Stage {
 
   handle(e: AiEvent) {
     this.onEvent(e);
+    const run = e.run ?? '';
     if (e.kind === 'session_start') {
-      this.director.resetCommission();
-      this.info.clear();
+      // A round starting while another is at work leaves the shop as it is (B5); only the first starts it afresh.
+      const alone = !this.translator.running.some((r) => r !== run);
+      if (alone) {
+        this.director.resetCommission();
+        this.info.clear();
+        this.latest = '';
+        this.plans.clear();
+      }
       const B = strings.ui.board;
-      this.realPlan = false;
-      this.latest = '';
-      this.board = [
-        { key: 'research', label: B.research, status: 'todo' },
-        { key: 'write', label: B.write, status: 'todo' },
-        { key: 'check', label: B.check, status: 'todo' },
-      ];
+      this.plans.set(run, {
+        real: false,
+        board: [
+          { key: 'research', label: B.research, status: 'todo' },
+          { key: 'write', label: B.write, status: 'todo' },
+          { key: 'check', label: B.check, status: 'todo' },
+        ],
+      });
+      if (alone || !this.translator.running.includes(this.lead)) this.lead = run;
     }
     this.track(e);
     // The connection dropped: the lamps flicker twice while Adeng waits to try again.
@@ -127,6 +141,28 @@ export class Stage {
     }
     // What a helper brought back waits on the counter, from whoever brought it.
     if (e.kind === 'subagent_stop' && e.target) showParcel(this.translator.returned, e.target);
+    if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') this.ended(run);
+  }
+
+  /** The rounds still under way, from the main process: any other has ended, whether or not its last event came. */
+  keepRuns(live: string[]) {
+    const gone = this.translator.running.filter((run) => run !== '' && !live.includes(run));
+    this.translator.keepRuns(live);
+    for (const run of gone) this.ended(run);
+  }
+
+  /**
+   * A round has ended. Its plan stays on the blackboard while nothing else is at work; with another round going on, the
+   * blackboard shows that one's plan instead.
+   */
+  private ended(run: string) {
+    const next = this.translator.running[0];
+    if (run !== this.lead) this.plans.delete(run);
+    else if (next !== undefined) {
+      this.plans.delete(run);
+      this.lead = next;
+      renderBoard(this.board);
+    }
   }
 
   /** Update card info, blackboard and parcels from an event. */
@@ -141,21 +177,24 @@ export class Stage {
     if (e.kind === 'tool_start' && (e.tool === 'Bash' || e.tool === 'PowerShell')) info.stats.runs++;
     if (e.kind === 'tool_fail') info.stats.fails++;
 
+    // Each round keeps its own plan (B5); the blackboard shows the lead round's.
+    const plan = this.plans.get(e.run ?? '');
+    if (!plan) return;
     if ((e.kind === 'plan' || e.kind === 'progress') && e.agent === 'main' && e.todos?.length) {
-      this.board = stepsOf(e.todos);
-      this.realPlan = true;
+      plan.board = stepsOf(e.todos);
+      plan.real = true;
     }
     const step = (key: string, status: BoardStep['status']) => {
-      if (this.realPlan) return;
-      const s = this.board.find((b) => b.key === key);
+      if (plan.real) return;
+      const s = plan.board.find((b) => b.key === key);
       if (s && !(s.status === 'done' && status === 'doing')) s.status = status;
     };
     if (e.kind === 'subagent_start' && e.agent === 'researcher') step('research', 'doing');
     if (e.kind === 'subagent_stop' && e.agent === 'researcher') step('research', 'done');
     // Qingdai's step only appears on the board once she is asked for a design.
     if (e.kind === 'subagent_start' && e.agent === 'designer') {
-      if (!this.realPlan && !this.board.some((b) => b.key === 'design')) {
-        this.board.splice(this.board.findIndex((b) => b.key === 'write'), 0, { key: 'design', label: strings.ui.board.design, status: 'todo' });
+      if (!plan.real && !plan.board.some((b) => b.key === 'design')) {
+        plan.board.splice(plan.board.findIndex((b) => b.key === 'write'), 0, { key: 'design', label: strings.ui.board.design, status: 'todo' });
       }
       step('design', 'doing');
     }
@@ -163,8 +202,8 @@ export class Stage {
     if (e.kind === 'tool_start' && e.agent === 'main' && (e.tool === 'Write' || e.tool === 'Edit')) step('write', 'doing');
     if (e.kind === 'subagent_start' && e.agent === 'reviewer') { step('write', 'done'); step('check', 'doing'); }
     if (e.kind === 'subagent_stop' && e.agent === 'reviewer') step('check', 'done');
-    if (e.kind === 'done') this.board.forEach((s) => (s.status = 'done'));
-    if (this.board.length) renderBoard(this.board);
+    if (e.kind === 'done') plan.board.forEach((s) => (s.status = 'done'));
+    if (plan.board.length && (e.run ?? '') === this.lead) renderBoard(plan.board);
 
   }
 
