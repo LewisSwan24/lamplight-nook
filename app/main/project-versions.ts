@@ -113,7 +113,7 @@ export class ProjectVersions {
   extract(project: string, round: number, dir: string) {
     for (const [rel, sha] of Object.entries(this.files(project, round))) {
       // Never through a link that leads out of the folder.
-      if (!reallyInside(dir, dirname(join(dir, rel)))) continue;
+      if (!reallyInside(dir, join(dir, rel))) continue;
       mkdirSync(dirname(join(dir, rel)), { recursive: true });
       copyFileSync(this.object(sha), join(dir, rel));
     }
@@ -128,7 +128,7 @@ export class ProjectVersions {
   putBack(project: string, round: number, workDir: string, scope: Scope) {
     const files = this.files(project, round);
     for (const rel of this.gather(workDir, scope)) {
-      if (rel in files || !reallyInside(workDir, dirname(join(workDir, rel)))) continue;
+      if (rel in files || !reallyInside(workDir, join(workDir, rel))) continue;
       const original = 'touched' in scope ? scope.original?.(rel) : undefined;
       if (original) copyFileSync(original, join(workDir, rel));
       else if (statSync(join(workDir, rel)).size <= MAX_VERSION_BYTES) rmSync(join(workDir, rel));
