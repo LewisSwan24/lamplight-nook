@@ -1,4 +1,4 @@
-import { closeSync, existsSync, ftruncateSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, ftruncateSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -151,6 +151,23 @@ describe('project versions', () => {
     expect(existsSync(join(work, 'pages', 'more.html'))).toBe(false);
     expect(readFileSync(join(work, 'pages', 'contact.html'), 'utf8')).toBe('made in round 1');
     expect(readFileSync(join(work, 'photo.raw')).length).toBe(5000);
+  });
+
+  it('going back does not write or delete through a link that leads out of the folder', () => {
+    const { base, store, work } = setup();
+    put(work, 'pages/contact.html', 'made in round 1');
+    store.save('p1', 1, work, { touched: ['pages/contact.html'] });
+    put(work, 'pages/more.html', 'made in round 2');
+    store.save('p1', 2, work, { touched: ['pages/contact.html', 'pages/more.html'] });
+    // The folder of pages has since become a link to somewhere else.
+    const outside = join(base, 'elsewhere');
+    put(outside, 'contact.html', 'theirs');
+    put(outside, 'more.html', 'theirs too');
+    rmSync(join(work, 'pages'), { recursive: true });
+    symlinkSync(outside, join(work, 'pages'), 'junction');
+    store.putBack('p1', 1, work, { touched: ['pages/contact.html', 'pages/more.html'], original: () => undefined });
+    expect(readFileSync(join(outside, 'contact.html'), 'utf8')).toBe('theirs');
+    expect(readFileSync(join(outside, 'more.html'), 'utf8')).toBe('theirs too');
   });
 
   it('takes in the previous version kept the old way, on the first save', () => {

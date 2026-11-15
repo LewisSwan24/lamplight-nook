@@ -779,8 +779,10 @@ ipcMain.handle(IPC.openVersion, async (_e, id: string, round: number): Promise<b
   lookingAt = mkdtempSync(join(tmpdir(), `lamplight-${p.id}-${round}-`));
   projectVersions.extract(p.id, round, lookingAt);
   const main = memory.find(p.rounds.find((r) => r.n === round)!.commission)?.main;
-  const file = main && existsSync(join(lookingAt, main)) ? join(lookingAt, main) : lookingAt;
+  const file = main && existsSync(join(lookingAt, main)) && isInside(lookingAt, join(lookingAt, main)) ? join(lookingAt, main) : lookingAt;
   log?.info('open version', { round });
+  // Same rule as opening a work: only kinds that are safe to open; anything else is shown in its folder.
+  if (file !== lookingAt && !openable(file)) { shell.showItemInFolder(file); return true; }
   return (await shell.openPath(file)) === '';
 });
 ipcMain.handle(IPC.revertProject, (_e, id: string, round: number): boolean => {

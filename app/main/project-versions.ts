@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { reallyInside } from './paths';
 import { MAX_VERSION_BYTES, entriesIn } from './versions';
 
 /** What a project's versions may take up in all; past it the oldest rounds go (road-to-1.2.md B2). */
@@ -111,6 +112,8 @@ export class ProjectVersions {
   /** Write a round's files into `dir` (a new folder, or one to look at). */
   extract(project: string, round: number, dir: string) {
     for (const [rel, sha] of Object.entries(this.files(project, round))) {
+      // Never through a link that leads out of the folder.
+      if (!reallyInside(dir, dirname(join(dir, rel)))) continue;
       mkdirSync(dirname(join(dir, rel)), { recursive: true });
       copyFileSync(this.object(sha), join(dir, rel));
     }
@@ -125,7 +128,7 @@ export class ProjectVersions {
   putBack(project: string, round: number, workDir: string, scope: Scope) {
     const files = this.files(project, round);
     for (const rel of this.gather(workDir, scope)) {
-      if (rel in files) continue;
+      if (rel in files || !reallyInside(workDir, dirname(join(workDir, rel)))) continue;
       const original = 'touched' in scope ? scope.original?.(rel) : undefined;
       if (original) copyFileSync(original, join(workDir, rel));
       else if (statSync(join(workDir, rel)).size <= MAX_VERSION_BYTES) rmSync(join(workDir, rel));
@@ -138,7 +141,7 @@ export class ProjectVersions {
       }
     } else {
       for (const rel of scope.touched.filter((p) => !(p in files))) {
-        for (let dir = dirname(join(workDir, rel)); dir.length > workDir.length && existsSync(dir) && !readdirSync(dir).length; dir = dirname(dir)) rmSync(dir, { recursive: true });
+        for (let dir = dirname(join(workDir, rel)); dir.length > workDir.length && existsSync(dir) && reallyInside(workDir, dir) && !readdirSync(dir).length; dir = dirname(dir)) rmSync(dir, { recursive: true });
       }
     }
     this.extract(project, round, workDir);
