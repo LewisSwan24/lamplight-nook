@@ -104,6 +104,19 @@ describe('what commissions cost', () => {
     expect(ledger.months().map((m) => m.month)).toEqual(['2026-11', '2026-10']);
   });
 
+  it('keeps an estimate for a stretch that reported nothing apart: it counts, and the session total still only adds its growth (B7)', () => {
+    const file = join(dir(), 'spend.json');
+    const ledger = new SpendLedger(file);
+    ledger.record('/w/a', 's1', 0.2, nov);
+    ledger.estimate('/w/a', 's1', 0.05, nov);
+    expect(ledger.forCommission('/w/a')).toBeCloseTo(0.25);
+    // Carried on, the session reports its running total: what it grew by counts once, beside the estimate.
+    expect(ledger.record('/w/a', 's1', 0.5, nov)).toBeCloseTo(0.3);
+    expect(new SpendLedger(file).forCommission('/w/a')).toBeCloseTo(0.55);
+    expect(new SpendLedger(file).months()).toEqual([{ month: '2026-11', usd: expect.closeTo(0.55), estimated: expect.closeTo(0.05), commissions: 1 }]);
+    expect(ledger.estimate('/w/a', 's1', 0, nov)).toBe(0);
+  });
+
   it('forgetting keeps the money and every month, but nothing says what it was spent on', () => {
     const home = dir();
     const file = join(home, 'spend.json');

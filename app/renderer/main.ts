@@ -5,7 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -24,7 +24,7 @@ import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
 import { answerFirst, boardSteps, budgetLine, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
-import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
+import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, showInterrupted, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
 import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
@@ -724,9 +724,19 @@ async function openShop() {
   // After the welcome, so that nothing on it can be pushed aside; the same two the scene opens.
   mountToolbar(api, applySettings, { order: scene.onCounterClick, projects: () => void showProjects(api), shelf: scene.onWorksClick });
   syncToolbar(settings);
-  // A commission left unfinished when the app last closed.
-  const left = await api.pendingCommission();
-  if (left) showPending(api, left, () => void prepare(left).then(() => run(left.want, () => api.resumePending())));
+  // Rounds left unfinished when the app last closed. Those a shutdown interrupted come on one card (B7); otherwise the
+  // earliest is offered, the rest next time.
+  const left = await api.pendingRounds();
+  const carry = (l: PendingRound) => void prepare(l.form).then(() => run(l.form.want, () => api.resumePending(l.run)));
+  const oneByOne = (list: PendingRound[]) => { if (list[0]) showPending(api, list[0], () => carry(list[0]), () => oneByOne(list.slice(1))); };
+  const cut = left.filter((l) => l.state === 'interrupted');
+  if (cut.length) {
+    showInterrupted(cut, {
+      all: () => cut.forEach(carry),
+      each: () => oneByOne(cut),
+      none: () => cut.forEach((l) => void api.dropPending(l.run)),
+    });
+  } else if (left[0]) oneByOne(left.slice(0, 1));
   // Said once, when nothing else is on the table: a card that came up mid-commission would be pushed away unread.
   while (running || document.querySelector('#ui > .card, #ui > form.card, .backdrop')) await wait(ONCE_RETRY_MS);
   const damage = await api.dataDamage();
@@ -772,7 +782,8 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showTimeline: (id: string) => showTimeline(api, id),
       showNotebook: () => showNotebook(api),
       showCaptionLog,
-      showPending: (form: CommissionForm) => showPending(api, form, () => {}),
+      showPending: (form: CommissionForm) => showPending(api, { run: 'r0', form }, () => {}),
+      showInterrupted: (titles: string[]) => showInterrupted(titles.map((title, i) => ({ run: `r${i}`, state: 'interrupted', form: { want: title }, title })), { all: () => {}, each: () => {}, none: () => {} }),
       showUpdateLetter: (offer: UpdateOffer) => showUpdateLetter(offer, () => {}),
     };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.

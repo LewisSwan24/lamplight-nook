@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { grownBy } from '../shared/growth';
 import { shortTitle } from './commission';
@@ -21,7 +21,8 @@ export const DATA_VERSION = 4;
 // A step that changes memory.json has to change memory.last-good.json the same way: that copy can take its place later.
 const MARKER = 'data-version.json';
 /** Data files copied aside before a migration touches anything. */
-const BACKED_UP = ['settings.json', 'memory.json', 'spend.json', 'pending.json'];
+// pending/ is a folder since B7, one file per round.
+const BACKED_UP = ['settings.json', 'memory.json', 'spend.json', 'pending.json', 'pending'];
 
 /**
  * Copy the data files to backup/<date>-<label>/ (an upgrade's own copy, or the one before a new version goes in).
@@ -32,7 +33,7 @@ export function backUp(dir: string, label: string, now = new Date()): string | u
   if (!present.length) return undefined;
   const to = join(dir, 'backup', `${localDay(now)}-${label}`);
   mkdirSync(to, { recursive: true });
-  for (const f of present) copyFileSync(join(dir, f), join(to, f));
+  for (const f of present) cpSync(join(dir, f), join(to, f), { recursive: true });
   return to;
 }
 

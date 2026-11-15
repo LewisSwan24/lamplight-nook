@@ -122,9 +122,12 @@ describe('the copy of the notebook', () => {
     writeFileSync(`${file}.tmp`, notebook(['secret']));
     mkdirSync(join(dir, 'backup', 'v1'), { recursive: true });
     writeFileSync(join(dir, 'backup', 'v1', 'pending.json'), '{"form":{"want":"secret"}}');
+    mkdirSync(join(dir, 'backup', 'v2', 'pending'), { recursive: true });
+    writeFileSync(join(dir, 'backup', 'v2', 'pending', 'r1.json'), '{"form":{"want":"secret"}}');
     store.clear();
     expect(existsSync(`${file}.tmp`)).toBe(false);
     expect(existsSync(join(dir, 'backup', 'v1', 'pending.json'))).toBe(false);
+    expect(existsSync(join(dir, 'backup', 'v2', 'pending'))).toBe(false);
   });
 });
 

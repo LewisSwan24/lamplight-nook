@@ -20,6 +20,7 @@ import { classify } from './risk-classifier';
 import { locateClaude } from './claude-locator';
 import { InputQueue } from './input-queue';
 import { agentEnv, type Credentials } from './api-key';
+import { estimateUsd, type Usage } from './prices';
 
 /** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -109,6 +110,8 @@ export type RunOptions = {
   onInit?: (info: { claudeCodeVersion?: string; model?: string }) => void;
   /** Hands over a way to add to the running commission (a meeting note); it returns false once it is too late. */
   onInput?: (add: (text: string) => boolean) => void;
+  /** Hands over what the calls since the last result would cost: asked when the app must go before the run can say (B7). */
+  onUnreported?: (estimate: () => number) => void;
   /** The API key (or dev subscription) to run with; null when there is none. */
   credentials: Credentials | null;
   /** Stop once this run has spent this much (US dollars, Claude Code's estimate); absent means no cap. */
@@ -145,7 +148,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -199,6 +202,11 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   let resultSubtype: string | undefined;
   let costUsd: number | undefined;
   let contextTokens: number | undefined;
+  // The calls since the last result, by message: if the run stops before another result, nobody reports what they cost (B7).
+  const since = new Map<string, Usage>();
+  let model: string | undefined;
+  const unreported = () => (since.size ? { estimatedUsd: estimateUsd([...since.values()], model) } : {});
+  onUnreported?.(() => unreported().estimatedUsd ?? 0);
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
   // Streaming input, so a meeting can add to the commission while it runs.
   const input = new InputQueue();
@@ -239,7 +247,12 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         onInit?.({ claudeCodeVersion: message.claude_code_version, model: message.model });
       }
       if (message.type === 'assistant' && message.error) apiError = message.error;
+      if (message.type === 'assistant' && message.message?.usage) {
+        since.set(message.message.id, message.message.usage);
+        model = message.message.model;
+      }
       if (message.type === 'result') {
+        since.clear();
         ok = message.subtype === 'success' && !message.is_error;
         resultSubtype = message.subtype;
         // A running total for the session; crash results may carry zeros, so keep the larger.
@@ -256,10 +269,10 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {
       record({ source: 'runner', name: 'cancelled', payload: {} });
-      return { ok: false, recordingPath, workDir, costUsd, error: 'cancelled' };
+      return { ok: false, recordingPath, workDir, costUsd, error: 'cancelled', ...unreported() };
     }
     record({ source: 'runner', name: 'error', payload: { error } });
-    return { ok: false, recordingPath, workDir, costUsd, error: failureKind(apiError, `${error}\n${resultText}`, resultSubtype), detail: error.slice(0, 500) };
+    return { ok: false, recordingPath, workDir, costUsd, error: failureKind(apiError, `${error}\n${resultText}`, resultSubtype), detail: error.slice(0, 500), ...unreported() };
   } finally {
     clearInterval(ticker);
     input.close();

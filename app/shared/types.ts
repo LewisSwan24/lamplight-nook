@@ -86,11 +86,15 @@ export const CONSULT_MESSAGES = 10;
 export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'music';
 
 /** costUsd is Claude Code's estimate of what the session has cost so far; spentThisRun is this run's share of it. */
+/** A round left unfinished, as the card at opening lists it (road-to-1.2.md B7). */
+export type PendingRound = { run: string; state: 'running' | 'queued' | 'stopped' | 'failed' | 'interrupted'; form: CommissionForm; title: string };
+
 export type RunResult = { /** The round's run id (B5), for trying it again. */ run?: string; ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string;
   /** Input tokens the last result reported, cache reads and writes included. */ contextTokens?: number;
   /** A month or project cap stopped it (error monthCap or projectCap). */ cap?: BudgetNote;
   /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
-  /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[] };
+  /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[];
+  /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number };
 
 /** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
 export type BudgetNote = { cap: 'month' | 'project'; capUsd: number; spentUsd: number; leftUsd: number; project?: string };
@@ -129,7 +133,7 @@ export interface LamplightApi {
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   /** Every month that cost anything, newest first. */
-  spendMonths(): Promise<{ month: string; usd: number; commissions: number }[]>;
+  spendMonths(): Promise<{ month: string; usd: number; estimated?: number; commissions: number }[]>;
   /** This month's cap (0: none) and what has been spent under it. */
   monthBudget(): Promise<{ capUsd: number; spentUsd: number }>;
   /** The monthly cap, when it was set above the default on upgrading from what was spent before. Asking takes it: it is said once. */
@@ -161,10 +165,10 @@ export interface LamplightApi {
   cancelCommission(run: string): Promise<void>;
   /** The rounds under way and waiting in the queue, whenever that changes (B5). */
   onRuns(cb: (runs: RunInfo[]) => void): () => void;
-  /** A commission left unfinished when the app last closed, if any. */
-  pendingCommission(): Promise<CommissionForm | null>;
-  resumePending(): Promise<RunResult | null>;
-  dropPending(): Promise<void>;
+  /** Rounds left unfinished when the app last closed: crashed, stopped, failed or interrupted by a shutdown (B7). */
+  pendingRounds(): Promise<PendingRound[]>;
+  resumePending(run: string): Promise<RunResult | null>;
+  dropPending(run: string): Promise<void>;
   answerDecision(answer: DecisionAnswer): Promise<boolean>;
   /** Open a file or folder produced by the current commission (refused outside it). */
   openOutput(path: string, how: 'open' | 'reveal'): Promise<boolean>;
@@ -387,7 +391,7 @@ export const IPC = {
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
   cancelCommission: 'commission:cancel',
-  pendingCommission: 'commission:pending',
+  pendingRounds: 'commission:pending',
   resumePending: 'commission:resume-pending',
   dropPending: 'commission:drop-pending',
   result: 'commission:result',

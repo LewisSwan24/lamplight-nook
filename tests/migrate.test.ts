@@ -220,7 +220,7 @@ describe('upgrading the data folder', () => {
 
     const settings = new SettingsStore(join(data, 'settings.json'), join(data, 'docs')).get();
     expect(settings).toMatchObject({ name: '小林', budgetUsd: 5, language: 'zh-CN', onboarded: true });
-    const [job] = new PendingStore(join(data, 'pending.json')).load();
+    const [job] = new PendingStore(join(data, 'pending'), join(data, 'pending.json')).load();
     expect(job?.form.template).toBe('research');
     expect(job?.sessionId).toBeTruthy();
   });

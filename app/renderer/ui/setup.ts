@@ -299,7 +299,7 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
     book.replaceChildren(...list.map((m) => el('tr', {},
       el('th', { scope: 'row' }, monthName(m.month, locale())),
       el('td', {}, m.commissions === 1 ? S.spendBookOne : fill(S.spendBookCount, { n: String(m.commissions) })),
-      el('td', {}, formatUsd(m.usd)))),
+      el('td', {}, m.estimated ? fill(S.spendBookEstimated, { cost: formatUsd(m.usd), estimated: formatUsd(m.estimated) }) : formatUsd(m.usd)))),
     el('tr.spend-total', {}, el('th', { scope: 'row', colspan: 2 }, S.spendBookTotal), el('td', {}, formatUsd(total))));
     if (!list.length) book.replaceChildren(el('tr', {}, el('th', {}, S.spendBookEmpty)));
   } }, el('summary', {}, S.spendBook), book) as HTMLDetailsElement;

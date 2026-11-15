@@ -1,11 +1,7 @@
-import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { failureKind } from '../app/main/agent-runner';
 import { continuePrompt } from '../app/main/commission';
 import { EventNormalizer } from '../app/main/event-normalizer';
-import { PendingStore } from '../app/main/pending';
 
 describe('why a run failed', () => {
   it('uses the API error the SDK reports', () => {
@@ -40,30 +36,7 @@ describe('normalizer: retries and cancelling', () => {
   });
 });
 
-describe('unfinished commissions', () => {
-  it('remembers each running job until it is cleared, two at once by their run ids (B5)', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'lamplight-pending-')), 'pending.json');
-    const store = new PendingStore(file);
-    expect(store.load()).toEqual([]);
-    const job = { run: 'r1', form: { want: 'ledger' }, workDir: '/work/x', preexisting: [], sessionId: 's1', startedAt: 1 };
-    const other = { run: 'r2', form: { want: 'notes' }, workDir: '/work/y', preexisting: [], startedAt: 2 };
-    store.save(job);
-    store.save(other);
-    store.save({ ...job, sessionId: 's2' });
-    expect(new PendingStore(file).load()).toEqual([{ ...job, sessionId: 's2' }, other]);
-    store.clear('r1');
-    expect(new PendingStore(file).load()).toEqual([other]);
-    store.clear('r2');
-    expect(existsSync(file)).toBe(false);
-  });
-
-  it('reads the one job an older version left', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'lamplight-pending-')), 'pending.json');
-    const old = { form: { want: 'ledger' }, workDir: '/work/x', preexisting: [], startedAt: 1 };
-    writeFileSync(file, JSON.stringify(old));
-    expect(new PendingStore(file).load()).toEqual([old]);
-  });
-
+describe('carrying on an unfinished commission', () => {
   it('continues the session when there is one, otherwise restarts from the folder', () => {
     expect(continuePrompt({ want: 'ledger' }, true)).toMatch(/Continue from where you left off/);
     const fresh = continuePrompt({ want: 'ledger' }, false);

@@ -1,7 +1,7 @@
 import type { BoardStep } from '../../shared/board';
 import { fill, strings } from '../../shared/i18n';
 import { capLine, elapsedLine, planLine } from '../../shared/progress';
-import type { ActorId, CommissionForm, ExternalLink, LamplightApi } from '../../shared/types';
+import type { ActorId, ExternalLink, LamplightApi, PendingRound } from '../../shared/types';
 import { el } from './dom';
 import { clearWorkSigns, closeButton, closePanel, replaceOpen } from './panels';
 import { portraitEl, withPortrait } from './portraits';
@@ -153,12 +153,25 @@ export function showFailure(api: LamplightApi, kind: string, retry: (() => void)
   return true;
 }
 
-/** At startup: a commission was left unfinished last time. */
-export function showPending(api: LamplightApi, form: CommissionForm, resume: () => void) {
+/** At startup: a commission was left unfinished last time. `next`: what comes after it is answered either way (B7). */
+export function showPending(api: LamplightApi, round: Pick<PendingRound, 'run' | 'form'>, resume: () => void, next: () => void = () => {}) {
   replaceOpen(el('div.card.paper.pending-card.must-answer', {},
-    withPortrait('adeng', 'calm', el('div.card-title', {}, R.pendingTitle), el('div', {}, fill(R.pendingText, { want: form.want }))),
+    withPortrait('adeng', 'calm', el('div.card-title', {}, R.pendingTitle), el('div', {}, fill(R.pendingText, { want: round.form.want }))),
     el('div.actions', {},
-      el('button', { onclick: () => { closePanel(); void api.dropPending(); } }, R.drop),
-      el('button.default', { onclick: () => { closePanel(); resume(); } }, R.resume)),
+      el('button', { onclick: () => { closePanel(); void api.dropPending(round.run).then(next); } }, R.drop),
+      el('button.default', { onclick: () => { closePanel(); resume(); next(); } }, R.resume)),
+  ));
+}
+
+/** At startup: rounds the computer's shutting down interrupted (road-to-1.2.md B7), one card for all of them. */
+export function showInterrupted(rounds: PendingRound[], go: { all: () => void; each: () => void; none: () => void }) {
+  const pick = (fn: () => void) => () => { closePanel(); fn(); };
+  replaceOpen(el('div.card.paper.pending-card.interrupted-card.must-answer', {},
+    withPortrait('adeng', 'calm', el('div.card-title', {}, R.interruptedTitle), el('div', {}, R.interruptedText)),
+    el('ul.interrupted-list', {}, ...rounds.map((r) => el('li', {}, r.title))),
+    el('div.actions', {},
+      el('button', { onclick: pick(go.none) }, R.dropAll),
+      el('button', { onclick: pick(go.each) }, R.oneByOne),
+      el('button.default', { onclick: pick(go.all) }, R.resumeAll)),
   ));
 }

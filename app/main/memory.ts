@@ -379,7 +379,7 @@ export class MemoryStore {
     const backups = join(dirname(this.file), 'backup');
     if (!existsSync(backups)) return;
     // A copy of an unfinished commission says what it was about as well.
-    for (const dir of readdirSync(backups)) for (const name of [basename(this.file), 'pending.json']) rmSync(join(backups, dir, name), { force: true });
+    for (const dir of readdirSync(backups)) for (const name of [basename(this.file), 'pending.json', 'pending']) rmSync(join(backups, dir, name), { recursive: true, force: true });
   }
 
   /**

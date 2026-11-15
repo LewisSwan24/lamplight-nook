@@ -178,6 +178,11 @@ const localStamp = (d) => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 };
 const check = (cond, why) => { if (!cond) throw new Error(why); };
+/** The rounds the shop has written down as under way or to carry on (road-to-1.2.md B7): pending/<run>.json. */
+const pendingRounds = (home) => {
+  const dir = join(home.data, 'pending');
+  return existsSync(dir) ? readdirSync(dir).filter((f) => /^r\d+\.json$/.test(f)).map((f) => JSON.parse(readFileSync(join(dir, f), 'utf8'))) : [];
+};
 /** Choose the second option on questions, and "not now" on serious cards (the default). */
 const demoAnswers = (card) => (card.serious ? null : 1);
 
@@ -678,7 +683,7 @@ const SCENARIOS = {
       await quit(0);
       await sleep(1500);
       check(await shop.page.evaluate(() => document.visibilityState !== undefined), 'the window went');
-      check(existsSync(join(home.data, 'pending.json')), 'the commission was given up on although the answer was to keep going');
+      check(pendingRounds(home).length === 1, 'the commission was given up on although the answer was to keep going');
       const said = await shop.page.locator('#ui').innerText();
       const gone = shop.L.ui.run.failedTitle;
       check(!said.includes(gone), 'keeping going stopped the commission');
@@ -689,6 +694,7 @@ const SCENARIOS = {
       await shop.close().catch(() => {});
     }
     shop = await launch({ lang, home, debug: true });
+    check(pendingRounds(home)[0]?.state === 'stopped', `"stop and close" left ${JSON.stringify(pendingRounds(home).map((j) => j.state))}`);
     try {
       check(await shop.maybe('.pending-card', 10_000), 'the promise to carry on next time was not kept');
     } finally {
@@ -704,7 +710,7 @@ const SCENARIOS = {
       await shop.order({ template: 'page', want: 'A page' });
       await shop.submit();
       await sleep(1000);
-      check(existsSync(join(home.data, 'pending.json')), 'the commission was not noted as under way');
+      check(pendingRounds(home)[0]?.state === 'running', 'the commission was not noted as under way');
       // The answer is "stop and close", and the window stays long enough for the commission to finish first.
       await shop.app.evaluate(({ BrowserWindow, dialog }) => {
         dialog.showMessageBoxSync = () => 1;
@@ -714,7 +720,7 @@ const SCENARIOS = {
       });
       check((await shop.workUntilDone()).ok, 'the commission did not finish');
       await sleep(500);
-      check(!existsSync(join(home.data, 'pending.json')), 'a finished commission would be offered again next time');
+      check(pendingRounds(home).length === 0, 'a finished commission would be offered again next time');
       await shop.app.evaluate(({ BrowserWindow }) => {
         for (const w of BrowserWindow.getAllWindows()) w.removeAllListeners('close');
       });
@@ -1438,7 +1444,7 @@ const SCENARIOS = {
       await shop.order({ template: 'page', want: W[lang].page });
       await shop.submit();
       await sleep(5000);
-      return JSON.parse(readFileSync(join(shop.home.data, 'pending.json'), 'utf8'))[0].workDir;
+      return pendingRounds(shop.home)[0].workDir;
     };
     const pull = async (shop) => {
       // The app's own process: what Playwright started may be only a wrapper around it.
@@ -2635,6 +2641,105 @@ const SCENARIOS = {
   },
 
   /**
+   * The computer sleeps mid-commission (road-to-1.2.md B7), played through the debug hook only an unpackaged build has. On
+   * waking the connection the round was using is dead and it fails for the network, with no card: it carries on by itself,
+   * once, in the same session, and finishes. While it runs the computer is kept from sleeping by itself.
+   */
+  async sleepwake(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const down = join(home.home, 'net-down');
+    const shop = await launch({ lang, home, speed: SPEED, scenario: 'sleepwake', simEnv: { SIM_NET_DOWN: down } });
+    const power = (what) => shop.app.evaluate((_e, what) => globalThis.__lamplightPower[what](), what);
+    try {
+      await shop.order({ template: 'research', want: W[lang].research });
+      await shop.submit();
+      check(await waitForLog(home, 'run start', 1, 15_000), 'the commission did not start');
+      check(await waitForLog(home, 'keep awake {"on":true}', 1, 5000), 'the computer was not kept awake while the round ran');
+      await power('suspend');
+      await sleep(1500);
+      await power('resume');
+      check(logged(home, 'run end').length === 0, 'the round stopped with the sleep');
+      // Awake again, the stand-in finds its connection gone.
+      writeFileSync(down, '');
+      check(await waitForLog(home, 'run end', 1, 30_000), 'the round did not stop when the connection went');
+      check(logged(home, 'run end')[0].includes('"error":"net"'), `the round ended ${logged(home, 'run end')[0]}`);
+      const r = await shop.workUntilDone();
+      check(r.ok, `it did not finish after waking: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+      await shop.shot(join(out, 'sleepwake-done.png'));
+      check(logged(home, 'auto resume').length === 1, `carried on ${logged(home, 'auto resume').length} times`);
+      check(logged(home, 'run start').length === 2 && logged(home, 'run start').at(-1).includes('"resumed":true'), 'the second round did not continue the session');
+      check(pendingRounds(home).length === 0, 'a finished round is still offered');
+      check(await waitForLog(home, 'keep awake {"on":false}', 1, 5000), 'the computer was still kept awake after the round');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Windows shuts down with two rounds under way (B7), played through the debug hook: no question card, both are written
+   * down as interrupted and the shop goes. Next time one card lists both; "carry on with all" finishes them, each in its
+   * own session, and the ledger has each session's total once, beside an estimate for the stretch cut off.
+   */
+  async shutdown(lang, out) {
+    const R = locale(lang).ui.run;
+    const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 5 }) });
+    const hold = join(home.home, 'hold');
+    writeFileSync(hold, '');
+    const opts = { lang, home, speed: SPEED, scenario: 'hold', simEnv: { SIM_HOLD: hold, SIM_TOKENS: '1' } };
+    let shop = await launch(opts);
+    let went = false;
+    try {
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
+      await another(shop, { template: 'research', want: W[lang].research });
+      check(await waitForLog(home, 'run start', 2, 10_000), 'the second commission did not start beside the first');
+      await sleep(3000);
+      const exit = new Promise((r) => shop.app.process().once('exit', () => r(true)));
+      await shop.app.evaluate(() => globalThis.__lamplightPower.shutdown()).catch(() => {});
+      went = await Promise.race([exit, sleep(15_000).then(() => false)]);
+    } finally { await shop.close().catch(() => {}); }
+    check(went, 'the shop did not close when the computer shut down (a question card would hold it up)');
+    check(logged(home, 'session end').length === 1, 'the shutdown was not seen');
+    const cut = pendingRounds(home);
+    check(cut.length === 2 && cut.every((j) => j.state === 'interrupted' && j.sessionId), `after the shutdown: ${JSON.stringify(cut.map((j) => [j.state, j.sessionId]))}`);
+    rmSync(hold);
+
+    shop = await launch(opts);
+    try {
+      const card = await shop.maybe('.interrupted-card', 10_000);
+      check(card, 'no card lists the interrupted rounds');
+      const listed = await shop.page.locator('.interrupted-card li').allInnerTexts();
+      check(listed.length === 2, `the card lists ${JSON.stringify(listed)}`);
+      check((await card.innerText()).includes(R.resumeAll) && (await card.innerText()).includes(R.oneByOne) && (await card.innerText()).includes(R.dropAll), 'the card lacks a button');
+      await shop.shot(join(out, 'shutdown-card.png'));
+      await shop.resize([640, 360]);
+      await shop.shot(join(out, 'shutdown-card-small.png'));
+      await shop.resize('medium');
+      await shop.page.locator('.interrupted-card button.default').click();
+      for (let i = 0; i < 2; i++) {
+        const r = await shop.workUntilDone();
+        check(r.ok, `round ${i + 1} did not finish: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+        await shop.page.evaluate(() => { document.querySelector('.result-card').dataset.seen = '1'; });
+        for (let k = 0; k < 10 && await shop.page.locator('.result-card[data-seen]').count(); k++) {
+          await shop.page.keyboard.press('Escape');
+          await sleep(600);
+        }
+        await sleep(800);
+      }
+      check(logged(home, 'run start').length === 4 && logged(home, 'run start').slice(2).every((l) => l.includes('"resumed":true')), 'the two did not continue their sessions');
+      check(pendingRounds(home).length === 0, 'finished rounds are still offered');
+      // Each session's reported total is in the ledger once, as the stand-in last reported it.
+      const ledger = JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+      for (const j of cut) {
+        const key = `${j.workDir}|${j.sessionId}`;
+        const reported = ledger.filter((e) => e.key === key && !e.estimated);
+        const total = JSON.parse(readFileSync(join(home.home, '.sim', `${j.sessionId}.json`), 'utf8')).paid;
+        check(reported.length === 1 && Math.abs(reported[0].usd - total) < 0.001, `${key}: ledger ${JSON.stringify(reported)}, the session's total ${total}`);
+        check(ledger.some((e) => e.key === key && e.estimated && e.usd > 0), `${key}: no estimate for the stretch the shutdown cut off`);
+      }
+    } finally { await shop.close(); }
+  },
+
+  /**
    * Two commissions at once (road-to-1.2.md B5). The second is taken from the running card while the first is under way, and
    * the stand-in runs both beside each other; a question asked while both are at work names its project. A third waits in
    * the queue, the board says behind whom, and it starts by itself once one of the two is done. Each result card names its
@@ -3312,12 +3417,12 @@ const SCENARIOS = {
       await shop.order({ template: 'page', want: W[lang].page });
       await shop.submit();
       await sleep(2500);
-      check(existsSync(join(home.data, 'pending.json')), 'the commission was not noted as under way');
+      check(pendingRounds(home).length === 1, 'the commission was not noted as under way');
       const closing = new Date().toISOString();
       await quit(shop, 1);
       const went = logged(home, install);
       check(went.length === 2 && went[1].slice(0, 24) >= closing, `the update did not go in after "stop and close": ${went.join(' | ')}`);
-      check(existsSync(join(home.data, 'pending.json')), 'the stopped commission will not be offered next time');
+      check(pendingRounds(home)[0]?.state === 'stopped', 'the stopped commission will not be offered next time');
     } finally { await shop.close(); feed.close(); }
     shop = await launch({ lang, home, speed: SPEED });
     try {
@@ -3909,6 +4014,7 @@ const SCENARIOS = {
       { name: 'legal-notices', sel: '.card.legal', w: 'reading', open: () => window.lamplightDebug.ui.showLegal('notices') },
       // Cards that must be answered: no close button, and Esc does not put them away.
       { name: 'pending', sel: '.pending-card', w: 'small', must: true, open: ({ long }) => window.lamplightDebug.ui.showPending({ want: long }), answer: '.pending-card button.default' },
+      { name: 'interrupted', sel: '.interrupted-card', w: 'small', must: true, open: ({ long }) => window.lamplightDebug.ui.showInterrupted([long, long]), answer: '.interrupted-card button.default' },
       { name: 'decision', sel: '.dialog', w: 'form', must: 'esc-answers', open: ({ long }) => void window.lamplightDebug.ui.showDecision({ id: 'q', kind: 'question', agent: 'main', tool: 'AskUserQuestion', title: long, defaultId: '0', options: [0, 1, 2, 3].map((i) => ({ id: String(i), label: long.slice(0, 18), hint: long.slice(0, 40) })) }) },
       { name: 'serious', sel: '.serious', w: 'form', must: 'esc-answers', open: ({ long }) => void window.lamplightDebug.ui.showDecision({ id: 's', kind: 'serious', agent: 'main', tool: 'Bash', title: long, reason: long, detail: long, defaultId: 'deny', options: [{ id: 'deny', label: 'no' }, { id: 'allow', label: long.slice(0, 16) }] }) },
     ];
