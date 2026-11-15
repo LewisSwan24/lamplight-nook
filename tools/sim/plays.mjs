@@ -265,6 +265,14 @@ async function twist(s, t, scenario) {
       }, t.researchSummary);
     })));
   }
+  // A question answered in a project's first round becomes one of its preferences (road-to-1.2.md B3).
+  if (scenario === 'projectmemo') {
+    await s.step(async () => {
+      const colors = s.state.lang === 'zh' ? ['奶油白', '浅薄荷'] : ['Cream', 'Mint'];
+      const picked = await s.ask(t.colorQ, t.colorH, colors.map((c, i) => ({ label: c, description: t.colorHints[i] })));
+      await s.say(picked ? t.pickColor(picked) : t.leftToMe(colors[0]));
+    });
+  }
   if (scenario === 'longwait') await s.step(() => s.tool('Bash', { command: 'node --version', description: 'wait' }, { slow: 50, effect: () => ({ text: 'v22' }) }));
   if (scenario === 'stuck') {
     for (let i = 0; i < 3; i++) await s.step(() => s.tool('Bash', { command: 'node build.js', description: 'build' }, { effect: () => ({ text: 'Error: Cannot find module build.js', error: true }) }));

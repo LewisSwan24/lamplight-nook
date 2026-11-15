@@ -3017,6 +3017,105 @@ const SCENARIOS = {
   },
 
   /**
+   * Project memory (road-to-1.2.md B3): a project of two rounds. The stand-in's log shows the second round's prompt
+   * starting with the project background: what the project is for, the colour answered in the first round and where the
+   * first round left off, within 2,000 characters and without the shop-wide notes. "What the staff remember" sits at the
+   * top of the timeline; the user changes that preference there, and the third round's prompt has it as they wrote it.
+   * Seen in both languages and at the smallest window.
+   */
+  async projectmemo(lang, out) {
+    const L = locale(lang);
+    const B = L.ui.projects.brief;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const log = join(home.home, 'stand-in.log');
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const colour = lang === 'en' ? 'Mint' : '浅薄荷';
+    const edited = lang === 'en' ? 'Main colour: pale yellow, never green' : '主色用浅黄，不要绿色';
+    /** What the app asked of the stand-in for each round of changes, oldest first. */
+    const revisePrompts = () => readFileSync(log, 'utf8').split('\n').filter((l) => l.startsWith('< ')).map((l) => JSON.parse(l.slice(2)))
+      .filter((m) => m.type === 'user' && m.message?.role === 'user')
+      .map((m) => (typeof m.message.content === 'string' ? m.message.content : m.message.content.map((c) => c.text ?? '').join('')))
+      .filter((p) => /asks for a change/.test(p));
+    const background = (p) => p.slice(0, p.search(/\n\n(The user has looked|Earlier the shop)/));
+    const shop = await launch({ lang, home, speed: SPEED, scenario: 'projectmemo', simEnv: { SIM_LOG: log } });
+    const page = shop.page;
+    const openTimeline = async () => {
+      await page.locator('.toolbar button.tool-btn').nth(1).click();
+      await page.waitForSelector('.project-card .project-open');
+      await page.locator('.project-card .project-open').first().click();
+      await page.waitForSelector('.timeline-card .brief');
+      await sleep(300);
+    };
+    const fits = async (what) => {
+      const spill = await page.locator('.timeline-card').evaluate((c) => {
+        const box = c.getBoundingClientRect();
+        return c.scrollWidth > c.clientWidth + 1 || box.top < -1 || box.bottom > innerHeight + 1 || box.left < -1 || box.right > innerWidth + 1;
+      });
+      check(!spill, what + ' does not fit the window');
+    };
+    try {
+      // Two rounds: the first asks which colour, the second is a change.
+      check((await runOne(shop, { template: 'page', want: W[lang].page }, { answers: (card) => (card.text.includes(colour) ? colour : null) })).ok, 'the first round did not finish');
+      await page.locator('.result-revise').click();
+      await page.fill('form.revise textarea', W[lang].ask);
+      await page.locator('form.revise button.default').click();
+      check((await shop.workUntilDone()).ok, 'the second round did not finish');
+      const p = notebook().projects[0];
+      const summary = p.rounds[0].summary;
+      check(summary, 'the first round left no summary');
+      const second = revisePrompts().at(-1);
+      check(second, 'the stand-in saw no round of changes');
+      const bg = background(second);
+      check(bg.startsWith('About this project'), 'the second round does not start with the project background: ' + second.slice(0, 200));
+      for (const part of [W[lang].page, colour, summary]) check(bg.includes(part), 'the project background lacks "' + part + '": ' + bg);
+      check(bg.length <= 2000, 'the project background is ' + bg.length + ' characters');
+      check(!second.includes('Notes from earlier commissions'), 'a round inside the project still carries the shop-wide notes');
+      await page.keyboard.press('Escape');
+      await sleep(800);
+
+      // What the staff remember, at the top of the timeline.
+      await openTimeline();
+      const block = page.locator('.timeline-card .brief');
+      const said = await block.innerText();
+      for (const part of [B.title, B.purpose, B.prefs, B.lastRound, colour]) check(said.includes(part), 'what the staff remember lacks "' + part + '": ' + said);
+      await fits('the timeline with what the staff remember');
+      await shop.shot(join(out, 'projectmemo-brief.png'));
+
+      // The user rewrites the colour they settled on.
+      await block.locator('.brief-edit').click();
+      const pref = block.locator('input.brief-pref').first();
+      check((await pref.inputValue()).includes(colour), 'the first preference is not the colour: ' + await pref.inputValue());
+      await pref.fill(edited);
+      await shop.shot(join(out, 'projectmemo-edit.png'));
+      await block.locator('.brief-save').click();
+      await page.waitForFunction((t) => document.querySelector('.timeline-note')?.textContent === t, B.saved, { timeout: 10_000 });
+      check(notebook().projects[0].brief?.prefs.includes(edited), 'the changed preference was not kept: ' + JSON.stringify(notebook().projects[0].brief));
+      await page.keyboard.press('Escape');
+      await sleep(500);
+
+      // The third round goes by what the user wrote.
+      await page.locator('.toolbar button.tool-btn').nth(2).click();
+      await page.locator('.shelf-card li.work').first().locator('.work-actions button.link', { hasText: L.ui.shelf.revise }).click();
+      await page.waitForSelector('form.revise textarea');
+      await page.fill('form.revise textarea', W[lang].note);
+      await page.locator('form.revise button.default').click();
+      check((await shop.workUntilDone()).ok, 'the third round did not finish');
+      const third = background(revisePrompts().at(-1));
+      check(third.includes(edited) && !third.includes(colour), 'the third round does not go by the changed preference: ' + third);
+      check(third.includes(W[lang].ask), 'the third round does not carry the change asked for before');
+      check(notebook().projects[0].brief.prefs.includes(edited), 'the third round wrote over the changed preference');
+      await page.keyboard.press('Escape');
+      await sleep(800);
+
+      // The smallest window.
+      await shop.resize([640, 360]);
+      await openTimeline();
+      await fits('the timeline at the smallest window');
+      await shop.shot(join(out, 'projectmemo-small.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
    * Projects (road-to-1.2.md B1): a 1.1 shop with five works, one that stopped and one in a lent folder, opens as five
    * projects of one with a copy of the old data aside, and the shelf is as it was. Opened again, nothing is migrated twice.
    * Saved since by 1.1, which drops the projects, it gets the same projects back on the next opening.

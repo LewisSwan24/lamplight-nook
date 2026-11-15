@@ -849,7 +849,27 @@
       "none": "No version was kept of this round.",
       "goneRounds": "The versions of rounds {list} are gone. When a project’s versions pass 200 MB, the oldest go, all but round 1.",
       "lent": "This is your own folder, lent to the shop, so it can’t be branched off: that would copy all of it.",
-      "seeProject": "See the project"
+      "seeProject": "See the project",
+      "brief": {
+        "title": "What the staff remember",
+        "text": "The staff read this before every round. What you change here stays as you wrote it.",
+        "purpose": "What the project is for",
+        "prefs": "What you've settled on",
+        "lastRound": "Where the last round left off",
+        "nothing": "Nothing yet",
+        "edited": "Changed on {date}",
+        "edit": "Change",
+        "save": "Save",
+        "cancel": "Cancel",
+        "addPref": "Add one",
+        "removePref": "Remove",
+        "prefLimit": "Up to {n}, of up to {chars} characters each.",
+        "saved": "Saved. The next round goes by this.",
+        "forget": "Forget this project",
+        "forgetSure": "Click again to forget",
+        "forgetAsk": "The staff will forget all of this, and the next round won't pick up the last conversation. The timeline and the files stay.",
+        "forgot": "Forgotten. The next round starts by looking at the folder afresh."
+      }
     },
     "shelf": {
       "title": "The works shelf",

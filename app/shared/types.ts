@@ -74,6 +74,10 @@ export const BUDGET_CHOICES = [1, 3, 5, 10, 0] as const;
 export const MONTH_CAP_CHOICES = [10, 20, 50, 100, 0] as const;
 /** The caps a project may have, in US dollars; 0 means no cap, which is where every project starts. */
 export const PROJECT_CAP_CHOICES = [0, 5, 10, 20, 50] as const;
+/** What the staff remember about a project (B3): this many preferences at most, of so many characters; and how long "where the last round left off" may be. */
+export const BRIEF_PREFS_MAX = 12;
+export const BRIEF_PREF_CHARS = 120;
+export const BRIEF_LAST_ROUND_CHARS = 500;
 /** The most one talk with Adeng before a commission may cost, in US dollars, and the most the user may say in it (Q-B1). */
 export const CONSULT_CAP_USD = 0.1;
 export const CONSULT_MESSAGES = 10;
@@ -83,6 +87,7 @@ export type ExternalLink = 'claudeSetup' | 'apiKeys' | 'billing' | 'limezu' | 'm
 
 /** costUsd is Claude Code's estimate of what the session has cost so far; spentThisRun is this run's share of it. */
 export type RunResult = { ok: boolean; recordingPath: string; workDir: string; error?: string; costUsd?: number; spentThisRun?: number; /** The agent's last reply on success. */ summary?: string; /** The technical reason, for the log. */ detail?: string;
+  /** Input tokens the last result reported, cache reads and writes included. */ contextTokens?: number;
   /** A month or project cap stopped it (error monthCap or projectCap). */ cap?: BudgetNote;
   /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
   /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[] };
@@ -214,6 +219,10 @@ export interface LamplightApi {
   forkProject(id: string, round: number): Promise<string | null>;
   /** Put a project away on the board, or take it out again. */
   archiveProject(id: string, on: boolean): Promise<boolean>;
+  /** Keep what the user changed in "what the staff remember" (B3). False for a project there isn't, or not a brief. */
+  saveBrief(id: string, brief: ProjectBrief): Promise<boolean>;
+  /** "Forget this project": the staff remember nothing of it, and pick up no earlier session. */
+  forgetProject(id: string): Promise<boolean>;
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
@@ -387,6 +396,8 @@ export const IPC = {
   revertProject: 'project:revert',
   forkProject: 'project:fork',
   archiveProject: 'project:archive',
+  saveBrief: 'project:save-brief',
+  forgetProject: 'project:forget',
   updateOffer: 'update:offer',
   downloadUpdate: 'update:download',
   moveInOffer: 'data:move-in-offer',
@@ -542,6 +553,8 @@ export type ProjectBrief = {
   lastRound?: string;
   /** YYYY-MM-DD, the last time the user changed it. */
   edited?: string;
+  /** The user had the project forgotten after this many rounds: the changes asked for until then stay out of the prompt. */
+  forgotAt?: number;
 };
 
 /** One round of a commission, for the notebook's ledger page. Never leaves the computer. */
@@ -556,6 +569,8 @@ export type RoundStat = {
   /** Errands that waited for a busy helper, and how long they waited in all. */
   waits: number;
   waitedSeconds: number;
+  /** Input tokens the round's result reported (B3): past 150k the next round starts a new session. */
+  contextTokens?: number;
 };
 
 /** The shop's days with this user: commissions finished together, what the shop gathered and when, stories told. */
@@ -610,6 +625,8 @@ export type ProjectTimeline = {
   rounds: TimelineRow[];
   /** Branched off another project: its title then, and the round. */
   from?: { title: string; round: number };
+  /** What the staff remember about it (B3). */
+  brief: ProjectBrief;
 };
 
 /** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */
