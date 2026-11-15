@@ -134,4 +134,19 @@ describe('risk classifier', () => {
   it('every verdict carries a plain-language reason', () => {
     expect(classify('Bash', { command: 'rm a' }, ctx).reason).toBe(strings.risk.delete);
   });
+
+  it('the shop\'s own tools and connections (mcp__nook-*) go by the kind each declared (road-to-1.3.md C4)', () => {
+    const kinds = { read: 'mcp__nook-k1__read_note', make: 'mcp__nook-office__make_docx', outside: 'mcp__nook-k1__save_copy', final: 'mcp__nook-k2__send' } as const;
+    const nook = new Map(Object.entries(kinds).map(([kind, name]) => [name, { kind: kind as keyof typeof kinds, label: () => kind }]));
+    const n = (tool: string) => classify(tool, {}, { ...ctx, nook });
+    expect(n(kinds.read).risk).toBe('safe');
+    expect(n(kinds.make).risk).toBe('safe');
+    expect(n(kinds.outside).risk).toBe('serious');
+    expect(n(kinds.final).risk).toBe('serious');
+    for (const kind of ['read', 'make', 'outside', 'final'] as const) expect(n(kinds[kind]).reason).toBe(strings.risk.nook[kind]);
+    // A nook tool this round does not have, or any other MCP tool, is serious, as before.
+    expect(n('mcp__nook-k9__read_note').risk).toBe('serious');
+    expect(r(kinds.read, {})).toBe('serious');
+    expect(n('mcp__x__send').risk).toBe('serious');
+  });
 });

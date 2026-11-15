@@ -31,7 +31,7 @@
 
 | 编号 | 内容 | 依赖 | 改动量 | 新美术 | 真 Key | 状态 |
 |---|---|---|---|---|---|---|
-| C4 | 店内工具和连接的框架 | 无 | L | 否 | 否 | 未开工 |
+| C4 | 店内工具和连接的框架 | 无 | L | 否 | 否 | 已合并（PR 待填） |
 | C6 | 外部动作的安全规则和记录 | C4 | M | 否 | 否 | 未开工 |
 | C1 | Office 和 PDF 的读写，结果卡预览 | C4 的店内工具那一半 | L | 否 | 约 $5 | 未开工 |
 | C3 | 改文档的模板放宽 | C1 | M | 否 | 约 $3 | 未开工 |
@@ -131,6 +131,32 @@ type Grant = {
 - `zod` 和 `@modelcontextprotocol/sdk` 写进 `dependencies`，`scripts/notices.mjs` 生成的第三方声明跟着更新。
 
 **完成标准：** 新的 `tests/nook-tools.test.ts` 覆盖工具注册、名字前缀、四种类型的风险等级、没勾的连接不进 `mcpServers`。新的 `tests/connections.test.ts` 覆盖读写 `connections.json`、坏文件当作没有并留原样、秘密只进 `connections.bin`、系统不能加密时加不上、断开后秘密和配置都没了。`tests/api-key.test.ts` 加已知秘密的脱敏，`tests/risk.test.ts` 加 `mcp__nook-*` 的分级。替身 `tools/sim/claude.mjs` 现在只会发 `can_use_tool`（`tools/sim/claude.mjs:185`），要学会用 `mcp_message` 调进程内的工具。新场景 `connect` 用一个只在没打包时有的测试连接。连上、勾进委托、用一次、断开，日志和录制里搜不到那串秘密。授权卡的中英文截图都看过。`consult`、`templates`、`materials` 照旧过。
+
+**做法：**
+
+- 店内工具和连接共用 `app/main/nook-tools.ts`。`NookTool` 照设计写，多了一个 `description`，是写给店员看的工具说明。`sdkServer()` 建进程内的服务器，名字前面加 `nook-`。`outside` 和 `final` 的工具在服务器上标 `always_ask`。
+- `connectionServers()` 只挑委托单上勾了、还在、没暂停的连接。连接号不是 `k<数字>` 的一律不要，因为它会变成服务器名。
+- 风险等级在 `risk-classifier.ts`。`RiskContext.nook` 是这一单的工具表：`read` 和 `make` 放行，`outside` 和 `final` 按严重处理，卡上默认“不允许”。这一单没有的 `mcp__nook-*` 工具照旧按严重处理。确认卡上写的是工具自己的那句人话。
+- 连接由 `app/main/connections.ts` 的 `ConnectionStore` 管。`connections.json` 不含秘密，所有秘密合成一份 JSON，加密后存进 `connections.bin`。两个文件都先写临时文件再改名，最后一个秘密删掉时 `connections.bin` 也删掉。
+- 脱敏：`api-key.ts` 的 `redactSecrets()` 多查一张已知秘密的表（`knowSecret()`）。`Log`、`Recorder` 和诊断包本来就走这个函数，所以不用改。
+- 连接的种类写在 `app/main/connection-kinds.ts`。现在只有 `test` 一种，只在没打包时有。它只有一个 `read` 工具，交出一张写死的便条。它的秘密取自环境变量 `LAMPLIGHT_TEST_SECRET`，场景拿这串字去日志和录制里搜。
+- 授权卡和笔记本的连接页在 `app/renderer/ui/connections.ts`。连接页排在笔记本最前面。没有连接、也没有能加的种类时，这一页不出现。断开前先问一次，卡上写着断开以后留下什么。
+- 委托单上的“这单可以用：”只列没暂停的连接，默认都不勾。勾了的连接号记在 `CommissionForm.connections` 上，跟着委托单进笔记本、待续记录和定时委托。
+- 提示词：勾了连接时，`withConnections()` 在提示词最后加一段，列出能用的连接、各自的服务器名和用途。`MATERIAL_RULE` 加上了“从连接读来的内容”。
+- 替身学会了 `mcp_message`：先发 `initialize`，再 `tools/list`，最后 `tools/call`。新剧本 `connect` 对每个连接调一次第一个工具，再把设好的秘密念出来，并夹在调用参数里，看应用能不能把它遮掉。
+- `zod` 写进 `dependencies`，`@modelcontextprotocol/sdk` 写进 `devDependencies`，`package-lock.json` 用 `npm install --package-lock-only --offline` 更新。
+
+**暂定（2026-11-15）：**
+
+- `@modelcontextprotocol/sdk` 在应用里只用到类型。SDK 的 `sdk.mjs` 自己打包了 MCP 服务器，运行时不加载它，所以不进安装包。`scripts/notices.mjs` 现在跳过 `import type`，第三方声明照旧是 20 个包。`zod` 本身没有依赖，C1 起运行时要用，那时会进声明。
+- 测试连接只能读，没有 `outside` 工具。能存一份的测试工具，等 C6 的 `outside` 场景再加。
+- 断开以后，这串秘密还留在本次打开的脱敏表里，直到应用关掉，晚写的日志也搜不到它。
+- `connections.json` 坏了就当作没有连接，文件原样不动。用户之后再加连接，会整个写掉坏文件，不另存一份。
+- 打包版现在没有任何种类，笔记本没有连接页，委托单也没有那一行。打包版碰到不认识种类的连接（比如开发版留下的测试连接），连接页不列，委托单也用不上。
+- 项目后面的几轮和定时委托，用的是第一张委托单勾的连接。在项目里改勾哪几个，留给以后的包。
+- 设计里给 `always_ask` 填的工具名不带前缀，类型文件没写清楚该带不该带。就算 SDK 不认，应用自己的 `classify()` 也把这两类按严重处理，照样每次先问。
+- 加连接的入口只在笔记本的连接页，每种一个“连上……”按钮。真连接要用户填的东西（文件夹、订阅地址）放在授权卡上，留给 C5。
+- 三个帮手和商量照旧不碰连接：`SUBAGENTS` 的工具名单没改，`consult.ts` 的 `mcpServers` 还是空的。
 
 ### C6 外部动作的安全规则和记录
 
@@ -450,3 +476,4 @@ type Sources = {
 | 日期 | 工作包 | PR | 结果 |
 |---|---|---|---|
 | 2026-11-15 | 本文 | 分支 `c0-roadmap`，未推送 | 基线 `release-1.2` 的 `e8dfce3`。每个包的现状都按代码和 SDK 的类型文件核过。比路线图多出来的有三处。一是 Office 的读写要应用自己带库，Claude Code 的技能要 Python，靠不住。二是相册收 bmp、avif，店员却看不到这两种。三是日志的脱敏只认 Anthropic Key 的样子，连接的秘密要另外登记。没查的：各家官方 MCP 服务器的现状、商店政策现在的条文、三个写文件的库的许可和大小，都没有联网核对 |
+| 2026-11-15 | C4 | 分支 `c4-tools`，未推送 | `npx vitest run` 和 `tsc` 全过，新测试先看着失败再实现。中英文都跑过 `connect`、`consult`、`templates`、`materials`、`parallel`、`scheduled`、`projectboard`、`cards`，全过。授权卡、连接页和委托单那一行，中英文的截图都看过，640×360 的也看过。`connect` 场景里，替身把秘密念出来、夹进调用参数，日志和录制里都搜不到。没查的：没有真 Key 的运行，打包版里 `nook-*` 服务器能不能起来留给 C9，安装包多了多少没量 |

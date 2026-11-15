@@ -21,6 +21,7 @@ import { locateClaude } from './claude-locator';
 import { InputQueue } from './input-queue';
 import { agentEnv, type Credentials } from './api-key';
 import { estimateUsd, type Usage } from './prices';
+import { mcpServersOf, toolsByName, type NookServer } from './nook-tools';
 
 /** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -116,6 +117,11 @@ export type RunOptions = {
   credentials: Credentials | null;
   /** Stop once this run has spent this much (US dollars, Claude Code's estimate); absent means no cap. */
   maxBudgetUsd?: number;
+  /**
+   * The shop's own tools and the connections ticked on the slip (road-to-1.3.md C4), run in this process as `sdk` MCP
+   * servers; the round's id and project go to each call. Nothing else is ever an MCP server.
+   */
+  nook?: { servers: NookServer[]; run: string; project?: string };
 };
 
 /** After a result, how long the session stays open in case the agent picks up a note sent just before. */
@@ -148,7 +154,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   const normalizer = new EventNormalizer();
@@ -181,8 +187,11 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   };
   const hooks = Object.fromEntries(HOOK_EVENTS.map((ev) => [ev, [{ hooks: [hookRecorder] }]]));
   const interim = interimPermission(workDir);
+  const servers = nook?.servers ?? [];
+  const nookTools = toolsByName(servers);
+  const mcpServers = mcpServersOf(servers, { run: nook?.run ?? '', project: nook?.project, workDir, signal: abort?.signal ?? new AbortController().signal });
   const canUseTool: CanUseTool = broker
-    ? makePermissionPolicy({ workDir, preexisting, keepOriginal }, broker, {
+    ? makePermissionPolicy({ workDir, preexisting, keepOriginal, nook: nookTools }, broker, {
         onRequest: (tool, input, risk, reason, agentId) =>
           record({ source: 'permission', name: tool, payload: { input, risk, reason, agent_id: agentId } }),
         onDecision: (tool, choice, risk, label, agentId) =>
@@ -191,7 +200,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     : async (toolName, input, opts) => {
         const result = await interim(toolName, input, opts);
         // Debug tasks record the risk level without asking the user.
-        const { risk, reason } = classify(toolName, input, { workDir });
+        const { risk, reason } = classify(toolName, input, { workDir, nook: nookTools });
         record({ source: 'permission', name: toolName, payload: { input, result, risk, reason, agent_id: opts.agentID } });
         return result;
       };
@@ -228,8 +237,9 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         tools: TOOLS,
         hooks,
         // Ignore Claude Code settings and MCP servers on the user's machine; behavior is defined by this app only.
+        // The only MCP servers are the app's own, in this process (C4).
         settingSources: [],
-        mcpServers: {},
+        mcpServers,
         strictMcpConfig: true,
         abortController: abort,
         canUseTool,

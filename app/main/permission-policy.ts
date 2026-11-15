@@ -31,7 +31,10 @@ function deletedFiles(command: string): string[] {
 }
 
 /** A specific, plain description of the action, used as the confirm button label. Never just "OK". */
-export function describeAction(tool: string, input: Record<string, unknown>): string {
+export function describeAction(tool: string, input: Record<string, unknown>, ctx?: RiskContext): string {
+  // The shop's own tools and the connections say in their own words what they are about to do (C4).
+  const nook = ctx?.nook?.get(tool);
+  if (nook) return nook.label(input);
   if (tool === 'Bash' || tool === 'PowerShell') {
     const cmd = String(input.command ?? '');
     const files = deletedFiles(cmd);
@@ -90,7 +93,7 @@ export function makePermissionPolicy(ctx: RiskContext, broker: Asker, events: Po
     }
 
     const serious = risk === 'serious';
-    const action = describeAction(tool, input);
+    const action = describeAction(tool, input, ctx);
     const choice = await broker.ask({
       kind: serious ? 'serious' : 'permission',
       agent: agentOf(agentId, agents),
