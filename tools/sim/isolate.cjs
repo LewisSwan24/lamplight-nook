@@ -36,6 +36,25 @@ for (const [name, folder] of Object.entries({
   app.setPath(name, join(home, folder));
 }
 
+// Stand-ins for what the shop does outside its window (road-to-1.2.md B6). Opening at login would write to this computer's
+// own start-up list, so it is only written down. System notifications and the tray's menu cannot be screenshot, so they are
+// kept for a scenario to read, and a notification to click (emit('click')). Off-screen, notifications are not shown at all.
+const sim = (globalThis.__sim = { login: [], notices: [], trayMenu: null });
+app.setLoginItemSettings = (settings) => { sim.login.push(settings); };
+{
+  const { Notification, Tray } = electron;
+  const show = Notification.prototype.show;
+  Notification.prototype.show = function simShow() {
+    sim.notices.push(this);
+    if (!process.env.SIM_OFFSCREEN) show.call(this);
+  };
+  const setMenu = Tray.prototype.setContextMenu;
+  Tray.prototype.setContextMenu = function simMenu(menu) {
+    sim.trayMenu = menu;
+    return setMenu.call(this, menu);
+  };
+}
+
 if (process.env.SIM_OFFSCREEN) {
   const OFF = -32000;
   // An off-screen window counts as covered, and a covered window's page would stop drawing.
@@ -44,7 +63,7 @@ if (process.env.SIM_OFFSCREEN) {
   app.commandLine.appendSwitch('disable-background-timer-throttling');
   app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 
-  const { BrowserWindow, Notification } = electron;
+  const { BrowserWindow } = electron;
   class OffscreenWindow extends BrowserWindow {
     constructor(options = {}) {
       const { show = true, ...rest } = options;
@@ -59,7 +78,6 @@ if (process.env.SIM_OFFSCREEN) {
   proto.center = function center() { this.setPosition(OFF, OFF); };
   proto.isFocused = () => true; // as it would be for someone using the shop: no flashing, no "come back" notices
   for (const name of ['focus', 'moveTop', 'flashFrame']) proto[name] = () => {};
-  Notification.prototype.show = () => {};
 
   globalThis.__simElectron = { ...Object.fromEntries(Object.keys(electron).map((k) => [k, electron[k]])), BrowserWindow: OffscreenWindow };
   const names = Object.keys(globalThis.__simElectron);

@@ -172,6 +172,11 @@ async function waitForLog(home, what, count, timeout = 30_000) {
   return logged(home, what).length >= count;
 }
 
+/** A moment as the shop's clock takes it (LAMPLIGHT_CLOCK): local YYYY-MM-DDTHH:MM:SS. */
+const localStamp = (d) => {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
 const check = (cond, why) => { if (!cond) throw new Error(why); };
 /** Choose the second option on questions, and "not now" on serious cards (the default). */
 const demoAnswers = (card) => (card.serious ? null : 1);
@@ -2849,6 +2854,245 @@ const SCENARIOS = {
         await sleep(800);
       } finally { await shop.close(); }
     }
+  },
+
+  /**
+   * Out of sight (road-to-1.2.md B6): halfway through, the close question's third button tucks the shop into the tray this
+   * once, the setting unchanged. A question while it is away comes as a notice, which brings the shop back to answer it;
+   * tucked away again, it finishes, the notice says so, and clicking it shows the result card. System notifications cannot
+   * be screenshot: the stand-ins in isolate.cjs keep them, and the log has their kinds.
+   */
+  async background(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const shop = await launch({ lang, home, speed: Math.max(SPEED, 900), scenario: 'projectmemo' });
+    const tuck = () => shop.app.evaluate(({ BrowserWindow, dialog }) => {
+      dialog.showMessageBoxSync = () => 2;
+      BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('mini')).close();
+    });
+    const visible = () => shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('mini')).isVisible());
+    const notices = () => shop.app.evaluate(() => globalThis.__sim.notices.map((n) => ({ title: n.title, body: n.body })));
+    const click = (i) => shop.app.evaluate((_e, i) => globalThis.__sim.notices[i].emit('click'), i);
+    try {
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check(await waitForLog(home, 'run start', 1, 10_000), 'the commission did not start');
+      await sleep(1500);
+      await tuck();
+      await sleep(800);
+      check(!(await visible()), 'the third button did not tuck the shop away');
+      check(await waitForLog(home, 'tucked into the tray', 1, 3000), 'tucking away was not noted');
+      check(!JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).closeToTray, 'tucking away once changed the setting');
+      // The page's colour question, while nobody is looking: a notice, and the round waits for the answer.
+      check(await waitForLog(home, 'notice {"kind":"ask"', 1, 60_000), 'no notice for the question');
+      check(logged(home, 'run end').length === 0, 'the round did not wait for its answer');
+      await click(0);
+      await sleep(800);
+      check(await visible(), 'the notice did not bring the shop back');
+      check(await shop.maybe('.backdrop .question', 5000), 'the question is not there to answer');
+      await shop.page.keyboard.press('1');
+      await sleep(600);
+      await tuck();
+      check(await waitForLog(home, 'run end', 1, 120_000), 'the commission did not finish in the tray');
+      check(await waitForLog(home, 'notice {"kind":"done"', 1, 5000), 'no notice for the finished work');
+      const said = await notices();
+      const title = notebook().projects[0].title;
+      check(said.length === 2 && said[1].title.includes(title) && !said[1].body.includes('<'), `the notices read ${JSON.stringify(said)}`);
+      writeFileSync(join(out, 'background-notices.txt'), said.map((n) => `${n.title} | ${n.body}`).join('\n'));
+      check(!(await visible()), 'the shop came back by itself');
+      await click(1);
+      await sleep(800);
+      check(await visible(), 'the notice did not bring the shop back');
+      check(await shop.maybe('.result-card', 5000), 'no result card after clicking the notice');
+      await shop.shot(join(out, 'background-result.png'));
+      // Put away and clicked again: the card comes back.
+      await shop.page.keyboard.press('Escape');
+      await sleep(600);
+      await click(1);
+      check(await shop.maybe('.result-card', 5000), 'the notice clicked again did not bring the card back');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * "Open in the tray when the computer starts" (B6): off at first; switched, Electron is asked with --tray (a stand-in in
+   * isolate.cjs keeps the call, this computer's start-up list is never touched). Started with --tray, the window stays out
+   * of sight. The Store build has no such switch.
+   */
+  async autostart(lang, out) {
+    const T = locale(lang).ui.tray;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    let shop = await launch({ lang, home, speed: SPEED });
+    const calls = () => shop.app.evaluate(() => globalThis.__sim.login);
+    try {
+      await shop.openSettings('work');
+      const box = shop.page.locator('label.toggle', { hasText: T.openAtLoginToggle }).locator('input');
+      check(!(await box.isChecked()), 'opening at login is on at first');
+      await shop.page.locator('.settings-body').evaluate((b) => { b.scrollTop = b.scrollHeight; });
+      await shop.shot(join(out, 'autostart-settings.png'));
+      await box.check();
+      await sleep(500);
+      await box.uncheck();
+      await sleep(500);
+      const said = await calls();
+      check(JSON.stringify(said) === JSON.stringify([{ openAtLogin: true, args: ['--tray'] }, { openAtLogin: false, args: ['--tray'] }]), `Electron was asked ${JSON.stringify(said)}`);
+    } finally { await shop.close(); }
+    shop = await launch({ lang, home, speed: SPEED, args: ['--tray'] });
+    try {
+      const shown = await shop.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('mini')).isVisible());
+      check(!shown, 'started with --tray, the window showed');
+    } finally { await shop.close(); }
+    shop = await launch({ lang, home, speed: SPEED, store: true });
+    try {
+      await shop.openSettings('work');
+      check(await shop.page.locator('label.toggle', { hasText: T.openAtLoginToggle }).count() === 0, 'the Store build offers to open at login');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A scheduled commission (B6): made from the project board's "do it regularly", which says the shop must be open; paused
+   * and resumed from the tray's menu; then, the clock moved to just before it is due (LAMPLIGHT_CLOCK), the slip queues
+   * itself and finishes as another round of the project. The tray's menu cannot be screenshot: its items are written out.
+   */
+  async scheduled(lang, out) {
+    const L = locale(lang);
+    const P = L.ui.projects;
+    const S = P.schedule;
+    const T = L.ui.tray;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'schedules.json'), 'utf8'));
+    const menu = (shop) => shop.app.evaluate(() => globalThis.__sim.trayMenu.items.map((i) => (i.type === 'separator' ? '----' : `${i.type === 'checkbox' ? (i.checked ? '[x] ' : '[ ] ') : ''}${i.label}${i.enabled ? '' : ' (grey)'}`)));
+    const want = lang === 'en' ? 'Add this week\'s visitors to the page' : '把这周的来客加到页面上';
+    let shop = await launch({ lang, home, speed: SPEED });
+    const fits = async (what) => {
+      const spill = await shop.page.locator('.project-card').evaluate((c) => {
+        const box = c.getBoundingClientRect();
+        return c.scrollWidth > c.clientWidth + 1 || box.top < -1 || box.bottom > innerHeight + 1 || box.left < -1 || box.right > innerWidth + 1;
+      });
+      check(!spill, `${what} does not fit the window`);
+    };
+    try {
+      check((await runOne(shop, { template: 'page', want: W[lang].page })).ok, 'the first round did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(800);
+      const idle = await menu(shop);
+      check(idle.includes(`${T.idle} (grey)`) && idle.includes(`[ ] ${T.pauseSchedules}`), `the tray menu reads ${JSON.stringify(idle)}`);
+      writeFileSync(join(out, 'tray-menu-idle.txt'), idle.join('\n'));
+      await boardRows(shop);
+      await shop.page.locator('.project-regular').first().click();
+      await shop.page.waitForSelector('.schedule-card');
+      await shop.page.fill('.schedule-want', want);
+      await shop.page.selectOption('.schedule-kind', 'daily');
+      await shop.page.fill('.schedule-time', '09:00');
+      await shop.shot(join(out, 'schedule-panel.png'));
+      await fits('the schedule card');
+      await shop.page.selectOption('.schedule-kind', 'once');
+      await shop.shot(join(out, 'schedule-panel-once.png'));
+      await shop.page.selectOption('.schedule-kind', 'weekly');
+      await shop.page.selectOption('.schedule-weekday', '1');
+      await shop.page.locator('.schedule-save').click();
+      await shop.page.waitForSelector('.project-card:not(.schedule-card) .projects-note');
+      const note = await shop.page.locator('.projects-schedule-note').allInnerTexts();
+      check(note.includes(S.closedNote), `the board does not say the shop must be open: ${JSON.stringify(note)}`);
+      check(await shop.page.locator('.project-schedule').count() === 1, 'the board does not show the schedule');
+      await shop.shot(join(out, 'schedule-board.png'));
+      await shop.resize([640, 360]);
+      await sleep(500);
+      await fits('the board with a schedule');
+      await shop.page.locator('.project-regular').first().click();
+      await shop.page.waitForSelector('.schedule-card .schedule-item');
+      await fits('the schedule card with its list');
+      await shop.shot(join(out, 'schedule-panel-small.png'));
+      await shop.resize('medium');
+      // A daily one instead, at nine: the weekly one is stopped from its list.
+      await shop.page.locator('.schedule-remove').click();
+      await shop.page.waitForFunction(() => !document.querySelector('.schedule-item'));
+      await shop.page.fill('.schedule-want', want);
+      await shop.page.selectOption('.schedule-kind', 'daily');
+      await shop.page.fill('.schedule-time', '09:00');
+      await shop.page.locator('.schedule-save').click();
+      await sleep(600);
+      check(saved().length === 1 && saved()[0].every.kind === 'daily', `schedules.json has ${JSON.stringify(saved())}`);
+      // Paused from the tray, and the board says so; resumed again.
+      await shop.app.evaluate((_e, label) => globalThis.__sim.trayMenu.items.find((i) => i.label === label).click(), T.pauseSchedules);
+      await sleep(400);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).schedulesPaused === true, 'the tray did not pause the schedules');
+      await shop.page.keyboard.press('Escape');
+      await boardRows(shop);
+      check((await shop.page.locator('.projects-schedule-note').allInnerTexts()).includes(S.paused), 'the board does not say the schedules are paused');
+      await shop.app.evaluate((_e, label) => globalThis.__sim.trayMenu.items.find((i) => i.label === label).click(), T.pauseSchedules);
+      await sleep(400);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).schedulesPaused === false, 'the tray did not resume the schedules');
+    } finally { await shop.close(); }
+
+    // Twenty seconds before it is due.
+    const due = new Date(saved()[0].next);
+    shop = await launch({ lang, home, speed: SPEED, clock: localStamp(new Date(due.getTime() - 20_000)) });
+    try {
+      check(await waitForLog(home, 'schedule due', 1, 60_000), 'the schedule did not come due');
+      check(await waitForLog(home, 'run start', 2, 10_000), 'the scheduled slip did not start');
+      await sleep(1500);
+      const busy = await menu(shop);
+      const title = notebook().projects[0].title;
+      check(busy.some((l) => l.includes(title) && l.includes(P.status.running)), `the tray menu does not list the round: ${JSON.stringify(busy)}`);
+      writeFileSync(join(out, 'tray-menu-busy.txt'), busy.join('\n'));
+      const r = await shop.workUntilDone({ answers: demoAnswers });
+      check(r.ok, `the scheduled round did not finish: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+      await sleep(800);
+      const s = saved()[0];
+      check(s.last?.result === 'done' && new Date(s.next).getTime() === due.getTime() + 86_400_000, `schedules.json has ${JSON.stringify(s)}`);
+      check(notebook().projects.length === 1 && notebook().projects[0].rounds.length === 2, 'the scheduled slip was not another round of the project');
+      await shop.page.keyboard.press('Escape');
+      await sleep(600);
+      await boardRows(shop);
+      await shop.shot(join(out, 'schedule-board-done.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Missed while the shop was closed (B6): across one due time, two hours late, it runs once; across two, a day and more,
+   * still only once, the older one skipped and said on the board.
+   */
+  async missed(lang, out) {
+    const S = locale(lang).ui.projects.schedule;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const notebook = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const file = join(home.data, 'schedules.json');
+    const want = lang === 'en' ? 'Add this week\'s visitors to the page' : '把这周的来客加到页面上';
+    let shop = await launch({ lang, home, speed: SPEED, clock: '2026-11-15T12:00' });
+    try {
+      check((await runOne(shop, { template: 'page', want: W[lang].page })).ok, 'the first round did not finish');
+    } finally { await shop.close(); }
+    const project = notebook().projects[0].id;
+    const nine = (day) => new Date(`2026-11-${day}T09:00`).toISOString();
+    writeFileSync(file, JSON.stringify([{ id: 's1', project, form: { want }, every: { kind: 'daily', time: '09:00' }, next: nine(16), enabled: true }]));
+    const reopen = async (clock, rounds) => {
+      const starts = logged(home, 'run start').length;
+      shop = await launch({ lang, home, speed: SPEED, clock });
+      check(await waitForLog(home, 'run start', starts + 1, 20_000), `${clock}: the missed slip did not run`);
+      check((await shop.workUntilDone({ answers: demoAnswers })).ok, `${clock}: the missed slip did not finish`);
+      await sleep(4000);
+      check(logged(home, 'run start').length === starts + 1, `${clock}: it ran more than once`);
+      check(notebook().projects[0].rounds.length === rounds, `${clock}: the project has ${notebook().projects[0].rounds.length} rounds`);
+    };
+    try {
+      // Closed across 16 Nov 09:00, open again at eleven.
+      await reopen('2026-11-16T11:00', 2);
+      let s = JSON.parse(readFileSync(file, 'utf8'))[0];
+      check(s.next === nine(17) && !s.missed && s.last?.result === 'done', `after one: ${JSON.stringify(s)}`);
+    } finally { await shop.close(); }
+    try {
+      // Closed across 17 and 18 Nov 09:00, open again at ten on the 18th: the 17th's is skipped, the 18th's runs.
+      await reopen('2026-11-18T10:00', 3);
+      const s = JSON.parse(readFileSync(file, 'utf8'))[0];
+      check(s.next === nine(19) && s.missed === nine(17), `after two: ${JSON.stringify(s)}`);
+      await shop.page.keyboard.press('Escape');
+      await sleep(600);
+      await boardRows(shop);
+      const line = await shop.page.locator('.project-schedule').innerText();
+      check(line.includes(S.missed.split('{at}')[0].trim()), `the board does not say which was missed: ${line}`);
+      await shop.shot(join(out, 'missed-board.png'));
+    } finally { await shop.close(); }
   },
 
   /** Furnishing: pick a wall, curtains and a rug; they stay after a restart; the study keeps its own. */

@@ -270,7 +270,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'mini' | 'updates';
+type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -470,7 +470,9 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
       el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
       el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
-        switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle], ['mini', strings.ui.mini.toggle]])),
+        // The Store build can't open itself at login this way (road-to-1.2.md B6), so it has no such switch.
+        switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle],
+          ...(env.store ? [] : [['openAtLogin', strings.ui.tray.openAtLoginToggle] as [Switch, string]]), ['mini', strings.ui.mini.toggle]])),
     ],
     about: [
       el('section', {}, el('h4', {}, S.legalLabel),

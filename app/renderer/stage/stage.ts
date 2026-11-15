@@ -115,7 +115,8 @@ export class Stage {
     this.projects = new Map(list.map((r) => [r.run, { title: r.title, color: r.color }]));
     for (const [actor, run] of [...this.wearing]) if (!this.projects.has(run)) this.wearing.delete(actor);
     this.redress();
-    this.drawBoard();
+    // With nothing under way the blackboard is the result card's to clear; drawing here would bring back a plan it took off.
+    if (list.length) this.drawBoard();
   }
 
   /** Who leads a round (B9), who works for which just now, and whether two are under way. */

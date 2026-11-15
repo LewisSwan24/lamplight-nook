@@ -14,7 +14,7 @@ export type Job = {
   sessionId?: string;
   startedAt: number;
   /** A round of changes to finished work: its notebook entry, what to change, the session to pick up. */
-  revise?: { id: string; ask: string; fromSession?: string; summary?: string; restored?: boolean };
+  revise?: { id: string; ask: string; fromSession?: string; summary?: string; restored?: boolean; scheduled?: boolean };
 };
 
 const isJob = (job: Job | null) => Boolean(job && typeof job.workDir === 'string' && job.form && typeof job.form.want === 'string');

@@ -530,7 +530,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
       shown = result.workDir;
     }
   });
-  const card = el('div.card.paper.result-card', {},
+  const card = el('div.card.paper.result-card', { 'data-run': result.run },
     closeButton(),
     el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${result.round === 1 ? U.resultRoundOne : fill(U.resultRound, { n: String(result.round) })}`) : null),
     // Which project it was for: with two rounds at once, two cards may come one after the other (B5).
