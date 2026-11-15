@@ -7,6 +7,9 @@ import { basename, dirname, join } from 'node:path';
 type Entry = { key: string; usd: number; month: string };
 
 const month = localMonth;
+/** The part of a key before the session: a commission's folder, or `consult:<id>` for a talk with Adeng (B4). */
+const folderOf = (key: string) => key.slice(0, key.lastIndexOf('|'));
+const isConsult = (key: string) => key.startsWith('consult:');
 
 /**
  * What the commissions cost, from the totals Claude Code reports (an estimate, not Anthropic's bill).
@@ -53,9 +56,10 @@ export class SpendLedger {
   forget() {
     const anonymous = new Map<string, number>();
     this.entries = this.entries.map((e) => {
-      const folder = e.key.slice(0, e.key.lastIndexOf('|'));
+      const folder = folderOf(e.key);
       if (!anonymous.has(folder)) anonymous.set(folder, anonymous.size + 1);
-      return { ...e, key: `${anonymous.get(folder)}|` };
+      // A talk with Adeng stays a talk, so the ledger still shows it apart.
+      return { ...e, key: `${isConsult(e.key) ? 'consult:' : ''}${anonymous.get(folder)}|` };
     });
     this.save();
     forgetAside(this.file);
@@ -80,12 +84,18 @@ export class SpendLedger {
     return this.entries.filter((e) => e.month === m).reduce((sum, e) => sum + e.usd, 0);
   }
 
-  /** Each month that cost anything, newest first, and how many commissions it went on. */
+  /** What the talks with Adeng this month cost, and how many there were. */
+  consultsThisMonth(now = new Date()): { count: number; usd: number } {
+    const here = this.entries.filter((e) => e.month === month(now) && isConsult(e.key));
+    return { count: new Set(here.map((e) => folderOf(e.key))).size, usd: here.reduce((sum, e) => sum + e.usd, 0) };
+  }
+
+  /** Each month that cost anything, newest first, and how many commissions it went on (talks with Adeng are not commissions). */
   months(): { month: string; usd: number; commissions: number }[] {
     const months = new Set(this.entries.map((e) => e.month));
     return [...months].sort().reverse().map((m) => {
       const here = this.entries.filter((e) => e.month === m);
-      return { month: m, usd: here.reduce((sum, e) => sum + e.usd, 0), commissions: new Set(here.map((e) => e.key.slice(0, e.key.lastIndexOf('|')))).size };
+      return { month: m, usd: here.reduce((sum, e) => sum + e.usd, 0), commissions: new Set(here.filter((e) => !isConsult(e.key)).map((e) => folderOf(e.key))).size };
     });
   }
 

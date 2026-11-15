@@ -8,9 +8,10 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
-import { KeyStore, keyHint, pickCredentials, saveKey } from './api-key';
+import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
+import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
 import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName } from './commission';
 import { sessionExists } from './sessions';
@@ -40,6 +41,7 @@ import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
 import { copyMaterials, sortHandOver } from './materials';
 import { stepCount } from '../shared/board';
+import { projectFolders } from './projects';
 import { cleanScene } from '../shared/scenes';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -277,6 +279,65 @@ ipcMain.handle(IPC.monthCapNews, (): number | null => {
 });
 ipcMain.handle(IPC.setProjectCap, (_e, id: unknown, usd: unknown): boolean => typeof id === 'string' && typeof usd === 'number' && memory.setProjectCap(id, usd));
 
+/**
+ * The talk with Adeng before a commission (road-to-1.2.md B4), one at a time: a slip opened afresh starts a new one. `said`
+ * counts what the user said, `told` the files Adeng has heard the names of.
+ */
+type Talk = { id: string; sessionId?: string; said: number; lines: ConsultLine[]; told: string[] };
+let talk: Talk | null = null;
+/** The talk itself as the slip, when no slip came of it. */
+const chatBrief = (t: Talk, end?: 'cap' | 'trouble'): ConsultBrief =>
+  ({ ...briefFromChat(t.lines, { you: strings.ui.consult.you, adeng: strings.actors.adeng }, strings.ui.consult.colon), consult: t.id, fromChat: true, ...(end ? { end } : {}) });
+/**
+ * The most the talk's next turn may spend: what is left of its own cap and of the month's, held like a round's (budget.ts).
+ * Null when that is under a cent, or the month has too little left for a commission to start anyway.
+ */
+function talkGrant(t: Talk): number | null {
+  const left = CONSULT_CAP_USD - spend.forCommission(consultFolder(t.id));
+  if (left < 0.01) return null;
+  const grant = reservations.reserve('consult', undefined, { roundUsd: left, monthUsd: settings.get().monthCapUsd }, { month: spend.thisMonth(now()), project: 0 });
+  if ('refused' in grant) return null;
+  return grant.usd!;
+}
+/**
+ * One paid turn of the talk; what it cost goes in the ledger under the talk, which counts toward the month. The slip only
+ * opens once there is a key (renderer main.ts, notReady), so there are credentials.
+ */
+async function talkTurn(t: Talk, prompt: string, usd: number, finish: boolean) {
+  const cwd = join(app.getPath('userData'), 'consult');
+  mkdirSync(cwd, { recursive: true });
+  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined }));
+  reservations.settle('consult');
+  t.sessionId = turn.sessionId ?? t.sessionId;
+  spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now());
+  log?.info('consult turn', { ok: turn.ok, budget: turn.budget, costUsd: turn.costUsd, finish });
+  return turn;
+}
+ipcMain.handle(IPC.consult, async (_e, id: unknown, text: unknown, files: unknown): Promise<ConsultReply> => {
+  if (!talk || talk.id !== id) talk = { id: `t${Date.now()}`, said: 0, lines: [], told: [] };
+  const t = talk;
+  t.lines.push({ who: 'you', text: String(text).trim().slice(0, 2000) });
+  // Past the most the user may say, or what the talk may cost: no more paid turns, the slip comes from what was said.
+  const usd = t.said < CONSULT_MESSAGES ? talkGrant(t) : null;
+  if (usd === null) return { id: t.id, brief: chatBrief(t, 'cap') };
+  t.said++;
+  const fresh = (Array.isArray(files) ? files.filter((f): f is string => typeof f === 'string') : []).filter((f) => !t.told.includes(f));
+  t.told.push(...fresh);
+  const turn = await talkTurn(t, userMessage(t.lines.at(-1)!.text, fresh), usd, false);
+  if (!turn.text) return { id: t.id, brief: chatBrief(t, turn.budget ? 'cap' : 'trouble') };
+  t.lines.push({ who: 'adeng', text: turn.text });
+  return { id: t.id, reply: turn.text };
+});
+ipcMain.handle(IPC.consultFinish, async (): Promise<ConsultBrief> => {
+  const t = talk!;
+  const usd = talkGrant(t);
+  if (usd === null) return chatBrief(t, 'cap');
+  const turn = await talkTurn(t, FINISH_PROMPT, usd, true);
+  const brief = briefFrom(turn.output, turn.text);
+  return brief ? { ...brief, consult: t.id } : chatBrief(t, turn.budget ? 'cap' : undefined);
+});
+ipcMain.handle(IPC.consultsThisMonth, () => spend.consultsThisMonth(now()));
+
 ipcMain.handle(IPC.getSettings, (): Settings => settings.get());
 ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
   // Where commissions are written is chosen in the folder dialog (chooseWorkRoot), never sent from the page.
@@ -345,8 +406,8 @@ function projectOf(job: Job, again: boolean): Project | undefined {
 const capsFor = (project?: Project): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd });
 /** What the ledger has this month and on the project: every folder its commissions worked in, all sessions. */
 function spentOn(project?: Project): Spent {
-  const folders = new Set([...(project ? [project.folder] : []), ...memory.get().commissions.filter((c) => c.folder && project?.commissions.includes(c.id)).map((c) => c.folder!)]);
-  return { month: spend.thisMonth(now()), project: [...folders].reduce((sum, f) => sum + spend.forCommission(f), 0) };
+  const folders = project ? projectFolders(project, memory.get().commissions) : [];
+  return { month: spend.thisMonth(now()), project: folders.reduce((sum, f) => sum + spend.forCommission(f), 0) };
 }
 /** Where a cap stands once a round is settled. */
 function noteOn(cap: CapKind, caps: Caps, spent: Spent): Refusal {

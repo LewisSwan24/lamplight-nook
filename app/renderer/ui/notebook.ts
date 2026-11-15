@@ -19,14 +19,21 @@ const duration = (seconds: number) => {
   return m ? fill(N.ledgerMinutes, { m: String(m), s }) : fill(N.ledgerSeconds, { s });
 };
 
-/** This month at a glance, from what each round left behind; kept on this computer only, and clearable on its own. */
-function ledger(api: LamplightApi, memory: Memory, spent: number): HTMLElement | null {
+/** What the talks with Adeng before a commission cost this month (B4), and how many there were. */
+type Talks = { count: number; usd: number };
+
+/**
+ * This month at a glance, from what each round left behind; kept on this computer only, and clearable on its own. The talks
+ * with Adeng are a line of their own.
+ */
+function ledger(api: LamplightApi, memory: Memory, spent: number, talks: Talks): HTMLElement | null {
   const s = monthStats(memory, localMonth(new Date()));
   if (!s.since) return null;
   const kinds = N.ledgerKind as Record<string, string>;
   const lines = s.rounds ? [
     fill(N.ledgerWorks, { works: String(s.works), rounds: String(s.rounds), time: duration(s.averageSeconds) }),
     spent ? fill(N.ledgerSpent, { cost: formatUsd(spent) }) : null,
+    talks.count ? fill(N.ledgerConsults, { n: String(talks.count), cost: formatUsd(talks.usd) }) : null,
     s.failures.length ? fill(N.ledgerFailures, { list: s.failures.map((f) => fill(kinds[f.kind] ?? kinds.failed, { n: String(f.n) })).join(N.ledgerJoin) }) : null,
     s.waits ? fill(N.ledgerWaits, { n: String(s.waits), time: duration(s.waitedSeconds) }) : null,
   ] : [N.ledgerNone];
@@ -40,7 +47,7 @@ function ledger(api: LamplightApi, memory: Memory, spent: number): HTMLElement |
   return section;
 }
 
-function pages(api: LamplightApi, memory: Memory, spent: number, revise?: (id: string, title: string) => void): HTMLElement[] {
+function pages(api: LamplightApi, memory: Memory, spent: number, talks: Talks, revise?: (id: string, title: string) => void): HTMLElement[] {
   if (!memory.commissions.length && !memory.stuckNotes.length) return [el('div.notebook-empty', {}, N.empty)];
   const newest = [...memory.commissions].reverse();
   // A project's cap (B8) sits with its latest commission, until projects have a board of their own (B2).
@@ -86,7 +93,7 @@ function pages(api: LamplightApi, memory: Memory, spent: number, revise?: (id: s
     el('div', {}, fill(N.doneCount, { n: String(shop.done) })),
     el('ul', {}, ...shopTimeline(memory).map((d) => el('li', {}, el('span.notebook-date', {}, d.date), ' ', d.text)))) : null;
   return [
-    ledger(api, memory, spent),
+    ledger(api, memory, spent, talks),
     days,
     newest.length ? el('section', {}, el('h4', {}, N.commissions), commissions) : null,
     stuck.length ? el('section', {}, el('h4', {}, N.stuck), el('ul', {}, ...stuck)) : null,
@@ -130,8 +137,8 @@ export function onNotebookForget(fn: () => void) {
 
 /** Adeng's notebook: everything the shop remembers, and a way to forget it all (asked twice). */
 export async function showNotebook(api: LamplightApi) {
-  const [memory, spent] = await Promise.all([api.getMemory(), api.spendThisMonth()]);
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(api, memory, spent, reviseOld));
+  const [memory, spent, talks] = await Promise.all([api.getMemory(), api.spendThisMonth(), api.consultsThisMonth()]);
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...pages(api, memory, spent, talks, reviseOld));
   const actions = el('div.actions');
   const ask = () => {
     actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));

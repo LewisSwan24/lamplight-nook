@@ -10,7 +10,10 @@ const HEADER = '把下面每个月的合计和 Anthropic Console 用量页上同
 const cell = (text) => text.replaceAll('|', '\|');
 const usd = (n) => n.toFixed(4);
 
-/** One row per ledger entry by month, each month's total after it, and the grand total last. */
+/**
+ * One row per ledger entry by month, each month's total after it, and the grand total last. Talks with Adeng before a
+ * commission (road-to-1.2.md B4, keys consult:<id>|<session>) are one row of their own each month.
+ */
 export function formatLedger(entries, commissions, month) {
   const titles = new Map(commissions.map((c) => [c.folder, c.title]));
   const months = [...new Set(entries.map((e) => e.month))].filter((m) => !month || m === month).sort();
@@ -18,7 +21,9 @@ export function formatLedger(entries, commissions, month) {
   let total = 0;
   for (const m of months) {
     let sum = 0;
-    for (const e of entries.filter((e) => e.month === m)) {
+    const here = entries.filter((e) => e.month === m);
+    const consults = here.filter((e) => e.key.startsWith('consult:'));
+    for (const e of here.filter((e) => !consults.includes(e))) {
       const cut = e.key.lastIndexOf('|');
       const folder = e.key.slice(0, cut);
       const session = e.key.slice(cut + 1);
@@ -26,6 +31,11 @@ export function formatLedger(entries, commissions, month) {
       const work = titles.get(folder) ?? (/^\d+$/.test(folder) && !session ? `（已忘记，第 ${folder} 个文件夹）` : basename(folder));
       lines.push(`| ${m} | ${cell(work)} | ${session} | ${usd(e.usd)} |`);
       sum += e.usd;
+    }
+    if (consults.length) {
+      const usdSum = consults.reduce((s, e) => s + e.usd, 0);
+      lines.push(`| ${m} | 商量（${new Set(consults.map((e) => e.key.slice(0, e.key.lastIndexOf('|')))).size} 次） |  | ${usd(usdSum)} |`);
+      sum += usdSum;
     }
     lines.push(`| ${m} | **合计** |  | **${usd(sum)}** |`);
     total += sum;
