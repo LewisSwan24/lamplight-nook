@@ -144,11 +144,11 @@ type Grant = {
 - 委托单上的“这单可以用：”只列没暂停的连接，默认都不勾。勾了的连接号记在 `CommissionForm.connections` 上，跟着委托单进笔记本、待续记录和定时委托。
 - 提示词：勾了连接时，`withConnections()` 在提示词最后加一段，列出能用的连接、各自的服务器名和用途。`MATERIAL_RULE` 加上了“从连接读来的内容”。
 - 替身学会了 `mcp_message`：先发 `initialize`，再 `tools/list`，最后 `tools/call`。新剧本 `connect` 对每个连接调一次第一个工具，再把设好的秘密念出来，并夹在调用参数里，看应用能不能把它遮掉。
-- `zod` 和 `@modelcontextprotocol/sdk` 写进了 `dependencies`，`package-lock.json` 用 `npm install --package-lock-only --offline` 更新。第三方声明从 20 个包变成 109 个，多出来的几乎都是 `@modelcontextprotocol/sdk` 带的 `express`、`hono` 这些。
+- `zod` 写进 `dependencies`，`@modelcontextprotocol/sdk` 写进 `devDependencies`，`package-lock.json` 用 `npm install --package-lock-only --offline` 更新。
 
 **暂定（2026-11-15）：**
 
-- `@modelcontextprotocol/sdk` 在应用里只用到类型，SDK 自己打包了 MCP 服务器，运行时并不加载它。照本节写进了 `dependencies`，安装包会多带约 90 个包。C9 量安装包大小时再定要不要挪到 `devDependencies`。`zod` 本身没有依赖，C1 起运行时就要用。
+- `@modelcontextprotocol/sdk` 在应用里只用到类型。SDK 的 `sdk.mjs` 自己打包了 MCP 服务器，运行时不加载它，所以不进安装包。`scripts/notices.mjs` 现在跳过 `import type`，第三方声明照旧是 20 个包。`zod` 本身没有依赖，C1 起运行时要用，那时会进声明。
 - 测试连接只能读，没有 `outside` 工具。能存一份的测试工具，等 C6 的 `outside` 场景再加。
 - 断开以后，这串秘密还留在本次打开的脱敏表里，直到应用关掉，晚写的日志也搜不到它。
 - `connections.json` 坏了就当作没有连接，文件原样不动。用户之后再加连接，会整个写掉坏文件，不另存一份。

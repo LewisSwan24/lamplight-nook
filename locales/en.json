@@ -727,6 +727,7 @@
       "howDisconnect": "To disconnect",
       "undoYes": "can be undone",
       "undoNo": "cannot be undone",
+      "doesLine": "{what} ({undo})",
       "connect": "Connect",
       "notNow": "Not now",
       "storage": "This computer can't lock its key away safely, so it was not connected.",

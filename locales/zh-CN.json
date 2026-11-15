@@ -727,6 +727,7 @@
       "howDisconnect": "怎么断开",
       "undoYes": "能撤回",
       "undoNo": "收不回",
+      "doesLine": "{what}（{undo}）",
       "connect": "连上",
       "notNow": "先不连",
       "storage": "这台电脑没法把它的钥匙锁好，所以没连上。",

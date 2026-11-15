@@ -13,7 +13,7 @@ export function grantParts(g: Grant): HTMLElement {
   const list = (title: string, items: (string | Node)[]) => (items.length ? el('div.grant-part', {}, el('b', {}, title), el('ul', {}, ...items.map((i) => el('li', {}, i)))) : null);
   return el('div.grant', {},
     list(K.reads, g.reads),
-    list(K.does, g.does.map((d) => `${d.what} (${d.undo === 'yes' ? K.undoYes : K.undoNo})`)),
+    list(K.does, g.does.map((d) => fill(K.doesLine, { what: d.what, undo: d.undo === 'yes' ? K.undoYes : K.undoNo }))),
     list(K.never, g.never),
     el('div.grant-part', {}, el('b', {}, K.howDisconnect), el('div', {}, g.disconnect)));
 }
