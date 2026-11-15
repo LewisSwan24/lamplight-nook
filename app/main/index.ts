@@ -50,7 +50,7 @@ import { localDay } from '../shared/localday';
 import { ProjectVersions, type Scope } from './project-versions';
 import { cleanScene } from '../shared/scenes';
 import { CONNECTION_ID, ConnectionStore } from './connections';
-import { ActionLog, RoundActions } from './action-log';
+import { ActionLog, ConnectionReads, RoundActions } from './action-log';
 import { type KindDef, offerOf, testKind } from './connection-kinds';
 import { type NookServer, connectionServers } from './nook-tools';
 import { randomUUID } from 'node:crypto';
@@ -117,6 +117,7 @@ let keys: KeyStore;
 let connections: ConnectionStore;
 /** The record of outside actions (road-to-1.3.md C6), actions.jsonl in the data folder. */
 let actionLog: ActionLog;
+let connectionReads: ConnectionReads;
 let spend: SpendLedger;
 /** What the rounds under way may still spend (road-to-1.2.md B8). */
 const reservations = new Reservations();
@@ -733,7 +734,12 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
   // The connections ticked on its slip (C4), kept with the slip for its later rounds and a schedule's.
   // None while the user has paused them all (C6); one paused mid-round is refused at its next call.
   const ticked = settings.get().connectionsPaused ? [] : connectionServers(job.form.connections, connections.list(), connectionServer);
-  const actions = ticked.length ? new RoundActions({ run, project: project?.id, log: actionLog, paused: () => settings.get().connectionsPaused }) : undefined;
+  // Every round is watched, ticked connections or not: a session that read through one keeps the web tools asking (C6).
+  const actions = new RoundActions({
+    run, project: project?.id, log: actionLog, paused: () => settings.get().connectionsPaused,
+    readFrom: connectionReads.get(again ? job.sessionId : pickUp),
+    onRead: (label) => { if (job.sessionId) connectionReads.set(job.sessionId, label); },
+  });
   const told = ticked.map((s) => {
     const c = connections.get(s.name)!;
     return { server: `nook-${c.id}`, label: c.label, brief: kindOf(c.kind)!.brief };
@@ -746,7 +752,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
         : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes), told),
       nook: { servers: [...SHOP_SERVERS, ...ticked], run, project: project?.id, actions },
       resume: again ? job.sessionId : pickUp,
-      onSession: (id) => { job.sessionId = id; pending.save(job); },
+      onSession: (id) => { job.sessionId = id; pending.save(job); if (actions.readFrom) connectionReads.set(id, actions.readFrom); },
       onInit: (info) => log?.info('run session', info),
       onInput: (add) => { me.note = (text) => add(meetingNote(text)); },
       onUnreported: (estimate) => { me.unreported = estimate; },
@@ -1364,6 +1370,7 @@ function openData() {
   // The ledger first: settings from before the monthly cap take theirs from what was spent (budget.ts).
   spend = new SpendLedger(join(dir, 'spend.json'));
   actionLog = new ActionLog(join(dir, 'actions.jsonl'));
+  connectionReads = new ConnectionReads(join(dir, 'connection-reads.json'));
   settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'), () => startingMonthCap(spend.months(), now()));
   pending = new PendingStore(join(dir, 'pending'), join(dir, 'pending.json'));
   schedules = new ScheduleStore(join(dir, 'schedules.json'));
@@ -1406,6 +1413,7 @@ ipcMain.handle(IPC.clearMemory, (): boolean => {
   versions.clear();
   spend.forget();
   actionLog.clear();
+  connectionReads.clear();
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
   return true;
 });

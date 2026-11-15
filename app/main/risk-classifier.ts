@@ -325,8 +325,18 @@ function pathVerdict(ctx: RiskContext, p: string, writing: boolean): RiskVerdict
   return null;
 }
 
-/** Classify the risk of a single tool call. */
+/**
+ * Classify the risk of a single tool call. Once the round has read through a connection (C6), a shell command could
+ * carry what it read off as well as a web request could (a script that goes online), so one that would pass asks first.
+ */
 export function classify(tool: string, input: Record<string, unknown>, ctx: RiskContext): RiskVerdict {
+  const verdict = classifyCall(tool, input, ctx);
+  const label = ctx.round?.readFrom;
+  if (label && verdict.risk === 'safe' && (tool === 'Bash' || tool === 'PowerShell')) return { risk: 'ask', reason: fill(R.shellAfterConnection, { label }) };
+  return verdict;
+}
+
+function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskContext): RiskVerdict {
   if (ASK_TOOLS.has(tool)) return { risk: 'ask', reason: R.ask };
   if (DELEGATE_TOOLS.has(tool)) return { risk: 'safe', reason: R.delegate };
   if (WEB_READ_TOOLS.has(tool)) {

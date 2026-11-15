@@ -111,6 +111,7 @@
     "npx": "要下载并运行一个工具包",
     "install": "要安装依赖包",
     "readOutside": "要读委托文件夹外面的东西",
+    "shellAfterConnection": "这单读过「{label}」里的东西，跑命令前先问你一声",
     "webAfterConnection": "这单读过「{label}」里的东西，查网页前先问你一声",
     "connectionsPaused": "所有连接都在设置里暂停了",
     "safeCommand": "在委托文件夹里运行只读命令",

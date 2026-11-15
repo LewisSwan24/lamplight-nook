@@ -111,6 +111,7 @@
     "npx": "downloads and runs a package",
     "install": "installs packages",
     "readOutside": "reads something outside the commission folder",
+    "shellAfterConnection": "This commission has read from \"{label}\", so it asks you before running a command",
     "webAfterConnection": "This commission has read from \"{label}\", so it asks you before going online",
     "connectionsPaused": "All connections are paused in settings",
     "safeCommand": "runs a read-only command in the commission folder",

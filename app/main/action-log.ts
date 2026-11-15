@@ -117,7 +117,13 @@ export class RoundActions implements RoundWatch {
   /** The connection this round first read from, by its name. */
   readFrom?: string;
 
-  constructor(private o: { run: string; project?: string; log: Pick<ActionLog, 'add'>; paused: () => boolean }) {}
+  /**
+   * `readFrom`: the session this round carries on already read through a connection in an earlier round, so the web
+   * tools ask from the start. `onRead`: the first read of this round, to be kept with its session.
+   */
+  constructor(private o: { run: string; project?: string; log: Pick<ActionLog, 'add'>; paused: () => boolean; readFrom?: string; onRead?: (label: string) => void }) {
+    this.readFrom = o.readFrom;
+  }
 
   paused(): boolean {
     return this.o.paused();
@@ -156,12 +162,49 @@ export class RoundActions implements RoundWatch {
       decision, ok, ...(ok ? {} : { error: 'failed' }),
       ...(ok && t.kind === 'outside' && made && t.undoHow ? { undo: { how: t.undoHow, path: made } } : {}),
     });
-    if (ok && t.kind === 'read') this.readFrom ??= c.label;
+    if (ok && t.kind === 'read' && this.readFrom === undefined) {
+      this.readFrom = c.label;
+      this.o.onRead?.(c.label);
+    }
     return result;
   }
 
   /** The user declined the step on its card, or it was refused while paused. */
   refused(t: NookEntry, input: unknown) {
     if (t.connection) this.record(t.connection, t, input, { decision: 'denied', ok: false, ...(this.paused() ? { error: 'paused' } : {}) });
+  }
+}
+
+/**
+ * Which sessions have read through a connection, by session id, with the connection's name (C6). A round that carries
+ * such a session on, or picks it up in a later round of its project, keeps the web tools asking even when no
+ * connection is ticked or all are paused now: what was read is still in the session.
+ */
+export class ConnectionReads {
+  private marks: Record<string, string>;
+
+  constructor(private file: string) {
+    try {
+      this.marks = JSON.parse(readFileSync(file, 'utf8')) as Record<string, string>;
+    } catch {
+      this.marks = {};
+    }
+  }
+
+  get(session: string | undefined): string | undefined {
+    return session ? this.marks[session] : undefined;
+  }
+
+  set(session: string, label: string) {
+    if (this.marks[session]) return;
+    this.marks[session] = label;
+    mkdirSync(dirname(this.file), { recursive: true });
+    writeFileSync(`${this.file}.tmp`, JSON.stringify(this.marks));
+    renameSync(`${this.file}.tmp`, this.file);
+  }
+
+  clear() {
+    this.marks = {};
+    rmSync(this.file, { force: true });
   }
 }
