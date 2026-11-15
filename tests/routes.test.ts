@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 // Every walk of every actor in every scene: seconds of work, longer on a busy machine.
 vi.setConfig({ testTimeout: 60_000 });
 import { GARDEN_AREA, GARDEN_DOOR_SPOT, SPOTS, pathInGarden, pathToBackDoor } from '../app/renderer/game/garden';
-import { ANCHORS, CANVAS, pathBetween, seatsIn, standPoint, walkBetween } from '../app/renderer/game/layout';
+import { ANCHORS, CANVAS, SECOND_CREW, SECOND_SEATS, pathBetween, seatsIn, standPoint, walkBetween } from '../app/renderer/game/layout';
 import { GUEST_DOOR, GUEST_SPOT } from '../app/renderer/game/guests';
 import { YOU_SEAT } from '../app/renderer/game/you';
 import { HOLIDAYS, SEASONS } from '../app/renderer/game/weather';
@@ -71,6 +71,18 @@ function walks(scene: 'cafe' | 'study'): { name: string; points: Point[] }[] {
         const start = standPoint(from, actor, scene);
         out.push({ name: `${actor}: ${from} to ${to}`, points: [start, ...pathBetween(start, to, actor, scene)] });
       }
+    }
+  }
+  // The second crew's own places (road-to-1.2.md B9), to and from every zone.
+  for (const actor of SECOND_CREW) {
+    for (const from of ANCHOR_IDS) {
+      for (const to of ANCHOR_IDS) {
+        if (from === to) continue;
+        const start = standPoint(from, actor, scene, true);
+        out.push({ name: `${actor} (second crew): ${from} to ${to}`, points: [start, ...pathBetween(start, to, actor, scene, true)] });
+      }
+      const first = standPoint(from, actor, scene);
+      out.push({ name: `${actor}: ${from} to the second crew's ${from}`, points: [first, ...pathBetween(first, from, actor, scene, true)] });
     }
   }
   const catHome = standPoint('window', 'cat', scene);
@@ -159,6 +171,25 @@ describe('walking through the shop', () => {
           if (a >= b) continue;
           const [p, q] = [standPoint(anchor, a), standPoint(anchor, b)];
           if (Math.hypot(p.x - q.x, p.y - q.y) < 8) crowded.push(`${a} and ${b} at the ${anchor}`);
+        }
+      }
+    }
+    expect(crowded).toEqual([]);
+  });
+
+  it('gives the second crew a place of its own in every zone, clear of the first (B9)', () => {
+    // Where the second crew gathers by Qingdai to hand over work and to meet: on her side of the blackboard.
+    expect(Object.keys(SECOND_SEATS.board ?? {}).sort()).toEqual(['laoshi', 'xiaodou', 'xiaoju']);
+    const crowded: string[] = [];
+    for (const scene of ['cafe', 'study'] as const) {
+      for (const anchor of ANCHOR_IDS) {
+        for (const a of SECOND_CREW) {
+          const p = standPoint(anchor, a, scene, true);
+          for (const b of [...STAFF, 'cat' as const]) {
+            if (a === b) continue;
+            const others = [standPoint(anchor, b, scene), ...(SECOND_CREW.includes(b) ? [standPoint(anchor, b, scene, true)] : [])];
+            if (others.some((q) => Math.hypot(p.x - q.x, p.y - q.y) < 8)) crowded.push(`${a} (second crew) and ${b} at the ${anchor} in the ${scene}`);
+          }
         }
       }
     }

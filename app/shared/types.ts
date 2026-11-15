@@ -174,8 +174,11 @@ export interface LamplightApi {
   recallForRevision(id: string): Promise<Recall>;
   /** What Adeng may bring up as the shop opens; each past commission is brought up only once. */
   recallOnOpen(): Promise<Recall>;
-  /** Add a note from a meeting to the running commission; false if none is running or it has wrapped up. */
-  addNote(text: string): Promise<boolean>;
+  /**
+   * Add a note from a meeting to a round under way (B9: the one the meeting was called for), or to the first under way;
+   * false if none is running or it has wrapped up.
+   */
+  addNote(text: string, run?: string): Promise<boolean>;
   /** Everything in Adeng's notebook, for the user to read. */
   getMemory(): Promise<Memory>;
   /** What could not be read when the shop opened. Asking takes it: it is said once. */
@@ -454,9 +457,10 @@ export type AiEvent = {
 
 /**
  * A round under way or in the queue (road-to-1.2.md B5): at work, waiting for the user's answer, or queued, and then why
- * (no free place, its project at work, not enough money) and behind which rounds.
+ * (no free place, its project at work, not enough money) and behind which rounds. `color` is its project's card colour, the
+ * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9).
  */
-export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; waits?: 'slot' | 'project' | 'money'; behind?: string[] };
+export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[] };
 
 /** The project a round works on, as the shop names it: its id once it has one (a new commission gets it as it ends), and its title. */
 export type RunProject = { id?: string; title: string };
@@ -480,6 +484,8 @@ export type CharacterCommand = {
   line?: { group: string; vars: Record<string, string>; flags?: string[]; speaker?: ActorId };
   bubble?: Bubble;
   priority: number;
+  /** The round it is for (B9): whose crew the actor is working in, and whose project name a line carries. */
+  run?: string;
 };
 
 /** One commission in Adeng's notebook (summaries only, never the conversation). */

@@ -1,6 +1,6 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
-import { type BoardStep, boardWindow } from '../../shared/board';
+import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
@@ -579,16 +579,26 @@ export type { BoardStep };
 /** What is on the blackboard now, for the card that shows the whole list. */
 let chalked: BoardStep[] = [];
 export const boardSteps = () => chalked;
-export function renderBoard(steps: BoardStep[]) {
+/**
+ * `columns`: two rounds under way at once (road-to-1.2.md B9). The slate splits in two, each column under a pin in its
+ * project's colour, with two lines of that round's plan; `steps` stays the lead round's, for the card with the whole list.
+ */
+export function renderBoard(steps: BoardStep[], columns: { color: string; steps: BoardStep[] }[] = []) {
   chalked = steps.map((s) => ({ ...s }));
   let board = document.getElementById('board');
   if (!board) {
     board = el('div.board', { id: 'board' });
     layer().append(board);
   }
+  const line = (s: BoardStep) => el(`div.step.${s.status}`, { title: s.label }, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`);
+  board.classList.toggle('two', columns.length > 1);
+  if (columns.length > 1) {
+    // Half the slate each: no marks in front, the chalk itself says done (struck through), under way or still to do.
+    board.replaceChildren(...columns.map((c) => el('div.board-col', { style: `--project:${c.color}` }, el('span.board-pin', { 'aria-hidden': 'true' }), ...boardPair(c.steps).map((s) => el(`div.step.${s.status}`, { title: s.label }, s.label)))));
+    return;
+  }
   const { shown, more } = boardWindow(steps);
-  board.replaceChildren(...shown.map((s) =>
-    el(`div.step.${s.status}`, { title: s.label }, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`)),
+  board.replaceChildren(...shown.map(line),
   ...(more ? [el('div.step.more', {}, `\u2026 ${fill(U.board.more, { n: String(more) })}`)] : []));
 }
 

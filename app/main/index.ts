@@ -506,12 +506,16 @@ function pump() {
 /** The rounds under way and in the queue, as the page shows them: who is waiting for the user, and what each queued one waits for. */
 function runInfos(): RunInfo[] {
   const under = [...runs.values()];
+  // Each in its project's card colour (B9): a new commission takes the colour its project will get, as on the board.
+  const projects = memory.get().projects;
+  const fresh = [...under.filter((r) => !r.project.id).map((r) => r.id), ...queue.queued.filter((t) => !t.project).map((t) => t.id)];
+  const color = (run: string, project?: string) => (project ? projects.findIndex((p) => p.id === project) : projects.length + fresh.indexOf(run));
   return [
-    ...under.map((r): RunInfo => ({ run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running' })),
+    ...under.map((r): RunInfo => ({ run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id) })),
     ...queue.queued.map((t): RunInfo => {
       const waits = t.waits ?? 'slot';
       const behind = waits === 'money' ? [] : under.filter((r) => waits === 'slot' || (t.folder && overlaps(r.job.workDir, t.folder))).map((r) => r.project.title);
-      return { run: t.id, project: { id: t.project, title: t.title }, state: 'queued', waits, behind };
+      return { run: t.id, project: { id: t.project, title: t.title }, state: 'queued', color: color(t.id, t.project), waits, behind };
     }),
   ];
 }
@@ -1111,10 +1115,12 @@ ipcMain.handle(IPC.moveIn, (_e, yes: boolean): boolean => {
   openData();
   return true;
 });
-// A meeting at the big table: the user's note goes to the running commission (false if it has wrapped up).
-ipcMain.handle(IPC.addNote, (_e, text: string): boolean => {
+// A meeting: the user's note goes to the round it was called for (B9), or the first under way when none is named; false
+// if that round has wrapped up.
+ipcMain.handle(IPC.addNote, (_e, text: string, run?: string): boolean => {
   const clean = typeof text === 'string' ? text.trim().slice(0, 500) : '';
-  return Boolean(clean && lead()?.note?.(clean));
+  const to = typeof run === 'string' ? runs.get(run) : lead();
+  return Boolean(clean && to?.note?.(clean));
 });
 ipcMain.handle(IPC.clearMemory, (): boolean => {
   // What it is doing would go straight back in the notebook, and the ledger would count the round twice.

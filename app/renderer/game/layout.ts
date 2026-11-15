@@ -67,7 +67,8 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
     adeng: { x: 92, y: 60, facing: 'up' },
     xiaoju: { x: 80, y: 60, facing: 'up' },
     laoshi: { x: 68, y: 60, facing: 'up' },
-    xiaodou: { x: 104, y: 70, facing: 'up' },
+    // In front of Adeng, clear of Qingdai, who may be at work for the other round while Adeng's crew meets (B9).
+    xiaodou: { x: 96, y: 72, facing: 'up' },
   },
   // Between the bookshelf and the left chair. The cat keeps its old place by the window.
   window: {
@@ -103,6 +104,26 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
   },
 };
 
+/**
+ * Who can work in the second crew (road-to-1.2.md B9): Qingdai, who leads it, and the helpers both crews share. Adeng
+ * always leads the first.
+ */
+export const SECOND_CREW: ActorId[] = ['qingdai', 'xiaoju', 'laoshi', 'xiaodou'];
+
+/**
+ * The second crew's own places, part of the seating above: where its people stand while they work for the second round
+ * at once. The crew takes and hands over its work at Qingdai's seat by the blackboard, so its helpers gather to her right,
+ * clear of Adeng's crew on the left. In every other zone their own seat or slot is already clear of the first crew,
+ * and Qingdai's own seats are hers in both crews.
+ */
+export const SECOND_SEATS: typeof SEATS = {
+  board: {
+    xiaoju: { x: 128, y: 60, facing: 'left' },
+    laoshi: { x: 140, y: 62, facing: 'left' },
+    xiaodou: { x: 130, y: 70, facing: 'left' },
+  },
+};
+
 /** The study's own places, where its furniture differs from the shop's (docs/floor-plans.md). */
 const STUDY_SEATS: typeof SEATS = {
   table: {
@@ -127,9 +148,9 @@ export function seatsIn(scene: SceneId = currentScene()): typeof SEATS {
   return out;
 }
 
-/** Where a character's feet go at an anchor, and which way it faces there. */
-export function standPoint(anchor: AnchorId, actor?: ActorId, scene: SceneId = currentScene()): Spot {
-  const seat = actor && seatsIn(scene)[anchor]?.[actor];
+/** Where a character's feet go at an anchor, and which way it faces there; `second`: working in the second crew (B9). */
+export function standPoint(anchor: AnchorId, actor?: ActorId, scene: SceneId = currentScene(), second = false): Spot {
+  const seat = actor && ((second && SECOND_SEATS[anchor]?.[actor]) || seatsIn(scene)[anchor]?.[actor]);
   if (seat) return seat;
   const { x, y, facing } = ANCHORS[anchor];
   const d = actor ? SLOT[actor] * SLOT_GAP : 0;
@@ -140,8 +161,8 @@ export function standPoint(anchor: AnchorId, actor?: ActorId, scene: SceneId = c
 export const walkBetween = (from: Point, to: Point, scene?: SceneId): Point[] => findPath(shopArea(scene), from, to);
 
 /** The walk from a point to an anchor. */
-export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: SceneId): Point[] {
-  return walkBetween(from, standPoint(to, actor, scene), scene);
+export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: SceneId, second = false): Point[] {
+  return walkBetween(from, standPoint(to, actor, scene, second), scene);
 }
 
 /** Largest integer scale that fits the canvas in the viewport, at least 1. */
