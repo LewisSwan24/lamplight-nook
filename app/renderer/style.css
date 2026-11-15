@@ -414,6 +414,22 @@ pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; 
 .work-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; column-gap: 10px; row-gap: 2px; flex: none; max-width: 12em; }
 .work-actions .link, .work-note .link { white-space: nowrap; }
 .notebook-days li { list-style: none; }
+/* Connections (road-to-1.3.md C4): the notebook's page, the authorisation card and the slip's line. */
+.connection-list { padding-left: 0 !important; }
+.connection { list-style: none; border-top: 1px dashed #c9b79c; padding: 6px 0; }
+.connection-status { color: #8a3b2a; font-size: 14px; }
+.connection-grant summary { cursor: pointer; font-size: 14px; color: #6b5a48; }
+.connection-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 14px; }
+.connection-offers { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }
+.grant { font-size: 14px; line-height: 1.6; }
+.grant-part { margin: 6px 0; }
+.grant-part ul { margin: 2px 0; padding-left: 20px; }
+.grant-card { display: flex; flex-direction: column; }
+.grant-card > * { flex-shrink: 0; }
+.grant-card > .card-scroll { flex: 0 1 auto; min-height: 0; margin-top: 6px; }
+.connection-row { margin: 6px 0 2px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.commission label.connection-tick { display: inline-flex; align-items: center; gap: 4px; margin: 0; font-size: 16px; }
+.commission .connection-tick input { display: inline-block; width: auto; margin: 0; padding: 0; }
 
 /* The project board and a project's timeline (ui/projects.ts, road-to-1.2.md B2). */
 .project-list { margin-top: 10px; overflow-y: auto; }

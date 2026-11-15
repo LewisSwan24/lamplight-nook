@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // A stand-in for the Claude Code executable, for simulated acceptance runs and screenshots.
-// It speaks the SDK's stream-json control protocol over stdio (initialize, hook callbacks, permission requests),
+// It speaks the SDK's stream-json control protocol over stdio (initialize, hook callbacks, permission requests, and
+// mcp_message for the app's own in-process MCP servers, road-to-1.3.md C4),
 // plays a scripted commission chosen from the prompt, and really writes the files into the commission folder.
 // It never touches the network and never spends money.
 //
@@ -17,6 +18,8 @@
 //   SIM_TOKENS          1: each assistant message reports the tokens it used, as real ones do (otherwise zeros)
 //   SIM_NET_DOWN        sleepwake: the connection drops once this file exists (gone with the sleep)
 //   SIM_HOLD            hold: the play waits at its twist while this file exists
+//   SIM_ECHO_SECRET     connect: say this string, and pass it to a connection's tool, as a model that repeats a secret
+//                       would; the shop's log and recordings must not keep it (road-to-1.3.md C4)
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -62,6 +65,8 @@ const pending = new Map();
 let hooks = {};
 /** The system prompt the SDK sends with initialize: how a talk with Adeng (B4) is told from a commission. */
 let system = '';
+/** The app's own MCP servers, run in its process (initialize's sdkMcpServers): reached through mcp_message (C4). */
+let sdkServers = [];
 const request = (req) => new Promise((resolve) => {
   const id = nextId('sim_req_');
   pending.set(id, resolve);
@@ -79,6 +84,7 @@ function onLine(line) {
     if (m.request.subtype === 'initialize') {
       hooks = m.request.hooks ?? {};
       system = [m.request.systemPrompt ?? []].flat().join('\n');
+      sdkServers = m.request.sdkMcpServers ?? [];
     }
     out({ type: 'control_response', response: { subtype: 'success', request_id: m.request_id, response: {} } });
   } else if (m.type === 'control_response') {
@@ -294,6 +300,31 @@ function makeStage(state) {
     return undefined;
   };
 
+  /**
+   * The app's in-process MCP servers (C4), as Claude Code reaches them: one JSON-RPC message per control request, the
+   * server's reply under mcp_response. Each server is greeted once (initialize) before its first request.
+   */
+  let rpc = 0;
+  const greeted = new Set();
+  const mcpRequest = async (server, method, params) => {
+    if (!greeted.has(server)) {
+      greeted.add(server);
+      await request({ subtype: 'mcp_message', server_name: server, message: { jsonrpc: '2.0', id: ++rpc, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'claude-code', version: VERSION } } } });
+      await request({ subtype: 'mcp_message', server_name: server, message: { jsonrpc: '2.0', method: 'notifications/initialized' } });
+    }
+    const r = await request({ subtype: 'mcp_message', server_name: server, message: { jsonrpc: '2.0', id: ++rpc, method, params } });
+    return r.response?.mcp_response ?? { error: { message: r.error ?? 'no reply' } };
+  };
+  /** The names of a server's tools (tools/list). */
+  const mcpTools = async (server) => ((await mcpRequest(server, 'tools/list', {})).result?.tools ?? []).map((t) => t.name);
+  /** Call one of a server's tools, as mcp__<server>__<tool>: permission first, like any tool that is not read-only. */
+  const mcp = (server, name, args, opts = {}) => tool(`mcp__${server}__${name}`, args, { ...opts, effect: async (input) => {
+    const reply = await mcpRequest(server, 'tools/call', { name, arguments: input });
+    const result = reply.result;
+    const text = (result?.content ?? []).filter((b) => b.type === 'text').map((b) => b.text).join('\n') || JSON.stringify(reply.error ?? reply);
+    return { text, error: Boolean(reply.error || result?.isError), response: result };
+  } });
+
   const say = async (text) => { assistant([{ type: 'text', text }]); await pause(0.5); };
   const think = async (steps = 1) => {
     out({ type: 'system', subtype: 'thinking_tokens', session_id: session, uuid: nextId('u') });
@@ -301,7 +332,7 @@ function makeStage(state) {
   };
 
   return {
-    cwd, state, step, tool, write, edit, read, agent, ask, todo, say, think, notes, pause, charge,
+    cwd, state, step, tool, write, edit, read, agent, ask, todo, say, think, notes, pause, charge, mcp, mcpTools, servers: sdkServers,
     get spent() { return spent; },
     finish: async (text, extra = {}) => {
       assistant([{ type: 'text', text }]);
@@ -326,6 +357,7 @@ async function run(prompt) {
     // As a real init lists them: the Agent tool under its old name Task, and the to-do tools of this version.
     tools: ['Task', 'AskUserQuestion', 'Bash', 'Edit', 'Glob', 'Grep', 'Read', 'WebFetch', 'WebSearch', 'Write',
       ...(TODOS === 'todowrite' ? ['TodoWrite'] : ['TaskCreate', 'TaskGet', 'TaskList', 'TaskUpdate'])], uuid: nextId('u'),
+    mcp_servers: sdkServers.map((name) => ({ name, status: 'connected' })),
   });
   const stage = makeStage(state);
   try {

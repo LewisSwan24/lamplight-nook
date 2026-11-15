@@ -63,7 +63,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -147,6 +147,17 @@ export interface LamplightApi {
   consultFinish(id: string): Promise<ConsultBrief>;
   /** What the talks with Adeng this month cost, and how many there were. */
   consultsThisMonth(): Promise<{ count: number; usd: number }>;
+  /** The connections (road-to-1.3.md C4) and the kinds that can be added. */
+  connections(): Promise<ConnectionsView>;
+  /** "Connect" on a kind's authorisation card: the connection made, or null when the system cannot keep its secret safe. */
+  addConnection(kind: ConnectionKind): Promise<Connection | null>;
+  pauseConnection(id: string, on: boolean): Promise<boolean>;
+  /** Disconnect: its secret and its settings are gone. */
+  removeConnection(id: string): Promise<boolean>;
+  /** The record of outside actions (road-to-1.3.md C6), oldest first. */
+  actions(): Promise<ActionRecord[]>;
+  /** Undo an outside action from its record: false when it cannot be (already undone, or not the shop's to remove). */
+  undoAction(id: string): Promise<boolean>;
   /** Set the most a project may cost (one of PROJECT_CAP_CHOICES; 0 for none); false for a project or amount there isn't. */
   setProjectCap(id: string, usd: number): Promise<boolean>;
   runDebugTask(kind: 'hello' | 'subagents'): Promise<RunResult>;
@@ -265,8 +276,62 @@ export type CommissionTemplate = TemplateId;
  * materials: files the user handed over (dropped or picked); copies go into the commission folder.
  * inPlace: a folder of the user's own to work in instead of a new one (road-to-1.1.md A6), picked in the main process's dialog.
  */
-/** `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in. */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string };
+/**
+ * `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in.
+ * `connections`: the connections ticked under "this one may use" (road-to-1.3.md C4); none unless the user ticks one.
+ */
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[] };
+
+/**
+ * What a tool of the shop's own (an in-process `nook-*` MCP server, road-to-1.3.md C4) may do, which sets how it is asked:
+ * read only reads; make only makes new files in the commission folder; outside changes something outside it that can be
+ * undone; final cannot be undone (none in 1.3).
+ */
+export type ToolKind = 'read' | 'make' | 'outside' | 'final';
+/** The kinds of connection. `test` exists only in a development build, for the simulated runs. */
+export type ConnectionKind = 'folder' | 'calendar' | 'maildraft' | 'test';
+/** A connection the user made, as kept in connections.json: never its secret, which is in connections.bin. */
+export type Connection = {
+  /** k<time>, and only that shape: it names an MCP server. */
+  id: string;
+  kind: ConnectionKind;
+  label: string;
+  /** YYYY-MM-DD */
+  added: string;
+  lastUsed?: string;
+  config: Record<string, string | number | boolean>;
+  hasSecret?: boolean;
+  paused?: boolean;
+};
+/** The authorisation card of a kind of connection: what it can read, what it can do (and whether that can be undone), what it never does, and how to end it. */
+export type Grant = {
+  reads: string[];
+  does: { what: string; undo: 'yes' | 'no' }[];
+  never: string[];
+  disconnect: string;
+};
+/** A kind of connection the shop can make now, with its card. */
+export type ConnectionOffer = { kind: ConnectionKind; label: string; grant: Grant };
+/** The connections page: the ones made, each with its card, and the kinds that can be added. */
+export type ConnectionsView = { list: (Connection & { grant: Grant })[]; offers: ConnectionOffer[]; /** Every connection paused in settings (C6). */ allPaused?: boolean };
+/**
+ * One line of actions.jsonl (road-to-1.3.md C6): one call of a connection's tool, what was done and never what was read or
+ * written. `decision`: given is a read the tick on the slip agreed to; allowed and denied are the user's answer on the card.
+ * `undo`: an outside action's way back, and when it was taken. `undid`: this line is the undo of that one.
+ */
+export type ActionRecord = {
+  id: string;
+  t: string;
+  run: string; project?: string;
+  connection: string;
+  tool: string;
+  kind: ToolKind;
+  said: string;
+  decision: 'given' | 'allowed' | 'denied';
+  ok: boolean; error?: string;
+  undo?: { how: string; path?: string; done?: string };
+  undid?: string;
+};
 
 /** One line of a talk with Adeng before a commission (road-to-1.2.md B4). */
 export type ConsultLine = { who: 'you' | 'adeng'; text: string };
@@ -339,6 +404,8 @@ export type DecisionRequest = {
   reason?: string;
   /** Full command or path, shown collapsed. */
   detail?: string;
+  /** How the step can be undone, or that it cannot (C6), on the serious card. */
+  undo?: string;
   options: DecisionOption[];
   /** Option focused by default (and chosen by Esc on the serious card). */
   defaultId: string;
@@ -375,6 +442,12 @@ export const IPC = {
   consult: 'consult:say',
   consultFinish: 'consult:finish',
   consultsThisMonth: 'consult:month',
+  connections: 'connections:list',
+  addConnection: 'connections:add',
+  pauseConnection: 'connections:pause',
+  removeConnection: 'connections:remove',
+  actions: 'actions:list',
+  undoAction: 'actions:undo',
   copyInstallCommand: 'setup:copy-install',
   installClaude: 'setup:install-claude',
   exportDiagnostics: 'app:export-diagnostics',

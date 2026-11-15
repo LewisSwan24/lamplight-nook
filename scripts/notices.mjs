@@ -52,8 +52,10 @@ export function importedPackages(dir) {
       const p = join(d, f.name);
       if (f.isDirectory()) walk(p);
       else if (/\.(ts|mts|js|mjs)$/.test(f.name)) {
-        for (const m of readFileSync(p, 'utf8').matchAll(/from '([^.'/][^']*)'/g)) {
-          const spec = m[1];
+        // `import type ... from` is erased at build time, so the package is not shipped.
+        for (const m of readFileSync(p, 'utf8').matchAll(/(import type\s[^;]*?)?from '([^.'/][^']*)'/g)) {
+          if (m[1]) continue;
+          const spec = m[2];
           if (spec.startsWith('node:')) continue;
           names.add(spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0]);
         }

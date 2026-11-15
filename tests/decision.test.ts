@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CONNECTIONS_PAUSED } from '../app/main/action-log';
 import { DecisionBroker } from '../app/main/decision-broker';
 import { normalizeAll } from '../app/main/event-normalizer';
 import { DECLINED, DELEGATE_ANSWER, describeAction, makePermissionPolicy } from '../app/main/permission-policy';
@@ -153,6 +154,58 @@ describe('permission policy', () => {
     const files = ['draft-1.html', 'draft-2.html'].join(strings.app.listSeparator);
     expect(describeAction('Bash', { command: 'rm draft-1.html draft-2.html && ls' })).toBe(fill(strings.decision.deleteFiles, { files }));
     expect(describeAction('Bash', { command: 'rm -f "draft-1.html" draft-2.html; ls' })).toBe(fill(strings.decision.deleteFiles, { files }));
+  });
+});
+
+describe('outside actions through a connection (road-to-1.3.md C6)', () => {
+  const connection = { id: 'k1', label: 'Test' };
+  const nook = new Map([
+    ['mcp__nook-k1__save_note', { name: 'save_note', kind: 'outside' as const, label: () => 'save a note in the test folder', undoHow: 'delete the note it saved', connection }],
+    ['mcp__nook-k1__send', { name: 'send', kind: 'final' as const, label: () => 'send the letter', connection }],
+  ]);
+  const withRound = (answer: (r: DecisionRequest) => string, paused = false) => {
+    const asked: DecisionRequest[] = [];
+    const refused: string[] = [];
+    const broker: DecisionBroker = new DecisionBroker((req) => {
+      asked.push(req);
+      queueMicrotask(() => broker.answer({ id: req.id, choice: answer(req) }));
+    });
+    const round = { paused: () => paused, refused: (t: { name?: string }) => { refused.push(t.name ?? ''); } };
+    const policy = makePermissionPolicy({ workDir, nook, round }, broker, { onRequest: () => {}, onDecision: () => {} });
+    return { policy, asked, refused };
+  };
+
+  it('asks every time on the serious card, "not now" by default, with no "allow for this commission" button', async () => {
+    const { policy, asked, refused } = withRound((r) => r.defaultId);
+    expect((await policy('mcp__nook-k1__save_note', { text: 'x' }, opts))?.behavior).toBe('deny');
+    expect((await policy('mcp__nook-k1__save_note', { text: 'x' }, opts))?.behavior).toBe('deny');
+    expect(asked).toHaveLength(2);
+    expect(asked[0]).toMatchObject({ kind: 'serious', defaultId: 'deny', title: 'save a note in the test folder', undo: 'delete the note it saved' });
+    expect(asked[0].options.map((o) => o.id)).toEqual(['deny', 'allow']);
+    // Declined steps go in the record of outside actions.
+    expect(refused).toEqual(['save_note', 'save_note']);
+  });
+
+  it('allowed once is allowed once: the next call asks again', async () => {
+    const { policy, asked, refused } = withRound(() => 'allow');
+    expect((await policy('mcp__nook-k1__save_note', { text: 'x' }, opts))?.behavior).toBe('allow');
+    expect((await policy('mcp__nook-k1__save_note', { text: 'x' }, opts))?.behavior).toBe('allow');
+    expect(asked).toHaveLength(2);
+    expect(refused).toEqual([]);
+  });
+
+  it('a step that cannot be undone (final) says so, and is refused unless the user confirms it', async () => {
+    const { policy, asked } = withRound((r) => r.defaultId);
+    expect((await policy('mcp__nook-k1__send', {}, opts))?.behavior).toBe('deny');
+    expect(asked[0]).toMatchObject({ kind: 'serious', defaultId: 'deny', reason: strings.risk.nook.final, undo: strings.decision.undoNo });
+  });
+
+  it('with all connections paused, nothing is asked: the call is refused and Claude told why', async () => {
+    const { policy, asked, refused } = withRound(() => 'allow', true);
+    const res = await policy('mcp__nook-k1__save_note', { text: 'x' }, opts);
+    expect(res).toEqual({ behavior: 'deny', message: CONNECTIONS_PAUSED });
+    expect(asked).toEqual([]);
+    expect(refused).toEqual(['save_note']);
   });
 });
 

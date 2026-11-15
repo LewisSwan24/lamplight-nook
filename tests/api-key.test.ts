@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { KeyStore, agentEnv, checkKey, cleanKey, keyHint, pickCredentials, redactSecrets, saveKey, type Fetch, type KeyCrypto } from '../app/main/api-key';
+import { KeyStore, agentEnv, checkKey, cleanKey, keyHint, knowSecret, pickCredentials, redactSecrets, saveKey, type Fetch, type KeyCrypto } from '../app/main/api-key';
 import { truncateDeep } from '../app/main/recorder';
 
 const KEY = 'sk-ant-api03-' + 'a'.repeat(40) + 'WXYZ';
@@ -110,5 +110,17 @@ describe('keys never reach recordings', () => {
   it('masks a key inside any text', () => {
     expect(redactSecrets(`Invalid key ${KEY} given`)).toBe('Invalid key sk-ant-[redacted] given');
     expect(JSON.stringify(truncateDeep({ error: `bad ${KEY}`, nested: [{ text: KEY }] }))).not.toContain(KEY);
+  });
+
+  it('masks a secret it has been told about, whatever its shape (road-to-1.3.md C4)', () => {
+    const url = 'https://calendar.example/private-3f9a7c1e/basic.ics';
+    expect(redactSecrets(`fetched ${url}`)).toContain(url);
+    knowSecret(url);
+    expect(redactSecrets(`fetched ${url} twice: ${url}`)).toBe('fetched [redacted] twice: [redacted]');
+    const recorded = JSON.stringify(truncateDeep({ input: { about: url }, said: [`saw ${url}`] }));
+    expect(recorded).not.toContain(url);
+    expect(recorded).toContain('[redacted]');
+    // The key's own shape is still masked alongside.
+    expect(redactSecrets(`${KEY} ${url}`)).toBe('sk-ant-[redacted] [redacted]');
   });
 });

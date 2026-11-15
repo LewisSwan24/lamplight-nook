@@ -111,9 +111,18 @@
     "npx": "要下载并运行一个工具包",
     "install": "要安装依赖包",
     "readOutside": "要读委托文件夹外面的东西",
+    "shellAfterConnection": "这单读过「{label}」里的东西，跑命令前先问你一声",
+    "webAfterConnection": "这单读过「{label}」里的东西，查网页前先问你一声",
+    "connectionsPaused": "所有连接都在设置里暂停了",
     "safeCommand": "在委托文件夹里运行只读命令",
     "unknownCommand": "要运行「{name}」，我没法确定它会做什么",
-    "unknownTool": "要用一个不认识的工具「{tool}」"
+    "unknownTool": "要用一个不认识的工具「{tool}」",
+    "nook": {
+      "read": "只是读，不改任何东西",
+      "make": "只在这单的文件夹里新建文件",
+      "outside": "要改这单文件夹以外的东西，改了能撤回",
+      "final": "这一步做了就收不回"
+    }
   },
   "patterns": {
     "planWords": "计划|步骤|打算|接下来|plan|steps",
@@ -697,6 +706,86 @@
       "bedsRest": "盖着稻草过冬的 {n} 块",
       "hotspotBoard": "黑板：看看整张计划，没在做事时看项目板",
       "hotspotWorks": "作品架：看看一起做过的东西"
+    },
+    "connections": {
+      "title": "连接",
+      "intro": "连上以后，店员才能用这些店外的资料。每单能用哪几个，在委托单上勾，不勾就不用。",
+      "none": "还没有连接。",
+      "add": "连上{label}",
+      "added": "{date} 连上",
+      "lastUsed": "上次用：{date}",
+      "neverUsed": "还没用过",
+      "paused": "暂停中",
+      "pause": "暂停",
+      "resume": "接着用",
+      "disconnect": "断开",
+      "disconnectAsk": "要断开「{label}」吗？",
+      "disconnectYes": "断开",
+      "keep": "留着",
+      "grantShow": "看授权内容",
+      "grantTitle": "连上「{label}」？",
+      "reads": "能读",
+      "does": "能做",
+      "never": "不会做",
+      "howDisconnect": "怎么断开",
+      "undoYes": "能撤回",
+      "undoNo": "收不回",
+      "doesLine": "{what}（{undo}）",
+      "connect": "连上",
+      "notNow": "先不连",
+      "storage": "这台电脑没法把它的钥匙锁好，所以没连上。",
+      "slipLine": "这单可以用：",
+      "recent": "最近的记录",
+      "allPaused": "所有连接都在设置里暂停了，委托单上暂时不列。",
+      "settingsLabel": "连接",
+      "pauseAll": "暂停所有连接",
+      "pauseAllHint": "打开后，委托单上不列连接，正在做的委托下一次用连接时也会被拒。",
+      "kinds": {
+        "test": {
+          "label": "测试连接",
+          "readNote": "读测试连接里的便条",
+          "saveNote": "在测试文件夹里存一份便条",
+          "saveNoteUndo": "能。在笔记本的“外部动作”页点“撤回”，存下的那份便条就删掉了。",
+          "grant": {
+            "reads": [
+              "开发版自带的一张测试便条"
+            ],
+            "does": [
+              {
+                "what": "把便条拿给店员看",
+                "undo": "yes"
+              },
+              {
+                "what": "往测试文件夹里存一份便条，每次都先问你",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "不连网",
+              "不碰你电脑上的别的文件"
+            ],
+            "disconnect": "在笔记本的“连接”页点“断开”。便条和它的钥匙都会删掉，用过的记录留着。"
+          }
+        }
+      }
+    },
+    "actions": {
+      "title": "外部动作",
+      "intro": "店员通过连接做过的事都记在这里：做了什么、你同意没有、做成没有。读到的内容和写出的正文不记。",
+      "none": "还没有外部动作。",
+      "filter": "只看",
+      "all": "全部连接",
+      "gone": "已断开的连接",
+      "given": "勾选时同意了",
+      "allowed": "你允许了",
+      "denied": "没允许",
+      "paused": "连接暂停了，没做",
+      "failed": "没做成",
+      "undo": "撤回",
+      "undone": "已撤回（{time}）",
+      "undoSaid": "撤回：{said}",
+      "undoFailed": "撤不回了，那份东西可能已经不在了。",
+      "more": "再往前看"
     },
     "notebook": {
       "ledgerTitle": "小店账簿",

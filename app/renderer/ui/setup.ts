@@ -270,7 +270,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates';
+type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -473,6 +473,10 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
         // The Store build can't open itself at login this way (road-to-1.2.md B6), so it has no such switch.
         switchRows(api, settings, onChange, [['notify', strings.ui.tray.notifyToggle], ['closeToTray', strings.ui.tray.closeToTrayToggle],
           ...(env.store ? [] : [['openAtLogin', strings.ui.tray.openAtLoginToggle] as [Switch, string]]), ['mini', strings.ui.mini.toggle]])),
+      // One switch for every connection (road-to-1.3.md C6): off the slip, and refused mid-round at the next call.
+      el('section.connections-pause', {}, el('h4', {}, strings.ui.connections.settingsLabel),
+        switchRows(api, settings, onChange, [['connectionsPaused', strings.ui.connections.pauseAll]]),
+        el('div.hint', {}, strings.ui.connections.pauseAllHint)),
     ],
     about: [
       el('section', {}, el('h4', {}, S.legalLabel),
