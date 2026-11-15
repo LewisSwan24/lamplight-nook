@@ -29,6 +29,8 @@ export class Director {
   private lastLineAt = new Map<string, number>();
   private usedLines = new Set<string>();
   private frozen = false;
+  /** The crew at a meeting (B9): their commands wait, while everyone else carries on. */
+  private held = new Set<ActorId>();
   private readonly cooldown: number;
   private readonly staleMs: number;
   private readonly now: () => number;
@@ -58,7 +60,7 @@ export class Director {
       return this.play(cmd);
     }
     const playing = this.current.get(cmd.actor);
-    if (this.frozen || (playing && playing.priority >= cmd.priority)) {
+    if (this.frozen || this.held.has(cmd.actor) || (playing && playing.priority >= cmd.priority)) {
       const q = this.queues.get(cmd.actor) ?? [];
       q.push({ cmd, at });
       this.queues.set(cmd.actor, q);
@@ -70,7 +72,7 @@ export class Director {
   /** A character finished its current action; returns the next one, if any. */
   finished(actor: ActorId): CharacterCommand | null {
     this.current.delete(actor);
-    if (this.frozen) return null;
+    if (this.frozen || this.held.has(actor)) return null;
     const next = this.queues.get(actor)?.shift();
     return next ? this.play(next.cmd) : null;
   }
@@ -81,9 +83,15 @@ export class Director {
    */
   unfreeze(): CharacterCommand[] {
     this.frozen = false;
+    return this.resume([...this.queues.keys()].filter((actor) => !this.held.has(actor)));
+  }
+
+  /** Pick up each of these actors' latest command that is still fresh; drop the rest. */
+  private resume(actors: ActorId[]): CharacterCommand[] {
     const at = this.now();
     const out: CharacterCommand[] = [];
-    for (const [actor, q] of this.queues) {
+    for (const actor of actors) {
+      const q = this.queues.get(actor) ?? [];
       const fresh = q.filter((x) => at - x.at <= this.staleMs || x.cmd.priority >= PRIORITY.fail);
       this.queues.set(actor, []);
       const last = fresh.at(-1);
@@ -99,9 +107,16 @@ export class Director {
     return out;
   }
 
-  /** Hold everyone where they are (a meeting at the big table); unfreeze() picks up from the current state. */
-  freeze() {
-    this.frozen = true;
+  /** Hold these actors where they are (the crew at a meeting); letGo() picks up from the current state. */
+  hold(actors: ActorId[]) {
+    this.held = new Set(actors);
+  }
+
+  /** The meeting is over: the crew at it picks up its latest fresh command. */
+  letGo(): CharacterCommand[] {
+    const actors = [...this.held];
+    this.held.clear();
+    return this.frozen ? [] : this.resume(actors);
   }
 
   isFrozen() {

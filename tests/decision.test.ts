@@ -46,14 +46,50 @@ describe('decision broker', () => {
   it('reports what the user answered (for the notebook), but not automatic answers', async () => {
     const broker = new DecisionBroker(() => {});
     const seen: string[] = [];
-    broker.onAnswered = (req, choice) => seen.push(`${req.title}=${choice}`);
-    const q = broker.ask({ kind: 'question', agent: 'main', tool: 'AskUserQuestion', title: 'Color?', options: [{ id: '0', label: 'mint' }], defaultId: '0' });
+    broker.listen('r1', (req, choice) => seen.push(`${req.title}=${choice}`));
+    const asker = broker.forRun('r1');
+    const q = asker.ask({ kind: 'question', agent: 'main', tool: 'AskUserQuestion', title: 'Color?', options: [{ id: '0', label: 'mint' }], defaultId: '0' });
     broker.answer({ id: 'd1', choice: '0' });
     await q;
-    const s = broker.ask({ kind: 'serious', agent: 'main', tool: 'Bash', title: 'rm', options: [{ id: 'deny', label: 'd' }], defaultId: 'deny' });
+    const s = asker.ask({ kind: 'serious', agent: 'main', tool: 'Bash', title: 'rm', options: [{ id: 'deny', label: 'd' }], defaultId: 'deny' });
     broker.cancelAll();
     await s;
     expect(seen).toEqual(['Color?=0']);
+  });
+
+  it('two rounds at once (B5): each request carries its run and project, and each answer goes to its own round', async () => {
+    const sent: DecisionRequest[] = [];
+    const broker = new DecisionBroker((req) => sent.push(req));
+    const heard: Record<string, string[]> = { r1: [], r2: [] };
+    broker.listen('r1', (req, choice) => heard.r1.push(`${req.title}=${choice}`));
+    broker.listen('r2', (req, choice) => heard.r2.push(`${req.title}=${choice}`));
+    const question = (title: string) => ({ kind: 'question' as const, agent: 'main' as const, tool: 'AskUserQuestion', title, options: [{ id: '0', label: 'mint' }, { id: '1', label: 'cream' }], defaultId: '0' });
+    const a = broker.forRun('r1', { id: 'p1', title: 'Reunion page' }).ask(question('Color?'));
+    const b = broker.forRun('r2', { id: 'p2', title: 'Walden notes' }).ask(question('Color?'));
+    expect(sent.map((r) => [r.id, r.run, r.project?.title])).toEqual([['d1', 'r1', 'Reunion page'], ['d2', 'r2', 'Walden notes']]);
+    expect(broker.waitingOn('r1')).toBe(1);
+    // Answered the other way round from how they were asked.
+    broker.answer({ id: 'd2', choice: '1' });
+    broker.answer({ id: 'd1', choice: '0' });
+    expect([await a, await b]).toEqual(['0', '1']);
+    expect(heard).toEqual({ r1: ['Color?=0'], r2: ['Color?=1'] });
+    expect(broker.waitingOn('r1')).toBe(0);
+  });
+
+  it('a round that ends refuses only its own requests still waiting, and hears nothing more', async () => {
+    const broker = new DecisionBroker(() => {});
+    const heard: string[] = [];
+    broker.listen('r1', () => heard.push('r1'));
+    broker.listen('r2', () => heard.push('r2'));
+    const serious = { kind: 'serious' as const, agent: 'main' as const, tool: 'Bash', title: 'rm', options: [{ id: 'deny', label: 'd' }, { id: 'allow', label: 'a' }], defaultId: 'deny' };
+    const a = broker.forRun('r1').ask(serious);
+    const b = broker.forRun('r2').ask(serious);
+    broker.forget('r1');
+    expect(await a).toBe('deny');
+    expect(broker.waiting).toBe(1);
+    expect(broker.answer({ id: 'd2', choice: 'allow' })).toBe(true);
+    expect(await b).toBe('allow');
+    expect(heard).toEqual(['r2']);
   });
 });
 

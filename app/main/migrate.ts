@@ -1,10 +1,12 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { grownBy } from '../shared/growth';
 import { shortTitle } from './commission';
 import { LOCALES } from '../shared/i18n';
 import { localDay } from '../shared/localday';
-import type { CommissionMemo, GuestId, Memory } from '../shared/types';
+import { readable } from './memory';
+import { addProjects } from './projects';
+import type { CommissionMemo, GuestId, Memory, Project } from '../shared/types';
 
 /**
  * The shape of the app's data folder. Bump it with a new step in STEPS whenever stored data changes shape.
@@ -12,12 +14,15 @@ import type { CommissionMemo, GuestId, Memory } from '../shared/types';
  * 2: the marker exists; the shop has counted commissions finished before 0.7, old notebook entries
  *    know their main piece of work, and English titles from before 0.8.1 read as words.
  * 3: a shop that was already open counts every neighbour as known, so none is met for the first time on upgrade day.
+ * 4: every commission is a project of one (1.2, road-to-1.2.md B1). The notebook does the same again whenever it opens,
+ *    for a notebook saved by an older version since.
  */
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;
 // A step that changes memory.json has to change memory.last-good.json the same way: that copy can take its place later.
 const MARKER = 'data-version.json';
 /** Data files copied aside before a migration touches anything. */
-const BACKED_UP = ['settings.json', 'memory.json', 'spend.json', 'pending.json'];
+// pending/ is a folder since B7, one file per round.
+const BACKED_UP = ['settings.json', 'memory.json', 'spend.json', 'pending.json', 'pending'];
 
 /**
  * Copy the data files to backup/<date>-<label>/ (an upgrade's own copy, or the one before a new version goes in).
@@ -28,7 +33,7 @@ export function backUp(dir: string, label: string, now = new Date()): string | u
   if (!present.length) return undefined;
   const to = join(dir, 'backup', `${localDay(now)}-${label}`);
   mkdirSync(to, { recursive: true });
-  for (const f of present) copyFileSync(join(dir, f), join(to, f));
+  for (const f of present) cpSync(join(dir, f), join(to, f), { recursive: true });
   return to;
 }
 
@@ -55,6 +60,22 @@ const STEPS: Record<number, Step> = {
     memory.shop.met = neighbours.map((id) => ({ id, date: '' }));
     writeJson(file, memory);
     return ['neighbours counted as known'];
+  },
+  // 3 -> 4
+  4: (dir) => {
+    const changes: string[] = [];
+    for (const name of ['memory.json', 'memory.last-good.json']) {
+      const file = join(dir, name);
+      const memory = readJson<Omit<Memory, 'projects'> & { projects?: Project[] }>(file);
+      if (!memory || !Array.isArray(memory.commissions)) continue;
+      const notebook = { commissions: memory.commissions.filter(readable), projects: memory.projects ?? [] };
+      const added = addProjects(notebook);
+      if (!added.length) continue;
+      memory.projects = notebook.projects;
+      writeJson(file, memory);
+      changes.push(`${name}: ${added.length} projects`);
+    }
+    return changes;
   },
 };
 

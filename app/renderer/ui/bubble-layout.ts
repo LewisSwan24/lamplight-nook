@@ -18,11 +18,12 @@ const touches = (a: Rect, b: Rect) => a.left < b.right && b.left < a.right && a.
 /**
  * Words come first, in the order given: a bubble that would land on another moves up above it. A bubble a card would
  * cut, or that runs out of the top of the window, is hidden and takes no room. One running off the side moves back in. Mood icons sit on someone's head, so
- * they do not move: one that would cover anything is hidden until it is clear.
+ * they do not move: one that would cover anything is hidden until it is clear. `marks` are the flags over the heads of two
+ * crews at work (road-to-1.2.md B9): words move up past them as past another bubble, so it stays plain who works for which.
  */
-export function placeBubbles(bubbles: BubbleBox[], cards: Rect[], keepClear: Rect[] = [], width = Infinity): Map<string, BubblePlace> {
+export function placeBubbles(bubbles: BubbleBox[], cards: Rect[], keepClear: Rect[] = [], width = Infinity, marks: Rect[] = []): Map<string, BubblePlace> {
   const places = new Map<string, BubblePlace>();
-  const taken: Rect[] = [];
+  const taken: Rect[] = [...marks];
   const blocked = (box: Rect) => cards.some((c) => touches(box, c));
 
   for (const b of bubbles.filter((x) => !x.iconOnly)) {

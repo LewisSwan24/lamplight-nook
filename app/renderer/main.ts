@@ -5,7 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, RawAgentEvent, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
+import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -22,13 +22,15 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { answerFirst, boardSteps, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { answerFirst, boardSteps, budgetLine, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
-import { closeRunning, hasFailureCard, refreshRunning, showFailure, showPending, showRunning } from './ui/run';
+import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, showInterrupted, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
-import { showLegal, showNotReady, showTrialEnd, showWelcome } from './ui/setup';
-import { onNotebookForget, showDataTrouble, onNotebookRevise, showNotebook } from './ui/notebook';
+import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
+import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
 import { showShelf } from './ui/shelf';
+import { onProjectMeet, renderPins, showProjects, showTimeline } from './ui/projects';
+import { projectColor } from '../shared/project-colors';
 import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
 import { STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
@@ -111,7 +113,9 @@ function drawLabels() {
       const cards = Array.from(document.querySelectorAll('.card, .parcel, .dialog, .serious')).map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0);
       const board = ZONES.find((z) => z.id === 'board')!;
       const chalk = { left: rect.left + board.x * s, right: rect.left + (board.x + board.w) * s, top: rect.top + board.y * s, bottom: rect.top + (board.y + board.h) * s };
-      for (const [key, place] of placeBubbles(bubbles, cards, [chalk], window.innerWidth)) {
+      // The crews' flags (B9) stay in sight too.
+      const flags = scene.flagBoxes().map((f) => ({ left: rect.left + f.left * s, right: rect.left + f.right * s, top: rect.top + f.top * s, bottom: rect.top + f.bottom * s }));
+      for (const [key, place] of placeBubbles(bubbles, cards, [chalk], window.innerWidth, flags)) {
         const el = labelEls.get(key)!;
         el.style.left = `${place.x}px`;
         el.style.top = `${place.y}px`;
@@ -133,6 +137,13 @@ function drawLabels() {
         height: `${b.h * s}px`,
         fontSize: `${3.1 * s}px`,
       });
+    }
+    // The project cards pinned on the same slate, while nothing is chalked on it.
+    const pins = document.getElementById('board-pins');
+    if (pins) {
+      const b = BOARD_SLATE;
+      Object.assign(pins.style, { left: `${rect.left + b.x * s}px`, top: `${rect.top + b.y * s}px`, width: `${b.w * s}px`, height: `${b.h * s}px`, fontSize: `${s}px` });
+      pins.hidden = scene.boardInUse();
     }
   }
   requestAnimationFrame(drawLabels);
@@ -269,38 +280,51 @@ function sayProgress() {
   void stage.talk(turns);
 }
 
-// A meeting: ring the bell on the counter, everyone in the shop comes to the big table, and what the user
-// says goes to the running commission. Nobody moves for the work while the meeting lasts.
+// A meeting about one round: the bell on the counter calls one about the first under way, at the big table; a project's
+// card on the board calls one about that project's round, at the blackboard (road-to-1.2.md B9). Its crew comes over:
+// everyone in the shop but whoever works for another round, who carry on. What the user says goes to that round, and
+// the crew at the meeting does not move for the work while it lasts. One meeting at a time.
 let meetingOpen = false;
 let meetingCount = 0;
-function sayFrom(group: string, k = 0) {
+/** A line said at the meeting, by those at it; Adeng's lines are said by the crew's lead. */
+function sayFrom(group: string, k = 0, crew: ActorId[] = STAFF, lead: ActorId = 'adeng') {
   const lines = ruleBook().lines[group] ?? [];
   const turns = pickLine([...lines.slice(k % Math.max(1, lines.length)), ...lines.slice(0, k % Math.max(1, lines.length))], [], {});
-  const present = (turns ?? []).filter((t) => scene.anchorOf(t.speaker) !== null);
+  const voiced = (turns ?? []).map((t) => ({ ...t, speaker: t.speaker === 'adeng' ? lead : t.speaker }));
+  const present = voiced.filter((t, i) => crew.includes(t.speaker) && scene.anchorOf(t.speaker) !== null && voiced.findIndex((x) => x.speaker === t.speaker) === i);
   return present.length ? stage.talk(present) : Promise.resolve();
 }
-async function meeting() {
-  if (!running || meetingOpen) return;
+async function meeting(run = live()[0]?.run, place: AnchorId = 'table') {
+  const about = live().find((r) => r.run === run);
+  if (!about || meetingOpen) return;
   scene.setHint('bell', false);
   meetingOpen = true;
   sfx('ding');
-  stage.holdStill();
-  const here = STAFF.filter((a) => scene.anchorOf(a) !== null);
+  const lead = stage.leadOf(about.run);
+  const here = STAFF.filter((a) => scene.anchorOf(a) !== null && (stage.crewOf(a) ?? about.run) === about.run);
+  stage.holdStill(here);
   const before = new Map(here.map((a) => [a, scene.anchorOf(a)!]));
-  void sayFrom('meeting_call', meetingCount);
-  // The card opens straight away; everyone gathers at the table meanwhile.
-  const gathered = Promise.all(here.map((a) => scene.walkTo(a, 'table')));
-  const note = await showMeeting(current?.avatar);
+  // Qingdai's crew meets on her side of the blackboard: whoever joins it takes the second crew's places for the meeting.
+  if (lead === 'qingdai') for (const a of here) if (stage.crewOf(a) === undefined) scene.setCrew(a, null, true);
+  void sayFrom('meeting_call', meetingCount, here, lead);
+  // The card opens straight away; the crew gathers meanwhile.
+  const gathered = Promise.all(here.map((a) => scene.walkTo(a, place)));
+  const note = await showMeeting(current?.avatar, stage.together || place === 'board' ? about.project.title : undefined, lead);
   await gathered;
-  const heard = note ? await window.lamplight.addNote(note) : false;
-  if (note) void sayFrom(heard ? 'meeting_heard' : 'meeting_late', meetingCount);
+  const heard = note ? await window.lamplight.addNote(note, about.run) : false;
+  if (note) void sayFrom(heard ? 'meeting_heard' : 'meeting_late', meetingCount, here, lead);
   meetingCount++;
   stage.carryOn();
+  stage.redress();
   // Whoever no command has sent elsewhere goes back to where they were.
-  for (const [a, spot] of before) if (scene.anchorOf(a) === 'table' && spot !== 'table') void scene.walkTo(a, spot);
+  for (const [a, spot] of before) if (scene.anchorOf(a) === place && spot !== place) void scene.walkTo(a, spot);
   meetingOpen = false;
 }
 scene.onBellClick = () => void meeting();
+onProjectMeet((row) => {
+  const r = live().find((x) => x.project.id === row.id || x.run === row.id);
+  if (r) void meeting(r.run, 'board');
+});
 
 // Frame pacing: 30 a second while anything is going on, 15 once the shop has been quiet for a while.
 let lastInput = Date.now();
@@ -325,7 +349,7 @@ scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 let decisions = Promise.resolve();
 window.lamplight.onDecision((req) => {
   decisions = decisions.then(async () => {
-    const choice = await showDecision(req);
+    const choice = await showDecision(req, live().length > 1);
     await window.lamplight.answerDecision({ id: req.id, choice });
   }).catch((e) => append(`decision failed: ${e}`));
 });
@@ -344,7 +368,12 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   stage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
+  const projects = await window.lamplight.projectBoard();
+  projectsKept = projects.length;
+  renderPins(projects);
 }
+/** How many projects there are: with any, the blackboard doubles as the project board when nothing is chalked on it. */
+let projectsKept = 0;
 /** Something new in the shop: someone says a word about it. */
 function noticeGrowth(ids: GrowthId[]) {
   const id = ids.at(-1);
@@ -416,7 +445,7 @@ function clickObject(id: ObjectId) {
   if (r.walk && !scene.reducedMotion) void scene.walkTo(speaker, r.walk);
   void stage.answer(speaker, r.say);
 }
-scene.onObjectClick = clickObject;
+scene.onObjectClick = (id) => (id === 'board' && projectsKept ? void showProjects(window.lamplight) : clickObject(id));
 scene.onYouClick = () => void stage.answer('adeng', strings.ui.objects.you);
 scene.boardInUse = () => running !== null || boardSteps().length > 0;
 scene.onBoardClick = () => {
@@ -424,7 +453,7 @@ scene.onBoardClick = () => {
   if (running) openProgress();
   else showPlan(boardSteps());
 };
-scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title));
+scene.onWorksClick = () => void showShelf(window.lamplight, (id, title) => void revise(id, title), (project) => void showTimeline(window.lamplight, project));
 onNotebookForget(() => {
   forgotten++;
   void refreshShop();
@@ -439,32 +468,68 @@ window.lamplight.onResult((result) => {
   noticeGrowth(result.grew ?? []);
 });
 // A commission that stopped has its own card, which says what to do; putting a result card away first would end it.
-window.lamplight.onResult((result) => hasFailureCard(result.error) || showResult(result, {
-  open: (path, how) => void window.lamplight.openOutput(path, how),
-  revise: (id) => void revise(id),
-  restore: (id) => window.lamplight.restorePrevious(id),
-  undo: (id) => window.lamplight.undoWork(id),
-  firstWork: worksKept === 0,
-  report: () => void window.lamplight.writeToUs({ about: 'content', title: lastWant ?? undefined }),
-}));
+window.lamplight.onResult((result) => {
+  if (result.run) results.set(result.run, result);
+  if (!hasFailureCard(result.error)) resultCard(result);
+});
+/** The latest results by round, and the rounds whose card has been up: a notice clicked later brings its card back (B6). */
+const results = new Map<string, CommissionResult>();
+const resultShown = new Set<string>();
+function resultCard(result: CommissionResult) {
+  void whenFree().then(() => {
+    if (result.run) resultShown.add(result.run);
+    showResult(result, {
+      open: (path, how) => void window.lamplight.openOutput(path, how),
+      revise: (id) => void revise(id),
+      restore: (id) => window.lamplight.restorePrevious(id),
+      undo: (id) => window.lamplight.undoWork(id),
+      firstWork: worksKept === 0,
+      report: () => void window.lamplight.writeToUs({ about: 'content', title: result.project?.title ?? lastWant ?? undefined }),
+    });
+  });
+}
+// A notice about a finished round was clicked: its card is up, still to come after the one being read, or put away already.
+window.lamplight.onOpenResult((run) => {
+  const result = results.get(run);
+  if (result && resultShown.has(run) && !document.querySelector(`.result-card[data-run="${run}"]`)) resultCard(result);
+});
+// A scheduled round ended (B6): its sound and, if it stopped, its card, as for one the user started.
+window.lamplight.onScheduled((r) => void run(r.title, async () => r));
+/**
+ * With two rounds at once (B5) one may end while the user is filling in the next slip, or reading the other's result: its
+ * card waits until that is put away, rather than wiping it.
+ */
+async function whenFree() {
+  while (document.querySelector('#ui form.commission, #ui form.revise, #ui .result-card, #ui .consult')) await wait(ONCE_RETRY_MS);
+}
 
 // The counter holds the commission form; while a commission runs it shows what is being made instead.
 let running: string | null = null;
-/** How long into the first commission Adeng says what the bell and the blackboard are for. */
-const FIRST_HINT_MS = 5000;
-/** What the last commission (or round of changes) was, for a report about what came back. */
-let lastWant: string | null = null;
-async function run(want: string, start: () => Promise<RunResult | null>) {
-  running = want;
+/** The rounds under way and in the queue, as the main process last said (road-to-1.2.md B5). */
+let runList: RunInfo[] = [];
+const live = () => runList.filter((r) => r.state !== 'queued');
+window.lamplight.onRuns((list) => {
+  const was = live().length > 0;
+  const fresh = list.filter((r) => r.state === 'queued' && !runList.some((x) => x.run === r.run));
+  runList = list;
+  const now = live();
+  stage.keepRuns(now.map((r) => r.run));
+  stage.setRuns(now.map((r) => ({ run: r.run, title: r.project.title, color: projectColor(r.color) })));
+  running = now[0]?.project.title ?? null;
+  if (!was && now.length) void workBegins(now[0].project.title);
+  if (was && !now.length) workEnds();
+  // A round that has to wait is said so once, with why.
+  for (const r of fresh) greet(fill(r.waits === 'money' ? strings.ui.run.queuedMoney : strings.ui.run.queued, { title: r.project.title }));
+  refreshRunning();
+});
+/** The first round starts: you come in with the slip and wait by the lamp while it is made. */
+async function workBegins(want: string) {
   setWorking(true);
-  lastWant = want;
   scene.showShop();
   tendGarden(false);
   scene.sendGuestAway();
-  // You come in with the slip and wait by the lamp while it is made.
   void scene.youArrive();
   runStartedAt = Date.now();
-  runBudget = (await window.lamplight.getSettings()).budgetUsd;
   progressSaidAt = undefined;
   scene.setFormWaiting(false);
   scene.setBell(true);
@@ -474,28 +539,46 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
     scene.setHint('board', true);
     setTimeout(() => { if (running === want) greet(strings.ui.run.firstHint); }, FIRST_HINT_MS);
   }
-  try {
-    const r = await start();
-    if (!r) return;
-    sfx(r.ok ? 'success' : 'fail');
-    append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
-    // No card to put away (called off, no key, no Claude Code): nothing is going on any more, so the plan goes now.
-    if (!r.ok && !showFailure(window.lamplight, r.error ?? '', () => void run(want, () => window.lamplight.retryCommission()), { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0) }, r.workDir)) clearWorkSigns();
-  } finally {
-    closeRunning();
-    running = null;
-    setWorking(false);
-    scene.setHint('bell', false);
-    scene.setHint('board', false);
-    runMaterials = [];
-    scene.setFormWaiting(true);
-    scene.setBell(false);
-    void scene.youLeave();
-  }
+  runBudget = (await window.lamplight.getSettings()).budgetUsd;
+}
+/** The last round under way has ended. */
+function workEnds() {
+  closeRunning();
+  setWorking(false);
+  scene.setHint('bell', false);
+  scene.setHint('board', false);
+  runMaterials = [];
+  scene.setFormWaiting(true);
+  scene.setBell(false);
+  void scene.youLeave();
+}
+/** How long into the first commission Adeng says what the bell and the blackboard are for. */
+const FIRST_HINT_MS = 5000;
+/** What the last commission (or round of changes) was, for a report about what came back. */
+let lastWant: string | null = null;
+/**
+ * One round, from asking for it to its card. The shop's look while work is under way follows the main process's list of
+ * rounds (onRuns above), since a round may wait in the queue first and two may run at once (B5).
+ */
+async function run(want: string, start: () => Promise<RunResult | null>) {
+  lastWant = want;
+  const r = await start();
+  if (!r) return;
+  sfx(r.ok ? 'success' : 'fail');
+  append(r.ok ? `done. folder: ${r.workDir}` : `failed: ${r.error ?? 'see recording'}\nrecording: ${r.recordingPath}`);
+  if (r.ok) return;
+  // No card to put away (called off, no key, no Claude Code): with nothing else going on, the plan goes now.
+  // A cap's card offers to carry on only work that was under way; the vars say where the cap stands.
+  const again = r.cap && !r.carryOn ? null : () => void run(want, () => window.lamplight.retryCommission(r.run));
+  const cap: Record<string, string> = r.cap ? { spent: formatUsd(r.cap.spentUsd), cap: formatUsd(r.cap.capUsd), left: formatUsd(r.cap.leftUsd), project: r.cap.project ?? '' } : {};
+  if (hasFailureCard(r.error)) await whenFree();
+  if (!showFailure(window.lamplight, r.error ?? '', again, { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0), ...cap }, r.cap ? undefined : r.workDir, (r.budget ?? []).map(budgetLine)) && !live().some((x) => x.run !== r.run)) clearWorkSigns();
 }
 /** The one card for work under way. */
 function openProgress() {
   showRunning(window.lamplight, () => ({
+    run: live()[0]?.run ?? '',
+    others: runList.slice(1).map((r) => ({ title: r.project.title, queued: r.state === 'queued' })),
     want: running ?? '',
     startedAt: runStartedAt,
     budgetUsd: runBudget,
@@ -503,7 +586,7 @@ function openProgress() {
     realPlan: stage.planIsReal,
     now: stage.latestDoing,
     staff: STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done)).map((actor) => ({ actor, state: stage.actorInfo(actor).state, doing: stage.actorInfo(actor).doing ?? '' })),
-  }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed) });
+  }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed), another: () => void newCommission([], true) });
 }
 
 /** The user chose to go ahead with an old Claude Code; not asked again until the app restarts. */
@@ -511,9 +594,10 @@ let oldClaudeOk = false;
 /** What the shop needs before a commission: Claude Code, a key, and (unless waved through) a recent enough Claude Code. */
 const notReady = (env: EnvStatus) => !env.hasClaude || !env.hasApiKey || (env.claudeCompat === 'old' && !oldClaudeOk);
 
-async function newCommission(dropped: string[] = []) {
+/** `another`: asked for from the running card, so a second commission is taken while the first is under way (B5). */
+async function newCommission(dropped: string[] = [], another = false) {
   if (answerFirst()) return;
-  if (running) {
+  if (running && !another) {
     if (dropped.length) return greet(strings.ui.materials.busy);
     return openProgress();
   }
@@ -521,7 +605,7 @@ async function newCommission(dropped: string[] = []) {
   const env = await window.lamplight.envStatus();
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped), () => { oldClaudeOk = true; void newCommission(dropped); });
   const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
-  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed);
+  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed, await window.lamplight.monthBudget());
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   await prepare(form);
@@ -534,7 +618,7 @@ async function newCommission(dropped: string[] = []) {
  * `title` is shown when the commission was picked from the notebook rather than the card just handed over.
  */
 async function revise(id: string, title?: string) {
-  if (running) return openProgress();
+  // Another round may be under way: this one runs beside it, or waits in the queue behind its own project's (B5).
   const env = await window.lamplight.envStatus();
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void revise(id, title), () => { oldClaudeOk = true; void revise(id, title); });
   const ask = await showRevise(current?.avatar, title);
@@ -545,6 +629,8 @@ async function revise(id: string, title?: string) {
   await run(ask, () => window.lamplight.reviseCommission({ id, ask }));
 }
 onNotebookRevise((id, title) => void revise(id, title));
+// A cap's card leads to where the cap is changed.
+onCapGo({ settings: () => void showSettings(window.lamplight, applySettings, 'work'), notebook: () => void showNotebook(window.lamplight) });
 
 /** Tell the stage what the commission is about and what Adeng remembers that bears on it. */
 async function prepare(form: CommissionForm) {
@@ -636,16 +722,29 @@ async function openShop() {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
   // After the welcome, so that nothing on it can be pushed aside; the same two the scene opens.
-  mountToolbar(api, applySettings, { order: scene.onCounterClick, shelf: scene.onWorksClick });
+  mountToolbar(api, applySettings, { order: scene.onCounterClick, projects: () => void showProjects(api), shelf: scene.onWorksClick });
   syncToolbar(settings);
-  // A commission left unfinished when the app last closed.
-  const left = await api.pendingCommission();
-  if (left) showPending(api, left, () => void prepare(left).then(() => run(left.want, () => api.resumePending())));
+  // Rounds left unfinished when the app last closed. Those a shutdown interrupted come on one card (B7); otherwise the
+  // earliest is offered, the rest next time.
+  const left = await api.pendingRounds();
+  const carry = (l: PendingRound) => void prepare(l.form).then(() => run(l.form.want, () => api.resumePending(l.run)));
+  const oneByOne = (list: PendingRound[]) => { if (list[0]) showPending(api, list[0], () => carry(list[0]), () => oneByOne(list.slice(1))); };
+  const cut = left.filter((l) => l.state === 'interrupted');
+  if (cut.length) {
+    showInterrupted(cut, {
+      all: () => cut.forEach(carry),
+      each: () => oneByOne(cut),
+      none: () => cut.forEach((l) => void api.dropPending(l.run)),
+    });
+  } else if (left[0]) oneByOne(left.slice(0, 1));
   // Said once, when nothing else is on the table: a card that came up mid-commission would be pushed away unread.
   while (running || document.querySelector('#ui > .card, #ui > form.card, .backdrop')) await wait(ONCE_RETRY_MS);
   const damage = await api.dataDamage();
   // Read again: the limit may have changed while the card waited.
   if (damage.notebook || damage.settings || damage.ledger) showDataTrouble(damage, (await api.getSettings()).budgetUsd);
+  while (document.querySelector('#ui > .card')) await wait(ONCE_RETRY_MS);
+  const raised = await api.monthCapNews();
+  if (raised) showMonthCapNews(raised);
 }
 void openShop();
 
@@ -675,12 +774,16 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       showNotReady: (env: EnvStatus) => showNotReady(api, env, () => {}),
       showTrialEnd: () => showTrialEnd(() => {}),
       showDataTrouble,
+      showMonthCapNews,
       showMeeting: () => showMeeting(),
       showRevise: (title?: string) => showRevise(undefined, title),
-      showShelf: () => showShelf(api, () => {}),
+      showShelf: () => showShelf(api, () => {}, () => {}),
+      showProjects: () => showProjects(api),
+      showTimeline: (id: string) => showTimeline(api, id),
       showNotebook: () => showNotebook(api),
       showCaptionLog,
-      showPending: (form: CommissionForm) => showPending(api, form, () => {}),
+      showPending: (form: CommissionForm) => showPending(api, { run: 'r0', form }, () => {}),
+      showInterrupted: (titles: string[]) => showInterrupted(titles.map((title, i) => ({ run: `r${i}`, state: 'interrupted', form: { want: title }, title })), { all: () => {}, each: () => {}, none: () => {} }),
       showUpdateLetter: (offer: UpdateOffer) => showUpdateLetter(offer, () => {}),
     };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.

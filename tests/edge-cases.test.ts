@@ -1,11 +1,7 @@
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { failureKind } from '../app/main/agent-runner';
 import { continuePrompt } from '../app/main/commission';
 import { EventNormalizer } from '../app/main/event-normalizer';
-import { PendingStore } from '../app/main/pending';
 
 describe('why a run failed', () => {
   it('uses the API error the SDK reports', () => {
@@ -40,17 +36,7 @@ describe('normalizer: retries and cancelling', () => {
   });
 });
 
-describe('unfinished commissions', () => {
-  it('remembers a running job until it is cleared', () => {
-    const store = new PendingStore(join(mkdtempSync(join(tmpdir(), 'lamplight-pending-')), 'pending.json'));
-    expect(store.load()).toBeNull();
-    const job = { form: { want: 'ledger' }, workDir: '/work/x', preexisting: [], sessionId: 's1', startedAt: 1 };
-    store.save(job);
-    expect(store.load()).toEqual(job);
-    store.clear();
-    expect(store.load()).toBeNull();
-  });
-
+describe('carrying on an unfinished commission', () => {
   it('continues the session when there is one, otherwise restarts from the folder', () => {
     expect(continuePrompt({ want: 'ledger' }, true)).toMatch(/Continue from where you left off/);
     const fresh = continuePrompt({ want: 'ledger' }, false);

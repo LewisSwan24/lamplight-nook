@@ -66,6 +66,25 @@ ICONS = {
         '...xxxxxxxxxx...',
         '................',
     ],
+    # The project board: a cork board in a wooden frame with three cards pinned on it.
+    'projects': [
+        '................',
+        '.xxxxxxxxxxxxxx.',
+        '.xbbbbbbbbbbbbx.',
+        '.xbhhhhhhhhhhbx.',
+        '.xbhxxxxhhhhhbx.',
+        '.xbhxaaxhxxxxbx.',
+        '.xbhxppxhxmmxbx.',
+        '.xbhxppxhxppxbx.',
+        '.xbhxxxxhxppxbx.',
+        '.xbhhhhhhxxxxbx.',
+        '.xbhhxxxxxhhhbx.',
+        '.xbhhxdpppxhhbx.',
+        '.xbhhxxxxxhhhbx.',
+        '.xbbbbbbbbbbbbx.',
+        '.xxxxxxxxxxxxxx.',
+        '................',
+    ],
     # The works shelf: two boards with a pot, books and a frame.
     'works': [
         '................',

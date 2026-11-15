@@ -1,15 +1,19 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
-import { type BoardStep, boardWindow } from '../../shared/board';
+import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import type { ActorId, CommissionForm, CommissionResult, CommissionTemplate, HandOver, LamplightApi, Material } from '../../shared/types';
+import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
 import { withPortrait } from './portraits';
+import { WARN_SHARE } from '../../main/budget';
 
 const U = strings.ui;
+
+/** A cap a round took past eight tenths (B8), as Adeng puts it on the card that follows. */
+export const budgetLine = (n: BudgetNote) => fill(n.cap === 'month' ? U.resultBudgetMonth : U.resultBudgetProject, { spent: formatUsd(n.spentUsd), cap: formatUsd(n.capUsd), left: formatUsd(n.leftUsd), project: n.project ?? '' });
 
 /** What a character card shows. Everything here comes from real events. */
 export type ActorInfo = {
@@ -140,8 +144,11 @@ const BLANK = /\u2026\u2026|\.\.\./;
  * editing a document or tidying a folder also asks which file or folder, through the main process's dialog.
  */
 /** What the commission form needs from the main process. */
-export type FormApi = Pick<LamplightApi, 'chooseSource' | 'chooseLent' | 'handOver' | 'pathsOf'>;
+export type FormApi = Pick<LamplightApi, 'chooseSource' | 'chooseLent' | 'handOver' | 'pathsOf' | 'consult' | 'consultFinish'>;
 const L = U.lent;
+const C = U.consult;
+/** How long Adeng's last word in a talk stays up before the slip comes back filled in. */
+const LAST_WORD_MS = 1600;
 
 /** Why something couldn't be handed over, in the shop's words. */
 export function refusalText(r: HandOver['refused'][number]): string {
@@ -153,7 +160,8 @@ export function refusalText(r: HandOver['refused'][number]): string {
 let openForm: { add: (paths: string[] | null) => Promise<void> } | null = null;
 export const commissionFormOpen = () => openForm;
 
-export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }): Promise<CommissionForm | null> {
+/** `month`: this month's cap and what went under it; once past eight tenths, the slip says what is left. */
+export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }, month = { capUsd: 0, spentUsd: 0 }): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     // The empty-box reminder in the shop's own words (and language), not the browser's.
@@ -265,24 +273,114 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       refresh();
     };
 
+    // A talk with Adeng first (road-to-1.2.md B4): the slip turns into a chat, and "write it up" fills the slip in for the
+    // user to look over. Only the names of the files handed over go to Claude.
+    let talkId: string | null = null;
+    const consultNote = el('div.hint.consult-note', { role: 'status' });
+    const talkLog = el('div.consult-log', { role: 'log' });
+    const say = el('textarea.consult-say', { rows: 2, placeholder: C.placeholder, 'aria-label': C.inputLabel }) as HTMLTextAreaElement;
+    const sendButton = el('button.consult-send', { type: 'button', onclick: () => void send() }, C.send) as HTMLButtonElement;
+    const finishButton = el('button.consult-finish', { type: 'button', disabled: true, onclick: () => void finish() }, C.finish) as HTMLButtonElement;
+    const backButton = el('button.consult-back', { type: 'button', onclick: () => showTalk(false) }, C.back) as HTMLButtonElement;
+    const talkView = el('div.consult', { hidden: true },
+      el('div.card-title', {}, C.title),
+      withPortrait('adeng', 'calm', el('div.hint', {}, fill(C.limits, { cap: formatUsd(CONSULT_CAP_USD), n: String(CONSULT_MESSAGES) }))),
+      talkLog,
+      el('div.consult-input', {}, say, sendButton),
+      el('div.actions', {}, backButton, finishButton));
+    const line = (who: 'you' | 'adeng', text: string, waiting = false) => {
+      const node = el(`div.consult-line.${who}${waiting ? '.waiting' : ''}`, {}, waiting ? null : el('b', {}, who === 'adeng' ? strings.actors.adeng : C.you), text);
+      talkLog.append(node);
+      talkLog.scrollTop = talkLog.scrollHeight;
+      return node;
+    };
+    // While Adeng answers nothing else can be said; the slip can be written up once there has been a reply.
+    const busy = (on: boolean) => {
+      for (const b of [say, sendButton, backButton]) b.disabled = on;
+      finishButton.disabled = on || !talkId;
+    };
+    const showTalk = (on: boolean) => {
+      for (const part of slip) part.hidden = on;
+      talkView.hidden = !on;
+      form.setAttribute('aria-label', on ? C.title : U.commissionTitle);
+      (on ? say : want).focus();
+    };
+    const openTalk = () => {
+      if (!talkLog.childElementCount) line('adeng', C.hello);
+      showTalk(true);
+    };
+    const fillFrom = (brief: ConsultBrief) => {
+      talkId = brief.consult;
+      chosen = STICKERS.find((s) => s.id === brief.template) ?? null;
+      source = null;
+      want.value = brief.want;
+      details.value = brief.details ?? '';
+      audience.value = brief.audience ?? '';
+      refresh();
+      consultNote.textContent = brief.fromChat ? C.filledChat : C.filled;
+      showTalk(false);
+      // The note on what Adeng wrote sits over the want, both in view even on the smallest window.
+      consultNote.scrollIntoView({ block: 'start' });
+    };
+    // The cap reached, or no answer: Adeng says so, and the slip comes back with what was said.
+    const lastWord = async (brief: ConsultBrief) => {
+      if (brief.end) {
+        line('adeng', brief.end === 'cap' ? C.cap : C.trouble);
+        await new Promise((r) => setTimeout(r, LAST_WORD_MS));
+      }
+      fillFrom(brief);
+    };
+    const send = async () => {
+      const text = say.value.trim();
+      if (!text) return;
+      say.value = '';
+      line('you', text);
+      const thinking = line('adeng', C.thinking, true);
+      busy(true);
+      const r = await api.consult(talkId, text, materials.map((m) => m.name));
+      thinking.remove();
+      talkId = r.id;
+      if ('brief' in r) await lastWord(r.brief);
+      else line('adeng', r.reply);
+      busy(false);
+      if (!talkView.hidden) say.focus();
+    };
+    const finish = async () => {
+      const writing = line('adeng', C.writing, true);
+      busy(true);
+      const brief = await api.consultFinish(talkId!);
+      writing.remove();
+      await lastWord(brief);
+      busy(false);
+    };
+    // Enter says it; Shift+Enter starts a new line.
+    say.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+      e.preventDefault();
+      void send();
+    });
+
     const slip = [
       el('div.card-title', {}, U.commissionTitle),
       el('div.slip-body', {},
+        el('button.link.consult-open', { type: 'button', onclick: openTalk }, C.open),
         el('div.hint', {}, T.label),
         el('div.template-row', {}, ...chips),
+        consultNote,
         el('label', {}, U.want, want),
         sourceRow,
         lentRow,
         materialRow,
         el('label', {}, U.details, details),
         el('label', {}, U.audience, audience),
-        el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap),
+        el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap,
+          month.capUsd && month.spentUsd >= WARN_SHARE * month.capUsd ? ` ${fill(U.budgetLeft, { left: formatUsd(Math.max(0, month.capUsd - month.spentUsd)), cap: formatUsd(month.capUsd) })}` : null),
       ),
       el('div.actions', {}, el('button.default', { type: 'submit' }, U.submit)),
     ];
     // Working in the user's own folder is agreed to once, on the slip itself, so going back keeps what was written.
     const agree = el('div.lent-confirm', { hidden: true });
-    const form = el('form.card.paper.commission', {}, closeButton(), ...slip, agree);
+    const form = el('form.card.paper.commission', {}, closeButton(), ...slip, agree, talkView);
     const askToLend = (filled: CommissionForm, name: string) => {
       const showing = (on: boolean) => {
         for (const part of slip) part.hidden = on;
@@ -352,6 +450,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         source: needsSource() ? source?.path : undefined,
         materials: chosen?.id === 'demo' || inPlace ? undefined : materials.map((m) => m.path),
         inPlace: inPlace?.path,
+        consult: talkId ?? undefined,
       };
       if (inPlace) askToLend(filled, inPlace.name);
       else done(filled);
@@ -431,13 +530,16 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
       shown = result.workDir;
     }
   });
-  const card = el('div.card.paper.result-card', {},
+  const card = el('div.card.paper.result-card', { 'data-run': result.run },
     closeButton(),
     el('div.card-title', {}, U.resultTitle, result.round ? el('span.result-round', {}, ` \u00B7 ${result.round === 1 ? U.resultRoundOne : fill(U.resultRound, { n: String(result.round) })}`) : null),
+    // Which project it was for: with two rounds at once, two cards may come one after the other (B5).
+    result.project ? el('div.hint.result-project', {}, fill(U.resultProject, { title: result.project.title })) : null,
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
+    ...(result.budget ?? []).map((n) => el('div.hint.result-budget', { role: 'note' }, budgetLine(n))),
     // A script that deletes or acts without a preview broke the tool template's rules: say so before anyone double-clicks it.
     ...(result.scripts ?? []).map(({ file, risks }) => el('div.hint.warn.result-script', { role: 'note' },
       fill(risks.length > 1 ? U.resultScriptBoth : risks[0] === 'deletes' ? U.resultScriptDeletes : U.resultScriptNoPreview, { file }))),
@@ -477,16 +579,26 @@ export type { BoardStep };
 /** What is on the blackboard now, for the card that shows the whole list. */
 let chalked: BoardStep[] = [];
 export const boardSteps = () => chalked;
-export function renderBoard(steps: BoardStep[]) {
+/**
+ * `columns`: two rounds under way at once (road-to-1.2.md B9). The slate splits in two, each column under a pin in its
+ * project's colour, with two lines of that round's plan; `steps` stays the lead round's, for the card with the whole list.
+ */
+export function renderBoard(steps: BoardStep[], columns: { color: string; steps: BoardStep[] }[] = []) {
   chalked = steps.map((s) => ({ ...s }));
   let board = document.getElementById('board');
   if (!board) {
     board = el('div.board', { id: 'board' });
     layer().append(board);
   }
+  const line = (s: BoardStep) => el(`div.step.${s.status}`, { title: s.label }, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`);
+  board.classList.toggle('two', columns.length > 1);
+  if (columns.length > 1) {
+    // Half the slate each: no marks in front, the chalk itself says done (struck through), under way or still to do.
+    board.replaceChildren(...columns.map((c) => el('div.board-col', { style: `--project:${c.color}` }, el('span.board-pin', { 'aria-hidden': 'true' }), ...boardPair(c.steps).map((s) => el(`div.step.${s.status}`, { title: s.label }, s.label)))));
+    return;
+  }
   const { shown, more } = boardWindow(steps);
-  board.replaceChildren(...shown.map((s) =>
-    el(`div.step.${s.status}`, { title: s.label }, `${s.status === 'done' ? '\u2713' : s.status === 'doing' ? '\u270E' : '\u00B7'} ${s.label}`)),
+  board.replaceChildren(...shown.map(line),
   ...(more ? [el('div.step.more', {}, `\u2026 ${fill(U.board.more, { n: String(more) })}`)] : []));
 }
 

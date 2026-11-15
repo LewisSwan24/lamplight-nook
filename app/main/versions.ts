@@ -65,8 +65,8 @@ export class VersionStore {
   constructor(private root: string) {}
 
   private dir(id: string) {
-    // Ids come from the notebook (c<timestamp>); anything else is refused rather than used in a path.
-    if (!/^c\d+$/.test(id)) throw new Error(`bad commission id: ${id}`);
+    // Ids come from the notebook (c<timestamp>, or p<timestamp> for a project); anything else is refused rather than used in a path.
+    if (!/^[cp]\d+$/.test(id)) throw new Error(`bad commission id: ${id}`);
     return join(this.root, id);
   }
 
@@ -179,6 +179,11 @@ export class VersionStore {
       changed: kept.filter(differs).sort(),
       added: added.filter((p) => !p.endsWith('/') && existsSync(join(folder, p))).sort(),
     };
+  }
+
+  /** Where the original of one of the user's files in a lent folder is kept, if the shop kept it. */
+  originalOf(folder: string, rel: string): string | undefined {
+    return this.lent(folder).kept.includes(rel) ? join(this.lentDir(folder), ORIGINALS, rel) : undefined;
   }
 
   canUndo(folder: string): boolean {

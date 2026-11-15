@@ -69,6 +69,16 @@ describe('director pacing', () => {
     expect(resumed.map((c) => `${c.actor}:${c.anim}`)).toEqual(['laoshi:b']);
     expect(d.isFrozen()).toBe(false);
   });
+
+  it('a project meeting (B9) holds only the crew at it; the other crew keeps working, and the crew picks up after', () => {
+    const { d } = setup();
+    d.hold(['adeng', 'xiaoju']);
+    expect(d.submit(cmd({ actor: 'adeng', anim: 'write' }))).toBeNull();
+    expect(d.submit(cmd({ actor: 'qingdai', anim: 'read' }))?.anim).toBe('read');
+    expect(d.finished('xiaoju')).toBeNull();
+    expect(d.letGo().map((c) => `${c.actor}:${c.anim}`)).toEqual(['adeng:write']);
+    expect(d.submit(cmd({ actor: 'xiaoju', anim: 'walk' }))?.anim).toBe('walk');
+  });
 });
 
 describe('burst merging', () => {

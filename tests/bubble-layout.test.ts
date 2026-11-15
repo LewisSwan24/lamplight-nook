@@ -73,3 +73,29 @@ describe('bubbles at the edge of the window', () => {
     expect(places.get('b')!.y).toBeLessThan(places.get('a')!.y);
   });
 });
+describe('two crews talking at once (road-to-1.2.md B9)', () => {
+  // Each speaker wears a flag in their project's colour just over the head; the bubble sits above their own.
+  const flag = (x: number, y: number) => ({ left: x - 2, right: x + 6, top: y - 8, bottom: y });
+
+  it('keeps words off the other crew’s flag: a bubble that would hide it moves up, clear of it', () => {
+    const places = placeBubbles([bubble('adeng', 100, 92)], [], [], Infinity, [flag(130, 98)]);
+    expect(places.get('adeng')).toMatchObject({ y: 86, visible: true });
+  });
+
+  it('shows both leads and their helpers at once, none on another’s words or flag', () => {
+    const people = [
+      { key: 'adeng', x: 100, y: 100 }, { key: 'xiaoju', x: 140, y: 100 },
+      { key: 'qingdai', x: 170, y: 104 }, { key: 'xiaodou', x: 200, y: 108 },
+    ];
+    const flags = people.map((p) => flag(p.x, p.y + 10));
+    const out = placeBubbles(people.map((p) => bubble(p.key, p.x, p.y, 90)), [], [], 1000, flags);
+    const boxes = people.map((p) => ({ ...out.get(p.key)!, w: 90 }));
+    expect(boxes.every((b) => b.visible)).toBe(true);
+    const rect = (b: { x: number; y: number; w: number }) => ({ left: b.x - b.w / 2, right: b.x + b.w / 2, top: b.y - 20, bottom: b.y });
+    const touch = (a: ReturnType<typeof rect>, b: { left: number; right: number; top: number; bottom: number }) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    for (const [i, a] of boxes.entries()) {
+      for (const b of boxes.slice(i + 1)) expect(touch(rect(a), rect(b))).toBe(false);
+      for (const f of flags) expect(touch(rect(a), f)).toBe(false);
+    }
+  });
+});

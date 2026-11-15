@@ -112,7 +112,7 @@ describe('what the apprentice says, and what is said about them', () => {
 describe('the shop\'s days', () => {
   const day = (n: number) => new Date(2026, 0, n, 12);
   const work = (n: number) => ({ id: `c${day(n).getTime()}`, title: `work ${n}`, result: 'done', choices: {}, form: { want: 'x' } }) as unknown as CommissionMemo;
-  const memory = (works: CommissionMemo[]): Memory => ({ commissions: works, stuckNotes: [], shop: { done: works.length, grown: [], told: [] } });
+  const memory = (works: CommissionMemo[]): Memory => ({ commissions: works, stuckNotes: [], projects: [], shop: { done: works.length, grown: [], told: [] } });
 
   it('tell the day the apprentice came', () => {
     const N = strings.ui.notebook;

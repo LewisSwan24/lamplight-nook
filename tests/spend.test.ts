@@ -104,6 +104,19 @@ describe('what commissions cost', () => {
     expect(ledger.months().map((m) => m.month)).toEqual(['2026-11', '2026-10']);
   });
 
+  it('keeps an estimate for a stretch that reported nothing apart: it counts, and the session total still only adds its growth (B7)', () => {
+    const file = join(dir(), 'spend.json');
+    const ledger = new SpendLedger(file);
+    ledger.record('/w/a', 's1', 0.2, nov);
+    ledger.estimate('/w/a', 's1', 0.05, nov);
+    expect(ledger.forCommission('/w/a')).toBeCloseTo(0.25);
+    // Carried on, the session reports its running total: what it grew by counts once, beside the estimate.
+    expect(ledger.record('/w/a', 's1', 0.5, nov)).toBeCloseTo(0.3);
+    expect(new SpendLedger(file).forCommission('/w/a')).toBeCloseTo(0.55);
+    expect(new SpendLedger(file).months()).toEqual([{ month: '2026-11', usd: expect.closeTo(0.55), estimated: expect.closeTo(0.05), commissions: 1 }]);
+    expect(ledger.estimate('/w/a', 's1', 0, nov)).toBe(0);
+  });
+
   it('forgetting keeps the money and every month, but nothing says what it was spent on', () => {
     const home = dir();
     const file = join(home, 'spend.json');
@@ -157,5 +170,30 @@ describe('a commission whose folder moved', () => {
     expect(ledger.forCommission('old')).toBe(0);
     expect(ledger.forCommission('new')).toBeCloseTo(0.6);
     expect(new SpendLedger(join(dir, 'spend.json')).forCommission('new')).toBeCloseTo(0.6);
+  });
+});
+
+describe('what talks with Adeng cost (B4)', () => {
+  it('count toward the month, on a line of their own, and not as commissions', () => {
+    const ledger = new SpendLedger(join(dir(), 'spend.json'));
+    ledger.record('/w/a', 's1', 0.5, nov);
+    ledger.record('consult:t1', 'k1', 0.04, nov);
+    ledger.record('consult:t2', 'k2', 0.03, nov);
+    ledger.record('consult:t3', 'k3', 0.02, oct);
+    expect(ledger.thisMonth(nov)).toBeCloseTo(0.57);
+    expect(ledger.consultsThisMonth(nov)).toEqual({ count: 2, usd: expect.closeTo(0.07) });
+    expect(ledger.months()).toEqual([
+      { month: '2026-11', usd: expect.closeTo(0.57), commissions: 1 },
+      { month: '2026-10', usd: expect.closeTo(0.02), commissions: 0 },
+    ]);
+  });
+
+  it('forgetting keeps them as talks, without saying which', () => {
+    const ledger = new SpendLedger(join(dir(), 'spend.json'));
+    ledger.record('/w/a', 's1', 0.5, nov);
+    ledger.record('consult:t1', 'k1', 0.04, nov);
+    ledger.forget();
+    expect(ledger.consultsThisMonth(nov)).toEqual({ count: 1, usd: expect.closeTo(0.04) });
+    expect(ledger.months()[0].commissions).toBe(1);
   });
 });
