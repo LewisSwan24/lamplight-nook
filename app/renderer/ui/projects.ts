@@ -1,7 +1,8 @@
 import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { projectColor } from '../../shared/project-colors';
-import type { LamplightApi, ProjectRow, ProjectTimeline, TimelineRow } from '../../shared/types';
+import type { LamplightApi, ProjectBrief, ProjectRow, TimelineRow } from '../../shared/types';
+import { BRIEF_LAST_ROUND_CHARS, BRIEF_PREF_CHARS, BRIEF_PREFS_MAX } from '../../shared/types';
 import { el, layer } from './dom';
 import { duration } from './notebook';
 import { closeButton, replaceOpen } from './panels';
@@ -39,6 +40,78 @@ export async function showProjects(api: LamplightApi) {
       away.length ? el('details.projects-away', {}, el('summary', {}, fill(P.archived, { n: String(away.length) })),
         el('ul.projects', {}, ...away.map((p) => boardRow(api, p)))) : null) : null,
   ));
+}
+
+const B = P.brief;
+
+/**
+ * "What the staff remember" at the top of a timeline (road-to-1.2.md B3): what the project is for, the preferences, where
+ * the last round left off and when the user last changed it. It can be changed (each item rewritten, a preference removed
+ * or added), and the project forgotten, which is asked twice. `again` draws the timeline afresh with a note.
+ */
+function briefBlock(api: LamplightApi, id: string, brief: ProjectBrief, again: (said: string) => void): HTMLElement {
+  const box = el('section.brief', { 'aria-label': B.title });
+  const item = (label: string, ...body: (Node | string)[]) => el('div.brief-item', {}, el('div.brief-label', {}, label), ...body);
+  const text = (s: string | undefined) => el('div.brief-text', {}, s ? plain(s) : el('span.hint', {}, B.nothing));
+  const view = () => {
+    const note = el('div.hint.brief-note', { role: 'status' });
+    const forget = el('button.link.brief-forget', { type: 'button' }, B.forget) as HTMLButtonElement;
+    forget.addEventListener('click', async () => {
+      if (!forget.classList.contains('sure')) {
+        forget.classList.add('sure');
+        forget.textContent = B.forgetSure;
+        note.textContent = B.forgetAsk;
+        return;
+      }
+      forget.disabled = true;
+      if (await api.forgetProject(id)) again(B.forgot);
+      else note.textContent = P.failed;
+    });
+    box.replaceChildren(
+      el('div.brief-head', {}, el('b', {}, B.title), brief.edited ? el('span.hint', {}, ` · ${fill(B.edited, { date: brief.edited })}`) : null),
+      el('div.hint', {}, B.text),
+      item(B.purpose, text(brief.purpose)),
+      item(B.prefs, brief.prefs.length ? el('ul.brief-prefs', {}, ...brief.prefs.map((p) => el('li', {}, p))) : text('')),
+      item(B.lastRound, text(brief.lastRound)),
+      el('div.brief-actions', {}, el('button.link.brief-edit', { type: 'button', onclick: edit }, B.edit), forget),
+      note);
+  };
+  const edit = () => {
+    const purpose = el('textarea.brief-purpose', { rows: 2, 'aria-label': B.purpose }) as HTMLTextAreaElement;
+    purpose.value = brief.purpose;
+    const prefs = el('ul.brief-prefs.editing');
+    const addPref = (value: string) => {
+      const input = el('input.brief-pref', { type: 'text', maxlength: BRIEF_PREF_CHARS, 'aria-label': B.prefs }) as HTMLInputElement;
+      input.value = value;
+      const li = el('li', {}, input, el('button.link.brief-remove', { type: 'button', onclick: () => { li.remove(); more.disabled = false; } }, B.removePref));
+      prefs.append(li);
+      more.disabled = prefs.children.length >= BRIEF_PREFS_MAX;
+      return input;
+    };
+    const more = el('button.link.brief-add', { type: 'button', onclick: () => addPref('').focus() }, B.addPref) as HTMLButtonElement;
+    for (const p of brief.prefs) addPref(p);
+    const last = el('textarea.brief-last', { rows: 2, maxlength: BRIEF_LAST_ROUND_CHARS, 'aria-label': B.lastRound }) as HTMLTextAreaElement;
+    last.value = brief.lastRound ?? '';
+    const note = el('div.hint.brief-note', { role: 'status' });
+    const save = async (e: Event) => {
+      e.preventDefault();
+      const kept = Array.from(prefs.querySelectorAll<HTMLInputElement>('input.brief-pref'), (i) => i.value);
+      if (await api.saveBrief(id, { purpose: purpose.value, prefs: kept, lastRound: last.value })) again(B.saved);
+      else note.textContent = P.failed;
+    };
+    box.replaceChildren(el('form.brief-form', { onsubmit: save },
+      el('div.brief-head', {}, el('b', {}, B.title)),
+      item(B.purpose, purpose),
+      item(B.prefs, prefs, el('div.brief-more', {}, more, el('span.hint', {}, fill(B.prefLimit, { n: String(BRIEF_PREFS_MAX), chars: String(BRIEF_PREF_CHARS) })))),
+      item(B.lastRound, last),
+      el('div.actions.brief-save-row', {},
+        el('button.default.brief-save', { type: 'submit' }, B.save),
+        el('button.brief-cancel', { type: 'button', onclick: view }, B.cancel)),
+      note));
+    purpose.focus();
+  };
+  view();
+  return box;
 }
 
 /** What a round was: the change asked for, the commission itself, or going back to an earlier one. */
@@ -99,7 +172,9 @@ export async function showTimeline(api: LamplightApi, id: string, said = '') {
     p.lent ? el('div.hint.timeline-lent', {}, P.lent) : null,
     gone.length ? el('div.hint.timeline-gone', {}, fill(P.goneRounds, { list: gone.join(strings.app.listSeparator) })) : null,
     note,
-    el('ol.timeline', { tabindex: 0 }, ...[...t.rounds].reverse().map(row)),
+    el('div.timeline-scroll', { tabindex: 0 },
+      briefBlock(api, id, t.brief, again),
+      el('ol.timeline', {}, ...[...t.rounds].reverse().map(row))),
     el('div.actions', {},
       el('button.timeline-archive', { type: 'button', onclick: async () => { await api.archiveProject(id, !p.archived); void showProjects(api); } }, p.archived ? P.unarchive : P.archive),
       el('button.default.timeline-back', { type: 'button', onclick: () => void showProjects(api) }, P.back)),

@@ -42,6 +42,8 @@ import { MiniWindow } from './mini';
 import { copyMaterials, sortHandOver } from './materials';
 import { stepCount } from '../shared/board';
 import { boardRow, projectFolders, projectSettled, timelineRows } from './projects';
+import { newSession, projectBackground } from './project-brief';
+import { localDay } from '../shared/localday';
 import { ProjectVersions, type Scope } from './project-versions';
 import { cleanScene } from '../shared/scenes';
 
@@ -455,15 +457,18 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
   log?.info('run start', { demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId) });
   // What goes in Adeng's notebook: the user's answers to questions, and where the work got stuck.
   const title = commissionTitle(job.form);
-  const notes = memory.promptNotes(title);
+  const r = job.revise;
+  // A round of changes is a round inside a project: it starts with what the staff remember of it (B3), and carries the
+  // project's preferences there instead of the questions answered on the rest of the shop's work.
+  const notes = memory.promptNotes(title, Boolean(r));
   const choices: Record<string, string> = {};
   const stuck = new StuckTracker();
   broker.onAnswered = (req, choice) => {
     const picked = req.kind === 'question' ? req.options.find((o) => o.id === choice && o.id !== 'delegate') : undefined;
     if (picked) choices[req.title] = picked.label;
   };
-  const r = job.revise;
-  const revision: Revision | undefined = r && { ask: r.ask, form: job.form, summary: r.summary, restored: r.restored };
+  const background = r && project ? projectBackground(memory.projectBrief(project.id)!, project.rounds) : undefined;
+  const revision: Revision | undefined = r && { ask: r.ask, form: job.form, summary: r.summary, restored: r.restored, background };
   // A round of changes picks up the earlier session when Claude Code still has it; otherwise it starts afresh from the folder.
   const pickUp = !again && r?.fromSession && sessionExists(r.fromSession) ? r.fromSession : undefined;
   let finished = false;
@@ -514,7 +519,7 @@ async function runJob(job: Job, again: boolean): Promise<RunResult> {
       const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before);
       // The main file may sit in a subfolder of a lent one.
       const main = outputs.main ? relative(job.workDir, outputs.main) : undefined;
-      const round = tally.result(Date.now(), result.ok, result.error);
+      const round = { ...tally.result(Date.now(), result.ok, result.error), ...(result.contextTokens ? { contextTokens: result.contextTokens } : {}) };
       // A lent folder's own files are counted afresh each round (versions.usersFiles), so they are not written down;
       // what this commission changed or made there is, because only that goes in its zip.
       const touched = changes && [...changes.changed, ...changes.added].sort();
@@ -635,9 +640,12 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   restoredSince.delete(memo.id);
   keepLatest(memo);
   const form = memo.form ?? { want: memo.title };
+  // A session grown long, or left for over a week, is not picked up: the project background and the folder carry the work
+  // over (B3), and a fresh session reads far less each round.
+  const fromSession = newSession(memo.rounds?.at(-1) ?? { date: memo.date }, localDay(now())) ? undefined : memo.sessionId;
   return runJob({
     form, workDir: memo.folder, preexisting, startedAt: Date.now(),
-    revise: { id: memo.id, ask, fromSession: memo.sessionId, summary: memo.summary, restored },
+    revise: { id: memo.id, ask, fromSession, summary: memo.summary, restored },
   }, false);
 });
 ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState());
@@ -766,8 +774,14 @@ ipcMain.handle(IPC.projectTimeline, (_e, id: string): ProjectTimeline | null => 
   const from = p.from && memory.get().projects.find((x) => x.id === p.from!.project);
   return {
     project: rowOf(p.id), rounds: timelineRows(p, memory.get().commissions, (n) => projectVersions.has(p.id, n)),
-    ...(from ? { from: { title: from.title, round: p.from!.round } } : {}),
+    ...(from ? { from: { title: from.title, round: p.from!.round } } : {}), brief: memory.projectBrief(p.id)!,
   };
+});
+ipcMain.handle(IPC.saveBrief, (_e, id: string, brief: unknown): boolean => typeof id === 'string' && memory.editBrief(id, brief, now()));
+ipcMain.handle(IPC.forgetProject, (_e, id: string): boolean => {
+  const ok = typeof id === 'string' && memory.forgetProject(id, now());
+  log?.info('forget project', { ok });
+  return ok;
 });
 /** The copy last made of a version to look at; it goes when the next one is opened, and when the app closes. */
 let lookingAt: string | null = null;

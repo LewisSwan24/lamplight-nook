@@ -198,6 +198,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   let summary: string | undefined;
   let resultSubtype: string | undefined;
   let costUsd: number | undefined;
+  let contextTokens: number | undefined;
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
   // Streaming input, so a meeting can add to the commission while it runs.
   const input = new InputQueue();
@@ -243,11 +244,14 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         resultSubtype = message.subtype;
         // A running total for the session; crash results may carry zeros, so keep the larger.
         if (typeof message.total_cost_usd === 'number') costUsd = Math.max(costUsd ?? 0, message.total_cost_usd);
+        // How much the staff read to get there, whether fresh or from the cache: a long session reads more every round (B3).
+        const u = message.usage;
+        contextTokens = u.input_tokens + (u.cache_creation_input_tokens ?? 0) +(u.cache_read_input_tokens ?? 0);
         resultText = JSON.stringify('errors' in message ? message.errors : message.result);
         if (message.subtype === 'success' && typeof message.result === 'string' && message.result.trim()) summary = message.result.trim();
       }
     }
-    return ok ? { ok, recordingPath, workDir, costUsd, summary } : { ok, recordingPath, workDir, costUsd, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
+    return ok ? { ok, recordingPath, workDir, costUsd, summary, contextTokens } : { ok, recordingPath, workDir, costUsd, contextTokens, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {

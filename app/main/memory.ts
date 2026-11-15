@@ -5,7 +5,8 @@ import { localDay } from '../shared/localday';
 import { MAIN_FILES } from '../shared/templates';
 import { forgetAside, putAside } from './aside';
 import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
-import type { CommissionMemo, DataDamage, GuestId, Memory, Project, Recall, RoundStat, ShopDays, ShopState } from '../shared/types';
+import { afterRound, briefOf, editedBrief } from './project-brief';
+import type { CommissionMemo, DataDamage, GuestId, Memory, Project, ProjectBrief, Recall, RoundStat, ShopDays, ShopState } from '../shared/types';
 import { PROJECT_CAP_CHOICES } from '../shared/types';
 
 /** How many past commissions' choices go into the notes for Claude: every note is paid for on every commission. */
@@ -98,10 +99,12 @@ export class MemoryStore {
       const at = p.rounds.map((r) => r.commission).lastIndexOf(entry.id);
       p.rounds[at] = roundAgain(p.rounds[at], round);
       entry.project = p.id;
+      this.rounded(p, memo.choices, memo.summary);
     } else if (memo.project) {
       const p = this.project(memo.project);
       p.commissions.push(entry.id);
       p.rounds.push({ n: p.rounds.length + 1, ...round });
+      this.rounded(p, memo.choices, memo.summary);
     } else {
       const taken = new Set([...this.data.projects.map((p) => p.id), ...this.data.commissions.flatMap((c) => (c.project ? [c.project] : []))]);
       entry.project = freeProjectId(projectIdFor(entry.id), taken);
@@ -121,6 +124,43 @@ export class MemoryStore {
 
   private project(id: string): Project {
     return this.data.projects.find((p) => p.id === id)!;
+  }
+
+  /**
+   * A round of a project ended. A brief the user changed or forgot is the notebook's to keep up from now on: what was
+   * answered joins it and the summary says where the round left off. Until then the brief is read from the notebook.
+   */
+  private rounded(p: Project, choices: Record<string, string>, summary: string | undefined) {
+    if (p.brief) p.brief = afterRound(p.brief, choices, summary);
+  }
+
+  /** What the staff remember about a project (B3); undefined for a project there isn't. */
+  projectBrief(id: string): ProjectBrief | undefined {
+    const p = this.data.projects.find((x) => x.id === id);
+    return p && structuredClone(briefOf(p, this.data.commissions));
+  }
+
+  /** The user changed what the staff remember: kept as they wrote it, made to fit. False for a project there isn't, or not a brief. */
+  editBrief(id: string, edit: unknown, now = new Date()): boolean {
+    const p = this.data.projects.find((x) => x.id === id);
+    const brief = p && editedBrief(edit, localDay(now));
+    if (!p || !brief) return false;
+    p.brief = { ...brief, ...(p.brief?.forgotAt ? { forgotAt: p.brief.forgotAt } : {}) };
+    this.save();
+    return true;
+  }
+
+  /**
+   * "Forget this project": an empty brief, the changes asked for so far left out of the next prompts, and no session of
+   * its commissions picked up again, since the staff's session remembers all of it too.
+   */
+  forgetProject(id: string, now = new Date()): boolean {
+    const p = this.data.projects.find((x) => x.id === id);
+    if (!p) return false;
+    p.brief = { purpose: '', prefs: [], edited: localDay(now), forgotAt: p.rounds.length };
+    for (const c of this.data.commissions) if (p.commissions.includes(c.id)) delete c.sessionId;
+    this.save();
+    return true;
   }
 
   /**
@@ -156,6 +196,7 @@ export class MemoryStore {
     // Trying the same round again, as with the asks above.
     if (last?.commission === id && last.ask === ask) p.rounds[p.rounds.length - 1] = roundAgain(last, round);
     else p.rounds.push({ n: p.rounds.length + 1, ...round });
+    this.rounded(p, update.choices, update.summary);
     this.note(entry.title, stuck, date);
     this.save();
     return structuredClone(entry);
@@ -384,11 +425,14 @@ export class MemoryStore {
     return { flags: ['has_memory'], vars: { lastCommission: last.title } };
   }
 
-  /** Notes for the agent's prompt (English, like the rest of the prompt; user text quoted as is). */
-  promptNotes(title: string): string {
+  /**
+   * Notes for the agent's prompt (English, like the rest of the prompt; user text quoted as is). A round inside a project
+   * has the project's own preferences in its background (B3), so the questions answered on other work stay out.
+   */
+  promptNotes(title: string, inProject = false): string {
     const lines: string[] = [];
     const choices = new Map<string, string>();
-    for (const c of this.data.commissions.slice(-RECENT_FOR_NOTES)) for (const [q, a] of Object.entries(c.choices)) choices.set(q, a);
+    for (const c of inProject ? [] : this.data.commissions.slice(-RECENT_FOR_NOTES)) for (const [q, a] of Object.entries(c.choices)) choices.set(q, a);
     for (const [q, a] of choices) lines.push(`- Asked "${q}" before, the user chose "${a}".`);
     for (const n of this.data.stuckNotes.filter((s) => s.commission === title)) lines.push(`- On this commission before, "${n.note}" failed at first.`);
     return lines.length ? `Notes from earlier commissions with this user (summaries only):\n${lines.join('\n')}` : '';
