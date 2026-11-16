@@ -831,6 +831,8 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
 
 // Files and folders the user picked in a dialog this session: the only sources a commission may use.
 const picked = new Set<string>();
+/** Folders the user chose to lend, after the checks for too broad and too big: only these can be worked in place. */
+const lendable = new Set<string>();
 ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<SourcePick | null> => {
   if (!win) return null;
   const source = template(id).source!;
@@ -856,7 +858,7 @@ ipcMain.handle(IPC.chooseLent, async (): Promise<SourcePick | null> => {
   if (!path) return null;
   if (holdsTooMuch(path)) return { error: 'broad' };
   if (tooBigToLend(path)) return { error: 'too-big' };
-  picked.add(path);
+  lendable.add(path);
   return { path, name: basename(path) };
 });
 
@@ -901,7 +903,7 @@ function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: st
  * A folder grown too big since it was picked is refused here, before anything in it changes.
  */
 function startLent(form: CommissionForm, folder: string): Promise<RunResult> {
-  if (!picked.has(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'source' });
+  if (!lendable.has(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'source' });
   if (tooBigToLend(folder)) return Promise.resolve({ ok: false, recordingPath: '', workDir: '', error: 'tooBig' });
   return queued(folder, undefined, commissionTitle(form), (run, grant) => {
     // An earlier work here can't be undone any more: putting its originals back would undo this one as well.
