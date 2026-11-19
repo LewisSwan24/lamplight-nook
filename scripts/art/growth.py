@@ -182,7 +182,8 @@ def pieces_by_id():
 # Works-shelf icons, 8x8 each, in this order (shared/growth.ts WORK_ICONS):
 # page (a framed picture), research (a blue book), edit (a letter), tidy (a wooden box), demo (a green ledger),
 # letter (a sealed envelope), sheet (a ruled table), plan (a calendar page), album (an instant photo),
-# resume (a sheet with a photo), notes (an open book with a bookmark), travel (a suitcase), tool (a wrench).
+# resume (a sheet with a photo), notes (an open book with a bookmark), travel (a suitcase), tool (a wrench),
+# document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -197,6 +198,8 @@ ICONS = {
     'notes': ['........', 'uwwddwwu', 'ullddllu', 'uwwddwwu', 'ullddlru', 'uwwddwru', 'uuuuuuru', '......r.'],
     'travel': ['..kkkk..', '..k..k..', 'kkkkkkkk', 'kokookok', 'kokoskok', 'kokookok', 'kkkkkkkk', '.k....k.'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
+    'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
+    'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
 }
 COLORS = {
     'b': (122, 82, 54, 255), 'y': (243, 226, 178, 255), 's': (226, 156, 84, 255), 'g': (104, 150, 96, 255),
@@ -206,7 +209,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides']
 
 
 def overlay(pieces):

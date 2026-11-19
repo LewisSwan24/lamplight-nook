@@ -7,7 +7,7 @@ import { classify } from '../app/main/risk-classifier';
 import { connectionServers, mcpServersOf, nookName, sdkServer, toolsByName, type NookServer, type NookTool, type ToolCtx } from '../app/main/nook-tools';
 import type { Connection, ToolKind } from '../app/shared/types';
 
-const ctx: ToolCtx = { run: 'r1', project: 'p1', workDir: '/w/c1', signal: new AbortController().signal };
+const ctx: ToolCtx = { run: 'r1', project: 'p1', workDir: '/w/c1', signal: new AbortController().signal, preexisting: new Set() };
 
 const make = (name: string, kind: ToolKind, seen: { input: unknown; ctx: ToolCtx }[] = []): NookTool => ({
   name, kind, description: `${name} for the test`, label: () => `${kind} ${name}`,

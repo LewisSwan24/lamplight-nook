@@ -274,11 +274,25 @@ describe('phase 6 templates', () => {
     expect(p).toMatch(/Do not send it anywhere/);
   });
 
-  it('a table is a CSV that opens in Excel, with formulas for totals', () => {
+  it('a table is an Excel workbook made with make_xlsx, with formulas for totals and no CSV (road-to-1.3.md C1)', () => {
     const p = commissionPrompt({ want: 'w', template: 'sheet' });
     expect(p).toContain(`"${F.sheet}"`);
-    expect(p).toMatch(/byte order mark/);
+    expect(F.sheet).toMatch(/\.xlsx$/);
+    expect(p).toContain('mcp__nook-office__make_xlsx');
     expect(p).toMatch(/=SUM\(/);
+    expect(p).toMatch(/do not make a CSV/);
+  });
+
+  it('a Word document and slides are made with make_docx and make_pptx, never by hand; a résumé also becomes a PDF', () => {
+    const doc = commissionPrompt({ want: 'w', template: 'document' });
+    expect(doc).toContain(`"${F.document}"`);
+    expect(doc).toContain('mcp__nook-office__make_docx');
+    expect(doc).toMatch(/Never write Office XML/);
+    const deck = commissionPrompt({ want: 'w', template: 'slides' });
+    expect(deck).toContain(`"${F.slides}"`);
+    expect(deck).toContain('mcp__nook-office__make_pptx');
+    const cv = commissionPrompt({ want: 'w', template: 'resume' });
+    expect(cv).toContain(`"${F.resumePdf}" with the mcp__nook-office__make_pdf tool`);
   });
 
   it('a plan is a table by day or week with some slack', () => {

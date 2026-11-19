@@ -2,7 +2,7 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material } from '../../shared/types';
+import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -484,7 +484,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
 
 /** What the result card can do besides opening the work: ask for changes, and swap back to the last version. */
 export type ResultActions = {
-  open: (path: string, how: 'open' | 'reveal') => void;
+  /** Says why, when an Office file was only shown in its folder (road-to-1.3.md C1). */
+  open: (path: string, how: 'open' | 'reveal') => Promise<{ ok: boolean; why?: NotOpened }> | void;
   revise?: (id: string) => void;
   restore?: (id: string) => Promise<boolean>;
   /** Undo a commission done in the user's own folder. */
@@ -504,9 +505,18 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   const target = result.main ?? result.files[0] ?? result.workDir;
   /** What "show in folder" points at; after an undo that took the main file away, the folder itself. */
   let shown = target;
-  const openMain = result.main ? el('button.default', { onclick: () => actions.open(result.main!, 'open') }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null;
-  const { id } = result;
   const note = el('div.hint.result-restored', { role: 'status' });
+  // A Word, Excel or PowerPoint file that failed its look inside is only shown in its folder: the card says why.
+  const openIt = async () => {
+    const why = (await actions.open(result.main!, 'open'))?.why;
+    if (why) note.textContent = U.resultNotOpened[why];
+  };
+  const openMain = result.main ? el('button.default', { onclick: () => void openIt() }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null;
+  // The main file's picture (C1) comes a moment after the card; clicking it opens the file, as the button does.
+  const thumb = result.main ? el('button.result-thumb', {
+    type: 'button', hidden: !result.preview, 'aria-label': fill(U.resultPreview, { file: result.main.split(/[\\/]/).pop()! }), onclick: () => void openIt(),
+  }, el('img', { alt: '', src: result.preview })) : null;
+  const { id } = result;
   let back = false;
   const restore = id && result.canRestore && actions.restore
     ? el('button.result-restore', { type: 'button' }, U.resultRestore) as HTMLButtonElement
@@ -553,6 +563,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     // Which project it was for: with two rounds at once, two cards may come one after the other (B5).
     result.project ? el('div.hint.result-project', {}, fill(U.resultProject, { title: result.project.title })) : null,
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
+    thumb,
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
     result.costUsd ? el('div.hint.result-cost', {}, fill(result.round ? U.resultCostTotal : U.resultCost, { cost: formatUsd(result.costUsd) })) : null,
@@ -575,6 +586,14 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.
   card.addEventListener('panel-closed', clearWorkSigns);
   replaceOpen(card);
+}
+
+/** A round's thumbnail has come: onto its card, if that is up. */
+export function showResultPreview(run: string, png: string) {
+  const thumb = document.querySelector<HTMLButtonElement>(`.result-card[data-run="${run}"] .result-thumb`);
+  if (!thumb) return;
+  thumb.querySelector('img')!.src = png;
+  thumb.hidden = false;
 }
 
 /** How many file names the result card spells out before it just counts the rest. */

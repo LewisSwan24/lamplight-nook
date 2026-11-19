@@ -3,7 +3,8 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // docx and pptxgenjs are devDependencies bundled into out/main, so the installer does not carry their node_modules.
+    plugins: [externalizeDepsPlugin({ exclude: ['docx', 'pptxgenjs'] })],
     build: { lib: { entry: resolve('app/main/index.ts') } },
   },
   preload: {

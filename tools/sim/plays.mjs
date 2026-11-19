@@ -6,9 +6,6 @@ import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-// Written as an escape: an editor or tool that strips invisible characters would leave an empty string.
-const BOM = '\uFEFF';
-
 /** Text the plays say and write, per language. Player-facing words only appear in commission output. */
 const T = {
   zh: {
@@ -25,6 +22,8 @@ const T = {
     notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
     travel: ['弄清去哪、几天', '请小橘查开放时间和票价', '按天排行程和预算', '请老石检查'],
     tool: ['弄清要做什么', '做成一个网页工具', '用样例试一试', '请老石检查'],
+    document: ['弄清这份文档给谁看', '列好标题和段落', '交给工具做成 Word 文件', '请老石检查'],
+    slides: ['定好讲哪几点', '一页只讲一件事', '交给工具做成 PPT', '请老石检查'],
     materials: '看你递来的材料',
     revise: ['看看上一版', '照你说的改', '请老石再看一眼'],
     lent: ['看看你原有的页面', '照你说的改原有的文件', '加一页联系方式', '请老石检查'],
@@ -52,9 +51,11 @@ const T = {
     editDone: '改好了：理顺了几处长句，调整了段落顺序，原稿一个字没动。',
     tidyDone: '方案写好了：按用途分成四类，标出了几处像是重复的文件。什么都没有移动，照着方案自己动手就行。',
     letterDone: '信写好了：开头先说事，结尾留了感谢。不知道的日期和名字空在方括号里，填上就能寄。',
-    sheetDone: '表格做好了：表头和几行示例都在，合计用的是公式，填数字会自动算。',
+    sheetDone: 'Excel 表格做好了：表头和几行示例都在，第一行冻结，合计用的是公式，填数字会自动算。',
+    documentDone: 'Word 文档做好了：标题、要点、一张分工表都在，不知道的时间和人名空在方括号里。',
+    slidesDone: 'PPT 做好了：一页封面，一页要点，讲的话写在备注里。',
     planDone: '计划排好了：按周排，每一步都能在一次坐下来时做完，每周留了一天补课。',
-    resumeDone: '简历做好了：一页 A4，用浏览器打印成 PDF 就是干净的一页。不知道的地方留在方括号里，按办公室文职的方向写的。',
+    resumeDone: '简历做好了：一页 A4，另外存了一份 PDF，可以直接发出去。不知道的地方留在方括号里，按办公室文职的方向写的。',
     notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
     travelDone: '攻略做好了：按天排的行程、预算表和要带的东西。开放时间和票价都注了出处和查的日期，出发前再核对一下。',
     toolDone: '小工具做好了：1. 打开小工具.html；2. 选一个文件；3. 点「下载结果」。它只读你选的文件，不动电脑上别的东西。',
@@ -64,7 +65,6 @@ const T = {
     netRetry: '网络断了一下。',
     stuckTry: '命令没跑通，换个写法再试。',
     letterBody: (w) => `主题：${w}\n\n[称呼]，你好：\n\n写这封信，是想和你说一件事。${w}。\n\n具体的时间定在 [日期]，地点在 [地点]。如果你那天不方便，告诉我一声，我们再约。\n\n谢谢你一直以来的帮忙。\n\n[你的名字]\n[日期]\n`,
-    sheetRows: ['日期,项目,分类,金额,备注', '[日期],早餐,吃饭,12,', '[日期],公交卡充值,出行,50,', '[日期],,,,', '[日期],,,,', '合计,,,=SUM(D2:D20),'],
     planBody: (w) => `# ${w}\n\n假设：每周能抽出 3 个晚上，每次一小时左右。\n\n| 周 | 要做的事 | 完成标准 |\n|---|---|---|\n| 第 1 周 | 定好目标，准备材料 | 清单齐了 |\n| 第 2 周 | 每次练一小段 | 能顺下来 |\n| 第 3 周 | 把难的部分拆开练 | 卡住的地方少了 |\n| 第 4 周 | 合起来走一遍，留一天补课 | 从头到尾不停 |\n\n## 准备清单\n- [ ] 一个固定的时间段\n- [ ] 需要的材料\n- [ ] 一个记进度的小本子\n`,
     summaryBody: (w) => `# ${w}\n\n三句话：大多数资料说法一致。有一处日期各说各的，下面写清楚了。如果只记一件事，记第一条。\n\n## 要点\n- 第一条：最常见的做法和理由\n- 第二条：需要注意的例外\n- 第三条：各家说法不一致的地方\n\n## 出处\n- 示例资料一 https://example.org/a\n- 示例资料二 https://example.org/b\n`,
     tidyBody: '# 整理方案\n\n## 建议的分类\n- 工作/：合同、报表\n- 照片/：按年份分\n- 安装包/：用完可以删\n- 待看/：暂时不知道放哪的\n\n## 值得看一眼的\n- 名字里带“副本”“(1)”的文件，像是重复的\n- 一年多没动过的安装包\n\n什么都没有移动，照着做就行。\n',
@@ -95,6 +95,8 @@ const T = {
     notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
     travel: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out the days and the budget', 'Ask Flint to check it'],
     tool: ['Work out what it should do', 'Make it a page in the browser', 'Try it on samples', 'Ask Flint to check it'],
+    document: ['Work out who will read it', 'Lay out headings and paragraphs', 'Have the tool make the Word file', 'Ask Flint to check it'],
+    slides: ['Choose the points to make', 'One idea per slide', 'Have the tool make the slides', 'Ask Flint to check it'],
     materials: 'Look at the files you handed over',
     revise: ['Look at the last version', 'Make the change you asked for', 'Ask Flint for another look'],
     lent: ['Look at your pages as they are', 'Change your files as you asked', 'Add a contact page', 'Ask Flint to check'],
@@ -122,9 +124,11 @@ const T = {
     editDone: 'Done: a few long sentences are smoother and the paragraphs are in a clearer order. The original is untouched.',
     tidyDone: 'The plan is ready: four groups by purpose, and a few files that look like duplicates. Nothing was moved; you can follow the plan yourself.',
     letterDone: 'The letter is ready: it gets to the point first and ends with thanks. Dates and names I did not know are left in square brackets.',
-    sheetDone: 'The table is ready: a header and a few example rows, with formulas for the total so it adds up as you fill it in.',
+    sheetDone: 'The Excel table is ready: a header that stays in view, a few example rows, and a formula for the total so it adds up as you fill it in.',
+    documentDone: 'The Word document is ready: a title, the main points and a table of who does what. Dates and names I did not know are left in square brackets.',
+    slidesDone: 'The slides are ready: a cover and a slide of main points, with what to say in the notes.',
     planDone: 'The plan is ready: week by week, each step small enough for one sitting, with a spare day each week.',
-    resumeDone: 'The résumé is ready: one A4 page, and "Print to PDF" in the browser gives one clean page. What I did not know is left in square brackets. I shaped it for an office job.',
+    resumeDone: 'The résumé is ready: one A4 page, and a PDF of it to send straight away. What I did not know is left in square brackets. I shaped it for an office job.',
     notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
     travelDone: 'The travel guide is ready: day by day, a budget table and a packing list. Opening hours and prices carry their source and the date checked; check them again before you set off.',
     toolDone: 'The tool is ready: 1. Open tool.html. 2. Pick a file. 3. Click "Download the result". It only reads the file you pick.',
@@ -134,7 +138,6 @@ const T = {
     netRetry: 'The connection dropped for a moment.',
     stuckTry: 'That command did not work. Trying it another way.',
     letterBody: (w) => `Subject: ${w}\n\nDear [name],\n\nI am writing about one thing: ${w}.\n\nIt is set for [date] at [place]. If that day does not suit you, just let me know and we will find another.\n\nThank you for all your help.\n\n[your name]\n[date]\n`,
-    sheetRows: ['Date,Item,Category,Amount,Note', '[date],Breakfast,Food,12,', '[date],Bus pass top-up,Travel,50,', '[date],,,,', '[date],,,,', 'Total,,,=SUM(D2:D20),'],
     planBody: (w) => `# ${w}\n\nAssumed: three evenings a week, about an hour each.\n\n| Week | What to do | Done when |\n|---|---|---|\n| Week 1 | Set the goal, gather what you need | The list is complete |\n| Week 2 | Practise one short part each time | It runs through |\n| Week 3 | Take the hard parts apart | Fewer places you get stuck |\n| Week 4 | Put it together, one spare day | Start to finish without stopping |\n\n## To prepare\n- [ ] A fixed time slot\n- [ ] The materials you need\n- [ ] A notebook for progress\n`,
     summaryBody: (w) => `# ${w}\n\nIn three sentences: most sources agree. One date differs between them, noted below. If you remember one thing, remember the first point.\n\n## Key points\n- First: the usual approach and why\n- Second: the exceptions to watch for\n- Third: where the sources disagree\n\n## Sources\n- Example source one https://example.org/a\n- Example source two https://example.org/b\n`,
     tidyBody: '# Tidy-up plan\n\n## Suggested groups\n- Work/: contracts, reports\n- Photos/: by year\n- Installers/: can go once used\n- To sort/: anything unsure\n\n## Worth a look\n- Files with "copy" or "(1)" in the name look like duplicates\n- Installers untouched for over a year\n\nNothing was moved; follow the plan yourself.\n',
@@ -159,6 +162,35 @@ const want = (prompt) => ((prompt.match(/The user's request: (.*)/) ?? [])[1] ??
   .replace(/^(请|麻烦)?(帮我|给我|替我)?(做|写|查一查|查|排|整理|改)?(一下)?(一个|一份|一封|一本|个|份|封|本)?/, '')
   .replace(/^(please\s+)?((make|write|plan out|plan|look into|build)\s+)?(me\s+)?(a\s+|an\s+)?/i, '')
   .replace(/[。.！!…]+$/, '');
+/** What the office tools are handed (road-to-1.3.md C1): plain structures, a SUM and nothing that reaches outside. */
+const OFFICE = {
+  zh: {
+    doc: (w) => ({ title: w || '通知', blocks: [{ h: 1, text: '要点' }, { p: '这是一份**示例**文档，按你的要求写成。' }, { list: ['时间：[日期]', '地点：[地点]'] }, { table: { head: ['事项', '负责人'], rows: [['准备', '[姓名]'], ['收尾', '[姓名]']] } }] }),
+    sheet: { sheets: [{ name: '记账', freezeHeader: true, columns: [{ header: '日期', width: 12 }, { header: '项目', width: 16 }, { header: '分类' }, { header: '金额', format: 'money' }, { header: '备注', width: 20 }], rows: [['[日期]', '早餐', '吃饭', 12, ''], ['[日期]', '公交卡充值', '出行', 50, ''], ['合计', '', '', { f: '=SUM(D2:D3)' }, '']] }] },
+    deck: (w) => ({ title: w || '春季菜单', slides: [{ layout: 'title', title: w || '春季菜单', bullets: ['小灯屋'] }, { layout: 'bullets', title: '要点', bullets: ['第一点', '第二点', '第三点'], notes: '先讲第一点。' }] }),
+    files: { docx: '通知.docx', xlsx: '账目.xlsx', pptx: '介绍.pptx', pdf: '传单.pdf' },
+    page: '<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><title>传单</title><style>body{font:16px/1.6 system-ui,sans-serif;margin:40px;background:#fbf6ec}h1{color:#8a4b2a}</style></head><body><h1>小灯屋春季菜单</h1><p>柠檬挞、热可可，周末下午三点。</p></body></html>\n',
+    officeDone: 'Word、Excel、PPT 各做了一份，又把传单网页存成了 PDF。',
+    readDone: '两份文件都读了，内容抄进了一个文本文件。',
+    readFile: '读到的内容.txt',
+  },
+  en: {
+    doc: (w) => ({ title: w || 'Notice', blocks: [{ h: 1, text: 'Main points' }, { p: 'This is a **sample** document, written to your request.' }, { list: ['When: [date]', 'Where: [place]'] }, { table: { head: ['Task', 'Who'], rows: [['Set up', '[name]'], ['Clear up', '[name]']] } }] }),
+    sheet: { sheets: [{ name: 'Spending', freezeHeader: true, columns: [{ header: 'Date', width: 12 }, { header: 'Item', width: 16 }, { header: 'Category' }, { header: 'Amount', format: 'money' }, { header: 'Note', width: 20 }], rows: [['[date]', 'Breakfast', 'Food', 12, ''], ['[date]', 'Bus pass top-up', 'Travel', 50, ''], ['Total', '', '', { f: '=SUM(D2:D3)' }, '']] }] },
+    deck: (w) => ({ title: w || 'Spring menu', slides: [{ layout: 'title', title: w || 'Spring menu', bullets: ['Lamplight Nook'] }, { layout: 'bullets', title: 'Main points', bullets: ['First point', 'Second point', 'Third point'], notes: 'Start with the first point.' }] }),
+    files: { docx: 'notice.docx', xlsx: 'costs.xlsx', pptx: 'talk.pptx', pdf: 'flyer.pdf' },
+    page: '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Flyer</title><style>body{font:16px/1.6 system-ui,sans-serif;margin:40px;background:#fbf6ec}h1{color:#8a4b2a}</style></head><body><h1>Lamplight Nook spring menu</h1><p>Lemon tart and hot chocolate, weekend afternoons at three.</p></body></html>\n',
+    officeDone: 'I made a Word document, an Excel workbook and a deck, and saved the flyer page as a PDF.',
+    readDone: 'I read both files and copied what was in them into a text file.',
+    readFile: 'what-was-read.txt',
+  },
+};
+/** The files the office play makes, for the scenario to look for. */
+export const OFFICE_FILES = { zh: OFFICE.zh.files, en: OFFICE.en.files };
+export const OFFICE_READ_FILE = { zh: OFFICE.zh.readFile, en: OFFICE.en.readFile };
+/** Call one of the shop's office tools. */
+const office = (s, tool, args) => s.mcp('nook-office', tool, args);
+
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
@@ -181,6 +213,8 @@ export function pickPlay(prompt, state, system = '') {
   if (/node check\.js/.test(prompt)) return plays.demo;
   state.vars.want = want(prompt);
   state.vars.materialsDir = quoted(prompt, 'Copies are in the folder') ?? quoted(prompt, 'using the photos in the folder');
+  // A scenario may ask for one play by name (office, officeread); a resumed session has kept its play above.
+  if (plays[process.env.SIM_PLAY]) return plays[process.env.SIM_PLAY];
   // A commission that may use a connection (road-to-1.3.md C4) reads it once and writes down what it got.
   // SIM_CONNECTION_PLAY picks another play for such a commission: outside or outsideweb (C6).
   if (/The user let this commission use these connections/.test(prompt)) return plays[process.env.SIM_CONNECTION_PLAY] ?? plays.connect;
@@ -198,9 +232,15 @@ export function pickPlay(prompt, state, system = '') {
     return plays.tidy;
   }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
-  if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.sheet; }
+  if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
+  if (/This is a Word document/.test(prompt)) { state.vars.out = quoted(prompt, 'make_docx tool as'); return plays.document; }
+  if (/This is a slide deck/.test(prompt)) { state.vars.out = quoted(prompt, 'make_pptx tool as'); return plays.slides; }
   if (/This is a plan/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.plan; }
-  if (/This is a résumé/.test(prompt)) { state.vars.out = quoted(prompt, 'single self-contained page named'); return plays.resume; }
+  if (/This is a résumé/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page named');
+    state.vars.pdf = quoted(prompt, 'also save it as');
+    return plays.resume;
+  }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
   if (/This is a travel guide/.test(prompt)) { state.vars.out = 'index.html'; return plays.travel; }
   // A small tool: a page in the browser, unless the request is to rename or delete files. Then it writes a script and
@@ -389,6 +429,42 @@ export const plays = {
     },
   },
 
+  /**
+   * Every office tool once (road-to-1.3.md C1), picked with SIM_PLAY=office: a Word document, a workbook with a SUM, a
+   * two-slide deck, and a small page saved as a PDF.
+   */
+  office: {
+    name: 'office',
+    async run(s) {
+      const o = OFFICE[s.state.lang];
+      const w = s.state.vars.want;
+      await s.step(() => s.think(1));
+      await s.step(() => office(s, 'make_docx', { file: o.files.docx, ...o.doc(w) }));
+      await s.step(() => office(s, 'make_xlsx', { file: o.files.xlsx, ...o.sheet }));
+      await s.step(() => office(s, 'make_pptx', { file: o.files.pptx, ...o.deck(w) }));
+      await s.step(() => s.write('index.html', o.page));
+      await s.step(() => office(s, 'make_pdf', { page: 'index.html', file: o.files.pdf }));
+      await s.finish(o.officeDone);
+    },
+  },
+
+  /** Reads every file handed over with read_document (SIM_PLAY=officeread) and writes what came back into a text file. */
+  officeread: {
+    name: 'officeread',
+    async run(s) {
+      const o = OFFICE[s.state.lang];
+      const dir = s.state.vars.materialsDir;
+      const got = [];
+      await s.step(() => s.think(1));
+      for (const f of dir && existsSync(join(s.cwd, dir)) ? readdirSync(join(s.cwd, dir)).sort() : []) {
+        const r = await s.step(() => office(s, 'read_document', { file: `${dir}/${f}` }));
+        got.push(`## ${f}\n${r?.text ?? ''}`);
+      }
+      await s.step(() => s.write(o.readFile, `${got.join('\n\n')}\n`));
+      await s.finish(o.readDone);
+    },
+  },
+
   /** The fixed demo commission, step for step as the storyboard has it. */
   demo: {
     name: 'demo',
@@ -538,9 +614,11 @@ export const plays = {
   },
 
   letter: simpleText('letter', (t, w) => t.letterBody(w), (t) => t.letterDone),
-  sheet: simpleText('sheet', (t) => BOM + t.sheetRows.join('\r\n') + '\r\n', (t) => t.sheetDone),
+  sheet: simpleText('sheet', null, (t) => t.sheetDone, { make: (s, o) => office(s, 'make_xlsx', { file: s.state.vars.out, ...o.sheet }) }),
+  document: simpleText('document', null, (t) => t.documentDone, { make: (s, o, w) => office(s, 'make_docx', { file: s.state.vars.out, ...o.doc(w) }) }),
+  slides: simpleText('slides', null, (t) => t.slidesDone, { make: (s, o, w) => office(s, 'make_pptx', { file: s.state.vars.out, ...o.deck(w) }) }),
   plan: simpleText('plan', (t, w) => t.planBody(w), (t) => t.planDone),
-  resume: simpleText('resume', (t, w) => t.resumeBody(w), (t) => t.resumeDone),
+  resume: simpleText('resume', (t, w) => t.resumeBody(w), (t) => t.resumeDone, { after: (s) => office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf }) }),
   notes: simpleText('notes', (t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
@@ -697,7 +775,7 @@ const CARELESS_SCRIPT = [
  * The letter, the table, the plan, the résumé, the reading notes, the travel guide and the small tool: a short to-do
  * list, one file, a review. `research`: the researcher looks something up first (the book's facts, opening hours).
  */
-function simpleText(name, body, done, { research = false } = {}) {
+function simpleText(name, body, done, { research = false, make, after } = {}) {
   return {
     name,
     async run(s, { scenario }) {
@@ -715,7 +793,8 @@ function simpleText(name, body, done, { research = false } = {}) {
       await p.next();
       await takeNotes(s, t);
       const notes = s.state.notes.map((n) => `\n${t.noteLine(n)}\n`).join('');
-      await s.step(() => s.write(s.state.vars.out, body(t, s.state.vars.want || '') + notes));
+      await s.step(() => (make ? make(s, OFFICE[s.state.lang], s.state.vars.want || '') : s.write(s.state.vars.out, body(t, s.state.vars.want || '') + notes)));
+      if (after) await s.step(() => after(s));
       await p.next();
       await reviewer(s, t, s.state.vars.out);
       await p.end();

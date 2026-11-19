@@ -192,6 +192,10 @@
       "notesFill": "Make me reading notes on ...",
       "travelFill": "Make me a travel guide for ..., ... days.",
       "toolFill": "Make me a small tool that ...",
+      "document": "Write a Word document",
+      "slides": "Make slides",
+      "documentFill": "Write me a Word document about ...",
+      "slidesFill": "Make me slides about ..., about ... slides.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
       "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
@@ -707,6 +711,13 @@
       "hotspotBoard": "The blackboard: the whole plan, or the project board when nothing is under way",
       "hotspotWorks": "The works shelf: see what we made together"
     },
+    "office": {
+      "readDocument": "read the document {file}",
+      "makeDocx": "write the Word document {file}",
+      "makeXlsx": "make the Excel workbook {file}",
+      "makePptx": "make the slides {file}",
+      "makePdf": "save the PDF {file}"
+    },
     "connections": {
       "title": "Connections",
       "intro": "Once connected, the staff may use these things from outside the shop. Tick which ones a commission may use on its slip; unticked, they stay out.",
@@ -890,12 +901,15 @@
       "tidyPlan": "tidy-plan.md",
       "listing": "file-list.txt",
       "letter": "letter.txt",
-      "sheet": "table.csv",
+      "sheet": "table.xlsx",
       "plan": "plan.md",
       "materials": "materials",
       "resume": "resume.html",
       "notes": "reading-notes.md",
       "tool": "tool.html",
+      "document": "document.docx",
+      "slides": "slides.pptx",
+      "resumePdf": "resume.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -913,6 +927,14 @@
     },
     "resultRevise": "Change it a bit",
     "resultReport": "Something not right in this? Tell us",
+    "resultPreview": "A preview of {file}. Click to open it.",
+    "resultNotOpened": {
+      "macros": "This file carries macros, which run as soon as it opens, so it is shown in its folder instead. Open it yourself only if you trust it.",
+      "embedded": "This file has an embedded object or control that could run when it opens, so it is shown in its folder instead.",
+      "externalTemplate": "This file fetches a template from elsewhere when it opens, so it is shown in its folder instead.",
+      "externalLink": "This file links to files or addresses outside it and would fetch them when it opens, so it is shown in its folder instead.",
+      "unreadable": "This file can't be read and may be damaged, so it is shown in its folder instead."
+    },
     "resultShelf": "Finished work goes on the shelf by the wall. Click it any time to find this again or change it.",
     "resultScriptDeletes": "{file} has a command that deletes files. Read it before you run it, or use \"Change it a bit\" to have it taken out.",
     "resultScriptNoPreview": "{file} changes files as soon as it runs, without listing what it will do first. Read it before you run it.",
@@ -1066,7 +1088,9 @@
         "resume": "Résumés",
         "notes": "Reading notes",
         "travel": "Travel guides",
-        "tool": "Tools"
+        "tool": "Tools",
+        "document": "Documents",
+        "slides": "Slides"
       }
     },
     "mini": {

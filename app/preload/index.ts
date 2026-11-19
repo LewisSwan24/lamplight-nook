@@ -86,6 +86,7 @@ const api: LamplightApi = {
   onAiEvent: (cb) => on(IPC.aiEvent, cb),
   onDecision: (cb) => on(IPC.decision, cb),
   onResult: (cb) => on(IPC.result, cb),
+  onResultPreview: (cb) => on(IPC.resultPreview, cb),
   onScheduled: (cb) => on(IPC.scheduled, cb),
   onOpenResult: (cb) => on(IPC.openResult, cb),
   miniState: () => ipcRenderer.invoke(IPC.miniState),
