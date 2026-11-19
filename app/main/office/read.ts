@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { extname, posix } from 'node:path';
 import { entryText, readZip, type ZipEntries } from './unzip';
+import { letters } from './xlsx';
 import { child, children, elements, find, findAll, ownText, parseXml, textOf, type El } from './xml';
 
 /** What read_document says about a PDF: Claude Code's own Read takes PDFs, a few pages at a time. */
@@ -13,22 +14,24 @@ export const SHEET_MAX_COLUMNS = 50;
 /**
  * The text of a Word, Excel or PowerPoint file for the staff (road-to-1.3.md C1): Word as Markdown-ish text, each sheet
  * as CSV, each slide's title, text and notes. A package past the unpacking limits throws a ZipError.
+ * `numbered` (C3) puts the numbers the edit tools go by in front: [12] for Word's twelfth paragraph, [2.3] for the third
+ * text box of slide 2, and a sheet's column letters and row numbers, with each formula next to its value.
  */
-export function readDocument(file: string): string {
+export function readDocument(file: string, { numbered = false } = {}): string {
   const ext = extname(file).toLowerCase();
   if (ext === '.pdf') return PDF_HINT;
   if (ext !== '.docx' && ext !== '.xlsx' && ext !== '.pptx') throw new Error(`read_document reads .docx, .xlsx and .pptx files (and points to Read for .pdf), not ${ext || 'this file'}.`);
   const zip = readZip(readFileSync(file));
-  return ext === '.docx' ? readDocx(zip) : ext === '.xlsx' ? readXlsx(zip) : readPptx(zip);
+  return ext === '.docx' ? readDocx(zip, numbered) : ext === '.xlsx' ? readXlsx(zip, numbered) : readPptx(zip, numbered);
 }
 
-const xml = (zip: ZipEntries, name: string): El | undefined => {
+export const xml = (zip: ZipEntries, name: string): El | undefined => {
   const text = entryText(zip, name);
   return text === undefined ? undefined : parseXml(text);
 };
 
 /** A part's relationships, id -> the target's name in the package. */
-function rels(zip: ZipEntries, part: string): Map<string, { type: string; target: string }> {
+export function rels(zip: ZipEntries, part: string): Map<string, { type: string; target: string }> {
   const dir = posix.dirname(part);
   const root = xml(zip, posix.join(dir, '_rels', `${posix.basename(part)}.rels`));
   const out = new Map<string, { type: string; target: string }>();
@@ -42,9 +45,14 @@ function rels(zip: ZipEntries, part: string): Map<string, { type: string; target
 
 // Word
 
-function readDocx(zip: ZipEntries): string {
+/** The paragraphs edit_docx numbers, in the order of the text: the body's, table cells' included, none inside another. */
+export const docxParagraphs = (doc: El): El[] => findAll(find(doc, 'body') ?? doc, 'p');
+
+function readDocx(zip: ZipEntries, numbered: boolean): string {
   const doc = xml(zip, 'word/document.xml');
   if (!doc) throw new Error('This .docx has no document part.');
+  const number = new Map(docxParagraphs(doc).map((p, i) => [p, i + 1]));
+  const tag = (p: El) => (numbered && number.has(p) ? `[${number.get(p)}] ` : '');
   // Style ids differ by language (a Chinese Word may call Heading 1 "1"), so headings are known by the style's name.
   const names = new Map<string, string>();
   const styles = xml(zip, 'word/styles.xml');
@@ -64,7 +72,7 @@ function readDocx(zip: ZipEntries): string {
     return /^list (bullet|number)/.test(names.get(id) ?? '');
   };
   const paraText = (p: El) => textOf(p, 't', ['Fallback', 'del']).trim();
-  const cell = (tc: El) => findAll(tc, 'p').map(paraText).filter(Boolean).join(' ').replace(/\|/g, '\\|');
+  const cell = (tc: El) => findAll(tc, 'p').filter((p) => paraText(p)).map((p) => tag(p) + paraText(p)).join(' ').replace(/\|/g, '\\|');
 
   const blocks: { list: boolean; text: string }[] = [];
   const walk = (parent: El) => {
@@ -73,8 +81,8 @@ function readDocx(zip: ZipEntries): string {
         const text = paraText(el);
         if (!text) continue;
         const h = level(el);
-        if (h) blocks.push({ list: false, text: `${'#'.repeat(h)} ${text}` });
-        else blocks.push({ list: isList(el), text: isList(el) ? `- ${text}` : text });
+        if (h) blocks.push({ list: false, text: `${tag(el)}${'#'.repeat(h)} ${text}` });
+        else blocks.push({ list: isList(el), text: tag(el) + (isList(el) ? `- ${text}` : text) });
       } else if (el.name === 'tbl') {
         const rows = children(el, 'tr').map((tr) => children(tr, 'tc').map(cell));
         if (!rows.length) continue;
@@ -96,7 +104,7 @@ function readDocx(zip: ZipEntries): string {
 /** Built-in number formats that show a date (ECMA-376 18.8.30). */
 const DATE_FORMATS = new Set([14, 15, 16, 17, 18, 19, 20, 21, 22, 45, 46, 47]);
 
-function readXlsx(zip: ZipEntries): string {
+function readXlsx(zip: ZipEntries, numbered: boolean): string {
   const book = xml(zip, 'xl/workbook.xml');
   if (!book) throw new Error('This .xlsx has no workbook part.');
   const links = rels(zip, 'xl/workbook.xml');
@@ -132,7 +140,7 @@ function readXlsx(zip: ZipEntries): string {
       for (const c of children(row, 'c')) {
         const col = c.attrs.r ? column(c.attrs.r) : nextCol;
         nextCol = col + 1;
-        const value = cellValue(c, shared, dateStyles);
+        const value = cellValue(c, shared, dateStyles, numbered);
         if (value === '') continue;
         rowCount = Math.max(rowCount, r + 1);
         colCount = Math.max(colCount, col + 1);
@@ -142,11 +150,14 @@ function readXlsx(zip: ZipEntries): string {
     }
     out.push(`## ${s.attrs.name}${hidden}`);
     const rows = Math.min(rowCount, SHEET_MAX_ROWS);
+    // Numbered, the first line names the columns and each row starts with its number; empty rows are left out.
+    if (numbered) out.push(['', ...Array.from({ length: Math.min(colCount, SHEET_MAX_COLUMNS) }, (_, i) => letters(i))].join(','));
     for (let r = 0; r < rows; r++) {
       const cells = grid[r] ?? [];
       let end = cells.length;
       while (end > 0 && !cells[end - 1]) end--;
-      out.push(Array.from({ length: end }, (_, i) => csv(cells[i] ?? '')).join(','));
+      if (numbered && !end) continue;
+      out.push([...(numbered ? [String(r + 1)] : []), ...Array.from({ length: end }, (_, i) => csv(cells[i] ?? ''))].join(','));
     }
     if (rowCount > SHEET_MAX_ROWS || colCount > SHEET_MAX_COLUMNS) {
       out.push(`(Showing the first ${rows} of ${rowCount} rows and ${Math.min(colCount, SHEET_MAX_COLUMNS)} of ${colCount} columns.)`);
@@ -166,10 +177,12 @@ function column(ref: string): number {
   return n - 1;
 }
 
-function cellValue(c: El, shared: string[], dateStyles: Set<number>): string {
+function cellValue(c: El, shared: string[], dateStyles: Set<number>, numbered = false): string {
   const v = child(c, 'v');
   const raw = v ? ownText(v) : undefined;
   const f = child(c, 'f');
+  // Numbered for changing: a formula shows itself and what it came to, so it is not typed over by its value.
+  if (numbered && f && ownText(f) && raw !== undefined && raw !== '') return `=${ownText(f)} → ${cellValue(c, shared, dateStyles)}`;
   // A formula Excel never calculated (one the app wrote) has no value yet: show the formula itself.
   if ((raw === undefined || raw === '') && f) {
     const formula = ownText(f);
@@ -203,15 +216,33 @@ const csv = (s: string) => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : 
 
 // PowerPoint
 
-function readPptx(zip: ZipEntries): string {
+/** The text boxes edit_pptx numbers on a slide: its shapes with text, in order, groups opened up. */
+export const slideBoxes = (slide: El): El[] => shapes(find(slide, 'spTree')).filter((s) => s.name === 'sp' && child(s, 'txBody'));
+
+/** The slides' parts, in the order of the deck. */
+export function slideParts(zip: ZipEntries, pres: El): string[] {
+  const links = rels(zip, 'ppt/presentation.xml');
+  return findAll(find(pres, 'sldIdLst') ?? pres, 'sldId').map((id) => links.get(id.attrs.id)?.target ?? '');
+}
+
+function readPptx(zip: ZipEntries, numbered: boolean): string {
   const pres = xml(zip, 'ppt/presentation.xml');
   if (!pres) throw new Error('This .pptx has no presentation part.');
-  const links = rels(zip, 'ppt/presentation.xml');
   const out: string[] = [];
-  findAll(find(pres, 'sldIdLst') ?? pres, 'sldId').forEach((id, i) => {
-    const part = links.get(id.attrs.id)?.target;
+  slideParts(zip, pres).forEach((part, i) => {
     const slide = part ? xml(zip, part) : undefined;
     if (!part || !slide) return;
+    if (numbered) {
+      // Every box by its number, empty ones too, its lines under the first; tables have no number, as they are not changed.
+      out.push(`## Slide ${i + 1}`);
+      const boxes = slideBoxes(slide);
+      for (const shape of shapes(find(slide, 'spTree'))) {
+        const lines = paragraphs(shape);
+        const k = boxes.indexOf(shape);
+        if (k < 0) out.push(...lines.map((l) => `(table) ${l}`));
+        else out.push(`[${i + 1}.${k + 1}] ${lines[0] ?? '(empty)'}`, ...lines.slice(1).map((l) => `    ${l}`));
+      }
+    }
     let title = '';
     const body: string[] = [];
     for (const shape of shapes(find(slide, 'spTree'))) {
@@ -221,7 +252,7 @@ function readPptx(zip: ZipEntries): string {
       // Slide numbers, dates and footers repeat on every slide and say nothing.
       else if (type !== 'sldNum' && type !== 'dt' && type !== 'ftr') body.push(...lines);
     }
-    out.push(`## Slide ${i + 1}${title ? `: ${title}` : ''}`, ...body);
+    if (!numbered) out.push(`## Slide ${i + 1}${title ? `: ${title}` : ''}`, ...body);
     const notesPart = [...rels(zip, part).values()].find((r) => r.type.endsWith('/notesSlide'))?.target;
     const notes = notesPart ? xml(zip, notesPart) : undefined;
     const notesBody = notes && shapes(find(notes, 'spTree')).find((s) => find(child(s, 'nvSpPr'), 'ph')?.attrs.type === 'body');

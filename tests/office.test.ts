@@ -1,9 +1,10 @@
-import { linkSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { linkSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { makeDocx } from '../app/main/office/docx';
+import { editDocx, editPptx, editXlsx, NotEditable } from '../app/main/office/edit';
 import { imageFile, outputPath } from '../app/main/office/paths';
 import { makePptx } from '../app/main/office/pptx';
 import { previewHtml } from '../app/main/office/preview';
@@ -306,5 +307,146 @@ describe('previews', () => {
     }
     expect(previewHtml('docx', doc, s.images)).toContain('src="data:image/png;base64,');
     expect(previewHtml('pptx', { title: 't', slides: [{ layout: 'image', title: 'Cat', image: 'pics/cat.png' }] }, s.images)).toContain('src="data:image/png;base64,');
+  });
+});
+
+// C3: changing a document the user handed over, on a copy, by number.
+
+const part = (buf: Buffer, name: string) => readZip(buf).get(name)!().toString('utf8');
+const sample = (name: string) => readFileSync(join(FIXTURES, name));
+/** The number read_document gives the paragraph, text box or line that holds this text. */
+const numberOf = (numbered: string, text: string) => /^.*?\[([\d.]+)\][^[]*$/.exec(numbered.split('\n').find((l) => l.includes(text))!.split(text)[0] + text)![1];
+const WHO = { author: 'Lamplight Nook', date: '2026-11-19T10:00:00Z' };
+const rezip = (buf: Buffer, change: (name: string, data: Buffer) => Buffer | string) => zip([...readZip(buf)].map(([name, get]) => ({ name, data: change(name, get()) })));
+
+describe('numbered reading, for changing a document by number', () => {
+  it('numbers each paragraph of a document, table cells included', () => {
+    const text = readDocument(join(FIXTURES, 'sample.docx'), { numbered: true });
+    expect(text).toMatch(/^\[1\] # Quarterly report$/m);
+    expect(text).toMatch(/^\[\d+\] This paragraph has bold words in it\.$/m);
+    expect(text).toMatch(/\| \[\d+\] Apples \| \[\d+\] 3 \| \[\d+\] Fresh \|/);
+  });
+
+  it('numbers each text box by slide, and gives a sheet its column letters and row numbers', () => {
+    const deck = readDocument(join(FIXTURES, 'sample.pptx'), { numbered: true });
+    expect(deck).toMatch(/^\[1\.1\] Spring menu$/m);
+    expect(deck).toMatch(/^\[2\.\d\] Lemon tart\n {2,}Hot chocolate/m);
+    const book = readDocument(join(FIXTURES, 'sample.xlsx'), { numbered: true });
+    expect(book).toMatch(/^,A,B$/m);
+    expect(book).toMatch(/^3,Cake,30$/m);
+    expect(book).toMatch(/^5,Total,=SUM\(B2:B4\) → 46\.5$/m);
+  });
+});
+
+describe('changing a Word document as tracked changes', () => {
+  const numbered = () => readDocument(join(FIXTURES, 'sample.docx'), { numbered: true });
+
+  it('writes the changed words as a deletion and an insertion, and a reader sees the new text', () => {
+    const n = Number(numberOf(numbered(), 'bold words'));
+    const after = editDocx(sample('sample.docx'), [{ n, text: 'This paragraph has plain words in it.' }], WHO);
+    const xml = part(after, 'word/document.xml');
+    expect(xml).toMatch(/<w:del w:id="\d+" w:author="Lamplight Nook" w:date="2026-11-19T10:00:00Z"><w:r>(<w:rPr>.*?<\/w:rPr>)?<w:delText xml:space="preserve">bold<\/w:delText><\/w:r><\/w:del>/);
+    expect(xml).toMatch(/<w:ins w:id="\d+" w:author="Lamplight Nook" w:date="2026-11-19T10:00:00Z"><w:r>(<w:rPr>.*?<\/w:rPr>)?<w:t xml:space="preserve">plain<\/w:t><\/w:r><\/w:ins>/);
+    const s = folder();
+    writeFileSync(join(s, 'out.docx'), after);
+    expect(readDocument(join(s, 'out.docx'))).toContain('This paragraph has plain words in it.');
+  });
+
+  it('leaves every other paragraph, and every other part, byte for byte as it was', () => {
+    const before = sample('sample.docx');
+    const n = Number(numberOf(numbered(), 'bold words'));
+    const after = editDocx(before, [{ n, text: 'Changed.' }], WHO);
+    const old = part(before, 'word/document.xml');
+    const now = part(after, 'word/document.xml');
+    // The changed paragraph is the one holding "bold"; everything before its start and after its end is the same text.
+    const start = old.lastIndexOf('<w:p ', old.indexOf('bold'));
+    const end = old.indexOf('</w:p>', old.indexOf('bold')) + '</w:p>'.length;
+    expect(now.slice(0, start)).toBe(old.slice(0, start));
+    expect(now.endsWith(old.slice(end))).toBe(true);
+    const parts = readZip(after);
+    for (const [name, get] of readZip(before)) {
+      if (name !== 'word/document.xml') expect(parts.get(name)!().equals(get()), name).toBe(true);
+    }
+  });
+
+  it('deletes a paragraph, mark and all, and adds one after another, all as tracked changes', () => {
+    const first = Number(numberOf(numbered(), 'First point'));
+    const after = editDocx(sample('sample.docx'), [{ n: first, delete: true }, { after: first, text: 'A new point' }], WHO);
+    const xml = part(after, 'word/document.xml');
+    expect(xml).toMatch(/<w:delText xml:space="preserve">First point<\/w:delText>/);
+    expect(xml).toMatch(/<w:rPr><w:del w:id="\d+" w:author="Lamplight Nook"[^>]*\/>/);
+    expect(xml).toMatch(/<w:rPr><w:ins w:id="\d+" w:author="Lamplight Nook"[^>]*\/>/);
+    expect(xml).toMatch(/<w:ins [^>]*><w:r>(<w:rPr>.*?<\/w:rPr>)?<w:t xml:space="preserve">A new point<\/w:t><\/w:r><\/w:ins>/);
+    // Revision ids are never used twice.
+    const ids = [...xml.matchAll(/<w:(?:ins|del) w:id="(\d+)"/g)].map((m) => m[1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    const s = folder();
+    writeFileSync(join(s, 'out.docx'), after);
+    const text = readDocument(join(s, 'out.docx'));
+    expect(text).not.toContain('First point');
+    expect(text).toContain('A new point');
+  });
+
+  it('refuses a paragraph number that is not there, the same paragraph twice, and a paragraph with a link', () => {
+    expect(() => editDocx(sample('sample.docx'), [{ n: 999, text: 'x' }], WHO)).toThrow(/no paragraph 999/);
+    expect(() => editDocx(sample('sample.docx'), [{ n: 1, text: 'x' }, { n: 1, text: 'y' }], WHO)).toThrow(/twice/);
+    const linked = rezip(sample('sample.docx'), (name, data) => (name === 'word/document.xml'
+      ? data.toString('utf8').replace(/(<w:p [^>]*>)/, '$1<w:hyperlink r:id="rId9"><w:r><w:t>site</w:t></w:r></w:hyperlink>')
+      : data));
+    expect(() => editDocx(linked, [{ n: 1, text: 'x' }], WHO)).toThrow(/paragraph 1 has a link, a picture, a field, a comment, a footnote or a tracked change/);
+    // A paragraph changed once already holds tracked changes: it is changed again from the original, not on top.
+    const once = editDocx(sample('sample.docx'), [{ n: 1, text: 'Quarterly notes' }], WHO);
+    expect(() => editDocx(once, [{ n: 1, text: 'Again' }], WHO)).toThrow(/tracked change/);
+  });
+});
+
+describe('changing a deck and a workbook', () => {
+  it('replaces one text box of one slide and leaves the other slides as they were', () => {
+    const before = sample('sample.pptx');
+    const [slide, box] = numberOf(readDocument(join(FIXTURES, 'sample.pptx'), { numbered: true }), 'Lemon tart').split('.').map(Number);
+    const after = editPptx(before, [{ slide, box, text: 'Lemon tart\nIced tea' }]);
+    const s = folder();
+    writeFileSync(join(s, 'out.pptx'), after);
+    const text = readDocument(join(s, 'out.pptx'));
+    expect(text).toContain('Iced tea');
+    expect(text).not.toContain('Hot chocolate');
+    expect(part(after, 'ppt/slides/slide1.xml')).toBe(part(before, 'ppt/slides/slide1.xml'));
+    expect(() => editPptx(before, [{ slide: 9, box: 1, text: 'x' }])).toThrow(/no slide 9/);
+    expect(() => editPptx(before, [{ slide: 1, box: 99, text: 'x' }])).toThrow(/no text box 1\.99/);
+  });
+
+  it('changes a value and a formula by address, drops the calculation chain and asks Excel to recalculate', () => {
+    const after = editXlsx(sample('sample.xlsx'), [
+      { sheet: 'Sales', cell: 'B3', value: 40 },
+      { sheet: 'sales', cell: 'C5', value: { f: '=B5*2' } },
+      { sheet: 'Notes', cell: 'A9', value: '新的一行' },
+    ]);
+    const s = folder();
+    writeFileSync(join(s, 'out.xlsx'), after);
+    const text = readDocument(join(s, 'out.xlsx'));
+    expect(text).toMatch(/^Cake,40$/m);
+    expect(text).toContain('=B5*2');
+    expect(text).toContain('新的一行');
+    expect(readZip(after).has('xl/calcChain.xml')).toBe(false);
+    expect(part(after, '[Content_Types].xml')).not.toContain('calcChain');
+    expect(part(after, 'xl/_rels/workbook.xml.rels')).not.toContain('calcChain');
+    expect(part(after, 'xl/workbook.xml')).toMatch(/fullCalcOnLoad="1"/);
+    // The total's old value (46.5) no longer holds: formulas keep no value until Excel works them out again.
+    expect(text).toMatch(/^Total,=SUM\(B2:B4\),=B5\*2$/m);
+    expect(text).not.toContain('46.5');
+  });
+
+  it('refuses a formula that reaches outside, a sheet that is not there and a bad address', () => {
+    const before = sample('sample.xlsx');
+    expect(() => editXlsx(before, [{ sheet: 'Sales', cell: 'B3', value: { f: '=WEBSERVICE("https://x")' } }])).toThrow(/may not fetch/);
+    expect(() => editXlsx(before, [{ sheet: 'Nope', cell: 'B3', value: 1 }])).toThrow(/no sheet called "Nope"/);
+    expect(() => editXlsx(before, [{ sheet: 'Sales', cell: 'B0', value: 1 }])).toThrow(/not a cell address/);
+  });
+
+  it('will not change a workbook with a chart, a pivot table, an outside link or a table', () => {
+    for (const extra of ['xl/charts/chart1.xml', 'xl/pivotTables/pivotTable1.xml', 'xl/externalLinks/externalLink1.xml', 'xl/tables/table1.xml']) {
+      const book = zip([...readZip(sample('sample.xlsx'))].map(([name, get]) => ({ name, data: get() })).concat({ name: extra, data: Buffer.from('<x/>') }));
+      expect(() => editXlsx(book, [{ sheet: 'Sales', cell: 'B3', value: 1 }]), extra).toThrow(NotEditable);
+    }
   });
 });

@@ -221,6 +221,17 @@ export function pickPlay(prompt, state, system = '') {
   if (/This folder is the user's own/.test(prompt)) return plays.lent;
   if (/single self-contained page named "index\.html", using the photos/.test(prompt)) return plays.album;
   if (/write the findings as/.test(prompt)) { state.vars.out = quoted(prompt, 'write the findings as'); return plays.research; }
+  // Changing a Word, Excel or PowerPoint file by number, and a PDF written again as Word (road-to-1.3.md C3).
+  const changing = /make the changes with mcp__nook-office__edit_(docx|xlsx|pptx), from "([^"]+)" to "([^"]+)"/.exec(prompt);
+  if (changing) {
+    [, state.vars.kind, state.vars.source, state.vars.out] = changing;
+    return plays.officeedit;
+  }
+  if (/A PDF cannot be changed as it is/.test(prompt)) {
+    state.vars.source = quoted(prompt, 'The document to work on is');
+    state.vars.out = quoted(prompt, 'as a Word document');
+    return plays.pdfedit;
+  }
   if (/Write the edited version as/.test(prompt)) {
     state.vars.source = quoted(prompt, 'The document to work on is');
     state.vars.out = quoted(prompt, 'Write the edited version as');
@@ -462,6 +473,40 @@ export const plays = {
       }
       await s.step(() => s.write(o.readFile, `${got.join('\n\n')}\n`));
       await s.finish(o.readDone);
+    },
+  },
+
+  /**
+   * Changes the samples in tests/fixtures/office by number (road-to-1.3.md C3), as the edit template asks: reads the
+   * original numbered, then one change with the edit tool: "bold" to "plain" in Word, a new line in PowerPoint, 30 to
+   * 40 in Excel.
+   */
+  officeedit: {
+    name: 'officeedit',
+    async run(s) {
+      const { kind, source, out } = s.state.vars;
+      await s.step(() => s.think(1));
+      const read = await s.step(() => office(s, 'read_document', { file: source, numbered: true }));
+      const lines = (read?.text ?? '').split('\n');
+      // The number in front of the text, the last one before it on its line (a table row holds several).
+      const number = (text) => /\[([\d.]+)\][^[]*$/.exec((lines.find((l) => l.includes(text)) ?? '').split(text)[0])?.[1] ?? '0';
+      const [slide, box] = number('Lemon tart').split('.').map(Number);
+      const edits = kind === 'docx' ? [{ n: Number(number('bold words')), text: 'This paragraph has plain words in it.' }]
+        : kind === 'pptx' ? [{ slide, box, text: 'Lemon tart\nIced tea' }]
+        : [{ sheet: 'Sales', cell: 'B3', value: 40 }];
+      await s.step(() => office(s, `edit_${kind}`, { from: source, file: out, edits }));
+      await s.finish(s.state.lang === 'zh' ? '改了一处，原稿没动，改好的另存了一份。' : 'I changed one thing; the original is untouched and the changed copy is saved beside it.');
+    },
+  },
+
+  /** A PDF handed over to change (C3): written again as a Word document with make_docx. */
+  pdfedit: {
+    name: 'pdfedit',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      await s.step(() => s.think(1));
+      await s.step(() => office(s, 'make_docx', { file: s.state.vars.out, title: zh ? '春季菜单' : 'Spring menu', blocks: [{ h: 1, text: zh ? '菜单' : 'Menu' }, { p: zh ? '柠檬挞，热可可。' : 'Lemon tart, hot chocolate.' }] }));
+      await s.finish(zh ? 'PDF 没法照原样改，改好的写成了一份 Word。' : 'A PDF cannot be changed as it is, so the changed version is a Word document.');
     },
   },
 

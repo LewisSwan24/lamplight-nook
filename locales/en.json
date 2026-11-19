@@ -203,10 +203,11 @@
       "needPhotos": "Hand over a few photos first, so the album has something in it.",
       "chooseFile": "Choose file",
       "chooseFolder": "Choose folder",
-      "editHint": "Only a copy is edited; your file stays as it is. txt, md, html, csv or json, up to 1 MB.",
+      "editHint": "Only a copy is edited; your file stays as it is. Text, web pages, Word, Excel, PowerPoint or PDF, up to 20 MB. A PDF comes back as a Word document.",
       "tidyHint": "The staff only see names, sizes and dates. They write you a plan and move nothing.",
       "needSource": "Choose the file or folder first.",
-      "tooBig": "That file is a bit big (over 1 MB) for the staff to read in one go. Try a smaller one."
+      "tooBig": "That file is too big (over 20 MB). Try a smaller one.",
+      "macros": "That file carries macros, which would run when the changed copy is opened, so the shop won't take it. Save it without macros (as .docx, .xlsx or .pptx) and pick it again."
     },
     "furnish": {
       "hint": "This room: {scene}. Each room keeps its own colours, and what the shop has gathered stays put.",
@@ -716,7 +717,10 @@
       "makeDocx": "write the Word document {file}",
       "makeXlsx": "make the Excel workbook {file}",
       "makePptx": "make the slides {file}",
-      "makePdf": "save the PDF {file}"
+      "makePdf": "save the PDF {file}",
+      "editDocx": "change the Word document {file}",
+      "editXlsx": "change the Excel workbook {file}",
+      "editPptx": "change the slides {file}"
     },
     "connections": {
       "title": "Connections",
@@ -934,6 +938,10 @@
       "externalTemplate": "This file fetches a template from elsewhere when it opens, so it is shown in its folder instead.",
       "externalLink": "This file links to files or addresses outside it and would fetch them when it opens, so it is shown in its folder instead.",
       "unreadable": "This file can't be read and may be damaged, so it is shown in its folder instead."
+    },
+    "resultConverted": {
+      "pdfToWord": "A PDF can't be changed as it is, so the changed version is a Word document.",
+      "sheetAsList": "This workbook has charts, pivot tables, tables or links that changing its cells could break, so it was left as it was. The changes are written down as a list for you to make."
     },
     "resultShelf": "Finished work goes on the shelf by the wall. Click it any time to find this again or change it.",
     "resultScriptDeletes": "{file} has a command that deletes files. Read it before you run it, or use \"Change it a bit\" to have it taken out.",

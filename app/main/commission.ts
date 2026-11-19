@@ -1,10 +1,11 @@
 import { localDay } from '../shared/localday';
-import { copyFileSync, existsSync, lstatSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { strings } from '../shared/i18n';
 import { MAIN_FILES, template } from '../shared/templates';
 import type { CommissionForm, ScriptCheck, ScriptRisk } from '../shared/types';
 import { materialsSteps } from './materials';
+import { officeSafe } from './office/safe';
 
 const F = strings.ui.files;
 
@@ -115,9 +116,36 @@ export function withConnections(prompt: string, list: PromptConnection[]): strin
 /** Add what the shop remembers about this user (may be empty) to a prompt. */
 const withNotes = (prompt: string, notes = '') => (notes ? `${prompt}\n\n${notes}` : prompt);
 
-/** Names of the files the shop puts in the folder before an edit commission. */
+/**
+ * Names of the files the shop puts in the folder before an edit commission. A PDF cannot be changed as it is, so its
+ * edited version is a Word document (road-to-1.3.md C3).
+ */
 export const originalName = (source: string) => `${F.originalPrefix}${basename(source)}`;
-export const revisedName = (source: string) => `${F.revisedPrefix}${basename(source)}`;
+export const revisedName = (source: string) => `${F.revisedPrefix}${basename(source).replace(/\.pdf$/i, '.docx')}`;
+
+/**
+ * Why a file picked for the edit template is not taken: past the size limit, or a Word, Excel or PowerPoint file with
+ * macros, which would run once the changed copy is opened (road-to-1.3.md C3). Anything else Office's look inside finds
+ * is said on the card when the copy is opened, as for any Office file.
+ */
+export function sourceProblem(path: string, maxBytes: number): 'too-big' | 'macros' | undefined {
+  if (statSync(path).size > maxBytes) return 'too-big';
+  if (/\.(docx|xlsx|pptx)$/i.test(path)) {
+    const look = officeSafe(path);
+    if (!look.ok && look.reason === 'macros') return 'macros';
+  }
+  return undefined;
+}
+
+/** What the result card says of an edit that came back as another kind of file: a PDF as Word, a workbook as a list. */
+export function convertedNote(form: CommissionForm, main: string | undefined): 'pdfToWord' | 'sheetAsList' | undefined {
+  if (form.template !== 'edit' || !form.source || !main) return undefined;
+  const from = extname(form.source).toLowerCase();
+  const to = extname(main).toLowerCase();
+  if (from === '.pdf' && to === '.docx') return 'pdfToWord';
+  if (from === '.xlsx' && to === '.md') return 'sheetAsList';
+  return undefined;
+}
 
 /** What the form's template asks for on top of the request itself (shared/templates.ts). */
 function templateSteps(form: CommissionForm): string[] {

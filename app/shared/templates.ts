@@ -61,9 +61,41 @@ export type TemplateSpec = {
   guest?: GuestId;
 };
 
-/** Text files the edit template accepts, and how big they may be. */
-export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json'];
-export const MAX_EDIT_BYTES = 1024 * 1024;
+/**
+ * Files the edit template accepts, and how big they may be: text, and since road-to-1.3.md C3 Word, Excel, PowerPoint
+ * and PDF (never their kinds with macros), up to the 20 MB a file handed over may be.
+ */
+export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf'];
+export const MAX_EDIT_BYTES = 20 * 1024 * 1024;
+
+/** What the edit template asks for, by the kind of file: text by hand, Office files by number with the edit tools, a PDF again as Word. */
+function editSteps({ original, revised }: PromptParts): string[] {
+  const kind = /\.(docx|xlsx|pptx|pdf)$/i.exec(original)?.[1].toLowerCase();
+  const end = 'In your final reply, list the main changes in two to five short points.';
+  if (!kind) {
+    return [
+      `The document to work on is "${original}" in this folder, a copy of the user's file.`,
+      `Do not change "${original}". Write the edited version as "${revised}", in the same format.`,
+      end,
+    ];
+  }
+  if (kind === 'pdf') {
+    return [
+      `The document to work on is "${original}" in this folder, a PDF copy of the user's file. Read it with the Read tool, passing pages (at most 20 at a time).`,
+      `A PDF cannot be changed as it is. Write the edited version as a Word document "${revised}" with the mcp__nook-office__make_docx tool, keeping its headings, paragraphs, lists and tables. Never write Office XML or a .docx by hand.`,
+      'Say in your reply that the PDF has become a Word document.',
+      end,
+    ];
+  }
+  const what = { docx: 'paragraph', pptx: 'text box', xlsx: 'cell' }[kind];
+  const steps = [
+    `The document to work on is "${original}" in this folder, a copy of the user's file. Do not change it.`,
+    `Read it with mcp__nook-office__read_document and numbered: true, then make the changes with mcp__nook-office__edit_${kind}, from "${original}" to "${revised}", every change in one call, each ${what} named by the number it showed. Never write Office XML or the file by hand.`,
+  ];
+  if (kind === 'docx') steps.push('Your changes show in Word as tracked changes the user can accept or reject one by one, so change only what the request asks for.');
+  if (kind === 'xlsx') steps.push(`If edit_xlsx says it cannot change this workbook, write the changes down as "${revised.replace(/\.xlsx$/i, '.md')}" instead, as it tells you, and say so in your reply.`);
+  return [...steps, end];
+}
 
 export const TEMPLATES = [
   {
@@ -84,11 +116,7 @@ export const TEMPLATES = [
   },
   {
     id: 'edit', icon: 2, revise: true, main: 'revised', source: { kind: 'file', extensions: EDITABLE, maxBytes: MAX_EDIT_BYTES },
-    steps: ({ original, revised }) => [
-      `The document to work on is "${original}" in this folder, a copy of the user's file.`,
-      `Do not change "${original}". Write the edited version as "${revised}", in the same format.`,
-      'In your final reply, list the main changes in two to five short points.',
-    ],
+    steps: editSteps,
   },
   {
     id: 'tidy', icon: 3, revise: true, main: 'writeup', source: { kind: 'folder' },

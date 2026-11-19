@@ -203,10 +203,11 @@
       "needPhotos": "先把照片递过来，相册才有东西放。",
       "chooseFile": "选文件",
       "chooseFolder": "选文件夹",
-      "editHint": "只会改一份复制件，你的原文件不会被动。支持 txt、md、html、csv、json，1MB 以内。",
+      "editHint": "只会改一份复制件，你的原文件不会被动。文本、网页、Word、Excel、PPT 和 PDF 都行，20MB 以内。PDF 改好以后是一份 Word。",
       "tidyHint": "店员们只看文件名、大小和日期，写一份整理方案给你，不会移动任何东西。",
       "needSource": "先选一下要处理的文件或文件夹。",
-      "tooBig": "这个文件有点大（超过 1MB），店员们一次看不完，换个小一点的吧。"
+      "tooBig": "这个文件太大了（超过 20MB），换个小一点的吧。",
+      "macros": "这个文件带宏，改好的那份一打开就会运行，所以小店不收。先另存成不带宏的 .docx、.xlsx 或 .pptx，再选一次。"
     },
     "furnish": {
       "hint": "现在布置的是：{scene}。每个地方的颜色各记各的，店里长出来的东西不受影响。",
@@ -716,7 +717,10 @@
       "makeDocx": "写一份 Word 文档「{file}」",
       "makeXlsx": "做一份 Excel 表格「{file}」",
       "makePptx": "做一份 PPT「{file}」",
-      "makePdf": "存一份 PDF「{file}」"
+      "makePdf": "存一份 PDF「{file}」",
+      "editDocx": "改 Word 文档「{file}」",
+      "editXlsx": "改 Excel 表格「{file}」",
+      "editPptx": "改幻灯片「{file}」"
     },
     "connections": {
       "title": "连接",
@@ -934,6 +938,10 @@
       "externalTemplate": "这个文件打开时要去外面取模板，所以只在文件夹里指给你看。",
       "externalLink": "这个文件连着外面的文件或网址，打开时会去取，所以只在文件夹里指给你看。",
       "unreadable": "这个文件读不出来，可能坏了，所以只在文件夹里指给你看。"
+    },
+    "resultConverted": {
+      "pdfToWord": "PDF 没法照原样改，改好的是一份 Word 文档。",
+      "sheetAsList": "这份表格里有图表、透视表、表格对象或外部链接，直接改单元格可能弄坏它们，所以原样没动。要改的地方列成了一份清单，照着改就行。"
     },
     "resultShelf": "做好的东西会摆上墙边的作品架，以后点它就能找回来、接着改。",
     "resultScriptDeletes": "{file} 里有删除文件的命令。运行前先打开看一遍，或者点“再改改”请店里拿掉。",

@@ -2302,6 +2302,71 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * Changing a file the user handed over (road-to-1.3.md C3): a Word document, a deck and a workbook are each picked for
+   * the edit template and changed by number, and a PDF comes back as Word. The user's file and the shop's original copy
+   * stay byte for byte as they were, the revised copy holds the change (a tracked change in Word), the Office cards have a
+   * thumbnail, and the PDF's card says it became Word. Shots of each card, and of the Word one at 640x360.
+   */
+  async officeedit(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const F = JSON.parse(readFileSync(join(ROOT, 'locales', `${lang}.json`), 'utf8')).ui.files;
+    const dir = join(home.home, 'samples');
+    mkdirSync(dir, { recursive: true });
+    for (const name of ['sample.docx', 'sample.pptx', 'sample.xlsx']) cpSync(join(ROOT, 'tests', 'fixtures', 'office', name), join(dir, name));
+    // Nothing reads the PDF but the stand-in, which does not: a small one is enough.
+    writeFileSync(join(dir, 'menu.pdf'), '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+    const scratch = join(home.home, 'unpacked');
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await recordOpens(shop);
+      for (const name of ['sample.docx', 'sample.pptx', 'sample.xlsx', 'menu.pdf']) {
+        const users = readFileSync(join(dir, name));
+        await shop.order({ template: 'edit', want: W[lang].edit });
+        await shop.pickFiles([join(dir, name)]);
+        await shop.page.locator('form.commission .source-row button').first().click();
+        await sleep(400);
+        await shop.submit();
+        const r = await shop.workUntilDone();
+        check(r.ok, `${name} did not finish`);
+        check(!r.seen.length, `${name}: changing the copy was asked about: ${r.seen.map((c) => c.text).join(' | ')}`);
+        const work = latestCommission(home);
+        check(readFileSync(join(dir, name)).equals(users), `${name}: the user's own file changed`);
+        check(readFileSync(join(work, `${F.originalPrefix}${name}`)).equals(users), `${name}: the shop's original copy changed`);
+        const revised = join(work, `${F.revisedPrefix}${name.replace(/\.pdf$/, '.docx')}`);
+        check(existsSync(revised), `${name}: no revised copy ${revised}`);
+        const pkg = looksSafe(revised, scratch);
+        const part = (re) => pkg.parts.filter((p) => re.test(p)).map((p) => readFileSync(join(pkg.dir, p), 'utf8')).join('\n');
+        if (name.endsWith('.docx')) {
+          const doc = part(/^word\/document\.xml$/);
+          check(/<w:del [^>]*><w:r>.*?<w:delText xml:space="preserve">bold<\/w:delText>/.test(doc) && /<w:ins [^>]*><w:r>.*?<w:t xml:space="preserve">plain<\/w:t>/.test(doc), `the Word copy has no tracked change: ${doc.slice(0, 400)}`);
+        }
+        if (name.endsWith('.pptx')) check(part(/^ppt\/slides\/slide\d+\.xml$/).includes('Iced tea'), 'the deck lacks the new line');
+        if (name.endsWith('.xlsx')) check(/<c r="B3"[^>]*><v>40<\/v><\/c>/.test(part(/^xl\/worksheets\/sheet1\.xml$/)), 'the workbook lacks the changed cell');
+        if (name.endsWith('.pdf')) {
+          check(part(/^word\/document\.xml$/).includes(lang === 'zh-CN' ? '柠檬挞' : 'Lemon tart'), 'the PDF did not come back as Word');
+          const note = await shop.page.locator('.result-card .result-converted').innerText();
+          check(note.trim() === shop.L.ui.resultConverted.pdfToWord, `the card does not say the PDF became Word: ${note}`);
+        } else {
+          check((await shop.page.locator('.result-card .result-converted').count()) === 0, `${name}: a converted note on the card`);
+        }
+        await cardThumb(shop).catch(() => check(false, `${name}: no thumbnail on the card`));
+        await sleep(400);
+        const kind = name.slice(name.lastIndexOf('.') + 1);
+        await shop.shot(join(out, `officeedit-${kind}.png`));
+        if (kind === 'docx') {
+          await shop.resize([640, 360]);
+          await sleep(400);
+          await shop.shot(join(out, 'officeedit-docx-small.png'));
+          await shop.resize('medium');
+          await sleep(400);
+        }
+        await shop.page.keyboard.press('Escape');
+        await sleep(1500);
+      }
+    } finally { await shop.close(); }
+  },
+
   async materials(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);

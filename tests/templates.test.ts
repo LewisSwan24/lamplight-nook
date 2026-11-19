@@ -2,7 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SUMMARY_RULE, collectOutputs, scriptRisks, folderName, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
+import { SUMMARY_RULE, collectOutputs, scriptRisks, folderName, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot, sourceProblem, convertedNote } from '../app/main/commission';
+import { readZip } from '../app/main/office/unzip';
+import { zip } from '../app/main/zip';
 import { classify } from '../app/main/risk-classifier';
 import { strings } from '../app/shared/i18n';
 
@@ -354,5 +356,64 @@ describe('the four templates added in 1.1', () => {
     const before = snapshot(d);
     writeFileSync(join(d, F.resume), '<p>');
     expect(collectOutputs(d, before).main).toBe(join(d, F.resume));
+  });
+});
+
+describe('the edit template takes Word, Excel, PowerPoint and PDF (road-to-1.3.md C3)', () => {
+  it('a PDF comes back as a Word document; anything else keeps its kind', () => {
+    expect(revisedName('/home/u/scan.pdf')).toBe(`${F.revisedPrefix}scan.docx`);
+    expect(revisedName('/home/u/Scan.PDF')).toBe(`${F.revisedPrefix}Scan.docx`);
+    expect(revisedName('/home/u/report.docx')).toBe(`${F.revisedPrefix}report.docx`);
+    expect(originalName('/home/u/scan.pdf')).toBe(`${F.originalPrefix}scan.pdf`);
+  });
+
+  it('an Office file is read numbered and changed with its edit tool, from the original, never by hand', () => {
+    for (const [file, tool] of [['report.docx', 'edit_docx'], ['budget.xlsx', 'edit_xlsx'], ['talk.pptx', 'edit_pptx']]) {
+      const p = commissionPrompt({ want: 'w', template: 'edit', source: `/home/u/${file}` });
+      expect(p, file).toContain(`mcp__nook-office__${tool}`);
+      expect(p, file).toContain('numbered: true');
+      expect(p, file).toContain(`"${F.originalPrefix}${file}"`);
+      expect(p, file).toContain(`"${F.revisedPrefix}${file}"`);
+      expect(p, file).toMatch(/Never write Office XML/);
+    }
+    expect(commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/report.docx' })).toMatch(/tracked changes/);
+    // A workbook it will not change becomes a list of the changes, under the revised name.
+    expect(commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/budget.xlsx' })).toContain(`"${F.revisedPrefix}budget.md"`);
+  });
+
+  it('a PDF is read with Read and written again as Word with make_docx', () => {
+    const p = commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/scan.pdf' });
+    expect(p).toContain('mcp__nook-office__make_docx');
+    expect(p).toContain(`"${F.revisedPrefix}scan.docx"`);
+    expect(p).toMatch(/Read tool/);
+    expect(p).not.toContain('edit_docx');
+  });
+
+  it('a text file is edited as before, without the office tools', () => {
+    const p = commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/notes.md' });
+    expect(p).not.toContain('nook-office');
+    expect(p).toContain(`Write the edited version as "${F.revisedPrefix}notes.md", in the same format.`);
+  });
+
+  it('refuses a file past the limit and an Office file with macros, and takes the rest', () => {
+    const d = dir();
+    const plain = join(d, 'plain.docx');
+    writeFileSync(plain, readFileSync('tests/fixtures/office/sample.docx'));
+    const parts = readZip(readFileSync(plain));
+    const withMacros = join(d, 'macro.docx');
+    writeFileSync(withMacros, zip([...parts].map(([name, get]) => ({ name, data: get() })).concat({ name: 'word/vbaProject.bin', data: Buffer.from('VBA') })));
+    writeFileSync(join(d, 'notes.txt'), 'twenty bytes of text');
+    expect(sourceProblem(plain, 20 * 1024 * 1024)).toBeUndefined();
+    expect(sourceProblem(join(d, 'notes.txt'), 20 * 1024 * 1024)).toBeUndefined();
+    expect(sourceProblem(join(d, 'notes.txt'), 10)).toBe('too-big');
+    expect(sourceProblem(withMacros, 20 * 1024 * 1024)).toBe('macros');
+  });
+
+  it('the card says when a PDF became Word, or a workbook became a list of changes', () => {
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/scan.pdf' }, `/w/${F.revisedPrefix}scan.docx`)).toBe('pdfToWord');
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/b.xlsx' }, `/w/${F.revisedPrefix}b.md`)).toBe('sheetAsList');
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/b.xlsx' }, `/w/${F.revisedPrefix}b.xlsx`)).toBeUndefined();
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/r.docx' }, `/w/${F.revisedPrefix}r.docx`)).toBeUndefined();
+    expect(convertedNote({ want: 'w', template: 'page' }, '/w/index.html')).toBeUndefined();
   });
 });

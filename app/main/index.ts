@@ -13,7 +13,7 @@ import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName, withConnections } from './commission';
+import { type Revision, collectOutputs, commissionPrompt, convertedNote, sourceProblem, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName, withConnections } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore, entriesIn, tooBigToLend } from './versions';
 import { backUp, migrate } from './migrate';
@@ -824,7 +824,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       const grew = result.ok && !r ? memory.finished() : [];
       send(IPC.result, {
         run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
-        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
+        converted: convertedNote(job.form, outputs.main), id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
       });
       // The card first, its thumbnail when it is ready (C1): loading a page takes a moment, which the card need not wait for.
       if (outputs.main) {
@@ -866,7 +866,9 @@ ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<Sou
     : { properties: ['openFile'], filters: [{ name: strings.ui.templates[id], extensions: [...source.extensions] }] });
   const path = r.canceled ? undefined : r.filePaths[0];
   if (!path) return null;
-  if (source.kind === 'file' && statSync(path).size > source.maxBytes) return { error: 'too-big' };
+  // Too big, or (C3) an Office file with macros that would run once its changed copy is opened.
+  const problem = source.kind === 'file' ? sourceProblem(path, source.maxBytes) : undefined;
+  if (problem) return { error: problem };
   picked.add(path);
   return { path, name: basename(path) };
 });

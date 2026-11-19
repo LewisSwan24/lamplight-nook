@@ -280,7 +280,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       const r = await api.chooseSource(chosen!.id as CommissionTemplate);
       if (!r) return;
       if ('error' in r) {
-        sourceHint.textContent = T.tooBig;
+        sourceHint.textContent = r.error === 'macros' ? T.macros : T.tooBig;
         sourceHint.classList.add('warn');
         return;
       }
@@ -563,6 +563,8 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     // Which project it was for: with two rounds at once, two cards may come one after the other (B5).
     result.project ? el('div.hint.result-project', {}, fill(U.resultProject, { title: result.project.title })) : null,
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
+    // An edit that came back as another kind of file says so (C3), before the file is named.
+    result.converted ? el('div.hint.result-converted', { role: 'note' }, U.resultConverted[result.converted]) : null,
     thumb,
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
