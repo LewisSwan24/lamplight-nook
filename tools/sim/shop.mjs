@@ -6,7 +6,7 @@
 
 import { createRequire } from 'node:module';
 import { spawn, spawnSync } from 'node:child_process';
-import { copyFileSync, linkSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, symlinkSync } from 'node:fs';
+import { copyFileSync, linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,11 +43,37 @@ export async function display() {
 }
 
 /**
+ * Throwaway folders made by this process (homes, the node shim), removed when it ends, failed or not: one home can
+ * serve several launches, so none goes when its app closes. SIM_KEEP_HOME=1 keeps them to look into.
+ * Each home grows to tens of megabytes (GPU caches), and they once filled 20 GB of %TEMP% in two days.
+ */
+const throwaway = new Set();
+function removeThrowaway() {
+  if (process.env.SIM_KEEP_HOME) {
+    if (throwaway.size) console.log(`kept: ${[...throwaway].join(', ')}`);
+    return;
+  }
+  for (const dir of throwaway) {
+    try {
+      // An app that has only just quit can still hold files on Windows for a moment.
+      rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch {
+      // Never fail a run over tidying up; the folder is in %TEMP% anyway.
+    }
+  }
+  throwaway.clear();
+}
+process.on('exit', removeThrowaway);
+// Ctrl+C would otherwise end the process without 'exit'.
+for (const sig of ['SIGINT', 'SIGTERM']) if (!process.listenerCount(sig)) process.once(sig, () => process.exit(130));
+
+/**
  * A fresh home for the app: its own data folder and Documents. `seed` writes files into the app's data folder
  * before it starts (settings.json, memory.json...), relative to it.
  */
 export function freshHome(seed = {}) {
   const home = mkdtempSync(join(tmpdir(), 'lamplight-home-'));
+  throwaway.add(home);
   const data = join(home, '.config', 'Lamplight Nook');
   mkdirSync(data, { recursive: true });
   mkdirSync(join(home, 'Documents'), { recursive: true });
@@ -73,16 +99,24 @@ function linkOrCopy(from, to) {
   }
 }
 
+const CLAUDES = ['claude', 'claude.exe', 'claude.cmd'];
+const hasClaude = (d) => CLAUDES.some((n) => existsSync(join(d, n)));
+let shim = null;
+
 /**
- * A PATH on which no Claude Code can be found, for "not installed": folders holding a `claude` are left out,
- * and node (which may live next to it) comes from a folder of its own.
+ * A PATH on which no Claude Code can be found, for "not installed": folders holding a `claude` are left out.
+ * Node stays reachable from its own folder; only when that folder also holds a `claude` does node come from a
+ * folder of its own, made once per process (on Windows that is a ~90 MB copy, since node in Program Files
+ * cannot be hard-linked).
  */
-function pathWithoutClaude(home) {
-  const shim = join(home.home, '.sim-bin');
-  mkdirSync(shim, { recursive: true });
-  const node = join(shim, process.platform === 'win32' ? 'node.exe' : 'node');
-  if (!existsSync(node)) linkOrCopy(process.execPath, node);
-  const dirs = (process.env.PATH ?? '').split(delimiter).filter((d) => d && !['claude', 'claude.exe', 'claude.cmd'].some((n) => existsSync(join(d, n))));
+export function pathWithoutClaude() {
+  const dirs = (process.env.PATH ?? '').split(delimiter).filter((d) => d && !hasClaude(d));
+  if (!hasClaude(dirname(process.execPath))) return [dirname(process.execPath), ...dirs].join(delimiter);
+  if (!shim) {
+    shim = mkdtempSync(join(tmpdir(), 'lamplight-sim-bin-'));
+    throwaway.add(shim);
+    linkOrCopy(process.execPath, join(shim, process.platform === 'win32' ? 'node.exe' : 'node'));
+  }
   return [shim, ...dirs].join(delimiter);
 }
 
@@ -128,7 +162,7 @@ async function refuseRealFolders(app, home) {
  */
 export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0, noWindow = false, updateConfig = '', oldData = '', clock = '', testSecret = '' } = {}) {
   const env = {
-    PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(home),
+    PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(),
     HOME: home.home,
     SIM_HOME: home.home,
     SIM_DATA: home.data,
