@@ -412,7 +412,7 @@ export type CommissionResult = {
 };
 
 /** Why a Word, Excel or PowerPoint file was shown in its folder rather than opened (office/safe.ts). */
-export type NotOpened = 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable';
+export type NotOpened = 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable' | 'notPlain';
 
 /** Why a script the shop made needs a look: it deletes files, or it changes them without a preview first. */
 export type ScriptRisk = 'deletes' | 'noPreview';

@@ -49,6 +49,9 @@
     this computer and is deleted when you disconnect.
   - Email drafts. The staff write a draft in the commission's folder, and the result card opens it in your mail
     program, where you read it and send it yourself. Nothing is ever sent by the shop.
+  - A mail or calendar file opens with a click only when it is plain: a mail with an attachment or a web page in it,
+    or an event that brings a file or starts a program, is shown in its folder instead. A calendar full of very long
+    repeats is refused rather than read for minutes.
 
 ## Unreleased (1.2)
 
