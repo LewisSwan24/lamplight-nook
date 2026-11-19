@@ -3,7 +3,8 @@
  * kept without their prefix (w:p is p), since each part uses one vocabulary and producers differ in the prefixes they
  * pick. No DTDs, no external entities: only the five named entities and character references are decoded.
  */
-export type El = { name: string; attrs: Record<string, string>; kids: (El | string)[] };
+/** `clash`: two attributes with the same name once prefixes are dropped, so attrs holds only the last (safe.ts refuses it). */
+export type El = { name: string; attrs: Record<string, string>; kids: (El | string)[]; clash?: true };
 
 const ENTITIES: Record<string, string> = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" };
 
@@ -50,7 +51,11 @@ export function parseXml(text: string): El {
       const m = /^\s*([^\s/>]+)/.exec(body);
       if (!m) continue;
       const el: El = { name: local(m[1]), attrs: {}, kids: [] };
-      for (const a of body.slice(m[0].length).matchAll(/([^\s=]+)\s*=\s*("([^"]*)"|'([^']*)')/g)) el.attrs[local(a[1])] = decode(a[3] ?? a[4]);
+      for (const a of body.slice(m[0].length).matchAll(/([^\s=]+)\s*=\s*("([^"]*)"|'([^']*)')/g)) {
+        const key = local(a[1]);
+        if (key in el.attrs) el.clash = true;
+        el.attrs[key] = decode(a[3] ?? a[4]);
+      }
       stack[stack.length - 1].kids.push(el);
       if (!self) stack.push(el);
     }

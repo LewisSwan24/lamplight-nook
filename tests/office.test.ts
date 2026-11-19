@@ -172,7 +172,7 @@ describe('writing and reading back', () => {
       `=WEB${String.fromCharCode(0xfffe)}SERVICE("http://example.com")`,
       `='a"b'!A1&WEBSERVICE("http://example.com")&'c"d'!A1`,
       "='C:\\x\\[b.xlsx]S'!A1",
-      '=SUM(A1)&"open',
+      '="a|b"&A1',
     ]) expect(() => makeXlsx(sheet(f)), JSON.stringify(f)).toThrow(/formula/i);
     for (const f of ["='My Sheet'!A1*2", "='It''s'!A1", '="say ""hi"""']) expect(() => makeXlsx(sheet(f)), f).not.toThrow();
   });

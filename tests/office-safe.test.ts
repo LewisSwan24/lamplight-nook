@@ -105,6 +105,25 @@ describe('officeSafe', () => {
     expect(officeSafe(header)).toEqual({ ok: false, reason: 'externalLink' });
   });
 
+  it('is not fooled by brackets, nesting, doubled attributes, odd part names, UTF-16 or a DTD', () => {
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+    const wordPart = (name: string, part: string, body: string | Buffer) => changed('sample.docx', name, (p) => p.set(part, typeof body === 'string' ? Buffer.from(body) : body));
+    const tableTrick = changed('sample.xlsx', 'table-trick.xlsx', (p) => p.set('xl/worksheets/sheet1.xml', Buffer.from(p.get('xl/worksheets/sheet1.xml')!.toString()
+      .replace(/<f>[^<]*<\/f>/, '<f>Table1[a"b]&amp;WEBSERVICE("http://example.com/")&amp;Table1[c"d]</f>'))));
+    expect(officeSafe(tableTrick), 'table').toEqual({ ok: false, reason: 'externalLink' });
+    const nested = `<w:document ${W}><w:body><w:p><w:fldSimple w:instr=" PAGE "><w:r><w:fldSimple w:instr=" INCLUDETEXT &quot;x.docx&quot; "/></w:r></w:fldSimple></w:p></w:body></w:document>`;
+    expect(officeSafe(wordPart('nested.docx', 'word/document.xml', nested)), 'nested').toEqual({ ok: false, reason: 'externalLink' });
+    const doubled = `<w:document ${W} xmlns:x="urn:x"><w:body><w:p><w:fldSimple w:instr=" INCLUDETEXT &quot;x.docx&quot; " x:instr=" PAGE "/></w:p></w:body></w:document>`;
+    expect(officeSafe(wordPart('doubled.docx', 'word/document.xml', doubled)), 'doubled').toEqual({ ok: false, reason: 'externalLink' });
+    const field = `<w:hdr ${W}><w:p><w:r><w:instrText> INCLUDETEXT "x.docx" </w:instrText></w:r></w:p></w:hdr>`;
+    expect(officeSafe(wordPart('oddname.docx', 'word/header-part.bin', field)), 'odd name').toEqual({ ok: false, reason: 'externalLink' });
+    expect(officeSafe(wordPart('utf16.docx', 'word/header9.xml', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(field, 'utf16le')]))), 'utf16').toEqual({ ok: false, reason: 'externalLink' });
+    expect(officeSafe(wordPart('dtd.docx', 'word/header9.xml', `<!DOCTYPE w:hdr [<!ENTITY e "INCLUDETEXT">]>${field}`)), 'dtd').toEqual({ ok: false, reason: 'unreadable' });
+    const rel = changed('sample.docx', 'rel-clash.docx', (p) => addRel(p, 'word/_rels/document.xml.rels',
+      `<Relationship xmlns:x="urn:x" Id="rIdY" Type="${REL}/oleObject" x:Type="${REL}/hyperlink" Target="file:///C:/x.xlsx" TargetMode="External"/>`));
+    expect(officeSafe(rel), 'rel clash').not.toEqual({ ok: true });
+  });
+
   it('calls a package with two parts of the same name unreadable', () => {
     const file = changed('sample.docx', 'twice.docx', (p) => p.set('WORD/document.xml', p.get('word/document.xml')!));
     expect(officeSafe(file)).toEqual({ ok: false, reason: 'unreadable' });
