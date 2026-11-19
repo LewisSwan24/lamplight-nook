@@ -7,18 +7,25 @@ export type OfficeVerdict = { ok: true } | { ok: false; reason: 'macros' | 'embe
 
 /** Embedded objects and controls: each is a program of its own that Office may start, whether it is kept inside or not. */
 const EMBEDDED_PART = /(^|\/)(embeddings|activeX)\/|oleObject\d*\.bin$/i;
-const EMBEDDED_REL = /\/(oleObject|package|control|activeXControlBinary|aFChunk)$/;
+const EMBEDDED_REL = /\/(oleObject|package|control|activeXControlBinary|aFChunk)$/i;
 /** Formats Word imports whole (altChunk), with field codes of their own this check does not read. */
 const IMPORTED_TYPE = /(text\/html|application\/xhtml\+xml|application\/rtf|text\/rtf|message\/rfc822|multipart\/related)/i;
-/** The binary parts Office keeps: pictures and sounds, printer settings, embedded fonts, the thumbnail. */
-const BINARY_PART = /(^|\/)media\/|(^|\/)printerSettings\d*\.bin$|(^|\/)fonts\/[^/]+\.(odttf|fntdata)$|^docProps\/thumbnail\.\w+$/i;
+/**
+ * The binary parts Office keeps that are not pictures or sounds: printer settings and embedded fonts, opaque blobs it
+ * does not read as text. Pictures and sounds pass by their bytes wherever they sit, the media folder included, so a part
+ * there that is something else is not let through by its place.
+ */
+const BINARY_PART = /(^|\/)printerSettings\d*\.bin$|(^|\/)fonts\/[^/]+\.(odttf|fntdata)$/i;
 
-/** Whether the bytes are a picture, wherever the part sits: PNG, JPEG, GIF, BMP, TIFF, EMF or WMF. */
-function isPicture(b: Buffer): boolean {
+/** Whether the bytes are a picture (PNG, JPEG, GIF, BMP, TIFF, EMF, WMF) or a sound or video, wherever the part sits. */
+function isMedia(b: Buffer): boolean {
   const starts = (...bytes: number[]) => bytes.every((v, i) => b[i] === v);
   return starts(0x89, 0x50, 0x4e, 0x47) || starts(0xff, 0xd8, 0xff) || starts(0x47, 0x49, 0x46, 0x38) || starts(0x42, 0x4d)
     || starts(0x49, 0x49, 0x2a, 0x00) || starts(0x4d, 0x4d, 0x00, 0x2a) || starts(0xd7, 0xcd, 0xc6, 0x9a)
-    || (starts(0x01, 0x00, 0x00, 0x00) && b.toString('latin1', 40, 44) === ' EMF') || starts(0x01, 0x00, 0x09, 0x00) || starts(0x02, 0x00, 0x09, 0x00);
+    || (starts(0x01, 0x00, 0x00, 0x00) && b.toString('latin1', 40, 44) === ' EMF') || starts(0x01, 0x00, 0x09, 0x00) || starts(0x02, 0x00, 0x09, 0x00)
+    // Sound and video: RIFF (WAV, AVI), MP3, MP4 and M4A, ASF (WMA, WMV), Ogg.
+    || starts(0x52, 0x49, 0x46, 0x46) || starts(0x49, 0x44, 0x33) || starts(0xff, 0xfb) || b.toString('latin1', 4, 8) === 'ftyp'
+    || starts(0x30, 0x26, 0xb2, 0x75) || starts(0x4f, 0x67, 0x67, 0x53);
 }
 /** Word fields that fetch a file or a picture when the document opens or updates, or start another program (DDE). */
 const REACHING_FIELD = /\b(DDE|DDEAUTO|INCLUDEPICTURE|INCLUDETEXT|INCLUDE|LINK|IMPORT)\b/i;
@@ -128,10 +135,10 @@ export function officeSafe(file: string): OfficeVerdict {
       const text = partText(bytes);
       // Not XML: only the binary parts Office keeps, or a picture. Anything else may be read by Office in a way this is not.
       if (!/^\s*</.test(text)) {
-        if (!(bytes.length === 0 || BINARY_PART.test(name) || isPicture(bytes))) stray = true;
+        if (!(bytes.length === 0 || BINARY_PART.test(name) || isMedia(bytes))) stray = true;
         continue;
       }
-      if (name === '[Content_Types].xml' && IMPORTED_TYPE.test(text)) embedded = true;
+      if (name === '[Content_Types].xml' && IMPORTED_TYPE.test(decode(text))) embedded = true;
       if (/<!(DOCTYPE|ENTITY)/i.test(text)) throw new Unreadable();
       if (name === '[Content_Types].xml' && /macroEnabled/i.test(text)) macros = true;
       if (name.toLowerCase().endsWith('.rels')) {
@@ -141,7 +148,7 @@ export function officeSafe(file: string): OfficeVerdict {
           const type = r.attrs.Type ?? '';
           if (r.attrs.TargetMode?.toLowerCase() !== 'external') {
             if (EMBEDDED_REL.test(type)) embedded = true;
-          } else if (type.endsWith('/attachedTemplate')) template = true;
+          } else if (/\/attachedTemplate$/i.test(type)) template = true;
           else if (!type.endsWith('/hyperlink')) link = true;
         }
       }

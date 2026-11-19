@@ -140,7 +140,7 @@ describe('officeSafe', () => {
     expect(officeSafe(header('le-32.docx', wide32)), 'utf-32').toEqual({ ok: false, reason: 'unreadable' });
     expect(officeSafe(header('le-32-mark.docx', Buffer.concat([Buffer.from([0xff, 0xfe, 0, 0]), wide32]))), 'utf-32 with its mark').toEqual({ ok: false, reason: 'unreadable' });
     // A picture that starts with zero bytes (EMF does) is still a picture.
-    expect(officeSafe(changed('sample.docx', 'emf.docx', (p) => p.set('word/media/image9.emf', Buffer.from([1, 0, 0, 0, 0x6c, 0, 0, 0, 0x3c, 0]))))).toEqual({ ok: true });
+    expect(officeSafe(changed('sample.docx', 'emf.docx', (p) => p.set('word/media/image9.emf', Buffer.concat([Buffer.from([1, 0, 0, 0, 0x6c, 0, 0, 0, 0x3c, 0]), Buffer.alloc(30), Buffer.from(' EMF'), Buffer.alloc(8)]))))).toEqual({ ok: true });
     expect(officeSafe(header('no-bom-16.docx', Buffer.from(field, 'utf16le'))), 'utf-16 without a mark').toEqual({ ok: false, reason: 'unreadable' });
     expect(officeSafe(header('utf8-declared.docx', Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${field}`))), 'utf-8 declared').toEqual({ ok: true });
   });
@@ -156,6 +156,18 @@ describe('officeSafe', () => {
     expect(officeSafe(stray), 'unknown text part').toEqual({ ok: false, reason: 'unreadable' });
     const png = changed('sample.docx', 'png.docx', (p) => p.set('word/pictures/a.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0])));
     expect(officeSafe(png), 'a picture anywhere').toEqual({ ok: true });
+  });
+
+  it('does not go by where a part sits or how a name is spelled', () => {
+    const media = changed('sample.docx', 'media-rtf.docx', (p) => p.set('word/media/image9.png', Buffer.from('{\rtf1 hello}')));
+    expect(officeSafe(media), 'not a picture in media').toEqual({ ok: false, reason: 'unreadable' });
+    const sound = changed('sample.pptx', 'sound.pptx', (p) => p.set('ppt/media/media1.wav', Buffer.from('RIFF    WAVEfmt ')));
+    expect(officeSafe(sound), 'a sound in media').toEqual({ ok: true });
+    const upper = changed('sample.docx', 'upper.docx', (p) => addRel(p, 'word/_rels/document.xml.rels', `<Relationship Id="rIdU" Type="${REL}/OLEOBJECT" Target="x.bin"/>`));
+    expect(officeSafe(upper), 'type in capitals').toEqual({ ok: false, reason: 'embedded' });
+    const escaped = changed('sample.docx', 'escaped-type.docx', (p) => p.set('[Content_Types].xml', Buffer.from(p.get('[Content_Types].xml')!.toString()
+      .replace('</Types>', '<Default Extension="rtf" ContentType="application&#47;rtf"/></Types>'))));
+    expect(officeSafe(escaped), 'content type behind a reference').toEqual({ ok: false, reason: 'embedded' });
   });
 
   it('calls a package with two parts of the same name unreadable', () => {
