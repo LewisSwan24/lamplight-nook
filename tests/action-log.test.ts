@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ACTIONS_MAX, ActionLog, CONNECTIONS_PAUSED, RoundActions } from '../app/main/action-log';
+import { ACTIONS_MAX, ActionLog, CONNECTIONS_PAUSED, ConnectionReads, RoundActions } from '../app/main/action-log';
 import { testKind } from '../app/main/connection-kinds';
 import type { NookServer, NookTool, ToolCtx } from '../app/main/nook-tools';
 import type { ActionRecord, Connection } from '../app/shared/types';
@@ -69,6 +69,32 @@ describe('the record of outside actions (road-to-1.3.md C6)', () => {
     expect(round.readFrom).toBeUndefined();
     await round.call(server([reader]), reader, {}, ctx);
     expect(round.readFrom).toBe('My test');
+  });
+
+  it('a round that carries on a session which read before starts out marked, and the first read of a round is passed on once', async () => {
+    const carried = new RoundActions({ run: 'r2', log: new ActionLog(join(folder(), 'a.jsonl')), paused: () => false, readFrom: 'My calendar' });
+    expect(carried.readFrom).toBe('My calendar');
+    const told: string[] = [];
+    const round = new RoundActions({ run: 'r1', log: new ActionLog(join(folder(), 'a.jsonl')), paused: () => false, onRead: (l) => told.push(l) });
+    await round.call(server([reader]), reader, {}, ctx);
+    await round.call(server([reader]), reader, {}, ctx);
+    expect(told).toEqual(['My test']);
+  });
+
+  it('which sessions read through a connection is kept on disk, the first connection named, across a restart', () => {
+    const file = join(folder(), 'connection-reads.json');
+    const reads = new ConnectionReads(file);
+    expect(reads.get('s1')).toBeUndefined();
+    expect(reads.get(undefined)).toBeUndefined();
+    reads.set('s1', 'My calendar');
+    reads.set('s1', 'My drive');
+    reads.set('s2', 'My drive');
+    const again = new ConnectionReads(file);
+    expect(again.get('s1')).toBe('My calendar');
+    expect(again.get('s2')).toBe('My drive');
+    expect(readFileSync(file, 'utf8')).not.toContain(SECRET_TEXT);
+    writeFileSync(file, '{ broken');
+    expect(new ConnectionReads(file).get('s1')).toBeUndefined();
   });
 
   it('the shop\'s own tools are not connections: not recorded, not paused', async () => {
