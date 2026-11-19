@@ -30,12 +30,14 @@ export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes
 
 /**
  * What the result card opens, best first, matched on file names: a page the shop made, an edited document,
- * any page, a write-up in Markdown, then a table or a letter.
+ * any page, a Word, Excel or PowerPoint file or a PDF (never the kinds with macros), a write-up in Markdown, then a
+ * table or a letter.
  */
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
   page: (name: string) => /\.html?$/i.test(name),
+  office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
   table: (name: string) => /\.(csv|txt)$/i.test(name),
 };
@@ -109,12 +111,12 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'sheet', icon: 6, revise: true, main: 'table', growth: { id: 'ledger', at: 2 },
+    id: 'sheet', icon: 6, revise: true, main: 'office', growth: { id: 'ledger', at: 2 },
     steps: ({ language, files }) => [
       'This is a table: do not make a web page.',
-      `Write it as "${files.sheet}": a CSV file in UTF-8 with a byte order mark, so it opens correctly in Excel and other spreadsheet apps.`,
-      'Put the column names in the first row. Leave rows for the user to fill in where that is the point of the table.',
-      'Where a total or a sum helps, use spreadsheet formulas such as =SUM(B2:B20) so it updates as the user fills it in.',
+      `Build it with the mcp__nook-office__make_xlsx tool as "${files.sheet}": give the tool the structure (sheets, columns with their formats, rows) and it makes the Excel file. Never write Office XML or an .xlsx by hand, and do not make a CSV.`,
+      'Put the column names in the first row and keep that row in view (freezeHeader). Leave rows for the user to fill in where that is the point of the table.',
+      'Where a total or a sum helps, use a formula cell such as {"f": "=SUM(B2:B20)"} so it updates as the user fills it in. Formulas use only this workbook. Give each column its format: money, number, date, percent or text.',
       `Write the column names and any example rows in ${language}.`,
     ],
   },
@@ -141,6 +143,7 @@ export const TEMPLATES = [
     steps: ({ language, files }) => [
       'This is a résumé: one page, made to be printed.',
       `Make it as a single self-contained page named "${files.resume}": CSS inline, laid out for one A4 page, with print styles so that the browser's "Print to PDF" gives one clean page.`,
+      `When the page is done, also save it as "${files.resumePdf}" with the mcp__nook-office__make_pdf tool, so the user has a file ready to send.`,
       `If the user handed anything over in "${files.materials}" (an old résumé, a list of what they have done), read it first and build on it.`,
       'Never invent experience, schools, dates, job titles or numbers. Where something is missing, leave a clear blank in square brackets for the user to fill in.',
       `Write it in ${language}. In your final reply, say in one or two sentences which kind of job you shaped it for.`,
@@ -175,6 +178,26 @@ export const TEMPLATES = [
       'Such a script only lists what it would do, and changes nothing until it is run again with -Apply. It never deletes anything.',
       `Try it only on sample files you make in a folder named "${files.toolSamples}" inside this folder. Never point it at the user's own files.`,
       `In your final reply, say in ${language} how to use it, in two or three short steps.`,
+    ],
+  },
+  {
+    id: 'document', icon: 13, revise: true, main: 'office',
+    steps: ({ language, files }) => [
+      'This is a Word document: do not make a web page.',
+      `Build it with the mcp__nook-office__make_docx tool as "${files.document}" in ${language}: give the tool the structure (a title, headings, paragraphs, lists, tables, pictures from this folder) and it makes the file. Never write Office XML or a .docx by hand.`,
+      'Shape it for what it is for: a report opens with a short summary, a notice says what, when and where first, a manual goes step by step in numbered lists.',
+      `If the user handed anything over in "${files.materials}", read it first (mcp__nook-office__read_document reads Word, Excel and PowerPoint files) and build on it.`,
+      'Where you need a fact you do not have (a date, a name, an amount), leave a clear blank in square brackets instead of making it up.',
+    ],
+  },
+  {
+    id: 'slides', icon: 14, revise: true, main: 'office',
+    steps: ({ language, files }) => [
+      'This is a slide deck: do not make a web page.',
+      `Build it with the mcp__nook-office__make_pptx tool as "${files.slides}" in ${language}: give the tool the structure (a title slide, then one idea per slide, pictures from this folder, notes for the speaker) and it makes the file. Never write Office XML or a .pptx by hand.`,
+      'Keep each slide to a few short bullets, and put what the speaker says in the notes.',
+      `If the user handed anything over in "${files.materials}", read it first (mcp__nook-office__read_document reads Word, Excel and PowerPoint files) and build on it.`,
+      'Never invent figures, quotations or dates. Where one is missing, leave a clear blank in square brackets.',
     ],
   },
 ] as const satisfies readonly TemplateSpec[];

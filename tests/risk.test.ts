@@ -150,6 +150,27 @@ describe('risk classifier', () => {
     expect(n('mcp__x__send').risk).toBe('serious');
   });
 
+  it('the shop\'s office tools read and write by the rules of Read and Write: in the folder no card, outside as those (C1)', () => {
+    const nook = new Map<string, NookEntry>(['read_document', 'make_docx', 'make_xlsx', 'make_pptx', 'make_pdf']
+      .map((t) => [`mcp__nook-office__${t}`, { kind: t === 'read_document' ? 'read' as const : 'make' as const, label: () => t }]));
+    const o = (tool: string, input: Record<string, unknown>) => classify(`mcp__nook-office__${tool}`, input, { ...ctx, nook });
+    expect(o('read_document', { file: 'materials/notes.docx' })).toEqual({ risk: 'safe', reason: strings.risk.nook.read });
+    expect(o('read_document', { file: join(workDir, 'a.xlsx') })).toEqual({ risk: 'safe', reason: strings.risk.nook.read });
+    for (const t of ['make_docx', 'make_xlsx', 'make_pptx']) expect(o(t, { file: `report.${t.slice(5)}` })).toEqual({ risk: 'safe', reason: strings.risk.nook.make });
+    expect(o('make_pdf', { page: 'resume.html', file: 'resume.pdf' })).toEqual({ risk: 'safe', reason: strings.risk.nook.make });
+    // Outside the folder: what Read and Write would get there, word for word.
+    for (const file of [join(home, 'Desktop', 'x.docx'), '../other/x.docx', join(home, '.ssh', 'id_rsa')]) {
+      expect(o('read_document', { file }), file).toEqual(classify('Read', { file_path: file }, ctx));
+      expect(o('read_document', { file }).risk, file).not.toBe('safe');
+      expect(o('make_docx', { file }), file).toEqual(classify('Write', { file_path: file }, ctx));
+      expect(o('make_docx', { file }).risk, file).not.toBe('safe');
+    }
+    // make_pdf reads its page as well as writing the PDF: a page from outside is a read from outside.
+    const away = join(home, 'Desktop', 'cv.html');
+    expect(o('make_pdf', { page: away, file: 'cv.pdf' })).toEqual(classify('Read', { file_path: away }, ctx));
+    expect(o('make_pdf', { page: 'cv.html', file: join(home, 'Desktop', 'cv.pdf') }).risk).toBe('serious');
+  });
+
   it('once a round has read from a connection, web search and fetch ask first; without one they go ahead (C6)', () => {
     const round = { paused: () => false, readFrom: undefined as string | undefined, refused: () => {} };
     const web = (tool: string) => classify(tool, { url: 'https://example.com' }, { ...ctx, round });

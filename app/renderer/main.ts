@@ -22,7 +22,7 @@ import { showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
-import { answerFirst, boardSteps, budgetLine, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult } from './ui/panels';
+import { answerFirst, boardSteps, budgetLine, clearWorkSigns, commissionFormOpen, renderBoard, setReplayBadge, showPlan, showActorCard, showCommissionForm, showResult, showResultPreview } from './ui/panels';
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, showInterrupted, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
@@ -473,6 +473,12 @@ window.lamplight.onResult((result) => {
   if (result.run) results.set(result.run, result);
   if (!hasFailureCard(result.error)) resultCard(result);
 });
+// A round's thumbnail (C1) comes after its result: kept with the result, so a card that waited or comes back has it too.
+window.lamplight.onResultPreview(({ run, png }) => {
+  const result = results.get(run);
+  if (result) result.preview = png;
+  showResultPreview(run, png);
+});
 /** The latest results by round, and the rounds whose card has been up: a notice clicked later brings its card back (B6). */
 const results = new Map<string, CommissionResult>();
 const resultShown = new Set<string>();
@@ -480,7 +486,7 @@ function resultCard(result: CommissionResult) {
   void whenFree().then(() => {
     if (result.run) resultShown.add(result.run);
     showResult(result, {
-      open: (path, how) => void window.lamplight.openOutput(path, how),
+      open: (path, how) => window.lamplight.openOutput(path, how),
       revise: (id) => void revise(id),
       restore: (id) => window.lamplight.restorePrevious(id),
       undo: (id) => window.lamplight.undoWork(id),
