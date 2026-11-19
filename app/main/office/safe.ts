@@ -13,29 +13,44 @@ const REACHING_FIELD = /\b(DDE|DDEAUTO|INCLUDEPICTURE|INCLUDETEXT|INCLUDE|LINK|I
 
 /** Where field codes and formulas are kept, under any prefix: Word's field code runs, and a workbook's cells, defined
  * names, data validation, conditional formats and chart series. */
-const FIELD_TAG = /<(?:[\w.-]+:)?instrText(?:\s[^>]*)?>/g;
-const FORMULA_TAG = /<(?:[\w.-]+:)?(?:f|definedName|formula|formula1|formula2)(?:\s[^>]*)?>/g;
+const FIELD_TAG = 'instrText';
+const FORMULA_TAG = '(?:f|definedName|formula|formula1|formula2)';
 /** A simple field's code, as an attribute under any prefix: every one counts, so a second one cannot stand in for it. */
 const INSTR_ATTR = /[\s'"](?:[\w.-]+:)?instr\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 
 class Unreadable extends Error {}
 
-/** A part's text as Office reads it: UTF-8 or UTF-16 by its byte order mark. Big-endian UTF-16 is refused (Office writes none). */
+/**
+ * A part's text as Office reads it: UTF-16 little-endian with its byte order mark, otherwise UTF-8. When the encoding the
+ * part declares is not the one its bytes are read in, or it holds a NUL (UTF-16 without its mark reads that way), Office
+ * could see other text than this check does, so the file is not trusted. Big-endian UTF-16 is refused: Office writes none.
+ */
 function partText(buf: Buffer): string {
-  if (buf[0] === 0xff && buf[1] === 0xfe) return buf.subarray(2).toString('utf16le');
+  const wide = buf[0] === 0xff && buf[1] === 0xfe;
   if (buf[0] === 0xfe && buf[1] === 0xff) throw new Unreadable();
-  return (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf ? buf.subarray(3) : buf).toString('utf8');
+  const text = wide ? buf.subarray(2).toString('utf16le') : (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf ? buf.subarray(3) : buf).toString('utf8');
+  if (!/^\s*</.test(text)) return text;
+  if (text.includes('\0')) throw new Unreadable();
+  const declared = /^\s*<\?xml[^>]*\bencoding\s*=\s*["']([^"']*)["']/i.exec(text)?.[1].toLowerCase();
+  if (declared && declared !== (wide ? 'utf-16' : 'utf-8')) throw new Unreadable();
+  return text;
 }
 
 /**
- * The text of every element the pattern opens, references decoded and CDATA unwrapped. A field code or a formula holds
- * only text; an element or a comment inside one is nothing Office writes, so the file is not trusted.
+ * The text of every element called `name` (under any prefix), references decoded and CDATA unwrapped. Each opening tag
+ * is read to its real end, attribute values in quotes and all; one that cannot be read that way (a < or > in a value, or
+ * anything else odd) makes the file untrusted rather than read past. A field code or a formula holds only text; an
+ * element or a comment inside one is nothing Office writes either.
  */
-function contents(text: string, open: RegExp): string[] {
+function contents(text: string, name: string): string[] {
   const out: string[] = [];
-  for (const m of text.matchAll(open)) {
-    if (m[0].endsWith('/>')) continue;
-    let at = m.index + m[0].length;
+  const tag = new RegExp(`<(?:[\\w.-]+:)?${name}(?:\\s+[\\w.:-]+\\s*=\\s*(?:"[^"<>]*"|'[^'<>]*'))*\\s*(/?)>`, 'y');
+  for (const m of text.matchAll(new RegExp(`<(?:[\\w.-]+:)?${name}(?=[\\s/>])`, 'g'))) {
+    tag.lastIndex = m.index;
+    const open = tag.exec(text);
+    if (!open) throw new Unreadable();
+    if (open[1]) continue;
+    let at = tag.lastIndex;
     let s = '';
     for (;;) {
       const lt = text.indexOf('<', at);

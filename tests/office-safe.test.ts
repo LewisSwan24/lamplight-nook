@@ -124,6 +124,20 @@ describe('officeSafe', () => {
     expect(officeSafe(rel), 'rel clash').not.toEqual({ ok: true });
   });
 
+  it('reads a tag to its real end, and refuses encodings it cannot be sure of', () => {
+    const cell = (name: string, f: string) => changed('sample.xlsx', name, (p) => p.set('xl/worksheets/sheet1.xml', Buffer.from(p.get('xl/worksheets/sheet1.xml')!.toString()
+      .replace(/<f>[^<]*<\/f>/, f))));
+    expect(officeSafe(cell('slash-attr.xlsx', '<f t="a/>">WEBSERVICE("http://example.com/")</f>')), 'slash in attr').not.toEqual({ ok: true });
+    expect(officeSafe(cell('gt-attr.xlsx', "<f t='>'>WEBSERVICE(\"http://example.com/\")</f>")), 'gt in attr').not.toEqual({ ok: true });
+    expect(officeSafe(cell('plain-attr.xlsx', '<f t="normal">SUM(B2:B3)</f>')), 'ordinary attr').toEqual({ ok: true });
+    const header = (name: string, body: Buffer) => changed('sample.docx', name, (p) => p.set('word/header9.xml', body));
+    const field = '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:r><w:instrText> PAGE </w:instrText></w:r></w:p></w:hdr>';
+    expect(officeSafe(header('declared-16.docx', Buffer.from(`<?xml version="1.0" encoding="UTF-16"?>${field}`))), 'utf-16 declared, utf-8 bytes').toEqual({ ok: false, reason: 'unreadable' });
+    expect(officeSafe(header('declared-other.docx', Buffer.from(`<?xml version="1.0" encoding="windows-1252"?>${field}`))), 'other encoding').toEqual({ ok: false, reason: 'unreadable' });
+    expect(officeSafe(header('no-bom-16.docx', Buffer.from(field, 'utf16le'))), 'utf-16 without a mark').toEqual({ ok: false, reason: 'unreadable' });
+    expect(officeSafe(header('utf8-declared.docx', Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${field}`))), 'utf-8 declared').toEqual({ ok: true });
+  });
+
   it('calls a package with two parts of the same name unreadable', () => {
     const file = changed('sample.docx', 'twice.docx', (p) => p.set('WORD/document.xml', p.get('word/document.xml')!));
     expect(officeSafe(file)).toEqual({ ok: false, reason: 'unreadable' });
