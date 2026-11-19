@@ -43,6 +43,14 @@ describe('howToOpen', () => {
     expect(howToOpen(file('draft.eml', draftEml({ to: ['a@example.com'], subject: '周会', body: 'Hello\nthere' })))).toEqual({ open: true });
     const ev = (...lines: string[]) => ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:1', 'DTSTART:20261120T090000Z', 'SUMMARY:Tea', ...lines, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     expect(howToOpen(file('EVENT.ICS', ev('BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-PT15M', 'END:VALARM')))).toEqual({ open: true });
+    // What a calendar program writes for an ordinary event, time zone and all.
+    const full = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//x//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Plans',
+      'BEGIN:VTIMEZONE', 'TZID:Asia/Shanghai', 'BEGIN:STANDARD', 'DTSTART:19700101T000000', 'TZOFFSETFROM:+0800', 'TZOFFSETTO:+0800', 'TZNAME:CST', 'END:STANDARD', 'END:VTIMEZONE',
+      'BEGIN:VEVENT', 'UID:2', 'DTSTAMP:20261120T000000Z', 'DTSTART;TZID=Asia/Shanghai:20261120T090000', 'DTEND;TZID=Asia/Shanghai:20261120T100000',
+      'SUMMARY:读书会', 'DESCRIPTION:第一章，一段很长的说明', ' 折到了下一行', 'LOCATION:Room 2', 'RRULE:FREQ=WEEKLY;COUNT=4', 'EXDATE;TZID=Asia/Shanghai:20261127T090000', 'STATUS:CONFIRMED',
+      'TRANSP:OPAQUE', 'SEQUENCE:0', 'CATEGORIES:Reading', 'URL:https://example.com/club', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    expect(howToOpen(file('full.ics', full))).toEqual({ open: true });
+    expect(howToOpen(file('qp.eml', 'To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nhi =E4=BD=A0\r\n'))).toEqual({ open: true });
     // A mail with attachments, a page or no type of its own, and an event that brings a file or starts a program.
     const head = 'To: a@example.com\r\nSubject: x\r\nX-Unsent: 1\r\nMIME-Version: 1.0\r\n';
     for (const [name, text] of [
@@ -64,6 +72,20 @@ describe('howToOpen', () => {
       ['utf16.ics', Buffer.from(String.fromCharCode(0xfeff) + ev('ATTACH:https://example.com/a.exe'), 'utf16le')],
       ['nul.ics', ev('SUMMARY:a\u0000b')],
       ['notcal.ics', 'hello'],
+      // Hidden one layer down: an attachment inside the base64 or quoted-printable text, another transfer encoding, a
+      // bare CR anywhere, and calendar properties outside what the shop's events use.
+      ['b64-uu.eml', `${head}Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${Buffer.from('hi\r\nbegin 644 run.exe\r\nM35J0\r\nend\r\n').toString('base64')}\r\n`],
+      ['qp-yenc.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nhi\r\n=3Dybegin line=3D128 size=3D4 name=3Drun.exe\r\n`],
+      ['b64-mime.eml', `${head}Content-Type: text/plain\r\n\r\nhi\r\nbegin-base64 644 run.exe\r\nTVqQ\r\n====\r\n`],
+      ['uue.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: x-uuencode\r\n\r\nM35J0\r\n`],
+      ['bare-cr-body.eml', `${head}Content-Type: text/plain\r\n\r\nhi\rthere\r\n`],
+      ['old-alarm.ics', ev('PALARM:20261120T085000Z;PT5M;2;C:\\a.exe')],
+      ['attendee.ics', ev('ATTENDEE:mailto:someone@example.com')],
+      ['audio.ics', ev('BEGIN:VALARM', 'ACTION:AUDIO', 'TRIGGER:-PT15M', 'END:VALARM')],
+      ['no-version.ics', ev().replace('VERSION:2.0\r\n', '')],
+      ['todo.ics', ev().replace('BEGIN:VEVENT', 'BEGIN:VTODO').replace('END:VEVENT', 'END:VTODO')],
+      ['no-body.eml', `${head}Content-Type: text/plain\r\nContent-Disposition: attachment; filename="a.cmd"`],
+      ['two-encodings.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: 7bit\r\nContent-Transfer-Encoding: base64\r\n\r\n${Buffer.from('begin 644 run.exe\r\nM35J0\r\nend\r\n').toString('base64')}\r\n`],
     ] as [string, string | Buffer][]) expect(howToOpen(file(name, text)), name).toEqual({ open: false, why: 'notPlain' });
     expect(howToOpen(join(dir, 'missing.eml'))).toEqual({ open: false, why: 'unreadable' });
   });
