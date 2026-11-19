@@ -182,7 +182,8 @@ export function pickPlay(prompt, state, system = '') {
   state.vars.want = want(prompt);
   state.vars.materialsDir = quoted(prompt, 'Copies are in the folder') ?? quoted(prompt, 'using the photos in the folder');
   // A commission that may use a connection (road-to-1.3.md C4) reads it once and writes down what it got.
-  if (/The user let this commission use these connections/.test(prompt)) return plays.connect;
+  // SIM_CONNECTION_PLAY picks another play for such a commission: outside or outsideweb (C6).
+  if (/The user let this commission use these connections/.test(prompt)) return plays[process.env.SIM_CONNECTION_PLAY] ?? plays.connect;
   if (/This folder is the user's own/.test(prompt)) return plays.lent;
   if (/single self-contained page named "index\.html", using the photos/.test(prompt)) return plays.album;
   if (/write the findings as/.test(prompt)) { state.vars.out = quoted(prompt, 'write the findings as'); return plays.research; }
@@ -350,6 +351,41 @@ export const plays = {
       if (echo) await s.step(() => s.say(`(sim) ${echo}`));
       await s.step(() => s.write(zh ? '连接里读到的.txt' : 'from-connection.txt', `${got.join('\n')}\n`));
       await s.finish(zh ? '我读了测试连接里的便条，把它抄进了一个文本文件。' : 'I read the note in the test connection and copied it into a text file.');
+    },
+  },
+
+  /**
+   * An outside action through the test connection (C6): save a note, which the user is asked about every time. Told no,
+   * it says so and asks once more, as a model might.
+   */
+  outside: {
+    name: 'outside',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      await s.step(() => s.think(1));
+      const first = await s.step(() => s.mcp(server, 'save_note', {}));
+      if (first?.denied) await s.step(() => s.say(zh ? '你没同意，我再问一次。' : 'You said no, so I will ask once more.'));
+      await s.step(() => s.mcp(server, 'save_note', {}));
+      await s.finish(zh ? '便条存进测试文件夹了，在笔记本的“外部动作”页可以撤回。' : "The note is in the test folder. It can be undone from the notebook's outside actions page.");
+    },
+  },
+
+  /**
+   * Reads the test connection, then looks something up on the web and runs a harmless command (C6): after a read through
+   * a connection, both are asked about first. Nothing reaches the network; the fetch is answered here.
+   */
+  outsideweb: {
+    name: 'outsideweb',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      await s.step(() => s.think(1));
+      await s.step(() => s.mcp(server, 'read_note', {}));
+      await s.step(() => s.tool('WebFetch', { url: 'https://example.com/', prompt: 'What is on the page?' }, { effect: () => ({ text: 'Example Domain' }) }));
+      await s.step(() => s.tool('Bash', { command: 'node -v', description: 'Check the Node version' }, { effect: () => ({ text: process.version }) }));
+      await s.step(() => s.write(zh ? '查到的.txt' : 'looked-up.txt', 'Example Domain\n'));
+      await s.finish(zh ? '读了测试连接里的便条，又查了一个网页。' : 'I read the note in the test connection and looked up a web page.');
     },
   },
 

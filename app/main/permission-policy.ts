@@ -99,13 +99,15 @@ export function makePermissionPolicy(ctx: RiskContext, broker: Asker, events: Po
 
     const serious = risk === 'serious';
     const action = describeAction(tool, input, ctx);
+    // A tool called with nothing (the test connection's save_note) has nothing to show under "show the full command".
+    const detail = String(input.command ?? input.file_path ?? JSON.stringify(input));
     const choice = await broker.ask({
       kind: serious ? 'serious' : 'permission',
       agent: agentOf(agentId, agents),
       tool,
       title: action,
       reason,
-      detail: String(input.command ?? input.file_path ?? JSON.stringify(input)),
+      ...(detail === '{}' ? {} : { detail }),
       // An outside action says how it is undone; one that cannot be, says so (C6).
       ...(nook?.kind === 'outside' && nook.undoHow ? { undo: nook.undoHow } : nook?.kind === 'final' ? { undo: D.undoNo } : {}),
       options: [

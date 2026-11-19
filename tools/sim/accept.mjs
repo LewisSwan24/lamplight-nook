@@ -97,6 +97,31 @@ function unzipped(file) {
   return to;
 }
 
+/** Connect the test connection from the notebook (C4) and close the notebook again. */
+async function connectTest(shop) {
+  const { page, L } = shop;
+  await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+  await page.waitForSelector('.notebook .notebook-connections');
+  await sleep(400);
+  await page.locator('.notebook-connections .connection-add[data-kind="test"]').click();
+  await page.waitForSelector('.grant-card');
+  await sleep(400);
+  await page.locator('.grant-card .grant-connect').click();
+  await page.waitForSelector('.notebook .connection');
+  await sleep(400);
+  await page.keyboard.press('Escape');
+  await sleep(300);
+}
+
+/** Fill in a slip with the one connection ticked, and send it. */
+async function orderWithConnection(shop, want) {
+  await shop.order({ want });
+  const tick = shop.page.locator('form.commission .connection-row input[type=checkbox]');
+  await tick.first().waitFor({ state: 'visible', timeout: 5000 });
+  await tick.first().check();
+  await shop.submit();
+}
+
 /** The newest commission folder under the shop's Documents. */
 function latestCommission(home) {
   const found = [];
@@ -2040,6 +2065,120 @@ const SCENARIOS = {
     check(!logLines(home).join('\n').includes(SECRET) && !recorded.includes(SECRET), 'the secret is in the log or a recording');
     check(recorded.includes('[redacted]'), 'the stand-in never repeated the secret, so nothing was looked for');
     check(/mcp__nook-k\d+__read_note/.test(recorded), 'the recording has no call of the connection\'s tool');
+  },
+
+  /**
+   * An outside action (road-to-1.3.md C6): the stand-in saves a note through the test connection twice. The first card is
+   * declined (it is the default), the second allowed; then the notebook's outside actions page undoes it. Three lines in
+   * actions.jsonl: declined, done with its undo, the undo.
+   */
+  async outside(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'outside' } });
+    const { page, L } = shop;
+    const T = L.ui.connections.kinds.test;
+    const outsideDir = join(home.data, 'test-outside');
+    const lines = () => readFileSync(join(home.data, 'actions.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    try {
+      await connectTest(shop);
+      await orderWithConnection(shop, W[lang].page);
+      let cards = 0;
+      let shot = false;
+      const r = await shop.workUntilDone({
+        answers: () => (cards++ === 0 ? null : 1),
+        onTick: async () => {
+          if (shot || !(await page.locator('.backdrop .serious').isVisible().catch(() => false))) return;
+          shot = true;
+          await sleep(1200);
+          await shop.shot(join(out, 'outside-card.png'));
+          await shop.resize([640, 360]);
+          await sleep(400);
+          await shop.shot(join(out, 'outside-card-small.png'));
+          await shop.resize('medium');
+          await sleep(400);
+        },
+      });
+      check(r.ok, 'did not finish');
+      check(r.seen.length === 2, `${r.seen.length} cards, not 2: ${r.seen.map((c) => c.text).join(' | ')}`);
+      for (const c of r.seen) {
+        check(c.serious, 'the outside action was not asked on the serious card');
+        check(c.text.includes(T.saveNote) && c.text.includes(T.saveNoteUndo), `the card does not say what is done and how it is undone: ${c.text}`);
+        check(c.buttons.length === 2, `the card offers more than allow or not: ${c.buttons.join(' | ')}`);
+      }
+      check(readdirSync(outsideDir).length === 1, `the test folder holds ${readdirSync(outsideDir).length} notes, not 1`);
+      const [declined, done] = lines();
+      check(lines().length === 2, `actions.jsonl has ${lines().length} lines, not 2`);
+      check(declined.tool === 'save_note' && declined.decision === 'denied' && !declined.ok, `first line: ${JSON.stringify(declined)}`);
+      check(done.decision === 'allowed' && done.ok && done.undo?.path && !done.undo.done, `second line: ${JSON.stringify(done)}`);
+      await page.keyboard.press('Escape');
+      await sleep(1500);
+
+      // The notebook's outside actions page: both lines, "Undo" on the one that was done.
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      await page.waitForSelector('.notebook .notebook-actions');
+      const section = page.locator('.notebook .notebook-actions');
+      await section.scrollIntoViewIfNeeded();
+      await sleep(400);
+      check(await section.locator('li.action').count() === 2, 'the outside actions page does not list both lines');
+      check(await section.locator('.action-undo').count() === 1, 'the page does not offer one undo');
+      await shop.shot(join(out, 'outside-actions.png'));
+      await shop.resize([640, 360]);
+      await section.scrollIntoViewIfNeeded();
+      await sleep(400);
+      await shop.shot(join(out, 'outside-actions-small.png'));
+      await shop.resize('medium');
+      await section.locator('.action-undo').click();
+      await page.waitForSelector('.notebook .notebook-actions .action-undone', { timeout: 5000 });
+      await section.scrollIntoViewIfNeeded();
+      await sleep(400);
+      await shop.shot(join(out, 'outside-undone.png'));
+      check(await section.locator('.action-undo').count() === 0, 'it can still be undone after the undo');
+      check(readdirSync(outsideDir).length === 0, 'the undo left the note in the test folder');
+      const all = lines();
+      check(all.length === 3 && all[2].undid === done.id && all[2].ok, `the undo is not its own line: ${JSON.stringify(all[2])}`);
+      check(Boolean(all[1].undo?.done), 'the done line does not say when it was undone');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Web and commands after a read (road-to-1.3.md C6): the stand-in reads the ticked test connection, then fetches a page
+   * and runs node -v. Both would go ahead on their own; after the read each is asked about, naming the connection. The
+   * mark is kept with the session for a later round.
+   */
+  async outsideweb(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'outsideweb' } });
+    const { page, L } = shop;
+    try {
+      await connectTest(shop);
+      const label = JSON.parse(readFileSync(join(home.data, 'connections.json'), 'utf8')).connections[0].label;
+      await orderWithConnection(shop, W[lang].page);
+      let shot = false;
+      const r = await shop.workUntilDone({
+        answers: () => 1,
+        onTick: async () => {
+          if (shot || !(await page.locator('.backdrop').isVisible().catch(() => false))) return;
+          shot = true;
+          await sleep(1200);
+          await shop.shot(join(out, 'outsideweb-card.png'));
+          await shop.resize([640, 360]);
+          await sleep(400);
+          await shop.shot(join(out, 'outsideweb-card-small.png'));
+          await shop.resize('medium');
+          await sleep(400);
+        },
+      });
+      check(r.ok, 'did not finish');
+      const said = r.seen.map((c) => c.text).join(' | ');
+      check(r.seen.length === 2, `${r.seen.length} cards, not 2: ${said}`);
+      check(said.includes(L.risk.webAfterConnection.replace('{label}', label)), `no card says why the web lookup asks: ${said}`);
+      check(said.includes(L.risk.shellAfterConnection.replace('{label}', label)), `no card says why the command asks: ${said}`);
+      check(r.seen.every((c) => !c.serious), 'a lookup after a read was asked on the serious card');
+      const reads = JSON.parse(readFileSync(join(home.data, 'connection-reads.json'), 'utf8'));
+      check(Object.values(reads).length === 1 && Object.values(reads)[0] === label, `connection-reads.json: ${JSON.stringify(reads)}`);
+      const [line] = readFileSync(join(home.data, 'actions.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+      check(line.tool === 'read_note' && line.decision === 'given' && line.ok, `actions.jsonl: ${JSON.stringify(line)}`);
+    } finally { await shop.close(); }
   },
 
   async materials(lang, out) {
