@@ -312,6 +312,7 @@
     "resultBudgetMonth": "Just so you know: about {spent} spent this month, of the {cap} monthly limit. {left} left.",
     "resultBudgetProject": "Just so you know: \"{project}\" has cost about {spent}, of its {cap} limit. {left} left.",
     "openInBrowser": "Open in browser",
+    "openInMail": "Open in mail program",
     "openFile": "Open",
     "openFolder": "Show in folder",
     "parcelFrom": "What {who} brought back",
@@ -756,6 +757,9 @@
       "doesLine": "{what} ({undo})",
       "connect": "Connect",
       "notNow": "Not now",
+      "broad": "That folder holds too much (a whole drive, your user folder, Documents, Desktop, Downloads, or the shop's own). Pick a smaller one.",
+      "address": "That is not an address the shop can use: it has to start with https://.",
+      "addressEmpty": "Paste the address first.",
       "storage": "This computer can't lock its key away safely, so it was not connected.",
       "slipLine": "This one may use:",
       "recent": "Recent",
@@ -764,6 +768,69 @@
       "pauseAll": "Pause all connections",
       "pauseAllHint": "While on, the slip lists no connections, and a commission under way is refused the next time it uses one.",
       "kinds": {
+        "folder": {
+          "label": "Synced folder",
+          "labelOf": "Synced folder: {name}",
+          "saveTo": "Lamplight Nook",
+          "list": "list the files in the synced folder",
+          "read": "read {file} in the synced folder",
+          "saveCopy": "save a copy of {file} into the synced folder's \"{folder}\" folder",
+          "saveCopyUndo": "Yes. Press Undo on the Outside actions page of the notebook, and the saved copy is deleted.",
+          "pickHint": "After Connect, pick the folder, such as the one OneDrive or Dropbox syncs to this computer.",
+          "grant": {
+            "reads": [
+              "The folder you pick, two levels down: file names and what is in them"
+            ],
+            "does": [
+              {
+                "what": "Save a copy of finished work into a \"Lamplight Nook\" folder inside it, asking you each time",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "Delete, rename, move or change your files",
+              "Read hidden files, or files named like keys",
+              "Touch your cloud account: syncing stays with its own program"
+            ],
+            "disconnect": "Press Disconnect here. Copies already saved stay where they are."
+          }
+        },
+        "calendar": {
+          "label": "Calendar (read only)",
+          "labelOf": "Calendar: {host}",
+          "events": "read the calendar from {from} to {to}",
+          "addressLabel": "Your calendar's secret address in iCal format",
+          "addressPlaceholder": "https://…/basic.ics",
+          "addressWarn": "Anyone with this address can see your calendar. To change it, reset the secret address in your calendar.",
+          "grant": {
+            "reads": [
+              "The events in the calendar you give: start, end, title and place"
+            ],
+            "does": [],
+            "never": [
+              "Change your calendar, which it cannot do: to add an event, the staff write an .ics file for you to open"
+            ],
+            "disconnect": "Press Disconnect here. The address is deleted from this computer."
+          }
+        },
+        "maildraft": {
+          "label": "Email drafts",
+          "draft": "write the email draft {file}",
+          "grant": {
+            "reads": [],
+            "does": [
+              {
+                "what": "Write an email draft (.eml) in the commission's folder",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "Send email, which it cannot do: you read the draft and send it yourself in your mail program",
+              "Connect to your mailbox"
+            ],
+            "disconnect": "Press Disconnect here. Drafts already written stay in their commissions' folders."
+          }
+        },
         "test": {
           "label": "Test connection",
           "readNote": "read the note in the test connection",
@@ -928,6 +995,7 @@
       "chartPng": "chart.png",
       "posterPage": "poster.html",
       "posterPng": "poster.png",
+      "fromFolder": "from-synced-folder",
       "posterPdf": "poster.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",

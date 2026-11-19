@@ -40,6 +40,15 @@
 - **More photos can be handed over.** BMP and AVIF photos are taken, and the staff look at a PNG copy made beside them.
   HEIC and TIFF photos, which nothing in the shop can open, are turned away on the slip with a note to save them as JPG
   or PNG first.
+- **The first connections.** The notebook's Connections page offers three, each with a card saying what it may do:
+  - A synced folder, such as the one OneDrive or Dropbox keeps on this computer. The staff can look in it, read its
+    files, and save a copy of finished work into a "Lamplight Nook" folder inside it, asking you each time; Undo
+    deletes the copy. Nothing of yours is deleted, moved or changed, and the cloud account is never touched.
+  - A calendar, read only. Paste its secret iCal address and the staff can read the days they need, repeats included.
+    It cannot be changed: to add an event they write an .ics file for you to open. The address stays locked away on
+    this computer and is deleted when you disconnect.
+  - Email drafts. The staff write a draft in the commission's folder, and the result card opens it in your mail
+    program, where you read it and send it yourself. Nothing is ever sent by the shop.
 
 ## Unreleased (1.2)
 

@@ -512,7 +512,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     const why = (await actions.open(result.main!, 'open'))?.why;
     if (why) note.textContent = U.resultNotOpened[why];
   };
-  const openMain = result.main ? el('button.default', { onclick: () => void openIt() }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null;
+  const openMain = result.main ? el('button.default', { onclick: () => void openIt() }, /\.html?$/i.test(result.main) ? U.openInBrowser : /\.eml$/i.test(result.main) ? U.openInMail : U.openFile) : null;
   // The main file's picture (C1) comes a moment after the card; clicking it opens the file, as the button does.
   // A picture (a chart, a poster, C2) is shown whole; a page shows its first screen.
   const thumb = result.main ? el(isPicture(result.main) ? 'button.result-thumb.whole' : 'button.result-thumb', {

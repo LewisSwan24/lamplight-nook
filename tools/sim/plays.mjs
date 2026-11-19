@@ -495,6 +495,59 @@ export const plays = {
   },
 
   /**
+   * A synced folder (C5): list it, read the Word file in it, write a summary, then save a copy of the summary into the
+   * folder. The first save is declined, so it asks once more, as a model might.
+   */
+  folderlink: {
+    name: 'folderlink',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      await s.step(() => s.think(1));
+      const listed = await s.step(() => s.mcp(server, 'list', {}));
+      const docx = (listed?.text ?? '').split('\n').map((l) => l.split('\t')[0]).find((p) => p.endsWith('.docx'));
+      const read = await s.step(() => s.mcp(server, 'read', { file: docx }));
+      const out = zh ? '摘要.md' : 'summary.md';
+      const first = (read?.text ?? '').split('\n').find((l) => l.trim()) ?? '';
+      await s.step(() => s.write(out, zh ? `# ${docx} 的摘要\n\n开头一句：${first}\n` : `# Summary of ${docx}\n\nIt opens: ${first}\n`));
+      const once = await s.step(() => s.mcp(server, 'save_copy', { file: out }));
+      if (once?.denied) await s.step(() => s.say(zh ? '你没同意，我再问一次。' : 'You said no, so I will ask once more.'));
+      await s.step(() => s.mcp(server, 'save_copy', { file: out }));
+      await s.finish(zh ? `我读了网盘文件夹里的「${docx}」，写了摘要，也存了一份到“小灯屋”里。` : `I read "${docx}" in the synced folder, wrote a summary, and saved a copy into its Lamplight Nook folder.`);
+    },
+  },
+
+  /** A read-only calendar (C5): the coming week's events, laid out as a plan. */
+  calendar: {
+    name: 'calendar',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      await s.step(() => s.think(1));
+      const got = await s.step(() => s.mcp(server, 'events', { from: day(0), to: day(6) }));
+      const out = zh ? '一周计划.md' : 'week-plan.md';
+      await s.step(() => s.write(out, `${zh ? '# 这一周' : '# This week'}\n\n${(got?.text ?? '').split('\n').map((l) => `- ${l}`).join('\n')}\n`));
+      await s.finish(zh ? '我读了你的日历，把这一周排成了计划，日历本身没动。' : 'I read your calendar and laid out the week as a plan. The calendar itself is untouched.');
+    },
+  },
+
+  /** Email drafts (C5): the letter as text, and the same as a draft for the mail program. */
+  maildraft: {
+    name: 'maildraft',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      const subject = zh ? '周六读书会' : 'Book club on Saturday';
+      const body = zh ? '大家好：\n\n这周六下午三点，河边公园见。\n\n[你的名字]\n' : 'Dear all,\n\nSee you on Saturday at 3pm in the park by the river.\n\n[your name]\n';
+      await s.step(() => s.think(1));
+      await s.step(() => s.write(zh ? '信.txt' : 'letter.txt', `${subject}\n\n${body}`));
+      await s.step(() => s.mcp(server, 'draft', { to: ['club@example.org'], subject, body, file: zh ? '信.eml' : 'letter.eml' }));
+      await s.finish(zh ? '信写好了，另外做了一份邮件草稿，在邮件程序里打开，看过再自己发。' : 'The letter is written, with an email draft of it: open it in your mail program, read it and send it yourself.');
+    },
+  },
+
+  /**
    * Reads the test connection, then looks something up on the web and runs a harmless command (C6): after a read through
    * a connection, both are asked about first. Nothing reaches the network; the fetch is answered here.
    */

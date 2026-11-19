@@ -278,15 +278,15 @@ export function prepareSource(workDir: string, form: CommissionForm) {
   if (kind === 'folder') writeFileSync(join(workDir, F.listing), listFolder(form.source), 'utf8');
 }
 
-/** A plain-text list of a folder, two levels deep, hidden files and links left out, capped in length. */
-export function listFolder(root: string, maxDepth = LIST_DEPTH, max = LIST_MAX): string {
+/** A plain-text list of a folder, two levels deep, hidden files, links and what `skip` names left out, capped in length. */
+export function listFolder(root: string, maxDepth = LIST_DEPTH, max = LIST_MAX, skip: (name: string) => boolean = () => false): string {
   const lines: string[] = [];
   let more = 0;
   const walk = (dir: string, rel: string, depth: number) => {
     let names: string[];
     try { names = readdirSync(dir).sort((a, b) => a.localeCompare(b)); } catch { return; }
     for (const name of names) {
-      if (name.startsWith('.')) continue;
+      if (name.startsWith('.') || skip(name)) continue;
       let st;
       try { st = lstatSync(join(dir, name)); } catch { continue; }
       if (st.isSymbolicLink()) continue;

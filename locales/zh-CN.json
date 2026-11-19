@@ -312,6 +312,7 @@
     "resultBudgetMonth": "提醒一句：这个月已经花了约 {spent}，每月上限 {cap}，还剩 {left}。",
     "resultBudgetProject": "提醒一句：「{project}」已经花了约 {spent}，项目上限 {cap}，还剩 {left}。",
     "openInBrowser": "在浏览器里打开",
+    "openInMail": "在邮件程序里打开",
     "openFile": "打开",
     "openFolder": "打开所在文件夹",
     "parcelFrom": "{who}带回来的",
@@ -756,6 +757,9 @@
       "doesLine": "{what}（{undo}）",
       "connect": "连上",
       "notNow": "先不连",
+      "broad": "这个文件夹太大了（整个盘、用户目录、文档、桌面、下载，或者小灯屋自己的文件夹），换一个小一点的。",
+      "address": "这个地址用不了：要以 https:// 开头。",
+      "addressEmpty": "先把地址贴进来。",
       "storage": "这台电脑没法把它的钥匙锁好，所以没连上。",
       "slipLine": "这单可以用：",
       "recent": "最近的记录",
@@ -764,6 +768,69 @@
       "pauseAll": "暂停所有连接",
       "pauseAllHint": "打开后，委托单上不列连接，正在做的委托下一次用连接时也会被拒。",
       "kinds": {
+        "folder": {
+          "label": "网盘文件夹",
+          "labelOf": "网盘文件夹：{name}",
+          "saveTo": "小灯屋",
+          "list": "看看网盘文件夹里有什么",
+          "read": "读网盘文件夹里的「{file}」",
+          "saveCopy": "把「{file}」存一份到网盘文件夹的「{folder}」里",
+          "saveCopyUndo": "能。在笔记本的“外部动作”页点“撤回”，存进去的那一份就删掉了。",
+          "pickHint": "点“连接”以后选文件夹，比如 OneDrive 或坚果云同步到这台电脑上的那个。",
+          "grant": {
+            "reads": [
+              "你选的这个文件夹，两层以内的文件名和文件内容"
+            ],
+            "does": [
+              {
+                "what": "往这个文件夹里的“小灯屋”存一份做好的东西，每次都先问你",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "不删、不改名、不移动，也不改你的文件",
+              "不读隐藏文件和名字像密钥的文件",
+              "不碰网盘的账号，同步交给网盘自己的程序"
+            ],
+            "disconnect": "在这里点“断开”。已经存进“小灯屋”的文件留着。"
+          }
+        },
+        "calendar": {
+          "label": "日历（只读）",
+          "labelOf": "日历：{host}",
+          "events": "读日历：{from} 到 {to}",
+          "addressLabel": "日历的私密订阅地址（iCal 格式）",
+          "addressPlaceholder": "https://…/basic.ics",
+          "addressWarn": "这个地址谁拿到都能看你的日历。要换的话，去日历那边重置私密地址。",
+          "grant": {
+            "reads": [
+              "你给的那份日历里的日程：开始、结束、标题、地点"
+            ],
+            "does": [],
+            "never": [
+              "不改你的日历，也改不了：要加日程时，店员写一个 .ics 文件，由你自己打开"
+            ],
+            "disconnect": "在这里点“断开”。订阅地址会从这台电脑上删掉。"
+          }
+        },
+        "maildraft": {
+          "label": "邮件草稿",
+          "draft": "写邮件草稿「{file}」",
+          "grant": {
+            "reads": [],
+            "does": [
+              {
+                "what": "在这一单的文件夹里写一封邮件草稿（.eml）",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "不发邮件，也发不了：草稿由你在邮件程序里自己看、自己发",
+              "不连你的邮箱账号"
+            ],
+            "disconnect": "在这里点“断开”。已经写好的草稿留在各自那一单的文件夹里。"
+          }
+        },
         "test": {
           "label": "测试连接",
           "readNote": "读测试连接里的便条",
@@ -928,6 +995,7 @@
       "chartPng": "图表.png",
       "posterPage": "海报.html",
       "posterPng": "海报.png",
+      "fromFolder": "网盘文件夹",
       "posterPdf": "海报.pdf",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",

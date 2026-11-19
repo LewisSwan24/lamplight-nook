@@ -30,16 +30,18 @@ export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes
 
 /**
  * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
- * or a poster drawn as a picture (before the page it was drawn from), any page,a Word, Excel or PowerPoint file or a PDF (never the kinds with macros), a write-up in Markdown, then a
- * table or a letter.
+ * or a poster drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
+ * PDF (never the kinds with macros), a write-up in Markdown, an email draft (C5, which opens in the mail program), then
+ * a table or a letter.
  */
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
   picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng,
-  page:(name: string) => /\.html?$/i.test(name),
+  page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
+  draft: (name: string) => /\.eml$/i.test(name),
   table: (name: string) => /\.(csv|txt)$/i.test(name),
 };
 
