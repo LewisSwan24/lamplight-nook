@@ -1,0 +1,69 @@
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { officeSafe } from '../app/main/office/safe';
+import { readZip } from '../app/main/office/unzip';
+import { zip } from '../app/main/zip';
+
+const FIXTURES = 'tests/fixtures/office';
+const dir = mkdtempSync(join(tmpdir(), 'office-safe-'));
+
+const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const rel = (type: string, target: string) => `<Relationship Id="rIdX${type}" Type="${REL}/${type}" Target="${target}" TargetMode="External"/>`;
+const rels = (...items: string[]) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${items.join('')}</Relationships>`;
+
+/** A copy of an Office-saved fixture with some entries changed or added, saved as `name`. */
+function changed(fixture: string, name: string, edit: (parts: Map<string, Buffer>) => void): string {
+  const parts = new Map([...readZip(readFileSync(join(FIXTURES, fixture)))].map(([n, read]) => [n, read()]));
+  edit(parts);
+  const file = join(dir, name);
+  writeFileSync(file, zip([...parts].map(([n, data]) => ({ name: n, data }))));
+  return file;
+}
+
+/** Adds a relationship to an existing .rels part. */
+const addRel = (parts: Map<string, Buffer>, part: string, item: string) =>
+  parts.set(part, Buffer.from(parts.get(part)!.toString().replace('</Relationships>', `${item}</Relationships>`)));
+
+describe('officeSafe', () => {
+  it('passes the files Office saved', () => {
+    for (const f of ['sample.docx', 'sample.xlsx', 'sample.pptx']) expect(officeSafe(join(FIXTURES, f)), f).toEqual({ ok: true });
+  });
+
+  it('stops a package carrying a macro project', () => {
+    const file = changed('sample.docx', 'vba.docx', (p) => p.set('word/vbaProject.bin', Buffer.from('macro')));
+    expect(officeSafe(file)).toEqual({ ok: false, reason: 'macros' });
+  });
+
+  it('stops a package whose main part is macro-enabled', () => {
+    const file = changed('sample.xlsx', 'macro-type.xlsx', (p) => p.set('[Content_Types].xml', Buffer.from(p.get('[Content_Types].xml')!.toString()
+      .replace('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml', 'application/vnd.ms-excel.sheet.macroEnabled.main+xml'))));
+    expect(readFileSync(file).length).toBeGreaterThan(0);
+    expect(officeSafe(file)).toEqual({ ok: false, reason: 'macros' });
+  });
+
+  it('stops a template fetched from outside', () => {
+    const file = changed('sample.docx', 'template.docx', (p) => p.set('word/_rels/settings.xml.rels', Buffer.from(rels(rel('attachedTemplate', 'https://example.com/t.dotm')))));
+    expect(officeSafe(file)).toEqual({ ok: false, reason: 'externalTemplate' });
+  });
+
+  it('stops an object or a workbook link that points outside', () => {
+    const ole = changed('sample.docx', 'ole.docx', (p) => addRel(p, 'word/_rels/document.xml.rels', rel('oleObject', 'file:///C:/x.xlsx')));
+    expect(officeSafe(ole)).toEqual({ ok: false, reason: 'externalLink' });
+    const link = changed('sample.xlsx', 'link.xlsx', (p) => p.set('xl/externalLinks/_rels/externalLink1.xml.rels', Buffer.from(rels(rel('externalLinkPath', 'file:///\\\\server\\share\\book.xlsx')))));
+    expect(officeSafe(link)).toEqual({ ok: false, reason: 'externalLink' });
+  });
+
+  it('lets a plain web link through', () => {
+    const file = changed('sample.pptx', 'link.pptx', (p) => addRel(p, 'ppt/slides/_rels/slide2.xml.rels', rel('hyperlink', 'https://example.com/')));
+    expect(officeSafe(file)).toEqual({ ok: true });
+  });
+
+  it('calls what it cannot open unreadable', () => {
+    writeFileSync(join(dir, 'garbage.docx'), Buffer.from('this is not a zip file at all'));
+    expect(officeSafe(join(dir, 'garbage.docx'))).toEqual({ ok: false, reason: 'unreadable' });
+    writeFileSync(join(dir, 'many.docx'), zip(Array.from({ length: 5_001 }, (_, i) => ({ name: `p${i}.xml`, data: '<a/>' }))));
+    expect(officeSafe(join(dir, 'many.docx'))).toEqual({ ok: false, reason: 'unreadable' });
+  });
+});
