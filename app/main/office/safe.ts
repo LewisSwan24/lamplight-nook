@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { formulaProblem } from './formula';
 import { readZip } from './unzip';
-import { children, parseXml } from './xml';
+import { children, findAll, ownText, parseXml } from './xml';
 
 export type OfficeVerdict = { ok: true } | { ok: false; reason: 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable' };
 
@@ -11,7 +11,8 @@ const EMBEDDED_REL = /\/(oleObject|package|control|activeXControlBinary)$/;
 /** Word fields that fetch a file or a picture when the document opens or updates, or start another program (DDE). */
 const REACHING_FIELD = /\b(DDE|DDEAUTO|INCLUDEPICTURE|INCLUDETEXT|INCLUDE|LINK|IMPORT)\b/i;
 
-const unescape = (s: string) => s.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+/** Where a workbook keeps formulas: cells, defined names, data validation and conditional formats, chart series. */
+const FORMULAS = ['f', 'definedName', 'formula', 'formula1', 'formula2'];
 
 /**
  * A look inside an Office package before the app opens it with a click (road-to-1.3.md C1). Opening runs whatever the
@@ -41,14 +42,13 @@ export function officeSafe(file: string): OfficeVerdict {
         link = true;
       }
     }
-    for (const name of names.filter((n) => /^word\/[^/]+\.xml$/i.test(n))) {
-      const xml = text(name);
-      const codes = [...xml.matchAll(/<w:instrText[^>]*>([^<]*)</g)].map((m) => m[1]).join('')
-        + [...xml.matchAll(/w:instr="([^"]*)"/g)].map((m) => ` ${m[1]} `).join('');
-      if (REACHING_FIELD.test(unescape(codes))) link = true;
-    }
-    for (const name of names.filter((n) => /^xl\/worksheets\/[^/]+\.xml$/i.test(n))) {
-      if ([...text(name).matchAll(/<f(?:\s[^>]*)?>([^<]*)<\/f>/g)].some((m) => formulaProblem(unescape(m[1]), true))) link = true;
+    // Every XML part, wherever it sits and whatever prefix it uses, through the same parser Office's own would agree with
+    // (character references, CDATA): a field in a header or a formula behind &#87; must not slip past a pattern.
+    for (const name of names.filter((n) => /\.xml$/i.test(n) && n !== '[Content_Types].xml')) {
+      const root = parseXml(text(name));
+      const codes = findAll(root, 'instrText').map(ownText).join('') + findAll(root, 'fldSimple').map((e) => ` ${e.attrs.instr ?? ''} `).join('');
+      if (REACHING_FIELD.test(codes)) link = true;
+      for (const el of FORMULAS.flatMap((f) => findAll(root, f))) if (formulaProblem(ownText(el), true)) link = true;
     }
     return link ? { ok: false, reason: 'externalLink' } : { ok: true };
   } catch {

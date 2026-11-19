@@ -88,6 +88,23 @@ describe('officeSafe', () => {
     expect(officeSafe(formula('sum.xlsx', 'SUM(B2:B3)'))).toEqual({ ok: true });
   });
 
+  it('reads the parts as Office does: character references, prefixes, defined names and every Word part', () => {
+    const sheet = (name: string, edit: (xml: string) => string) => changed('sample.xlsx', name, (p) =>
+      p.set('xl/worksheets/sheet1.xml', Buffer.from(edit(p.get('xl/worksheets/sheet1.xml')!.toString()))));
+    expect(officeSafe(sheet('charref.xlsx', (x) => x.replace(/<f>[^<]*<\/f>/, '<f>&#87;EBSERVICE("http://example.com/")</f>')))).toEqual({ ok: false, reason: 'externalLink' });
+    expect(officeSafe(sheet('prefix.xlsx', (x) => x.replace(/<f>[^<]*<\/f>/, '<x:f>WEBSERVICE("http://example.com/")</x:f>')))).toEqual({ ok: false, reason: 'externalLink' });
+    expect(officeSafe(sheet('cdata.xlsx', (x) => x.replace(/<f>[^<]*<\/f>/, '<f><![CDATA[WEBSERVICE("http://example.com/")]]></f>')))).toEqual({ ok: false, reason: 'externalLink' });
+    const named = changed('sample.xlsx', 'named.xlsx', (p) => p.set('xl/workbook.xml', Buffer.from(p.get('xl/workbook.xml')!.toString()
+      .replace('</workbook>', '<definedNames><definedName name="leak">WEBSERVICE("http://example.com/")</definedName></definedNames></workbook>'))));
+    expect(officeSafe(named)).toEqual({ ok: false, reason: 'externalLink' });
+    const charref = changed('sample.docx', 'charref.docx', (p) => p.set('word/document.xml', Buffer.from(p.get('word/document.xml')!.toString()
+      .replace('</w:body>', '<w:p><w:r><w:instrText> &#68;DEAUTO c:\\x.exe </w:instrText></w:r></w:p></w:body>'))));
+    expect(officeSafe(charref)).toEqual({ ok: false, reason: 'externalLink' });
+    const header = changed('sample.docx', 'header.docx', (p) => p.set('word/sub/header9.xml', Buffer.from(
+      '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:fldSimple w:instr=" INCLUDETEXT &quot;\\\\server\\a.docx&quot; "/></w:p></w:hdr>')));
+    expect(officeSafe(header)).toEqual({ ok: false, reason: 'externalLink' });
+  });
+
   it('calls a package with two parts of the same name unreadable', () => {
     const file = changed('sample.docx', 'twice.docx', (p) => p.set('WORD/document.xml', p.get('word/document.xml')!));
     expect(officeSafe(file)).toEqual({ ok: false, reason: 'unreadable' });
