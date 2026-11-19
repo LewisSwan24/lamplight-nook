@@ -50,7 +50,8 @@ describe('howToOpen', () => {
       'SUMMARY:读书会', 'DESCRIPTION:第一章，一段很长的说明', ' 折到了下一行', 'LOCATION:Room 2', 'RRULE:FREQ=WEEKLY;COUNT=4', 'EXDATE;TZID=Asia/Shanghai:20261127T090000', 'STATUS:CONFIRMED',
       'TRANSP:OPAQUE', 'SEQUENCE:0', 'CATEGORIES:Reading', 'URL:https://example.com/club', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     expect(howToOpen(file('full.ics', full))).toEqual({ open: true });
-    expect(howToOpen(file('qp.eml', 'To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nhi =E4=BD=A0\r\n'))).toEqual({ open: true });
+    expect(howToOpen(file('qp.eml', 'To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset="UTF-8"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nhi =E4=BD=A0 and a long line that goes on=\r\n and on\r\n'))).toEqual({ open: true });
+    expect(howToOpen(file('ascii.eml', 'To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset=us-ascii\r\n\r\nhi\r\n'))).toEqual({ open: true });
     // A mail with attachments, a page or no type of its own, and an event that brings a file or starts a program.
     const head = 'To: a@example.com\r\nSubject: x\r\nX-Unsent: 1\r\nMIME-Version: 1.0\r\n';
     for (const [name, text] of [
@@ -83,6 +84,14 @@ describe('howToOpen', () => {
       ['attendee.ics', ev('ATTENDEE:mailto:someone@example.com')],
       ['audio.ics', ev('BEGIN:VALARM', 'ACTION:AUDIO', 'TRIGGER:-PT15M', 'END:VALARM')],
       ['no-version.ics', ev().replace('VERSION:2.0\r\n', '')],
+      // Decoded another way by a looser program: another character set, two of them, a quoted-printable break with
+      // spaces before it, an equals sign with nothing after, and base64 that goes on past its padding.
+      ['utf7.eml', `${head}Content-Type: text/plain; charset=utf-7\r\n\r\n+AGI-egin 644 run.exe\r\n`],
+      ['loose-charset.eml', `${head}Content-Type: text/plain; charset="utf-7\r\n\r\nhi\r\n`],
+      ['two-charsets.eml', `${head}Content-Type: text/plain; charset=utf-8; charset="utf-7"\r\n\r\nhi\r\n`],
+      ['qp-space.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nbeg= \r\nin 644 run.exe\r\nM35J0\r\n`],
+      ['qp-bare.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nprice =ZZ\r\n`],
+      ['b64-padded.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: base64\r\n\r\naGk=\r\n${Buffer.from('begin 644 run.exe\r\nM35J0\r\nend\r\n').toString('base64')}\r\n`],
       ['todo.ics', ev().replace('BEGIN:VEVENT', 'BEGIN:VTODO').replace('END:VEVENT', 'END:VTODO')],
       ['no-body.eml', `${head}Content-Type: text/plain\r\nContent-Disposition: attachment; filename="a.cmd"`],
       ['two-encodings.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: 7bit\r\nContent-Transfer-Encoding: base64\r\n\r\n${Buffer.from('begin 644 run.exe\r\nM35J0\r\nend\r\n').toString('base64')}\r\n`],
