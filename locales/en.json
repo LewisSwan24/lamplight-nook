@@ -196,6 +196,12 @@
       "slides": "Make slides",
       "documentFill": "Write me a Word document about ...",
       "slidesFill": "Make me slides about ..., about ... slides.",
+      "chart": "Draw a chart",
+      "poster": "Make a poster",
+      "chartFill": "Draw a chart of ... from these numbers: ...",
+      "posterFill": "Make a poster for ..., on ... at ...",
+      "chartHint": "Write the numbers in the request, or hand over the table (Excel or CSV). Every number on the chart is copied from yours; you get a picture and the page it was drawn from.",
+      "posterHint": "Say what it is for: printing (A4), a social post (square) or a screen (wide). Hand over photos to put on it if you like. Missing dates or places are left blank for you.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
       "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
@@ -244,6 +250,7 @@
       "tooBig": "“{name}” is too big (20 MB each, 50 MB in all).",
       "tooMany": "Ten files at most; “{name}” will have to wait.",
       "missing": "“{name}” can't be found.",
+      "picture": "“{name}” is a kind of picture the shop can't open (HEIC or TIFF). Save it as JPG or PNG and hand that over.",
       "busy": "The shop is busy with this one. Hand it over when it's done.",
       "drop": "Let go to hand it to Wick"
     },
@@ -718,6 +725,7 @@
       "makeXlsx": "make the Excel workbook {file}",
       "makePptx": "make the slides {file}",
       "makePdf": "save the PDF {file}",
+      "renderPng": "draw the picture {file}",
       "editDocx": "change the Word document {file}",
       "editXlsx": "change the Excel workbook {file}",
       "editPptx": "change the slides {file}"
@@ -916,6 +924,11 @@
       "document": "document.docx",
       "slides": "slides.pptx",
       "resumePdf": "resume.pdf",
+      "chartPage": "chart.html",
+      "chartPng": "chart.png",
+      "posterPage": "poster.html",
+      "posterPng": "poster.png",
+      "posterPdf": "poster.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -1112,7 +1125,9 @@
         "travel": "Travel guides",
         "tool": "Tools",
         "document": "Documents",
-        "slides": "Slides"
+        "slides": "Slides",
+        "chart": "Charts",
+        "poster": "Posters"
       }
     },
     "mini": {

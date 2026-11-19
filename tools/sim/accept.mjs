@@ -7,7 +7,7 @@
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
 import { pathToFileURL } from 'node:url';
-import { closeSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
+import { closeSync, copyFileSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -39,6 +39,8 @@ const W = {
     tool: '帮我做一个把文本里的英文全改成大写的小工具。',
     document: '帮我写一份周末读书会的通知。',
     slides: '帮我做一份介绍春季新菜单的 PPT。',
+    chart: '帮我把这些数字画成图表：一月 120，二月 180，三月 90，四月 150。',
+    poster: '帮我做一张周末读书会的海报。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -59,6 +61,8 @@ const W = {
     tool: 'Make me a small tool that turns the text in a file into capitals.',
     document: 'Write me a notice about the weekend book club.',
     slides: 'Make me slides about the new spring menu.',
+    chart: 'Draw a chart of tea sales from these numbers: January 120, February 180, March 90, April 150.',
+    poster: 'Make a poster for the weekend book club.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -86,7 +90,36 @@ function samples(home) {
   const messy = join(dir, 'Downloads');
   mkdirSync(messy, { recursive: true });
   for (const f of ['setup (1).exe', 'setup.exe', 'IMG_2031.jpg', 'report-final-final.docx']) writeFileSync(join(messy, f), 'x');
-  return { photos, note, doc, messy };
+  return { dir, photos, note, doc, messy };
+}
+
+/** The shop's file names in one language. */
+const shopFiles = (lang) => JSON.parse(readFileSync(join(ROOT, 'locales', `${lang}.json`), 'utf8')).ui.files;
+
+/** A PNG's width and height from its header, or null when the file is missing or no PNG. */
+function pngSize(file) {
+  if (!existsSync(file)) return null;
+  const b = readFileSync(file);
+  return b.subarray(1, 4).toString() === 'PNG' ? [b.readUInt32BE(16), b.readUInt32BE(20)] : null;
+}
+
+/** A small 24-bit BMP with a colour ramp, the kind an old scanner saves. */
+function bmpOf(width, height) {
+  const row = Math.ceil((width * 3) / 4) * 4;
+  const b = Buffer.alloc(54 + row * height);
+  b.write('BM', 0);
+  b.writeUInt32LE(b.length, 2);
+  b.writeUInt32LE(54, 10);
+  b.writeUInt32LE(40, 14);
+  b.writeInt32LE(width, 18);
+  b.writeInt32LE(height, 22);
+  b.writeUInt16LE(1, 26);
+  b.writeUInt16LE(24, 28);
+  b.writeUInt32LE(row * height, 34);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) b.set([Math.round((255 * x) / width), 120, Math.round((255 * y) / height)], 54 + y * row + x * 3);
+  }
+  return b;
 }
 
 /** Every file under a folder, by path inside it with "/", sorted. */
@@ -2406,6 +2439,112 @@ const SCENARIOS = {
       await sleep(500);
       const external = await shop.app.evaluate(() => globalThis.external);
       check(JSON.stringify(external) === JSON.stringify(['https://example.org/never', 'https://example.org/a']), `clicking the sources opened ${JSON.stringify(external)}`);
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A chart from a table handed over (C2): the stand-in draws chart.html and saves chart.png through render_png. The
+   * card's thumbnail is that picture, and a click on it opens the PNG, not the page.
+   */
+  async chart(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const s = samples(home);
+    const csv = join(s.dir, 'sales.csv');
+    writeFileSync(csv, lang === 'zh-CN' ? '月份,杯数\n一月,120\n二月,180\n三月,90\n四月,150\n' : 'Month,Cups\nJanuary,120\nFebruary,180\nMarch,90\nApril,150\n');
+    const F = shopFiles(lang);
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await recordOpens(shop);
+      await shop.order({ template: 'chart', want: W[lang].chart, files: [csv] });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const dir = latestCommission(home);
+      check(existsSync(join(dir, F.chartPage)), `${F.chartPage} missing`);
+      check(JSON.stringify(pngSize(join(dir, F.chartPng))) === JSON.stringify([1200, 800]), `${F.chartPng} is ${JSON.stringify(pngSize(join(dir, F.chartPng)))}, not 1200x800`);
+      check(readFileSync(join(dir, F.chartPage), 'utf8').includes('>180<'), 'a number from the request is not on the chart');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      await sleep(400);
+      await shop.shot(join(out, 'chart-result.png'));
+      await shop.resize([640, 360]);
+      await sleep(400);
+      await shop.shot(join(out, 'chart-result-small.png'));
+      await shop.resize('medium');
+      await sleep(400);
+      await shop.page.locator('.result-card .result-thumb').click();
+      await sleep(500);
+      const o = await opened(shop);
+      check(o.opened.at(-1)?.endsWith(F.chartPng), `the thumbnail did not open the picture: ${JSON.stringify(o)}`);
+    } finally { await shop.close(); }
+  },
+
+  /** An A4 poster (C2): a PNG of 794x1123 and a PDF beside it, the PNG on the card. */
+  async poster(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const F = shopFiles(lang);
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await shop.order({ template: 'poster', want: W[lang].poster });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const dir = latestCommission(home);
+      check(existsSync(join(dir, F.posterPage)), `${F.posterPage} missing`);
+      check(JSON.stringify(pngSize(join(dir, F.posterPng))) === JSON.stringify([794, 1123]), `${F.posterPng} is ${JSON.stringify(pngSize(join(dir, F.posterPng)))}, not A4`);
+      check(readFileSync(join(dir, F.posterPdf)).subarray(0, 5).toString() === '%PDF-', 'the A4 poster has no PDF beside it');
+      // Drawn at its own size, not squeezed into the screen and stretched back: the sun is round, and the date and the
+      // place at the foot of the page are in the picture.
+      const look = await shop.app.evaluate(({ nativeImage }, file) => {
+        const img = nativeImage.createFromPath(file);
+        const { width, height } = img.getSize();
+        const px = img.toBitmap();
+        let [x0, y0, x1, y1, light] = [width, height, -1, -1, 0];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            const [b, g, r] = [px[i], px[i + 1], px[i + 2]];
+            if (Math.abs(r - 246) < 12 && Math.abs(g - 174) < 12 && Math.abs(b - 45) < 12) [x0, y0, x1, y1] = [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x), Math.max(y1, y)];
+            if (y > height * 0.8 && r > 230 && g > 230 && b > 210) light++;
+          }
+        }
+        return { sun: [x1 - x0 + 1, y1 - y0 + 1], light };
+      }, join(dir, F.posterPng));
+      check(Math.abs(look.sun[0] - look.sun[1]) <= 3, `the poster was stretched: its sun is ${look.sun.join('x')}`);
+      check(look.light > 200, `the foot of the poster is missing from the picture (${look.light} light pixels)`);
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      await sleep(400);
+      await shop.shot(join(out, 'poster-result.png'));
+      copyFileSync(join(dir, F.posterPng), join(out, 'poster-made.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * An album with a BMP among the photos (C2): it is taken, and a PNG copy the staff can look at lands beside it. A HEIC
+   * is refused on the slip, saying why.
+   */
+  async album(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const s = samples(home);
+    const bmp = join(s.dir, 'scan.bmp');
+    writeFileSync(bmp, bmpOf(40, 30));
+    const heic = join(s.dir, 'phone.heic');
+    writeFileSync(heic, 'not really a heic');
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await shop.order({ template: 'album', want: W[lang].album, files: [...s.photos, bmp, heic] });
+      const tags = await shop.page.locator('form.commission .material-tag').count();
+      check(tags === s.photos.length + 1, `expected ${s.photos.length + 1} handed-over files, saw ${tags}`);
+      const note = await shop.page.locator('form.commission .material-note').innerText();
+      check(note.includes('phone.heic') && note.includes('HEIC'), `the HEIC was not refused with a reason: ${note}`);
+      await shop.shot(join(out, 'album-slip.png'));
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const mat = join(latestCommission(home), shop.L.ui.files.materials);
+      check(existsSync(join(mat, 'scan.bmp')), 'the BMP was not handed over');
+      check(JSON.stringify(pngSize(join(mat, 'scan.png'))) === JSON.stringify([40, 30]), `the BMP has no 40x30 PNG copy: ${JSON.stringify(pngSize(join(mat, 'scan.png')))}`);
+      check(!existsSync(join(mat, 'phone.heic')), 'the HEIC was copied in');
+      await shop.shot(join(out, 'album-result.png'));
     } finally { await shop.close(); }
   },
 

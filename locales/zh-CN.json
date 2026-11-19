@@ -196,6 +196,12 @@
       "slides": "做份 PPT",
       "documentFill": "帮我写一份……的 Word 文档。",
       "slidesFill": "帮我做一份讲……的 PPT，大约……页。",
+      "chart": "画张图表",
+      "poster": "做张海报",
+      "chartFill": "帮我把这些数字画成图表：……",
+      "posterFill": "帮我做一张……的海报，时间……，地点……。",
+      "chartHint": "把数字写在要求里，或者递一份表格（Excel 或 CSV）。图上的每个数字都照抄你的。交回一张图片，还有画它用的网页。",
+      "posterHint": "说清楚用在哪儿：打印（A4）、发朋友圈（方图）还是投屏（宽图）。想放照片就递过来。缺的日期和地点会留空给你填。",
       "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
       "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
       "toolHint": "能在浏览器里做的，就做成一个网页。要动电脑上的文件才写脚本，脚本先只列出要做的事，加上 -Apply 才动手。",
@@ -244,6 +250,7 @@
       "tooBig": "「{name}」太大了（一次最多 20MB，合计 50MB）。",
       "tooMany": "一次最多递 10 个，「{name}」先放一放。",
       "missing": "「{name}」找不到了。",
+      "picture": "「{name}」这种图片店里打不开（HEIC 或 TIFF）。存成 JPG 或 PNG 再递过来吧。",
       "busy": "店里正忙着这一单，等做完再递新的吧。",
       "drop": "松手就递给阿灯"
     },
@@ -718,6 +725,7 @@
       "makeXlsx": "做一份 Excel 表格「{file}」",
       "makePptx": "做一份 PPT「{file}」",
       "makePdf": "存一份 PDF「{file}」",
+      "renderPng": "画出图片「{file}」",
       "editDocx": "改 Word 文档「{file}」",
       "editXlsx": "改 Excel 表格「{file}」",
       "editPptx": "改幻灯片「{file}」"
@@ -916,6 +924,11 @@
       "document": "文档.docx",
       "slides": "幻灯片.pptx",
       "resumePdf": "简历.pdf",
+      "chartPage": "图表.html",
+      "chartPng": "图表.png",
+      "posterPage": "海报.html",
+      "posterPng": "海报.png",
+      "posterPdf": "海报.pdf",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",
       "toolSamples": "样例",
@@ -1112,7 +1125,9 @@
         "travel": "攻略",
         "tool": "小工具",
         "document": "文档",
-        "slides": "幻灯片"
+        "slides": "幻灯片",
+        "chart": "图表",
+        "poster": "海报"
       }
     },
     "mini": {

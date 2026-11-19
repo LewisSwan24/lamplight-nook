@@ -19,11 +19,16 @@ function round(run = 'r1760000000000') {
   copyFileSync(join(FIXTURES, 'sample.docx'), join(workDir, 'materials', 'sample.docx'));
   writeFileSync(join(workDir, 'mine.docx'), 'theirs');
   const printed: [string, string][] = [];
-  const server = officeServer({ previews, toPdf: async (folder, file) => { printed.push([folder, file]); return Buffer.from('%PDF-1.7 test'); } });
+  const drawn: [string, string, { width: number; height: number }][] = [];
+  const server = officeServer({
+    previews,
+    toPdf: async (folder, file) => { printed.push([folder, file]); return Buffer.from('%PDF-1.7 test'); },
+    toPng: async (folder, file, size) => { drawn.push([folder, file, size]); return Buffer.from('PNG test'); },
+  });
   const ctx: ToolCtx = { run, workDir, signal: new AbortController().signal, preexisting: new Set([join(workDir, 'mine.docx'), join(workDir, 'materials', 'sample.docx')]) };
   const call = (tool: string, input: unknown) => server.tools.find((t) => t.name === tool)!.run(input, ctx);
   const said = async (tool: string, input: unknown) => ((await call(tool, input)).content[0] as { text: string }).text;
-  return { root, workDir, previews, printed, server, ctx, call, said };
+  return { root, workDir, previews, printed, drawn, server, ctx, call, said };
 }
 
 const doc = { title: 'Notice', blocks: [{ h: 1 as const, text: 'Opening hours' }, { p: 'We open at **nine**.' }] };
@@ -31,11 +36,11 @@ const sheet = { sheets: [{ name: 'Costs', columns: [{ header: 'Item' }, { header
 const deck = { title: 'Spring', slides: [{ layout: 'title' as const, title: 'Spring menu' }, { layout: 'bullets' as const, title: 'New', bullets: ['Lemon tart'] }] };
 
 describe('the shop\'s office server (road-to-1.3.md C1)', () => {
-  it('is nook-office with eight tools: read_document reads, the make_ and edit_ tools make', () => {
+  it('is nook-office with nine tools: read_document reads, the make_, render_ and edit_ tools make', () => {
     const { server } = round();
     expect(server.name).toBe('office');
     expect(server.connection).toBeUndefined();
-    expect(Object.fromEntries(server.tools.map((t) => [t.name, t.kind]))).toEqual({ read_document: 'read', make_docx: 'make', make_xlsx: 'make', make_pptx: 'make', make_pdf: 'make', edit_docx: 'make', edit_xlsx: 'make', edit_pptx: 'make' });
+    expect(Object.fromEntries(server.tools.map((t) => [t.name, t.kind]))).toEqual({ read_document: 'read', make_docx: 'make', make_xlsx: 'make', make_pptx: 'make', make_pdf: 'make', render_png: 'make', edit_docx: 'make', edit_xlsx: 'make', edit_pptx: 'make' });
     expect([...toolsByName([server]).keys()]).toContain(nookName('office', 'make_docx'));
   });
 
@@ -92,10 +97,27 @@ describe('the shop\'s office server (road-to-1.3.md C1)', () => {
     expect(printed.length).toBe(1);
   });
 
+  it('render_png draws a page in the folder as a PNG of the size asked, from that folder (C2)', async () => {
+    const { said, call, workDir, drawn, root } = round();
+    writeFileSync(join(workDir, 'chart.html'), '<svg></svg>');
+    expect(await said('render_png', { page: 'chart.html', file: 'chart.png', width: 1200, height: 800 })).toMatch(/chart\.png.*1200.*800/);
+    expect(drawn).toEqual([[workDir, join(workDir, 'chart.html'), { width: 1200, height: 800 }]]);
+    expect(readFileSync(join(workDir, 'chart.png'), 'utf8')).toBe('PNG test');
+    writeFileSync(join(root, 'away.html'), 'x');
+    await expect(call('render_png', { page: join(root, 'away.html'), file: 'away.png', width: 100, height: 100 })).rejects.toThrow(/outside the commission folder/);
+    await expect(call('render_png', { page: 'chart.html', file: join(root, 'chart.png'), width: 100, height: 100 })).rejects.toThrow(/outside the commission folder/);
+    await expect(call('render_png', { page: 'mine.docx', file: 'mine.png', width: 100, height: 100 })).rejects.toThrow(/not a web page/);
+    await expect(call('render_png', { page: 'chart.html', file: 'chart.jpg', width: 100, height: 100 })).rejects.toThrow(/must end in \.png/);
+    for (const [width, height] of [[4097, 100], [100, 15], [100.5, 100]]) {
+      await expect(call('render_png', { page: 'chart.html', file: 'big.png', width, height })).rejects.toThrow(/16 to 4096/);
+    }
+    expect(drawn.length).toBe(1);
+  });
+
   it('labels every call in a plain sentence naming the file, in both languages', () => {
     const { server } = round();
     for (const S of Object.values(LOCALES)) {
-      for (const k of ['readDocument', 'makeDocx', 'makeXlsx', 'makePptx', 'makePdf']) expect((S.ui.office as Record<string, string>)[k], k).toContain('{file}');
+      for (const k of ['readDocument', 'makeDocx', 'makeXlsx', 'makePptx', 'makePdf', 'renderPng']) expect((S.ui.office as Record<string, string>)[k], k).toContain('{file}');
     }
     for (const t of server.tools) expect(t.label({ file: 'notice.docx', page: 'cv.html' }), t.name).toContain('notice.docx');
   });

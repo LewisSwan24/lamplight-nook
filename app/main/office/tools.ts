@@ -23,7 +23,21 @@ export type OfficeDeps = {
   previews: string;
   /** A page in the commission folder as a PDF (print.ts pageToPdf), handed in so the tools need no window to be tested. */
   toPdf: (folder: string, file: string) => Promise<Buffer>;
+  /** A page in the commission folder drawn as a PNG of that size (print.ts pageToPng), likewise (road-to-1.3.md C2). */
+  toPng: (folder: string, file: string, size: { width: number; height: number }) => Promise<Buffer>;
 };
+
+/** The sides render_png draws, in CSS pixels. */
+export const MIN_SIDE = 16;
+export const MAX_SIDE = 4096;
+const side = z.number().int().min(MIN_SIDE).max(MAX_SIDE);
+
+/** The page a make_pdf or render_png call names: inside the commission folder, and a web page. */
+function pageOf(workDir: string, page: string): string {
+  const source = inside(workDir, page, 'use a page');
+  if (!/^\.html?$/i.test(extname(source))) throw new Error(`${page} is not a web page (.html).`);
+  return source;
+}
 
 const said = (text: string): NookResult => ({ content: [{ type: 'text', text }] });
 const fileOf = (input: unknown) => String((input as { file?: unknown }).file ?? '');
@@ -202,15 +216,30 @@ export function officeServer(d: OfficeDeps): NookServer {
         label: (input) => fill(O().makePdf, { file: fileOf(input) }),
         schema: { page: z.string().min(1).max(500), file: z.string().min(1).max(500) },
         run: async (input, ctx) => {
-          const { page } = input as { page: string };
-          const source = inside(ctx.workDir, page, 'use a page');
-          if (!/^\.html?$/i.test(extname(source))) throw new Error(`${page} is not a web page (.html).`);
+          const source = pageOf(ctx.workDir, (input as { page: string }).page);
           const full = outputPath(ctx.workDir, fileOf(input), '.pdf', ctx.preexisting);
           const pdf = await d.toPdf(ctx.workDir, source);
           mkdirSync(dirname(full), { recursive: true });
           writeFileSync(full, pdf);
           keepPreview(d, ctx.run, full, '.page', source);
           return said(`Saved ${relative(ctx.workDir, source)} as ${relative(ctx.workDir, full)} (${pdf.length} bytes).`);
+        },
+      },
+      {
+        name: 'render_png',
+        kind: 'make',
+        description: `Draw a web page in the commission folder as a PNG picture (road-to-1.3.md C2), for a chart, a poster or anything else made as a page. \`page\` is the page (.html) and \`file\` the new PNG, both relative to the commission folder. \`width\` and \`height\` are the picture's size in CSS pixels, ${MIN_SIDE} to ${MAX_SIDE}: the page is opened in a window that size and what shows in it is the picture, so lay the page out to fill exactly that. The page may use only files in the commission folder; nothing from the web loads, web fonts included. Look at the PNG with Read afterwards.`,
+        label: (input) => fill(O().renderPng, { file: fileOf(input) }),
+        schema: { page: z.string().min(1).max(500), file: z.string().min(1).max(500), width: side, height: side },
+        run: async (input, ctx) => {
+          const { page, width, height } = input as { page: string; width: number; height: number };
+          if (!side.safeParse(width).success || !side.safeParse(height).success) throw new Error(`width and height are whole numbers from ${MIN_SIDE} to ${MAX_SIDE}.`);
+          const source = pageOf(ctx.workDir, page);
+          const full = outputPath(ctx.workDir, fileOf(input), '.png', ctx.preexisting);
+          const png = await d.toPng(ctx.workDir, source, { width, height });
+          mkdirSync(dirname(full), { recursive: true });
+          writeFileSync(full, png);
+          return said(`Drew ${relative(ctx.workDir, source)} as ${relative(ctx.workDir, full)}, ${width} by ${height} pixels (${png.length} bytes).`);
         },
       },
       editor(d, 'docx', () => O().editDocx,

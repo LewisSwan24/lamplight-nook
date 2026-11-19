@@ -4,6 +4,7 @@ import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type Citations, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
+import { isPicture } from '../../shared/pictures';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
@@ -134,8 +135,6 @@ const STICKERS: Sticker[] = [
 ];
 /** What a template says about the file, folder or photos it needs (`ui.templates.<id>Hint`). */
 const hintOf = (id: string) => (T as Record<string, string>)[`${id}Hint`];
-/** Pictures an album can show. */
-const PHOTO = /\.(jpe?g|png|gif|webp|bmp|avif)$/i;
 /** The blank in a template sentence (a Chinese or an English ellipsis), selected so typing replaces it. */
 const BLANK = /\u2026\u2026|\.\.\./;
 
@@ -450,7 +449,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         pickButton.focus();
         return;
       }
-      if (chosen?.spec?.photos && !materials.some((m) => PHOTO.test(m.name))) {
+      if (chosen?.spec?.photos && !materials.some((m) => isPicture(m.name))) {
         materialHint.textContent = T.needPhotos;
         materialHint.classList.add('warn');
         return;
@@ -515,7 +514,8 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   };
   const openMain = result.main ? el('button.default', { onclick: () => void openIt() }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null;
   // The main file's picture (C1) comes a moment after the card; clicking it opens the file, as the button does.
-  const thumb = result.main ? el('button.result-thumb', {
+  // A picture (a chart, a poster, C2) is shown whole; a page shows its first screen.
+  const thumb = result.main ? el(isPicture(result.main) ? 'button.result-thumb.whole' : 'button.result-thumb', {
     type: 'button', hidden: !result.preview, 'aria-label': fill(U.resultPreview, { file: result.main.split(/[\\/]/).pop()! }), onclick: () => void openIt(),
   }, el('img', { alt: '', src: result.preview })) : null;
   const { id } = result;

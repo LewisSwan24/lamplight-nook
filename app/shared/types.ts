@@ -354,7 +354,7 @@ export type ConsultReply = { id: string; reply: string } | { id: string; brief: 
 /** A file handed over with a commission. */
 export type Material = { path: string; name: string; size: number };
 /** What could be handed over, and what not and why. */
-export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' }[] };
+export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' | 'picture' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
 export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' | 'macros' };

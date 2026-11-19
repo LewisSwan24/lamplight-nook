@@ -19,6 +19,12 @@ const T = {
     plan: ['弄清目标和时间', '按周排好每一步', '留出补课的余地', '列准备清单', '请老石检查'],
     album: ['看你递来的照片', '请青黛定版式', '排顺序、写图说', '做成相册网页', '请老石检查'],
     resume: ['弄清投什么样的工作', '排好一页的版式', '写经历，缺的留空', '请老石检查'],
+    chart: ['弄清要画哪些数字', '挑合适的图', '画好，存成图片', '请老石检查'],
+    poster: ['弄清用在哪儿、多大', '排好版式', '画好，存成图片', '请老石检查'],
+    chartDone: '图表画好了：一张图片，数字都照抄你给的，柱子从零画起，底下写了数据从哪来。画它用的网页也在旁边。',
+    posterDone: '海报做好了：按用处定的尺寸存成图片，A4 的另外存了一份 PDF 方便打印。没给的时间地点留在方括号里。',
+    chartWords: { sample: [['一月', 12], ['二月', 18], ['三月', 9]], source: '数据：你在要求里给的数字', unit: '数量' },
+    posterWords: { when: '[日期和时间]', where: '[地点]', more: '欢迎带朋友来' },
     notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
     travel: ['弄清去哪、几天', '请小橘查开放时间和票价', '按天排行程和预算', '请老石检查'],
     tool: ['弄清要做什么', '做成一个网页工具', '用样例试一试', '请老石检查'],
@@ -94,6 +100,12 @@ const T = {
     plan: ['Pin down the goal and the time', 'Lay out each week', 'Leave room for missed days', 'List what to prepare', 'Ask Flint to check it'],
     album: ['Look at the photos you gave', 'Ask Iris for the layout', 'Order them and write captions', 'Make the album page', 'Ask Flint to check it'],
     resume: ['Work out the kind of job', 'Lay out one page', 'Write it up, blanks for gaps', 'Ask Flint to check it'],
+    chart: ['Work out which numbers', 'Pick the kind of chart', 'Draw it and save the picture', 'Ask Flint to check it'],
+    poster: ['Work out where it goes and how big', 'Lay it out', 'Draw it and save the picture', 'Ask Flint to check it'],
+    chartDone: 'The chart is drawn: a picture with every number copied from yours, bars from zero, and where the data came from at the bottom. The page it was drawn from is next to it.',
+    posterDone: 'The poster is ready: a picture at the size its use calls for, and for A4 a PDF too, to print. What you did not give, the time and the place, is left in square brackets.',
+    chartWords: { sample: [['January', 12], ['February', 18], ['March', 9]], source: 'Data: the numbers in your request', unit: 'Count' },
+    posterWords: { when: '[date and time]', where: '[place]', more: 'Bring a friend' },
     notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
     travel: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out the days and the budget', 'Ask Flint to check it'],
     tool: ['Work out what it should do', 'Make it a page in the browser', 'Try it on samples', 'Ask Flint to check it'],
@@ -197,6 +209,47 @@ const office = (s, tool, args) => s.mcp('nook-office', tool, args);
 
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+/** The chart template's default size, and the poster's three (templates.ts). */
+const CHART = { width: 1200, height: 800 };
+const A4 = { width: 794, height: 1123 };
+const posterSize = (w) => (/方|朋友圈|square|social/i.test(w) ? { width: 1080, height: 1080 } : /宽|投屏|wide|screen/i.test(w) ? { width: 1920, height: 1080 } : A4);
+
+/** "一月 120，二月 180" or "Monday: 120, Tuesday: 180" as [label, number] pairs, the numbers as written. */
+const pairsIn = (w) => [...w.matchAll(/(\p{L}[\p{L} ]*?)\s*[:：]?\s*(\d+(?:\.\d+)?)/gu)].map((m) => [m[1].trim(), Number(m[2])]);
+
+/** A bar chart as one inline SVG filling CHART: bars from zero, each value written on it, units and source shown. */
+function chartPage(t, w) {
+  const W = t.chartWords;
+  const data = pairsIn(w).length >= 2 ? pairsIn(w) : W.sample;
+  const { width, height } = CHART;
+  const left = 110, right = 40, top = 120, bottom = 140;
+  const max = Math.max(...data.map(([, v]) => v));
+  const step = (width - left - right) / data.length;
+  const y = (v) => top + (height - top - bottom) * (1 - v / max);
+  const bars = data.map(([label, v], i) => {
+    const x = left + i * step + step * 0.2;
+    return `<rect x="${x}" y="${y(v)}" width="${step * 0.6}" height="${y(0) - y(v)}" fill="#c8743c"/>`
+      + `<text x="${x + step * 0.3}" y="${y(v) - 12}" text-anchor="middle" font-size="26">${v}</text>`
+      + `<text x="${x + step * 0.3}" y="${y(0) + 40}" text-anchor="middle" font-size="24">${esc(label)}</text>`;
+  }).join('');
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fffaf0}svg{display:block;font-family:system-ui,sans-serif;fill:#333}</style></head>\n<body><svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+    + `<text x="${width / 2}" y="70" text-anchor="middle" font-size="40" font-weight="bold">${esc(w || t.chart[0])}</text>`
+    + `<line x1="${left}" y1="${top}" x2="${left}" y2="${y(0)}" stroke="#555" stroke-width="2"/><line x1="${left}" y1="${y(0)}" x2="${width - right}" y2="${y(0)}" stroke="#555" stroke-width="2"/>`
+    + `<text x="${left - 14}" y="${y(0) + 8}" text-anchor="end" font-size="22">0</text><text x="${left - 14}" y="${y(max) + 8}" text-anchor="end" font-size="22">${max}</text>`
+    + `<text x="40" y="${(top + y(0)) / 2}" font-size="22" transform="rotate(-90 40 ${(top + y(0)) / 2})" text-anchor="middle">${esc(W.unit)}</text>`
+    + bars
+    + `<text x="${left}" y="${height - 30}" font-size="20" fill="#777">${esc(W.source)}</text></svg></body></html>\n`;
+}
+
+/** A poster page exactly the size its use calls for: the message biggest, then when and where, blanks for what is missing. */
+function posterPage(t, w) {
+  const W = t.posterWords;
+  const { width, height } = posterSize(w);
+  const big = Math.round(Math.min(width, height) / 9);
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:0}html,body{margin:0}body{width:${width}px;height:${height}px;box-sizing:border-box;padding:${big}px;background:#2f4858;color:#fff8e7;font-family:system-ui,sans-serif;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}h1{font-size:${big}px;line-height:1.15;margin:0}p{font-size:${Math.round(big / 2.4)}px;margin:.4em 0}.sun{width:${big * 2}px;height:${big * 2}px;border-radius:50%;background:#f6ae2d;align-self:flex-end}</style></head>\n`
+    + `<body><div class="sun"></div><h1>${esc(w || t.poster[0])}</h1><div><p>${esc(W.when)}</p><p>${esc(W.where)}</p><p>${esc(W.more)}</p></div></body></html>\n`;
+}
+
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
 export function pickPlay(prompt, state, system = '') {
   state.vars ??= {};
@@ -249,6 +302,17 @@ export function pickPlay(prompt, state, system = '') {
     state.vars.listing = (prompt.match(/^"([^"]+)" lists what is in/m) ?? [])[1];
     state.vars.out = quoted(prompt, 'plan for tidying it up as');
     return plays.tidy;
+  }
+  if (/This is a chart, drawn as a picture/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Draw it as a single self-contained page');
+    state.vars.png = quoted(prompt, 'Then save it as');
+    return plays.chart;
+  }
+  if (/This is a poster, drawn as a picture/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Lay it out as a single self-contained page');
+    state.vars.png = quoted(prompt, 'Then save it as');
+    state.vars.pdf = quoted(prompt, 'also save it as');
+    return plays.poster;
   }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
@@ -677,7 +741,21 @@ export const plays = {
   slides: simpleText('slides', null, (t) => t.slidesDone, { make: (s, o, w) => office(s, 'make_pptx', { file: s.state.vars.out, ...o.deck(w) }) }),
   plan: simpleText('plan', (t, w) => t.planBody(w), (t) => t.planDone),
   resume: simpleText('resume', (t, w) => t.resumeBody(w), (t) => t.resumeDone, { after: (s) => office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf }) }),
-  notes: simpleText('notes', (t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
+  chart: simpleText('chart', (t, w) => chartPage(t, w), (t) => t.chartDone, {
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: CHART.width, height: CHART.height });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  poster: simpleText('poster', (t, w) => posterPage(t, w), (t) => t.posterDone, {
+    after: async (s) => {
+      const size = posterSize(s.state.vars.want || '');
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, ...size });
+      if (size.height === A4.height) await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
 
