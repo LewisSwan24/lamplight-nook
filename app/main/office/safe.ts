@@ -7,7 +7,19 @@ export type OfficeVerdict = { ok: true } | { ok: false; reason: 'macros' | 'embe
 
 /** Embedded objects and controls: each is a program of its own that Office may start, whether it is kept inside or not. */
 const EMBEDDED_PART = /(^|\/)(embeddings|activeX)\/|oleObject\d*\.bin$/i;
-const EMBEDDED_REL = /\/(oleObject|package|control|activeXControlBinary)$/;
+const EMBEDDED_REL = /\/(oleObject|package|control|activeXControlBinary|aFChunk)$/;
+/** Formats Word imports whole (altChunk), with field codes of their own this check does not read. */
+const IMPORTED_TYPE = /(text\/html|application\/xhtml\+xml|application\/rtf|text\/rtf|message\/rfc822|multipart\/related)/i;
+/** The binary parts Office keeps: pictures and sounds, printer settings, embedded fonts, the thumbnail. */
+const BINARY_PART = /(^|\/)media\/|(^|\/)printerSettings\d*\.bin$|(^|\/)fonts\/[^/]+\.(odttf|fntdata)$|^docProps\/thumbnail\.\w+$/i;
+
+/** Whether the bytes are a picture, wherever the part sits: PNG, JPEG, GIF, BMP, TIFF, EMF or WMF. */
+function isPicture(b: Buffer): boolean {
+  const starts = (...bytes: number[]) => bytes.every((v, i) => b[i] === v);
+  return starts(0x89, 0x50, 0x4e, 0x47) || starts(0xff, 0xd8, 0xff) || starts(0x47, 0x49, 0x46, 0x38) || starts(0x42, 0x4d)
+    || starts(0x49, 0x49, 0x2a, 0x00) || starts(0x4d, 0x4d, 0x00, 0x2a) || starts(0xd7, 0xcd, 0xc6, 0x9a)
+    || (starts(0x01, 0x00, 0x00, 0x00) && b.toString('latin1', 40, 44) === ' EMF') || starts(0x01, 0x00, 0x09, 0x00) || starts(0x02, 0x00, 0x09, 0x00);
+}
 /** Word fields that fetch a file or a picture when the document opens or updates, or start another program (DDE). */
 const REACHING_FIELD = /\b(DDE|DDEAUTO|INCLUDEPICTURE|INCLUDETEXT|INCLUDE|LINK|IMPORT)\b/i;
 
@@ -108,10 +120,18 @@ export function officeSafe(file: string): OfficeVerdict {
     let macros = false;
     let embedded = false;
     let template = false;
+    // A part that is neither XML nor a binary part Office keeps: decided after embedded content, which names it better.
+    let stray = false;
     let link = names.some((n) => /^xl\/externalLinks\//i.test(n));
     for (const name of names) {
-      const text = partText(zip.get(name)!());
-      if (!/^\s*</.test(text)) continue; // a picture or another binary part
+      const bytes = zip.get(name)!();
+      const text = partText(bytes);
+      // Not XML: only the binary parts Office keeps, or a picture. Anything else may be read by Office in a way this is not.
+      if (!/^\s*</.test(text)) {
+        if (!(bytes.length === 0 || BINARY_PART.test(name) || isPicture(bytes))) stray = true;
+        continue;
+      }
+      if (name === '[Content_Types].xml' && IMPORTED_TYPE.test(text)) embedded = true;
       if (/<!(DOCTYPE|ENTITY)/i.test(text)) throw new Unreadable();
       if (name === '[Content_Types].xml' && /macroEnabled/i.test(text)) macros = true;
       if (name.toLowerCase().endsWith('.rels')) {
@@ -131,6 +151,7 @@ export function officeSafe(file: string): OfficeVerdict {
     }
     if (macros) return { ok: false, reason: 'macros' };
     if (embedded) return { ok: false, reason: 'embedded' };
+    if (stray) return { ok: false, reason: 'unreadable' };
     if (template) return { ok: false, reason: 'externalTemplate' };
     return link ? { ok: false, reason: 'externalLink' } : { ok: true };
   } catch {

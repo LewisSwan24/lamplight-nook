@@ -145,6 +145,19 @@ describe('officeSafe', () => {
     expect(officeSafe(header('utf8-declared.docx', Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${field}`))), 'utf-8 declared').toEqual({ ok: true });
   });
 
+  it('lets through only the binary parts Office keeps, and stops imported chunks of other formats', () => {
+    const chunk = changed('sample.docx', 'chunk.docx', (p) => { p.set('word/chunk.rtf', Buffer.from('{\rtf1 {\field{\*\fldinst INCLUDETEXT x}}}'));
+      addRel(p, 'word/_rels/document.xml.rels', `<Relationship Id="rIdZ" Type="${REL}/aFChunk" Target="chunk.rtf"/>`); });
+    expect(officeSafe(chunk), 'altChunk').toEqual({ ok: false, reason: 'embedded' });
+    const typed = changed('sample.docx', 'rtf-type.docx', (p) => p.set('[Content_Types].xml', Buffer.from(p.get('[Content_Types].xml')!.toString()
+      .replace('</Types>', '<Default Extension="rtf" ContentType="application/rtf"/></Types>'))));
+    expect(officeSafe(typed), 'rtf content type').toEqual({ ok: false, reason: 'embedded' });
+    const stray = changed('sample.docx', 'stray.docx', (p) => p.set('word/notes.txt', Buffer.from('DDEAUTO c:\\x.exe')));
+    expect(officeSafe(stray), 'unknown text part').toEqual({ ok: false, reason: 'unreadable' });
+    const png = changed('sample.docx', 'png.docx', (p) => p.set('word/pictures/a.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0])));
+    expect(officeSafe(png), 'a picture anywhere').toEqual({ ok: true });
+  });
+
   it('calls a package with two parts of the same name unreadable', () => {
     const file = changed('sample.docx', 'twice.docx', (p) => p.set('WORD/document.xml', p.get('word/document.xml')!));
     expect(officeSafe(file)).toEqual({ ok: false, reason: 'unreadable' });
