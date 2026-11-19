@@ -88,6 +88,15 @@ describe('commission templates', () => {
     expect(p).toMatch(/do not make a web page/);
   });
 
+  it('research numbers each point by its sources and writes them down as sources.json, never made up (C7)', () => {
+    const p = commissionPrompt({ want: 'w', template: 'research' });
+    expect(p).toContain(`"${F.sources}"`);
+    expect(p).toMatch(/each point followed by the numbers of its sources in brackets, such as \[1\]\[3\]/);
+    expect(p).toContain('"unsourced"');
+    expect(p).toContain(`marked "${F.noSource}"`);
+    expect(p).toMatch(/Never make up a link/);
+  });
+
   it('an edit names the copy and the revised file, and forbids changing the copy', () => {
     const p = commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/notes.md' });
     expect(p).toContain(`Do not change "${F.originalPrefix}notes.md"`);

@@ -109,8 +109,11 @@ export const TEMPLATES = [
     id: 'research', icon: 1, revise: false, main: 'writeup', growth: { id: 'books', at: 2 }, guest: 'student',
     steps: ({ language, files }) => [
       'This is a research commission: do not make a web page.',
-      `Send the researcher subagent to look it up, then write the findings as "${files.summary}" in ${language}:`,
-      'a three-sentence summary first, then the key points as a list, then the sources with their links.',
+      `Send the researcher subagent to look it up, then write the findings in ${language} as two files.`,
+      `"${files.summary}": a three-sentence summary first, then the key points as a list, each point followed by the numbers of its sources in brackets, such as [1][3], then the sources, numbered, with their links.`,
+      `"${files.sources}": JSON, {"sources": [{"n": 1, "title": "the page's title", "url": "https://...", "checked": "YYYY-MM-DD, the day you looked", "quote": "a short line from the page (optional)"}], "unsourced": ["each conclusion you found no source for, word for word"]}.`,
+      `Every key point needs at least one number. A conclusion you found no source for goes into "unsourced", and in the summary it is marked "${files.noSource}" instead of a number.`,
+      'Never make up a link or a source: use only pages the search found or you opened this time.',
       'Say plainly where sources disagree or where you are unsure.',
     ],
   },

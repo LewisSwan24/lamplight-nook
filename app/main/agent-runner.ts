@@ -23,6 +23,7 @@ import { agentEnv, type Credentials } from './api-key';
 import { estimateUsd, type Usage } from './prices';
 import type { RoundActions } from './action-log';
 import { mcpServersOf, toolsByName, type NookServer } from './nook-tools';
+import { urlsSeen } from './citations';
 
 /** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -179,7 +180,10 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
 
   // agent_id -> subagent type, so permission requests from a subagent can be attributed.
   const agents = new Map<string, AiEvent['agent']>();
+  // Web addresses searched or fetched, the helpers' included, whole: the recording keeps only the start of long text (C7).
+  const seen = new Set<string>();
   const hookRecorder: HookCallback = async (input) => {
+    for (const url of urlsSeen(input)) seen.add(url);
     record({ source: 'hook', name: input.hook_event_name, payload: input });
     if (input.hook_event_name === 'SubagentStart') {
       const type = ['researcher', 'designer', 'reviewer'].includes(input.agent_type) ? (input.agent_type as AiEvent['agent']) : 'unknown';
@@ -276,7 +280,8 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         if (message.subtype === 'success' && typeof message.result === 'string' && message.result.trim()) summary = message.result.trim();
       }
     }
-    return ok ? { ok, recordingPath, workDir, costUsd, summary, contextTokens } : { ok, recordingPath, workDir, costUsd, contextTokens, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
+    const seenUrls = [...seen];
+    return ok ? { ok, recordingPath, workDir, costUsd, summary, contextTokens, seenUrls } : { ok, recordingPath, workDir, costUsd, contextTokens, seenUrls, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {

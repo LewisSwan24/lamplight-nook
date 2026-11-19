@@ -2367,6 +2367,48 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * A research write-up's sources on its card (road-to-1.3.md C7): the stand-in writes one point without a number, cites
+   * one page this round never searched or fetched, and names one conclusion it found no source for. The card marks all
+   * three, and a click on a source opens its address in the browser (written down here, not opened).
+   */
+  async cite(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CITE: 'flawed' } });
+    try {
+      await shop.app.evaluate(({ shell }) => {
+        globalThis.external = [];
+        shell.openExternal = async (url) => { globalThis.external.push(url); };
+      });
+      await shop.order({ template: 'research', want: W[lang].research });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const C = shop.L.ui.citations;
+      const card = shop.page.locator('.result-card');
+      await card.locator('.result-sources').waitFor({ timeout: 5000 });
+      const states = await card.locator('.result-source-list li').evaluateAll((lis) => lis.map((li) => [li.dataset.n, li.querySelector('.result-source-state').textContent]));
+      check(JSON.stringify(states) === JSON.stringify([['1', C.opened], ['2', C.opened], ['3', C.notOpened]]), `the sources are not marked as this round saw them: ${JSON.stringify(states)}`);
+      const unnumbered = await card.locator('.result-unnumbered').innerText();
+      check(unnumbered.trim() === C.unnumbered.replace('{n}', '1'), `the point without a number is not said: ${unnumbered}`);
+      const unsourced = await card.locator('.result-unsourced li').allInnerTexts();
+      check(unsourced.length === 1 && unsourced[0].trim() === (lang === 'zh-CN' ? '阳台上能种一整年' : 'Tomatoes grow all year on a balcony'), `the conclusion without a source is not listed: ${JSON.stringify(unsourced)}`);
+      check((await card.locator('.result-missing').count()) === 0, 'a number was said to be missing');
+      await sleep(400);
+      await shop.shot(join(out, 'cite-result.png'));
+      await shop.resize([640, 360]);
+      await sleep(400);
+      await shop.shot(join(out, 'cite-result-small.png'));
+      await shop.resize('medium');
+      await sleep(400);
+      await card.locator('.result-source-list li[data-n="3"] .result-source').click();
+      await card.locator('.result-source-list li[data-n="1"] .result-source').click();
+      await sleep(500);
+      const external = await shop.app.evaluate(() => globalThis.external);
+      check(JSON.stringify(external) === JSON.stringify(['https://example.org/never', 'https://example.org/a']), `clicking the sources opened ${JSON.stringify(external)}`);
+    } finally { await shop.close(); }
+  },
+
   async materials(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);

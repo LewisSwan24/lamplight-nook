@@ -52,6 +52,7 @@ const api: LamplightApi = {
   dropPending: (run) => ipcRenderer.invoke(IPC.dropPending, run),
   answerDecision: (answer) => ipcRenderer.invoke(IPC.answer, answer),
   openOutput: (path, how) => ipcRenderer.invoke(IPC.openOutput, path, how),
+  openSource: (run, n) => ipcRenderer.invoke(IPC.openSource, run, n),
   recallForCommission: (form) => ipcRenderer.invoke(IPC.recallForCommission, form),
   recallOnOpen: () => ipcRenderer.invoke(IPC.recallOnOpen),
   addNote: (text, run) => ipcRenderer.invoke(IPC.addNote, text, run),

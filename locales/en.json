@@ -902,6 +902,8 @@
     },
     "files": {
       "summary": "summary.md",
+      "sources": "sources.json",
+      "noSource": "no source found",
       "tidyPlan": "tidy-plan.md",
       "listing": "file-list.txt",
       "letter": "letter.txt",
@@ -938,6 +940,18 @@
       "externalTemplate": "This file fetches a template from elsewhere when it opens, so it is shown in its folder instead.",
       "externalLink": "This file links to files or addresses outside it and would fetch them when it opens, so it is shown in its folder instead.",
       "unreadable": "This file can't be read and may be damaged, so it is shown in its folder instead."
+    },
+    "citations": {
+      "title": "Sources",
+      "opened": "opened this round",
+      "notOpened": "not opened this round",
+      "none": "No sources listed.",
+      "more": "{n} sources in all; the first {shown} are listed.",
+      "unsourced": "No source found for:",
+      "unnumbered": "Key points with no source number: {n}.",
+      "missing": "The summary cites {numbers}, which the source list does not have.",
+      "noSources": "This research came without its list of sources (sources.json), so they can't be checked.",
+      "unreadable": "The list of sources (sources.json) can't be read, so they can't be checked."
     },
     "resultConverted": {
       "pdfToWord": "A PDF can't be changed as it is, so the changed version is a Word document.",

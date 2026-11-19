@@ -94,7 +94,8 @@ export type RunResult = { /** The round's run id (B5), for trying it again. */ r
   /** A month or project cap stopped it (error monthCap or projectCap). */ cap?: BudgetNote;
   /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
   /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[];
-  /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number };
+  /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number;
+  /** The web addresses this round searched or fetched, for checking a write-up's sources (road-to-1.3.md C7). */ seenUrls?: string[] };
 
 /** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
 export type BudgetNote = { cap: 'month' | 'project'; capUsd: number; spentUsd: number; leftUsd: number; project?: string };
@@ -186,6 +187,8 @@ export interface LamplightApi {
    * an Office file was shown in its folder instead of opened, and why (road-to-1.3.md C1).
    */
   openOutput(path: string, how: 'open' | 'reveal'): Promise<{ ok: boolean; why?: NotOpened }>;
+  /** Open source n of a round's research write-up in the browser (road-to-1.3.md C7); false when there is no such web address. */
+  openSource(run: string, n: number): Promise<boolean>;
   /** What Adeng may bring up as this commission starts (from earlier commissions). */
   recallForCommission(form: CommissionForm): Promise<Recall>;
   /** What Adeng may bring up as a round of changes starts (what was asked last time). */
@@ -358,6 +361,19 @@ export type SourcePick = { path: string; name: string } | { error: 'too-big' | '
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
+/**
+ * A research write-up checked against its sources (road-to-1.3.md C7): each source with its site and whether this round
+ * searched or fetched it; the conclusions the staff found no source for; the points with no number; numbers the sources
+ * lack. `broken` when sources.json is missing or unreadable.
+ */
+export type Citations = {
+  sources: { n: number; title: string; url: string; site: string; opened: boolean }[];
+  unsourced: string[];
+  unnumbered: string[];
+  missing: number[];
+  broken?: 'noSources' | 'unreadable';
+};
+
 export type CommissionResult = {
   /** The round (B5) and the project it was for, which the card names. */
   run?: string;
@@ -377,6 +393,8 @@ export type CommissionResult = {
   round?: number;
   /** An edit that came back as another kind of file (road-to-1.3.md C3): a PDF as Word, a workbook as a list of changes. */
   converted?: 'pdfToWord' | 'sheetAsList';
+  /** A research write-up's sources, checked (C7). */
+  citations?: Citations;
   /** The work as it was before this round is kept and can be put back. */
   canRestore?: boolean;
   /** Done in the user's own folder: which of their files it changed and which it made (paths inside the folder). */
@@ -482,6 +500,7 @@ export const IPC = {
   result: 'commission:result',
   resultPreview: 'commission:result-preview',
   openOutput: 'commission:open-output',
+  openSource: 'commission:open-source',
   decision: 'decision:request',
   answer: 'decision:answer',
   recallForCommission: 'memory:recall-commission',

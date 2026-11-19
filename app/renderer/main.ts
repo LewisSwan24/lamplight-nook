@@ -487,6 +487,7 @@ function resultCard(result: CommissionResult) {
     if (result.run) resultShown.add(result.run);
     showResult(result, {
       open: (path, how) => window.lamplight.openOutput(path, how),
+      openSource: (n) => void window.lamplight.openSource(result.run ?? '', n),
       revise: (id) => void revise(id),
       restore: (id) => window.lamplight.restorePrevious(id),
       undo: (id) => window.lamplight.undoWork(id),

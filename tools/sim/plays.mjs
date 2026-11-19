@@ -66,7 +66,9 @@ const T = {
     stuckTry: '命令没跑通，换个写法再试。',
     letterBody: (w) => `主题：${w}\n\n[称呼]，你好：\n\n写这封信，是想和你说一件事。${w}。\n\n具体的时间定在 [日期]，地点在 [地点]。如果你那天不方便，告诉我一声，我们再约。\n\n谢谢你一直以来的帮忙。\n\n[你的名字]\n[日期]\n`,
     planBody: (w) => `# ${w}\n\n假设：每周能抽出 3 个晚上，每次一小时左右。\n\n| 周 | 要做的事 | 完成标准 |\n|---|---|---|\n| 第 1 周 | 定好目标，准备材料 | 清单齐了 |\n| 第 2 周 | 每次练一小段 | 能顺下来 |\n| 第 3 周 | 把难的部分拆开练 | 卡住的地方少了 |\n| 第 4 周 | 合起来走一遍，留一天补课 | 从头到尾不停 |\n\n## 准备清单\n- [ ] 一个固定的时间段\n- [ ] 需要的材料\n- [ ] 一个记进度的小本子\n`,
-    summaryBody: (w) => `# ${w}\n\n三句话：大多数资料说法一致。有一处日期各说各的，下面写清楚了。如果只记一件事，记第一条。\n\n## 要点\n- 第一条：最常见的做法和理由\n- 第二条：需要注意的例外\n- 第三条：各家说法不一致的地方\n\n## 出处\n- 示例资料一 https://example.org/a\n- 示例资料二 https://example.org/b\n`,
+    summaryBody: (w, flawed) => `# ${w}\n\n三句话：大多数资料说法一致 [1]。有一处日期各说各的 [2]，下面写清楚了。如果只记一件事，记第一条。\n\n## 要点\n- 第一条：最常见的做法和理由 [1]\n- 第二条：需要注意的例外 [2]\n- 第三条：各家说法不一致的地方 [1][2]\n${flawed ? '- 第四条：一个没标编号的说法\n- 第五条：一个少有人提的说法 [3]\n- 阳台上能种一整年（未找到出处）\n' : ''}\n## 出处\n1. 示例资料一 https://example.org/a\n2. 示例资料二 https://example.org/b\n${flawed ? '3. 示例资料三 https://example.org/never\n' : ''}`,
+    sourceTitles: ['示例资料一', '示例资料二', '示例资料三'],
+    unsourced: '阳台上能种一整年',
     tidyBody: '# 整理方案\n\n## 建议的分类\n- 工作/：合同、报表\n- 照片/：按年份分\n- 安装包/：用完可以删\n- 待看/：暂时不知道放哪的\n\n## 值得看一眼的\n- 名字里带“副本”“(1)”的文件，像是重复的\n- 一年多没动过的安装包\n\n什么都没有移动，照着做就行。\n',
     reviseLine: (a) => `（照你说的改了：${a}）`,
     pageTitle: '小页面',
@@ -139,7 +141,9 @@ const T = {
     stuckTry: 'That command did not work. Trying it another way.',
     letterBody: (w) => `Subject: ${w}\n\nDear [name],\n\nI am writing about one thing: ${w}.\n\nIt is set for [date] at [place]. If that day does not suit you, just let me know and we will find another.\n\nThank you for all your help.\n\n[your name]\n[date]\n`,
     planBody: (w) => `# ${w}\n\nAssumed: three evenings a week, about an hour each.\n\n| Week | What to do | Done when |\n|---|---|---|\n| Week 1 | Set the goal, gather what you need | The list is complete |\n| Week 2 | Practise one short part each time | It runs through |\n| Week 3 | Take the hard parts apart | Fewer places you get stuck |\n| Week 4 | Put it together, one spare day | Start to finish without stopping |\n\n## To prepare\n- [ ] A fixed time slot\n- [ ] The materials you need\n- [ ] A notebook for progress\n`,
-    summaryBody: (w) => `# ${w}\n\nIn three sentences: most sources agree. One date differs between them, noted below. If you remember one thing, remember the first point.\n\n## Key points\n- First: the usual approach and why\n- Second: the exceptions to watch for\n- Third: where the sources disagree\n\n## Sources\n- Example source one https://example.org/a\n- Example source two https://example.org/b\n`,
+    summaryBody: (w, flawed) => `# ${w}\n\nIn three sentences: most sources agree [1]. One date differs between them [2], noted below. If you remember one thing, remember the first point.\n\n## Key points\n- First: the usual approach and why [1]\n- Second: the exceptions to watch for [2]\n- Third: where the sources disagree [1][2]\n${flawed ? '- Fourth: a claim with no number\n- Fifth: a claim few make [3]\n- Tomatoes grow all year on a balcony (no source found)\n' : ''}\n## Sources\n1. Example source one https://example.org/a\n2. Example source two https://example.org/b\n${flawed ? '3. Example source three https://example.org/never\n' : ''}`,
+    sourceTitles: ['Example source one', 'Example source two', 'Example source three'],
+    unsourced: 'Tomatoes grow all year on a balcony',
     tidyBody: '# Tidy-up plan\n\n## Suggested groups\n- Work/: contracts, reports\n- Photos/: by year\n- Installers/: can go once used\n- To sort/: anything unsure\n\n## Worth a look\n- Files with "copy" or "(1)" in the name look like duplicates\n- Installers untouched for over a year\n\nNothing was moved; follow the plan yourself.\n',
     reviseLine: (a) => `(Changed as you asked: ${a})`,
     pageTitle: 'Small page',
@@ -220,7 +224,11 @@ export function pickPlay(prompt, state, system = '') {
   if (/The user let this commission use these connections/.test(prompt)) return plays[process.env.SIM_CONNECTION_PLAY] ?? plays.connect;
   if (/This folder is the user's own/.test(prompt)) return plays.lent;
   if (/single self-contained page named "index\.html", using the photos/.test(prompt)) return plays.album;
-  if (/write the findings as/.test(prompt)) { state.vars.out = quoted(prompt, 'write the findings as'); return plays.research; }
+  if (/write the findings in .* as two files/.test(prompt)) {
+    state.vars.out = (prompt.match(/^"([^"]+)": a three-sentence summary/m) ?? [])[1];
+    state.vars.sources = (prompt.match(/^"([^"]+)": JSON/m) ?? [])[1];
+    return plays.research;
+  }
   // Changing a Word, Excel or PowerPoint file by number, and a PDF written again as Word (road-to-1.3.md C3).
   const changing = /make the changes with mcp__nook-office__edit_(docx|xlsx|pptx), from "([^"]+)" to "([^"]+)"/.exec(prompt);
   if (changing) {
@@ -296,7 +304,7 @@ const reviewer = (s, t, file) => s.step(() => s.agent('reviewer', t.reviewDesc, 
 }, t.reviewSummary));
 
 const researcher = (s, t, topic) => s.step(() => s.agent('researcher', [...topic].slice(0, 12).join(''), t.researchBrief, async (a) => {
-  await s.tool('WebSearch', { query: topic.slice(0, 30) }, { ...a, effect: () => ({ text: 'Web search results (simulated).' }) });
+  await s.tool('WebSearch', { query: topic.slice(0, 30) }, { ...a, effect: () => ({ text: 'Web search results (simulated): https://example.org/a and https://www.example.org/b/.' }) });
   await s.tool('WebFetch', { url: 'https://example.org/notes', prompt: 'Summarize' }, { ...a, effect: () => ({ text: 'Fetched (simulated).' }) });
 }, t.researchSummary));
 
@@ -609,7 +617,12 @@ export const plays = {
       await p.next();
       await takeNotes(s, t);
       const notes = s.state.notes.map((n) => `\n> ${t.noteLine(n)}\n`).join('');
-      await s.step(() => s.write(s.state.vars.out, t.summaryBody(w) + notes));
+      // SIM_CITE=flawed (scenario cite, C7): one point without a number, one source this round never opened, one conclusion without a source.
+      const flawed = process.env.SIM_CITE === 'flawed';
+      await s.step(() => s.write(s.state.vars.out, t.summaryBody(w, flawed) + notes));
+      const urls = ['https://example.org/a', 'https://example.org/b', 'https://example.org/never'];
+      const list = urls.slice(0, flawed ? 3 : 2).map((url, i) => ({ n: i + 1, title: t.sourceTitles[i], url, checked: '2026-11-19' }));
+      await s.step(() => s.write(s.state.vars.sources ?? 'sources.json', `${JSON.stringify({ sources: list, unsourced: flawed ? [t.unsourced] : [] }, null, 2)}\n`));
       await p.next();
       await reviewer(s, t, s.state.vars.out);
       await p.end();
