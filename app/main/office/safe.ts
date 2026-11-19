@@ -21,6 +21,20 @@ const INSTR_ATTR = /[\s'"](?:[\w.-]+:)?instr\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 class Unreadable extends Error {}
 
 /**
+ * XML in a wide encoding with no mark this check reads (UTF-16 big-endian, UTF-32): its first bytes hold zeros and, with
+ * them dropped, start with a tag. An XML reader finds such a part by those bytes, so it is not passed over as a picture.
+ * A real picture that starts with zero bytes (EMF does) does not start with a tag once they are dropped.
+ */
+function looksWideXml(buf: Buffer): boolean {
+  const head = buf.subarray(0, 64);
+  if (!head.includes(0)) return false;
+  const bytes = [...head].filter((b) => b !== 0);
+  let i = 0;
+  while (i < bytes.length && [0xfe, 0xff, 0x09, 0x0a, 0x0d, 0x20].includes(bytes[i])) i++;
+  return bytes[i] === 0x3c;
+}
+
+/**
  * A part's text as Office reads it: UTF-16 little-endian with its byte order mark, otherwise UTF-8. When the encoding the
  * part declares is not the one its bytes are read in, or it holds a NUL (UTF-16 without its mark reads that way), Office
  * could see other text than this check does, so the file is not trusted. Big-endian UTF-16 is refused: Office writes none.
@@ -28,6 +42,7 @@ class Unreadable extends Error {}
 function partText(buf: Buffer): string {
   const wide = buf[0] === 0xff && buf[1] === 0xfe;
   if (buf[0] === 0xfe && buf[1] === 0xff) throw new Unreadable();
+  if (!wide && looksWideXml(buf)) throw new Unreadable();
   const text = wide ? buf.subarray(2).toString('utf16le') : (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf ? buf.subarray(3) : buf).toString('utf8');
   if (!/^\s*</.test(text)) return text;
   if (text.includes('\0')) throw new Unreadable();

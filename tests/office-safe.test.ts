@@ -134,6 +134,12 @@ describe('officeSafe', () => {
     const field = '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:r><w:instrText> PAGE </w:instrText></w:r></w:p></w:hdr>';
     expect(officeSafe(header('declared-16.docx', Buffer.from(`<?xml version="1.0" encoding="UTF-16"?>${field}`))), 'utf-16 declared, utf-8 bytes').toEqual({ ok: false, reason: 'unreadable' });
     expect(officeSafe(header('declared-other.docx', Buffer.from(`<?xml version="1.0" encoding="windows-1252"?>${field}`))), 'other encoding').toEqual({ ok: false, reason: 'unreadable' });
+    const be = Buffer.from(field, 'utf16le').swap16();
+    expect(officeSafe(header('be-16.docx', be)), 'utf-16 big-endian without a mark').toEqual({ ok: false, reason: 'unreadable' });
+    const wide32 = Buffer.concat([...field].map((c) => Buffer.from([c.charCodeAt(0), 0, 0, 0])));
+    expect(officeSafe(header('le-32.docx', wide32)), 'utf-32').toEqual({ ok: false, reason: 'unreadable' });
+    // A picture that starts with zero bytes (EMF does) is still a picture.
+    expect(officeSafe(changed('sample.docx', 'emf.docx', (p) => p.set('word/media/image9.emf', Buffer.from([1, 0, 0, 0, 0x6c, 0, 0, 0, 0x3c, 0]))))).toEqual({ ok: true });
     expect(officeSafe(header('no-bom-16.docx', Buffer.from(field, 'utf16le'))), 'utf-16 without a mark').toEqual({ ok: false, reason: 'unreadable' });
     expect(officeSafe(header('utf8-declared.docx', Buffer.from(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${field}`))), 'utf-8 declared').toEqual({ ok: true });
   });
