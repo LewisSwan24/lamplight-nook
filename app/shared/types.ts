@@ -354,7 +354,7 @@ export type Material = { path: string; name: string; size: number };
 export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
-export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' };
+export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' | 'macros' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
@@ -375,6 +375,8 @@ export type CommissionResult = {
   budget?: BudgetNote[];
   /** Rounds of changes so far (0 for the first go). */
   round?: number;
+  /** An edit that came back as another kind of file (road-to-1.3.md C3): a PDF as Word, a workbook as a list of changes. */
+  converted?: 'pdfToWord' | 'sheetAsList';
   /** The work as it was before this round is kept and can be put back. */
   canRestore?: boolean;
   /** Done in the user's own folder: which of their files it changed and which it made (paths inside the folder). */

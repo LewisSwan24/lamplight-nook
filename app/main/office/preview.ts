@@ -93,3 +93,62 @@ function slidePage(spec: SlideSpec, images: (rel: string) => Buffer): string {
     : list(s.bullets);
   return `<div class="slide" style="${style}"><h1>${esc(s.title)}</h1>${body}</div>`;
 }
+
+/**
+ * The preview of a file the shop changed rather than made (road-to-1.3.md C3), drawn from what read_document reads in
+ * it: Word's headings, paragraphs, lists and tables; the first sheet with its first row as the header; the first slide.
+ * Rough, as the thumbnail is: pictures and formatting are not in the text.
+ */
+export function previewOfText(kind: 'docx' | 'xlsx' | 'pptx', text: string): string {
+  const none = () => Buffer.alloc(0);
+  const lines = text.split('\n');
+  if (kind === 'docx') {
+    const blocks: Block[] = [];
+    for (const line of lines) {
+      const last = blocks[blocks.length - 1];
+      const h = /^(#{1,6}) (.*)$/.exec(line);
+      if (!line.trim() || /^\| (?:--- \| )*--- \|$/.test(line)) continue;
+      if (h) blocks.push({ h: Math.min(3, h[1].length) as 1 | 2 | 3, text: h[2] });
+      else if (line.startsWith('- ')) {
+        if (last && 'list' in last) last.list.push(line.slice(2));
+        else blocks.push({ list: [line.slice(2)] });
+      } else if (line.startsWith('| ')) {
+        const cells = line.slice(2, -2).split(/(?<!\\) \| /).map((c) => c.replace(/\\\|/g, '|'));
+        if (last && 'table' in last) last.table.rows.push(cells);
+        else blocks.push({ table: { head: cells, rows: [] } });
+      } else blocks.push({ p: line.replace(/\*/g, '') });
+    }
+    return previewHtml('docx', { blocks }, none);
+  }
+  if (kind === 'xlsx') {
+    const start = lines.findIndex((l) => l.startsWith('## '));
+    const end = lines.findIndex((l, i) => i > start && !l);
+    const rows = csvRows(lines.slice(start + 1, end < 0 ? undefined : end).join('\n'));
+    const head = rows[0] ?? [];
+    const cell = (c: string) => (c !== '' && !Number.isNaN(Number(c)) ? Number(c) : c);
+    return previewHtml('xlsx', { sheets: [{ name: lines[start]?.slice(3) ?? '', columns: head.map((header) => ({ header })), rows: rows.slice(1).map((r) => r.map(cell)) }] }, none);
+  }
+  const slides: SlideSpec['slides'] = [];
+  for (const line of lines) {
+    const head = /^## Slide \d+(?:: (.*))?$/.exec(line);
+    if (head) slides.push({ layout: slides.length ? 'bullets' : 'title', title: head[1] ?? '', bullets: [] });
+    else if (line && !line.startsWith('Notes: ') && slides.length) slides[slides.length - 1].bullets!.push(line);
+  }
+  return previewHtml('pptx', { title: slides[0]?.title ?? '', slides: slides.length ? slides : [{ layout: 'title', title: '' }] }, none);
+}
+
+/** CSV as read_document writes it: commas, quotes doubled inside quoted fields, line breaks inside them kept. */
+function csvRows(text: string): string[][] {
+  const rows: string[][] = [[]];
+  let field = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; } else if (c === '"') quoted = false; else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { rows[rows.length - 1].push(field); field = ''; } else if (c === '\n') { rows[rows.length - 1].push(field); field = ''; rows.push([]); } else field += c;
+  }
+  rows[rows.length - 1].push(field);
+  return rows.filter((r) => r.some(Boolean));
+}

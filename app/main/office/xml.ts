@@ -3,8 +3,12 @@
  * kept without their prefix (w:p is p), since each part uses one vocabulary and producers differ in the prefixes they
  * pick. No DTDs, no external entities: only the five named entities and character references are decoded.
  */
-/** `clash`: two attributes with the same name once prefixes are dropped, so attrs holds only the last (safe.ts refuses it). */
-export type El = { name: string; attrs: Record<string, string>; kids: (El | string)[]; clash?: true };
+/**
+ * `clash`: two attributes with the same name once prefixes are dropped, so attrs holds only the last (safe.ts refuses it).
+ * `start` and `end`: where the element sits in the text it was read from, its tags included, so a change can replace
+ * exactly that and leave every other byte alone (edit.ts, road-to-1.3.md C3).
+ */
+export type El = { name: string; attrs: Record<string, string>; kids: (El | string)[]; clash?: true; start: number; end: number };
 
 const ENTITIES: Record<string, string> = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" };
 
@@ -19,7 +23,7 @@ export function decode(text: string): string {
 const local = (name: string) => name.slice(name.indexOf(':') + 1);
 
 export function parseXml(text: string): El {
-  const root: El = { name: '#root', attrs: {}, kids: [] };
+  const root: El = { name: '#root', attrs: {}, kids: [], start: 0, end: text.length };
   const stack: El[] = [root];
   let at = 0;
   while (at < text.length) {
@@ -43,14 +47,19 @@ export function parseXml(text: string): El {
         // A stray closing tag is ignored; one that closes an outer element closes what is still open inside it.
         let i = stack.length - 1;
         while (i > 0 && stack[i].name !== name) i--;
-        if (i > 0) stack.length = i;
+        if (i > 0) {
+          // What was still open inside ends where this closing tag starts.
+          for (const open of stack.slice(i + 1)) open.end = lt;
+          stack[i].end = at;
+          stack.length = i;
+        }
         continue;
       }
       const self = tag.endsWith('/');
       const body = self ? tag.slice(0, -1) : tag;
       const m = /^\s*([^\s/>]+)/.exec(body);
       if (!m) continue;
-      const el: El = { name: local(m[1]), attrs: {}, kids: [] };
+      const el: El = { name: local(m[1]), attrs: {}, kids: [], start: lt, end: self ? at : text.length };
       for (const a of body.slice(m[0].length).matchAll(/([^\s=]+)\s*=\s*("([^"]*)"|'([^']*)')/g)) {
         const key = local(a[1]);
         if (key in el.attrs) el.clash = true;
@@ -69,7 +78,7 @@ function skip(text: string, from: number, end: string): number {
 }
 
 /** The > that ends a tag, past any > inside a quoted attribute value. */
-function tagEnd(text: string, from: number): number {
+export function tagEnd(text: string, from: number): number {
   let quote = '';
   for (let i = from + 1; i < text.length; i++) {
     const c = text[i];

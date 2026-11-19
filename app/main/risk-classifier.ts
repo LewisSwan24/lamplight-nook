@@ -408,7 +408,8 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
     // those would get there. A connection's tools never touch the commission folder.
     if (!nook.connection) {
       const file = typeof input.file === 'string' && input.file ? input.file : undefined;
-      const page = typeof input.page === 'string' && input.page ? input.page : undefined;
+      // make_pdf reads its page, and the edit tools (C3) the file they start from: those are reads.
+      const page = typeof input.page === 'string' && input.page ? input.page : typeof input.from === 'string' && input.from ? input.from : undefined;
       let verdict: RiskVerdict = { risk: 'safe', reason: R.read };
       if (page) verdict = worse(verdict, classifyCall('Read', { file_path: page }, ctx));
       if (file && nook.kind === 'read') verdict = worse(verdict, classifyCall('Read', { file_path: file }, ctx));

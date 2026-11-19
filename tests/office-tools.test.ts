@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFile
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LOCALES } from '../app/shared/i18n';
+import { LOCALES, strings } from '../app/shared/i18n';
 import { nookName, toolsByName, type ToolCtx } from '../app/main/nook-tools';
 import { MAX_PREVIEW_RUNS, officeServer, prunePreviews, thumbSource } from '../app/main/office/tools';
 import { readDocument } from '../app/main/office/read';
@@ -31,11 +31,11 @@ const sheet = { sheets: [{ name: 'Costs', columns: [{ header: 'Item' }, { header
 const deck = { title: 'Spring', slides: [{ layout: 'title' as const, title: 'Spring menu' }, { layout: 'bullets' as const, title: 'New', bullets: ['Lemon tart'] }] };
 
 describe('the shop\'s office server (road-to-1.3.md C1)', () => {
-  it('is nook-office with five tools: read_document reads, the make_ tools make', () => {
+  it('is nook-office with eight tools: read_document reads, the make_ and edit_ tools make', () => {
     const { server } = round();
     expect(server.name).toBe('office');
     expect(server.connection).toBeUndefined();
-    expect(Object.fromEntries(server.tools.map((t) => [t.name, t.kind]))).toEqual({ read_document: 'read', make_docx: 'make', make_xlsx: 'make', make_pptx: 'make', make_pdf: 'make' });
+    expect(Object.fromEntries(server.tools.map((t) => [t.name, t.kind]))).toEqual({ read_document: 'read', make_docx: 'make', make_xlsx: 'make', make_pptx: 'make', make_pdf: 'make', edit_docx: 'make', edit_xlsx: 'make', edit_pptx: 'make' });
     expect([...toolsByName([server]).keys()]).toContain(nookName('office', 'make_docx'));
   });
 
@@ -129,5 +129,79 @@ describe('what the result card\'s thumbnail is taken from (C1)', () => {
     expect(left.length).toBe(MAX_PREVIEW_RUNS);
     expect(left[0]).toBe('r1760000000003');
     expect(existsSync(join(dir, 'r1760000000000'))).toBe(false);
+  });
+});
+
+describe('changing a copy of the user\'s file (road-to-1.3.md C3)', () => {
+  const F = strings.ui.files;
+  /** A round of the edit template: the user's file copied in as the original, which was there before the round. */
+  function editRound(name: string) {
+    const r = round();
+    const original = join(r.workDir, `${F.originalPrefix}${name}`);
+    copyFileSync(join(FIXTURES, name), original);
+    r.ctx.preexisting.add(original);
+    return { ...r, original, from: `${F.originalPrefix}${name}`, file: `${F.revisedPrefix}${name}` };
+  }
+
+  it('read_document numbers what can be changed when asked', async () => {
+    const { said } = editRound('sample.docx');
+    expect(await said('read_document', { file: `${F.originalPrefix}sample.docx`, numbered: true })).toMatch(/^\[1\] # Quarterly report$/m);
+  });
+
+  it('edit_docx copies the original to the revised file and changes that, never the original', async () => {
+    const r = editRound('sample.docx');
+    const before = readFileSync(r.original);
+    const text = await r.said('edit_docx', { from: r.from, file: r.file, edits: [{ n: 1, text: 'Quarterly notes' }] });
+    expect(text).toMatch(/tracked changes/);
+    expect(readFileSync(r.original).equals(before)).toBe(true);
+    expect(readDocument(join(r.workDir, r.file))).toMatch(/^# Quarterly notes$/m);
+    // Its preview is kept like a made file's, so the card has a thumbnail.
+    expect(thumbSource(join(r.workDir, r.file), r.workDir, r.previews, r.ctx.run)).toMatchObject({ preview: true });
+    // Again from the original starts over: the first change is gone.
+    await r.said('edit_docx', { from: r.from, file: r.file, edits: [{ n: 1, text: 'Quarterly figures' }] });
+    expect(readDocument(join(r.workDir, r.file))).toMatch(/^# Quarterly figures$/m);
+    expect(readFileSync(r.original).equals(before)).toBe(true);
+  });
+
+  it('the edit tools write only a revised copy: not the original, not another name, not outside, not another kind', async () => {
+    const r = editRound('sample.docx');
+    const edits = [{ n: 1, text: 'x' }];
+    await expect(r.call('edit_docx', { from: r.from, file: r.from, edits })).rejects.toThrow(new RegExp(`must start with "${F.revisedPrefix}"`));
+    await expect(r.call('edit_docx', { from: r.from, file: 'report.docx', edits })).rejects.toThrow(/must start with/);
+    await expect(r.call('edit_docx', { from: r.from, file: `../${F.revisedPrefix}sample.docx`, edits })).rejects.toThrow(/outside the commission folder/);
+    await expect(r.call('edit_docx', { from: resolve(FIXTURES, 'sample.docx'), file: r.file, edits })).rejects.toThrow(/outside the commission folder/);
+    await expect(r.call('edit_docx', { from: r.from, file: `${F.revisedPrefix}sample.xlsx`, edits })).rejects.toThrow(/must end in \.docx/);
+    expect(existsSync(join(r.workDir, r.file))).toBe(false);
+  });
+
+  it('edit_pptx and edit_xlsx change their copies by box and by cell', async () => {
+    const deck = editRound('sample.pptx');
+    await deck.said('edit_pptx', { from: deck.from, file: deck.file, edits: [{ slide: 1, box: 1, text: 'Summer menu' }] });
+    expect(readDocument(join(deck.workDir, deck.file))).toContain('Summer menu');
+    const book = editRound('sample.xlsx');
+    await book.said('edit_xlsx', { from: book.from, file: book.file, edits: [{ sheet: 'Sales', cell: 'B3', value: 40 }] });
+    expect(readDocument(join(book.workDir, book.file))).toMatch(/^Cake,40$/m);
+    expect(readFileSync(book.original).equals(readFileSync(join(FIXTURES, 'sample.xlsx')))).toBe(true);
+  });
+
+  it('a workbook it will not change is left alone, and the staff are told to write the changes down instead', async () => {
+    const r = editRound('sample.xlsx');
+    const parts = (await import('../app/main/office/unzip')).readZip(readFileSync(r.original));
+    writeFileSync(r.original, zip([...parts].map(([name, get]) => ({ name, data: get() })).concat({ name: 'xl/charts/chart1.xml', data: Buffer.from('<x/>') })));
+    const result = await r.call('edit_xlsx', { from: r.from, file: r.file, edits: [{ sheet: 'Sales', cell: 'B3', value: 40 }] });
+    expect(result.isError).toBe(true);
+    expect((result.content[0] as { text: string }).text).toContain(`"${F.revisedPrefix}sample.md"`);
+    expect(existsSync(join(r.workDir, r.file))).toBe(false);
+  });
+
+  it('a workbook with a formula that reaches outside is not changed either: Excel would recalculate it on opening', async () => {
+    const r = editRound('sample.xlsx');
+    const parts = (await import('../app/main/office/unzip')).readZip(readFileSync(r.original));
+    writeFileSync(r.original, zip([...parts].map(([name, get]) => ({
+      name, data: name === 'xl/worksheets/sheet1.xml' ? get().toString('utf8').replace('<f>SUM(B2:B4)</f>', '<f>WEBSERVICE("https://example.com")</f>') : get(),
+    }))));
+    const result = await r.call('edit_xlsx', { from: r.from, file: r.file, edits: [{ sheet: 'Sales', cell: 'B3', value: 40 }] });
+    expect(result.isError).toBe(true);
+    expect(existsSync(join(r.workDir, r.file))).toBe(false);
   });
 });

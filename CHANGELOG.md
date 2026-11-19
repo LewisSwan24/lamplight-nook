@@ -21,6 +21,13 @@
   carries no macros, no embedded objects and nothing that reaches outside it; otherwise the card says why and shows the
   file in its folder.
 
+- **Edit a Word, Excel or PowerPoint file, or a PDF.** "Edit a document" now takes these as well as text files, up to
+  20 MB, though not a file with macros. Your file stays as it is and so does the shop's copy of it; the changes go into
+  a revised copy beside it. In Word they are tracked changes you can accept or reject one by one. In Excel the changed
+  cells are recalculated when you open the workbook; one with charts, pivot tables, tables or links to other files is
+  left alone and you get a list of the changes to make instead. A PDF can't be changed as it is, so it comes back as a
+  Word document, and the card says so.
+
 ## Unreleased (1.2)
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in

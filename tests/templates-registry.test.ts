@@ -56,10 +56,12 @@ describe('the template table', () => {
     }
   });
 
-  it('asks for a text file of up to a megabyte to edit, and a folder to tidy', () => {
-    expect(template('edit').source).toEqual({ kind: 'file', extensions: ['txt', 'md', 'html', 'htm', 'csv', 'json'], maxBytes: 1024 * 1024 });
-    expect(EDITABLE).toEqual(['txt', 'md', 'html', 'htm', 'csv', 'json']);
-    expect(MAX_EDIT_BYTES).toBe(1024 * 1024);
+  it('asks for a file of up to 20 MB to edit (text, Office or PDF), and a folder to tidy', () => {
+    // C3: Word, Excel, PowerPoint and PDF too, never their kinds with macros, up to the 20 MB one handed-over file may be.
+    expect(template('edit').source).toEqual({ kind: 'file', extensions: ['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf'], maxBytes: 20 * 1024 * 1024 });
+    expect(EDITABLE).toEqual(['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf']);
+    expect(EDITABLE.some((e) => /m$/.test(e) && e !== 'htm')).toBe(false);
+    expect(MAX_EDIT_BYTES).toBe(20 * 1024 * 1024);
     expect(template('tidy').source).toEqual({ kind: 'folder' });
     expect(TEMPLATES.filter((t) => 'source' in t).map((t) => t.id)).toEqual(['edit', 'tidy']);
     expect(TEMPLATES.filter((t) => 'photos' in t).map((t) => t.id)).toEqual(['album']);
