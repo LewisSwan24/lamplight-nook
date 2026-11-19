@@ -28,6 +28,11 @@
   left alone and you get a list of the changes to make instead. A PDF can't be changed as it is, so it comes back as a
   Word document, and the card says so.
 
+- **Research says where each point comes from.** Every key point in a research summary carries the numbers of its
+  sources, and the sources are also kept in a list the app can check. The result card lists them with their sites;
+  a click opens one in your browser. A source the staff never searched for or opened during the job is marked so, and
+  the card also says which points have no source and what was concluded without one.
+
 ## Unreleased (1.2)
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in

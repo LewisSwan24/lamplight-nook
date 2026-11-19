@@ -902,6 +902,8 @@
     },
     "files": {
       "summary": "总结.md",
+      "sources": "sources.json",
+      "noSource": "未找到出处",
       "tidyPlan": "整理方案.md",
       "listing": "文件清单.txt",
       "letter": "信.txt",
@@ -938,6 +940,18 @@
       "externalTemplate": "这个文件打开时要去外面取模板，所以只在文件夹里指给你看。",
       "externalLink": "这个文件连着外面的文件或网址，打开时会去取，所以只在文件夹里指给你看。",
       "unreadable": "这个文件读不出来，可能坏了，所以只在文件夹里指给你看。"
+    },
+    "citations": {
+      "title": "出处",
+      "opened": "这一轮打开过",
+      "notOpened": "这一轮没打开过",
+      "none": "没有列出处。",
+      "more": "共 {n} 条出处，这里列了前 {shown} 条。",
+      "unsourced": "没找到出处的结论：",
+      "unnumbered": "没标出处编号的要点：{n} 条。",
+      "missing": "总结里写了 {numbers}，出处清单里没有。",
+      "noSources": "这份调研没写出处清单（sources.json），出处没法核对。",
+      "unreadable": "出处清单（sources.json）读不出来，出处没法核对。"
     },
     "resultConverted": {
       "pdfToWord": "PDF 没法照原样改，改好的是一份 Word 文档。",

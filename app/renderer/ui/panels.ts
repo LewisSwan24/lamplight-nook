@@ -2,7 +2,7 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
+import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type Citations, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -486,6 +486,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
 export type ResultActions = {
   /** Says why, when an Office file was only shown in its folder (road-to-1.3.md C1). */
   open: (path: string, how: 'open' | 'reveal') => Promise<{ ok: boolean; why?: NotOpened }> | void;
+  /** Opens source n of a research write-up in the browser (road-to-1.3.md C7). */
+  openSource?: (n: number) => void;
   revise?: (id: string) => void;
   restore?: (id: string) => Promise<boolean>;
   /** Undo a commission done in the user's own folder. */
@@ -565,6 +567,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
     // An edit that came back as another kind of file says so (C3), before the file is named.
     result.converted ? el('div.hint.result-converted', { role: 'note' }, U.resultConverted[result.converted]) : null,
+    result.citations ? citationBlock(result.citations, actions.openSource) : null,
     thumb,
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
@@ -588,6 +591,29 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.
   card.addEventListener('panel-closed', clearWorkSigns);
   replaceOpen(card);
+}
+
+/** How many sources the result card lists before it only counts them. */
+const LISTED_SOURCES = 8;
+
+/**
+ * A research write-up's sources on its card (road-to-1.3.md C7): title, site, and whether this round opened it, each a
+ * click away in the browser; then what has no source, and the numbers that do not add up. Nothing is hidden for being
+ * wrong: the card says so instead.
+ */
+function citationBlock(c: Citations, open?: (n: number) => void): HTMLElement {
+  const C = U.citations;
+  if (c.broken) return el('div.hint.warn.result-cite-broken', { role: 'note' }, C[c.broken]);
+  return el('div.result-sources', {},
+    el('div.result-sources-title', {}, C.title),
+    c.sources.length ? el('ol.result-source-list', {}, ...c.sources.slice(0, LISTED_SOURCES).map((s) => el('li', { 'data-n': String(s.n) },
+      el('button.link.result-source', { type: 'button', title: s.url, onclick: () => open?.(s.n) }, `[${s.n}] ${s.title}`),
+      el('span.hint.result-source-site', {}, s.site ? ` ${s.site}` : ''),
+      el(`span.result-source-state${s.opened ? '' : '.warn'}`, {}, s.opened ? C.opened : C.notOpened)))) : el('div.hint', {}, C.none),
+    c.sources.length > LISTED_SOURCES ? el('div.hint', {}, fill(C.more, { n: String(c.sources.length), shown: String(LISTED_SOURCES) })) : null,
+    c.unsourced.length ? el('div.result-unsourced', {}, el('div.hint', {}, C.unsourced), el('ul', {}, ...c.unsourced.map((u) => el('li', {}, u)))) : null,
+    c.unnumbered.length ? el('div.hint.warn.result-unnumbered', { role: 'note' }, fill(C.unnumbered, { n: String(c.unnumbered.length) })) : null,
+    c.missing.length ? el('div.hint.warn.result-missing', { role: 'note' }, fill(C.missing, { numbers: c.missing.map((n) => `[${n}]`).join(' ') })) : null);
 }
 
 /** A round's thumbnail has come: onto its card, if that is up. */

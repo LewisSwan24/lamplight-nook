@@ -13,6 +13,7 @@ import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
+import { citationsIn, sourceUrl } from './citations';
 import { type Revision, collectOutputs, commissionPrompt, convertedNote, sourceProblem, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName, withConnections } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore, entriesIn, tooBigToLend } from './versions';
@@ -822,8 +823,12 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       if (entry) keepRound(entry);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
+      // A research write-up is checked against its sources and against what this round searched or fetched (C7).
+      const F = strings.ui.files;
+      const citations = job.form.template === 'research' ? citationsIn(job.workDir, { summary: F.summary, sources: F.sources }, result.seenUrls ?? []) : undefined;
+      if (citations) cited.set(run, job.workDir);
       send(IPC.result, {
-        run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        citations, run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
         converted: convertedNote(job.form, outputs.main), id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
       });
       // The card first, its thumbnail when it is ready (C1): loading a page takes a moment, which the card need not wait for.
@@ -853,6 +858,21 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     sendRuns();
   }
 }
+
+/**
+ * Rounds whose card lists sources (C7), by run, with their commission folder: openSource opens only a web address that
+ * the folder's own sources.json gives, read again at the click.
+ */
+const cited = new Map<string, string>();
+ipcMain.handle(IPC.openSource, async (_e, run: unknown, n: unknown): Promise<boolean> => {
+  const dir = typeof run === 'string' ? cited.get(run) : undefined;
+  const file = dir && join(dir, strings.ui.files.sources);
+  if (!file || !Number.isInteger(n) || !existsSync(file)) return false;
+  const url = sourceUrl(readFileSync(file, 'utf8'), n as number);
+  if (!url) return false;
+  await shell.openExternal(url);
+  return true;
+});
 
 // Files and folders the user picked in a dialog this session: the only sources a commission may use.
 const picked = new Set<string>();
