@@ -13,15 +13,38 @@ const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png
 /** Office opens these and runs what they bring, so each is looked inside first. */
 const OFFICE = new Set(['.docx', '.xlsx', '.pptx']);
 
-/** Lines, split at any line break, with their folded continuations joined back, as mail headers and calendar files fold them. */
-const unfold = (text: string) => text.replace(/(\r\n|\r|\n)[ \t]/g, '').split(/\r\n|\r|\n/);
+/** Lines, with their folded continuations joined back, as mail headers and calendar files fold them. */
+const unfold = (text: string) => text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
+
+/**
+ * The calendar properties an ordinary event uses, its time zone and a reminder on screen included. Anything else (an
+ * attachment, an invitation to others, the old vCalendar alarms that start a program) keeps the file in its folder.
+ */
+const CALENDAR_PROPERTIES = new Set(['BEGIN', 'END', 'VERSION', 'PRODID', 'CALSCALE', 'METHOD', 'X-WR-CALNAME', 'X-WR-TIMEZONE',
+  'UID', 'DTSTAMP', 'DTSTART', 'DTEND', 'DURATION', 'SUMMARY', 'DESCRIPTION', 'LOCATION', 'GEO', 'URL', 'CATEGORIES', 'CLASS',
+  'STATUS', 'TRANSP', 'PRIORITY', 'SEQUENCE', 'CREATED', 'LAST-MODIFIED', 'COMMENT', 'RRULE', 'RDATE', 'EXDATE', 'RECURRENCE-ID',
+  'TZID', 'TZNAME', 'TZOFFSETFROM', 'TZOFFSETTO', 'TZURL', 'ACTION', 'TRIGGER', 'REPEAT']);
+const CALENDAR_PARTS = new Set(['VCALENDAR', 'VEVENT', 'VTIMEZONE', 'STANDARD', 'DAYLIGHT', 'VALARM']);
+/** The ways a file can be written into the text of a mail, which some mail programs turn back into an attachment. */
+const INLINE_FILE = /^(begin\s+[0-7]+\s|begin-base64\s|=ybegin\s|\(This file must be converted with BinHex)/im;
+
+/** A mail's text as its mail program shows it, once its transfer encoding is undone; undefined for any other encoding. */
+function mailText(encoding: string | undefined, body: string): string | undefined {
+  const e = (encoding ?? '7bit').trim().toLowerCase();
+  if (e === '7bit' || e === '8bit') return body;
+  if (e === 'base64') return Buffer.from(body.replace(/\s+/g, ''), 'base64').toString('utf8');
+  if (e === 'quoted-printable') {
+    return Buffer.from(body.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/gi, (_, h: string) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
+  }
+  return undefined;
+}
 
 /**
  * Whether a mail or calendar file is as plain as the shop's own (road-to-1.3.md C5), read the strict way so a program
- * that reads it more loosely finds nothing more: valid UTF-8 with no NUL, which rules out UTF-16 and the other encodings.
- * A mail has exactly one type, plain text, no disposition, and no attachment written into its text the old way
- * (uuencode). A calendar
- * starts as one, and its events neither bring a file (ATTACH) nor start a program (an alarm's PROCEDURE).
+ * that reads it more loosely finds nothing more: valid UTF-8 with no NUL, which rules out UTF-16 and the other encodings,
+ * and no CR but in a CRLF line end. A mail has exactly one type, plain text, no disposition, a transfer encoding of the
+ * usual kinds, and no file written into its text, once that is decoded. A calendar is version 2.0 and holds only events,
+ * time zones and reminders on screen, with the properties those use.
  * Undefined when it cannot be read.
  */
 function plain(path: string, ext: string): boolean | undefined {
@@ -31,19 +54,28 @@ function plain(path: string, ext: string): boolean | undefined {
   } catch {
     return undefined;
   }
-  const text = bytes.toString('utf8');
-  if (text.includes('\u0000') || text.includes('\ufffd')) return false;
-  const lines = unfold(text.startsWith('\ufeff') ? text.slice(1) : text);
+  const raw = bytes.toString('utf8');
+  if (raw.includes('\u0000') || raw.includes('\ufffd') || /\r(?!\n)/.test(raw)) return false;
+  const lines = unfold(raw.startsWith('\ufeff') ? raw.slice(1) : raw);
   if (ext === '.ics') {
-    return /^BEGIN:VCALENDAR$/i.test(lines.find((l) => l.trim()) ?? '')
-      && !lines.some((l) => /^ATTACH[;:]/i.test(l) || /^ACTION(;[^:]*)?:\s*PROCEDURE\b/i.test(l));
+    const props = lines.filter((l) => l.trim()).map((l) => {
+      const m = /^([A-Za-z0-9-]+)[;:]/.exec(l);
+      return { name: m?.[1].toUpperCase(), value: l.slice(l.indexOf(':') + 1).trim().toUpperCase() };
+    });
+    return props.some((q) => q.name === 'VERSION' && q.value === '2.0')
+      && props.every((q) => !!q.name && CALENDAR_PROPERTIES.has(q.name)
+        && (q.name !== 'BEGIN' && q.name !== 'END' || CALENDAR_PARTS.has(q.value))
+        && (q.name !== 'ACTION' || q.value === 'DISPLAY'));
   }
   const end = lines.indexOf('');
-  const head = end < 0 ? lines : lines.slice(0, end);
-  const types = head.filter((l) => /^content-type\s*:/i.test(l));
-  return types.length === 1 && /^content-type\s*:\s*text\/plain\s*(;|$)/i.test(types[0])
-    && !head.some((l) => /^content-disposition\s*:/i.test(l))
-    && !lines.slice(head.length).some((l) => /^begin\s+[0-7]{3,4}\s/i.test(l));
+  if (end < 0) return false;
+  const head = lines.slice(0, end);
+  const header = (name: string) => head.filter((l) => new RegExp(`^${name}\\s*:`, 'i').test(l));
+  const types = header('content-type');
+  const encodings = header('content-transfer-encoding');
+  if (types.length !== 1 || !/^content-type\s*:\s*text\/plain\s*(;|$)/i.test(types[0]) || header('content-disposition').length || encodings.length > 1) return false;
+  const text = mailText(encodings[0]?.slice(encodings[0].indexOf(':') + 1), lines.slice(end + 1).join('\r\n'));
+  return text !== undefined && !INLINE_FILE.test(text);
 }
 
 /**
