@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { linkSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
@@ -246,6 +246,13 @@ describe('where a made file may go', () => {
     expect(() => outputPath(dir, join(folder(), 'report.docx'), '.docx', new Set())).toThrow(/outside the commission folder/);
     expect(() => outputPath(dir, 'report.xlsx', '.docx', new Set())).toThrow(/must end in \.docx/);
     expect(() => outputPath(dir, 'mine.docx', '.docx', new Set([join(dir, 'mine.docx')]))).toThrow(/already there/);
+    // The same file under another spelling, or through a link: still the user's own.
+    if (process.platform === 'win32') expect(() => outputPath(dir, 'MINE.DOCX', '.docx', new Set([join(dir, 'mine.docx')]))).toThrow(/already there/);
+    linkSync(join(dir, 'mine.docx'), join(dir, 'alias.docx'));
+    expect(() => outputPath(dir, 'alias.docx', '.docx', new Set([join(dir, 'mine.docx')]))).toThrow(/already there/);
+    // What this round made itself may be written again.
+    writeFileSync(join(dir, 'new.docx'), 'made this round');
+    expect(outputPath(dir, 'new.docx', '.docx', new Set([join(dir, 'mine.docx')]))).toBe(join(dir, 'new.docx'));
   });
 });
 

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, isAbsolute, resolve } from 'node:path';
 import { isInside, reallyInside } from '../paths';
 
@@ -14,7 +14,17 @@ export function outputPath(workDir: string, rel: string, ext: string, preexistin
   const full = isAbsolute(rel) ? rel : resolve(workDir, rel);
   if (!isInside(workDir, full) || !reallyInside(workDir, full)) throw new Error(`${rel} is outside the commission folder; write inside it.`);
   if (extname(full).toLowerCase() !== ext) throw new Error(`${rel} must end in ${ext}.`);
-  if (preexisting.has(full)) throw new Error(`${rel} was already there before this round; pick a new name rather than replace it.`);
+  // The file system decides what "the same file" is: on Windows any spelling of the name, a link to it, or a hard link,
+  // which has a path of its own. So an existing target is compared by what it is (device and file number), not its name.
+  // A target that does not exist yet cannot be one of the user's files.
+  if (existsSync(full)) {
+    const it = statSync(full);
+    const same = (p: string) => {
+      const other = statSync(p, { throwIfNoEntry: false });
+      return Boolean(other && other.dev === it.dev && other.ino === it.ino);
+    };
+    if ([...preexisting].some(same)) throw new Error(`${rel} was already there before this round; pick a new name rather than replace it.`);
+  }
   return full;
 }
 
