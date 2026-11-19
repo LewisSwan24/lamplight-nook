@@ -33,6 +33,14 @@
   a click opens one in your browser. A source the staff never searched for or opened during the job is marked so, and
   the card also says which points have no source and what was concluded without one.
 
+- **Charts and posters.** Two new kinds of work. A chart turns the numbers you write or the table you hand over into
+  a picture, every number copied as it is and the bars drawn from zero. A poster comes at the size its use calls for:
+  A4 to print (with a PDF as well), square for a social post, or wide for a screen. The staff draw each one as a page,
+  save it as a PNG and look at the picture before handing it over; the card shows that picture.
+- **More photos can be handed over.** BMP and AVIF photos are taken, and the staff look at a PNG copy made beside them.
+  HEIC and TIFF photos, which nothing in the shop can open, are turned away on the slip with a note to save them as JPG
+  or PNG first.
+
 ## Unreleased (1.2)
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in

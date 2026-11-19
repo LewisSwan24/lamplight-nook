@@ -40,7 +40,7 @@ import { localMonth } from '../shared/localday';
 import { RoundTally } from './tally';
 import { zip } from './zip';
 import { exportName, workEntries } from './export';
-import { imageThumb, pageThumb, pageToPdf } from './print';
+import { imageThumb, pageThumb, pageToPdf, pageToPng, pictureToPng } from './print';
 import { officeServer, prunePreviews, thumbSource } from './office/tools';
 import { howToOpen } from './open-rule';
 import { ShopTray } from './tray';
@@ -361,7 +361,7 @@ function connectionServer(c: Connection): NookServer | null {
 /** Each round's preview pages for the result card's thumbnail (C1), in the data folder, the newest runs' only. */
 const previewsDir = () => join(app.getPath('userData'), 'previews');
 /** The shop's own tools, on every round: Word, Excel, PowerPoint and PDF (C1). */
-const shopServers = (): NookServer[] => [officeServer({ previews: previewsDir(), toPdf: pageToPdf })];
+const shopServers = (): NookServer[] => [officeServer({ previews: previewsDir(), toPdf: pageToPdf, toPng: pageToPng })];
 /** The screens a thumbnail is taken from: a page as on a small laptop, a preview page at its own width. */
 const PAGE_SCREEN = { width: 1024, height: 640 };
 const PREVIEW_SCREEN = { width: 560, height: 420 };
@@ -940,7 +940,7 @@ function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: st
     mkdirSync(workDir, { recursive: true });
     if (f.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
     prepareSource(workDir, f);
-    try { copyMaterials(workDir, f.materials ?? []); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
+    try { await copyMaterials(workDir, f.materials ?? [], pictureToPng); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
     return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now(), ...(schedule ? { schedule } : {}) }, false);
   }, by);
 }

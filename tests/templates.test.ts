@@ -263,6 +263,15 @@ describe('the main output', () => {
     expect(out.main).toBe(join(work, `${F.revisedPrefix}letter.txt`));
   });
 
+  it('a chart or poster picture comes before the page it was drawn from (C2)', () => {
+    const { work, out } = made(F.chartPage, F.chartPng);
+    expect(out.main).toBe(join(work, F.chartPng));
+    const poster = made(F.posterPage, F.posterPdf, F.posterPng);
+    expect(poster.out.main).toBe(join(poster.work, F.posterPng));
+    const shot = made('page.html', 'shot.png');
+    expect(shot.out.main).toBe(join(shot.work, 'page.html'));
+  });
+
   it('a Markdown write-up counts when there is no page', () => {
     const { work, out } = made(F.summary);
     expect(out.main).toBe(join(work, F.summary));
@@ -304,6 +313,29 @@ describe('phase 6 templates', () => {
     expect(deck).toContain('mcp__nook-office__make_pptx');
     const cv = commissionPrompt({ want: 'w', template: 'resume' });
     expect(cv).toContain(`"${F.resumePdf}" with the mcp__nook-office__make_pdf tool`);
+  });
+
+  it('a chart is drawn as a page in SVG and saved as a PNG with render_png, its numbers copied, never made up (C2)', () => {
+    const c = commissionPrompt({ want: 'w', template: 'chart' });
+    expect(c).toContain(`"${F.chartPage}"`);
+    expect(c).toContain(`"${F.chartPng}" with the mcp__nook-office__render_png tool`);
+    expect(c).toMatch(/inline SVG/);
+    expect(c).toMatch(/exactly as they are/);
+    expect(c).toMatch(/start at zero/);
+    expect(c).toMatch(/units/);
+    expect(c).toMatch(/Never make up a number/);
+    expect(c).toMatch(/look at it with the Read tool/);
+  });
+
+  it('a poster is a page drawn as a PNG at the size it is for, and an A4 one also as a PDF (C2)', () => {
+    const p = commissionPrompt({ want: 'w', template: 'poster' });
+    expect(p).toContain(`"${F.posterPage}"`);
+    expect(p).toContain(`"${F.posterPng}" with the mcp__nook-office__render_png tool`);
+    expect(p).toMatch(/A4.*794 by 1123/);
+    expect(p).toMatch(/square.*1080 by 1080/);
+    expect(p).toMatch(/1920 by 1080/);
+    expect(p).toContain(`"${F.posterPdf}" with the mcp__nook-office__make_pdf tool`);
+    expect(p).toMatch(/look at it with the Read tool/);
   });
 
   it('a plan is a table by day or week with some slack', () => {

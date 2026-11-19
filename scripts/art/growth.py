@@ -200,6 +200,8 @@ ICONS = {
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
+    'chart': ['k.......', 'k.....f.', 'k..a..f.', 'k..a..f.', 'kg.a..f.', 'kg.ag.f.', 'kg.ag.f.', 'kkkkkkkk'],
+    'poster': ['...nn...', '.wwwwww.', '.waaaaw.', '.wassaw.', '.wggggw.', '.wwwwww.', '.wllllw.', '.wwwwww.'],
 }
 COLORS = {
     'b': (122, 82, 54, 255), 'y': (243, 226, 178, 255), 's': (226, 156, 84, 255), 'g': (104, 150, 96, 255),
@@ -209,7 +211,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster']
 
 
 def overlay(pieces):

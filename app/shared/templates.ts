@@ -29,14 +29,15 @@ export type PromptParts = {
 export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes: number } | { kind: 'folder' };
 
 /**
- * What the result card opens, best first, matched on file names: a page the shop made, an edited document,
- * any page, a Word, Excel or PowerPoint file or a PDF (never the kinds with macros), a write-up in Markdown, then a
+ * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
+ * or a poster drawn as a picture (before the page it was drawn from), any page,a Word, Excel or PowerPoint file or a PDF (never the kinds with macros), a write-up in Markdown, then a
  * table or a letter.
  */
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
-  page: (name: string) => /\.html?$/i.test(name),
+  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng,
+  page:(name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
   table: (name: string) => /\.(csv|txt)$/i.test(name),
@@ -229,6 +230,33 @@ export const TEMPLATES = [
       'Keep each slide to a few short bullets, and put what the speaker says in the notes.',
       `If the user handed anything over in "${files.materials}", read it first (mcp__nook-office__read_document reads Word, Excel and PowerPoint files) and build on it.`,
       'Never invent figures, quotations or dates. Where one is missing, leave a clear blank in square brackets.',
+    ],
+  },
+  {
+    id: 'chart', icon: 15, revise: true, main: 'picture',
+    steps: ({ language, files }) => [
+      'This is a chart, drawn as a picture.',
+      `Read the data first: what the user wrote in the request, or the table they handed over in "${files.materials}" (mcp__nook-office__read_document reads Excel files; read a CSV as text).`,
+      `Draw it as a single self-contained page "${files.chartPage}" holding one inline SVG: no scripts from the web, no web fonts, nothing the page loads from outside this folder.`,
+      'Pick the kind of chart that fits the data: bars to compare amounts, a line for change over time, a share of a whole only when the parts really add up to it.',
+      'Copy every number exactly as they are in the data. Never make up a number, round one off differently or fill in a missing one; leave a gap and say so.',
+      'Axes of amounts start at zero. Give the chart a title, name each axis with its units, label the values, and put where the data came from in small print at the bottom.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.chartPng}" with the mcp__nook-office__render_png tool, at 1200 by 800 unless the user asked for another size, with the page laid out to fill exactly that.`,
+      'When it is saved, look at it with the Read tool: check nothing is cut off or overlapping and every number matches the data, and fix the page and draw it again if not.',
+    ],
+  },
+  {
+    id: 'poster', icon: 16, revise: true, main: 'picture',
+    steps: ({ language, files }) => [
+      'This is a poster, drawn as a picture.',
+      'Pick its size from what it is for: A4 for printing, 794 by 1123; a square for a social post, 1080 by 1080; a wide one for a screen, 1920 by 1080. A4 if the request does not say.',
+      `Lay it out as a single self-contained page "${files.posterPage}" exactly that size: CSS inline, no web fonts, nothing the page loads from outside this folder. Use photos the user handed over in "${files.materials}" by relative path; do not copy or change them.`,
+      'Make the main message the biggest thing on it, then what, when and where. Keep the words few.',
+      'Never make up a date, a time, a place, a price or a name. Where one is missing, leave a clear blank in square brackets.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.posterPng}" with the mcp__nook-office__render_png tool at that size. For an A4 poster, also save it as "${files.posterPdf}" with the mcp__nook-office__make_pdf tool, so it can be printed.`,
+      'When it is saved, look at it with the Read tool: check nothing is cut off, overlapping or too small to read, and fix the page and draw it again if not.',
     ],
   },
 ] as const satisfies readonly TemplateSpec[];
