@@ -6,6 +6,11 @@
 
 export const MAX_DAYS = 62;
 export const MAX_EVENTS = 200;
+/**
+ * How many repeats one reading may step through, all events together. A repeat without a count starts near the days
+ * asked for, so only a count, which has to be walked from the first one, gets near this.
+ */
+const MAX_STEPS = 300_000;
 
 /** The file is no calendar, or the days asked for are not a span it reads. Its message is for Claude. */
 export class IcsError extends Error {}
@@ -16,7 +21,7 @@ export type Occurrence = { start: string; end: string; allDay: boolean; title: s
 type Wall = { y: number; mo: number; d: number; h: number; mi: number; s: number };
 /** A start as written: a day, or a wall-clock time in a zone ('UTC' for a time ending in Z). */
 type When = { allDay: true; wall: Wall } | { allDay: false; wall: Wall; zone: string };
-type Rule = { freq: string; interval: number; count?: number; until?: When; byday: { n: number; day: number }[]; bymonthday?: number };
+type Rule = { freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'; interval: number; count?: number; until?: When; byday: { n: number; day: number }[]; bymonthday?: number };
 type Ev = { uid: string; start?: When; end?: When; durationMs?: number; title: string; location?: string; rule?: Rule; exdates: Set<string>; recurrenceId?: string; cancelled: boolean };
 
 const DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
@@ -33,10 +38,17 @@ const zoneKnown = (zone: string) => {
   }
 };
 
+/** One clock per zone: making one is far slower than reading it. */
+const clocks = new Map<string, Intl.DateTimeFormat>();
+const clock = (zone: string) => {
+  let c = clocks.get(zone);
+  if (!c) clocks.set(zone, (c = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })));
+  return c;
+};
+
 /** How far a zone's clock is ahead of UTC at an instant, in ms. */
 function offsetMs(utc: number, zone: string): number {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })
-    .formatToParts(new Date(utc)).map((p) => [p.type, Number(p.value)]));
+  const parts = Object.fromEntries(clock(zone).formatToParts(new Date(utc)).map((p) => [p.type, Number(p.value)]));
   return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) - Math.floor(utc / 1000) * 1000;
 }
 
@@ -119,7 +131,7 @@ function rule(v: string): Rule | undefined {
   if ((p.FREQ === 'WEEKLY' && days.some((d) => d.n)) || ((p.FREQ === 'DAILY' || p.FREQ === 'YEARLY') && (days.length || p.BYMONTHDAY))) return undefined;
   if (p.BYMONTHDAY && (p.FREQ !== 'MONTHLY' || !/^\d{1,2}$/.test(p.BYMONTHDAY) || days.length)) return undefined;
   return {
-    freq: p.FREQ,
+    freq: p.FREQ as Rule['freq'],
     interval: Math.max(1, Number(p.INTERVAL) || 1),
     ...(p.COUNT ? { count: Math.max(1, Number(p.COUNT) || 1) } : {}),
     ...(p.UNTIL ? { until: when(p.UNTIL, {}) } : {}),
@@ -162,7 +174,7 @@ function parse(text: string): Ev[] {
  * The starts of an event's occurrences, in order, as walls in its own zone (so a weekly 9:00 stays 9:00 across a clock
  * change), until `stop` (a UTC instant) or its count or end. `local` is the computer's zone.
  */
-function* occurrences(ev: Ev & { start: When }, local: string, stop: number): Generator<When> {
+function* occurrences(ev: Ev & { start: When }, local: string, from: number, stop: number, budget: { left: number }): Generator<When> {
   const r = ev.rule;
   const first = ev.start;
   const make = (wall: Wall): When => (first.allDay ? { allDay: true, wall } : { ...first, wall });
@@ -182,7 +194,12 @@ function* occurrences(ev: Ev & { start: When }, local: string, stop: number): Ge
     return true;
   };
   const s = first.wall;
-  for (let step = 0; step < 100_000; step++) {
+  // Without a count, nothing before the days asked for matters: start a step or two before them. A month is taken as
+  // 31 days and a year as 366, so this never starts late.
+  const unit = { DAILY: 1, WEEKLY: 7, MONTHLY: 31, YEARLY: 366 }[r.freq] * r.interval;
+  const skip = r.count === undefined ? Math.max(0, Math.floor((from - startUtc) / DAY_MS / unit) - 2) : 0;
+  for (let step = skip; ; step++) {
+    if (--budget.left < 0) throw new IcsError('This calendar has too many repeats to read.');
     let candidates: Wall[];
     if (r.freq === 'DAILY') candidates = [addDays(s, step * r.interval)];
     else if (r.freq === 'WEEKLY') {
@@ -192,6 +209,8 @@ function* occurrences(ev: Ev & { start: When }, local: string, stop: number): Ge
       const m0 = s.y * 12 + (s.mo - 1) + step * r.interval;
       const y = Math.floor(m0 / 12);
       const mo = (m0 % 12) + 1;
+      // A month with no day that fits (the 31st, a fifth Monday) yields nothing, so the end is checked here too.
+      if (Date.UTC(y, mo - 1, 1) - DAY_MS > stop) return;
       if (r.byday.length) {
         candidates = r.byday.flatMap((b) => {
           const all = Array.from({ length: daysInMonth(y, mo) }, (_, i) => ({ ...s, y, mo, d: i + 1 })).filter((w) => weekday(w) === b.day);
@@ -204,6 +223,7 @@ function* occurrences(ev: Ev & { start: When }, local: string, stop: number): Ge
       }
     } else {
       const y = s.y + step * r.interval;
+      if (Date.UTC(y, s.mo - 1, 1) - DAY_MS > stop) return;
       candidates = s.d <= daysInMonth(y, s.mo) ? [{ ...s, y }] : [];
     }
     if (!(yield* take(candidates))) return;
@@ -241,13 +261,14 @@ export function eventsBetween(text: string, from: string, to: string, opts: { zo
     if (w) moved.set(ev.uid, (moved.get(ev.uid) ?? new Set()).add(keyOf(w, local)));
   }
   const found: (Occurrence & { at: number })[] = [];
+  const budget = { left: MAX_STEPS };
   for (const ev of events) {
     if (!ev.start || ev.cancelled) continue;
     const start = ev.start;
     const exdates = new Set([...ev.exdates].map((x) => keyOf(JSON.parse(x) as When, local)));
     const skip = ev.recurrenceId ? new Set<string>() : moved.get(ev.uid) ?? new Set<string>();
     const length = ev.end ? utcOf(ev.end, local) - utcOf(start, local) : ev.durationMs ?? (start.allDay ? DAY_MS : 0);
-    for (const w of occurrences({ ...ev, start }, local, hi)) {
+    for (const w of occurrences({ ...ev, start }, local, lo - Math.max(0, length) - DAY_MS, hi, budget)) {
       const key = keyOf(w, local);
       if (exdates.has(key) || skip.has(key)) continue;
       const at = utcOf(w, local);

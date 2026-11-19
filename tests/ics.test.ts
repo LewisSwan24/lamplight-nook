@@ -85,6 +85,22 @@ describe('a calendar subscription read by the shop (road-to-1.3.md C5)', () => {
     expect(eventsText(r.events, SH.zone, r.more)).toMatch(/more/);
   });
 
+  it('reads old repeating events quickly, and stops on a calendar that would keep it counting for minutes', () => {
+    const old = cal(...Array.from({ length: 300 }, (_, i) => [`UID:o${i}`, 'DTSTART;TZID=America/New_York:19700101T090000', 'DURATION:PT1H', 'RRULE:FREQ=DAILY', `SUMMARY:o${i}`]));
+    let t = Date.now();
+    const r = eventsBetween(old, '2026-11-20', '2026-11-26', SH);
+    expect(r.events).toHaveLength(MAX_EVENTS);
+    expect(r.more).toBe(true);
+    expect(Date.now() - t).toBeLessThan(3000);
+    // A count has to be walked from the first one, so many long counts from long ago are refused rather than counted.
+    const counted = cal(...Array.from({ length: 2000 }, (_, i) => [`UID:c${i}`, 'DTSTART:19700101T090000Z', 'DURATION:PT1H', 'RRULE:FREQ=DAILY;COUNT=100000', `SUMMARY:c${i}`]));
+    t = Date.now();
+    expect(() => eventsBetween(counted, '2026-11-20', '2026-11-26', SH)).toThrow(/too many repeats/);
+    expect(Date.now() - t).toBeLessThan(5000);
+    // A rule no month fits ends at the days asked for, without counting on.
+    expect(eventsBetween(cal(['UID:n', 'DTSTART:20260101T090000Z', 'RRULE:FREQ=MONTHLY;BYMONTHDAY=35', 'SUMMARY:never']), '2026-11-20', '2026-11-26', SH).events).toEqual([]);
+  }, 20_000);
+
   it('refuses what is not a calendar', () => {
     for (const bad of ['hello', '<html>not found</html>', 'BEGIN:VCARD\r\nEND:VCARD']) expect(() => eventsBetween(bad, '2026-11-20', '2026-11-20', SH)).toThrow(IcsError);
     // An event without a start is skipped, not a reason to refuse the rest.
