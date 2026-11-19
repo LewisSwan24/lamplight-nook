@@ -138,6 +138,7 @@ describe('officeSafe', () => {
     expect(officeSafe(header('be-16.docx', be)), 'utf-16 big-endian without a mark').toEqual({ ok: false, reason: 'unreadable' });
     const wide32 = Buffer.concat([...field].map((c) => Buffer.from([c.charCodeAt(0), 0, 0, 0])));
     expect(officeSafe(header('le-32.docx', wide32)), 'utf-32').toEqual({ ok: false, reason: 'unreadable' });
+    expect(officeSafe(header('le-32-mark.docx', Buffer.concat([Buffer.from([0xff, 0xfe, 0, 0]), wide32]))), 'utf-32 with its mark').toEqual({ ok: false, reason: 'unreadable' });
     // A picture that starts with zero bytes (EMF does) is still a picture.
     expect(officeSafe(changed('sample.docx', 'emf.docx', (p) => p.set('word/media/image9.emf', Buffer.from([1, 0, 0, 0, 0x6c, 0, 0, 0, 0x3c, 0]))))).toEqual({ ok: true });
     expect(officeSafe(header('no-bom-16.docx', Buffer.from(field, 'utf16le'))), 'utf-16 without a mark').toEqual({ ok: false, reason: 'unreadable' });

@@ -44,6 +44,8 @@ function partText(buf: Buffer): string {
   if (buf[0] === 0xfe && buf[1] === 0xff) throw new Unreadable();
   if (!wide && looksWideXml(buf)) throw new Unreadable();
   const text = wide ? buf.subarray(2).toString('utf16le') : (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf ? buf.subarray(3) : buf).toString('utf8');
+  // Read as UTF-16, a NUL anywhere means it is not (UTF-32 starts FF FE 00 00), so it is not passed over as a picture.
+  if (wide && text.includes('\0')) throw new Unreadable();
   if (!/^\s*</.test(text)) return text;
   if (text.includes('\0')) throw new Unreadable();
   const declared = /^\s*<\?xml[^>]*\bencoding\s*=\s*["']([^"']*)["']/i.exec(text)?.[1].toLowerCase();
