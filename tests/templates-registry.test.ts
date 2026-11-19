@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LOCALES } from '../app/shared/i18n';
 import { WORK_ICONS } from '../app/shared/growth';
-import { EDITABLE, MAX_EDIT_BYTES, TEMPLATES, template } from '../app/shared/templates';
+import { EDITABLE, MAIN_FILES, MAX_EDIT_BYTES, TEMPLATES, template } from '../app/shared/templates';
 
 /** The one table of templates (road-to-1.1.md A7): every record has what the rest of the app looks up by its id. */
 describe('the template table', () => {
@@ -27,7 +27,25 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides']);
+  });
+
+  it('adds a Word document and slides after the small tool, made with the shop\'s office tools (road-to-1.3.md C1)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['document', 'slides']);
+    expect(TEMPLATES.slice(-2).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[13, 'office', false], [14, 'office', false]]);
+    expect(template('sheet').main).toBe('office');
+    for (const S of Object.values(LOCALES)) {
+      expect(S.ui.files.document).toMatch(/\.docx$/);
+      expect(S.ui.files.slides).toMatch(/\.pptx$/);
+      expect(S.ui.files.sheet).toMatch(/\.xlsx$/);
+      expect(S.ui.files.resumePdf).toMatch(/\.pdf$/);
+    }
+  });
+
+  it('tells Office files and PDFs apart as main files, after pages and before write-ups', () => {
+    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'page', 'office', 'writeup', 'table']);
+    for (const f of ['a.docx', 'b.XLSX', 'c.pptx', 'd.pdf']) expect(MAIN_FILES.office(f), f).toBe(true);
+    for (const f of ['a.docm', 'b.xlsm', 'c.pptm', 'd.csv', 'e.html']) expect(MAIN_FILES.office(f), f).toBe(false);
   });
 
   it('has a picture and words for every piece a kind of work brings', () => {
@@ -48,8 +66,8 @@ describe('the template table', () => {
   });
 
   it('adds a résumé, reading notes, a travel guide and a small tool after the album, each with its own piece', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-5)).toEqual(['album', 'resume', 'notes', 'travel', 'tool']);
-    expect(TEMPLATES.slice(-4).map((t) => [t.icon, t.main, 'growth' in t ? t.growth : null])).toEqual([
+    expect(TEMPLATES.map((t) => t.id).slice(-7, -2)).toEqual(['album', 'resume', 'notes', 'travel', 'tool']);
+    expect(TEMPLATES.slice(-6, -2).map((t) => [t.icon, t.main, 'growth' in t ? t.growth : null])).toEqual([
       [9, 'page', { id: 'briefcase', at: 1 }],
       [10, 'writeup', { id: 'readinglamp', at: 1 }],
       [11, 'index', { id: 'postcards', at: 1 }],

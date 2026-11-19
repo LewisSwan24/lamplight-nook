@@ -191,7 +191,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   const interim = interimPermission(workDir);
   const servers = nook?.servers ?? [];
   const nookTools = toolsByName(servers);
-  const mcpServers = mcpServersOf(servers, { run: nook?.run ?? '', project: nook?.project, workDir, signal: abort?.signal ?? new AbortController().signal }, nook?.actions);
+  const mcpServers = mcpServersOf(servers, { run: nook?.run ?? '', project: nook?.project, workDir, signal: abort?.signal ?? new AbortController().signal, preexisting: preexisting ?? new Set() }, nook?.actions);
   const canUseTool: CanUseTool = broker
     ? makePermissionPolicy({ workDir, preexisting, keepOriginal, nook: nookTools, round: nook?.actions }, broker, {
         onRequest: (tool, input, risk, reason, agentId) =>

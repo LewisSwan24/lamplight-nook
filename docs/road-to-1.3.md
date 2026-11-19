@@ -33,7 +33,7 @@
 |---|---|---|---|---|---|---|
 | C4 | 店内工具和连接的框架 | 无 | L | 否 | 否 | 已合并（#93） |
 | C6 | 外部动作的安全规则和记录 | C4 | M | 否 | 否 | 已合并（#94），测试和场景在 #102 |
-| C1 | Office 和 PDF 的读写，结果卡预览 | C4 的店内工具那一半 | L | 否 | 约 $5 | 未开工 |
+| C1 | Office 和 PDF 的读写，结果卡预览 | C4 的店内工具那一半 | L | 否 | 约 $5 | 已合并（#104），真 Key 等 Lewis |
 | C3 | 改文档的模板放宽 | C1 | M | 否 | 约 $3 | 未开工 |
 | C7 | 调研报告带出处 | 无 | M | 否 | 约 $3 | 未开工 |
 | C2 | 照片、图表和海报 | C1 的出图工具 | M | 否 | 约 $3 | 未开工，Q-C1 待定 |
@@ -285,6 +285,29 @@ type SlideSpec = { title: string; accent?: string; slides: {
 - 风险分级：`read_document` 只许读委托文件夹里的文件，`make_*` 按 C6 的 `make` 处理。
 
 **完成标准：** 新的 `tests/office.test.ts` 覆盖三种结构写出的文件能被读回同样的文字、公式还在、图片只认文件夹里的、路径出了文件夹就拒绝、解压超限就不读。`tests/fixtures/` 放几份 Word、Excel、PowerPoint 存出来的小文件，`read_document` 读它们的结果做快照。新的 `tests/office-safe.test.ts` 覆盖带宏、带外部模板、带外部链接的样本都不打开。`tests/templates-prompts.test.ts` 的快照加两个新模板和改过的 `sheet`。`tests/templates-registry.test.ts` 照旧过。新场景 `office`：替身各做一份 docx、xlsx、pptx 和 PDF，结果卡有缩略图，点了能打开（打开的动作在替身里记下，不真开 Office）。新场景 `officeread`：递一份 docx 和一份 xlsx，替身读到的文字和样本一样。中英文的结果卡截图都看过，最小窗口也看。`templates`、`export`、`materials`、`revise` 照旧过。真 Key 约 $5：Word、Excel、PPT、PDF 各做一单，再递一份 Word 让它总结。四个文件在 Office 里打开看过。
+
+**做法：**
+
+- 库：Word 用 `docx` 9.15.0，PPT 用 `pptxgenjs` 4.0.1，都是 MIT，装的时候不跑脚本。两个都打进主进程的包里，所以放在 devDependencies，安装包不带它们整份的 node_modules。Excel 没用 exceljs：它有 21MB，带着解压、临时文件等一串库，最后一次发版在 2024 年 12 月。xlsx 的读和写都是应用自己写的。
+- 解压也是自己写的（`app/main/office/unzip.ts`）。先看目录，条目超过 5,000 个、或者声明的解压大小合计超过 100MB，就不读。解压时也不信声明的大小，超了就停。两个条目名字只差大小写、文件头里的名字和目录对不上，都当读不了。
+- 店内服务器 `office`（`app/main/office/tools.ts`）每一单都带上。`make_*` 写文件时顺手写一份预览网页，放在数据文件夹的 `previews/<运行号>/`。只留最近 50 单，“忘掉一切”时清空。`ToolCtx` 多了 `preexisting`，写文件的规矩和 `Write` 一样。
+- 风险：店内工具按它对应的内置工具定级。`read_document` 的路径照 `Read` 算，`make_*` 照 `Write` 算，`make_pdf` 的源网页照 `Read` 算。在委托文件夹里就放行，不弹卡。
+- 表格公式：xlsx 一打开就重算（`fullCalcOnLoad`），所以写的时候拒绝会连网、调 Windows、走 DDE、指向别的文件的公式（`formula.ts`）。只看公式原文，不拆引号。代价是标签里提到 `WEBSERVICE(` 或者带竖线，也会被拒。
+- 打开前的检查（`safe.ts`）过了八轮安全审查。每次照 Office 的读法去拆，都多出一处读法不同的地方，所以最后定的原则是宁可粗：
+  - 宏、嵌入对象和控件、整份嵌进来的 RTF 或 HTML（altChunk）、外部模板、往外伸手的链接，各有一个原因，卡上写明。
+  - 包里每个 XML 部件都看，不管叫什么名字。域代码和公式按标签名找，前缀和嵌套都不影响。每个 `instr` 属性都算。
+  - 不是 XML 的部件，只放行图片、声音和视频（按字节认），以及打印机设置和嵌入字体。
+  - Office 自己不会写的东西，一律当读不了：DTD、公式里夹标签、属性只差前缀、声明的编码和字节对不上、宽编码却没有标记。
+  - 没过检查的文件只在文件夹里指给用户看。结果卡写原因，作品架和看旧版本只指位置。
+- 缩略图：`print.ts` 里 `pageToPdf` 和拍缩略图共用一个隔离的隐藏窗口，规矩不变。网页拍 1024×640 的第一屏，预览网页按内容的高度拍。缩成 280 像素宽的 PNG，超过 200KB 再缩。卡先出来，图随后补上，日志里量到 183 到 447 毫秒。窗口高度在 460 像素以下时不放图，只写文件名。
+- 模板：新加 `document`（作品架图标 13）和 `slides`（图标 14）。表格改做 xlsx，简历多存一份 PDF。结果卡认主文件时，`office` 排在网页后面。
+- 测试样本是 Word、Excel、PowerPoint 真存出来的，脚本在 `tools/make-office-fixtures.ps1`。
+
+**暂定（2026-11-19）：**
+
+- 带内嵌图表的 PPT 点了不直接打开，只在文件夹里指出来，因为图表的数据存成了嵌入的工作簿。打开前的检查宁严勿松。
+- 公式的标签里出现 `WEBSERVICE(` 或者竖线也会被拒。店员会收到原因，换一种写法。
+- 场景 `office` 里替身先写了 `index.html`，所以那张卡的主文件是网页。Office 预览和点开 .docx，在场景 `templates` 里查。
 
 ### C3 改文档的模板放宽
 

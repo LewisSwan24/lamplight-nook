@@ -8,7 +8,7 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -39,7 +39,9 @@ import { localMonth } from '../shared/localday';
 import { RoundTally } from './tally';
 import { zip } from './zip';
 import { exportName, workEntries } from './export';
-import { pageToPdf } from './print';
+import { imageThumb, pageThumb, pageToPdf } from './print';
+import { officeServer, prunePreviews, thumbSource } from './office/tools';
+import { howToOpen } from './open-rule';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
 import { copyMaterials, sortHandOver } from './materials';
@@ -355,8 +357,23 @@ function connectionServer(c: Connection): NookServer | null {
   const def = kindOf(c.kind);
   return def ? { name: c.id, tools: def.tools(c, () => connections.secret(c.id)), used: () => connections.used(c.id), connection: { id: c.id, label: c.label } } : null;
 }
-/** The shop's own tools, on every round (C1 brings the first). */
-const SHOP_SERVERS: NookServer[] = [];
+/** Each round's preview pages for the result card's thumbnail (C1), in the data folder, the newest runs' only. */
+const previewsDir = () => join(app.getPath('userData'), 'previews');
+/** The shop's own tools, on every round: Word, Excel, PowerPoint and PDF (C1). */
+const shopServers = (): NookServer[] => [officeServer({ previews: previewsDir(), toPdf: pageToPdf })];
+/** The screens a thumbnail is taken from: a page as on a small laptop, a preview page at its own width. */
+const PAGE_SCREEN = { width: 1024, height: 640 };
+const PREVIEW_SCREEN = { width: 560, height: 420 };
+/**
+ * The result card's thumbnail (road-to-1.3.md C1), or nothing when its main file has no picture (thumbSource). A page
+ * opens in the same walled-off window as a PDF does, a made Office file through its preview page.
+ */
+async function cardThumb(main: string, workDir: string, run: string): Promise<string | undefined> {
+  const src = thumbSource(main, workDir, previewsDir(), run);
+  if (!src) return undefined;
+  if ('image' in src) return imageThumb(src.image);
+  return 'preview' in src ? pageThumb(src.folder, src.page, PREVIEW_SCREEN, true) : pageThumb(src.folder, src.page, PAGE_SCREEN);
+}
 ipcMain.handle(IPC.connections, () => ({
   list: connections.list().flatMap((c) => { const def = kindOf(c.kind); return def ? [{ ...c, grant: def.grant }] : []; }),
   offers: connectionKinds().map(offerOf),
@@ -750,7 +767,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       prompt: withConnections(again ? continuePrompt(job.form, Boolean(job.sessionId), notes, revision)
         : revision ? revisePrompt(revision, Boolean(pickUp), notes)
         : job.form.demo ? demoPrompt(job.form, notes) : commissionPrompt(job.form, notes), told),
-      nook: { servers: [...SHOP_SERVERS, ...ticked], run, project: project?.id, actions },
+      nook: { servers: [...shopServers(), ...ticked], run, project: project?.id, actions },
       resume: again ? job.sessionId : pickUp,
       onSession: (id) => { job.sessionId = id; pending.save(job); if (actions.readFrom) connectionReads.set(id, actions.readFrom); },
       onInit: (info) => log?.info('run session', info),
@@ -809,6 +826,14 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
         run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
         id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
       });
+      // The card first, its thumbnail when it is ready (C1): loading a page takes a moment, which the card need not wait for.
+      if (outputs.main) {
+        const shown = Date.now();
+        void cardThumb(outputs.main, job.workDir, run).then((png) => {
+          log?.info('result thumbnail', { ms: Date.now() - shown, kb: png ? Math.round(png.length / 1024) : 0 });
+          if (png) send(IPC.resultPreview, { run, png });
+        }, (err) => log?.warn('result thumbnail failed', String(err)));
+      }
       const named = memory.get().projects.find((p) => p.id === entry?.project)?.title ?? who.title;
       notice(result.ok ? 'done' : error === 'budget' || stop ? 'budget' : 'failed', named, () => send(IPC.openResult, run));
     }
@@ -1045,7 +1070,7 @@ ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
   if (!memo?.folder || !existsSync(memo.folder)) return false;
   const main = memo.main ? join(memo.folder, memo.main) : null;
   if (main && existsSync(main) && insideForReal(memo.folder, main)) {
-    if (openable(main)) return (await shell.openPath(main)) === '';
+    if (howToOpen(main).open) return (await shell.openPath(main)) === '';
     shell.showItemInFolder(main);
     return true;
   }
@@ -1204,7 +1229,7 @@ ipcMain.handle(IPC.openVersion, async (_e, id: string, round: number): Promise<b
   const file = main && existsSync(join(lookingAt, main)) && isInside(lookingAt, join(lookingAt, main)) ? join(lookingAt, main) : lookingAt;
   log?.info('open version', { round });
   // Same rule as opening a work: only kinds that are safe to open; anything else is shown in its folder.
-  if (file !== lookingAt && !openable(file)) { shell.showItemInFolder(file); return true; }
+  if (file !== lookingAt && !howToOpen(file).open) { shell.showItemInFolder(file); return true; }
   return (await shell.openPath(file)) === '';
 });
 ipcMain.handle(IPC.revertProject, (_e, id: string, round: number): boolean => {
@@ -1418,6 +1443,7 @@ ipcMain.handle(IPC.clearMemory, (): boolean => {
   // connection-reads.json stays: a session it marks may still be carried on, and must keep asking (C6). It holds only
   // session ids and connection names, nothing that was read.
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
+  prunePreviews(previewsDir(), 0);
   return true;
 });
 ipcMain.handle(IPC.clearStats, () => memory.clearStats());
@@ -1429,22 +1455,18 @@ ipcMain.handle(IPC.openCommissionFolder, async (_e, id: string): Promise<boolean
 });
 
 // Only files from the folders of rounds under way or finished since the shop opened can be opened from the renderer.
-ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal') => {
-  if (typeof path !== 'string') return false;
+ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal'): Promise<{ ok: boolean; why?: NotOpened }> => {
+  if (typeof path !== 'string') return { ok: false };
   const allowed = [...[...runs.values()].map((r) => r.job.workDir), ...finishedIn];
-  if (!allowed.some((dir) => insideForReal(dir, path))) return false;
-  if (how === 'reveal' || !openable(path)) shell.showItemInFolder(path);
-  else await shell.openPath(path);
-  return true;
+  if (!allowed.some((dir) => insideForReal(dir, path))) return { ok: false };
+  if (how === 'reveal') { shell.showItemInFolder(path); return { ok: true }; }
+  // Only kinds that are safe to open (open-rule.ts); an Office file that failed its look inside says why on the card.
+  const rule = howToOpen(path);
+  if (rule.open) await shell.openPath(path);
+  else shell.showItemInFolder(path);
+  return rule.open || !rule.why ? { ok: true } : { ok: true, why: rule.why };
 });
 
-/**
- * Kinds of file the shop opens with a click. The staff write files, and a page or a file they read could talk
- * them into writing a program, a script or a shortcut; opening that would run it. Anything else is shown in
- * its folder instead, for the user to decide.
- */
-const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']);
-const openable = (path: string) => OPENABLE.has(extname(path).toLowerCase());
 /** Two folders where one is inside the other (or they are the same), links followed. */
 const overlaps = (a: string, b: string) => insideForReal(a, b) || insideForReal(b, a);
 /** Inside the folder once links are followed, so a link inside cannot point the click somewhere else. */
@@ -1487,6 +1509,7 @@ app.whenReady().then(() => {
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   connections = new ConnectionStore(app.getPath('userData'), safeStorage);
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
+  prunePreviews(previewsDir());
   createWindow();
   startUpdates();
   tray.create();

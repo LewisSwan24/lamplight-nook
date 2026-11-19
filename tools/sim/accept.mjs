@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os';
 import { mainCards } from './cards.mjs';
 import { pdfSays, readPdf } from './pdftext.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
+import { OFFICE_FILES, OFFICE_READ_FILE } from './plays.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : def; };
@@ -36,6 +37,8 @@ const W = {
     notes: '帮我给《瓦尔登湖》做一份读书笔记。',
     travel: '帮我做一份杭州的旅行攻略，三天。',
     tool: '帮我做一个把文本里的英文全改成大写的小工具。',
+    document: '帮我写一份周末读书会的通知。',
+    slides: '帮我做一份介绍春季新菜单的 PPT。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -54,6 +57,8 @@ const W = {
     notes: 'Make me reading notes on Walden.',
     travel: 'Make me a travel guide for Edinburgh, three days.',
     tool: 'Make me a small tool that turns the text in a file into capitals.',
+    document: 'Write me a notice about the weekend book club.',
+    slides: 'Make me slides about the new spring menu.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -95,6 +100,44 @@ function unzipped(file) {
   const run = spawnSync(tar, ['-xf', file, '-C', to], { encoding: 'utf8' });
   check(run.status === 0, `could not unpack ${file}: ${run.stderr}`);
   return to;
+}
+
+/** Clicks that would open a file in Word or a browser are written down instead (globalThis.opened, .revealed). */
+const recordOpens = (shop) => shop.app.evaluate(({ shell }) => {
+  globalThis.opened = [];
+  globalThis.revealed = [];
+  shell.openPath = async (p) => { globalThis.opened.push(p); return ''; };
+  shell.showItemInFolder = (p) => { globalThis.revealed.push(p); };
+});
+const opened = (shop) => shop.app.evaluate(() => ({ opened: globalThis.opened, revealed: globalThis.revealed }));
+
+/** The result card's thumbnail (road-to-1.3.md C1), once it has come: its data: address, and how long it took. */
+async function cardThumb(shop, timeout = 10_000) {
+  const start = Date.now();
+  const img = shop.page.locator('.result-card .result-thumb:not([hidden]) img');
+  await img.waitFor({ state: 'visible', timeout });
+  return { src: await img.getAttribute('src'), ms: Date.now() - start };
+}
+
+/**
+ * What officeSafe looks for, checked with the system's own unzip rather than the shop's code: no macro project, no
+ * macro-enabled type, no relationship that reaches outside except a web link.
+ */
+function looksSafe(file, scratch) {
+  mkdirSync(scratch, { recursive: true });
+  // The system tar cannot open every name (Chinese ones, on Windows): the copy goes by its kind.
+  const copy = join(scratch, `package-${readdirSync(scratch).length}${file.slice(file.lastIndexOf('.'))}`);
+  cpSync(file, copy);
+  const dir = unzipped(copy);
+  const parts = filesIn(dir);
+  check(!parts.some((p) => /vbaProject\.bin$/i.test(p)), `${copy}: carries a macro project`);
+  check(!/macroEnabled/i.test(readFileSync(join(dir, '[Content_Types].xml'), 'utf8')), `${copy}: macro-enabled`);
+  for (const rel of parts.filter((p) => p.endsWith('.rels'))) {
+    for (const r of readFileSync(join(dir, rel), 'utf8').match(/<Relationship [^>]*>/g) ?? []) {
+      check(!/TargetMode="External"/.test(r) || /\/hyperlink"/.test(r), `${copy}: ${rel} reaches outside: ${r}`);
+    }
+  }
+  return { dir, parts };
 }
 
 /** Connect the test connection from the notebook (C4) and close the notebook again. */
@@ -2181,6 +2224,84 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The shop's office tools (road-to-1.3.md C1): the stand-in makes a Word document, a workbook with a SUM, a two-slide
+   * deck, and a page saved as a PDF, none of them asked about. The files are what Office would open without a second
+   * thought; the result card shows a thumbnail a moment after it, and a click on it opens the main file (written down
+   * here, not opened). Shots of the card in both sizes.
+   */
+  async office(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const F = OFFICE_FILES[lang === 'zh-CN' ? 'zh' : 'en'];
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_PLAY: 'office' } });
+    try {
+      await recordOpens(shop);
+      await shop.order({ template: 'document', want: W[lang].document });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      check(!r.seen.length, `making files in the folder was asked about: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const dir = latestCommission(home);
+      for (const name of Object.values(F)) check(existsSync(join(dir, name)), `${name} is not in the commission folder`);
+      const scratch = join(home.home, 'unpacked');
+      looksSafe(join(dir, F.docx), scratch);
+      const xlsx = looksSafe(join(dir, F.xlsx), scratch);
+      const sheet = readFileSync(join(xlsx.dir, 'xl', 'worksheets', 'sheet1.xml'), 'utf8');
+      check(/<f>SUM\(D2:D3\)<\/f>/.test(sheet), `the workbook lost its SUM: ${sheet.slice(0, 300)}`);
+      const pptx = looksSafe(join(dir, F.pptx), scratch);
+      check(pptx.parts.filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p)).length === 2, 'the deck does not have two slides');
+      const pdf = readFileSync(join(dir, F.pdf));
+      const { text } = readPdf(pdf);
+      check(pdf.subarray(0, 5).toString() === '%PDF-' && pdfSays(text, lang === 'zh-CN' ? '小灯屋春季菜单' : 'Lamplight Nook spring menu'), `the PDF does not carry its page: ${text.slice(0, 200)}`);
+
+      const thumb = await cardThumb(shop);
+      check(thumb.src.startsWith('data:image/png;base64,'), 'the thumbnail is not a PNG');
+      check(thumb.src.length * 0.75 <= 200 * 1024, `the thumbnail is ${Math.round(thumb.src.length * 0.75 / 1024)} KB`);
+      const width = await shop.page.locator('.result-card .result-thumb img').evaluate((i) => i.naturalWidth);
+      check(width === 280, `the thumbnail is ${width} wide, not 280`);
+      console.log(`  [${lang}] ${logged(home, "result thumbnail").at(-1) ?? "no thumbnail line in the log"}`);
+      await sleep(400);
+      await shop.shot(join(out, 'office-result.png'));
+      await shop.resize([640, 360]);
+      await sleep(400);
+      await shop.shot(join(out, 'office-result-small.png'));
+      await shop.resize('medium');
+      await sleep(400);
+      await shop.page.locator('.result-card .result-thumb').click();
+      await sleep(500);
+      const main = await shop.page.locator('.result-card .result-file').innerText();
+      const o = await opened(shop);
+      check(o.opened.length === 1 && o.opened[0].endsWith(main.trim()), `the thumbnail did not open the main file ${main}: ${JSON.stringify(o)}`);
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Reading Office files (road-to-1.3.md C1): a Word document and a workbook are handed over, the stand-in reads each with
+   * read_document and writes what came back into a text file, which must hold the samples' text as the tests read it.
+   */
+  async officeread(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const dir = join(home.home, 'samples');
+    mkdirSync(dir, { recursive: true });
+    const handed = ['sample.docx', 'sample.xlsx'].map((name) => {
+      cpSync(join(ROOT, 'tests', 'fixtures', 'office', name), join(dir, name));
+      return join(dir, name);
+    });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_PLAY: 'officeread' } });
+    try {
+      await shop.order({ template: 'document', want: W[lang].document, files: handed });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      check(!r.seen.length, `reading the handed-over files was asked about: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const text = readFileSync(join(latestCommission(home), OFFICE_READ_FILE[lang === 'zh-CN' ? 'zh' : 'en']), 'utf8');
+      // tests/__snapshots__/office.test.ts.snap, what readDocument gives for these two.
+      for (const said of ['# Quarterly report', 'This paragraph has bold words in it.', '- Second point', '| Apples | 3 | Fresh |', '这是一行中文。',
+        '## Sales', 'Item,Amount', 'Tea,12.5', '"Jam, small",4', 'Total,46.5', '## Notes', 'Open,TRUE']) check(text.includes(said), `what was read lacks "${said}": ${text.slice(0, 400)}`);
+      await shop.shot(join(out, 'officeread-result.png'));
+    } finally { await shop.close(); }
+  },
+
   async materials(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);
@@ -2200,7 +2321,10 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
-  /** All twelve templates, one after another in the same shop; each leaves its file and a shelf item. */
+  /**
+   * All fourteen templates, one after another in the same shop; each leaves its file and a shelf item. The ones whose main
+   * file is a page or a file the office tools made get a thumbnail on their card (C1); a click on the Word document's opens it.
+   */
   async templates(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });
     const s = samples(home);
@@ -2218,9 +2342,14 @@ const SCENARIOS = {
       ['notes', W[lang].notes, F.notes, [s.note]],
       ['travel', W[lang].travel, 'index.html'],
       ['tool', W[lang].tool, F.tool],
+      ['document', W[lang].document, F.document],
+      ['slides', W[lang].slides, F.slides],
     ];
+    // Kinds whose card shows a picture: a page or a file the office tools made this round.
+    const pictured = new Set(['page', 'sheet', 'album', 'resume', 'travel', 'tool', 'document', 'slides']);
     const shop = await launch({ lang, home, speed: SPEED });
     try {
+      await recordOpens(shop);
       for (const [template, want, file, files, source] of list) {
         await shop.order({ template, want, files });
         if (source) {
@@ -2233,7 +2362,15 @@ const SCENARIOS = {
         check(r.ok, `${template} did not finish`);
         const dir = latestCommission(home);
         check(existsSync(join(dir, file)), `${template}: ${file} missing`);
-        if (template === 'sheet') check(readFileSync(join(dir, file), 'utf8').charCodeAt(0) === 0xfeff, 'table has no BOM');
+        if (['sheet', 'document', 'slides'].includes(template)) check(readFileSync(join(dir, file)).subarray(0, 2).toString() === 'PK', `${template}: ${file} is not an Office package`);
+        if (template === 'resume') check(readFileSync(join(dir, F.resumePdf)).subarray(0, 5).toString() === '%PDF-', 'the résumé has no PDF beside it');
+        if (pictured.has(template)) await cardThumb(shop).catch(() => check(false, `${template}: no thumbnail on the card`));
+        if (template === 'document') {
+          await shop.page.locator('.result-card .result-thumb').click();
+          await sleep(500);
+          const o = await opened(shop);
+          check(o.opened.at(-1)?.endsWith(file), `the Word document's thumbnail did not open it: ${JSON.stringify(o)}`);
+        }
         // The small tool made a page, so there is no script or launcher, and nothing ran on the computer.
         if (template === 'tool') check(![F.toolScript, F.toolLauncher].some((f) => existsSync(join(dir, f))), 'the tool wrote a script it did not need');
         await shop.shot(join(out, `template-${template}.png`));

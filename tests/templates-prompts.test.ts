@@ -9,7 +9,7 @@ import type { CommissionForm, CommissionTemplate } from '../app/shared/types';
  * into one table (road-to-1.1.md A7) can be shown to change nothing. commission.ts reads the language once
  * when it loads, so each language gets its own fresh copy of the modules.
  */
-const IDS: CommissionTemplate[] = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool'];
+const IDS: CommissionTemplate[] = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides'];
 
 async function inLanguage(lang: 'zh-CN' | 'en') {
   vi.resetModules();
@@ -87,6 +87,10 @@ for (const lang of ['zh-CN', 'en'] as const) {
         pick(['b.csv']),
         pick(['b.txt']),
         pick(['b.json']),
+        // Office files and PDFs (road-to-1.3.md C1): after pages, before write-ups; never the macro kinds.
+        pick(['a.md', 'b.docx']),
+        pick(['resume.html', 'resume.pdf']),
+        pick(['a.md', 'b.xlsm', 'c.pdf']),
       ]).toMatchSnapshot();
     });
   });
