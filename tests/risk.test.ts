@@ -162,6 +162,21 @@ describe('risk classifier', () => {
     expect(r('WebFetch', { url: 'https://example.com' })).toBe('safe');
   });
 
+  it('once a round has read from a connection, commands that would go ahead ask first; harsher verdicts stay (C6)', () => {
+    const round = { paused: () => false, readFrom: 'My calendar', refused: () => {} };
+    const sh = (tool: string, command: string) => classify(tool, { command }, { ...ctx, round });
+    // node can reach the network as easily as WebFetch can, so what was read could leave through it.
+    expect(sh('Bash', 'node check.js')).toEqual({ risk: 'ask', reason: strings.risk.shellAfterConnection.replace('{label}', 'My calendar') });
+    expect(sh('Bash', 'ls -la').risk).toBe('ask');
+    expect(sh('PowerShell', 'node check.js').risk).toBe('ask');
+    expect(sh('Bash', 'rm draft-1.html').risk).toBe('serious');
+    // Not commands: reading and writing in the folder go ahead as before.
+    expect(classify('Read', { file_path: join(workDir, 'a.html') }, { ...ctx, round }).risk).toBe('safe');
+    expect(classify('Write', { file_path: join(workDir, 'b.html') }, { ...ctx, round }).risk).toBe('safe');
+    // Nothing read yet: as before.
+    expect(classify('Bash', { command: 'node check.js' }, { ...ctx, round: { ...round, readFrom: undefined } }).risk).toBe('safe');
+  });
+
   it('with all connections paused, a connection\'s tools are refused; the shop\'s own are not (C6)', () => {
     const nook = new Map<string, NookEntry>([
       ['mcp__nook-k1__read_note', { kind: 'read' as const, label: () => 'read', connection: { id: 'k1', label: 'Test' } }],

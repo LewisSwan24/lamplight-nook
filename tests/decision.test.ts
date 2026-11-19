@@ -200,6 +200,14 @@ describe('outside actions through a connection (road-to-1.3.md C6)', () => {
     expect(asked[0]).toMatchObject({ kind: 'serious', defaultId: 'deny', reason: strings.risk.nook.final, undo: strings.decision.undoNo });
   });
 
+  it('a step with nothing passed to it has no "show the full command" to open', async () => {
+    const { policy, asked } = withRound((r) => r.defaultId);
+    await policy('mcp__nook-k1__send', {}, opts);
+    await policy('mcp__nook-k1__save_note', { text: 'x' }, opts);
+    expect(asked[0].detail).toBeUndefined();
+    expect(asked[1].detail).toBe('{"text":"x"}');
+  });
+
   it('with all connections paused, nothing is asked: the call is refused and Claude told why', async () => {
     const { policy, asked, refused } = withRound(() => 'allow', true);
     const res = await policy('mcp__nook-k1__save_note', { text: 'x' }, opts);
