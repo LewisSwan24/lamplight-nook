@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.setConfig({ testTimeout: 60_000 });
 import { GARDEN_AREA, GARDEN_DOOR_SPOT, SPOTS, pathInGarden, pathToBackDoor } from '../app/renderer/game/garden';
 import { ANCHORS, CANVAS, SECOND_CREW, SECOND_SEATS, pathBetween, seatsIn, standPoint, walkBetween } from '../app/renderer/game/layout';
-import { GUEST_DOOR, GUEST_SPOT } from '../app/renderer/game/guests';
+import { GUEST_DOOR, GUEST_SPOT, POST_SPOT } from '../app/renderer/game/guests';
 import { YOU_SEAT } from '../app/renderer/game/you';
 import { HOLIDAYS, SEASONS } from '../app/renderer/game/weather';
 import { STAFF } from '../app/shared/staff';
@@ -17,7 +17,7 @@ type Box = { name: string; left: number; right: number; top: number; bottom: num
 const box = (name: string, left: number, right: number, top: number, bottom: number): Box => ({ name, left, right, top, bottom });
 
 /** The floor under what stands in the room, measured from cafe.png and study.png; what rises above it can hide a walker. */
-const SHARED = [box('left chair', 98, 111, 86, 98), box('right chair', 189, 202, 86, 98), box('workbench', 128, 144, 144, 158)];
+const SHARED = [box('left chair', 98, 111, 86, 98), box('right chair', 189, 202, 86, 98), box('workbench', 128, 144, 144, 158), box('filing cabinet', 58, 72, 112, 120)];
 const FURNITURE: Record<string, Box[]> = {
   cafe: [
     ...SHARED,
@@ -92,6 +92,7 @@ function walks(scene: 'cafe' | 'study'): { name: string; points: Point[] }[] {
   const trips: [string, Point, Point][] = [
     ['door to counter', GUEST_DOOR, GUEST_SPOT], ['counter to the door', GUEST_SPOT, GUEST_DOOR],
     ['counter to the seat', GUEST_SPOT, YOU_SEAT], ['seat to the counter', YOU_SEAT, GUEST_SPOT],
+    ['door to the letter holder', GUEST_DOOR, POST_SPOT], ['letter holder to the door', POST_SPOT, GUEST_DOOR],
   ];
   for (const [name, from, to] of trips) out.push({ name, points: [from, ...walkBetween(from, to, scene)] });
   for (const actor of STAFF) {

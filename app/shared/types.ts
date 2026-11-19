@@ -7,7 +7,8 @@ import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId } from './templates';
 
 /** Scene anchors: characters only move between these points. */
-export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
+/** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
+export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner' | 'cabinet' | 'mailslot';
 
 export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'cat';
 /** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
