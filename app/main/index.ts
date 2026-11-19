@@ -8,7 +8,7 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -54,7 +54,7 @@ import { ProjectVersions, type Scope } from './project-versions';
 import { cleanScene } from '../shared/scenes';
 import { CONNECTION_ID, ConnectionStore } from './connections';
 import { ActionLog, ConnectionReads, RoundActions } from './action-log';
-import { type KindDef, offerOf, testKind } from './connection-kinds';
+import { calendarKind, type FetchText, folderKind, type KindDef, maildraftKind, offerOf, testKind } from './connection-kinds';
 import { type NookServer, connectionServers } from './nook-tools';
 import { randomUUID } from 'node:crypto';
 
@@ -351,7 +351,23 @@ ipcMain.handle(IPC.monthCapNews, (): number | null => {
  * The kinds of connection this build can make (road-to-1.3.md C4). C5 brings the real ones; until then only a development
  * build has one, the test connection, whose secret a simulated run may name (LAMPLIGHT_TEST_SECRET) to look for it later.
  */
-const connectionKinds = (): KindDef[] => (app.isPackaged ? [] : [testKind(() => process.env.LAMPLIGHT_TEST_SECRET || `test-${randomUUID()}`, join(app.getPath('userData'), 'test-outside'))]);
+const connectionKinds = (): KindDef[] => [
+  folderKind(pickLinkFolder, (path) => holdsTooMuch(path) || [settings.get().workRoot, app.getPath('userData')].some((own) => insideForReal(own, path))),
+  calendarKind(fetchCalendar, !app.isPackaged),
+  maildraftKind(),
+  ...(app.isPackaged ? [] : [testKind(() => process.env.LAMPLIGHT_TEST_SECRET || `test-${randomUUID()}`, join(app.getPath('userData'), 'test-outside'))]),
+];
+/** The folder a synced-folder connection links (C5), picked in the main process's own dialog. */
+async function pickLinkFolder(): Promise<string | null> {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
+  return r.canceled ? null : r.filePaths[0] ?? null;
+}
+/**
+ * A calendar's address fetched (C5): no cookies, no redirects followed (one could lead anywhere), and given up after 20
+ * seconds. The address never goes into a message.
+ */
+const fetchCalendar: FetchText = (url) => net.fetch(url, { redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(20_000) });
 const kindOf = (kind: unknown) => connectionKinds().find((k) => k.kind === kind);
 /** A connection's server for a round: its tools, each call noted as its last use; null for a kind this build cannot run. */
 function connectionServer(c: Connection): NookServer | null {
@@ -387,17 +403,24 @@ ipcMain.handle(IPC.undoAction, (_e, id: unknown): boolean => {
   if (!r?.undo?.path || r.undo.done || !r.ok || r.kind !== 'outside') return false;
   const c = connections.get(r.connection);
   const def = c && kindOf(c.kind);
-  if (!def?.undo?.(r.tool, r.undo.path)) return false;
+  if (!def?.undo?.(r.tool, r.undo.path, c)) return false;
   const done = actionLog.undone(r.id, fill(strings.ui.actions.undoSaid, { said: r.said }));
   log?.info('outside action undone', { tool: r.tool, ok: Boolean(done) });
   return Boolean(done);
 });
-ipcMain.handle(IPC.addConnection, (_e, kind: unknown) => {
+/** A connection made after its card said yes: the kind sets it up from what the user gave (C5), then it is kept. */
+ipcMain.handle(IPC.addConnection, async (_e, kind: unknown, input: unknown): Promise<Connection | { error: SetupError } | null> => {
   const def = kindOf(kind);
   if (!def) return null;
-  const made = connections.add(def.kind, def.label, def.config(), def.secret?.());
+  const address = (input as { address?: unknown } | null)?.address;
+  const set = await def.setup({ address: typeof address === 'string' ? address.slice(0, 2000) : undefined });
+  if ('error' in set) {
+    log?.info('connection not made', { kind: def.kind, why: set.error });
+    return set;
+  }
+  const made = connections.add(def.kind, set.label, set.config, set.secret);
   log?.info('connection added', { kind: def.kind, ok: Boolean(made) });
-  return made;
+  return made ?? { error: 'storage' };
 });
 const connectionId = (id: unknown): id is string => typeof id === 'string' && CONNECTION_ID.test(id);
 ipcMain.handle(IPC.pauseConnection, (_e, id: unknown, on: unknown) => connectionId(id) && typeof on === 'boolean' && connections.pause(id, on));

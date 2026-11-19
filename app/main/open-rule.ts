@@ -8,7 +8,7 @@ import { officeSafe } from './office/safe';
  * its folder instead, for the user to decide. Word, Excel and PowerPoint files come in only in their kinds without
  * macros, never .docm, .xlsm or .pptm (road-to-1.3.md C1).
  */
-const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.docx', '.xlsx', '.pptx']);
+const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.docx', '.xlsx', '.pptx', '.eml', '.ics']);
 /** Office opens these and runs what they bring, so each is looked inside first. */
 const OFFICE = new Set(['.docx', '.xlsx', '.pptx']);
 

@@ -1,5 +1,5 @@
 import { fill, locale, strings } from '../../shared/i18n';
-import type { ActionRecord, ConnectionOffer, ConnectionsView, Grant, LamplightApi } from '../../shared/types';
+import type { ActionRecord, ConnectionOffer, ConnectionsView, Grant, LamplightApi, SetupError } from '../../shared/types';
 import { el } from './dom';
 import { closeButton, closePanel, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
@@ -18,31 +18,51 @@ export function grantParts(g: Grant): HTMLElement {
     el('div.grant-part', {}, el('b', {}, K.howDisconnect), el('div', {}, g.disconnect)));
 }
 
+/** What a kind's card asks for besides "Connect" (C5), in the user's words. */
+const kindWords = (kind: string) => (K.kinds as Record<string, { pickHint?: string; addressLabel?: string; addressPlaceholder?: string; addressWarn?: string }>)[kind] ?? {};
+
 /**
  * The authorisation card, shown before a connection is made: "Connect" or "Not now", and not now is what Enter and Esc do.
- * Resolves true only for "Connect".
+ * Resolves with what the card asked for (C5: a calendar's address, typed here) for "Connect", null otherwise.
  */
-export function showGrant(offer: ConnectionOffer): Promise<boolean> {
+export function showGrant(offer: ConnectionOffer): Promise<{ address?: string } | null> {
   return new Promise((resolve) => {
     let answered = false;
+    const W = kindWords(offer.kind);
+    const note = el('div.hint.grant-note', { role: 'status' });
+    // The address is a secret: a password box, so it is not on screen for anyone looking over a shoulder.
+    const address = offer.asks === 'address'
+      ? el('input.grant-address', { type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: W.addressPlaceholder ?? '', 'aria-label': W.addressLabel ?? '' }) as HTMLInputElement
+      : null;
     const answer = (yes: boolean) => {
+      if (yes && address && !address.value.trim()) {
+        note.textContent = K.addressEmpty;
+        address.focus();
+        return;
+      }
       answered = true;
-      resolve(yes);
+      resolve(yes ? (address ? { address: address.value } : {}) : null);
       closePanel();
     };
     const card = el('div.card.paper.grant-card', { role: 'dialog', 'aria-label': fill(K.grantTitle, { label: offer.label }) },
       closeButton(),
       // The title stays put and only the parts scroll, so the scroll bar starts below the close button.
       withPortrait('adeng', 'calm', el('div.card-title', {}, fill(K.grantTitle, { label: offer.label }))),
-      el('div.card-scroll', {}, grantParts(offer.grant)),
+      el('div.card-scroll', {}, grantParts(offer.grant),
+        offer.asks === 'folder' && W.pickHint ? el('div.hint.grant-ask', {}, W.pickHint) : null,
+        address ? el('label.grant-ask', {}, el('b', {}, W.addressLabel ?? ''), address, el('div.hint', {}, W.addressWarn ?? '')) : null,
+        note),
       el('div.actions', {},
         el('button.grant-connect', { type: 'button', onclick: () => answer(true) }, K.connect),
         el('button.default.grant-not-now', { type: 'button', onclick: () => answer(false) }, K.notNow)));
-    card.addEventListener('panel-closed', () => { if (!answered) resolve(false); });
+    card.addEventListener('panel-closed', () => { if (!answered) resolve(null); });
     replaceOpen(card);
-    card.querySelector<HTMLButtonElement>('button.default')?.focus();
+    (address ?? card.querySelector<HTMLButtonElement>('button.default'))?.focus();
   });
 }
+
+/** Why a connection was not made, in the user's words; nothing when they closed the folder dialog themselves. */
+const setupWhy = (why: SetupError) => (why === 'cancelled' ? '' : why === 'broad' ? K.broad : why === 'address' ? K.address : K.storage);
 
 /**
  * The notebook's connections page: a card for each connection (what it may do, when it was last used, pause and
@@ -81,10 +101,12 @@ export function connectionsPage(api: ConnectionApi, view: ConnectionsView, reope
       actions);
   });
   const offers = view.offers.map((o) => el('button.link.connection-add', { type: 'button', 'data-kind': o.kind, onclick: async () => {
-    if (!(await showGrant(o))) return reopen();
-    const made = await api.addConnection(o.kind);
+    const input = await showGrant(o);
+    if (!input) return reopen();
+    const made = await api.addConnection(o.kind, input);
     await reopen();
-    if (!made) document.querySelector('.notebook .connection-note')?.replaceChildren(K.storage);
+    const why = !made ? K.storage : 'error' in made ? setupWhy(made.error) : '';
+    if (why) document.querySelector('.notebook .connection-note')?.replaceChildren(why);
   } }, fill(K.add, { label: o.label })));
   return el('section.notebook-connections', {}, el('h4', {}, K.title),
     el('div.notebook-choice', {}, K.intro),

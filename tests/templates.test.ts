@@ -272,6 +272,11 @@ describe('the main output', () => {
     expect(shot.out.main).toBe(join(shot.work, 'page.html'));
   });
 
+  it('an email draft comes before the letter it was made from (C5)', () => {
+    const { work, out } = made(F.letter, 'letter.eml');
+    expect(out.main).toBe(join(work, 'letter.eml'));
+  });
+
   it('a Markdown write-up counts when there is no page', () => {
     const { work, out } = made(F.summary);
     expect(out.main).toBe(join(work, F.summary));

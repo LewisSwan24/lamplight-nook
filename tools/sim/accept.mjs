@@ -189,6 +189,26 @@ async function connectTest(shop) {
   await sleep(300);
 }
 
+/**
+ * Connect a kind from the notebook (C5): the folder its dialog will pick, the address typed on its card, `shot` with the
+ * card up, and the notebook left open on the connections page. `keep`: the connection is expected not to be made.
+ */
+async function connectKind(shop, kind, { folder, address, shot, keep = false } = {}) {
+  const { page, L } = shop;
+  if (folder) await shop.pickFiles([folder]);
+  await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+  await page.waitForSelector('.notebook .notebook-connections');
+  await sleep(400);
+  await page.locator(`.notebook-connections .connection-add[data-kind="${kind}"]`).click();
+  await page.waitForSelector('.grant-card');
+  await sleep(400);
+  if (address) await page.locator('.grant-card .grant-address').fill(address);
+  if (shot) await shot();
+  await page.locator('.grant-card .grant-connect').click();
+  await page.waitForSelector(keep ? '.notebook .notebook-connections' : '.notebook .connection');
+  await sleep(500);
+}
+
 /** Fill in a slip with the one connection ticked, and send it. */
 async function orderWithConnection(shop, want) {
   await shop.order({ want });
@@ -2141,6 +2161,164 @@ const SCENARIOS = {
     check(!logLines(home).join('\n').includes(SECRET) && !recorded.includes(SECRET), 'the secret is in the log or a recording');
     check(recorded.includes('[redacted]'), 'the stand-in never repeated the secret, so nothing was looked for');
     check(/mcp__nook-k\d+__read_note/.test(recorded), 'the recording has no call of the connection\'s tool');
+  },
+
+  /**
+   * A synced folder (C5): its card, then the folder picked; a commission reads the Word file in it and saves a copy of its
+   * summary back, declined once and allowed once; the notebook undoes the copy. The user's files are untouched.
+   */
+  async folderlink(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const root = join(home.home, 'OneDrive');
+    mkdirSync(join(root, 'Docs'), { recursive: true });
+    copyFileSync(join(ROOT, 'tests', 'fixtures', 'office', 'sample.docx'), join(root, 'Docs', 'report.docx'));
+    writeFileSync(join(root, 'notes.md'), 'Tea on Friday.\n');
+    writeFileSync(join(root, 'api-key.txt'), 'sk-not-for-the-staff');
+    const before = filesIn(root);
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'folderlink' } });
+    const { page, L } = shop;
+    const K = L.ui.connections.kinds.folder;
+    const lines = () => readFileSync(join(home.data, 'actions.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    try {
+      await connectKind(shop, 'folder', { folder: root, shot: async () => {
+        check((await page.locator('.grant-card').innerText()).includes(K.pickHint), 'the card does not say a folder is picked next');
+        await shop.shot(join(out, 'folder-grant.png'));
+        await shop.resize([640, 360]);
+        await sleep(400);
+        await shop.shot(join(out, 'folder-grant-small.png'));
+        await shop.resize('medium');
+      } });
+      const made = JSON.parse(readFileSync(join(home.data, 'connections.json'), 'utf8')).connections;
+      check(made.length === 1 && made[0].kind === 'folder' && made[0].config.path === root && made[0].config.saveTo === K.saveTo, `connections.json: ${JSON.stringify(made)}`);
+      check((await page.locator('.notebook .connection').innerText()).includes('OneDrive'), 'the connections page does not name the folder');
+      await shop.shot(join(out, 'folder-page.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await orderWithConnection(shop, W[lang].notes);
+      let cards = 0;
+      const r = await shop.workUntilDone({ answers: () => (cards++ === 0 ? null : 1) });
+      check(r.ok, 'did not finish');
+      check(r.seen.length === 2 && r.seen.every((c) => c.serious && c.text.includes(K.saveCopyUndo)), `the saves were not asked on the serious card: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const summary = lang === 'zh-CN' ? '摘要.md' : 'summary.md';
+      check(existsSync(join(latestCommission(home), summary)), 'the Word file was not read into a summary');
+      const saved = join(root, K.saveTo, summary);
+      check(existsSync(saved) && readdirSync(join(root, K.saveTo)).length === 1, `the copy is not alone in "${K.saveTo}": ${existsSync(join(root, K.saveTo)) ? readdirSync(join(root, K.saveTo)) : 'no folder'}`);
+      const [declined, done, ...more] = lines().filter((l) => l.tool === 'save_copy');
+      check(!more.length && declined.decision === 'denied' && done.decision === 'allowed' && done.undo?.path?.endsWith(join(K.saveTo, summary)), `actions.jsonl: ${JSON.stringify(lines())}`);
+      check(lines().some((l) => l.tool === 'read' && l.decision === 'given'), 'reading through the connection was not written down');
+      await page.keyboard.press('Escape');
+      await sleep(1500);
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      await page.waitForSelector('.notebook .notebook-actions');
+      const section = page.locator('.notebook .notebook-actions');
+      await section.scrollIntoViewIfNeeded();
+      await section.locator('.action-undo').click();
+      await page.waitForSelector('.notebook .notebook-actions .action-undone', { timeout: 5000 });
+      await sleep(400);
+      await shop.shot(join(out, 'folder-undone.png'));
+      check(!existsSync(saved), 'the undo left the copy in the synced folder');
+      check(JSON.stringify(filesIn(root)) === JSON.stringify(before), `the user's files changed: ${JSON.stringify(filesIn(root))}`);
+    } finally { await shop.close(); }
+    const recDir = join(home.data, 'recordings');
+    const recorded = readdirSync(recDir).map((f) => readFileSync(join(recDir, f), 'utf8')).join('\n');
+    check(!recorded.includes('sk-not-for-the-staff'), 'a file named like a key reached the staff');
+  },
+
+  /**
+   * A read-only calendar (C5): its secret address is typed on the card and served by a little local server. The staff
+   * read a week of it without a card; the address is nowhere in the log, the recordings, the data folder as written, or
+   * on the page.
+   */
+  async calendar(lang, out) {
+    const token = `private-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const title = lang === 'zh-CN' ? '看牙医' : 'Dentist';
+    const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; };
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:a', `DTSTART:${day(1)}T100000`, `DTEND:${day(1)}T110000`, `SUMMARY:${title}`, 'LOCATION:Main St 1', 'END:VEVENT',
+      'BEGIN:VEVENT', 'UID:b', `DTSTART;VALUE=DATE:${day(3)}`, `DTEND;VALUE=DATE:${day(4)}`, 'SUMMARY:Holiday', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    let asked = 0;
+    const server = createServer((req, res) => {
+      asked++;
+      if (req.url !== `/${token}/basic.ics`) { res.writeHead(404).end(); return; }
+      res.writeHead(200, { 'content-type': 'text/calendar; charset=utf-8' }).end(ics);
+    });
+    await new Promise((done) => server.listen(0, '127.0.0.1', done));
+    const address = `http://127.0.0.1:${server.address().port}/${token}/basic.ics`;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'calendar' } });
+    const { page, L } = shop;
+    const K = L.ui.connections;
+    let pageText = '';
+    try {
+      // A web address that is not https is refused on the card's way in, and nothing is made.
+      await connectKind(shop, 'calendar', { address: 'http://calendar.example.com/a.ics', keep: true });
+      check((await page.locator('.notebook .connection-note').innerText()).includes(K.address), 'an http address was not refused with a reason');
+      check(!existsSync(join(home.data, 'connections.json')), 'an http address made a connection');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await connectKind(shop, 'calendar', { address, shot: async () => {
+        check((await page.locator('.grant-card').innerText()).includes(K.kinds.calendar.addressWarn), 'the card does not warn that the address is a secret');
+        await shop.shot(join(out, 'calendar-grant.png'));
+        await shop.resize([640, 360]);
+        await sleep(400);
+        await shop.shot(join(out, 'calendar-grant-small.png'));
+        await shop.resize('medium');
+      } });
+      await page.locator('.notebook .connection-grant summary').click();
+      await sleep(400);
+      await shop.shot(join(out, 'calendar-page.png'));
+      pageText += await page.evaluate(() => document.body.innerText);
+      for (const f of ['connections.json', 'connections.bin']) check(!readFileSync(join(home.data, f)).toString('utf8').includes(token), `${f} holds the address as written`);
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await orderWithConnection(shop, W[lang].plan);
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      check(!r.seen.length, `reading the calendar asked: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const plan = readFileSync(join(latestCommission(home), lang === 'zh-CN' ? '一周计划.md' : 'week-plan.md'), 'utf8');
+      check(plan.includes(title) && plan.includes('10:00-11:00') && /all day Holiday/.test(plan), `the plan does not hold the week's events: ${plan}`);
+      pageText += await page.evaluate(() => document.body.innerText);
+      await shop.shot(join(out, 'calendar-result.png'));
+    } finally {
+      await shop.close();
+      server.close();
+    }
+    check(asked >= 1, 'the calendar was never fetched');
+    const recDir = join(home.data, 'recordings');
+    const recorded = readdirSync(recDir).map((f) => readFileSync(join(recDir, f), 'utf8')).join('\n');
+    check(!logLines(home).join('\n').includes(token), 'the calendar address is in the log');
+    check(!recorded.includes(token), 'the calendar address is in a recording');
+    check(!pageText.includes(token), 'the calendar address is on the page');
+    check(/mcp__nook-k\d+__events/.test(recorded), 'the recording has no call of the calendar');
+  },
+
+  /**
+   * Email drafts (C5): a letter with its draft ticked. The .eml is in the folder, the card's main button opens it in the
+   * mail program (recorded, nothing opens), and nothing was sent anywhere.
+   */
+  async maildraft(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'maildraft' } });
+    const { page, L } = shop;
+    try {
+      await recordOpens(shop);
+      await connectKind(shop, 'maildraft', { shot: () => shop.shot(join(out, 'maildraft-grant.png')) });
+      await shop.shot(join(out, 'maildraft-page.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await orderWithConnection(shop, W[lang].letter);
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const eml = join(latestCommission(home), lang === 'zh-CN' ? '信.eml' : 'letter.eml');
+      check(existsSync(eml) && /^X-Unsent: 1\r$/m.test(readFileSync(eml, 'utf8')), 'the draft is not in the folder, or not marked unsent');
+      const open = page.locator('.result-card .actions button.default');
+      check((await open.innerText()).trim() === L.ui.openInMail, `the card's button says "${await open.innerText()}"`);
+      await sleep(400);
+      await shop.shot(join(out, 'maildraft-result.png'));
+      await open.click();
+      await sleep(500);
+      const o = await opened(shop);
+      check(o.opened.at(-1) === eml, `the button did not open the draft: ${JSON.stringify(o)}`);
+    } finally { await shop.close(); }
   },
 
   /**

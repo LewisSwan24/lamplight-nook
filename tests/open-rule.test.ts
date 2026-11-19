@@ -36,4 +36,8 @@ describe('howToOpen', () => {
   it('never opens the macro kinds or anything that runs, and gives no reason: they are simply not opened', () => {
     for (const f of ['a.docm', 'a.xlsm', 'a.pptm', 'a.exe', 'a.cmd', 'a.ps1', 'a.lnk', 'a.js', 'noext']) expect(howToOpen(join(dir, f)), f).toEqual({ open: false });
   });
+
+  it('opens an email draft in the mail program and an event in the calendar program, which each ask before anything happens (C5)', () => {
+    for (const f of ['draft.eml', 'event.ics', 'EVENT.ICS']) expect(howToOpen(join(dir, f)), f).toEqual({ open: true });
+  });
 });

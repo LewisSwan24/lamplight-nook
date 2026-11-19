@@ -151,7 +151,8 @@ export interface LamplightApi {
   /** The connections (road-to-1.3.md C4) and the kinds that can be added. */
   connections(): Promise<ConnectionsView>;
   /** "Connect" on a kind's authorisation card: the connection made, or null when the system cannot keep its secret safe. */
-  addConnection(kind: ConnectionKind): Promise<Connection | null>;
+  /** Make a connection of this kind after its card said yes; `input` is what the card asked for (C5). */
+  addConnection(kind: ConnectionKind, input?: { address?: string }): Promise<Connection | { error: SetupError } | null>;
   pauseConnection(id: string, on: boolean): Promise<boolean>;
   /** Disconnect: its secret and its settings are gone. */
   removeConnection(id: string): Promise<boolean>;
@@ -319,7 +320,10 @@ export type Grant = {
   disconnect: string;
 };
 /** A kind of connection the shop can make now, with its card. */
-export type ConnectionOffer = { kind: ConnectionKind; label: string; grant: Grant };
+/** `asks`: what its card asks for besides "Connect" (C5): a folder picked next, or an address typed on it. */
+export type ConnectionOffer = { kind: ConnectionKind; label: string; grant: Grant; asks?: 'folder' | 'address' };
+/** Why a connection was not made (C5): the folder dialog was closed, the folder holds too much, the address will not do, or the secret cannot be kept safe. */
+export type SetupError = 'cancelled' | 'broad' | 'address' | 'storage';
 /** The connections page: the ones made, each with its card, and the kinds that can be added. */
 export type ConnectionsView = { list: (Connection & { grant: Grant })[]; offers: ConnectionOffer[]; /** Every connection paused in settings (C6). */ allPaused?: boolean };
 /**
