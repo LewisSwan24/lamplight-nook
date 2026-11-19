@@ -1,11 +1,19 @@
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { commissionPrompt } from '../app/main/commission';
 import { MAX_MATERIALS, MAX_MATERIAL_BYTES, copyMaterials, materialNames, materialsDir, materialsSteps, sortHandOver } from '../app/main/materials';
 
-const home = () => mkdtempSync(join(tmpdir(), 'materials-'));
+const made: string[] = [];
+const home = () => {
+  const d = mkdtempSync(join(tmpdir(), 'materials-'));
+  made.push(d);
+  return d;
+};
+afterAll(() => {
+  for (const d of made) rmSync(d, { recursive: true, force: true, maxRetries: 5 });
+});
 
 describe('handing over files', () => {
   it('takes files, refuses folders, missing and oversized ones, and says why', () => {
