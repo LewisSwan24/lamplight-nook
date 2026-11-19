@@ -192,6 +192,10 @@
       "notesFill": "帮我给《……》做一份读书笔记。",
       "travelFill": "帮我做一份……的旅行攻略，……天。",
       "toolFill": "帮我做一个……的小工具。",
+      "document": "写份 Word 文档",
+      "slides": "做份 PPT",
+      "documentFill": "帮我写一份……的 Word 文档。",
+      "slidesFill": "帮我做一份讲……的 PPT，大约……页。",
       "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
       "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
       "toolHint": "能在浏览器里做的，就做成一个网页。要动电脑上的文件才写脚本，脚本先只列出要做的事，加上 -Apply 才动手。",
@@ -707,6 +711,13 @@
       "hotspotBoard": "黑板：看看整张计划，没在做事时看项目板",
       "hotspotWorks": "作品架：看看一起做过的东西"
     },
+    "office": {
+      "readDocument": "读文档「{file}」",
+      "makeDocx": "写一份 Word 文档「{file}」",
+      "makeXlsx": "做一份 Excel 表格「{file}」",
+      "makePptx": "做一份 PPT「{file}」",
+      "makePdf": "存一份 PDF「{file}」"
+    },
     "connections": {
       "title": "连接",
       "intro": "连上以后，店员才能用这些店外的资料。每单能用哪几个，在委托单上勾，不勾就不用。",
@@ -890,12 +901,15 @@
       "tidyPlan": "整理方案.md",
       "listing": "文件清单.txt",
       "letter": "信.txt",
-      "sheet": "表格.csv",
+      "sheet": "表格.xlsx",
       "plan": "计划.md",
       "materials": "材料",
       "resume": "简历.html",
       "notes": "读书笔记.md",
       "tool": "小工具.html",
+      "document": "文档.docx",
+      "slides": "幻灯片.pptx",
+      "resumePdf": "简历.pdf",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",
       "toolSamples": "样例",
@@ -913,6 +927,14 @@
     },
     "resultRevise": "再改改",
     "resultReport": "内容有问题？告诉我们",
+    "resultPreview": "「{file}」的预览，点一下打开",
+    "resultNotOpened": {
+      "macros": "这个文件里带宏，一打开就会运行，所以只在文件夹里指给你看。信得过再自己打开。",
+      "embedded": "这个文件里嵌着别的程序对象，打开时可能会运行，所以只在文件夹里指给你看。",
+      "externalTemplate": "这个文件打开时要去外面取模板，所以只在文件夹里指给你看。",
+      "externalLink": "这个文件连着外面的文件或网址，打开时会去取，所以只在文件夹里指给你看。",
+      "unreadable": "这个文件读不出来，可能坏了，所以只在文件夹里指给你看。"
+    },
     "resultShelf": "做好的东西会摆上墙边的作品架，以后点它就能找回来、接着改。",
     "resultScriptDeletes": "{file} 里有删除文件的命令。运行前先打开看一遍，或者点“再改改”请店里拿掉。",
     "resultScriptNoPreview": "{file} 一运行就会真的改动文件，不会先列出要做什么。运行前先打开看一遍。",
@@ -1066,7 +1088,9 @@
         "resume": "简历",
         "notes": "读书笔记",
         "travel": "攻略",
-        "tool": "小工具"
+        "tool": "小工具",
+        "document": "文档",
+        "slides": "幻灯片"
       }
     },
     "mini": {

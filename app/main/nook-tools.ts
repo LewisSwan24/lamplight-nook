@@ -12,8 +12,11 @@ import { CONNECTION_ID } from './connections';
  */
 export const NOOK_PREFIX = 'nook-';
 
-/** What a tool's call knows about the round it is in. */
-export type ToolCtx = { run: string; project?: string; workDir: string; signal: AbortSignal };
+/**
+ * What a tool's call knows about the round it is in. `preexisting`: the files in the commission folder before the round,
+ * which a made file must never replace (C1).
+ */
+export type ToolCtx = { run: string; project?: string; workDir: string; signal: AbortSignal; preexisting: Set<string> };
 
 /** What a tool hands back: Claude's result and, for an outside action, the one thing it made outside, for its undo (C6). */
 export type NookResult = CallToolResult & { made?: string };

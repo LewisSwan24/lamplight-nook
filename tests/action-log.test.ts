@@ -8,7 +8,7 @@ import type { NookServer, NookTool, ToolCtx } from '../app/main/nook-tools';
 import type { ActionRecord, Connection } from '../app/shared/types';
 
 const folder = () => mkdtempSync(join(tmpdir(), 'actions-'));
-const ctx: ToolCtx = { run: 'r1', project: 'p1', workDir: '/w/c1', signal: new AbortController().signal };
+const ctx: ToolCtx = { run: 'r1', project: 'p1', workDir: '/w/c1', signal: new AbortController().signal, preexisting: new Set() };
 const SECRET_TEXT = 'Dinner with Mei at 7, bring the red folder';
 
 const row = (extra: Partial<ActionRecord> = {}): Omit<ActionRecord, 'id' | 't'> => ({

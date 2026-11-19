@@ -14,10 +14,15 @@ export const ALLOWED = ['MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.
 export const REVIEWED = {
   '@anthropic-ai/claude-agent-sdk': 'Anthropic proprietary; used under Anthropic\'s legal agreements to drive the user\'s own Claude Code.',
   argparse: 'Python Software Foundation License 2.0: permissive, no copyleft, shipping allowed with its notice. Comes with js-yaml, which electron-updater reads update feeds with.',
+  jszip: '(MIT OR GPL-3.0-or-later): dual-licensed, used under MIT. Comes with pptxgenjs, which writes PowerPoint files for the shop.',
+  pako: 'MIT AND Zlib: both permissive, shipping allowed with their notices. Comes with jszip.',
 };
 
 /** Electron and Chromium ship their own license files next to the app (LICENSE.electron.txt, LICENSES.chromium.html). */
 const SHIPPED_SEPARATELY = ['electron'];
+
+/** npm packages named like a Node module that a dependency lists but the bundle never takes: pptxgenjs imports https, which is Node's own. */
+const NODE_BUILTINS = ['https'];
 
 /** Art, sound, font and music, see docs/art.md. */
 const ASSETS = `Art, sound, fonts and music
@@ -90,13 +95,15 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 const MISSING_TEXT = {
   // electron-updater's; package.json says MIT, author Vladimir Krivosheev.
   'lazy-val': mit('Vladimir Krivosheev'),
+  // readable-stream's, through jszip; package.json says MIT, author Julian Gruber.
+  isarray: mit('Julian Gruber'),
 };
 
 /** A package and everything it depends on at run time (dependencies only: optional and peer ones are not shipped). */
 export function collect(roots, modules = join(ROOT, 'node_modules')) {
   const seen = new Map();
   const visit = (name) => {
-    if (seen.has(name) || SHIPPED_SEPARATELY.includes(name)) return;
+    if (seen.has(name) || SHIPPED_SEPARATELY.includes(name) || NODE_BUILTINS.includes(name)) return;
     const dir = join(modules, name);
     const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
     const files = readdirSync(dir).filter((f) => LICENSE_FILE.test(f)).sort();

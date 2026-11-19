@@ -15,6 +15,12 @@
   Outside actions page listing what was done through each connection, never what was read or written, with Undo on
   what can still be undone, and Settings can pause every connection at once.
 
+- **Word, Excel, PowerPoint and PDF.** The shop can make Word documents and slide decks; tables are now Excel workbooks
+  with formats and formulas, and a résumé also comes as a PDF. The staff can read the Word, Excel and PowerPoint files
+  you hand over. The result card shows a small picture of what was made. An Office file opens with a click only when it
+  carries no macros, no embedded objects and nothing that reaches outside it; otherwise the card says why and shows the
+  file in its folder.
+
 ## Unreleased (1.2)
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in

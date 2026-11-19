@@ -181,8 +181,11 @@ export interface LamplightApi {
   resumePending(run: string): Promise<RunResult | null>;
   dropPending(run: string): Promise<void>;
   answerDecision(answer: DecisionAnswer): Promise<boolean>;
-  /** Open a file or folder produced by the current commission (refused outside it). */
-  openOutput(path: string, how: 'open' | 'reveal'): Promise<boolean>;
+  /**
+   * Open a file or folder produced by the current commission (refused outside it). ok is false when refused; why says
+   * an Office file was shown in its folder instead of opened, and why (road-to-1.3.md C1).
+   */
+  openOutput(path: string, how: 'open' | 'reveal'): Promise<{ ok: boolean; why?: NotOpened }>;
   /** What Adeng may bring up as this commission starts (from earlier commissions). */
   recallForCommission(form: CommissionForm): Promise<Recall>;
   /** What Adeng may bring up as a round of changes starts (what was asked last time). */
@@ -255,6 +258,8 @@ export interface LamplightApi {
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
   onResult(cb: (r: CommissionResult) => void): () => void;
+  /** A finished round's thumbnail, which comes a moment after its result card (road-to-1.3.md C1). */
+  onResultPreview(cb: (p: { run: string; png: string }) => void): () => void;
   /** The corner window (plan.md R3): its current state, updates to it, and bringing the shop back. */
   miniState(): Promise<MiniState>;
   onMiniState(cb: (s: MiniState) => void): () => void;
@@ -378,7 +383,12 @@ export type CommissionResult = {
   canUndo?: boolean;
   /** Scripts it made that delete files or skip the preview: worth reading before a double click. */
   scripts?: ScriptCheck[];
+  /** The main file's thumbnail, a PNG data: address, once the main process has taken it (road-to-1.3.md C1). */
+  preview?: string;
 };
+
+/** Why a Word, Excel or PowerPoint file was shown in its folder rather than opened (office/safe.ts). */
+export type NotOpened = 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable';
 
 /** Why a script the shop made needs a look: it deletes files, or it changes them without a preview first. */
 export type ScriptRisk = 'deletes' | 'noPreview';
@@ -468,6 +478,7 @@ export const IPC = {
   resumePending: 'commission:resume-pending',
   dropPending: 'commission:drop-pending',
   result: 'commission:result',
+  resultPreview: 'commission:result-preview',
   openOutput: 'commission:open-output',
   decision: 'decision:request',
   answer: 'decision:answer',

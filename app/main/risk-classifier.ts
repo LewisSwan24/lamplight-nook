@@ -403,7 +403,21 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
 
   const nook = ctx.nook?.get(tool);
   if (nook?.connection && ctx.round?.paused()) return { risk: 'blocked', reason: R.connectionsPaused };
-  if (nook) return { risk: NOOK_RISK[nook.kind], reason: R.nook[nook.kind] };
+  if (nook) {
+    // The shop's own file tools (C1) read and write files as Read and Write do, so a path outside the folder gets what
+    // those would get there. A connection's tools never touch the commission folder.
+    if (!nook.connection) {
+      const file = typeof input.file === 'string' && input.file ? input.file : undefined;
+      const page = typeof input.page === 'string' && input.page ? input.page : undefined;
+      let verdict: RiskVerdict = { risk: 'safe', reason: R.read };
+      if (page) verdict = worse(verdict, classifyCall('Read', { file_path: page }, ctx));
+      if (file && nook.kind === 'read') verdict = worse(verdict, classifyCall('Read', { file_path: file }, ctx));
+      // Never over a file of the user's, lent folder or not: the tool refuses that, so nothing needs keeping first.
+      if (file && nook.kind === 'make') verdict = worse(verdict, classifyCall('Write', { file_path: file }, { ...ctx, keepOriginal: undefined }));
+      if (verdict.risk !== 'safe') return verdict;
+    }
+    return { risk: NOOK_RISK[nook.kind], reason: R.nook[nook.kind] };
+  }
 
   // Any other tool (including MCP tools) is serious by default.
   return { risk: 'serious', reason: fill(R.unknownTool, { tool }) };

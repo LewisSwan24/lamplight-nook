@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Office-saved files > reads sample.docx as before 1`] = `
+"# Quarterly report
+
+This paragraph has bold words in it.
+
+- First point
+- Second point
+
+这是一行中文。
+
+| Name | Count | Note |
+| --- | --- | --- |
+| Apples | 3 | Fresh |"
+`;
+
+exports[`Office-saved files > reads sample.pptx as before 1`] = `
+"## Slide 1: Spring menu
+Lamplight Nook
+
+## Slide 2: What is new
+Lemon tart
+Hot chocolate
+这是一行中文。
+Notes: Mention the tart first."
+`;
+
+exports[`Office-saved files > reads sample.xlsx as before 1`] = `
+"## Sales
+Item,Amount
+Tea,12.5
+Cake,30
+"Jam, small",4
+Total,46.5
+
+## Notes
+这是一行中文。
+Open,TRUE"
+`;
