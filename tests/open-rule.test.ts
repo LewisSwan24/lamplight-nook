@@ -39,7 +39,7 @@ describe('howToOpen', () => {
   });
 
   it('opens an email draft in the mail program and an event in the calendar program, only when they are plain (C5)', () => {
-    const file = (name: string, text: string) => (writeFileSync(join(dir, name), text), join(dir, name));
+    const file = (name: string, text: string | Buffer) => (writeFileSync(join(dir, name), text), join(dir, name));
     expect(howToOpen(file('draft.eml', draftEml({ to: ['a@example.com'], subject: '周会', body: 'Hello\nthere' })))).toEqual({ open: true });
     const ev = (...lines: string[]) => ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:1', 'DTSTART:20261120T090000Z', 'SUMMARY:Tea', ...lines, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     expect(howToOpen(file('EVENT.ICS', ev('BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-PT15M', 'END:VALARM')))).toEqual({ open: true });
@@ -55,7 +55,16 @@ describe('howToOpen', () => {
       ['attach.ics', ev('ATTACH:https://example.com/a.exe')],
       ['run.ics', ev('BEGIN:VALARM', 'ACTION:PROCEDURE', 'ATTACH;VALUE=URI:file:///C:/a.exe', 'END:VALARM')],
       ['folded.ics', ev('BEGIN:VALARM', 'ACTION:PROC', ' EDURE', 'END:VALARM')],
-    ]) expect(howToOpen(file(name, text)), name).toEqual({ open: false, why: 'notPlain' });
+      // Read another way by the program that opens it: a second type, an attachment written into the text, line
+      // breaks of a bare CR, another encoding, a NUL, or no calendar at all.
+      ['two-types.eml', `${head}Content-Type: text/plain\r\nContent-Type: multipart/mixed; boundary="b"\r\n\r\n--b--\r\n`],
+      ['uuencoded.eml', `${head}Content-Type: text/plain; charset=utf-8\r\n\r\nSee below\r\nbegin 644 run.exe\r\nM35J0\r\nend\r\n`],
+      ['cr.eml', `${head}Content-Type: text/plain\rContent-Disposition: attachment; filename="a.cmd"\r\r\nhi\r\n`],
+      ['cr.ics', ev('ATTACH:https://example.com/a.exe').replace(/\r\n/g, '\r')],
+      ['utf16.ics', Buffer.from(String.fromCharCode(0xfeff) + ev('ATTACH:https://example.com/a.exe'), 'utf16le')],
+      ['nul.ics', ev('SUMMARY:a\u0000b')],
+      ['notcal.ics', 'hello'],
+    ] as [string, string | Buffer][]) expect(howToOpen(file(name, text)), name).toEqual({ open: false, why: 'notPlain' });
     expect(howToOpen(join(dir, 'missing.eml'))).toEqual({ open: false, why: 'unreadable' });
   });
 });

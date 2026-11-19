@@ -13,27 +13,37 @@ const OPENABLE = new Set(['.html', '.htm', '.md', '.txt', '.csv', '.json', '.png
 /** Office opens these and runs what they bring, so each is looked inside first. */
 const OFFICE = new Set(['.docx', '.xlsx', '.pptx']);
 
-/** Lines with their folded continuations joined back, as both mail headers and calendar files fold them. */
-const unfold = (text: string) => text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
+/** Lines, split at any line break, with their folded continuations joined back, as mail headers and calendar files fold them. */
+const unfold = (text: string) => text.replace(/(\r\n|\r|\n)[ \t]/g, '').split(/\r\n|\r|\n/);
 
 /**
- * Whether a mail or calendar file is as plain as the shop's own (road-to-1.3.md C5): a mail of one plain-text part, no
- * attachment and no page; an event that neither brings a file (ATTACH) nor starts a program (an alarm's PROCEDURE).
+ * Whether a mail or calendar file is as plain as the shop's own (road-to-1.3.md C5), read the strict way so a program
+ * that reads it more loosely finds nothing more: valid UTF-8 with no NUL, which rules out UTF-16 and the other encodings.
+ * A mail has exactly one type, plain text, no disposition, and no attachment written into its text the old way
+ * (uuencode). A calendar
+ * starts as one, and its events neither bring a file (ATTACH) nor start a program (an alarm's PROCEDURE).
  * Undefined when it cannot be read.
  */
 function plain(path: string, ext: string): boolean | undefined {
-  let text: string;
+  let bytes: Buffer;
   try {
-    text = readFileSync(path, 'utf8');
+    bytes = readFileSync(path);
   } catch {
     return undefined;
   }
+  const text = bytes.toString('utf8');
+  if (text.includes('\u0000') || text.includes('\ufffd')) return false;
+  const lines = unfold(text.startsWith('\ufeff') ? text.slice(1) : text);
   if (ext === '.ics') {
-    return !unfold(text).some((l) => /^ATTACH[;:]/i.test(l) || /^ACTION(;[^:]*)?:\s*PROCEDURE\b/i.test(l));
+    return /^BEGIN:VCALENDAR$/i.test(lines.find((l) => l.trim()) ?? '')
+      && !lines.some((l) => /^ATTACH[;:]/i.test(l) || /^ACTION(;[^:]*)?:\s*PROCEDURE\b/i.test(l));
   }
-  const head = unfold(text.split(/\r?\n\r?\n/)[0]);
-  const type = head.find((l) => /^content-type\s*:/i.test(l));
-  return !!type && /^content-type\s*:\s*text\/plain\b/i.test(type) && !head.some((l) => /^content-disposition\s*:/i.test(l));
+  const end = lines.indexOf('');
+  const head = end < 0 ? lines : lines.slice(0, end);
+  const types = head.filter((l) => /^content-type\s*:/i.test(l));
+  return types.length === 1 && /^content-type\s*:\s*text\/plain\s*(;|$)/i.test(types[0])
+    && !head.some((l) => /^content-disposition\s*:/i.test(l))
+    && !lines.slice(head.length).some((l) => /^begin\s+[0-7]{3,4}\s/i.test(l));
 }
 
 /**
