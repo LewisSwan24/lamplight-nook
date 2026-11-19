@@ -31,8 +31,11 @@ export function readZip(buf: Buffer, limits: ZipLimits = { entries: ZIP_MAX_ENTR
   if (count > limits.entries) throw new ZipError('tooBig', `the package has ${count} entries, more than ${limits.entries}`);
   if (dirAt + dirSize > buf.length) throw new ZipError('unreadable', 'the central directory is past the end of the file');
 
-  type Entry = { name: string; method: number; packed: number; size: number; local: number };
+  type Entry = { name: string; raw: Buffer; method: number; packed: number; size: number; local: number };
   const entries: Entry[] = [];
+  // Part names do not care about case in Office: two entries that differ only in case could make this reader and Office
+  // see different files, so the check would look at one and Office open the other.
+  const seen = new Set<string>();
   let declared = 0;
   let at = dirAt;
   for (let i = 0; i < count; i++) {
@@ -47,9 +50,11 @@ export function readZip(buf: Buffer, limits: ZipLimits = { entries: ZIP_MAX_ENTR
     if (flags & 1) throw new ZipError('unreadable', `${name} is encrypted`);
     if (method !== 0 && method !== 8) throw new ZipError('unreadable', `${name} uses compression method ${method}`);
     if (packed === 0xffffffff || size === 0xffffffff) throw new ZipError('unreadable', 'zip64 is not supported');
+    if (seen.has(name.toLowerCase())) throw new ZipError('unreadable', `${name} is in the package twice`);
+    seen.add(name.toLowerCase());
     declared += size;
     if (declared > limits.bytes) throw new ZipError('tooBig', `the package unpacks to more than ${limits.bytes} bytes`);
-    entries.push({ name, method, packed, size, local: buf.readUInt32LE(at + 42) });
+    entries.push({ name, raw: buf.subarray(at + 46, at + 46 + nameLength), method, packed, size, local: buf.readUInt32LE(at + 42) });
     at = next;
   }
 
@@ -59,7 +64,10 @@ export function readZip(buf: Buffer, limits: ZipLimits = { entries: ZIP_MAX_ENTR
     out.set(e.name, () => {
       const local = e.local;
       if (local + 30 > buf.length || buf.readUInt32LE(local) !== 0x04034b50) throw new ZipError('unreadable', `${e.name} is damaged`);
-      const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+      const nameAt = local + 30;
+      // The entry's own header must name the same file, or a reader going by local headers would see another one.
+      if (!buf.subarray(nameAt, nameAt + buf.readUInt16LE(local + 26)).equals(e.raw)) throw new ZipError('unreadable', `${e.name} is named differently in its own header`);
+      const start = nameAt + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
       const data = buf.subarray(start, start + e.packed);
       if (data.length < e.packed) throw new ZipError('unreadable', `${e.name} is cut short`);
       let raw: Buffer;

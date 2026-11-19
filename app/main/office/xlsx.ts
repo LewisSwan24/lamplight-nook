@@ -1,4 +1,5 @@
 import { zip } from '../zip';
+import { formulaProblem } from './formula';
 import type { Cell, ColumnFormat, SheetSpec } from './specs';
 
 /**
@@ -82,7 +83,13 @@ function sheetXml(sheet: SheetSpec['sheets'][number], first: boolean): string {
 
 function cellXml(ref: string, cell: Cell, format: ColumnFormat | undefined): string {
   const s = styleOf(format);
-  if (typeof cell === 'object') return `<c r="${ref}" s="${s}"><f>${esc(cell.f.replace(/^=/, ''))}</f></c>`;
+  if (typeof cell === 'object') {
+    // The workbook calculates on opening (fullCalcOnLoad), so a formula that reaches outside would run the moment the
+    // user opens it, sending what is in the cells along.
+    const problem = formulaProblem(cell.f);
+    if (problem) throw new Error(`The formula ${cell.f} ${problem}; formulas may not fetch from the web, run programs or point at other files.`);
+    return `<c r="${ref}" s="${s}"><f>${esc(cell.f.replace(/^=/, ''))}</f></c>`;
+  }
   if (typeof cell === 'number') return `<c r="${ref}" s="${s}"><v>${cell}</v></c>`;
   // A date column's 2026-11-19 becomes the day number Excel keeps dates as, so it sorts and sums like a date.
   const day = format === 'date' ? serial(cell) : undefined;

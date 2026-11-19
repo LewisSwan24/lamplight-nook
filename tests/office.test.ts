@@ -153,6 +153,17 @@ describe('writing and reading back', () => {
     ].join('\n'));
   });
 
+  it('refuses a formula that would fetch, run or reach another file, and keeps ordinary ones', () => {
+    const sheet = (f: string): SheetSpec => ({ sheets: [{ name: 'S', columns: [{ header: 'A' }], rows: [[{ f }]] }] });
+    for (const f of ['=WEBSERVICE("http://example.com")', "=cmd|'/c calc'!A0", '=[Book2.xlsx]Sheet1!A1', "='C:\\x\\[b.xlsx]S'!A1",
+      '=FILTERXML(A1,"//a")', '=CALL("kernel32","WinExec","JCJ","calc",0)', '=REGISTER.ID("a","b")', '=RTD("x",,"y")', '=IMPORTXML("http://x","//a")']) {
+      expect(() => makeXlsx(sheet(f)), f).toThrow(/formula/i);
+    }
+    for (const f of ['=SUM(B2:B20)', '=IF(A1>0,"yes","no")', '=Sheet2!A1*2', '=VLOOKUP(A1,Sheet2!A:B,2,FALSE)', '=HYPERLINK("https://example.com","site")']) {
+      expect(() => makeXlsx(sheet(f)), f).not.toThrow();
+    }
+  });
+
   it('a long sheet is cut at 2,000 rows and 50 columns, and says so', () => {
     const s = shop();
     const columns = Array.from({ length: 60 }, (_, i) => ({ header: `C${i + 1}` }));
@@ -250,6 +261,14 @@ describe('unpacking limits', () => {
     const entry = readZip(lying).get('word/document.xml')!;
     expect(entry).toThrow(ZipError);
     expect(() => entry()).toThrow(/more than it says/);
+  });
+
+  it('refuses two entries of the same name, in any case, and a local header naming another entry', () => {
+    expect(() => readZip(zip([{ name: 'word/a.xml', data: '<a/>' }, { name: 'Word/A.xml', data: '<b/>' }]))).toThrow(ZipError);
+    const buf = zip([{ name: 'word/a.xml', data: '<a/>' }]);
+    // The local header comes first, so the first match is its copy of the name.
+    buf.write('word/b.xml', buf.indexOf('word/a.xml'), 'latin1');
+    expect(() => readZip(buf).get('word/a.xml')!()).toThrow(ZipError);
   });
 
   it('a file that is not a zip is unreadable', () => {
