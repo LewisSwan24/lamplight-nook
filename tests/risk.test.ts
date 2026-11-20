@@ -151,7 +151,7 @@ describe('risk classifier', () => {
   });
 
   it('the shop\'s office tools read and write by the rules of Read and Write: in the folder no card, outside as those (C1)', () => {
-    const nook = new Map<string, NookEntry>(['read_document', 'make_docx', 'make_xlsx', 'make_pptx', 'make_pdf']
+    const nook = new Map<string, NookEntry>(['read_document', 'make_docx', 'make_xlsx', 'make_pptx', 'make_pdf', 'render_png', 'edit_docx', 'edit_xlsx', 'edit_pptx']
       .map((t) => [`mcp__nook-office__${t}`, { kind: t === 'read_document' ? 'read' as const : 'make' as const, label: () => t }]));
     const o = (tool: string, input: Record<string, unknown>) => classify(`mcp__nook-office__${tool}`, input, { ...ctx, nook });
     expect(o('read_document', { file: 'materials/notes.docx' })).toEqual({ risk: 'safe', reason: strings.risk.nook.read });
@@ -169,6 +169,18 @@ describe('risk classifier', () => {
     const away = join(home, 'Desktop', 'cv.html');
     expect(o('make_pdf', { page: away, file: 'cv.pdf' })).toEqual(classify('Read', { file_path: away }, ctx));
     expect(o('make_pdf', { page: 'cv.html', file: join(home, 'Desktop', 'cv.pdf') }).risk).toBe('serious');
+    // render_png (C2) the same way: its page is a read, its picture a write.
+    expect(o('render_png', { page: 'chart.html', file: 'chart.png', width: 1200, height: 800 })).toEqual({ risk: 'safe', reason: strings.risk.nook.make });
+    expect(o('render_png', { page: away, file: 'cv.png', width: 100, height: 100 })).toEqual(classify('Read', { file_path: away }, ctx));
+    expect(o('render_png', { page: 'cv.html', file: join(home, 'Desktop', 'cv.png'), width: 100, height: 100 }).risk).toBe('serious');
+    // C3: the edit tools read `from` and write `file`, by the same rules.
+    for (const t of ['edit_docx', 'edit_xlsx', 'edit_pptx']) {
+      const ext = t.slice(5);
+      expect(o(t, { from: `原稿-a.${ext}`, file: `修改版-a.${ext}` }), t).toEqual({ risk: 'safe', reason: strings.risk.nook.make });
+      const from = join(home, 'Desktop', `a.${ext}`);
+      expect(o(t, { from, file: `修改版-a.${ext}` }), t).toEqual(classify('Read', { file_path: from }, ctx));
+      expect(o(t, { from: `原稿-a.${ext}`, file: join(home, 'Desktop', `a.${ext}`) }).risk, t).not.toBe('safe');
+    }
   });
 
   it('once a round has read from a connection, web search and fetch ask first; without one they go ahead (C6)', () => {

@@ -109,7 +109,7 @@ function serial(value: string): number | undefined {
 }
 
 /** 0 -> A, 26 -> AA. */
-function letters(i: number): string {
+export function letters(i: number): string {
   let s = '';
   for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
   return s;
@@ -119,3 +119,6 @@ function letters(i: number): string {
 const esc = (s: string) => s
   .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** The same escaping for the edit tools (edit.ts). */
+export { esc as xmlText };

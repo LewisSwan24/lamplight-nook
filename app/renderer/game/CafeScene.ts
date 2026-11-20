@@ -22,7 +22,10 @@ import doorUrl from '../../../assets/sprites/door.png';
 import backDoorUrl from '../../../assets/sprites/back-door.png';
 import laoshiUrl from '../../../assets/sprites/laoshi.png';
 import qingdaiUrl from '../../../assets/sprites/qingdai.png';
-import streetUrl from '../../../assets/sprites/street.png';
+import townFrontsUrl from '../../../assets/sprites/town-fronts.png';
+import townPropsUrl from '../../../assets/sprites/town-props.png';
+import townSignsUrl from '../../../assets/sprites/town-signs.png';
+import townStreetUrl from '../../../assets/sprites/town-street.png';
 import christmasUrl from '../../../assets/sprites/decor-christmas.png';
 import halloweenUrl from '../../../assets/sprites/decor-halloween.png';
 import newYearUrl from '../../../assets/sprites/decor-new_year.png';
@@ -57,17 +60,17 @@ import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
 import type { GrowthId } from '../../shared/growth';
 import { walkBetween } from './layout';
-import { ACTORS, ZONES, pathBetween, standPoint, type Facing } from './layout';
+import { ACTORS, MAILSLOT, OUTBOX, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { GardenView } from './GardenView';
-import { StreetView } from './StreetView';
+import { StreetView, type Walker } from './StreetView';
 import { SKIES, WeatherLayer } from './WeatherLayer';
 import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
 import { INSET, VIEW } from './street';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { DOG_FRAME, HEN_FRAME } from './animals';
-import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT } from './guests';
+import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT, POST_SPOT } from './guests';
 import { PASSER_FEET, WINDOW_PANES, passBy } from './passers';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky, holidayOn, seasonOf, skyOn, withWeather } from './weather';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
@@ -175,6 +178,9 @@ export class CafeScene extends Phaser.Scene {
   private guestComing = false;
   /** Bumped to send a guest on their way (a commission came in). */
   private guestTrip = 0;
+  /** The letter Axin left in the holder, until whoever goes there takes it; the draft waiting in the outbox (C8). */
+  private letter!: Phaser.GameObjects.Graphics;
+  private envelope!: Phaser.GameObjects.Graphics;
   /** The player, while in the shop; their look and the name they go by. */
   private you?: You;
   private youLook = DEFAULT_AVATAR;
@@ -207,6 +213,15 @@ export class CafeScene extends Phaser.Scene {
   period: Period = 'day';
   /** The colour currently laid over the room, which the street inset takes too. */
   private tintColor = 0xffffff;
+  /** The colour laid over the room just now; the town's street takes it too (road-to-1.4.md D1). */
+  get tint(): number { return this.tintColor; }
+  /** Who is out on an errand and where on the town's street, as the inset shows her. */
+  streetWalker(): Walker | null { return this.street?.walkerState() ?? null; }
+  /** Out on the street: the room is not drawn and takes no clicks, but the work in it goes on. */
+  setOutside(out: boolean) {
+    this.sys.setVisible(!out);
+    this.input.enabled = !out;
+  }
   /** The street outside, shown in an inset while someone is out on an errand. */
   private street!: StreetView;
   /** The back garden, beside the shop in this scene; the camera slides over to look at it. */
@@ -250,7 +265,11 @@ export class CafeScene extends Phaser.Scene {
     // The room itself: the cafe or the study; both share the floor plan in layout.ts.
     this.load.image('cafe', SCENE === 'study' ? studyUrl : cafeUrl);
     this.load.image('pieces', SCENE === 'study' ? studyPiecesUrl : cafePiecesUrl);
-    this.load.image('street', streetUrl);
+    // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
+    this.load.image('town-street', townStreetUrl);
+    this.load.image('town-fronts', townFrontsUrl);
+    this.load.image('town-props', townPropsUrl);
+    this.load.image('town-signs', townSignsUrl);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('garden-crops', gardenCropsUrl, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
@@ -518,6 +537,12 @@ export class CafeScene extends Phaser.Scene {
     this.form.fillStyle(0xfbf6ec, 1).fillRect(0, 0, 9, 7);
     this.form.fillStyle(0xc9b79f, 1).fillRect(2, 2, 5, 1).fillRect(2, 4, 4, 1);
     this.setFormWaiting(true);
+    // An envelope sticking out of the letter holder, and one lying in the outbox basket (road-to-1.3.md C8).
+    const envelope = (g: Phaser.GameObjects.Graphics, w: number, h: number) =>
+      g.fillStyle(0x2a2233, 1).fillRect(0, 0, w, h).fillStyle(0xfaf6ec, 1).fillRect(1, 1, w - 2, h - 2).fillStyle(0xc8483c, 1).fillRect(Math.floor(w / 2) - 1, 1, 2, 1);
+    this.letter = envelope(this.add.graphics({ x: MAILSLOT.x + 2, y: MAILSLOT.y - 3 }), 6, 5).setDepth(1.6).setVisible(false);
+    const box = OUTBOX[SCENE];
+    this.envelope = envelope(this.add.graphics({ x: box.x + 1, y: box.y - 2 }), 6, 4).setDepth(COUNTER_TOP + 0.1).setVisible(false);
     this.bell = this.add.graphics({ x: BELL_POS.x, y: BELL_POS.y }).setDepth(COUNTER_TOP + 0.1).setVisible(false);
     BELL.forEach((row, y) => [...row].forEach((c, x) => { if (BELL_COLORS[c]) this.bell.fillStyle(BELL_COLORS[c], 1).fillRect(x, y, 1, 1); }));
     // Over the counter's own zone, so a click on the bell rings it instead of opening the counter.
@@ -989,6 +1014,8 @@ export class CafeScene extends Phaser.Scene {
       actor.pose = this.poseAt(actor.pose, actor);
       this.hold(actor);
     }
+    // At the letter holder: whatever Axin left there is taken (C8).
+    if (anchor === 'mailslot' && actor.at === 'mailslot') this.letter.setVisible(false);
     // Staff sent to the door are going out on an errand.
     if (anchor === 'door' && actorId !== 'cat' && !actor.outside) await this.leave(actor);
   }
@@ -1098,6 +1125,58 @@ export class CafeScene extends Phaser.Scene {
     // Also tells someone still out on the street, who then walks on past the door.
     this.guestTrip++;
     this.guest?.tween?.stop();
+  }
+
+  /** Whether someone is standing at an anchor, done walking. */
+  private settledAt(anchor: AnchorId): boolean {
+    return [...this.actors.values()].some((a) => a.at === anchor && !a.outside && !a.tween?.isPlaying());
+  }
+
+  /**
+   * Axin comes with the post for a connection (road-to-1.3.md C8): in at the front door and over to the letter holder,
+   * where he leaves a letter (`deliver`) or, once someone comes to the holder, takes a parcel from them (`collect`), and
+   * out again. A connection comes before a neighbour: whoever is calling leaves first. Resolves once he has gone.
+   */
+  async post(kind: 'deliver' | 'collect'): Promise<void> {
+    const wait = (ms: number) => new Promise((r) => this.time.delayedCall(ms, r));
+    if (this.hasGuest()) {
+      this.sendGuestAway();
+      while (this.hasGuest()) await wait(250);
+    }
+    const id = 'postman';
+    const trip = ++this.guestTrip;
+    const gone = () => trip !== this.guestTrip;
+    const sprite = this.add.sprite(GUEST_DOOR.x, GUEST_DOOR.y - 8, id).setOrigin(0.5, 1).setAlpha(0).setDepth(GUEST_DOOR.y);
+    const shadow = this.add.ellipse(GUEST_DOOR.x, GUEST_DOOR.y, 11, 4, 0x3b2a1e, 0.28);
+    const g: Guest = { id, sprite, shadow };
+    this.guest = g;
+    await this.openDoor();
+    sprite.play(animKey(id, 'walk', 'down'), true);
+    await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
+    this.closeDoor();
+    if (!gone()) await this.walkGuest(g, walkBetween({ x: sprite.x, y: sprite.y }, POST_SPOT));
+    if (!gone()) {
+      sprite.play(animKey(id, 'idle', 'up'), true);
+      // A parcel waits for someone to bring it, a little while at most.
+      for (let i = 0; kind === 'collect' && i < 40 && !gone() && !this.settledAt('mailslot'); i++) await wait(250);
+      sprite.play(animKey(id, 'gift', 'up'), true);
+      await wait(800);
+      if (kind === 'deliver' && !gone()) this.letter.setVisible(!this.settledAt('mailslot'));
+      sprite.play(animKey(id, 'idle', 'up'), true);
+    }
+    await this.walkGuest(g, walkBetween({ x: sprite.x, y: sprite.y }, GUEST_DOOR));
+    await this.openDoor();
+    sprite.play(animKey(id, 'walk', 'up'), true);
+    await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y - 8, alpha: 0, duration: 420, onComplete: () => r() }));
+    this.closeDoor();
+    sprite.destroy();
+    shadow.destroy();
+    if (this.guest === g) this.guest = undefined;
+  }
+
+  /** A finished draft in the outbox for the user to send, or the outbox empty again (C8). */
+  outbox(waiting: boolean) {
+    this.envelope.setVisible(waiting);
   }
 
   /** Is a neighbour in the shop? */

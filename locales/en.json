@@ -196,6 +196,12 @@
       "slides": "Make slides",
       "documentFill": "Write me a Word document about ...",
       "slidesFill": "Make me slides about ..., about ... slides.",
+      "chart": "Draw a chart",
+      "poster": "Make a poster",
+      "chartFill": "Draw a chart of ... from these numbers: ...",
+      "posterFill": "Make a poster for ..., on ... at ...",
+      "chartHint": "Write the numbers in the request, or hand over the table (Excel or CSV). Every number on the chart is copied from yours; you get a picture and the page it was drawn from.",
+      "posterHint": "Say what it is for: printing (A4), a social post (square) or a screen (wide). Hand over photos to put on it if you like. Missing dates or places are left blank for you.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
       "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
@@ -203,10 +209,11 @@
       "needPhotos": "Hand over a few photos first, so the album has something in it.",
       "chooseFile": "Choose file",
       "chooseFolder": "Choose folder",
-      "editHint": "Only a copy is edited; your file stays as it is. txt, md, html, csv or json, up to 1 MB.",
+      "editHint": "Only a copy is edited; your file stays as it is. Text, web pages, Word, Excel, PowerPoint or PDF, up to 20 MB. A PDF comes back as a Word document.",
       "tidyHint": "The staff only see names, sizes and dates. They write you a plan and move nothing.",
       "needSource": "Choose the file or folder first.",
-      "tooBig": "That file is a bit big (over 1 MB) for the staff to read in one go. Try a smaller one."
+      "tooBig": "That file is too big (over 20 MB). Try a smaller one.",
+      "macros": "That file carries macros, which would run when the changed copy is opened, so the shop won't take it. Save it without macros (as .docx, .xlsx or .pptx) and pick it again."
     },
     "furnish": {
       "hint": "This room: {scene}. Each room keeps its own colours, and what the shop has gathered stays put.",
@@ -243,6 +250,7 @@
       "tooBig": "“{name}” is too big (20 MB each, 50 MB in all).",
       "tooMany": "Ten files at most; “{name}” will have to wait.",
       "missing": "“{name}” can't be found.",
+      "picture": "“{name}” is a kind of picture the shop can't open (HEIC or TIFF). Save it as JPG or PNG and hand that over.",
       "busy": "The shop is busy with this one. Hand it over when it's done.",
       "drop": "Let go to hand it to Wick"
     },
@@ -304,6 +312,7 @@
     "resultBudgetMonth": "Just so you know: about {spent} spent this month, of the {cap} monthly limit. {left} left.",
     "resultBudgetProject": "Just so you know: \"{project}\" has cost about {spent}, of its {cap} limit. {left} left.",
     "openInBrowser": "Open in browser",
+    "openInMail": "Open in mail program",
     "openFile": "Open",
     "openFolder": "Show in folder",
     "parcelFrom": "What {who} brought back",
@@ -682,7 +691,22 @@
       "order": "Commission",
       "progress": "Progress",
       "mute": "Mute",
-      "unmute": "Unmute"
+      "unmute": "Unmute",
+      "street": "Go out to the street",
+      "back": "Back inside"
+    },
+    "town": {
+      "moving": "The shop is moving onto the street. Click to skip.",
+      "moved": "All moved in, {name}. Everything is where it was.",
+      "notes": {
+        "cafe": "The cafe.",
+        "study": "The study.",
+        "print": "The print shop is still being fitted out. It opens soon.",
+        "studio": "The studio is still being fitted out. It opens soon.",
+        "workshop": "The workshop is still being fitted out. It opens soon.",
+        "bakery": "Auntie Olive's bakery. Today's bread is just out of the oven.",
+        "post": "Pip's post office. Anything to send, just tell the shop."
+      }
     },
     "access": {
       "captionsButton": "Captions",
@@ -716,7 +740,11 @@
       "makeDocx": "write the Word document {file}",
       "makeXlsx": "make the Excel workbook {file}",
       "makePptx": "make the slides {file}",
-      "makePdf": "save the PDF {file}"
+      "makePdf": "save the PDF {file}",
+      "renderPng": "draw the picture {file}",
+      "editDocx": "change the Word document {file}",
+      "editXlsx": "change the Excel workbook {file}",
+      "editPptx": "change the slides {file}"
     },
     "connections": {
       "title": "Connections",
@@ -744,6 +772,9 @@
       "doesLine": "{what} ({undo})",
       "connect": "Connect",
       "notNow": "Not now",
+      "broad": "That folder holds too much (a whole drive, your user folder, Documents, Desktop, Downloads, or the shop's own). Pick a smaller one.",
+      "address": "That is not an address the shop can use: it has to start with https://.",
+      "addressEmpty": "Paste the address first.",
       "storage": "This computer can't lock its key away safely, so it was not connected.",
       "slipLine": "This one may use:",
       "recent": "Recent",
@@ -752,6 +783,69 @@
       "pauseAll": "Pause all connections",
       "pauseAllHint": "While on, the slip lists no connections, and a commission under way is refused the next time it uses one.",
       "kinds": {
+        "folder": {
+          "label": "Synced folder",
+          "labelOf": "Synced folder: {name}",
+          "saveTo": "Lamplight Nook",
+          "list": "list the files in the synced folder",
+          "read": "read {file} in the synced folder",
+          "saveCopy": "save a copy of {file} into the synced folder's \"{folder}\" folder",
+          "saveCopyUndo": "Yes. Press Undo on the Outside actions page of the notebook, and the saved copy is deleted.",
+          "pickHint": "After Connect, pick the folder, such as the one OneDrive or Dropbox syncs to this computer.",
+          "grant": {
+            "reads": [
+              "The folder you pick, two levels down: file names and what is in them"
+            ],
+            "does": [
+              {
+                "what": "Save a copy of finished work into a \"Lamplight Nook\" folder inside it, asking you each time",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "Delete, rename, move or change your files",
+              "Read hidden files, or files named like keys",
+              "Touch your cloud account: syncing stays with its own program"
+            ],
+            "disconnect": "Press Disconnect here. Copies already saved stay where they are."
+          }
+        },
+        "calendar": {
+          "label": "Calendar (read only)",
+          "labelOf": "Calendar: {host}",
+          "events": "read the calendar from {from} to {to}",
+          "addressLabel": "Your calendar's secret address in iCal format",
+          "addressPlaceholder": "https://…/basic.ics",
+          "addressWarn": "Anyone with this address can see your calendar. To change it, reset the secret address in your calendar.",
+          "grant": {
+            "reads": [
+              "The events in the calendar you give: start, end, title and place"
+            ],
+            "does": [],
+            "never": [
+              "Change your calendar, which it cannot do: to add an event, the staff write an .ics file for you to open"
+            ],
+            "disconnect": "Press Disconnect here. The address is deleted from this computer."
+          }
+        },
+        "maildraft": {
+          "label": "Email drafts",
+          "draft": "write the email draft {file}",
+          "grant": {
+            "reads": [],
+            "does": [
+              {
+                "what": "Write an email draft (.eml) in the commission's folder",
+                "undo": "yes"
+              }
+            ],
+            "never": [
+              "Send email, which it cannot do: you read the draft and send it yourself in your mail program",
+              "Connect to your mailbox"
+            ],
+            "disconnect": "Press Disconnect here. Drafts already written stay in their commissions' folders."
+          }
+        },
         "test": {
           "label": "Test connection",
           "readNote": "read the note in the test connection",
@@ -898,6 +992,8 @@
     },
     "files": {
       "summary": "summary.md",
+      "sources": "sources.json",
+      "noSource": "no source found",
       "tidyPlan": "tidy-plan.md",
       "listing": "file-list.txt",
       "letter": "letter.txt",
@@ -910,6 +1006,12 @@
       "document": "document.docx",
       "slides": "slides.pptx",
       "resumePdf": "resume.pdf",
+      "chartPage": "chart.html",
+      "chartPng": "chart.png",
+      "posterPage": "poster.html",
+      "posterPng": "poster.png",
+      "fromFolder": "from-synced-folder",
+      "posterPdf": "poster.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -933,7 +1035,24 @@
       "embedded": "This file has an embedded object or control that could run when it opens, so it is shown in its folder instead.",
       "externalTemplate": "This file fetches a template from elsewhere when it opens, so it is shown in its folder instead.",
       "externalLink": "This file links to files or addresses outside it and would fetch them when it opens, so it is shown in its folder instead.",
-      "unreadable": "This file can't be read and may be damaged, so it is shown in its folder instead."
+      "unreadable": "This file can't be read and may be damaged, so it is shown in its folder instead.",
+      "notPlain": "This mail or calendar file brings more than plain text: an attachment, a web page or something to run. It is shown in its folder instead."
+    },
+    "citations": {
+      "title": "Sources",
+      "opened": "opened this round",
+      "notOpened": "not opened this round",
+      "none": "No sources listed.",
+      "more": "{n} sources in all; the first {shown} are listed.",
+      "unsourced": "No source found for:",
+      "unnumbered": "Key points with no source number: {n}.",
+      "missing": "The summary cites {numbers}, which the source list does not have.",
+      "noSources": "This research came without its list of sources (sources.json), so they can't be checked.",
+      "unreadable": "The list of sources (sources.json) can't be read, so they can't be checked."
+    },
+    "resultConverted": {
+      "pdfToWord": "A PDF can't be changed as it is, so the changed version is a Word document.",
+      "sheetAsList": "This workbook has charts, pivot tables, tables or links that changing its cells could break, so it was left as it was. The changes are written down as a list for you to make."
     },
     "resultShelf": "Finished work goes on the shelf by the wall. Click it any time to find this again or change it.",
     "resultScriptDeletes": "{file} has a command that deletes files. Read it before you run it, or use \"Change it a bit\" to have it taken out.",
@@ -1090,7 +1209,9 @@
         "travel": "Travel guides",
         "tool": "Tools",
         "document": "Documents",
-        "slides": "Slides"
+        "slides": "Slides",
+        "chart": "Charts",
+        "poster": "Posters"
       }
     },
     "mini": {
@@ -1170,16 +1291,16 @@
   "legal": {
     "privacy": [
       "# Privacy",
-      "Last updated: November 5, 2026",
+      "Last updated: November 20, 2026",
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
-      "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records.",
+      "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records; your connections and the record of outside actions (a calendar's address is encrypted like the key).",
       "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook; the Microsoft Store version keeps it in the app's own storage, which Windows removes when you uninstall). You can clear everything the shop remembers from Wick's notebook. Claude Code also keeps its own record of each job, in the .claude folder in your home folder; those belong to Claude Code and stay when you do. If you installed from the setup file, delete that folder after uninstalling to remove everything.",
-      "What the staff make goes in the commission folder you chose, and it is yours.",
+      "What the staff make goes in the commission folder you chose, and it is yours. Email drafts stay there too: Lamplight Nook never sends them.",
       "# What is sent to Anthropic",
-      "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",
+      "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. If you tick a connection on a commission slip, the files the staff read in the synced folder and the events they read in the calendar are sent to Anthropic the same way. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",
       "When you save an API key, Lamplight Nook makes one free request to Anthropic to check that it works.",
-      "Other than that, Lamplight Nook connects to no servers. When the staff look things up they visit the web pages they find.",
+      "If you connect a calendar, the calendar's address you gave is used to fetch it straight from this computer. Other than that, Lamplight Nook connects to no servers. When the staff look things up they visit the web pages they find.",
       "# Diagnostics",
       "A diagnostics file leaves your computer only when you export it in Settings and send it to us yourself. It holds the app's log and an outline of your computer and settings, with no API key and nothing from your commissions.",
       "# Contact",
@@ -1187,7 +1308,7 @@
     ],
     "terms": [
       "# Terms of use",
-      "Last updated: October 29, 2026",
+      "Last updated: November 20, 2026",
       "By using Lamplight Nook you agree to these terms.",
       "# 1. License",
       "You are buying a license to use Lamplight Nook yourself on your own devices, not ownership of the software or its assets. Please do not resell, rent out or redistribute Lamplight Nook, or extract its art, sounds, fonts or music to use on their own: they belong to their creators, listed under Third-party licenses.",
@@ -1195,7 +1316,7 @@
       "The staff's work is done by Anthropic's service, which needs your own Anthropic account and API key, used under Anthropic's terms (including their age requirements). Anthropic charges your account for each commission; this is separate from the price of Lamplight Nook.",
       "Spending shown in the shop is Claude Code's estimate; Anthropic's bill is what counts. The per-round limit stops the staff when it is reached as best it can, but the actual cost may go slightly over.",
       "# 3. What the staff make",
-      "The staff are AI and make mistakes. Check pages, summaries, edits and tidy-up plans before you use them, especially before you send them to others or rely on them for a decision. What they make is yours, subject to Anthropic's terms.",
+      "The staff are AI: everything they make is generated by AI, and they make mistakes. Check pages, summaries, edits, tidy-up plans, Office files, pictures, sourced reports and email drafts before you use them, especially before you send them to others or rely on them for a decision. What they make is yours, subject to Anthropic's terms.",
       "# 4. Your files",
       "The staff work only in the commission folder, and serious steps such as deleting files, running a command they can't vouch for, or writing outside the folder wait for your OK. Even so, keep backups of important files. \"Edit a document\" only edits a copy, and \"Tidy a folder\" only writes a plan and moves nothing.",
       "# 5. Third parties",

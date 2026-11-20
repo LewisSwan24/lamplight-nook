@@ -98,6 +98,7 @@ async function start(home, { debug }) {
       SIM_SPEED: '150',
       SIM_SCENARIO: '',
       SIM_STATE_DIR: join(home.home, '.sim'),
+      SIM_CONNECTION_PLAY: 'packaged',
       ...(debug ? { LAMPLIGHT_DEBUG: '1' } : {}),
     },
     stdio: 'ignore',
@@ -198,6 +199,42 @@ try {
   check(made.length === 1, `the work is in the folder that was set (${made.join(', ')})`);
   check(problems.length === 0, `nothing failed to load${problems.length ? `: ${problems.slice(0, 5).map((p) => p.replace(/file:.*\/assets\//, '')).join('; ')}` : ''}`);
   check(await run.page.locator('.update-letter').count() === 0, 'no letter about a version that is not newer');
+
+  // Connections in a packaged shop (road-to-1.3.md C9): the three real kinds and never the test one, a calendar only
+  // over https, and both kinds of nook-* server answering a commission.
+  const { page } = run;
+  await page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.notebook.title}"]`).click();
+  await page.waitForSelector('.notebook .notebook-connections');
+  await sleep(400);
+  const kinds = await page.locator('.notebook-connections .connection-add').evaluateAll((b) => b.map((x) => x.dataset.kind).sort());
+  check(kinds.join() === 'calendar,folder,maildraft', `the connections offered are the folder, the calendar and drafts (${kinds.join(', ')})`);
+  await page.locator('.notebook-connections .connection-add[data-kind="calendar"]').click();
+  await page.waitForSelector('.grant-card');
+  await page.locator('.grant-card .grant-address').fill('http://127.0.0.1:9/c9.ics');
+  await page.locator('.grant-card .grant-connect').click();
+  await page.waitForSelector('.notebook .notebook-connections');
+  await sleep(500);
+  const refused = await page.locator('.notebook .connection').count() === 0 && (await page.locator('.connection-note').textContent()) === shop.L.ui.connections.address;
+  check(refused, 'a calendar at http://127.0.0.1 is refused');
+  await page.locator('.notebook-connections .connection-add[data-kind="maildraft"]').click();
+  await page.waitForSelector('.grant-card');
+  await page.locator('.grant-card .grant-connect').click();
+  await page.waitForSelector('.notebook .connection');
+  await page.keyboard.press('Escape');
+  await sleep(300);
+  await shop.order({ want: 'C9' });
+  const tick = page.locator('form.commission .connection-row input[type=checkbox]');
+  await tick.first().waitFor({ state: 'visible', timeout: 5000 });
+  await tick.first().check();
+  await shop.submit();
+  const linked = await shop.workUntilDone({ answers: () => 1, timeout: 200_000 });
+  check(linked.ok, `the commission with a connection finished${linked.ok ? '' : `: ${JSON.stringify(linked.stopped ?? linked).slice(0, 200)}`}`);
+  const files = [];
+  const walk = (d) => { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) walk(p); else files.push(n); } };
+  for (const n of readdirSync(workRoot).filter((n) => !made.includes(n))) walk(join(workRoot, n));
+  check(files.some((f) => f.endsWith('.docx')), `nook-office made a Word file (${files.join(', ')})`);
+  check(files.some((f) => f.endsWith('.eml')), 'the drafts connection wrote a draft');
+  await shop.shot(join(out, 'connection.png'));
   check(await stop(run), 'it closes by itself');
   // It looked for a new version on opening, for real. Offline or not, that is only ever a line in the log.
   const logs = join(home.data, 'logs');
@@ -208,9 +245,9 @@ try {
   await run.page.waitForSelector('#game canvas', { timeout: 30_000 });
   await sleep(2500);
   check(await run.page.evaluate(() => window.lamplightDebug === undefined), 'the debug tools stay hidden in a packaged build');
-  await run.page.locator('.toolbar button.tool-btn').nth(1).click();
+  await run.page.locator('.toolbar button.tool-btn').nth(2).click();
   await run.page.waitForSelector('.shelf-card', { timeout: 5000 });
-  check(await run.page.locator('.shelf-card li.work').count() === 1, 'the work is on the shelf after a restart');
+  check(await run.page.locator('.shelf-card li.work').count() === 2, 'both works are on the shelf after a restart');
   await new Shop(null, run.page, lang, home).shot(join(out, 'shelf.png'));
   check(await stop(run), 'it closes by itself the second time too');
 } finally {

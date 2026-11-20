@@ -30,6 +30,8 @@ type Point = { x: number; y: number };
 
 /** Where a guest stands to talk: at the end of the counter, facing Adeng, who stands behind it. */
 export const GUEST_SPOT = { x: 285, y: 90 } as const;
+/** Where Axin stands at the letter holder (road-to-1.3.md C8), right of Adeng's place there. */
+export const POST_SPOT = { x: 314, y: 56 } as const;
 /** Just inside the front door. */
 export const GUEST_DOOR = { x: ANCHORS.door.x, y: ANCHORS.door.y } as const;
 export const GUEST_SPEED = 34;

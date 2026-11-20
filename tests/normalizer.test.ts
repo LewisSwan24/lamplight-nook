@@ -122,3 +122,13 @@ describe('normalizer: cases not in the recording', () => {
     expect(targetOf('Edit', { file_path: 'C:\\Users\\x\\a\\style.css' })).toBe('style.css');
   });
 });
+
+describe('normalizer: connection tools by their kind (road-to-1.3.md C8)', () => {
+  it('names a connection\'s tool by the kind of connection, so the shop can play it whatever its number', () => {
+    const n = new EventNormalizer({ toolName: (name) => name.replace('mcp__nook-k17__', 'mcp__nook-calendar__') });
+    n.push(hook('PreToolUse', { tool_name: 'Read', tool_use_id: 'r', tool_input: { file_path: 'a.md' } }));
+    const start = n.push(hook('PreToolUse', { tool_name: 'mcp__nook-k17__events', tool_use_id: 'e', tool_input: { from: '2026-11-20', to: '2026-11-21' } }));
+    expect(start.find((e) => e.kind === 'tool_start')).toMatchObject({ tool: 'mcp__nook-calendar__events' });
+    expect(n.push(hook('PostToolUse', { tool_name: 'mcp__nook-k17__events', tool_use_id: 'e' }))[0]).toMatchObject({ kind: 'tool_ok', tool: 'mcp__nook-calendar__events' });
+  });
+});

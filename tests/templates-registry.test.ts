@@ -27,12 +27,28 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster']);
+  });
+
+  it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['chart', 'poster']);
+    expect(TEMPLATES.slice(-2).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[15, 'picture', false], [16, 'picture', false]]);
+    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'page', 'office', 'writeup', 'draft', 'table']);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect([F.chartPage, F.chartPng, F.posterPage, F.posterPng, F.posterPdf].map((n) => n.slice(n.lastIndexOf('.'))), lang).toEqual(['.html', '.png', '.html', '.png', '.pdf']);
+      expect(MAIN_FILES.picture(F.chartPng, F) && MAIN_FILES.picture(F.posterPng, F), lang).toBe(true);
+      for (const other of ['photo.png', F.chartPage, F.posterPdf]) expect(MAIN_FILES.picture(other, F), `${lang} ${other}`).toBe(false);
+      for (const id of ['chart', 'poster']) {
+        expect((S.ui.templates as Record<string, string>)[`${id}Hint`], `${lang} ${id}Hint`).toBeTruthy();
+        expect((S.ui.shelf.kinds as Record<string, string>)[id], `${lang} kinds.${id}`).toBeTruthy();
+      }
+    }
   });
 
   it('adds a Word document and slides after the small tool, made with the shop\'s office tools (road-to-1.3.md C1)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['document', 'slides']);
-    expect(TEMPLATES.slice(-2).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[13, 'office', false], [14, 'office', false]]);
+    expect(TEMPLATES.map((t) => t.id).slice(12, 14)).toEqual(['document', 'slides']);
+    expect(TEMPLATES.slice(12, 14).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[13, 'office', false], [14, 'office', false]]);
     expect(template('sheet').main).toBe('office');
     for (const S of Object.values(LOCALES)) {
       expect(S.ui.files.document).toMatch(/\.docx$/);
@@ -43,7 +59,7 @@ describe('the template table', () => {
   });
 
   it('tells Office files and PDFs apart as main files, after pages and before write-ups', () => {
-    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'page', 'office', 'writeup', 'table']);
+    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'page', 'office', 'writeup', 'draft', 'table']);
     for (const f of ['a.docx', 'b.XLSX', 'c.pptx', 'd.pdf']) expect(MAIN_FILES.office(f), f).toBe(true);
     for (const f of ['a.docm', 'b.xlsm', 'c.pptm', 'd.csv', 'e.html']) expect(MAIN_FILES.office(f), f).toBe(false);
   });
@@ -56,18 +72,20 @@ describe('the template table', () => {
     }
   });
 
-  it('asks for a text file of up to a megabyte to edit, and a folder to tidy', () => {
-    expect(template('edit').source).toEqual({ kind: 'file', extensions: ['txt', 'md', 'html', 'htm', 'csv', 'json'], maxBytes: 1024 * 1024 });
-    expect(EDITABLE).toEqual(['txt', 'md', 'html', 'htm', 'csv', 'json']);
-    expect(MAX_EDIT_BYTES).toBe(1024 * 1024);
+  it('asks for a file of up to 20 MB to edit (text, Office or PDF), and a folder to tidy', () => {
+    // C3: Word, Excel, PowerPoint and PDF too, never their kinds with macros, up to the 20 MB one handed-over file may be.
+    expect(template('edit').source).toEqual({ kind: 'file', extensions: ['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf'], maxBytes: 20 * 1024 * 1024 });
+    expect(EDITABLE).toEqual(['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf']);
+    expect(EDITABLE.some((e) => /m$/.test(e) && e !== 'htm')).toBe(false);
+    expect(MAX_EDIT_BYTES).toBe(20 * 1024 * 1024);
     expect(template('tidy').source).toEqual({ kind: 'folder' });
     expect(TEMPLATES.filter((t) => 'source' in t).map((t) => t.id)).toEqual(['edit', 'tidy']);
     expect(TEMPLATES.filter((t) => 'photos' in t).map((t) => t.id)).toEqual(['album']);
   });
 
   it('adds a résumé, reading notes, a travel guide and a small tool after the album, each with its own piece', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-7, -2)).toEqual(['album', 'resume', 'notes', 'travel', 'tool']);
-    expect(TEMPLATES.slice(-6, -2).map((t) => [t.icon, t.main, 'growth' in t ? t.growth : null])).toEqual([
+    expect(TEMPLATES.map((t) => t.id).slice(7, 12)).toEqual(['album', 'resume', 'notes', 'travel', 'tool']);
+    expect(TEMPLATES.slice(8, 12).map((t) => [t.icon, t.main, 'growth' in t ? t.growth : null])).toEqual([
       [9, 'page', { id: 'briefcase', at: 1 }],
       [10, 'writeup', { id: 'readinglamp', at: 1 }],
       [11, 'index', { id: 'postcards', at: 1 }],

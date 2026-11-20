@@ -2,7 +2,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SUMMARY_RULE, collectOutputs, scriptRisks, folderName, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot } from '../app/main/commission';
+import { SUMMARY_RULE, collectOutputs, scriptRisks, folderName, shortTitle, commissionPrompt, continuePrompt, listFolder, originalName, prepareSource, revisedName, snapshot, sourceProblem, convertedNote } from '../app/main/commission';
+import { readZip } from '../app/main/office/unzip';
+import { zip } from '../app/main/zip';
 import { classify } from '../app/main/risk-classifier';
 import { strings } from '../app/shared/i18n';
 
@@ -84,6 +86,15 @@ describe('commission templates', () => {
     expect(p).toContain(`"${F.summary}"`);
     expect(p).toMatch(/researcher subagent/);
     expect(p).toMatch(/do not make a web page/);
+  });
+
+  it('research numbers each point by its sources and writes them down as sources.json, never made up (C7)', () => {
+    const p = commissionPrompt({ want: 'w', template: 'research' });
+    expect(p).toContain(`"${F.sources}"`);
+    expect(p).toMatch(/each point followed by the numbers of its sources in brackets, such as \[1\]\[3\]/);
+    expect(p).toContain('"unsourced"');
+    expect(p).toContain(`marked "${F.noSource}"`);
+    expect(p).toMatch(/Never make up a link/);
   });
 
   it('an edit names the copy and the revised file, and forbids changing the copy', () => {
@@ -252,6 +263,20 @@ describe('the main output', () => {
     expect(out.main).toBe(join(work, `${F.revisedPrefix}letter.txt`));
   });
 
+  it('a chart or poster picture comes before the page it was drawn from (C2)', () => {
+    const { work, out } = made(F.chartPage, F.chartPng);
+    expect(out.main).toBe(join(work, F.chartPng));
+    const poster = made(F.posterPage, F.posterPdf, F.posterPng);
+    expect(poster.out.main).toBe(join(poster.work, F.posterPng));
+    const shot = made('page.html', 'shot.png');
+    expect(shot.out.main).toBe(join(shot.work, 'page.html'));
+  });
+
+  it('an email draft comes before the letter it was made from (C5)', () => {
+    const { work, out } = made(F.letter, 'letter.eml');
+    expect(out.main).toBe(join(work, 'letter.eml'));
+  });
+
   it('a Markdown write-up counts when there is no page', () => {
     const { work, out } = made(F.summary);
     expect(out.main).toBe(join(work, F.summary));
@@ -293,6 +318,29 @@ describe('phase 6 templates', () => {
     expect(deck).toContain('mcp__nook-office__make_pptx');
     const cv = commissionPrompt({ want: 'w', template: 'resume' });
     expect(cv).toContain(`"${F.resumePdf}" with the mcp__nook-office__make_pdf tool`);
+  });
+
+  it('a chart is drawn as a page in SVG and saved as a PNG with render_png, its numbers copied, never made up (C2)', () => {
+    const c = commissionPrompt({ want: 'w', template: 'chart' });
+    expect(c).toContain(`"${F.chartPage}"`);
+    expect(c).toContain(`"${F.chartPng}" with the mcp__nook-office__render_png tool`);
+    expect(c).toMatch(/inline SVG/);
+    expect(c).toMatch(/exactly as they are/);
+    expect(c).toMatch(/start at zero/);
+    expect(c).toMatch(/units/);
+    expect(c).toMatch(/Never make up a number/);
+    expect(c).toMatch(/look at it with the Read tool/);
+  });
+
+  it('a poster is a page drawn as a PNG at the size it is for, and an A4 one also as a PDF (C2)', () => {
+    const p = commissionPrompt({ want: 'w', template: 'poster' });
+    expect(p).toContain(`"${F.posterPage}"`);
+    expect(p).toContain(`"${F.posterPng}" with the mcp__nook-office__render_png tool`);
+    expect(p).toMatch(/A4.*794 by 1123/);
+    expect(p).toMatch(/square.*1080 by 1080/);
+    expect(p).toMatch(/1920 by 1080/);
+    expect(p).toContain(`"${F.posterPdf}" with the mcp__nook-office__make_pdf tool`);
+    expect(p).toMatch(/look at it with the Read tool/);
   });
 
   it('a plan is a table by day or week with some slack', () => {
@@ -354,5 +402,64 @@ describe('the four templates added in 1.1', () => {
     const before = snapshot(d);
     writeFileSync(join(d, F.resume), '<p>');
     expect(collectOutputs(d, before).main).toBe(join(d, F.resume));
+  });
+});
+
+describe('the edit template takes Word, Excel, PowerPoint and PDF (road-to-1.3.md C3)', () => {
+  it('a PDF comes back as a Word document; anything else keeps its kind', () => {
+    expect(revisedName('/home/u/scan.pdf')).toBe(`${F.revisedPrefix}scan.docx`);
+    expect(revisedName('/home/u/Scan.PDF')).toBe(`${F.revisedPrefix}Scan.docx`);
+    expect(revisedName('/home/u/report.docx')).toBe(`${F.revisedPrefix}report.docx`);
+    expect(originalName('/home/u/scan.pdf')).toBe(`${F.originalPrefix}scan.pdf`);
+  });
+
+  it('an Office file is read numbered and changed with its edit tool, from the original, never by hand', () => {
+    for (const [file, tool] of [['report.docx', 'edit_docx'], ['budget.xlsx', 'edit_xlsx'], ['talk.pptx', 'edit_pptx']]) {
+      const p = commissionPrompt({ want: 'w', template: 'edit', source: `/home/u/${file}` });
+      expect(p, file).toContain(`mcp__nook-office__${tool}`);
+      expect(p, file).toContain('numbered: true');
+      expect(p, file).toContain(`"${F.originalPrefix}${file}"`);
+      expect(p, file).toContain(`"${F.revisedPrefix}${file}"`);
+      expect(p, file).toMatch(/Never write Office XML/);
+    }
+    expect(commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/report.docx' })).toMatch(/tracked changes/);
+    // A workbook it will not change becomes a list of the changes, under the revised name.
+    expect(commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/budget.xlsx' })).toContain(`"${F.revisedPrefix}budget.md"`);
+  });
+
+  it('a PDF is read with Read and written again as Word with make_docx', () => {
+    const p = commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/scan.pdf' });
+    expect(p).toContain('mcp__nook-office__make_docx');
+    expect(p).toContain(`"${F.revisedPrefix}scan.docx"`);
+    expect(p).toMatch(/Read tool/);
+    expect(p).not.toContain('edit_docx');
+  });
+
+  it('a text file is edited as before, without the office tools', () => {
+    const p = commissionPrompt({ want: 'w', template: 'edit', source: '/home/u/notes.md' });
+    expect(p).not.toContain('nook-office');
+    expect(p).toContain(`Write the edited version as "${F.revisedPrefix}notes.md", in the same format.`);
+  });
+
+  it('refuses a file past the limit and an Office file with macros, and takes the rest', () => {
+    const d = dir();
+    const plain = join(d, 'plain.docx');
+    writeFileSync(plain, readFileSync('tests/fixtures/office/sample.docx'));
+    const parts = readZip(readFileSync(plain));
+    const withMacros = join(d, 'macro.docx');
+    writeFileSync(withMacros, zip([...parts].map(([name, get]) => ({ name, data: get() })).concat({ name: 'word/vbaProject.bin', data: Buffer.from('VBA') })));
+    writeFileSync(join(d, 'notes.txt'), 'twenty bytes of text');
+    expect(sourceProblem(plain, 20 * 1024 * 1024)).toBeUndefined();
+    expect(sourceProblem(join(d, 'notes.txt'), 20 * 1024 * 1024)).toBeUndefined();
+    expect(sourceProblem(join(d, 'notes.txt'), 10)).toBe('too-big');
+    expect(sourceProblem(withMacros, 20 * 1024 * 1024)).toBe('macros');
+  });
+
+  it('the card says when a PDF became Word, or a workbook became a list of changes', () => {
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/scan.pdf' }, `/w/${F.revisedPrefix}scan.docx`)).toBe('pdfToWord');
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/b.xlsx' }, `/w/${F.revisedPrefix}b.md`)).toBe('sheetAsList');
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/b.xlsx' }, `/w/${F.revisedPrefix}b.xlsx`)).toBeUndefined();
+    expect(convertedNote({ want: 'w', template: 'edit', source: '/u/r.docx' }, `/w/${F.revisedPrefix}r.docx`)).toBeUndefined();
+    expect(convertedNote({ want: 'w', template: 'page' }, '/w/index.html')).toBeUndefined();
   });
 });

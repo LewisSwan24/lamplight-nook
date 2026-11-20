@@ -160,7 +160,23 @@ async function refuseRealFolders(app, home) {
  * money starts at, such as 2026-12-01T10:00; honoured only unpackaged), testSecret (the secret the test connection is made
  * with, road-to-1.3.md C4; honoured only unpackaged).
  */
-export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0, noWindow = false, updateConfig = '', oldData = '', clock = '', testSecret = '' } = {}) {
+/**
+ * A shop written by a scenario from before 1.4 moves onto the street on its first open (road-to-1.4.md D7), over whatever
+ * the scenario meant to look at. Count the move as shown, unless the scenario is there to watch it (`movetown`).
+ */
+function moveShown(dir) {
+  for (const name of ['memory.json', 'memory.last-good.json']) {
+    const file = join(dir, name);
+    let memory;
+    try { memory = JSON.parse(readFileSync(file, 'utf8')); } catch { continue; }
+    if (!Array.isArray(memory?.shop?.told) || memory.shop.told.includes('town-move')) continue;
+    memory.shop.told.push('town-move');
+    writeFileSync(file, JSON.stringify(memory, null, 2));
+  }
+}
+
+export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'medium', scenario = '', speed = 250, key = true, debug = false, appDir = ROOT, simEnv = {}, store = false, claudePath = FAKE_CLAUDE, args = [], displayScale = 0, noWindow = false, updateConfig = '', oldData = '', clock = '', testSecret = '', movetown = false } = {}) {
+  if (!movetown) moveShown(home.data);
   const env = {
     PATH: claudePath === FAKE_CLAUDE || claudePath === 'sdk' ? process.env.PATH : pathWithoutClaude(),
     HOME: home.home,

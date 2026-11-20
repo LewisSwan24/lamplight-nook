@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased (1.4)
+
+- **Out to the street.** A new toolbar button takes you out of the shop onto the town's street, without reloading:
+  seven fronts in a row, panned along by dragging or with the arrow keys, by day and by night. Your own front, Enter
+  in front of it, Escape or the same button takes you back in, and the work inside goes on meanwhile. The print shop,
+  the studio and the workshop are still being fitted out; the bakery and the post office belong to the neighbours.
+- **The shop moves onto the street.** A shop from 1.3 or before opens once onto the street: Wick, Clem, Flint
+  and Iris carry it in, a box each, and inside everything it had gathered settles back where it was. A click skips
+  it; with reduced motion nothing walks. Your data is copied aside first, as with every upgrade (data version 5).
+- **Errands on the real street.** The small window that shows Clem out on an errand now looks onto the town's street,
+  and out of the door you see her there, in the same place: at the post office for the web, at the other room for
+  books, past the bakery on the way back from far off. A click on her out there works as in the window.
+
+- **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
+  from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.
+  `docs/art.md` now says what the installer carries, and the question for LimeZu about it is written.
+
 ## Unreleased (1.3)
 
 - **The groundwork for connections.** The notebook has a Connections page, and the commission slip a line saying which
@@ -20,6 +37,53 @@
   you hand over. The result card shows a small picture of what was made. An Office file opens with a click only when it
   carries no macros, no embedded objects and nothing that reaches outside it; otherwise the card says why and shows the
   file in its folder.
+
+- **Edit a Word, Excel or PowerPoint file, or a PDF.** "Edit a document" now takes these as well as text files, up to
+  20 MB, though not a file with macros. Your file stays as it is and so does the shop's copy of it; the changes go into
+  a revised copy beside it. In Word they are tracked changes you can accept or reject one by one. In Excel the changed
+  cells are recalculated when you open the workbook; one with charts, pivot tables, tables or links to other files is
+  left alone and you get a list of the changes to make instead. A PDF can't be changed as it is, so it comes back as a
+  Word document, and the card says so.
+
+- **Research says where each point comes from.** Every key point in a research summary carries the numbers of its
+  sources, and the sources are also kept in a list the app can check. The result card lists them with their sites;
+  a click opens one in your browser. A source the staff never searched for or opened during the job is marked so, and
+  the card also says which points have no source and what was concluded without one.
+
+- **Charts and posters.** Two new kinds of work. A chart turns the numbers you write or the table you hand over into
+  a picture, every number copied as it is and the bars drawn from zero. A poster comes at the size its use calls for:
+  A4 to print (with a PDF as well), square for a social post, or wide for a screen. The staff draw each one as a page,
+  save it as a PNG and look at the picture before handing it over; the card shows that picture.
+- **More photos can be handed over.** BMP and AVIF photos are taken, and the staff look at a PNG copy made beside them.
+  HEIC and TIFF photos, which nothing in the shop can open, are turned away on the slip with a note to save them as JPG
+  or PNG first.
+- **The first connections.** The notebook's Connections page offers three, each with a card saying what it may do:
+  - A synced folder, such as the one OneDrive or Dropbox keeps on this computer. The staff can look in it, read its
+    files, and save a copy of finished work into a "Lamplight Nook" folder inside it, asking you each time; Undo
+    deletes the copy. Nothing of yours is deleted, moved or changed, and the cloud account is never touched.
+  - A calendar, read only. Paste its secret iCal address and the staff can read the days they need, repeats included.
+    It cannot be changed: to add an event they write an .ics file for you to open. The address stays locked away on
+    this computer and is deleted when you disconnect.
+  - Email drafts. The staff write a draft in the commission's folder, and the result card opens it in your mail
+    program, where you read it and send it yourself. Nothing is ever sent by the shop.
+  - A mail or calendar file opens with a click only when it is plain: a mail with an attachment or a web page in it,
+    or an event that brings a file or starts a program, is shown in its folder instead. A calendar full of very long
+    repeats is refused rather than read for minutes.
+
+- **A filing cabinet and the post.** The shop has three new things in it, in the cafe and the study alike: a filing
+  cabinet beside the bookcase, a letter holder by the front door, and an outbox basket on the counter.
+  - Adeng looks Word, Excel and PowerPoint files up at the filing cabinet, and puts each finished file away in it.
+  - What comes from a calendar or a synced folder arrives by post: Axin the postman brings it to the letter holder, and
+    takes away a copy saved into the folder. He comes at most twice a commission; after that Adeng fetches it himself.
+  - A finished email draft goes in the outbox, waiting for you to send it.
+
+- **Release checks and the Store listing.** The packaged-app check now makes sure a packaged shop offers only the
+  three real connections, refuses a calendar at a local address, and starts both kinds of the shop's own tool servers;
+  it also opens the works shelf by the right button again. The privacy note says what a connection sends to Anthropic,
+  that a connected calendar is fetched from this computer, and that connections and the record of outside actions stay
+  on it. The terms say that everything the staff make is generated by AI, Office files and pictures included. The Store
+  listing opens by naming Claude Code, your own key and AI-generated work, lists the new kinds of work and the
+  connections, and its privacy section matches the note in the app.
 
 ## Unreleased (1.2)
 

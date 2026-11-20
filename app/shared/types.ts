@@ -1,4 +1,5 @@
 import type { Furnishings } from './furnish';
+import type { TownDays } from './town';
 import type { Todo } from './board';
 import type { SceneId } from './scenes';
 import type { MiniState } from './mini';
@@ -7,7 +8,8 @@ import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId } from './templates';
 
 /** Scene anchors: characters only move between these points. */
-export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
+/** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
+export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner' | 'cabinet' | 'mailslot';
 
 export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'cat';
 /** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
@@ -94,7 +96,8 @@ export type RunResult = { /** The round's run id (B5), for trying it again. */ r
   /** A month or project cap stopped it (error monthCap or projectCap). */ cap?: BudgetNote;
   /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
   /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[];
-  /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number };
+  /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number;
+  /** The web addresses this round searched or fetched, for checking a write-up's sources (road-to-1.3.md C7). */ seenUrls?: string[] };
 
 /** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
 export type BudgetNote = { cap: 'month' | 'project'; capUsd: number; spentUsd: number; leftUsd: number; project?: string };
@@ -150,7 +153,8 @@ export interface LamplightApi {
   /** The connections (road-to-1.3.md C4) and the kinds that can be added. */
   connections(): Promise<ConnectionsView>;
   /** "Connect" on a kind's authorisation card: the connection made, or null when the system cannot keep its secret safe. */
-  addConnection(kind: ConnectionKind): Promise<Connection | null>;
+  /** Make a connection of this kind after its card said yes; `input` is what the card asked for (C5). */
+  addConnection(kind: ConnectionKind, input?: { address?: string }): Promise<Connection | { error: SetupError } | null>;
   pauseConnection(id: string, on: boolean): Promise<boolean>;
   /** Disconnect: its secret and its settings are gone. */
   removeConnection(id: string): Promise<boolean>;
@@ -186,6 +190,8 @@ export interface LamplightApi {
    * an Office file was shown in its folder instead of opened, and why (road-to-1.3.md C1).
    */
   openOutput(path: string, how: 'open' | 'reveal'): Promise<{ ok: boolean; why?: NotOpened }>;
+  /** Open source n of a round's research write-up in the browser (road-to-1.3.md C7); false when there is no such web address. */
+  openSource(run: string, n: number): Promise<boolean>;
   /** What Adeng may bring up as this commission starts (from earlier commissions). */
   recallForCommission(form: CommissionForm): Promise<Recall>;
   /** What Adeng may bring up as a round of changes starts (what was asked last time). */
@@ -316,7 +322,10 @@ export type Grant = {
   disconnect: string;
 };
 /** A kind of connection the shop can make now, with its card. */
-export type ConnectionOffer = { kind: ConnectionKind; label: string; grant: Grant };
+/** `asks`: what its card asks for besides "Connect" (C5): a folder picked next, or an address typed on it. */
+export type ConnectionOffer = { kind: ConnectionKind; label: string; grant: Grant; asks?: 'folder' | 'address' };
+/** Why a connection was not made (C5): the folder dialog was closed, the folder holds too much, the address will not do, or the secret cannot be kept safe. */
+export type SetupError = 'cancelled' | 'broad' | 'address' | 'storage';
 /** The connections page: the ones made, each with its card, and the kinds that can be added. */
 export type ConnectionsView = { list: (Connection & { grant: Grant })[]; offers: ConnectionOffer[]; /** Every connection paused in settings (C6). */ allPaused?: boolean };
 /**
@@ -351,13 +360,26 @@ export type ConsultReply = { id: string; reply: string } | { id: string; brief: 
 /** A file handed over with a commission. */
 export type Material = { path: string; name: string; size: number };
 /** What could be handed over, and what not and why. */
-export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' }[] };
+export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' | 'picture' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
-export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' };
+export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' | 'macros' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
+/**
+ * A research write-up checked against its sources (road-to-1.3.md C7): each source with its site and whether this round
+ * searched or fetched it; the conclusions the staff found no source for; the points with no number; numbers the sources
+ * lack. `broken` when sources.json is missing or unreadable.
+ */
+export type Citations = {
+  sources: { n: number; title: string; url: string; site: string; opened: boolean }[];
+  unsourced: string[];
+  unnumbered: string[];
+  missing: number[];
+  broken?: 'noSources' | 'unreadable';
+};
+
 export type CommissionResult = {
   /** The round (B5) and the project it was for, which the card names. */
   run?: string;
@@ -375,6 +397,10 @@ export type CommissionResult = {
   budget?: BudgetNote[];
   /** Rounds of changes so far (0 for the first go). */
   round?: number;
+  /** An edit that came back as another kind of file (road-to-1.3.md C3): a PDF as Word, a workbook as a list of changes. */
+  converted?: 'pdfToWord' | 'sheetAsList';
+  /** A research write-up's sources, checked (C7). */
+  citations?: Citations;
   /** The work as it was before this round is kept and can be put back. */
   canRestore?: boolean;
   /** Done in the user's own folder: which of their files it changed and which it made (paths inside the folder). */
@@ -388,7 +414,7 @@ export type CommissionResult = {
 };
 
 /** Why a Word, Excel or PowerPoint file was shown in its folder rather than opened (office/safe.ts). */
-export type NotOpened = 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable';
+export type NotOpened = 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable' | 'notPlain';
 
 /** Why a script the shop made needs a look: it deletes files, or it changes them without a preview first. */
 export type ScriptRisk = 'deletes' | 'noPreview';
@@ -480,6 +506,7 @@ export const IPC = {
   result: 'commission:result',
   resultPreview: 'commission:result-preview',
   openOutput: 'commission:open-output',
+  openSource: 'commission:open-source',
   decision: 'decision:request',
   answer: 'decision:answer',
   recallForCommission: 'memory:recall-commission',
@@ -585,7 +612,14 @@ export type CharacterCommand = {
   priority: number;
   /** The round it is for (B9): whose crew the actor is working in, and whose project name a line carries. */
   run?: string;
+  /**
+   * The post (road-to-1.3.md C8): Axin comes in with a letter (`deliver`) or for a parcel (`collect`), or a finished draft
+   * goes in the outbox on the counter for the user to send (`outbox`).
+   */
+  post?: Post;
 };
+
+export type Post = 'deliver' | 'collect' | 'outbox';
 
 /** One commission in Adeng's notebook (summaries only, never the conversation). */
 export type CommissionMemo = {
@@ -707,6 +741,8 @@ export type ShopDays = {
   told: string[];
   /** Who has been to the shop, and the day they first came. Absent in shops from before 1.0. */
   met?: { id: GuestId; date: string }[];
+  /** The rest of the town (road-to-1.4.md D7). Absent only while the upgrade to data version 5 has not gone through. */
+  town?: TownDays;
 };
 
 /** A finished piece of work on the works shelf. */

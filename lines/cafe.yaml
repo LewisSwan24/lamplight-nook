@@ -31,6 +31,12 @@ planning:
   - { id: plan_02, speaker: adeng, bubbles: ["先做哪块好……"] }
   - { id: plan_03, speaker: adeng, bubbles: ["分三步吧。"] }
 
+# A draft is done (road-to-1.3.md C8): it waits in the outbox, and the user sends it.
+draft_ready:
+  - { id: draft_ready_01, speaker: adeng, bubbles: ["信写好了，在待寄筐里。", "你看过再自己寄。"] }
+  - { id: draft_ready_02, speaker: adeng, bubbles: ["草稿放进待寄筐了。", "寄不寄，你说了算。"] }
+  - { id: draft_ready_03, speaker: adeng, bubbles: ["邮票我没贴，信也没寄。", "在待寄筐里等你。"] }
+
 writing:
   - { id: write_01, speaker: adeng, bubbles: ["正式的开始写了。"] }
   - { id: write_02, speaker: adeng, bubbles: ["这块写完了，下一块。"] }
