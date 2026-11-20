@@ -30,10 +30,20 @@ describe('director pacing', () => {
     const { d, tick } = setup();
     d.submit(cmd({ anim: 'write' }));
     for (const anim of ['a', 'b', 'c']) d.submit(cmd({ anim }));
-    tick(6_000);
+    tick(16_000);
     d.submit(cmd({ anim: 'now' }));
     expect(d.finished('adeng')?.anim).toBe('now');
     expect(d.finished('adeng')).toBeNull();
+  });
+
+  it('someone only a little behind still plays every move: a trip to the cabinet is not lost to the next step (C8)', () => {
+    const { d, tick } = setup();
+    d.submit(cmd({ anim: 'write' }));
+    for (const anim of ['cabinet', 'table', 'counter']) d.submit(cmd({ anim }));
+    tick(10_000);
+    expect(d.finished('adeng')?.anim).toBe('cabinet');
+    expect(d.finished('adeng')?.anim).toBe('table');
+    expect(d.finished('adeng')?.anim).toBe('counter');
   });
 
   it('a stale move still plays when it is the latest, and trouble is never skipped', () => {
@@ -42,7 +52,7 @@ describe('director pacing', () => {
     d.submit(cmd({ priority: PRIORITY.fail, anim: 'scratch' }));
     d.submit(cmd({ anim: 'b' }));
     d.submit(cmd({ anim: 'c' }));
-    tick(6_000);
+    tick(16_000);
     expect(d.finished('adeng')?.anim).toBe('scratch');
     expect(d.finished('adeng')?.anim).toBe('c');
     expect(d.finished('adeng')).toBeNull();

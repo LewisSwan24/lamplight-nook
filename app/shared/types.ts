@@ -272,8 +272,6 @@ export interface LamplightApi {
   showShop(): Promise<void>;
   /** Move the shop to another scene: saves it and reloads the page; false while a commission runs. */
   moveScene(scene: SceneId): Promise<boolean>;
-  /** Go into another room along the street, without moving the home shop (road-to-1.4.md D2). */
-  visitRoom(room: RoomId): Promise<boolean>;
   /** A new version is out (road-to-1.1.md A1): the postman brings the letter. */
   onUpdate(cb: (offer: UpdateOffer) => void): () => void;
   /** The user said "update": fetch it, to go in when the shop closes. False if it could not be fetched. */
@@ -468,8 +466,6 @@ export const IPC = {
   locale: 'app:locale',
   scene: 'app:scene',
   moveScene: 'app:move-scene',
-  home: 'app:home',
-  visitRoom: 'app:visit-room',
   relaunch: 'app:relaunch',
   legalNotices: 'app:legal-notices',
   saveApiKey: 'key:save',

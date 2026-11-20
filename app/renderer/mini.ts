@@ -4,7 +4,7 @@ import adengUrl from '../../assets/sprites/adeng.png';
 import catUrl from '../../assets/sprites/cat.png';
 import emotesUrl from '../../assets/ui/emotes.png';
 import { strings } from '../shared/i18n';
-import { currentScene } from '../shared/scenes';
+import { homeScene } from '../shared/scenes';
 import { MINI_IDLE, type MiniState, miniLine } from '../shared/mini';
 import { standPoint } from './game/layout';
 import { CAT_FRAME, STAFF_ANIMS, STAFF_FRAME, staffFrames } from './game/sprites';
@@ -14,7 +14,7 @@ const M = strings.ui.mini;
 /** The part of the shop the window shows, in art pixels: the counter and the floor in front of it. */
 const VIEW = { x: 200, y: 42, w: 96, h: 60 } as const;
 /** Where Adeng stands (feet) and the cat naps, in shop coordinates (game/layout.ts anchors). */
-const ADENG = standPoint('counter', 'adeng');
+const ADENG = standPoint('counter', 'adeng', homeScene());
 const CAT = { x: 206, y: 84 };
 /** Where the counter's top begins, in both scenes (scripts/art/scene.py, study.py). */
 const FRONT = { y: 76 };
@@ -47,7 +47,7 @@ function show(next: MiniState) {
 }
 
 async function start() {
-  const [cafe, adeng, cat, emotes] = await Promise.all([load(currentScene() === 'study' ? studyUrl : cafeUrl), load(adengUrl), load(catUrl), load(emotesUrl)]);
+  const [cafe, adeng, cat, emotes] = await Promise.all([load(homeScene() === 'study' ? studyUrl : cafeUrl), load(adengUrl), load(catUrl), load(emotesUrl)]);
   const draw = () => {
     ctx.clearRect(0, 0, VIEW.w, VIEW.h);
     ctx.drawImage(cafe, VIEW.x, VIEW.y, VIEW.w, VIEW.h, 0, 0, VIEW.w, VIEW.h);

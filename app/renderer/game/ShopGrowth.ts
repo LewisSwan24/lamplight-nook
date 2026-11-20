@@ -1,3 +1,4 @@
+import type { RoomId } from '../../shared/scenes';
 import Phaser from 'phaser';
 import worksUrl from '../../../assets/sprites/works.png';
 import { overlayDepth } from './pieces';
@@ -30,8 +31,8 @@ export class ShopGrowth {
   private zone: Phaser.GameObjects.Zone;
   onShelfClick: () => void = () => {};
 
-  constructor(private scene: Phaser.Scene, onHover: (on: boolean) => void) {
-    for (const g of GROWTH) this.pieces.set(g.id, scene.add.image(0, 0, `grow-${g.id}`).setOrigin(0).setDepth(overlayDepth(`grow-${g.id}`, DEPTH)).setVisible(false));
+  constructor(private scene: Phaser.Scene, room: RoomId, onHover: (on: boolean) => void) {
+    for (const g of GROWTH) this.pieces.set(g.id, scene.add.image(0, 0, `grow-${g.id}`).setOrigin(0).setDepth(overlayDepth(room, `grow-${g.id}`, DEPTH)).setVisible(false));
     // A thin wooden plank with a darker edge and two little brackets; hidden until there is a work to put on it.
     this.plank = scene.add.graphics({ x: SHELF.x, y: SHELF.y + SHELF.h - 2 }).setDepth(DEPTH).setVisible(false);
     this.plank.fillStyle(0xa0703f, 1).fillRect(0, 0, SHELF.w, 1);

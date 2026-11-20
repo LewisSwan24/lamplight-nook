@@ -1,4 +1,4 @@
-import { currentScene } from '../../shared/scenes';
+import { homeScene } from '../../shared/scenes';
 import { doorOf, TOWN } from './town';
 
 /**
@@ -23,7 +23,7 @@ export const PAVEMENT_Y = 54;
 /** The town's y at the top of the strip, so that feet on the strip stand on the town's pavement. */
 export const STRIP_TOP = TOWN.kerb + 10 - PAVEMENT_Y;
 
-const home = currentScene();
+const home = homeScene();
 /**
  * Strip x of each door Xiaoju stops at: the shop's own, the bakery, the post office, and for books the other room
  * (the study from the cafe, the cafe from the study), which holds the town's library since 1.4.

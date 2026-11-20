@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hitsFeet } from '../app/renderer/game/path';
 import { WALK_SPEED } from '../app/renderer/game/life';
-import { CAMERA_W, FRONTS, MOVERS, cameraFor, doorOf, frontAt, paradePlan, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
+import { CAMERA_W, FRONTS, MOVERS, cameraFor, doorOf, entering, frontAt, paradePlan, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
 
 // The town's street (road-to-1.4.md D1): seven fronts along a pavement wider than the canvas.
 
@@ -70,4 +70,24 @@ describe('moving into the town (road-to-1.4.md D7)', () => {
       expect(Math.max(...plan.map((p) => p.delay + p.ms))).toBeLessThan(15_000);
     });
   }
+});
+
+describe('going in at a front (road-to-1.4.md D2)', () => {
+  it('goes back into the room you came out of, busy or not', () => {
+    expect(entering('cafe', { here: 'cafe', busy: false })).toBe('back');
+    expect(entering('print', { here: 'print', busy: true })).toBe('back');
+  });
+
+  it('goes into another room, the home shop included, only while nothing is being worked on', () => {
+    expect(entering('studio', { here: 'cafe', busy: false })).toBe('visit');
+    expect(entering('cafe', { here: 'studio', busy: false })).toBe('visit');
+    expect(entering('study', { here: 'cafe', busy: false })).toBe('visit');
+    expect(entering('studio', { here: 'cafe', busy: true })).toBe('busy');
+    expect(entering('cafe', { here: 'workshop', busy: true })).toBe('busy');
+  });
+
+  it("only has a word for the neighbours' shops", () => {
+    expect(entering('bakery', { here: 'cafe', busy: false })).toBe('closed');
+    expect(entering('post', { here: 'cafe', busy: true })).toBe('closed');
+  });
 });

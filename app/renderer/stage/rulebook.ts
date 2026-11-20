@@ -17,7 +17,7 @@ import enPrint from '../../../lines/en/print.yaml?raw';
 import enStudio from '../../../lines/en/studio.yaml?raw';
 import enWorkshop from '../../../lines/en/workshop.yaml?raw';
 import { locale } from '../../shared/i18n';
-import { currentScene, type RoomId } from '../../shared/scenes';
+import type { RoomId } from '../../shared/scenes';
 import { type Chat, type LineLibrary, chatsForScene, linesForScene, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
 import { parseAnimTable, parseRules, type AnimTable, type Rule } from '../translator/translator';
 
@@ -30,14 +30,13 @@ const OWN: Partial<Record<RoomId, { rules: string; zh: string; en: string }>> = 
   workshop: { rules: workshopRules, zh: zhWorkshop, en: enWorkshop },
 };
 
-function build(r: string, a: string, l: string, c: string): RuleBook {
-  const own = OWN[currentScene()];
+function build(scene: RoomId, r: string, a: string, l: string, c: string): RuleBook {
+  const own = OWN[scene];
   const allLines = { ...parseLines(l), ...(own ? parseLines(english ? own.en : own.zh) : {}) };
   const allChats = parseChats(c);
   const problems = [...lintLines(allLines), ...lintChats(allChats)];
   if (problems.length) console.warn(`Dialogue lint:\n${problems.join('\n')}`);
-  // Only what fits the room the shop is in (shared/scenes.ts).
-  const scene = currentScene();
+  // Only what fits the room (shared/scenes.ts).
   return { rules: parseRules(own ? own.rules : r), anims: parseAnimTable(a), lines: linesForScene(allLines, scene), chats: chatsForScene(allChats, scene) };
 }
 
@@ -45,23 +44,29 @@ const english = locale() === 'en';
 const linesText = english ? enLines : zhLines;
 const chatsText = english ? enChats : zhChats;
 
-let current = build(rulesText, animText, linesText, chatsText);
-const listeners = new Set<(b: RuleBook) => void>();
+const texts = { r: rulesText, a: animText, l: linesText, c: chatsText };
+const books = new Map<RoomId, RuleBook>();
+const listeners = new Set<() => void>();
 
-export const ruleBook = () => current;
+/** A room's rules and lines, built the first time the room is shown (D2). */
+export function ruleBook(room: RoomId): RuleBook {
+  const book = books.get(room) ?? build(room, texts.r, texts.a, texts.l, texts.c);
+  books.set(room, book);
+  return book;
+}
 
-/** Called whenever the rule files change (dev mode only). */
-export function onRuleBookChange(cb: (b: RuleBook) => void) {
+/** Called whenever the rule files change (dev mode only); ask `ruleBook` again for the new version. */
+export function onRuleBookChange(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
 }
 
 if (import.meta.hot) {
-  const texts = { r: rulesText, a: animText, l: linesText, c: chatsText };
   const update = () => {
     try {
-      current = build(texts.r, texts.a, texts.l, texts.c);
-      for (const cb of listeners) cb(current);
+      build('cafe', texts.r, texts.a, texts.l, texts.c);
+      books.clear();
+      for (const cb of listeners) cb();
       console.info('Rules and dialogue reloaded');
     } catch (err) {
       // A YAML typo shouldn't take the scene down; keep the previous version.

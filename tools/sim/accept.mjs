@@ -4132,19 +4132,23 @@ const SCENARIOS = {
   /**
    * The three new shops (road-to-1.4.md D2): gone into from the street without moving the home shop, each with its own
    * person, who takes a commission round the room's places while the home crew stays home. By day, by night and in a
-   * small window; back home through the cafe's front, and the app opens at home again.
+   * small window; back home through the cafe's front, and the app opens at home again. All on one page: going in builds
+   * the room in place (D2, second half), and while it works the door to another room stays shut.
    */
   async shops(lang, out) {
     const WHO = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding' };
     const HOME_CREW = ['xiaoju', 'laoshi', 'qingdai', 'xiaodou', 'cat'];
-    const room = (page) => page.evaluate(() => window.lamplightScene);
+    const room = (page) => page.evaluate(() => window.lamplightDebug.scene.room);
     const visit = async (page, id) => {
       await page.evaluate((i) => window.lamplightDebug.street.onFront(i, true), id);
       for (const end = Date.now() + 15_000; Date.now() < end; await sleep(300)) {
         if (await room(page).catch(() => null) === id && await page.locator('.toolbar').count()) break;
       }
       await sleep(2500);
+      check(await page.evaluate(() => window.samePage === true), `going into the ${id} reloaded the page`);
     };
+    // Marks the page, and the home shop's room, to see later that neither was made again.
+    const mark = (page) => page.evaluate(() => { window.samePage = true; window.homeRoom = window.lamplightDebug.scene; });
     for (const size of [undefined, [640, 360]]) {
       const small = size ? '-640' : '';
       const home = freshHome({ 'settings.json': onboarded(lang) });
@@ -4152,6 +4156,7 @@ const SCENARIOS = {
       const { page } = shop;
       try {
         await sleep(2500);
+        await mark(page);
         for (const [id, person] of Object.entries(WHO)) {
           await visit(page, id);
           check(await room(page) === id, `${id}: did not go in`);
@@ -4175,6 +4180,10 @@ const SCENARIOS = {
           let homeSeen = '';
           await shop.order({ template: 'page', want: W[lang].page });
           await shop.submit();
+          // While this room works, the door to another stays shut, and says why.
+          await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+          check(await room(page) === id, `${id}: went home while the work went on`);
+          check((await page.locator('.street-note').innerText()).includes(locale(lang).ui.town.busy), `${id}: no word on why the door is shut`);
           const done = await shop.workUntilDone({
             onTick: async () => {
               const now = await who();
@@ -4207,6 +4216,9 @@ const SCENARIOS = {
         }
         await visit(page, 'cafe');
         check(await room(page) === 'cafe', 'did not get back home');
+        check(await page.evaluate(() => window.lamplightDebug.scene === window.homeRoom), 'the home shop was built again');
+        const kept = await page.evaluate(() => Object.keys(window.lamplightDebug.scene.game.scene.keys));
+        check(['print', 'studio', 'workshop'].every((r) => !kept.includes(r)), `rooms left behind are still there: ${kept}`);
         const back = await page.evaluate(() => ['xiaoju', 'laoshi', 'qingdai'].map((a) => window.lamplightDebug.scene.anchorOf(a)));
         check(back.every((a) => a !== null), `the home crew is not home: ${back}`);
       } finally { await shop.close(); }
@@ -4215,6 +4227,7 @@ const SCENARIOS = {
       let again = await launch({ lang, home, speed: SPEED });
       try {
         await sleep(2500);
+        await mark(again.page);
         await visit(again.page, 'studio');
         check(await room(again.page) === 'studio', 'did not go into the studio');
       } finally { await again.close(); }

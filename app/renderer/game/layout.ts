@@ -1,6 +1,6 @@
 import { strings } from '../../shared/i18n';
 import type { ActorId, AnchorId } from '../../shared/types';
-import { currentScene, type RoomId } from '../../shared/scenes';
+import type { RoomId } from '../../shared/scenes';
 import { findPath, type Point } from './path';
 import { shopArea } from './pieces';
 
@@ -173,7 +173,7 @@ const ROOM_SEATS: Partial<Record<RoomId, typeof SEATS>> = {
 };
 
 /** Every fixed place in a room, its own over the shared ones. */
-export function seatsIn(scene: RoomId = currentScene()): typeof SEATS {
+export function seatsIn(scene: RoomId): typeof SEATS {
   const own = ROOM_SEATS[scene];
   if (!own) return SEATS;
   const out: typeof SEATS = { ...SEATS };
@@ -182,7 +182,7 @@ export function seatsIn(scene: RoomId = currentScene()): typeof SEATS {
 }
 
 /** Where a character's feet go at an anchor, and which way it faces there; `second`: working in the second crew (B9). */
-export function standPoint(anchor: AnchorId, actor?: ActorId, scene: RoomId = currentScene(), second = false): Spot {
+export function standPoint(anchor: AnchorId, actor: ActorId | undefined, scene: RoomId, second = false): Spot {
   const seat = actor && ((second && SECOND_SEATS[anchor]?.[actor]) || seatsIn(scene)[anchor]?.[actor]);
   if (seat) return seat;
   const { x, y, facing } = ANCHORS[anchor];
@@ -191,10 +191,10 @@ export function standPoint(anchor: AnchorId, actor?: ActorId, scene: RoomId = cu
 }
 
 /** The walk across the floor from one point to another (path.ts), leaving out where it starts. */
-export const walkBetween = (from: Point, to: Point, scene?: RoomId): Point[] => findPath(shopArea(scene), from, to);
+export const walkBetween = (from: Point, to: Point, scene: RoomId): Point[] => findPath(shopArea(scene), from, to);
 
 /** The walk from a point to an anchor. */
-export function pathBetween(from: Point, to: AnchorId, actor?: ActorId, scene?: RoomId, second = false): Point[] {
+export function pathBetween(from: Point, to: AnchorId, actor: ActorId | undefined, scene: RoomId, second = false): Point[] {
   return walkBetween(from, standPoint(to, actor, scene, second), scene);
 }
 

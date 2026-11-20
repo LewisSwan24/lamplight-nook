@@ -1,4 +1,4 @@
-import { currentScene, isScene, type RoomId } from '../shared/scenes';
+import { homeScene, isScene, type RoomId } from '../shared/scenes';
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
@@ -44,7 +44,7 @@ import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, setOutsideButton, setWorking, syncToolbar, view } from './ui/toolbar';
 import { el, layer } from './ui/dom';
-import { MOVERS, OPEN } from './game/town';
+import { MOVERS, OPEN, entering } from './game/town';
 import { TOWN_MOVE } from '../shared/town';
 
 declare global {
@@ -54,7 +54,16 @@ declare global {
 document.title = strings.app.title;
 document.documentElement.lang = locale();
 
-const scene = new CafeScene();
+/**
+ * The home shop's room is always there; another room gone into from the street is built in place beside it, and
+ * `scene` and `stage` are whichever room is on screen (road-to-1.4.md D2). The garden, the neighbours, what the shop
+ * gathered and the works shelf stay the home shop's.
+ */
+const home = new CafeScene(homeScene());
+let scene: CafeScene = home;
+/** What the page hangs on a room (clicks, sounds, lines said): set on the home shop below, copied to a room gone into. */
+const ROOM_HOOKS = ['onGuestIn', 'onView', 'onBellClick', 'onActorClick', 'onSound', 'onSay', 'onStreet', 'onObjectClick', 'onYouClick',
+  'boardInUse', 'onBoardClick', 'onWorksClick', 'onCounterClick'] as const satisfies readonly (keyof CafeScene)[];
 const street = new StreetScene();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -63,7 +72,7 @@ const game = new Phaser.Game({
   height: CANVAS.height,
   pixelArt: true,
   backgroundColor: '#1b1712',
-  scene: [scene, street],
+  scene: [home, street],
   scale: { mode: Phaser.Scale.NONE },
   // Only clicks on the canvas itself reach the shop; a click on a card must not go through to whoever stands behind it.
   input: { windowEvents: false },
@@ -156,13 +165,14 @@ function drawLabels() {
 }
 requestAnimationFrame(drawLabels);
 
-const stage = new Stage(scene);
+const homeStage = new Stage(home);
+let stage = homeStage;
 stage.onEvent = noteEvent;
 
 // Small talk when the shop is quiet: never while working, while a card waits for the user, or when hidden.
 let replaying = false;
-const chatter = new Chatter(ruleBook().chats, ruleBook().lines.idle_mutter ?? [], Date.now());
-onRuleBookChange((b) => chatter.reload(b.chats, b.lines.idle_mutter ?? []));
+const chatter = new Chatter(ruleBook(home.room).chats, ruleBook(home.room).lines.idle_mutter ?? [], Date.now());
+onRuleBookChange(() => chatter.reload(ruleBook(home.room).chats, ruleBook(home.room).lines.idle_mutter ?? []));
 setInterval(() => {
   setPeriod(scene.period);
   const blocked = document.hidden || document.querySelector('.backdrop');
@@ -175,9 +185,9 @@ setInterval(() => {
     shopDays.told.add(talk.id);
     void window.lamplight.markTold(talk.id);
   }
-  if (atHome) tendGarden(!busy);
+  if (atHome()) tendGarden(!busy);
   bringLetter(!busy && !blocked && scene.view === 'shop');
-  if (atHome) dropIn(!busy && !blocked && scene.view === 'shop');
+  if (atHome()) dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
 }, 5000);
 
@@ -185,7 +195,7 @@ setInterval(() => {
 // and so do rain and nightfall.
 const gardenPlanner = new GardenPlanner(Date.now());
 /** The garden, the neighbours dropping in, what the shop gathered and the works shelf are the home shop's (D2). */
-const atHome = isScene(currentScene());
+const atHome = () => scene === home;
 function tendGarden(quiet: boolean) {
   const { sky } = scene.outside();
   const open = gardenOpen(sky, scene.period);
@@ -209,7 +219,7 @@ function dropIn(quiet: boolean) {
 }
 function welcome(guest: GuestId) {
   const present = (who: string) => scene.anchorOf(who as ActorId) !== null;
-  const chat = pickVisit(ruleBook().chats, guest, scene.outside(), scene.period, present, heardVisits, shopDays);
+  const chat = pickVisit(ruleBook(home.room).chats, guest, scene.outside(), scene.period, present, heardVisits, shopDays);
   if (chat) void scene.guestVisit(guest, chat.turns.map((t) => ({ ...t, text: fill(t.text, { lastWork: shopDays.lastWork ?? '' }) })));
 }
 
@@ -240,7 +250,7 @@ const gardenTalk = new GardenTalk(Date.now());
 function talkInGarden() {
   const now = Date.now();
   if (scene.view !== 'garden') return;
-  const say = gardenTalk.next(now, ruleBook().lines.garden ?? [], scene.gardenVisitors(), scene.outside().sky);
+  const say = gardenTalk.next(now, ruleBook(home.room).lines.garden ?? [], scene.gardenVisitors(), scene.outside().sky);
   if (!say) return;
   // Whoever comes back in leaves what they were saying out there (CafeScene clears it).
   const hush = () => scene.isInGarden(say.actor) && scene.say(say.actor, null);
@@ -275,7 +285,7 @@ let progressCount = 0;
 function sayProgress() {
   const now = Date.now();
   if (!progressDue(runStartedAt, progressSaidAt, now) || scene.busyTalking('adeng')) return;
-  const lines = ruleBook().lines.progress ?? [];
+  const lines = ruleBook(scene.room).lines.progress ?? [];
   const k = progressCount % Math.max(1, lines.length);
   const { done, left, doing } = stage.progress();
   const vars: Record<string, string> = { minutes: String(Math.round((now - runStartedAt) / 60_000)), done: String(done), left: String(left) };
@@ -296,7 +306,7 @@ let meetingOpen = false;
 let meetingCount = 0;
 /** A line said at the meeting, by those at it; Adeng's lines are said by the crew's lead. */
 function sayFrom(group: string, k = 0, crew: ActorId[] = STAFF, lead: ActorId = 'adeng') {
-  const lines = ruleBook().lines[group] ?? [];
+  const lines = ruleBook(scene.room).lines[group] ?? [];
   const turns = pickLine([...lines.slice(k % Math.max(1, lines.length)), ...lines.slice(0, k % Math.max(1, lines.length))], [], {});
   const voiced = (turns ?? []).map((t) => ({ ...t, speaker: t.speaker === 'adeng' ? lead : t.speaker }));
   const present = voiced.filter((t, i) => crew.includes(t.speaker) && scene.anchorOf(t.speaker) !== null && voiced.findIndex((x) => x.speaker === t.speaker) === i);
@@ -369,11 +379,11 @@ let worksKept = 0;
 async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   const state = await window.lamplight.shopState();
   // The scene builds its props on its first frame; wait for it when the shop has only just opened.
-  while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
-  scene.growth.setGrown(atHome ? state.grown.map((g) => g.id) : [], fresh);
-  scene.growth.setWorks(atHome ? state.works.map((w) => w.icon) : []);
-  scene.garden.setWorksDone(state.done);
-  stage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
+  while (!home.growth) await new Promise((r) => setTimeout(r, 100));
+  home.growth.setGrown(state.grown.map((g) => g.id), fresh);
+  home.growth.setWorks(state.works.map((w) => w.icon));
+  home.garden.setWorksDone(state.done);
+  homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
   worksKept = state.works.length;
   const projects = await window.lamplight.projectBoard();
@@ -424,7 +434,7 @@ function sayOnce(line: string, delay: number, said?: () => void) {
   onceLines = onceLines.then(async () => {
     await wait(due - Date.now());
     while (asked === forgotten) {
-      const turns = pickLine(ruleBook().lines.grow ?? [], [line], {}) ?? [];
+      const turns = pickLine(ruleBook(home.room).lines.grow ?? [], [line], {}) ?? [];
       const unheard = document.hidden || scene.view !== 'shop' || document.querySelector('#ui > .card, #ui > form.card, .backdrop, .legal-backdrop');
       if (!unheard && turns.every((t) => scene.anchorOf(t.speaker) !== null && !scene.busyTalking(t.speaker))) {
         said?.();
@@ -689,7 +699,7 @@ function applySettings(s: Settings) {
   scene.setReducedMotion(calm);
   scene.setYouLook(s.avatar);
   // Furnishing is the home shop's; the shops along the street are as they are drawn.
-  const room = currentScene();
+  const room = scene.room;
   if (isScene(room)) scene.setFurnishing(s.furnish[room]);
   scene.youName = s.name;
   syncToolbar(s);
@@ -705,7 +715,7 @@ const greet = (text: string) => {
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
   const { flags, vars } = await window.lamplight.recallOnOpen();
-  const turns = openingTurns(ruleBook().lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name });
+  const turns = openingTurns(ruleBook(scene.room).lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name });
   if (turns) void stage.talk(turns);
 }
 async function openShop() {
@@ -750,7 +760,7 @@ async function openShop() {
     scene.setOutside(out);
     // The street button keeps focus otherwise, and the arrow keys and Enter would go to it.
     if (out) (document.activeElement as HTMLElement | null)?.blur();
-    if (out) game.scene.run('street', { at: currentScene() });
+    if (out) game.scene.run('street', { at: scene.room });
     else game.scene.sleep('street');
     document.body.classList.toggle('outside', out);
     setOutsideButton(out);
@@ -762,10 +772,39 @@ async function openShop() {
   street.walker = () => scene.streetWalker();
   street.onActor = (id) => scene.onActorClick(id);
   street.onFront = (id, open) => {
-    if (id === currentScene()) return goOut(false);
-    // Another room is a visit: the home shop stays where it is (road-to-1.4.md D2). Not while work goes on in here.
-    if (open) return void api.visitRoom(id as RoomId).then((ok) => { if (!ok) say(strings.ui.town.busy); });
-    say(strings.ui.town.notes[id]);
+    const go = entering(id, { here: scene.room, busy: runList.length > 0 || replaying });
+    if (go === 'back') return goOut(false);
+    if (go === 'visit') return void enterRoom(id as RoomId);
+    say(go === 'busy' ? strings.ui.town.busy : strings.ui.town.notes[id]);
+  };
+  /**
+   * Into another room from the street, on the same page (D2): it is built in place, takes the home shop's hooks, and
+   * becomes `scene` and `stage`; the room left behind is taken down, unless it is the home shop, which stays hidden.
+   */
+  let visit: { scene: CafeScene; stage: Stage } | undefined;
+  const enterRoom = async (room: RoomId) => {
+    let next = home;
+    let nextStage = homeStage;
+    if (room !== home.room) {
+      next = new CafeScene(room);
+      for (const hook of ROOM_HOOKS) Object.assign(next, { [hook]: home[hook] });
+      game.scene.add(room, next, true);
+      await next.ready;
+      nextStage = new Stage(next);
+      nextStage.onEvent = noteEvent;
+    }
+    if (visit) {
+      visit.stage.dispose();
+      game.scene.remove(visit.scene.room);
+    }
+    visit = next === home ? undefined : { scene: next, stage: nextStage };
+    scene = next;
+    stage = nextStage;
+    if (current) applySettings(current);
+    // The home shop waits out of sight, as it does while you are out on the street.
+    home.setOutside(next !== home);
+    if (outside) goOut(false);
+    else next.setOutside(false);
   };
   const say = (text: string) => {
     streetNote.textContent = text;
@@ -792,7 +831,7 @@ async function openShop() {
       };
       window.addEventListener('pointerdown', skip, true);
       window.addEventListener('keydown', skip, true);
-      cut = await street.parade(MOVERS, currentScene());
+      cut = await street.parade(MOVERS, home.room);
       window.removeEventListener('pointerdown', skip, true);
       window.removeEventListener('keydown', skip, true);
       streetNote.hidden = true;
@@ -887,7 +926,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
-    Object.assign(window, { lamplightDebug: { scene, street, stage, ui, view, replay: startReplay, pretendRunning, welcome } });
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, ui, view, replay: startReplay, pretendRunning, welcome } });
   }
   const env = $('env');
   env.textContent = [

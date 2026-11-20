@@ -15,7 +15,8 @@
 - **Three new shops.** The print shop, the studio and the workshop open onto the street, each with someone of its
   own: Pica the old typesetter, Umber the quiet painter and Tack, who hums at the bench. Go in at a front and take a
   commission there; Wick minds the counter, the rest of your crew stays at home, and your home shop does not change.
-  The app still opens at home. Going in still reloads the page for now.
+  The app still opens at home. Going in and out happens on the same page, without a reload; while a shop is at work,
+  the door to another one stays shut.
 - **Catching up.** When work comes faster than someone can act it out, they now skip the moves that newer ones have
   overtaken and catch up, instead of playing the backlog out long after the work is done. Trouble and questions are
   never skipped.

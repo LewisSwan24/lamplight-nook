@@ -60,12 +60,12 @@ import you6Url from '../../../assets/sprites/you-6.png';
 import you7Url from '../../../assets/sprites/you-7.png';
 import you8Url from '../../../assets/sprites/you-8.png';
 import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
-import { fill, strings } from '../../shared/i18n';
+import { fill, strings, wordsIn } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
-import { currentScene } from '../../shared/scenes';
+import type { RoomId } from '../../shared/scenes';
 import { ROOM_CREW } from '../../shared/staff';
 import catWalkUrl from '../../../assets/sprites/cat-walk.png';
-import { COUNTER_TOP, PIECES } from './pieces';
+import { counterTop, pieceData } from './pieces';
 import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
 import type { GrowthId } from '../../shared/growth';
@@ -110,12 +110,9 @@ const DAYLIGHT_MS = 4000;
 /** Weather in the garden falls over the lawn, under the garden's light and shade. */
 const GARDEN_WEATHER_DEPTH = 0.6;
 const VIEW_FADE_MS = 180;
-const SCENE = currentScene();
-/** Who is in this room; the rest are elsewhere (road-to-1.4.md D2). */
-const CREW = ROOM_CREW[SCENE];
 /** Furnishing overlays for every scene (scripts/art/furnish.py); only this scene's are loaded. */
 const FURNISH_URLS = import.meta.glob<string>('../../../assets/sprites/furnish-*.png', { eager: true, query: '?url', import: 'default' });
-const furnishUrl = (part: FurnishPart, choice: string) => FURNISH_URLS[`../../../assets/sprites/furnish-${SCENE}-${part}-${choice}.png`];
+const furnishUrl = (room: RoomId, part: FurnishPart, choice: string) => FURNISH_URLS[`../../../assets/sprites/furnish-${room}-${part}-${choice}.png`];
 /** Over the room, under the window glass and everything in it. */
 const FURNISH_DEPTH = 0.2;
 /**
@@ -125,8 +122,6 @@ const FURNISH_DEPTH = 0.2;
 const FLAG = { x: 2, top: 29, pole: 8 } as const;
 /** The dark brown the pixel art is outlined in. */
 const INK = 0x3b2a1e;
-/** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
-const CUP_POS = CUP_AT[SCENE];
 /** Each room's picture without its furniture, and the furniture (scripts/art/pieces.py). */
 const ROOM_ART = {
   cafe: [cafeUrl, cafePiecesUrl], study: [studyUrl, studyPiecesUrl], print: [printUrl, printPiecesUrl],
@@ -204,7 +199,7 @@ export class CafeScene extends Phaser.Scene {
   youName = '';
   /** What the pointer is over: its name is shown only then, so the scene stays free of text. */
   private hovered: Target | null = null;
-  private objects = objectBoxes(SCENE);
+  private objects: ReturnType<typeof objectBoxes>;
   private growthZones = new Map<string, Phaser.GameObjects.Zone>();
   private pieceImages = new Map<string, Phaser.GameObjects.Image>();
   private cup!: Phaser.GameObjects.Sprite;
@@ -274,14 +269,44 @@ export class CafeScene extends Phaser.Scene {
   private furnishing: Furnishing = DEFAULT_FURNISHING;
   private furnishLayers = new Map<FurnishPart, Phaser.GameObjects.Image>();
 
-  constructor() {
-    super('cafe');
+  /** Who is in this room; the rest are elsewhere (road-to-1.4.md D2). */
+  private crew: readonly ActorId[];
+  /** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
+  private cupPos: { x: number; y: number };
+  /** Above the counter: what stands on it (the cup, the slip, the bell). */
+  private counterTop: number;
+  /** The names of the spots as this room says them. */
+  private words: ReturnType<typeof wordsIn>;
+  /** Settles once the room is drawn: a room gone into from the street is shown only then (D2). */
+  readonly ready: Promise<void>;
+  private drawn!: () => void;
+
+  /** Each room is its own scene, keyed by the room, and knows which it is from the start (D2): going in needs no reload. */
+  constructor(readonly room: RoomId) {
+    super(room);
+    this.crew = ROOM_CREW[room];
+    this.cupPos = CUP_AT[room];
+    this.counterTop = counterTop(room);
+    this.words = wordsIn(room);
+    this.objects = objectBoxes(room);
+    this.ready = new Promise((done) => { this.drawn = done; });
   }
 
   preload() {
-    // The room itself: the cafe or the study; both share the floor plan in layout.ts.
-    this.load.image('cafe', ROOM_ART[SCENE][0]);
-    this.load.image('pieces', ROOM_ART[SCENE][1]);
+    // The room itself; every room shares the floor plan in layout.ts. Kept when the room is left, for next time.
+    if (!this.textures.exists(`room-${this.room}`)) {
+      this.load.image(`room-${this.room}`, ROOM_ART[this.room][0]);
+      this.load.image(`pieces-${this.room}`, ROOM_ART[this.room][1]);
+    }
+    for (const part of FURNISH_PARTS) {
+      for (const choice of FURNISH_CHOICES[part]) {
+        const url = furnishUrl(this.room, part, choice);
+        const key = `furnish-${this.room}-${part}-${choice}`;
+        if (url && !this.textures.exists(key)) this.load.image(key, url);
+      }
+    }
+    // Everything else the rooms share, loaded by the first one (the home shop's) for the whole game.
+    if (this.textures.exists('cat')) return;
     // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
     this.load.image('town-street', townStreetUrl);
     this.load.image('town-fronts', townFrontsUrl);
@@ -304,12 +329,6 @@ export class CafeScene extends Phaser.Scene {
     this.load.spritesheet('door', doorUrl, { frameWidth: 16, frameHeight: 32 });
     this.load.spritesheet('back-door', backDoorUrl, { frameWidth: BACK_DOOR.w, frameHeight: BACK_DOOR.h });
     preloadGrowth(this.load);
-    for (const part of FURNISH_PARTS) {
-      for (const choice of FURNISH_CHOICES[part]) {
-        const url = furnishUrl(part, choice);
-        if (url) this.load.image(`furnish-${part}-${choice}`, url);
-      }
-    }
   }
 
   /** Recolour the wall, the curtains and the rug; `default` shows the room as drawn. Safe before create(). */
@@ -318,7 +337,7 @@ export class CafeScene extends Phaser.Scene {
     if (!this.furnishLayers.size) return;
     for (const part of FURNISH_PARTS) {
       const layer = this.furnishLayers.get(part)!;
-      const key = `furnish-${part}-${f[part]}`;
+      const key = `furnish-${this.room}-${part}-${f[part]}`;
       const on = f[part] !== 'default' && this.textures.exists(key);
       if (on) layer.setTexture(key);
       layer.setVisible(on);
@@ -326,17 +345,17 @@ export class CafeScene extends Phaser.Scene {
   }
 
   create() {
-    this.add.image(0, 0, 'cafe').setOrigin(0);
-    const sheet = this.textures.get('pieces');
-    for (const p of PIECES) {
-      sheet.add(p.name, 0, 0, p.sy, p.w, p.h);
-      this.pieceImages.set(p.name, this.add.image(p.x, p.y, 'pieces', p.name).setOrigin(0).setDepth(p.base));
+    this.add.image(0, 0, `room-${this.room}`).setOrigin(0);
+    const sheet = this.textures.get(`pieces-${this.room}`);
+    for (const p of pieceData(this.room).pieces) {
+      if (!sheet.has(p.name)) sheet.add(p.name, 0, 0, p.sy, p.w, p.h);
+      this.pieceImages.set(p.name, this.add.image(p.x, p.y, `pieces-${this.room}`, p.name).setOrigin(0).setDepth(p.base));
     }
-    for (const part of FURNISH_PARTS) this.furnishLayers.set(part, this.add.image(0, 0, 'cafe').setOrigin(0).setDepth(FURNISH_DEPTH).setVisible(false));
+    for (const part of FURNISH_PARTS) this.furnishLayers.set(part, this.add.image(0, 0, `room-${this.room}`).setOrigin(0).setDepth(FURNISH_DEPTH).setVisible(false));
     this.setFurnishing(this.furnishing);
     this.createAnims();
     this.addProps();
-    this.growth = new ShopGrowth(this, () => {});
+    this.growth = new ShopGrowth(this, this.room, () => {});
     this.growth.onShelfClick = () => this.activate('works');
     this.addObjects();
     const slate = ZONES.find((z) => z.id === 'board')!;
@@ -356,7 +375,7 @@ export class CafeScene extends Phaser.Scene {
       .on('pointerover', () => this.highlight('counter'))
       .on('pointerout', () => this.hovered === 'counter' && this.highlight(null));
     for (const a of ACTORS) {
-      const spot = standPoint(a.home, a.id);
+      const spot = standPoint(a.home, a.id, this.room);
       const isCat = a.id === 'cat';
       const shadow = this.add.ellipse(spot.x, spot.y, isCat ? 20 : 11, 4, 0x3b2a1e, 0.28);
       const sprite = this.add.sprite(spot.x, spot.y, a.id).setOrigin(0.5, 1).setDepth(spot.y);
@@ -373,7 +392,7 @@ export class CafeScene extends Phaser.Scene {
         this.hold(actor);
       });
       this.actors.set(a.id, actor);
-      if (!CREW.includes(a.id)) {
+      if (!this.crew.includes(a.id)) {
         this.keepAway(actor);
         continue;
       }
@@ -394,11 +413,12 @@ export class CafeScene extends Phaser.Scene {
       this.onStreet?.(open);
     };
     this.addDaylight();
+    this.drawn();
   }
 
   /** Where a character stands at an anchor, in its crew's places. */
   private spot(anchor: AnchorId, id: ActorId) {
-    return standPoint(anchor, id, undefined, this.second.has(id));
+    return standPoint(anchor, id, this.room, this.second.has(id));
   }
 
   /**
@@ -456,6 +476,8 @@ export class CafeScene extends Phaser.Scene {
   }
 
   private createAnims() {
+    // Animations belong to the whole game: the first room makes them for every other.
+    if (this.anims.exists('cup')) return;
     const looks = Array.from({ length: AVATAR_COUNT }, (_, i) => avatarKey(i + 1));
     for (const id of [...STAFF_IDS, ...GUEST_IDS, ...looks]) {
       for (const [name, def] of Object.entries(STAFF_ANIMS)) {
@@ -521,7 +543,7 @@ export class CafeScene extends Phaser.Scene {
    */
   setApprentice(here: boolean, walkIn: boolean) {
     const actor = this.actors.get('xiaodou')!;
-    if (here === actor.sprite.visible || !CREW.includes('xiaodou')) return;
+    if (here === actor.sprite.visible || !this.crew.includes('xiaodou')) return;
     if (!here) return this.keepAway(actor);
     actor.sprite.setVisible(true);
     if (walkIn && !this.reducedMotion) void this.walkTo('xiaodou', 'counter');
@@ -544,7 +566,7 @@ export class CafeScene extends Phaser.Scene {
 
   private addProps() {
     this.add.sprite(180, 14, 'clock').setOrigin(0).play('clock');
-    this.cup = this.add.sprite(CUP_POS.x, CUP_POS.y, 'cup').setOrigin(0).setDepth(COUNTER_TOP).play('cup');
+    this.cup = this.add.sprite(this.cupPos.x, this.cupPos.y, 'cup').setOrigin(0).setDepth(this.counterTop).play('cup');
     this.door = this.add.sprite(DOOR_POS.x, DOOR_POS.y, 'door', 0).setOrigin(0).setDepth(1);
     // The back door: click it to look out at the garden.
     this.backDoor = this.add.sprite(BACK_DOOR.x, BACK_DOOR.y, 'back-door', 0).setOrigin(0).setDepth(1);
@@ -554,7 +576,7 @@ export class CafeScene extends Phaser.Scene {
       .on('pointerover', () => this.highlight('backdoor'))
       .on('pointerout', () => this.hovered === 'backdoor' && this.highlight(null));
     // A sheet of paper with two pencilled lines, slightly askew on the counter top.
-    this.form = this.add.graphics({ x: FORM_POS.x, y: FORM_POS.y }).setDepth(COUNTER_TOP + 0.1);
+    this.form = this.add.graphics({ x: FORM_POS.x, y: FORM_POS.y }).setDepth(this.counterTop + 0.1);
     this.form.fillStyle(0x7a5236, 0.35).fillRect(1, 1, 9, 7);
     this.form.fillStyle(0xfbf6ec, 1).fillRect(0, 0, 9, 7);
     this.form.fillStyle(0xc9b79f, 1).fillRect(2, 2, 5, 1).fillRect(2, 4, 4, 1);
@@ -563,12 +585,12 @@ export class CafeScene extends Phaser.Scene {
     const envelope = (g: Phaser.GameObjects.Graphics, w: number, h: number) =>
       g.fillStyle(0x2a2233, 1).fillRect(0, 0, w, h).fillStyle(0xfaf6ec, 1).fillRect(1, 1, w - 2, h - 2).fillStyle(0xc8483c, 1).fillRect(Math.floor(w / 2) - 1, 1, 2, 1);
     this.letter = envelope(this.add.graphics({ x: MAILSLOT.x + 2, y: MAILSLOT.y - 3 }), 6, 5).setDepth(1.6).setVisible(false);
-    const box = OUTBOX[SCENE];
-    this.envelope = envelope(this.add.graphics({ x: box.x + 1, y: box.y - 2 }), 6, 4).setDepth(COUNTER_TOP + 0.1).setVisible(false);
-    this.bell = this.add.graphics({ x: BELL_POS.x, y: BELL_POS.y }).setDepth(COUNTER_TOP + 0.1).setVisible(false);
+    const box = OUTBOX[this.room];
+    this.envelope = envelope(this.add.graphics({ x: box.x + 1, y: box.y - 2 }), 6, 4).setDepth(this.counterTop + 0.1).setVisible(false);
+    this.bell = this.add.graphics({ x: BELL_POS.x, y: BELL_POS.y }).setDepth(this.counterTop + 0.1).setVisible(false);
     BELL.forEach((row, y) => [...row].forEach((c, x) => { if (BELL_COLORS[c]) this.bell.fillStyle(BELL_COLORS[c], 1).fillRect(x, y, 1, 1); }));
     // Over the counter's own zone, so a click on the bell rings it instead of opening the counter.
-    this.bellZone = this.add.zone(BELL_POS.x - 1, BELL_POS.y - 2, 9, 9).setOrigin(0).setDepth(COUNTER_TOP + 0.2)
+    this.bellZone = this.add.zone(BELL_POS.x - 1, BELL_POS.y - 2, 9, 9).setOrigin(0).setDepth(this.counterTop + 0.2)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.activate('bell'))
       .on('pointerover', () => this.highlight('bell'))
@@ -627,7 +649,7 @@ export class CafeScene extends Phaser.Scene {
     const at = { counter: { x: FORM_POS.x - 7, y: FORM_POS.y - 11 }, bell: { x: BELL_POS.x + 1, y: BELL_POS.y - 11 }, board: { x: slate.x + slate.w - 3, y: slate.y - 6 } }[spot];
     // 5x9: a white tag with an ink "!" and a little tail pointing at the form.
     const TAG = ['wwwww', 'wwkww', 'wwkww', 'wwkww', 'wwwww', 'wwkww', 'wwwww', '.www.', '..w..'];
-    const g = this.add.graphics(at).setDepth(COUNTER_TOP + 0.2);
+    const g = this.add.graphics(at).setDepth(this.counterTop + 0.2);
     TAG.forEach((row, y) => [...row].forEach((c, x) => {
       if (c === 'w') g.fillStyle(0xfbf6ec, 1).fillRect(x, y, 1, 1);
       if (c === 'k') g.fillStyle(0xb5653b, 1).fillRect(x, y, 1, 1);
@@ -646,15 +668,18 @@ export class CafeScene extends Phaser.Scene {
 
   /** Warm pools of light from the window, the counter, the floor lamp and the wall lamp; additive so they only brighten. */
   private addLight() {
-    const size = 128;
-    const tex = this.textures.createCanvas('glow', size, size)!;
-    const ctx = tex.getContext();
-    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    g.addColorStop(0, 'rgba(255, 210, 122, 1)');
-    g.addColorStop(1, 'rgba(255, 210, 122, 0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, size, size);
-    tex.refresh();
+    // One glow for every room, made by the first.
+    if (!this.textures.exists('glow')) {
+      const size = 128;
+      const tex = this.textures.createCanvas('glow', size, size)!;
+      const ctx = tex.getContext();
+      const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+      g.addColorStop(0, 'rgba(255, 210, 122, 1)');
+      g.addColorStop(1, 'rgba(255, 210, 122, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, size, size);
+      tex.refresh();
+    }
     const glow = (x: number, y: number, r: number, alpha: number, sun = false) => {
       const img = this.add.image(x, y, 'glow').setDisplaySize(r * 2, r * 2).setAlpha(alpha).setBlendMode(Phaser.BlendModes.ADD).setDepth(1000);
       this.glows.push({ img, base: alpha, sun });
@@ -673,8 +698,24 @@ export class CafeScene extends Phaser.Scene {
    */
   private addDaylight() {
     // A mask of the glass pixels, so the sky colour lands on the panes and nowhere else.
-    const src = this.textures.get('cafe').getSourceImage() as HTMLImageElement;
-    const tex = this.textures.createCanvas('glass', src.width, src.height)!;
+    const src = this.textures.get(`room-${this.room}`).getSourceImage() as HTMLImageElement;
+    const glass = `glass-${this.room}`;
+    if (!this.textures.exists(glass)) this.paintGlass(glass, src);
+    this.sky = this.add.image(0, 0, glass).setOrigin(0).setDepth(0.5).setAlpha(0);
+    this.glassMask = this.make.image({ x: 0, y: 0, key: glass, origin: 0 }, false).createBitmapMask();
+    this.shade = this.add.rectangle(0, 0, src.width, src.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    const garden = { x: GARDEN_X, y: 0, w: src.width, h: src.height };
+    const gardenMask = this.make.graphics({}, false).fillStyle(0xffffff).fillRect(garden.x, garden.y, garden.w, garden.h).createGeometryMask();
+    this.weather = new WeatherLayer(this, this.room, glass, [
+      { area: VIEW, mask: this.street.mask, depth: StreetView.WEATHER_DEPTH, inset: true },
+      { area: garden, mask: gardenMask, depth: GARDEN_WEATHER_DEPTH },
+    ]);
+    this.addDaylightRest();
+  }
+
+  /** A mask of the room's glass pixels, so the sky colour lands on the panes and nowhere else. */
+  private paintGlass(key: string, src: HTMLImageElement) {
+    const tex = this.textures.createCanvas(key, src.width, src.height)!;
     const ctx = tex.getContext();
     ctx.drawImage(src, 0, 0);
     const img = ctx.getImageData(0, 0, src.width, src.height);
@@ -691,15 +732,9 @@ export class CafeScene extends Phaser.Scene {
     ctx.clearRect(0, 0, src.width, src.height);
     ctx.putImageData(mask, 0, 0);
     tex.refresh();
-    this.sky = this.add.image(0, 0, 'glass').setOrigin(0).setDepth(0.5).setAlpha(0);
-    this.glassMask = this.make.image({ x: 0, y: 0, key: 'glass', origin: 0 }, false).createBitmapMask();
-    this.shade = this.add.rectangle(0, 0, src.width, src.height, 0xffffff).setOrigin(0).setDepth(999).setBlendMode(Phaser.BlendModes.MULTIPLY);
-    const garden = { x: GARDEN_X, y: 0, w: src.width, h: src.height };
-    const gardenMask = this.make.graphics({}, false).fillStyle(0xffffff).fillRect(garden.x, garden.y, garden.w, garden.h).createGeometryMask();
-    this.weather = new WeatherLayer(this, 'glass', [
-      { area: VIEW, mask: this.street.mask, depth: StreetView.WEATHER_DEPTH, inset: true },
-      { area: garden, mask: gardenMask, depth: GARDEN_WEATHER_DEPTH },
-    ]);
+  }
+
+  private addDaylightRest() {
     this.weather.setReducedMotion(this.reducedMotion);
     // The hour first, so today's weather (and the animals) start out right for it.
     this.period = periodAt(new Date().getHours());
@@ -740,6 +775,8 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** Change the light to a time of day, fading over a few seconds unless `now`. */
+  private lightChange?: Phaser.Tweens.Tween;
+
   setPeriod(period: Period, now = false, fromLook?: Look) {
     const look = withWeather(LOOKS[period], this.weather?.sky ?? 'clear');
     const from = fromLook ?? withWeather(LOOKS[this.period], this.weather?.sky ?? 'clear');
@@ -761,8 +798,11 @@ export class CafeScene extends Phaser.Scene {
       const sun = from.sun + (look.sun - from.sun) * t;
       for (const g of this.glows) g.img.setAlpha(Math.min(1, g.base * (g.sun ? sun : lamps)));
     };
+    // A change of light still under way would keep pulling the room back to the old one.
+    this.lightChange?.stop();
+    this.lightChange = undefined;
     if (now || this.reducedMotion) return apply(1);
-    this.tweens.addCounter({ from: 0, to: 1, duration: DAYLIGHT_MS, onUpdate: (tw) => apply(tw.getValue() ?? 1) });
+    this.lightChange = this.tweens.addCounter({ from: 0, to: 1, duration: DAYLIGHT_MS, onUpdate: (tw) => apply(tw.getValue() ?? 1) });
   }
 
   /** Play the actor's current pose at its current facing. */
@@ -1029,7 +1069,7 @@ export class CafeScene extends Phaser.Scene {
     if (!actor.outside) actor.sprite.setAlpha(1);
     actor.at = anchor;
     if (actorId === 'cat') actor.sprite.anims.resume();
-    const path = pathBetween({ x: actor.sprite.x, y: actor.sprite.y }, anchor, actorId, undefined, this.second.has(actorId));
+    const path = pathBetween({ x: actor.sprite.x, y: actor.sprite.y }, anchor, actorId, this.room, this.second.has(actorId));
     if (path.length) {
       await this.followPath(actor, path);
       actor.facing = this.spot(anchor, actorId).facing;
@@ -1105,7 +1145,7 @@ export class CafeScene extends Phaser.Scene {
     sprite.play(animKey(id, 'walk', 'down'), true);
     await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
     this.closeDoor();
-    if (!gone()) await this.walkGuest(g, walkBetween({ x: g.sprite.x, y: g.sprite.y }, GUEST_SPOT));
+    if (!gone()) await this.walkGuest(g, walkBetween({ x: g.sprite.x, y: g.sprite.y }, GUEST_SPOT, this.room));
     if (!gone()) {
       this.faceGuest(true);
       // Something for the shop: bread from the bakery, letters from the post.
@@ -1131,7 +1171,7 @@ export class CafeScene extends Phaser.Scene {
     }
     g.speech = undefined;
     this.faceGuest(false);
-    await this.walkGuest(g, walkBetween({ x: g.sprite.x, y: g.sprite.y }, GUEST_DOOR));
+    await this.walkGuest(g, walkBetween({ x: g.sprite.x, y: g.sprite.y }, GUEST_DOOR, this.room));
     await this.openDoor();
     sprite.play(animKey(id, 'walk', 'up'), true);
     await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y - 8, alpha: 0, duration: 420, onComplete: () => r() }));
@@ -1176,7 +1216,7 @@ export class CafeScene extends Phaser.Scene {
     sprite.play(animKey(id, 'walk', 'down'), true);
     await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
     this.closeDoor();
-    if (!gone()) await this.walkGuest(g, walkBetween({ x: sprite.x, y: sprite.y }, POST_SPOT));
+    if (!gone()) await this.walkGuest(g, walkBetween({ x: sprite.x, y: sprite.y }, POST_SPOT, this.room));
     if (!gone()) {
       sprite.play(animKey(id, 'idle', 'up'), true);
       // A parcel waits for someone to bring it, a little while at most.
@@ -1186,7 +1226,7 @@ export class CafeScene extends Phaser.Scene {
       if (kind === 'deliver' && !gone()) this.letter.setVisible(!this.settledAt('mailslot'));
       sprite.play(animKey(id, 'idle', 'up'), true);
     }
-    await this.walkGuest(g, walkBetween({ x: sprite.x, y: sprite.y }, GUEST_DOOR));
+    await this.walkGuest(g, walkBetween({ x: sprite.x, y: sprite.y }, GUEST_DOOR, this.room));
     await this.openDoor();
     sprite.play(animKey(id, 'walk', 'up'), true);
     await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: GUEST_DOOR.y - 8, alpha: 0, duration: 420, onComplete: () => r() }));
@@ -1244,13 +1284,13 @@ export class CafeScene extends Phaser.Scene {
       sprite.play(this.youAnim('walk', 'down'), true);
       await new Promise<void>((r) => this.tweens.add({ targets: sprite, y: YOU_DOOR.y, alpha: 1, duration: 420, onComplete: () => r() }));
       this.closeDoor();
-      if (!off()) await this.walkYou(y, walkBetween({ x: sprite.x, y: sprite.y }, YOU_COUNTER));
+      if (!off()) await this.walkYou(y, walkBetween({ x: sprite.x, y: sprite.y }, YOU_COUNTER, this.room));
       if (off()) return;
       this.faceGuest(true);
       sprite.play(this.youAnim('gift', 'left'), true);
       await this.wait(HAND_OVER_MS);
       this.faceGuest(false);
-      if (!off()) await this.walkYou(y, walkBetween({ x: sprite.x, y: sprite.y }, YOU_SEAT));
+      if (!off()) await this.walkYou(y, walkBetween({ x: sprite.x, y: sprite.y }, YOU_SEAT, this.room));
       if (off()) return;
       y.seated = true;
       sprite.play(this.youAnim('sit', YOU_SEAT.facing), true);
@@ -1272,14 +1312,14 @@ export class CafeScene extends Phaser.Scene {
     const trip = ++y.trip;
     const off = () => trip !== y.trip;
     y.seated = false;
-    await this.walkYou(y, walkBetween({ x: y.sprite.x, y: y.sprite.y }, YOU_COUNTER));
+    await this.walkYou(y, walkBetween({ x: y.sprite.x, y: y.sprite.y }, YOU_COUNTER, this.room));
     if (off()) return;
     this.faceGuest(true);
     y.sprite.play(this.youAnim('idle', 'left'), true);
     await this.wait(PICK_UP_MS);
     this.faceGuest(false);
     if (off()) return;
-    await this.walkYou(y, walkBetween({ x: y.sprite.x, y: y.sprite.y }, YOU_DOOR));
+    await this.walkYou(y, walkBetween({ x: y.sprite.x, y: y.sprite.y }, YOU_DOOR, this.room));
     if (off()) return;
     await this.openDoor();
     y.sprite.play(this.youAnim('walk', 'up'), true);
@@ -1378,7 +1418,7 @@ export class CafeScene extends Phaser.Scene {
     const trip = ++actor.trip;
     actor.tween?.stop();
     if (actorId === 'cat') actor.sprite.anims.resume();
-    await this.followPath(actor, pathToBackDoor({ x: actor.sprite.x, y: actor.sprite.y }));
+    await this.followPath(actor, pathToBackDoor({ x: actor.sprite.x, y: actor.sprite.y }, this.room));
     if (actor.trip !== trip) return;
     await this.throughBackDoor(actor, 'out');
     if (actor.trip !== trip) return;
@@ -1455,7 +1495,7 @@ export class CafeScene extends Phaser.Scene {
     if (this.view === 'garden') return this.gardenLabels();
     // Names appear only on hover; the art shows who is who and what each place is.
     const object = this.hovered !== 'board' ? this.objects.find((o) => o.id === this.hovered) : undefined;
-    const zones = ZONES.filter((z) => z.id === this.hovered && !object).map((z) => ({ key: `z-${z.id}`, text: z.label, x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
+    const zones = ZONES.filter((z) => z.id === this.hovered && !object).map((z) => ({ key: `z-${z.id}`, text: this.words.zones[z.id as keyof typeof this.words.zones], x: z.x + z.w / 2, y: z.y - 2, kind: 'zone' as const }));
     if (object) {
       const O = strings.ui.objects;
       const name = object.id.startsWith('grow-') ? O.grown[object.id.slice(5) as GrowthId] : O.names[object.id as keyof typeof O.names];
