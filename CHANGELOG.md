@@ -6,6 +6,9 @@
   seven fronts in a row, panned along by dragging or with the arrow keys, by day and by night. Your own front, Enter
   in front of it, Escape or the same button takes you back in, and the work inside goes on meanwhile. The print shop,
   the studio and the workshop are still being fitted out; the bakery and the post office belong to the neighbours.
+- **The shop moves onto the street.** A shop from 1.3 or before opens once onto the street: Wick, Clem, Flint
+  and Iris carry it in, a box each, and inside everything it had gathered settles back where it was. A click skips
+  it; with reduced motion nothing walks. Your data is copied aside first, as with every upgrade (data version 5).
 - **Errands on the real street.** The small window that shows Clem out on an errand now looks onto the town's street,
   and out of the door you see her there, in the same place: at the post office for the web, at the other room for
   books, past the bakery on the way back from far off. A click on her out there works as in the window.

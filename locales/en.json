@@ -696,6 +696,8 @@
       "back": "Back inside"
     },
     "town": {
+      "moving": "The shop is moving onto the street. Click to skip.",
+      "moved": "All moved in, {name}. Everything is where it was.",
       "notes": {
         "cafe": "The cafe.",
         "study": "The study.",

@@ -45,7 +45,8 @@ import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, setOutsideButton, setWorking, syncToolbar, view } from './ui/toolbar';
 import { el, layer } from './ui/dom';
 import { moveTo as moveShop } from './ui/scenes';
-import { OPEN } from './game/town';
+import { MOVERS, OPEN } from './game/town';
+import { TOWN_MOVE } from '../shared/town';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -716,10 +717,13 @@ async function openShop() {
   }
   // Said instead of the usual welcome back: the shop the user knows has just come over. A failed copy changed nothing.
   if (moved === false) greet(strings.ui.moveIn.failed);
-  void refreshShop();
+  const shopShown = refreshShop();
   void noticeBirthday();
   let settings = await api.getSettings();
   applySettings(settings);
+  // A shop from before 1.4 moves onto the street once (road-to-1.4.md D7); the welcome back waits for it.
+  const days = await api.shopState();
+  const moving = settings.onboarded && Boolean(days.town) && !days.told.includes(TOWN_MOVE);
   const S = strings.ui.setup;
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());
@@ -731,7 +735,7 @@ async function openShop() {
     setTimeout(() => greet(S.greetHint), 4000);
   } else if (moved) {
     greet(fill(strings.ui.moveIn.moved, { name: settings.name }));
-  } else if (settings.name) {
+  } else if (settings.name && !moving) {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
   // After the welcome, so that nothing on it can be pushed aside; the same two the scene opens.
@@ -762,6 +766,36 @@ async function openShop() {
     clearTimeout(noteTimer);
     noteTimer = window.setTimeout(() => { streetNote.hidden = true; }, 3000);
   };
+  /**
+   * The move onto the street: out of the door, the four carry the shop in, back inside, and what it had gathered settles
+   * into place. A click or a key cuts it short, and everything is in place at once; with calm motion nothing walks. Shown once.
+   */
+  const moveToTown = async (grown: GrowthId[], calm: boolean) => {
+    let cut = false;
+    if (!calm) {
+      scene.growth.setGrown([]);
+      goOut(true);
+      streetNote.textContent = strings.ui.town.moving;
+      streetNote.hidden = false;
+      const skip = (e: Event) => {
+        if (e instanceof KeyboardEvent && !['Escape', 'Enter', ' '].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        street.endParade();
+      };
+      window.addEventListener('pointerdown', skip, true);
+      window.addEventListener('keydown', skip, true);
+      cut = await street.parade(MOVERS, currentScene());
+      window.removeEventListener('pointerdown', skip, true);
+      window.removeEventListener('keydown', skip, true);
+      streetNote.hidden = true;
+      goOut(false);
+    }
+    // Cut short, they are simply there.
+    scene.growth.setGrown(grown, calm || cut ? [] : grown);
+    shopDays.told.add(TOWN_MOVE);
+    await api.markTold(TOWN_MOVE);
+  };
   window.addEventListener('keydown', (e) => {
     if (!outside || (e.target as HTMLElement).closest?.('input, textarea, select, button, [role=dialog]')) return;
     const keys: Record<string, () => void> = {
@@ -776,6 +810,11 @@ async function openShop() {
   });
   mountToolbar(api, applySettings, { order: scene.onCounterClick, projects: () => void showProjects(api), shelf: scene.onWorksClick, street: () => goOut(!outside) });
   syncToolbar(settings);
+  if (moving) {
+    await shopShown;
+    await moveToTown(days.grown.map((g) => g.id), settings.reducedMotion || systemCalm.matches);
+    greet(fill(strings.ui.town.moved, { name: settings.name }));
+  }
   // Rounds left unfinished when the app last closed. Those a shutdown interrupted come on one card (B7); otherwise the
   // earliest is offered, the rest next time.
   const left = await api.pendingRounds();

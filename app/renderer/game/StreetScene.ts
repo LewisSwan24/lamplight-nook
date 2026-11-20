@@ -5,13 +5,18 @@ import signsUrl from '../../../assets/sprites/town-signs.png';
 import streetUrl from '../../../assets/sprites/town-street.png';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
+import { animKey } from './sprites';
 import type { Walker } from './StreetView';
-import { cameraFor, doorOf, FRONTS, frontAt, OPEN, type ShopId, TOWN } from './town';
+import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, type ShopId, TOWN } from './town';
 
 /** How far one press of an arrow key moves along the street. */
 const PAN_STEP = 48;
 /** A press that moves further than this is a drag along the street, not a click on a front. */
 const DRAG = 3;
+/** The box each mover carries in (road-to-1.4.md D7). */
+const BOX = { w: 8, h: 6, fill: 0xa8743f, edge: 0x5e3b1e, ahead: 4, up: 7 };
+/** Stepping in at the door: up the step and out of sight. */
+const IN_MS = 360;
 
 /**
  * The town's street (road-to-1.4.md D1): seven fronts in a row, wider than the canvas. Dragging or the arrow keys
@@ -29,6 +34,8 @@ export class StreetScene extends Phaser.Scene {
   /** The one out on an errand, copied from the inset every frame so both show her in the same place and pose. */
   private seen?: Phaser.GameObjects.Sprite;
   private shade!: Phaser.GameObjects.Rectangle;
+  /** Ends the move under way, if one is. */
+  private paradeEnd?: (cut: boolean) => void;
   private press: { x: number; scroll: number; moved: boolean } | null = null;
 
   constructor() {
@@ -76,6 +83,44 @@ export class StreetScene extends Phaser.Scene {
     }
     this.seen ??= this.add.sprite(w.x, w.y, w.texture).setOrigin(0.5, 1).setDepth(10);
     this.seen.setVisible(true).setPosition(w.x, w.y).setAlpha(w.alpha).setTexture(w.texture, w.frame);
+  }
+
+  /**
+   * The shop moving onto the street (road-to-1.4.md D7): the movers walk in from the right, a box each, one after
+   * another, and go in at the door. Resolves when the last is in, or at once when `endParade` cuts it short: true then.
+   */
+  parade(actors: ActorId[], at: ShopId): Promise<boolean> {
+    this.lookAt(at);
+    const y = doorOf(at).y;
+    const made: Phaser.GameObjects.GameObject[] = [];
+    return new Promise((done) => {
+      const plan = paradePlan(actors, at);
+      let walking = plan.length;
+      const end = (cut: boolean) => {
+        this.paradeEnd = undefined;
+        this.tweens.killTweensOf(made);
+        for (const o of made) o.destroy();
+        done(cut);
+      };
+      this.paradeEnd = end;
+      for (const step of plan) {
+        const person = this.add.sprite(step.from, y, step.actor).setOrigin(0.5, 1).setDepth(10).play(animKey(step.actor, 'walk', 'left'), true);
+        const box = this.add.rectangle(step.from - BOX.ahead, y - BOX.up, BOX.w, BOX.h, BOX.fill).setStrokeStyle(1, BOX.edge).setDepth(11);
+        made.push(person, box);
+        this.tweens.add({
+          targets: [person, box], x: `-=${step.from - step.to}`, delay: step.delay, duration: step.ms,
+          onComplete: () => {
+            person.play(animKey(step.actor, 'walk', 'up'), true);
+            this.tweens.add({ targets: [person, box], y: '-=6', alpha: 0, duration: IN_MS, onComplete: () => { if (--walking === 0) end(false); } });
+          },
+        });
+      }
+    });
+  }
+
+  /** Cut the move short: everyone is in. */
+  endParade() {
+    this.paradeEnd?.(true);
   }
 
   /** Stand in front of a shop's door. */

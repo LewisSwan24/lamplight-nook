@@ -4130,6 +4130,73 @@ const SCENARIOS = {
 
   /** The study at home: same work, its own furniture and lines. */
   /**
+   * The old shop moves into the town (road-to-1.4.md D7): a 1.3 shop opens onto the street and the four carry it in;
+   * back inside, all it had gathered settles into place and every work is on the shelf. Opened again, it stays put.
+   * Another 1.3 shop cuts the move short with a click, and the click does nothing else.
+   */
+  async movetown(lang, out) {
+    const L = locale(lang);
+    const ids = ['painting', 'plant', 'lights', 'fruit'];
+    const works = Array.from({ length: 2 }, (_, i) => ({ id: `c${1760000000000 + i * 86400000}`, title: `work ${i + 1}`, date: '2025-10-09', result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'page' } }));
+    const memory = { commissions: works, stuckNotes: [], greeted: works[1].id, shop: { done: 5, told: [], grown: ids.map((id) => ({ id, date: '2026-10-20' })), met: [] } };
+    const seed = () => freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory), 'data-version.json': JSON.stringify({ data: 4 }) });
+    const saved = (home) => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const look = (page) => page.evaluate((ids) => {
+      const d = window.lamplightDebug;
+      return { out: d.street.sys.isActive() && d.street.sys.isVisible(), shown: ids.filter((id) => d.scene.growth.shows(id)), note: document.querySelector('.street-note:not([hidden])')?.textContent ?? '' };
+    }, ids);
+    const until = async (page, test, ms) => {
+      for (const end = Date.now() + ms; Date.now() < end; await sleep(250)) if (test(await look(page))) return true;
+      return false;
+    };
+
+    // Watched to the end.
+    const home = seed();
+    let shop = await launch({ lang, home, speed: SPEED, movetown: true });
+    try {
+      check(await until(shop.page, (s) => s.out, 15_000), 'the shop did not go out onto the street to move');
+      await sleep(3000);
+      const moving = await look(shop.page);
+      check(moving.note === L.ui.town.moving, `the move does not say what is going on: "${moving.note}"`);
+      check(moving.shown.length === 0, `things already stand in the shop before it has moved: ${moving.shown}`);
+      await shop.shot(join(out, 'movetown-street.png'));
+      check(await until(shop.page, (s) => !s.out, 20_000), 'the move never finished');
+      await sleep(2500);
+      check((await look(shop.page)).shown.length === ids.length, `not everything it had gathered is back: ${(await look(shop.page)).shown}`);
+      await shop.shot(join(out, 'movetown-inside.png'));
+      const after = saved(home);
+      check(after.shop.told.includes('town-move'), 'the move was not written down');
+      check(JSON.stringify(after.shop.town) === JSON.stringify({ shops: {}, street: [], stories: {} }), `the town is not the right shape: ${JSON.stringify(after.shop.town)}`);
+      check(JSON.stringify(after.shop.grown.map((g) => g.id)) === JSON.stringify(ids) && after.shop.done === 5, 'what the shop had gathered changed');
+      check(readdirSync(join(home.data, 'backup')).some((d) => d.endsWith('-v4')), 'no copy of the 1.3 data');
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await shop.page.waitForSelector('.shelf-card');
+      check(await shop.page.locator('.shelf-card li.work').count() === works.length, 'works are missing from the shelf');
+      await shop.page.keyboard.press('Escape');
+    } finally { await shop.close(); }
+    shop = await launch({ lang, home, speed: SPEED, movetown: true });
+    try {
+      check(!(await until(shop.page, (s) => s.out, 8000)), 'the shop moved a second time');
+      check((await look(shop.page)).shown.length === ids.length, 'the things are not in the shop the next time');
+    } finally { await shop.close(); }
+
+    // Cut short with a click.
+    const other = seed();
+    shop = await launch({ lang, home: other, speed: SPEED, movetown: true });
+    try {
+      check(await until(shop.page, (s) => s.out, 15_000), 'the second shop did not go out to move');
+      await sleep(1000);
+      await shop.page.mouse.click(300, 220);
+      check(await until(shop.page, (s) => !s.out, 2000), 'a click did not cut the move short');
+      await sleep(500);
+      { const solid = await shop.page.evaluate((ids) => ids.filter((id) => window.lamplightDebug.scene.growth.pieces.get(id)?.alpha === 1), ids); check(solid.length === ids.length, `cut short, the things are not all in place at once: ${solid}`); }
+      check(await shop.page.locator('.backdrop').count() === 0, 'the click that cut the move short also opened something');
+      check(saved(other).shop.told.includes('town-move'), 'the move cut short was not written down');
+      await shop.shot(join(out, 'movetown-skipped.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
    * The town's street (road-to-1.4.md D1): out of the door from the toolbar and back in on the same page, along the
    * street with the arrow keys, a front not open yet saying so, back in through the shop's own front and with Escape.
    * By day, by night and in a small window.
@@ -5130,7 +5197,7 @@ const SCENARIOS = {
       await sleep(300);
       await page.locator('.welcome .actions button.default').last().click();
       await sleep(1500);
-      check(await page.locator('.toolbar button.tool-btn').count() === 6, 'no toolbar after the welcome');
+      { const n = await page.locator('.toolbar button.tool-btn').count(); check(n === 8, `no toolbar after the welcome (${n} buttons)`); }
       check((await hints()).join() === 'counter', `after the welcome the marks are on ${await hints()}`);
       check((await places()).includes('counter') && (await places()).includes('board'), 'the counter or the blackboard cannot be reached');
       await shop.shot(join(out, 'firstuse-1-counter.png'));

@@ -1,4 +1,5 @@
 import type { Furnishings } from './furnish';
+import type { TownDays } from './town';
 import type { Todo } from './board';
 import type { SceneId } from './scenes';
 import type { MiniState } from './mini';
@@ -740,6 +741,8 @@ export type ShopDays = {
   told: string[];
   /** Who has been to the shop, and the day they first came. Absent in shops from before 1.0. */
   met?: { id: GuestId; date: string }[];
+  /** The rest of the town (road-to-1.4.md D7). Absent only while the upgrade to data version 5 has not gone through. */
+  town?: TownDays;
 };
 
 /** A finished piece of work on the works shelf. */

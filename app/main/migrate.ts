@@ -6,6 +6,7 @@ import { LOCALES } from '../shared/i18n';
 import { localDay } from '../shared/localday';
 import { readable } from './memory';
 import { addProjects } from './projects';
+import { emptyTown } from '../shared/town';
 import type { CommissionMemo, GuestId, Memory, Project } from '../shared/types';
 
 /**
@@ -16,8 +17,10 @@ import type { CommissionMemo, GuestId, Memory, Project } from '../shared/types';
  * 3: a shop that was already open counts every neighbour as known, so none is met for the first time on upgrade day.
  * 4: every commission is a project of one (1.2, road-to-1.2.md B1). The notebook does the same again whenever it opens,
  *    for a notebook saved by an older version since.
+ * 5: the shop is part of a town (1.4, road-to-1.4.md D7): its count and what it gathered stay the home shop's, an empty
+ *    `town` holds the rest, and the move onto the street is still to be shown.
  */
-export const DATA_VERSION = 4;
+export const DATA_VERSION = 5;
 // A step that changes memory.json has to change memory.last-good.json the same way: that copy can take its place later.
 const MARKER = 'data-version.json';
 /** Data files copied aside before a migration touches anything. */
@@ -74,6 +77,20 @@ const STEPS: Record<number, Step> = {
       memory.projects = notebook.projects;
       writeJson(file, memory);
       changes.push(`${name}: ${added.length} projects`);
+    }
+    return changes;
+  },
+  // 4 -> 5
+  5: (dir) => {
+    const changes: string[] = [];
+    for (const name of ['memory.json', 'memory.last-good.json']) {
+      const file = join(dir, name);
+      const memory = readJson<Memory>(file);
+      // A notebook with no shop in it never opened one, so that shop starts in the town without a move.
+      if (!memory?.shop || memory.shop.town) continue;
+      memory.shop.town = emptyTown();
+      writeJson(file, memory);
+      changes.push(`${name}: moved into the town`);
     }
     return changes;
   },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hitsFeet } from '../app/renderer/game/path';
-import { CAMERA_W, FRONTS, OPEN, cameraFor, doorOf, frontAt, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
+import { WALK_SPEED } from '../app/renderer/game/life';
+import { CAMERA_W, FRONTS, MOVERS, OPEN, cameraFor, doorOf, frontAt, paradePlan, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
 
 // The town's street (road-to-1.4.md D1): seven fronts along a pavement wider than the canvas.
 
@@ -50,4 +51,27 @@ describe('the street', () => {
     expect(cameraFor(TOWN.width)).toBe(TOWN.width - CAMERA_W);
     expect(cameraFor(500)).toBe(500 - CAMERA_W / 2);
   });
+});
+
+describe('moving into the town (road-to-1.4.md D7)', () => {
+  it('the four who opened the shop carry it in', () => {
+    expect(MOVERS).toEqual(['adeng', 'xiaoju', 'laoshi', 'qingdai']);
+  });
+
+  for (const at of ['cafe', 'study'] as const) {
+    it(`walks each of them in from beyond the right of the view to the ${at} door, one after another, at their own pace`, () => {
+      const door = doorOf(at).x;
+      const right = cameraFor(door) + CAMERA_W;
+      const plan = paradePlan(MOVERS, at);
+      expect(plan.map((p) => p.actor)).toEqual(MOVERS);
+      for (const p of plan) {
+        expect(p.to).toBe(door);
+        expect(p.from).toBeGreaterThan(right);
+        expect(p.ms).toBeCloseTo(((p.from - p.to) / WALK_SPEED[p.actor]) * 1000, 0);
+      }
+      for (const [a, b] of plan.slice(1).map((p, i) => [plan[i], p])) expect(b.delay).toBeGreaterThan(a.delay);
+      // Short enough to sit through.
+      expect(Math.max(...plan.map((p) => p.delay + p.ms))).toBeLessThan(15_000);
+    });
+  }
 });

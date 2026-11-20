@@ -8,6 +8,7 @@ import { projectSettled } from '../app/main/projects';
 import { PendingStore } from '../app/main/pending';
 import { SettingsStore } from '../app/main/settings';
 import { grownBy } from '../app/shared/growth';
+import { emptyTown, TOWN_MOVE } from '../app/shared/town';
 import type { Memory } from '../app/shared/types';
 
 const FIXTURES = join(__dirname, 'fixtures', 'userdata');
@@ -83,7 +84,7 @@ describe('every work becomes a project (1.2)', () => {
   it('turns each into a project of one, keeping every commission as it was', () => {
     const data = at();
     const r = migrate(data, NOW);
-    expect(r).toMatchObject({ from: 3, to: 4, backup: join(data, 'backup', '2026-11-04-v3') });
+    expect(r).toMatchObject({ from: 3, to: DATA_VERSION, backup: join(data, 'backup', '2026-11-04-v3') });
     expect(read(join(r.backup!, 'memory.json'))).toEqual(shop11());
     const after = read<Memory>(join(data, 'memory.json'));
     expect(after.projects.map((p) => [p.id, p.title, p.folder, p.commissions])).toEqual([
@@ -133,7 +134,7 @@ describe('every work becomes a project (1.2)', () => {
     const data = at();
     migrate(data, NOW);
     const once = readFileSync(join(data, 'memory.json'), 'utf8');
-    expect(migrate(data, NOW)).toEqual({ from: 4, to: 4, changes: [] });
+    expect(migrate(data, NOW)).toEqual({ from: DATA_VERSION, to: DATA_VERSION, changes: [] });
     // Even with the version marker lost, running the step again finds nothing to do.
     writeFileSync(join(data, 'data-version.json'), JSON.stringify({ data: 3 }));
     expect(migrate(data, NOW).changes).toEqual([]);
@@ -278,5 +279,75 @@ describe('upgrading the data folder', () => {
     expect(existsSync(join(data, 'memory.json'))).toBe(false);
     expect(existsSync(join(r.backup!, 'memory.json'))).toBe(false);
     expect(existsSync(join(r.backup!, 'settings.json'))).toBe(true);
+  });
+});
+
+describe('the old shop becomes a town (1.4)', () => {
+  /** A 1.3 shop: two works, what it gathered, a story told, neighbours met, a project each. */
+  const shop13 = () => ({
+    commissions: [
+      { id: 'c1', title: '签到页', date: '2026-11-02', result: 'done', choices: {}, folder: 'C:/works/a', main: 'index.html', project: 'p1' },
+      { id: 'c2', title: 'Budget', date: '2026-11-03', result: 'done', choices: {}, folder: 'C:/works/b', main: 'budget.xlsx', project: 'p2' },
+    ],
+    projects: [
+      { id: 'p1', title: '签到页', folder: 'C:/works/a', commissions: ['c1'], rounds: [] },
+      { id: 'p2', title: 'Budget', folder: 'C:/works/b', commissions: ['c2'], rounds: [] },
+    ],
+    stuckNotes: [],
+    shop: { done: 12, grown: [{ id: 'painting', date: '2026-10-01' }, { id: 'plant', date: '2026-10-05' }], told: ['radio'], met: [{ id: 'baker', date: '2026-10-02' }] },
+    greeted: 'c2',
+  });
+  const at = (memory: object = shop13()) => {
+    const data = mkdtempSync(join(tmpdir(), 'lamplight-town-'));
+    writeFileSync(join(data, 'data-version.json'), JSON.stringify({ data: 4 }));
+    writeFileSync(join(data, 'memory.json'), JSON.stringify(memory, null, 2));
+    writeFileSync(join(data, 'memory.last-good.json'), JSON.stringify(memory, null, 2));
+    return data;
+  };
+
+  it('is version 5', () => {
+    expect(DATA_VERSION).toBe(5);
+  });
+
+  it('adds an empty town and keeps the count, what grew, the stories told, the neighbours and every work', () => {
+    const data = at();
+    const r = migrate(data, NOW);
+    expect(r).toMatchObject({ from: 4, to: 5, backup: join(data, 'backup', '2026-11-04-v4') });
+    expect(read(join(r.backup!, 'memory.json'))).toEqual(shop13());
+    const after = read<Memory>(join(data, 'memory.json'));
+    const { town, ...shop } = after.shop!;
+    expect(town).toEqual(emptyTown());
+    expect(town).toEqual({ shops: {}, street: [], stories: {} });
+    expect(shop).toEqual(shop13().shop);
+    expect({ ...after, shop }).toEqual(shop13());
+    // The move has not been shown yet.
+    expect(after.shop!.told).not.toContain(TOWN_MOVE);
+    expect(read(join(data, 'memory.last-good.json'))).toEqual(after);
+  });
+
+  it('changes nothing the second time', () => {
+    const data = at();
+    migrate(data, NOW);
+    const once = readFileSync(join(data, 'memory.json'), 'utf8');
+    expect(migrate(data, NOW)).toEqual({ from: 5, to: 5, changes: [] });
+    writeFileSync(join(data, 'data-version.json'), JSON.stringify({ data: 4 }));
+    expect(migrate(data, NOW).changes).toEqual([]);
+    expect(readFileSync(join(data, 'memory.json'), 'utf8')).toBe(once);
+  });
+
+  it('leaves a notebook with no shop in it alone: that shop never opened, so it starts in the town', () => {
+    const { shop: _, ...noShop } = shop13();
+    const data = at(noShop);
+    expect(migrate(data, NOW)).toMatchObject({ from: 4, to: 5, changes: [] });
+    expect(read(join(data, 'memory.json'))).toEqual(noShop);
+  });
+
+  it('reads back through the notebook with the town and the move still to show', () => {
+    const data = at();
+    migrate(data, NOW);
+    const state = new MemoryStore(join(data, 'memory.json')).shopState();
+    expect(state.town).toEqual(emptyTown());
+    expect(state.told).toEqual(['radio']);
+    expect(state.grown.map((g) => g.id)).toEqual(['painting', 'plant']);
   });
 });

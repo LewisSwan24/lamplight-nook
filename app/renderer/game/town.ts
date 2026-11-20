@@ -1,5 +1,8 @@
 import data from '../../../assets/sprites/town.json';
+import type { ShopId } from '../../shared/town';
+import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
+import { WALK_SPEED } from './life';
 import { type Area, type Box, findPath, type Point } from './path';
 
 /**
@@ -7,7 +10,7 @@ import { type Area, type Box, findPath, type Point } from './path';
  * pans along it. Where each front and door is comes from scripts/art/town.py, which draws them (assets/sprites/town.json).
  */
 
-export type ShopId = 'cafe' | 'study' | 'print' | 'studio' | 'workshop' | 'bakery' | 'post';
+export type { ShopId };
 export type Front = { id: ShopId; x: number; w: number; door: number };
 
 export const TOWN = { width: data.width, height: data.height, kerb: data.kerb, road: data.road } as const;
@@ -39,3 +42,19 @@ export function frontAt(x: number, y: number): ShopId | null {
 
 /** How far the camera scrolls so that x sits in the middle, without showing past either end. */
 export const cameraFor = (x: number): number => Math.round(Math.min(Math.max(x - CAMERA_W / 2, 0), TOWN.width - CAMERA_W));
+
+/** The four who opened the shop, who carry it onto the street (road-to-1.4.md D7). */
+export const MOVERS: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai'];
+/** Between one mover setting off and the next. */
+const PARADE_GAP_MS = 900;
+/** How far past the right of the view they set off, so they walk in rather than appear. */
+const OFFSTAGE = 12;
+
+export type ParadeStep = { actor: ActorId; from: number; to: number; delay: number; ms: number };
+
+/** Each mover walks along the pavement from beyond the right of the view to the shop's door, one after another, at their own pace. */
+export function paradePlan(actors: ActorId[], at: ShopId): ParadeStep[] {
+  const to = doorOf(at).x;
+  const from = cameraFor(to) + CAMERA_W + OFFSTAGE;
+  return actors.map((actor, i) => ({ actor, from, to, delay: i * PARADE_GAP_MS, ms: ((from - to) / WALK_SPEED[actor]) * 1000 }));
+}
