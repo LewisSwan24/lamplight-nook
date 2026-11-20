@@ -2322,6 +2322,90 @@ const SCENARIOS = {
   },
 
   /**
+   * The back room and the post (road-to-1.3.md C8). With a calendar, a synced folder and email drafts connected, one
+   * commission reads the calendar (Axin brings it to the letter holder), makes a Word file at the table and puts it away
+   * in the filing cabinet, saves a copy (Axin takes it), looks in the folder again (Axin has come twice, so Adeng goes to
+   * the holder alone), and leaves a draft in the outbox. Each moment is shot in the cafe and the study, by day and by night.
+   */
+  async backroom(lang, out) {
+    const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; };
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:a', `DTSTART:${day(1)}T100000`, `DTEND:${day(1)}T110000`, 'SUMMARY:Book club', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    const server = createServer((req, res) => {
+      if (req.url !== '/c8-token/basic.ics') { res.writeHead(404).end(); return; }
+      res.writeHead(200, { 'content-type': 'text/calendar; charset=utf-8' }).end(ics);
+    });
+    await new Promise((done) => server.listen(0, '127.0.0.1', done));
+    const address = `http://127.0.0.1:${server.address().port}/c8-token/basic.ics`;
+    try {
+      for (const room of ['cafe', 'study']) {
+        const home = freshHome({ 'settings.json': onboarded(lang, room === 'study' ? { scene: 'study' } : {}) });
+        const root = join(home.home, 'OneDrive');
+        mkdirSync(root, { recursive: true });
+        writeFileSync(join(root, 'notes.md'), 'Tea on Friday.\n');
+        // Slower than the other scenarios, so each walk and visit is there to be seen.
+        const shop = await launch({ lang, home, speed: 700, simEnv: { SIM_CONNECTION_PLAY: 'backroom' } });
+        const { page } = shop;
+        try {
+          for (const [kind, opts] of [['calendar', { address }], ['folder', { folder: root }], ['maildraft', {}]]) {
+            await connectKind(shop, kind, opts);
+            await page.keyboard.press('Escape');
+            await sleep(300);
+          }
+          // The light settles first: a change of light still under way would take back the night set for a picture.
+          await sleep(4500);
+          await shop.order({ want: W[lang].letter });
+          const ticks = page.locator('form.commission .connection-row input[type=checkbox]');
+          await ticks.first().waitFor({ state: 'visible', timeout: 5000 });
+          for (const tick of await ticks.all()) await tick.check();
+          await shop.submit();
+          const look = () => page.evaluate(() => {
+            const sc = window.lamplightDebug.scene;
+            const lead = sc.actors.get('adeng');
+            return {
+              postman: sc.guest?.id === 'postman', // At the letter holder (guests.ts, POST_SPOT), done walking.
+              postmanStill: sc.guest?.id === 'postman' && !sc.guest.tween?.isPlaying() && Math.abs(sc.guest.sprite.x - 314) <= 2 && Math.abs(sc.guest.sprite.y - 56) <= 2,
+              at: sc.anchorOf('adeng'), settled: !lead.tween?.isPlaying(), letter: sc.letter.visible, envelope: sc.envelope.visible,
+            };
+          });
+          const shoot = async (name) => {
+            for (const period of ['day', 'night']) {
+              await page.evaluate((p) => window.lamplightDebug.scene.setPeriod(p, true), period);
+              await sleep(250);
+              await shop.shot(join(out, `backroom-${room}-${period}-${name}.png`));
+            }
+            await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+          };
+          const shot = new Set();
+          let visits = 0;
+          let wasHere = false;
+          let alone = false;
+          const trail = [];
+          const r = await shop.workUntilDone({ answers: () => 1, timeout: 300_000, onTick: async () => {
+            const v = await look();
+            if (trail.at(-1) !== v.at) trail.push(v.at);
+            if (v.postman && !wasHere) visits++;
+            wasHere = v.postman;
+            const moment = v.postmanStill && visits === 1 ? 'deliver' : v.postmanStill && visits === 2 ? 'collect'
+              : v.at === 'cabinet' && v.settled ? 'cabinet' : v.at === 'mailslot' && v.settled && !v.postman && visits === 2 ? 'alone'
+                : v.envelope ? 'outbox' : null;
+            if (moment === 'alone') alone = true;
+            if (moment && !shot.has(moment)) {
+              shot.add(moment);
+              await shoot(moment);
+            }
+          } });
+          check(r.ok, `did not finish in the ${room}`);
+          check(visits === 2, `Axin came ${visits} times in the ${room}, not twice`);
+          for (const m of ['deliver', 'cabinet', 'collect', 'outbox']) check(shot.has(m), `never saw "${m}" in the ${room}; Adeng went ${trail.join(' > ')}`);
+          check(alone, `Adeng did not go to the letter holder alone after Axin's two visits in the ${room}`);
+          check((await look()).envelope, `the draft is not in the outbox once the work is done in the ${room}`);
+          check(existsSync(join(root, shop.L.ui.connections.kinds.folder.saveTo)), `the copy was not saved in the ${room}`);
+        } finally { await shop.close(); }
+      }
+    } finally { server.close(); }
+  },
+
+  /**
    * An outside action (road-to-1.3.md C6): the stand-in saves a note through the test connection twice. The first card is
    * declined (it is the default), the second allowed; then the notebook's outside actions page undoes it. Three lines in
    * actions.jsonl: declined, done with its undo, the undo.

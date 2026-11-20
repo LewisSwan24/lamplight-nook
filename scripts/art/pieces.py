@@ -19,6 +19,7 @@ from pathlib import Path
 
 from PIL import Image
 
+import backroom
 import rug
 import scene
 import study
@@ -30,8 +31,8 @@ W, H = scene.W, scene.H
 SEAT_BASE = {'bench': 121.5, 'sofa': 124.5}
 # How much of a piece's height on screen is floor it stands on, counted from its foot; the rest rises in front of
 # whoever walks behind it. Walkers go round this part only (game/pieces.ts).
-FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
-        'study': {'table': 12, 'sofa': 20, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 8, 'plant_l': 8, 'plant_r': 8}}
+FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'cabinet': 8, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'study': {'table': 12, 'sofa': 20, 'counter': 8, 'shelf': 16, 'cabinet': 8, 'workbench': 14, 'lamp': 8, 'plant_l': 8, 'plant_r': 8}}
 CHAIR_FOOT = 12
 WALL = ('window', 'window2', 'window3', 'board')
 # Where the floor starts: what ends higher up hangs on the wall.
@@ -68,6 +69,7 @@ def cafe_boxes():
     # The bench's top edge is painted one row above the pack's piece (rug.py).
     l, t, r, b = boxes['bench']
     boxes['bench'] = (l, rug.BENCH_TOP, r, b)
+    boxes['cabinet'] = backroom.cabinet_box()
     return boxes
 
 
@@ -78,6 +80,7 @@ def study_boxes():
             box = box_of(study.piece(sheet, rect), pos)
             boxes[name] = union(boxes[name], box) if name in boxes else box
     boxes['sofa'] = box_of(study.piece(*study.SOFA), study.SOFA_POS)
+    boxes['cabinet'] = backroom.cabinet_box()
     return boxes
 
 

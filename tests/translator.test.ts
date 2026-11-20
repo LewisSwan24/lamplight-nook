@@ -425,3 +425,62 @@ describe('two crews at once (road-to-1.2.md B9)', () => {
     expect(show({ kind: 'cancelled', run: 'r2' })).toEqual(expect.arrayContaining(['qingdai:idle@board/cancelled', 'xiaodou:idle@counter']));
   });
 });
+
+/** The back room and the post (road-to-1.3.md C8): the shop's own Office tools at the filing cabinet, connections by post. */
+describe('the filing cabinet and the post (C8)', () => {
+  const office = (tool: string) => `mcp__nook-office__${tool}`;
+  const round = (run = 'r1') => {
+    const t = new Translator(rules, anims, { brief: 'x' });
+    t.translate(ev({ kind: 'session_start', run }));
+    return t;
+  };
+  const adeng = (t: Translator, e: Partial<AiEvent>) => t.translate(ev({ run: 'r1', ...e })).find((c) => c.actor === 'adeng');
+
+  it('has Adeng look a document up at the filing cabinet', () => {
+    expect(adeng(round(), { tool: office('read_document') })).toMatchObject({ moveTo: 'cabinet', anim: 'read' });
+  });
+
+  it('has Adeng write at the table, then put the finished file away in the cabinet', () => {
+    for (const tool of ['make_docx', 'make_xlsx', 'make_pptx', 'make_pdf', 'edit_docx', 'edit_xlsx', 'edit_pptx', 'render_png']) {
+      const t = round();
+      expect(adeng(t, { tool: office(tool) }), tool).toMatchObject({ moveTo: 'table' });
+      expect(adeng(t, { kind: 'tool_ok', tool: office(tool) }), tool).toMatchObject({ moveTo: 'cabinet', anim: 'gift' });
+    }
+  });
+
+  it('brings in Axin with the post when a calendar or a synced folder is read', () => {
+    for (const tool of ['mcp__nook-calendar__events', 'mcp__nook-folder__list', 'mcp__nook-folder__read']) {
+      expect(adeng(round(), { tool }), tool).toMatchObject({ moveTo: 'mailslot', post: 'deliver' });
+    }
+  });
+
+  it('has Adeng hand Axin the parcel once a copy is saved, and leave a draft in the outbox for the user to send', () => {
+    expect(adeng(round(), { kind: 'tool_ok', tool: 'mcp__nook-folder__save_copy' })).toMatchObject({ moveTo: 'mailslot', post: 'collect' });
+    expect(adeng(round(), { kind: 'tool_ok', tool: 'mcp__nook-maildraft__draft' })).toMatchObject({ moveTo: 'counter', post: 'outbox', line: { group: 'draft_ready' } });
+  });
+
+  it('lets Axin come at most twice a round; after that Adeng goes to the letter slot alone', () => {
+    const t = round();
+    const posts = [1, 2, 3, 4].map(() => adeng(t, { tool: 'mcp__nook-calendar__events' }));
+    expect(posts.map((c) => c?.moveTo)).toEqual(['mailslot', 'mailslot', 'mailslot', 'mailslot']);
+    expect(posts.map((c) => c?.post)).toEqual(['deliver', 'deliver', undefined, undefined]);
+    // A parcel counts as a visit too; the outbox never brings him.
+    expect(adeng(t, { kind: 'tool_ok', tool: 'mcp__nook-folder__save_copy' })?.post).toBeUndefined();
+    expect(adeng(t, { kind: 'tool_ok', tool: 'mcp__nook-maildraft__draft' })?.post).toBe('outbox');
+    // The next round starts afresh, and a second round at once keeps its own count.
+    t.translate(ev({ kind: 'done', run: 'r1' }));
+    t.translate(ev({ kind: 'session_start', run: 'r1' }));
+    expect(adeng(t, { tool: 'mcp__nook-calendar__events' })?.post).toBe('deliver');
+    t.translate(ev({ kind: 'session_start', run: 'r2' }));
+    const second = t.translate(ev({ run: 'r2', tool: 'mcp__nook-folder__read' })).find((c) => c.moveTo === 'mailslot');
+    expect(second?.post).toBe('deliver');
+  });
+
+  it('leaves the cabinet and the post to Adeng: a helper using these tools plays as before', () => {
+    const t = round();
+    for (const tool of [office('read_document'), 'mcp__nook-calendar__events']) {
+      const cmds = t.translate(ev({ run: 'r1', agent: 'researcher', tool }));
+      expect(cmds.some((c) => c.moveTo === 'cabinet' || c.moveTo === 'mailslot' || c.post), tool).toBe(false);
+    }
+  });
+});

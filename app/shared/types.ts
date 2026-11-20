@@ -7,7 +7,8 @@ import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId } from './templates';
 
 /** Scene anchors: characters only move between these points. */
-export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner';
+/** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
+export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner' | 'cabinet' | 'mailslot';
 
 export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'cat';
 /** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
@@ -610,7 +611,14 @@ export type CharacterCommand = {
   priority: number;
   /** The round it is for (B9): whose crew the actor is working in, and whose project name a line carries. */
   run?: string;
+  /**
+   * The post (road-to-1.3.md C8): Axin comes in with a letter (`deliver`) or for a parcel (`collect`), or a finished draft
+   * goes in the outbox on the counter for the user to send (`outbox`).
+   */
+  post?: Post;
 };
+
+export type Post = 'deliver' | 'collect' | 'outbox';
 
 /** One commission in Adeng's notebook (summaries only, never the conversation). */
 export type CommissionMemo = {

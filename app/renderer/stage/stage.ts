@@ -174,6 +174,8 @@ export class Stage {
       const alone = !this.translator.running.some((r) => r !== run);
       if (alone) {
         this.director.resetCommission();
+        // The draft left from before has been seen to; the outbox starts empty (C8).
+        this.scene.outbox(false);
         this.info.clear();
         this.latest = '';
         this.plans.clear();
@@ -298,8 +300,11 @@ export class Stage {
       this.redress();
     }
     if (this.catchingUp) return this.skip(cmd, info);
+    // The post (C8): Axin sets off while the lead walks to the letter holder.
+    if (cmd.post === 'deliver' || cmd.post === 'collect') void this.scene.post(cmd.post);
     const goingOut = cmd.moveTo === 'door' && actor !== 'cat';
     if (cmd.moveTo && !goingOut) await this.scene.walkTo(actor, cmd.moveTo);
+    if (cmd.post === 'outbox') this.scene.outbox(true);
     if (replaced()) return;
     this.scene.play(actor, cmd.anim, cmd.prop);
     // Handing something over: the round's lead turns to whoever brings it.
@@ -341,6 +346,7 @@ export class Stage {
     const { actor } = cmd;
     for (const [who, owner] of [...this.owner]) if (owner === actor) this.hide(actor, who);
     if (cmd.moveTo) this.scene.place(actor, cmd.moveTo);
+    if (cmd.post === 'outbox') this.scene.outbox(true);
     this.scene.play(actor, cmd.anim);
     const vars = cmd.line?.vars ?? {};
     const said = (text: string | undefined, who: ActorId) => text?.split('\n').forEach((b) => this.scene.onSay?.(who, this.named(cmd.run, fillLine(b, vars))));
