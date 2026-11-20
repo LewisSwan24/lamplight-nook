@@ -10,6 +10,7 @@ from pathlib import Path
 
 from PIL import Image
 
+import backroom
 import scene
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -75,6 +76,7 @@ def build():
     img.alpha_composite(piece(*SOFA), SOFA_POS)
     for (col, row), (x, y) in sorted(scene.CHAIRS, key=lambda c: c[1][1]):
         img.alpha_composite(scene.tiles(scene.interiors, col, row, 1, 2), (x - 8, y - 24))
+    backroom.paint(img, 'study')
     img.save(OUT / 'study.png')
     return img
 

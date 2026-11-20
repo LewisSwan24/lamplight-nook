@@ -28,6 +28,13 @@ export const ZONES: Zone[] = [
 /** The writable slate of the blackboard in cafe.png (inside its wooden frame), where progress steps are chalked. */
 export const BOARD_SLATE = { x: 94, y: 18, w: 24, h: 13 } as const;
 
+/**
+ * The back room and the post (road-to-1.3.md C8), as scripts/art/backroom.py paints them into both scenes: the letter
+ * holder on the wall right of the front door, and the outbox basket on the counter (the study's right-hand desk).
+ */
+export const MAILSLOT = { x: 309, y: 31, w: 10, h: 12 } as const;
+export const OUTBOX = { cafe: { x: 262, y: 79, w: 8, h: 5 }, study: { x: 256, y: 80, w: 8, h: 5 } } as const;
+
 /** Anchors: where characters stand (feet position) and which way they face there. */
 export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }> = {
   window: { x: 70, y: 60, facing: 'up' },
@@ -38,6 +45,9 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
   corner: { x: 118, y: 148, facing: 'right' },
   counter: { x: 228, y: 84, facing: 'down' },
   door: { x: 295, y: 56, facing: 'up' },
+  // Beside the filing cabinet, as at the bookcase; and under the letter holder, left of where Axin stands.
+  cabinet: { x: 88, y: 118, facing: 'left' },
+  mailslot: { x: 303, y: 60, facing: 'up' },
 };
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
@@ -83,9 +93,15 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
   shelf: {
     laoshi: { x: 78, y: 128, facing: 'left' },
     qingdai: { x: 78, y: 140, facing: 'left' },
+    // Below the others: a slot of her own would stand her behind the filing cabinet (road-to-1.3.md C8).
+    xiaodou: { x: 78, y: 152, facing: 'left' },
   },
   corner: {
     qingdai: { x: 104, y: 160, facing: 'right' },
+  },
+  // The wall ends right of the letter holder.
+  mailslot: {
+    qingdai: { x: 311, y: 70, facing: 'up' },
   },
   // Clear of the plant under the door.
   door: {

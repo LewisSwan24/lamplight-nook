@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ANCHORS, CANVAS, SEATS, ZONES, standPoint } from '../app/renderer/game/layout';
-import { INSET, STOPS, STREET, VIEW, panFor, routeHome, stopForTool, walkMs } from '../app/renderer/game/street';
+import { INSET, PAVEMENT_Y, STOPS, STREET, STRIP_TOP, VIEW, panFor, routeHome, stopForTool, walkMs } from '../app/renderer/game/street';
+import { doorOf, streetArea, TOWN } from '../app/renderer/game/town';
 
 describe('street inset', () => {
   it('fits on the canvas and keeps clear of the counter, the table seats and the corner', () => {
@@ -38,9 +39,24 @@ describe('street inset', () => {
     expect(stopForTool(undefined)).toBe('library');
   });
 
+  it("is the town's own street: the strip is as wide as the town, and each stop is a front's door (road-to-1.4.md D1)", () => {
+    expect(STREET.width).toBe(TOWN.width);
+    // The page's shop is the cafe in tests; the books are in the other room, the study.
+    expect(STOPS.nook).toBe(doorOf('cafe').x);
+    expect(STOPS.library).toBe(doorOf('study').x);
+    expect(STOPS.bakery).toBe(doorOf('bakery').x);
+    expect(STOPS.post).toBe(doorOf('post').x);
+  });
+
+  it("shows the pavement through the inset, where the town's walkers go", () => {
+    const area = streetArea();
+    expect(STRIP_TOP + PAVEMENT_Y).toBeGreaterThanOrEqual(area.top);
+    expect(STRIP_TOP + PAVEMENT_Y).toBeLessThanOrEqual(area.bottom);
+  });
+
   it('comes home past the bakery from the far shops, straight home from nearer', () => {
     expect(routeHome(STOPS.post)).toEqual(['bakery', 'nook']);
-    expect(routeHome(STOPS.library)).toEqual(['bakery', 'nook']);
+    expect(routeHome(STOPS.library)).toEqual(['nook']);
     expect(routeHome(STOPS.bakery)).toEqual(['nook']);
     expect(routeHome(STOPS.nook)).toEqual(['nook']);
   });

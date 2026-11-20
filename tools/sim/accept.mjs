@@ -7,7 +7,7 @@
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
 import { pathToFileURL } from 'node:url';
-import { closeSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
+import { closeSync, copyFileSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -39,6 +39,8 @@ const W = {
     tool: '帮我做一个把文本里的英文全改成大写的小工具。',
     document: '帮我写一份周末读书会的通知。',
     slides: '帮我做一份介绍春季新菜单的 PPT。',
+    chart: '帮我把这些数字画成图表：一月 120，二月 180，三月 90，四月 150。',
+    poster: '帮我做一张周末读书会的海报。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -59,6 +61,8 @@ const W = {
     tool: 'Make me a small tool that turns the text in a file into capitals.',
     document: 'Write me a notice about the weekend book club.',
     slides: 'Make me slides about the new spring menu.',
+    chart: 'Draw a chart of tea sales from these numbers: January 120, February 180, March 90, April 150.',
+    poster: 'Make a poster for the weekend book club.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -86,7 +90,36 @@ function samples(home) {
   const messy = join(dir, 'Downloads');
   mkdirSync(messy, { recursive: true });
   for (const f of ['setup (1).exe', 'setup.exe', 'IMG_2031.jpg', 'report-final-final.docx']) writeFileSync(join(messy, f), 'x');
-  return { photos, note, doc, messy };
+  return { dir, photos, note, doc, messy };
+}
+
+/** The shop's file names in one language. */
+const shopFiles = (lang) => JSON.parse(readFileSync(join(ROOT, 'locales', `${lang}.json`), 'utf8')).ui.files;
+
+/** A PNG's width and height from its header, or null when the file is missing or no PNG. */
+function pngSize(file) {
+  if (!existsSync(file)) return null;
+  const b = readFileSync(file);
+  return b.subarray(1, 4).toString() === 'PNG' ? [b.readUInt32BE(16), b.readUInt32BE(20)] : null;
+}
+
+/** A small 24-bit BMP with a colour ramp, the kind an old scanner saves. */
+function bmpOf(width, height) {
+  const row = Math.ceil((width * 3) / 4) * 4;
+  const b = Buffer.alloc(54 + row * height);
+  b.write('BM', 0);
+  b.writeUInt32LE(b.length, 2);
+  b.writeUInt32LE(54, 10);
+  b.writeUInt32LE(40, 14);
+  b.writeInt32LE(width, 18);
+  b.writeInt32LE(height, 22);
+  b.writeUInt16LE(1, 26);
+  b.writeUInt16LE(24, 28);
+  b.writeUInt32LE(row * height, 34);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) b.set([Math.round((255 * x) / width), 120, Math.round((255 * y) / height)], 54 + y * row + x * 3);
+  }
+  return b;
 }
 
 /** Every file under a folder, by path inside it with "/", sorted. */
@@ -154,6 +187,26 @@ async function connectTest(shop) {
   await sleep(400);
   await page.keyboard.press('Escape');
   await sleep(300);
+}
+
+/**
+ * Connect a kind from the notebook (C5): the folder its dialog will pick, the address typed on its card, `shot` with the
+ * card up, and the notebook left open on the connections page. `keep`: the connection is expected not to be made.
+ */
+async function connectKind(shop, kind, { folder, address, shot, keep = false } = {}) {
+  const { page, L } = shop;
+  if (folder) await shop.pickFiles([folder]);
+  await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+  await page.waitForSelector('.notebook .notebook-connections');
+  await sleep(400);
+  await page.locator(`.notebook-connections .connection-add[data-kind="${kind}"]`).click();
+  await page.waitForSelector('.grant-card');
+  await sleep(400);
+  if (address) await page.locator('.grant-card .grant-address').fill(address);
+  if (shot) await shot();
+  await page.locator('.grant-card .grant-connect').click();
+  await page.waitForSelector(keep ? '.notebook .notebook-connections' : '.notebook .connection');
+  await sleep(500);
 }
 
 /** Fill in a slip with the one connection ticked, and send it. */
@@ -408,7 +461,7 @@ const SCENARIOS = {
     }
 
     // A card that must be answered comes first, then this one.
-    home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': 'garbage', 'pending.json': JSON.stringify({ workDir: join(tmpdir(), 'nowhere'), form: { want: 'x' }, id: 'c1' }) });
+    home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': 'garbage', 'pending.json': JSON.stringify({ workDir: join(tmpdir(), 'nowhere'), form: { want: 'x' }, id: 'c1', startedAt: 1760000000000 }) });
     shop = await launch({ lang, home, debug: true });
     try {
       await shop.page.waitForSelector('.pending-card', { timeout: 10_000 });
@@ -2111,6 +2164,248 @@ const SCENARIOS = {
   },
 
   /**
+   * A synced folder (C5): its card, then the folder picked; a commission reads the Word file in it and saves a copy of its
+   * summary back, declined once and allowed once; the notebook undoes the copy. The user's files are untouched.
+   */
+  async folderlink(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const root = join(home.home, 'OneDrive');
+    mkdirSync(join(root, 'Docs'), { recursive: true });
+    copyFileSync(join(ROOT, 'tests', 'fixtures', 'office', 'sample.docx'), join(root, 'Docs', 'report.docx'));
+    writeFileSync(join(root, 'notes.md'), 'Tea on Friday.\n');
+    writeFileSync(join(root, 'api-key.txt'), 'sk-not-for-the-staff');
+    const before = filesIn(root);
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'folderlink' } });
+    const { page, L } = shop;
+    const K = L.ui.connections.kinds.folder;
+    const lines = () => readFileSync(join(home.data, 'actions.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    try {
+      await connectKind(shop, 'folder', { folder: root, shot: async () => {
+        check((await page.locator('.grant-card').innerText()).includes(K.pickHint), 'the card does not say a folder is picked next');
+        await shop.shot(join(out, 'folder-grant.png'));
+        await shop.resize([640, 360]);
+        await sleep(400);
+        await shop.shot(join(out, 'folder-grant-small.png'));
+        await shop.resize('medium');
+      } });
+      const made = JSON.parse(readFileSync(join(home.data, 'connections.json'), 'utf8')).connections;
+      check(made.length === 1 && made[0].kind === 'folder' && made[0].config.path === root && made[0].config.saveTo === K.saveTo, `connections.json: ${JSON.stringify(made)}`);
+      check((await page.locator('.notebook .connection').innerText()).includes('OneDrive'), 'the connections page does not name the folder');
+      await shop.shot(join(out, 'folder-page.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await orderWithConnection(shop, W[lang].notes);
+      let cards = 0;
+      const r = await shop.workUntilDone({ answers: () => (cards++ === 0 ? null : 1) });
+      check(r.ok, 'did not finish');
+      check(r.seen.length === 2 && r.seen.every((c) => c.serious && c.text.includes(K.saveCopyUndo)), `the saves were not asked on the serious card: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const summary = lang === 'zh-CN' ? '摘要.md' : 'summary.md';
+      check(existsSync(join(latestCommission(home), summary)), 'the Word file was not read into a summary');
+      const saved = join(root, K.saveTo, summary);
+      check(existsSync(saved) && readdirSync(join(root, K.saveTo)).length === 1, `the copy is not alone in "${K.saveTo}": ${existsSync(join(root, K.saveTo)) ? readdirSync(join(root, K.saveTo)) : 'no folder'}`);
+      const [declined, done, ...more] = lines().filter((l) => l.tool === 'save_copy');
+      check(!more.length && declined.decision === 'denied' && done.decision === 'allowed' && done.undo?.path?.endsWith(join(K.saveTo, summary)), `actions.jsonl: ${JSON.stringify(lines())}`);
+      check(lines().some((l) => l.tool === 'read' && l.decision === 'given'), 'reading through the connection was not written down');
+      await page.keyboard.press('Escape');
+      await sleep(1500);
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      await page.waitForSelector('.notebook .notebook-actions');
+      const section = page.locator('.notebook .notebook-actions');
+      await section.scrollIntoViewIfNeeded();
+      await section.locator('.action-undo').click();
+      await page.waitForSelector('.notebook .notebook-actions .action-undone', { timeout: 5000 });
+      await sleep(400);
+      await shop.shot(join(out, 'folder-undone.png'));
+      check(!existsSync(saved), 'the undo left the copy in the synced folder');
+      check(JSON.stringify(filesIn(root)) === JSON.stringify(before), `the user's files changed: ${JSON.stringify(filesIn(root))}`);
+    } finally { await shop.close(); }
+    const recDir = join(home.data, 'recordings');
+    const recorded = readdirSync(recDir).map((f) => readFileSync(join(recDir, f), 'utf8')).join('\n');
+    check(!recorded.includes('sk-not-for-the-staff'), 'a file named like a key reached the staff');
+  },
+
+  /**
+   * A read-only calendar (C5): its secret address is typed on the card and served by a little local server. The staff
+   * read a week of it without a card; the address is nowhere in the log, the recordings, the data folder as written, or
+   * on the page.
+   */
+  async calendar(lang, out) {
+    const token = `private-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const title = lang === 'zh-CN' ? '看牙医' : 'Dentist';
+    const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; };
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:a', `DTSTART:${day(1)}T100000`, `DTEND:${day(1)}T110000`, `SUMMARY:${title}`, 'LOCATION:Main St 1', 'END:VEVENT',
+      'BEGIN:VEVENT', 'UID:b', `DTSTART;VALUE=DATE:${day(3)}`, `DTEND;VALUE=DATE:${day(4)}`, 'SUMMARY:Holiday', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    let asked = 0;
+    const server = createServer((req, res) => {
+      asked++;
+      if (req.url !== `/${token}/basic.ics`) { res.writeHead(404).end(); return; }
+      res.writeHead(200, { 'content-type': 'text/calendar; charset=utf-8' }).end(ics);
+    });
+    await new Promise((done) => server.listen(0, '127.0.0.1', done));
+    const address = `http://127.0.0.1:${server.address().port}/${token}/basic.ics`;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'calendar' } });
+    const { page, L } = shop;
+    const K = L.ui.connections;
+    let pageText = '';
+    try {
+      // A web address that is not https is refused on the card's way in, and nothing is made.
+      await connectKind(shop, 'calendar', { address: 'http://calendar.example.com/a.ics', keep: true });
+      check((await page.locator('.notebook .connection-note').innerText()).includes(K.address), 'an http address was not refused with a reason');
+      check(!existsSync(join(home.data, 'connections.json')), 'an http address made a connection');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await connectKind(shop, 'calendar', { address, shot: async () => {
+        check((await page.locator('.grant-card').innerText()).includes(K.kinds.calendar.addressWarn), 'the card does not warn that the address is a secret');
+        await shop.shot(join(out, 'calendar-grant.png'));
+        await shop.resize([640, 360]);
+        await sleep(400);
+        await shop.shot(join(out, 'calendar-grant-small.png'));
+        await shop.resize('medium');
+      } });
+      await page.locator('.notebook .connection-grant summary').click();
+      await sleep(400);
+      await shop.shot(join(out, 'calendar-page.png'));
+      pageText += await page.evaluate(() => document.body.innerText);
+      for (const f of ['connections.json', 'connections.bin']) check(!readFileSync(join(home.data, f)).toString('utf8').includes(token), `${f} holds the address as written`);
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await orderWithConnection(shop, W[lang].plan);
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      check(!r.seen.length, `reading the calendar asked: ${r.seen.map((c) => c.text).join(' | ')}`);
+      const plan = readFileSync(join(latestCommission(home), lang === 'zh-CN' ? '一周计划.md' : 'week-plan.md'), 'utf8');
+      check(plan.includes(title) && plan.includes('10:00-11:00') && /all day Holiday/.test(plan), `the plan does not hold the week's events: ${plan}`);
+      pageText += await page.evaluate(() => document.body.innerText);
+      await shop.shot(join(out, 'calendar-result.png'));
+    } finally {
+      await shop.close();
+      server.close();
+    }
+    check(asked >= 1, 'the calendar was never fetched');
+    const recDir = join(home.data, 'recordings');
+    const recorded = readdirSync(recDir).map((f) => readFileSync(join(recDir, f), 'utf8')).join('\n');
+    check(!logLines(home).join('\n').includes(token), 'the calendar address is in the log');
+    check(!recorded.includes(token), 'the calendar address is in a recording');
+    check(!pageText.includes(token), 'the calendar address is on the page');
+    check(/mcp__nook-k\d+__events/.test(recorded), 'the recording has no call of the calendar');
+  },
+
+  /**
+   * Email drafts (C5): a letter with its draft ticked. The .eml is in the folder, the card's main button opens it in the
+   * mail program (recorded, nothing opens), and nothing was sent anywhere.
+   */
+  async maildraft(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CONNECTION_PLAY: 'maildraft' } });
+    const { page, L } = shop;
+    try {
+      await recordOpens(shop);
+      await connectKind(shop, 'maildraft', { shot: () => shop.shot(join(out, 'maildraft-grant.png')) });
+      await shop.shot(join(out, 'maildraft-page.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await orderWithConnection(shop, W[lang].letter);
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const eml = join(latestCommission(home), lang === 'zh-CN' ? '信.eml' : 'letter.eml');
+      check(existsSync(eml) && /^X-Unsent: 1\r$/m.test(readFileSync(eml, 'utf8')), 'the draft is not in the folder, or not marked unsent');
+      const open = page.locator('.result-card .actions button.default');
+      check((await open.innerText()).trim() === L.ui.openInMail, `the card's button says "${await open.innerText()}"`);
+      await sleep(400);
+      await shop.shot(join(out, 'maildraft-result.png'));
+      await open.click();
+      await sleep(500);
+      const o = await opened(shop);
+      check(o.opened.at(-1) === eml, `the button did not open the draft: ${JSON.stringify(o)}`);
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The back room and the post (road-to-1.3.md C8). With a calendar, a synced folder and email drafts connected, one
+   * commission reads the calendar (Axin brings it to the letter holder), makes a Word file at the table and puts it away
+   * in the filing cabinet, saves a copy (Axin takes it), looks in the folder again (Axin has come twice, so Adeng goes to
+   * the holder alone), and leaves a draft in the outbox. Each moment is shot in the cafe and the study, by day and by night.
+   */
+  async backroom(lang, out) {
+    const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; };
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:a', `DTSTART:${day(1)}T100000`, `DTEND:${day(1)}T110000`, 'SUMMARY:Book club', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    const server = createServer((req, res) => {
+      if (req.url !== '/c8-token/basic.ics') { res.writeHead(404).end(); return; }
+      res.writeHead(200, { 'content-type': 'text/calendar; charset=utf-8' }).end(ics);
+    });
+    await new Promise((done) => server.listen(0, '127.0.0.1', done));
+    const address = `http://127.0.0.1:${server.address().port}/c8-token/basic.ics`;
+    try {
+      for (const room of ['cafe', 'study']) {
+        const home = freshHome({ 'settings.json': onboarded(lang, room === 'study' ? { scene: 'study' } : {}) });
+        const root = join(home.home, 'OneDrive');
+        mkdirSync(root, { recursive: true });
+        writeFileSync(join(root, 'notes.md'), 'Tea on Friday.\n');
+        // Slower than the other scenarios, so each walk and visit is there to be seen.
+        const shop = await launch({ lang, home, speed: 700, simEnv: { SIM_CONNECTION_PLAY: 'backroom' } });
+        const { page } = shop;
+        try {
+          for (const [kind, opts] of [['calendar', { address }], ['folder', { folder: root }], ['maildraft', {}]]) {
+            await connectKind(shop, kind, opts);
+            await page.keyboard.press('Escape');
+            await sleep(300);
+          }
+          // The light settles first: a change of light still under way would take back the night set for a picture.
+          await sleep(4500);
+          await shop.order({ want: W[lang].letter });
+          const ticks = page.locator('form.commission .connection-row input[type=checkbox]');
+          await ticks.first().waitFor({ state: 'visible', timeout: 5000 });
+          for (const tick of await ticks.all()) await tick.check();
+          await shop.submit();
+          const look = () => page.evaluate(() => {
+            const sc = window.lamplightDebug.scene;
+            const lead = sc.actors.get('adeng');
+            return {
+              postman: sc.guest?.id === 'postman', // At the letter holder (guests.ts, POST_SPOT), done walking.
+              postmanStill: sc.guest?.id === 'postman' && !sc.guest.tween?.isPlaying() && Math.abs(sc.guest.sprite.x - 314) <= 2 && Math.abs(sc.guest.sprite.y - 56) <= 2,
+              at: sc.anchorOf('adeng'), settled: !lead.tween?.isPlaying(), letter: sc.letter.visible, envelope: sc.envelope.visible,
+            };
+          });
+          const shoot = async (name) => {
+            for (const period of ['day', 'night']) {
+              await page.evaluate((p) => window.lamplightDebug.scene.setPeriod(p, true), period);
+              await sleep(250);
+              await shop.shot(join(out, `backroom-${room}-${period}-${name}.png`));
+            }
+            await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+          };
+          const shot = new Set();
+          let visits = 0;
+          let wasHere = false;
+          let alone = false;
+          const trail = [];
+          const r = await shop.workUntilDone({ answers: () => 1, timeout: 300_000, onTick: async () => {
+            const v = await look();
+            if (trail.at(-1) !== v.at) trail.push(v.at);
+            if (v.postman && !wasHere) visits++;
+            wasHere = v.postman;
+            const moment = v.postmanStill && visits === 1 ? 'deliver' : v.postmanStill && visits === 2 ? 'collect'
+              : v.at === 'cabinet' && v.settled ? 'cabinet' : v.at === 'mailslot' && v.settled && !v.postman && visits === 2 ? 'alone'
+                : v.envelope ? 'outbox' : null;
+            if (moment === 'alone') alone = true;
+            if (moment && !shot.has(moment)) {
+              shot.add(moment);
+              await shoot(moment);
+            }
+          } });
+          check(r.ok, `did not finish in the ${room}`);
+          check(visits === 2, `Axin came ${visits} times in the ${room}, not twice`);
+          for (const m of ['deliver', 'cabinet', 'collect', 'outbox']) check(shot.has(m), `never saw "${m}" in the ${room}; Adeng went ${trail.join(' > ')}`);
+          check(alone, `Adeng did not go to the letter holder alone after Axin's two visits in the ${room}`);
+          check((await look()).envelope, `the draft is not in the outbox once the work is done in the ${room}`);
+          check(existsSync(join(root, shop.L.ui.connections.kinds.folder.saveTo)), `the copy was not saved in the ${room}`);
+        } finally { await shop.close(); }
+      }
+    } finally { server.close(); }
+  },
+
+  /**
    * An outside action (road-to-1.3.md C6): the stand-in saves a note through the test connection twice. The first card is
    * declined (it is the default), the second allowed; then the notebook's outside actions page undoes it. Three lines in
    * actions.jsonl: declined, done with its undo, the undo.
@@ -2299,6 +2594,219 @@ const SCENARIOS = {
       for (const said of ['# Quarterly report', 'This paragraph has bold words in it.', '- Second point', '| Apples | 3 | Fresh |', '这是一行中文。',
         '## Sales', 'Item,Amount', 'Tea,12.5', '"Jam, small",4', 'Total,46.5', '## Notes', 'Open,TRUE']) check(text.includes(said), `what was read lacks "${said}": ${text.slice(0, 400)}`);
       await shop.shot(join(out, 'officeread-result.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Changing a file the user handed over (road-to-1.3.md C3): a Word document, a deck and a workbook are each picked for
+   * the edit template and changed by number, and a PDF comes back as Word. The user's file and the shop's original copy
+   * stay byte for byte as they were, the revised copy holds the change (a tracked change in Word), the Office cards have a
+   * thumbnail, and the PDF's card says it became Word. Shots of each card, and of the Word one at 640x360.
+   */
+  async officeedit(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const F = JSON.parse(readFileSync(join(ROOT, 'locales', `${lang}.json`), 'utf8')).ui.files;
+    const dir = join(home.home, 'samples');
+    mkdirSync(dir, { recursive: true });
+    for (const name of ['sample.docx', 'sample.pptx', 'sample.xlsx']) cpSync(join(ROOT, 'tests', 'fixtures', 'office', name), join(dir, name));
+    // Nothing reads the PDF but the stand-in, which does not: a small one is enough.
+    writeFileSync(join(dir, 'menu.pdf'), '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+    const scratch = join(home.home, 'unpacked');
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await recordOpens(shop);
+      for (const name of ['sample.docx', 'sample.pptx', 'sample.xlsx', 'menu.pdf']) {
+        const users = readFileSync(join(dir, name));
+        await shop.order({ template: 'edit', want: W[lang].edit });
+        await shop.pickFiles([join(dir, name)]);
+        await shop.page.locator('form.commission .source-row button').first().click();
+        await sleep(400);
+        await shop.submit();
+        const r = await shop.workUntilDone();
+        check(r.ok, `${name} did not finish`);
+        check(!r.seen.length, `${name}: changing the copy was asked about: ${r.seen.map((c) => c.text).join(' | ')}`);
+        const work = latestCommission(home);
+        check(readFileSync(join(dir, name)).equals(users), `${name}: the user's own file changed`);
+        check(readFileSync(join(work, `${F.originalPrefix}${name}`)).equals(users), `${name}: the shop's original copy changed`);
+        const revised = join(work, `${F.revisedPrefix}${name.replace(/\.pdf$/, '.docx')}`);
+        check(existsSync(revised), `${name}: no revised copy ${revised}`);
+        const pkg = looksSafe(revised, scratch);
+        const part = (re) => pkg.parts.filter((p) => re.test(p)).map((p) => readFileSync(join(pkg.dir, p), 'utf8')).join('\n');
+        if (name.endsWith('.docx')) {
+          const doc = part(/^word\/document\.xml$/);
+          check(/<w:del [^>]*><w:r>.*?<w:delText xml:space="preserve">bold<\/w:delText>/.test(doc) && /<w:ins [^>]*><w:r>.*?<w:t xml:space="preserve">plain<\/w:t>/.test(doc), `the Word copy has no tracked change: ${doc.slice(0, 400)}`);
+        }
+        if (name.endsWith('.pptx')) check(part(/^ppt\/slides\/slide\d+\.xml$/).includes('Iced tea'), 'the deck lacks the new line');
+        if (name.endsWith('.xlsx')) check(/<c r="B3"[^>]*><v>40<\/v><\/c>/.test(part(/^xl\/worksheets\/sheet1\.xml$/)), 'the workbook lacks the changed cell');
+        if (name.endsWith('.pdf')) {
+          check(part(/^word\/document\.xml$/).includes(lang === 'zh-CN' ? '柠檬挞' : 'Lemon tart'), 'the PDF did not come back as Word');
+          const note = await shop.page.locator('.result-card .result-converted').innerText();
+          check(note.trim() === shop.L.ui.resultConverted.pdfToWord, `the card does not say the PDF became Word: ${note}`);
+        } else {
+          check((await shop.page.locator('.result-card .result-converted').count()) === 0, `${name}: a converted note on the card`);
+        }
+        await cardThumb(shop).catch(() => check(false, `${name}: no thumbnail on the card`));
+        await sleep(400);
+        const kind = name.slice(name.lastIndexOf('.') + 1);
+        await shop.shot(join(out, `officeedit-${kind}.png`));
+        if (kind === 'docx') {
+          await shop.resize([640, 360]);
+          await sleep(400);
+          await shop.shot(join(out, 'officeedit-docx-small.png'));
+          await shop.resize('medium');
+          await sleep(400);
+        }
+        await shop.page.keyboard.press('Escape');
+        await sleep(1500);
+      }
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A research write-up's sources on its card (road-to-1.3.md C7): the stand-in writes one point without a number, cites
+   * one page this round never searched or fetched, and names one conclusion it found no source for. The card marks all
+   * three, and a click on a source opens its address in the browser (written down here, not opened).
+   */
+  async cite(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_CITE: 'flawed' } });
+    try {
+      await shop.app.evaluate(({ shell }) => {
+        globalThis.external = [];
+        shell.openExternal = async (url) => { globalThis.external.push(url); };
+      });
+      await shop.order({ template: 'research', want: W[lang].research });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const C = shop.L.ui.citations;
+      const card = shop.page.locator('.result-card');
+      await card.locator('.result-sources').waitFor({ timeout: 5000 });
+      const states = await card.locator('.result-source-list li').evaluateAll((lis) => lis.map((li) => [li.dataset.n, li.querySelector('.result-source-state').textContent]));
+      check(JSON.stringify(states) === JSON.stringify([['1', C.opened], ['2', C.opened], ['3', C.notOpened]]), `the sources are not marked as this round saw them: ${JSON.stringify(states)}`);
+      const unnumbered = await card.locator('.result-unnumbered').innerText();
+      check(unnumbered.trim() === C.unnumbered.replace('{n}', '1'), `the point without a number is not said: ${unnumbered}`);
+      const unsourced = await card.locator('.result-unsourced li').allInnerTexts();
+      check(unsourced.length === 1 && unsourced[0].trim() === (lang === 'zh-CN' ? '阳台上能种一整年' : 'Tomatoes grow all year on a balcony'), `the conclusion without a source is not listed: ${JSON.stringify(unsourced)}`);
+      check((await card.locator('.result-missing').count()) === 0, 'a number was said to be missing');
+      await sleep(400);
+      await shop.shot(join(out, 'cite-result.png'));
+      await shop.resize([640, 360]);
+      await sleep(400);
+      await shop.shot(join(out, 'cite-result-small.png'));
+      await shop.resize('medium');
+      await sleep(400);
+      await card.locator('.result-source-list li[data-n="3"] .result-source').click();
+      await card.locator('.result-source-list li[data-n="1"] .result-source').click();
+      await sleep(500);
+      const external = await shop.app.evaluate(() => globalThis.external);
+      check(JSON.stringify(external) === JSON.stringify(['https://example.org/never', 'https://example.org/a']), `clicking the sources opened ${JSON.stringify(external)}`);
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A chart from a table handed over (C2): the stand-in draws chart.html and saves chart.png through render_png. The
+   * card's thumbnail is that picture, and a click on it opens the PNG, not the page.
+   */
+  async chart(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const s = samples(home);
+    const csv = join(s.dir, 'sales.csv');
+    writeFileSync(csv, lang === 'zh-CN' ? '月份,杯数\n一月,120\n二月,180\n三月,90\n四月,150\n' : 'Month,Cups\nJanuary,120\nFebruary,180\nMarch,90\nApril,150\n');
+    const F = shopFiles(lang);
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await recordOpens(shop);
+      await shop.order({ template: 'chart', want: W[lang].chart, files: [csv] });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const dir = latestCommission(home);
+      check(existsSync(join(dir, F.chartPage)), `${F.chartPage} missing`);
+      check(JSON.stringify(pngSize(join(dir, F.chartPng))) === JSON.stringify([1200, 800]), `${F.chartPng} is ${JSON.stringify(pngSize(join(dir, F.chartPng)))}, not 1200x800`);
+      check(readFileSync(join(dir, F.chartPage), 'utf8').includes('>180<'), 'a number from the request is not on the chart');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      await sleep(400);
+      await shop.shot(join(out, 'chart-result.png'));
+      await shop.resize([640, 360]);
+      await sleep(400);
+      await shop.shot(join(out, 'chart-result-small.png'));
+      await shop.resize('medium');
+      await sleep(400);
+      await shop.page.locator('.result-card .result-thumb').click();
+      await sleep(500);
+      const o = await opened(shop);
+      check(o.opened.at(-1)?.endsWith(F.chartPng), `the thumbnail did not open the picture: ${JSON.stringify(o)}`);
+    } finally { await shop.close(); }
+  },
+
+  /** An A4 poster (C2): a PNG of 794x1123 and a PDF beside it, the PNG on the card. */
+  async poster(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const F = shopFiles(lang);
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await shop.order({ template: 'poster', want: W[lang].poster });
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const dir = latestCommission(home);
+      check(existsSync(join(dir, F.posterPage)), `${F.posterPage} missing`);
+      check(JSON.stringify(pngSize(join(dir, F.posterPng))) === JSON.stringify([794, 1123]), `${F.posterPng} is ${JSON.stringify(pngSize(join(dir, F.posterPng)))}, not A4`);
+      check(readFileSync(join(dir, F.posterPdf)).subarray(0, 5).toString() === '%PDF-', 'the A4 poster has no PDF beside it');
+      // Drawn at its own size, not squeezed into the screen and stretched back: the sun is round, and the date and the
+      // place at the foot of the page are in the picture.
+      const look = await shop.app.evaluate(({ nativeImage }, file) => {
+        const img = nativeImage.createFromPath(file);
+        const { width, height } = img.getSize();
+        const px = img.toBitmap();
+        let [x0, y0, x1, y1, light] = [width, height, -1, -1, 0];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            const [b, g, r] = [px[i], px[i + 1], px[i + 2]];
+            if (Math.abs(r - 246) < 12 && Math.abs(g - 174) < 12 && Math.abs(b - 45) < 12) [x0, y0, x1, y1] = [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x), Math.max(y1, y)];
+            if (y > height * 0.8 && r > 230 && g > 230 && b > 210) light++;
+          }
+        }
+        return { sun: [x1 - x0 + 1, y1 - y0 + 1], light };
+      }, join(dir, F.posterPng));
+      check(Math.abs(look.sun[0] - look.sun[1]) <= 3, `the poster was stretched: its sun is ${look.sun.join('x')}`);
+      check(look.light > 200, `the foot of the poster is missing from the picture (${look.light} light pixels)`);
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      await sleep(400);
+      await shop.shot(join(out, 'poster-result.png'));
+      copyFileSync(join(dir, F.posterPng), join(out, 'poster-made.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * An album with a BMP among the photos (C2): it is taken, and a PNG copy the staff can look at lands beside it. A HEIC
+   * is refused on the slip, saying why.
+   */
+  async album(lang, out) {
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const s = samples(home);
+    const bmp = join(s.dir, 'scan.bmp');
+    writeFileSync(bmp, bmpOf(40, 30));
+    const heic = join(s.dir, 'phone.heic');
+    writeFileSync(heic, 'not really a heic');
+    const shop = await launch({ lang, home, speed: SPEED });
+    try {
+      await shop.order({ template: 'album', want: W[lang].album, files: [...s.photos, bmp, heic] });
+      const tags = await shop.page.locator('form.commission .material-tag').count();
+      check(tags === s.photos.length + 1, `expected ${s.photos.length + 1} handed-over files, saw ${tags}`);
+      const note = await shop.page.locator('form.commission .material-note').innerText();
+      check(note.includes('phone.heic') && note.includes('HEIC'), `the HEIC was not refused with a reason: ${note}`);
+      await shop.shot(join(out, 'album-slip.png'));
+      await shop.submit();
+      const r = await shop.workUntilDone();
+      check(r.ok, 'did not finish');
+      const mat = join(latestCommission(home), shop.L.ui.files.materials);
+      check(existsSync(join(mat, 'scan.bmp')), 'the BMP was not handed over');
+      check(JSON.stringify(pngSize(join(mat, 'scan.png'))) === JSON.stringify([40, 30]), `the BMP has no 40x30 PNG copy: ${JSON.stringify(pngSize(join(mat, 'scan.png')))}`);
+      check(!existsSync(join(mat, 'phone.heic')), 'the HEIC was copied in');
+      await shop.shot(join(out, 'album-result.png'));
     } finally { await shop.close(); }
   },
 
@@ -3621,6 +4129,161 @@ const SCENARIOS = {
   },
 
   /** The study at home: same work, its own furniture and lines. */
+  /**
+   * The old shop moves into the town (road-to-1.4.md D7): a 1.3 shop opens onto the street and the four carry it in;
+   * back inside, all it had gathered settles into place and every work is on the shelf. Opened again, it stays put.
+   * Another 1.3 shop cuts the move short with a click, and the click does nothing else.
+   */
+  async movetown(lang, out) {
+    const L = locale(lang);
+    const ids = ['painting', 'plant', 'lights', 'fruit'];
+    const works = Array.from({ length: 2 }, (_, i) => ({ id: `c${1760000000000 + i * 86400000}`, title: `work ${i + 1}`, date: '2025-10-09', result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'page' } }));
+    const memory = { commissions: works, stuckNotes: [], greeted: works[1].id, shop: { done: 5, told: [], grown: ids.map((id) => ({ id, date: '2026-10-20' })), met: [] } };
+    const seed = () => freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory), 'data-version.json': JSON.stringify({ data: 4 }) });
+    const saved = (home) => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+    const look = (page) => page.evaluate((ids) => {
+      const d = window.lamplightDebug;
+      return { out: d.street.sys.isActive() && d.street.sys.isVisible(), shown: ids.filter((id) => d.scene.growth.shows(id)), note: document.querySelector('.street-note:not([hidden])')?.textContent ?? '' };
+    }, ids);
+    const until = async (page, test, ms) => {
+      for (const end = Date.now() + ms; Date.now() < end; await sleep(250)) if (test(await look(page))) return true;
+      return false;
+    };
+
+    // Watched to the end.
+    const home = seed();
+    let shop = await launch({ lang, home, speed: SPEED, movetown: true });
+    try {
+      check(await until(shop.page, (s) => s.out, 15_000), 'the shop did not go out onto the street to move');
+      await sleep(3000);
+      const moving = await look(shop.page);
+      check(moving.note === L.ui.town.moving, `the move does not say what is going on: "${moving.note}"`);
+      check(moving.shown.length === 0, `things already stand in the shop before it has moved: ${moving.shown}`);
+      await shop.shot(join(out, 'movetown-street.png'));
+      check(await until(shop.page, (s) => !s.out, 20_000), 'the move never finished');
+      await sleep(2500);
+      check((await look(shop.page)).shown.length === ids.length, `not everything it had gathered is back: ${(await look(shop.page)).shown}`);
+      await shop.shot(join(out, 'movetown-inside.png'));
+      const after = saved(home);
+      check(after.shop.told.includes('town-move'), 'the move was not written down');
+      check(JSON.stringify(after.shop.town) === JSON.stringify({ shops: {}, street: [], stories: {} }), `the town is not the right shape: ${JSON.stringify(after.shop.town)}`);
+      check(JSON.stringify(after.shop.grown.map((g) => g.id)) === JSON.stringify(ids) && after.shop.done === 5, 'what the shop had gathered changed');
+      check(readdirSync(join(home.data, 'backup')).some((d) => d.endsWith('-v4')), 'no copy of the 1.3 data');
+      await shop.page.locator('.toolbar button.tool-btn').nth(2).click();
+      await shop.page.waitForSelector('.shelf-card');
+      check(await shop.page.locator('.shelf-card li.work').count() === works.length, 'works are missing from the shelf');
+      await shop.page.keyboard.press('Escape');
+    } finally { await shop.close(); }
+    shop = await launch({ lang, home, speed: SPEED, movetown: true });
+    try {
+      check(!(await until(shop.page, (s) => s.out, 8000)), 'the shop moved a second time');
+      check((await look(shop.page)).shown.length === ids.length, 'the things are not in the shop the next time');
+    } finally { await shop.close(); }
+
+    // Cut short with a click.
+    const other = seed();
+    shop = await launch({ lang, home: other, speed: SPEED, movetown: true });
+    try {
+      check(await until(shop.page, (s) => s.out, 15_000), 'the second shop did not go out to move');
+      await sleep(1000);
+      await shop.page.mouse.click(300, 220);
+      check(await until(shop.page, (s) => !s.out, 2000), 'a click did not cut the move short');
+      await sleep(500);
+      { const solid = await shop.page.evaluate((ids) => ids.filter((id) => window.lamplightDebug.scene.growth.pieces.get(id)?.alpha === 1), ids); check(solid.length === ids.length, `cut short, the things are not all in place at once: ${solid}`); }
+      check(await shop.page.locator('.backdrop').count() === 0, 'the click that cut the move short also opened something');
+      check(saved(other).shop.told.includes('town-move'), 'the move cut short was not written down');
+      await shop.shot(join(out, 'movetown-skipped.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The town's street (road-to-1.4.md D1): out of the door from the toolbar and back in on the same page, along the
+   * street with the arrow keys, a front not open yet saying so, back in through the shop's own front and with Escape.
+   * By day, by night and in a small window.
+   */
+  async street(lang, out) {
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const L = locale(lang);
+    for (const size of [undefined, [640, 360]]) {
+      const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: SPEED, ...(size ? { size } : {}) });
+      const { page } = shop;
+      const small = size ? '-640' : '';
+      try {
+        await sleep(2500);
+        await page.evaluate(() => { window.samePage = true; });
+        const look = () => page.evaluate(() => {
+          const g = window.lamplightDebug.street;
+          return { out: g.sys.isActive() && g.sys.isVisible(), x: g.cameras.main.scrollX, room: window.lamplightDebug.scene.sys.isVisible(), same: window.samePage === true };
+        });
+        /** Click a front, in the middle of its upper floor, with the street scrolled to it. */
+        const clickFront = async (id) => {
+          const f = town.fronts.find((x) => x.id === id);
+          await page.evaluate((i) => window.lamplightDebug.street.lookAt(i), id);
+          await sleep(200);
+          const { x: scroll } = await look();
+          const box = await page.locator('#game canvas').boundingBox();
+          const k = box.width / 320;
+          await page.mouse.click(box.x + (f.x + f.w / 2 - scroll) * k, box.y + 60 * k);
+          await sleep(500);
+        };
+        await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+        await sleep(800);
+        let v = await look();
+        check(v.out && !v.room, `the street did not show${small}`);
+        check(await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.back}"]`).count() === 1, 'the street button does not say it takes you back in');
+        for (const period of size ? ['day'] : ['day', 'night']) {
+          await page.evaluate((x) => window.lamplightDebug.scene.setPeriod(x, true), period);
+          await sleep(300);
+          await shop.shot(join(out, `street-${period}${small}.png`));
+        }
+        await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+        for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+        await sleep(200);
+        const along = await look();
+        check(along.x > v.x, 'the arrow keys do not move along the street');
+        await clickFront('print');
+        check((await page.locator('.street-note').innerText()) === L.ui.town.notes.print, 'the print shop does not say it is not open yet');
+        await shop.shot(join(out, `street-closed${small}.png`));
+        v = await look();
+        check(v.out, 'a front not open yet took me somewhere');
+        await clickFront('cafe');
+        v = await look();
+        check(!v.out && v.room && v.same, `going in at the cafe did not bring the room back on the same page: ${JSON.stringify(v)} ${await page.evaluate(() => document.elementFromPoint(innerWidth * 0.25, innerHeight * 0.33)?.className)}`);
+        await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+        await sleep(500);
+        await page.keyboard.press('Escape');
+        await sleep(500);
+        v = await look();
+        check(!v.out && v.room && v.same, 'Escape on the street did not bring me back inside');
+        if (!size) {
+          // An errand (D1, second half): Xiaoju in the inset, and the same Xiaoju out on the town's street. She is sent
+          // out directly; how commissions send her is the apprentice scenario's.
+          await page.evaluate(() => { void window.lamplightDebug.scene.walkTo('xiaoju', 'door'); });
+          let w = null;
+          for (let i = 0; i < 60 && !(w && w.alpha === 1); i++) {
+            await sleep(500);
+            w = await page.evaluate(() => window.lamplightDebug.scene.streetWalker());
+          }
+          check(w && w.actor === 'xiaoju', `Xiaoju did not go out on the street: ${JSON.stringify(w)}`);
+          await shop.shot(join(out, 'street-inset.png'));
+          await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+          await sleep(600);
+          const seen = await page.evaluate(() => {
+            const g = window.lamplightDebug.street;
+            const s = g.children.list.find((o) => o.type === 'Sprite');
+            return s ? { visible: s.visible, x: s.x, y: s.y, cam: g.cameras.main.scrollX, inset: window.lamplightDebug.scene.streetWalker() } : null;
+          });
+          await shop.shot(join(out, 'street-errand.png'));
+          check(seen && seen.visible && seen.x >= seen.cam && seen.x <= seen.cam + 320, `Xiaoju out on an errand was not in view on the street: ${JSON.stringify(seen)}`);
+          // Read a frame or two apart while she walks: a few pixels.
+          check(seen && Math.abs(seen.x - seen.inset.x) < 8 && Math.abs(seen.y - seen.inset.y) < 8, `the street and the inset show her in different places: ${JSON.stringify(seen)}`);
+          await page.keyboard.press('Escape');
+          await sleep(300);
+        }
+      } finally { await shop.close(); }
+    }
+  },
+
   async study(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang, { scene: 'study' }) });
     const shop = await launch({ lang, home, speed: SPEED });
@@ -4224,8 +4887,8 @@ const SCENARIOS = {
     const tipShown = (i) => buttons.nth(i).evaluate((b) => getComputedStyle(b, '::after').opacity === '1');
     const settingsFile = () => JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8'));
     try {
-      const want = [L.ui.toolbar.order, L.ui.projects.button, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.settings];
-      check(await buttons.count() === 7, `the toolbar has ${await buttons.count()} buttons`);
+      const want = [L.ui.toolbar.order, L.ui.projects.button, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.street, L.ui.toolbar.settings];
+      check(await buttons.count() === 8, `the toolbar has ${await buttons.count()} buttons`);
       for (const [i, label] of want.entries()) {
         check(await tip(i) === label, `button ${i} says ${await tip(i)}, not ${label}`);
         check(await buttons.nth(i).getAttribute('aria-label') === label, `button ${i} has no spoken name`);
@@ -4534,7 +5197,7 @@ const SCENARIOS = {
       await sleep(300);
       await page.locator('.welcome .actions button.default').last().click();
       await sleep(1500);
-      check(await page.locator('.toolbar button.tool-btn').count() === 6, 'no toolbar after the welcome');
+      { const n = await page.locator('.toolbar button.tool-btn').count(); check(n === 8, `no toolbar after the welcome (${n} buttons)`); }
       check((await hints()).join() === 'counter', `after the welcome the marks are on ${await hints()}`);
       check((await places()).includes('counter') && (await places()).includes('board'), 'the counter or the blackboard cannot be reached');
       await shop.shot(join(out, 'firstuse-1-counter.png'));

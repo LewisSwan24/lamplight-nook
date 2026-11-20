@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { emptyTown, TOWN_MOVE } from '../app/shared/town';
 import { MemoryStore } from '../app/main/memory';
 import { GROWTH, grownBy, madeOf, shortWork, workIcon } from '../app/shared/growth';
 import { Chatter, CHAT_GAP_MS } from '../app/renderer/stage/chatter';
@@ -106,9 +107,10 @@ describe('the shop grows with the commissions done together', () => {
     store.finished();
     store.markTold('story_chestnut');
     store.markTold('story_chestnut');
-    expect(store.shopState().told).toEqual(['story_chestnut']);
+    expect(store.shopState().told).toEqual([TOWN_MOVE, 'story_chestnut']);
     store.clear();
-    expect(store.shopState()).toEqual({ done: 0, grown: [], told: [], works: [] });
+    // Back to a shop opened since 1.4: in the town, with no move to show.
+    expect(store.shopState()).toEqual({ done: 0, grown: [], told: [TOWN_MOVE], town: emptyTown(), works: [] });
   });
 
   it('has a line for every new piece, in both languages', () => {

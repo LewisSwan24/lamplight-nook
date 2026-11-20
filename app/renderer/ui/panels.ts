@@ -2,8 +2,9 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
+import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type Citations, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
 import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
+import { isPicture } from '../../shared/pictures';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { expressionFor } from './expression';
@@ -134,8 +135,6 @@ const STICKERS: Sticker[] = [
 ];
 /** What a template says about the file, folder or photos it needs (`ui.templates.<id>Hint`). */
 const hintOf = (id: string) => (T as Record<string, string>)[`${id}Hint`];
-/** Pictures an album can show. */
-const PHOTO = /\.(jpe?g|png|gif|webp|bmp|avif)$/i;
 /** The blank in a template sentence (a Chinese or an English ellipsis), selected so typing replaces it. */
 const BLANK = /\u2026\u2026|\.\.\./;
 
@@ -280,7 +279,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       const r = await api.chooseSource(chosen!.id as CommissionTemplate);
       if (!r) return;
       if ('error' in r) {
-        sourceHint.textContent = T.tooBig;
+        sourceHint.textContent = r.error === 'macros' ? T.macros : T.tooBig;
         sourceHint.classList.add('warn');
         return;
       }
@@ -450,7 +449,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         pickButton.focus();
         return;
       }
-      if (chosen?.spec?.photos && !materials.some((m) => PHOTO.test(m.name))) {
+      if (chosen?.spec?.photos && !materials.some((m) => isPicture(m.name))) {
         materialHint.textContent = T.needPhotos;
         materialHint.classList.add('warn');
         return;
@@ -486,6 +485,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
 export type ResultActions = {
   /** Says why, when an Office file was only shown in its folder (road-to-1.3.md C1). */
   open: (path: string, how: 'open' | 'reveal') => Promise<{ ok: boolean; why?: NotOpened }> | void;
+  /** Opens source n of a research write-up in the browser (road-to-1.3.md C7). */
+  openSource?: (n: number) => void;
   revise?: (id: string) => void;
   restore?: (id: string) => Promise<boolean>;
   /** Undo a commission done in the user's own folder. */
@@ -511,9 +512,10 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     const why = (await actions.open(result.main!, 'open'))?.why;
     if (why) note.textContent = U.resultNotOpened[why];
   };
-  const openMain = result.main ? el('button.default', { onclick: () => void openIt() }, /\.html?$/i.test(result.main) ? U.openInBrowser : U.openFile) : null;
+  const openMain = result.main ? el('button.default', { onclick: () => void openIt() }, /\.html?$/i.test(result.main) ? U.openInBrowser : /\.eml$/i.test(result.main) ? U.openInMail : U.openFile) : null;
   // The main file's picture (C1) comes a moment after the card; clicking it opens the file, as the button does.
-  const thumb = result.main ? el('button.result-thumb', {
+  // A picture (a chart, a poster, C2) is shown whole; a page shows its first screen.
+  const thumb = result.main ? el(isPicture(result.main) ? 'button.result-thumb.whole' : 'button.result-thumb', {
     type: 'button', hidden: !result.preview, 'aria-label': fill(U.resultPreview, { file: result.main.split(/[\\/]/).pop()! }), onclick: () => void openIt(),
   }, el('img', { alt: '', src: result.preview })) : null;
   const { id } = result;
@@ -563,6 +565,9 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     // Which project it was for: with two rounds at once, two cards may come one after the other (B5).
     result.project ? el('div.hint.result-project', {}, fill(U.resultProject, { title: result.project.title })) : null,
     result.summary ? el('div.result-summary', {}, plainText(result.summary)) : null,
+    // An edit that came back as another kind of file says so (C3), before the file is named.
+    result.converted ? el('div.hint.result-converted', { role: 'note' }, U.resultConverted[result.converted]) : null,
+    result.citations ? citationBlock(result.citations, actions.openSource) : null,
     thumb,
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
@@ -586,6 +591,29 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.
   card.addEventListener('panel-closed', clearWorkSigns);
   replaceOpen(card);
+}
+
+/** How many sources the result card lists before it only counts them. */
+const LISTED_SOURCES = 8;
+
+/**
+ * A research write-up's sources on its card (road-to-1.3.md C7): title, site, and whether this round opened it, each a
+ * click away in the browser; then what has no source, and the numbers that do not add up. Nothing is hidden for being
+ * wrong: the card says so instead.
+ */
+function citationBlock(c: Citations, open?: (n: number) => void): HTMLElement {
+  const C = U.citations;
+  if (c.broken) return el('div.hint.warn.result-cite-broken', { role: 'note' }, C[c.broken]);
+  return el('div.result-sources', {},
+    el('div.result-sources-title', {}, C.title),
+    c.sources.length ? el('ol.result-source-list', {}, ...c.sources.slice(0, LISTED_SOURCES).map((s) => el('li', { 'data-n': String(s.n) },
+      el('button.link.result-source', { type: 'button', title: s.url, onclick: () => open?.(s.n) }, `[${s.n}] ${s.title}`),
+      el('span.hint.result-source-site', {}, s.site ? ` ${s.site}` : ''),
+      el(`span.result-source-state${s.opened ? '' : '.warn'}`, {}, s.opened ? C.opened : C.notOpened)))) : el('div.hint', {}, C.none),
+    c.sources.length > LISTED_SOURCES ? el('div.hint', {}, fill(C.more, { n: String(c.sources.length), shown: String(LISTED_SOURCES) })) : null,
+    c.unsourced.length ? el('div.result-unsourced', {}, el('div.hint', {}, C.unsourced), el('ul', {}, ...c.unsourced.map((u) => el('li', {}, u)))) : null,
+    c.unnumbered.length ? el('div.hint.warn.result-unnumbered', { role: 'note' }, fill(C.unnumbered, { n: String(c.unnumbered.length) })) : null,
+    c.missing.length ? el('div.hint.warn.result-missing', { role: 'note' }, fill(C.missing, { numbers: c.missing.map((n) => `[${n}]`).join(' ') })) : null);
 }
 
 /** A round's thumbnail has come: onto its card, if that is up. */

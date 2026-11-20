@@ -8,12 +8,13 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
 import { installCommand, locateClaude, runInstaller } from './claude-locator';
-import { type Revision, collectOutputs, commissionPrompt, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName, withConnections } from './commission';
+import { citationsIn, sourceUrl } from './citations';
+import { type Revision, collectOutputs, commissionPrompt, convertedNote, sourceProblem, commissionTitle, continuePrompt, demoPrompt, lentOutputs, meetingNote, prepareDemoFolder, prepareSource, revisePrompt, snapshot, folderName, withConnections } from './commission';
 import { sessionExists } from './sessions';
 import { VersionStore, entriesIn, tooBigToLend } from './versions';
 import { backUp, migrate } from './migrate';
@@ -39,7 +40,7 @@ import { localMonth } from '../shared/localday';
 import { RoundTally } from './tally';
 import { zip } from './zip';
 import { exportName, workEntries } from './export';
-import { imageThumb, pageThumb, pageToPdf } from './print';
+import { imageThumb, pageThumb, pageToPdf, pageToPng, pictureToPng } from './print';
 import { officeServer, prunePreviews, thumbSource } from './office/tools';
 import { howToOpen } from './open-rule';
 import { ShopTray } from './tray';
@@ -53,7 +54,7 @@ import { ProjectVersions, type Scope } from './project-versions';
 import { cleanScene } from '../shared/scenes';
 import { CONNECTION_ID, ConnectionStore } from './connections';
 import { ActionLog, ConnectionReads, RoundActions } from './action-log';
-import { type KindDef, offerOf, testKind } from './connection-kinds';
+import { calendarKind, type FetchText, folderKind, type KindDef, maildraftKind, offerOf, testKind } from './connection-kinds';
 import { type NookServer, connectionServers } from './nook-tools';
 import { randomUUID } from 'node:crypto';
 
@@ -350,17 +351,33 @@ ipcMain.handle(IPC.monthCapNews, (): number | null => {
  * The kinds of connection this build can make (road-to-1.3.md C4). C5 brings the real ones; until then only a development
  * build has one, the test connection, whose secret a simulated run may name (LAMPLIGHT_TEST_SECRET) to look for it later.
  */
-const connectionKinds = (): KindDef[] => (app.isPackaged ? [] : [testKind(() => process.env.LAMPLIGHT_TEST_SECRET || `test-${randomUUID()}`, join(app.getPath('userData'), 'test-outside'))]);
+const connectionKinds = (): KindDef[] => [
+  folderKind(pickLinkFolder, (path) => holdsTooMuch(path) || [settings.get().workRoot, app.getPath('userData')].some((own) => insideForReal(own, path))),
+  calendarKind(fetchCalendar, !app.isPackaged),
+  maildraftKind(),
+  ...(app.isPackaged ? [] : [testKind(() => process.env.LAMPLIGHT_TEST_SECRET || `test-${randomUUID()}`, join(app.getPath('userData'), 'test-outside'))]),
+];
+/** The folder a synced-folder connection links (C5), picked in the main process's own dialog. */
+async function pickLinkFolder(): Promise<string | null> {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
+  return r.canceled ? null : r.filePaths[0] ?? null;
+}
+/**
+ * A calendar's address fetched (C5): no cookies, no redirects followed (one could lead anywhere), and given up after 20
+ * seconds. The address never goes into a message.
+ */
+const fetchCalendar: FetchText = (url) => net.fetch(url, { redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(20_000) });
 const kindOf = (kind: unknown) => connectionKinds().find((k) => k.kind === kind);
 /** A connection's server for a round: its tools, each call noted as its last use; null for a kind this build cannot run. */
 function connectionServer(c: Connection): NookServer | null {
   const def = kindOf(c.kind);
-  return def ? { name: c.id, tools: def.tools(c, () => connections.secret(c.id)), used: () => connections.used(c.id), connection: { id: c.id, label: c.label } } : null;
+  return def ? { name: c.id, tools: def.tools(c, () => connections.secret(c.id)), used: () => connections.used(c.id), connection: { id: c.id, label: c.label, kind: c.kind } } : null;
 }
 /** Each round's preview pages for the result card's thumbnail (C1), in the data folder, the newest runs' only. */
 const previewsDir = () => join(app.getPath('userData'), 'previews');
 /** The shop's own tools, on every round: Word, Excel, PowerPoint and PDF (C1). */
-const shopServers = (): NookServer[] => [officeServer({ previews: previewsDir(), toPdf: pageToPdf })];
+const shopServers = (): NookServer[] => [officeServer({ previews: previewsDir(), toPdf: pageToPdf, toPng: pageToPng })];
 /** The screens a thumbnail is taken from: a page as on a small laptop, a preview page at its own width. */
 const PAGE_SCREEN = { width: 1024, height: 640 };
 const PREVIEW_SCREEN = { width: 560, height: 420 };
@@ -386,17 +403,24 @@ ipcMain.handle(IPC.undoAction, (_e, id: unknown): boolean => {
   if (!r?.undo?.path || r.undo.done || !r.ok || r.kind !== 'outside') return false;
   const c = connections.get(r.connection);
   const def = c && kindOf(c.kind);
-  if (!def?.undo?.(r.tool, r.undo.path)) return false;
+  if (!def?.undo?.(r.tool, r.undo.path, c)) return false;
   const done = actionLog.undone(r.id, fill(strings.ui.actions.undoSaid, { said: r.said }));
   log?.info('outside action undone', { tool: r.tool, ok: Boolean(done) });
   return Boolean(done);
 });
-ipcMain.handle(IPC.addConnection, (_e, kind: unknown) => {
+/** A connection made after its card said yes: the kind sets it up from what the user gave (C5), then it is kept. */
+ipcMain.handle(IPC.addConnection, async (_e, kind: unknown, input: unknown): Promise<Connection | { error: SetupError } | null> => {
   const def = kindOf(kind);
   if (!def) return null;
-  const made = connections.add(def.kind, def.label, def.config(), def.secret?.());
+  const address = (input as { address?: unknown } | null)?.address;
+  const set = await def.setup({ address: typeof address === 'string' ? address.slice(0, 2000) : undefined });
+  if ('error' in set) {
+    log?.info('connection not made', { kind: def.kind, why: set.error });
+    return set;
+  }
+  const made = connections.add(def.kind, set.label, set.config, set.secret);
   log?.info('connection added', { kind: def.kind, ok: Boolean(made) });
-  return made;
+  return made ?? { error: 'storage' };
 });
 const connectionId = (id: unknown): id is string => typeof id === 'string' && CONNECTION_ID.test(id);
 ipcMain.handle(IPC.pauseConnection, (_e, id: unknown, on: unknown) => connectionId(id) && typeof on === 'boolean' && connections.pause(id, on));
@@ -822,9 +846,13 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       if (entry) keepRound(entry);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
       const grew = result.ok && !r ? memory.finished() : [];
+      // A research write-up is checked against its sources and against what this round searched or fetched (C7).
+      const F = strings.ui.files;
+      const citations = job.form.template === 'research' ? citationsIn(job.workDir, { summary: F.summary, sources: F.sources }, result.seenUrls ?? []) : undefined;
+      if (citations) cited.set(run, job.workDir);
       send(IPC.result, {
-        run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
-        id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
+        citations, run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
+        converted: convertedNote(job.form, outputs.main), id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
       });
       // The card first, its thumbnail when it is ready (C1): loading a page takes a moment, which the card need not wait for.
       if (outputs.main) {
@@ -854,6 +882,21 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
   }
 }
 
+/**
+ * Rounds whose card lists sources (C7), by run, with their commission folder: openSource opens only a web address that
+ * the folder's own sources.json gives, read again at the click.
+ */
+const cited = new Map<string, string>();
+ipcMain.handle(IPC.openSource, async (_e, run: unknown, n: unknown): Promise<boolean> => {
+  const dir = typeof run === 'string' ? cited.get(run) : undefined;
+  const file = dir && join(dir, strings.ui.files.sources);
+  if (!file || !Number.isInteger(n) || !existsSync(file)) return false;
+  const url = sourceUrl(readFileSync(file, 'utf8'), n as number);
+  if (!url) return false;
+  await shell.openExternal(url);
+  return true;
+});
+
 // Files and folders the user picked in a dialog this session: the only sources a commission may use.
 const picked = new Set<string>();
 /** Folders the user chose to lend, after the checks for too broad and too big: only these can be worked in place. */
@@ -866,7 +909,9 @@ ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<Sou
     : { properties: ['openFile'], filters: [{ name: strings.ui.templates[id], extensions: [...source.extensions] }] });
   const path = r.canceled ? undefined : r.filePaths[0];
   if (!path) return null;
-  if (source.kind === 'file' && statSync(path).size > source.maxBytes) return { error: 'too-big' };
+  // Too big, or (C3) an Office file with macros that would run once its changed copy is opened.
+  const problem = source.kind === 'file' ? sourceProblem(path, source.maxBytes) : undefined;
+  if (problem) return { error: problem };
   picked.add(path);
   return { path, name: basename(path) };
 });
@@ -918,7 +963,7 @@ function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: st
     mkdirSync(workDir, { recursive: true });
     if (f.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
     prepareSource(workDir, f);
-    try { copyMaterials(workDir, f.materials ?? []); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
+    try { await copyMaterials(workDir, f.materials ?? [], pictureToPng); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
     return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now(), ...(schedule ? { schedule } : {}) }, false);
   }, by);
 }

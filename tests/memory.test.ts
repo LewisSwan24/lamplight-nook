@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MemoryStore, StuckTracker } from '../app/main/memory';
+import { emptyTown, TOWN_MOVE } from '../app/shared/town';
 
 const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-memory-')), 'memory.json');
 const memo = (title: string, choices: Record<string, string> = {}, result: 'done' | 'failed' = 'done') => ({ title, choices, result, folder: `/work/${title}` });
@@ -226,5 +227,29 @@ describe('stuck tracker', () => {
     t.see({ kind: 'tool_ok', tool: 'Bash', target: 'node check.js' });
     expect(t.stuck).toEqual([]);
     expect(t.unresolved).toEqual(['npm test']);
+  });
+});
+
+describe('the town (road-to-1.4.md D7)', () => {
+  it('a new shop opens in the town: nothing to move, the town empty', () => {
+    const store = new MemoryStore(join(mkdtempSync(join(tmpdir(), 'lamplight-town-')), 'memory.json'));
+    expect(store.shopState()).toMatchObject({ done: 0, grown: [], told: [TOWN_MOVE], town: emptyTown() });
+  });
+
+  it('keeps the town when the notebook is saved again, and the move once shown', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'lamplight-town-')), 'memory.json');
+    const town = { shops: { print: { done: 2, grown: [{ id: 'press', date: '2026-12-01' }] } }, street: [{ id: 'bicycle', date: '2026-12-02' }], stories: { zhou: 2 } };
+    writeFileSync(file, JSON.stringify({ commissions: [], stuckNotes: [], shop: { done: 3, grown: [], told: [], town } }));
+    const store = new MemoryStore(file);
+    store.markTold(TOWN_MOVE);
+    const again = new MemoryStore(file).shopState();
+    expect(again.town).toEqual(town);
+    expect(again.told).toEqual([TOWN_MOVE]);
+  });
+
+  it('a shop the upgrade did not reach has no town', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'lamplight-town-')), 'memory.json');
+    writeFileSync(file, JSON.stringify({ commissions: [], stuckNotes: [], shop: { done: 3, grown: [], told: [] } }));
+    expect(new MemoryStore(file).shopState().town).toBeUndefined();
   });
 });

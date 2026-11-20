@@ -29,16 +29,19 @@ export type PromptParts = {
 export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes: number } | { kind: 'folder' };
 
 /**
- * What the result card opens, best first, matched on file names: a page the shop made, an edited document,
- * any page, a Word, Excel or PowerPoint file or a PDF (never the kinds with macros), a write-up in Markdown, then a
- * table or a letter.
+ * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
+ * or a poster drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
+ * PDF (never the kinds with macros), a write-up in Markdown, an email draft (C5, which opens in the mail program), then
+ * a table or a letter.
  */
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
+  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng,
   page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
+  draft: (name: string) => /\.eml$/i.test(name),
   table: (name: string) => /\.(csv|txt)$/i.test(name),
 };
 
@@ -61,9 +64,41 @@ export type TemplateSpec = {
   guest?: GuestId;
 };
 
-/** Text files the edit template accepts, and how big they may be. */
-export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json'];
-export const MAX_EDIT_BYTES = 1024 * 1024;
+/**
+ * Files the edit template accepts, and how big they may be: text, and since road-to-1.3.md C3 Word, Excel, PowerPoint
+ * and PDF (never their kinds with macros), up to the 20 MB a file handed over may be.
+ */
+export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf'];
+export const MAX_EDIT_BYTES = 20 * 1024 * 1024;
+
+/** What the edit template asks for, by the kind of file: text by hand, Office files by number with the edit tools, a PDF again as Word. */
+function editSteps({ original, revised }: PromptParts): string[] {
+  const kind = /\.(docx|xlsx|pptx|pdf)$/i.exec(original)?.[1].toLowerCase();
+  const end = 'In your final reply, list the main changes in two to five short points.';
+  if (!kind) {
+    return [
+      `The document to work on is "${original}" in this folder, a copy of the user's file.`,
+      `Do not change "${original}". Write the edited version as "${revised}", in the same format.`,
+      end,
+    ];
+  }
+  if (kind === 'pdf') {
+    return [
+      `The document to work on is "${original}" in this folder, a PDF copy of the user's file. Read it with the Read tool, passing pages (at most 20 at a time).`,
+      `A PDF cannot be changed as it is. Write the edited version as a Word document "${revised}" with the mcp__nook-office__make_docx tool, keeping its headings, paragraphs, lists and tables. Never write Office XML or a .docx by hand.`,
+      'Say in your reply that the PDF has become a Word document.',
+      end,
+    ];
+  }
+  const what = { docx: 'paragraph', pptx: 'text box', xlsx: 'cell' }[kind];
+  const steps = [
+    `The document to work on is "${original}" in this folder, a copy of the user's file. Do not change it.`,
+    `Read it with mcp__nook-office__read_document and numbered: true, then make the changes with mcp__nook-office__edit_${kind}, from "${original}" to "${revised}", every change in one call, each ${what} named by the number it showed. Never write Office XML or the file by hand.`,
+  ];
+  if (kind === 'docx') steps.push('Your changes show in Word as tracked changes the user can accept or reject one by one, so change only what the request asks for.');
+  if (kind === 'xlsx') steps.push(`If edit_xlsx says it cannot change this workbook, write the changes down as "${revised.replace(/\.xlsx$/i, '.md')}" instead, as it tells you, and say so in your reply.`);
+  return [...steps, end];
+}
 
 export const TEMPLATES = [
   {
@@ -77,18 +112,17 @@ export const TEMPLATES = [
     id: 'research', icon: 1, revise: false, main: 'writeup', growth: { id: 'books', at: 2 }, guest: 'student',
     steps: ({ language, files }) => [
       'This is a research commission: do not make a web page.',
-      `Send the researcher subagent to look it up, then write the findings as "${files.summary}" in ${language}:`,
-      'a three-sentence summary first, then the key points as a list, then the sources with their links.',
+      `Send the researcher subagent to look it up, then write the findings in ${language} as two files.`,
+      `"${files.summary}": a three-sentence summary first, then the key points as a list, each point followed by the numbers of its sources in brackets, such as [1][3], then the sources, numbered, with their links.`,
+      `"${files.sources}": JSON, {"sources": [{"n": 1, "title": "the page's title", "url": "https://...", "checked": "YYYY-MM-DD, the day you looked", "quote": "a short line from the page (optional)"}], "unsourced": ["each conclusion you found no source for, word for word"]}.`,
+      `Every key point needs at least one number. A conclusion you found no source for goes into "unsourced", and in the summary it is marked "${files.noSource}" instead of a number.`,
+      'Never make up a link or a source: use only pages the search found or you opened this time.',
       'Say plainly where sources disagree or where you are unsure.',
     ],
   },
   {
     id: 'edit', icon: 2, revise: true, main: 'revised', source: { kind: 'file', extensions: EDITABLE, maxBytes: MAX_EDIT_BYTES },
-    steps: ({ original, revised }) => [
-      `The document to work on is "${original}" in this folder, a copy of the user's file.`,
-      `Do not change "${original}". Write the edited version as "${revised}", in the same format.`,
-      'In your final reply, list the main changes in two to five short points.',
-    ],
+    steps: editSteps,
   },
   {
     id: 'tidy', icon: 3, revise: true, main: 'writeup', source: { kind: 'folder' },
@@ -198,6 +232,33 @@ export const TEMPLATES = [
       'Keep each slide to a few short bullets, and put what the speaker says in the notes.',
       `If the user handed anything over in "${files.materials}", read it first (mcp__nook-office__read_document reads Word, Excel and PowerPoint files) and build on it.`,
       'Never invent figures, quotations or dates. Where one is missing, leave a clear blank in square brackets.',
+    ],
+  },
+  {
+    id: 'chart', icon: 15, revise: true, main: 'picture',
+    steps: ({ language, files }) => [
+      'This is a chart, drawn as a picture.',
+      `Read the data first: what the user wrote in the request, or the table they handed over in "${files.materials}" (mcp__nook-office__read_document reads Excel files; read a CSV as text).`,
+      `Draw it as a single self-contained page "${files.chartPage}" holding one inline SVG: no scripts from the web, no web fonts, nothing the page loads from outside this folder.`,
+      'Pick the kind of chart that fits the data: bars to compare amounts, a line for change over time, a share of a whole only when the parts really add up to it.',
+      'Copy every number exactly as they are in the data. Never make up a number, round one off differently or fill in a missing one; leave a gap and say so.',
+      'Axes of amounts start at zero. Give the chart a title, name each axis with its units, label the values, and put where the data came from in small print at the bottom.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.chartPng}" with the mcp__nook-office__render_png tool, at 1200 by 800 unless the user asked for another size, with the page laid out to fill exactly that.`,
+      'When it is saved, look at it with the Read tool: check nothing is cut off or overlapping and every number matches the data, and fix the page and draw it again if not.',
+    ],
+  },
+  {
+    id: 'poster', icon: 16, revise: true, main: 'picture',
+    steps: ({ language, files }) => [
+      'This is a poster, drawn as a picture.',
+      'Pick its size from what it is for: A4 for printing, 794 by 1123; a square for a social post, 1080 by 1080; a wide one for a screen, 1920 by 1080. A4 if the request does not say.',
+      `Lay it out as a single self-contained page "${files.posterPage}" exactly that size: CSS inline, no web fonts, nothing the page loads from outside this folder. Use photos the user handed over in "${files.materials}" by relative path; do not copy or change them.`,
+      'Make the main message the biggest thing on it, then what, when and where. Keep the words few.',
+      'Never make up a date, a time, a place, a price or a name. Where one is missing, leave a clear blank in square brackets.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.posterPng}" with the mcp__nook-office__render_png tool at that size. For an A4 poster, also save it as "${files.posterPdf}" with the mcp__nook-office__make_pdf tool, so it can be printed.`,
+      'When it is saved, look at it with the Read tool: check nothing is cut off, overlapping or too small to read, and fix the page and draw it again if not.',
     ],
   },
 ] as const satisfies readonly TemplateSpec[];

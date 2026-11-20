@@ -16,10 +16,12 @@ const DETAIL_LINES = 3;
 export const view = { detailed: false, muted: false };
 /** A commission is under way: the first button is about that instead. */
 let working = false;
+/** Out on the street (road-to-1.4.md D1): the street button takes you back in. */
+let outside = false;
 let paint = () => {};
 
 /** What the shop itself opens from the toolbar. */
-export type ToolbarActions = { order: () => void; projects: () => void; shelf: () => void };
+export type ToolbarActions = { order: () => void; projects: () => void; shelf: () => void; street: () => void };
 
 /** A button's picture and its label, which shows at once on hover and keyboard focus (style.css). */
 function look(button: HTMLElement, icon: ToolIcon, label: string) {
@@ -41,6 +43,7 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
   };
   const order = button('order', T.order, act.order);
   const sound = button('sound', T.mute, async () => onChange(await api.saveSettings({ muted: !view.muted })));
+  const street = button('street', T.street, act.street);
   const bar = el('div.toolbar', { role: 'toolbar', 'aria-label': T.label },
     order,
     button('projects', strings.ui.projects.button, act.projects),
@@ -48,6 +51,7 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
     button('notebook', strings.ui.notebook.title, () => void showNotebook(api)),
     button('captions', strings.ui.access.captionsButton, showCaptionLog),
     sound,
+    street,
     button('gear', T.settings, () => void showSettings(api, onChange)));
   const strip = el('div.detail-strip', { 'aria-live': 'polite' });
   paint = () => {
@@ -55,6 +59,7 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
     order.classList.toggle('working', working);
     look(sound, view.muted ? 'mute' : 'sound', view.muted ? T.unmute : T.mute);
     sound.setAttribute('aria-pressed', String(view.muted));
+    look(street, 'street', outside ? T.back : T.street);
     strip.hidden = !view.detailed;
   };
   layer().append(bar, strip);
@@ -65,6 +70,12 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
 export function syncToolbar(s: Settings) {
   view.detailed = s.detailed;
   view.muted = s.muted;
+  paint();
+}
+
+/** Out on the street or back in. */
+export function setOutsideButton(on: boolean) {
+  outside = on;
   paint();
 }
 

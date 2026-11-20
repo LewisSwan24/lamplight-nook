@@ -7,6 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 
+import backroom
 import rug
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -147,6 +148,7 @@ def build():
     for (col, row), (x, y) in sorted(CHAIRS, key=lambda c: c[1][1]):
         img.alpha_composite(tiles(interiors, col, row, 1, 2), (x - 8, y - 24))
     rug.patch(img)
+    backroom.paint(img, 'cafe')
     OUT.mkdir(parents=True, exist_ok=True)
     img.save(OUT / 'cafe.png')
     back_door()

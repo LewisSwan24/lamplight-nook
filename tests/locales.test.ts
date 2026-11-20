@@ -134,3 +134,19 @@ describe('how the budget is described', () => {
     expect(budget(en)).not.toMatch(/This commission|per run|per-run|This run/);
   });
 });
+
+describe('the privacy note (road-to-1.3.md C9)', () => {
+  const note = (locale: typeof zh) => (locale.legal.privacy as string[]).join('\n');
+
+  it('says what a connection sends to Anthropic and that the calendar is fetched from this computer', () => {
+    expect(note(zh)).toMatch(/网盘文件夹[^\n]*日历[^\n]*发给 Anthropic/);
+    expect(note(zh)).toMatch(/日历的订阅地址[^\n]*这台电脑/);
+    expect(note(en)).toMatch(/synced folder[^\n]*calendar[^\n]*sent to Anthropic/i);
+    expect(note(en)).toMatch(/calendar's address[^\n]*this computer/i);
+  });
+
+  it('lists the connections and the record of outside actions among what stays on the computer', () => {
+    expect(note(zh)).toMatch(/连接[^\n]*外部动作的记录/);
+    expect(note(en)).toMatch(/connections[^\n]*record of outside actions/i);
+  });
+});

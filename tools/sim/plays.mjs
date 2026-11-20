@@ -19,6 +19,12 @@ const T = {
     plan: ['弄清目标和时间', '按周排好每一步', '留出补课的余地', '列准备清单', '请老石检查'],
     album: ['看你递来的照片', '请青黛定版式', '排顺序、写图说', '做成相册网页', '请老石检查'],
     resume: ['弄清投什么样的工作', '排好一页的版式', '写经历，缺的留空', '请老石检查'],
+    chart: ['弄清要画哪些数字', '挑合适的图', '画好，存成图片', '请老石检查'],
+    poster: ['弄清用在哪儿、多大', '排好版式', '画好，存成图片', '请老石检查'],
+    chartDone: '图表画好了：一张图片，数字都照抄你给的，柱子从零画起，底下写了数据从哪来。画它用的网页也在旁边。',
+    posterDone: '海报做好了：按用处定的尺寸存成图片，A4 的另外存了一份 PDF 方便打印。没给的时间地点留在方括号里。',
+    chartWords: { sample: [['一月', 12], ['二月', 18], ['三月', 9]], source: '数据：你在要求里给的数字', unit: '数量' },
+    posterWords: { when: '[日期和时间]', where: '[地点]', more: '欢迎带朋友来' },
     notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
     travel: ['弄清去哪、几天', '请小橘查开放时间和票价', '按天排行程和预算', '请老石检查'],
     tool: ['弄清要做什么', '做成一个网页工具', '用样例试一试', '请老石检查'],
@@ -66,7 +72,9 @@ const T = {
     stuckTry: '命令没跑通，换个写法再试。',
     letterBody: (w) => `主题：${w}\n\n[称呼]，你好：\n\n写这封信，是想和你说一件事。${w}。\n\n具体的时间定在 [日期]，地点在 [地点]。如果你那天不方便，告诉我一声，我们再约。\n\n谢谢你一直以来的帮忙。\n\n[你的名字]\n[日期]\n`,
     planBody: (w) => `# ${w}\n\n假设：每周能抽出 3 个晚上，每次一小时左右。\n\n| 周 | 要做的事 | 完成标准 |\n|---|---|---|\n| 第 1 周 | 定好目标，准备材料 | 清单齐了 |\n| 第 2 周 | 每次练一小段 | 能顺下来 |\n| 第 3 周 | 把难的部分拆开练 | 卡住的地方少了 |\n| 第 4 周 | 合起来走一遍，留一天补课 | 从头到尾不停 |\n\n## 准备清单\n- [ ] 一个固定的时间段\n- [ ] 需要的材料\n- [ ] 一个记进度的小本子\n`,
-    summaryBody: (w) => `# ${w}\n\n三句话：大多数资料说法一致。有一处日期各说各的，下面写清楚了。如果只记一件事，记第一条。\n\n## 要点\n- 第一条：最常见的做法和理由\n- 第二条：需要注意的例外\n- 第三条：各家说法不一致的地方\n\n## 出处\n- 示例资料一 https://example.org/a\n- 示例资料二 https://example.org/b\n`,
+    summaryBody: (w, flawed) => `# ${w}\n\n三句话：大多数资料说法一致 [1]。有一处日期各说各的 [2]，下面写清楚了。如果只记一件事，记第一条。\n\n## 要点\n- 第一条：最常见的做法和理由 [1]\n- 第二条：需要注意的例外 [2]\n- 第三条：各家说法不一致的地方 [1][2]\n${flawed ? '- 第四条：一个没标编号的说法\n- 第五条：一个少有人提的说法 [3]\n- 阳台上能种一整年（未找到出处）\n' : ''}\n## 出处\n1. 示例资料一 https://example.org/a\n2. 示例资料二 https://example.org/b\n${flawed ? '3. 示例资料三 https://example.org/never\n' : ''}`,
+    sourceTitles: ['示例资料一', '示例资料二', '示例资料三'],
+    unsourced: '阳台上能种一整年',
     tidyBody: '# 整理方案\n\n## 建议的分类\n- 工作/：合同、报表\n- 照片/：按年份分\n- 安装包/：用完可以删\n- 待看/：暂时不知道放哪的\n\n## 值得看一眼的\n- 名字里带“副本”“(1)”的文件，像是重复的\n- 一年多没动过的安装包\n\n什么都没有移动，照着做就行。\n',
     reviseLine: (a) => `（照你说的改了：${a}）`,
     pageTitle: '小页面',
@@ -92,6 +100,12 @@ const T = {
     plan: ['Pin down the goal and the time', 'Lay out each week', 'Leave room for missed days', 'List what to prepare', 'Ask Flint to check it'],
     album: ['Look at the photos you gave', 'Ask Iris for the layout', 'Order them and write captions', 'Make the album page', 'Ask Flint to check it'],
     resume: ['Work out the kind of job', 'Lay out one page', 'Write it up, blanks for gaps', 'Ask Flint to check it'],
+    chart: ['Work out which numbers', 'Pick the kind of chart', 'Draw it and save the picture', 'Ask Flint to check it'],
+    poster: ['Work out where it goes and how big', 'Lay it out', 'Draw it and save the picture', 'Ask Flint to check it'],
+    chartDone: 'The chart is drawn: a picture with every number copied from yours, bars from zero, and where the data came from at the bottom. The page it was drawn from is next to it.',
+    posterDone: 'The poster is ready: a picture at the size its use calls for, and for A4 a PDF too, to print. What you did not give, the time and the place, is left in square brackets.',
+    chartWords: { sample: [['January', 12], ['February', 18], ['March', 9]], source: 'Data: the numbers in your request', unit: 'Count' },
+    posterWords: { when: '[date and time]', where: '[place]', more: 'Bring a friend' },
     notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
     travel: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out the days and the budget', 'Ask Flint to check it'],
     tool: ['Work out what it should do', 'Make it a page in the browser', 'Try it on samples', 'Ask Flint to check it'],
@@ -139,7 +153,9 @@ const T = {
     stuckTry: 'That command did not work. Trying it another way.',
     letterBody: (w) => `Subject: ${w}\n\nDear [name],\n\nI am writing about one thing: ${w}.\n\nIt is set for [date] at [place]. If that day does not suit you, just let me know and we will find another.\n\nThank you for all your help.\n\n[your name]\n[date]\n`,
     planBody: (w) => `# ${w}\n\nAssumed: three evenings a week, about an hour each.\n\n| Week | What to do | Done when |\n|---|---|---|\n| Week 1 | Set the goal, gather what you need | The list is complete |\n| Week 2 | Practise one short part each time | It runs through |\n| Week 3 | Take the hard parts apart | Fewer places you get stuck |\n| Week 4 | Put it together, one spare day | Start to finish without stopping |\n\n## To prepare\n- [ ] A fixed time slot\n- [ ] The materials you need\n- [ ] A notebook for progress\n`,
-    summaryBody: (w) => `# ${w}\n\nIn three sentences: most sources agree. One date differs between them, noted below. If you remember one thing, remember the first point.\n\n## Key points\n- First: the usual approach and why\n- Second: the exceptions to watch for\n- Third: where the sources disagree\n\n## Sources\n- Example source one https://example.org/a\n- Example source two https://example.org/b\n`,
+    summaryBody: (w, flawed) => `# ${w}\n\nIn three sentences: most sources agree [1]. One date differs between them [2], noted below. If you remember one thing, remember the first point.\n\n## Key points\n- First: the usual approach and why [1]\n- Second: the exceptions to watch for [2]\n- Third: where the sources disagree [1][2]\n${flawed ? '- Fourth: a claim with no number\n- Fifth: a claim few make [3]\n- Tomatoes grow all year on a balcony (no source found)\n' : ''}\n## Sources\n1. Example source one https://example.org/a\n2. Example source two https://example.org/b\n${flawed ? '3. Example source three https://example.org/never\n' : ''}`,
+    sourceTitles: ['Example source one', 'Example source two', 'Example source three'],
+    unsourced: 'Tomatoes grow all year on a balcony',
     tidyBody: '# Tidy-up plan\n\n## Suggested groups\n- Work/: contracts, reports\n- Photos/: by year\n- Installers/: can go once used\n- To sort/: anything unsure\n\n## Worth a look\n- Files with "copy" or "(1)" in the name look like duplicates\n- Installers untouched for over a year\n\nNothing was moved; follow the plan yourself.\n',
     reviseLine: (a) => `(Changed as you asked: ${a})`,
     pageTitle: 'Small page',
@@ -193,6 +209,47 @@ const office = (s, tool, args) => s.mcp('nook-office', tool, args);
 
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+/** The chart template's default size, and the poster's three (templates.ts). */
+const CHART = { width: 1200, height: 800 };
+const A4 = { width: 794, height: 1123 };
+const posterSize = (w) => (/方|朋友圈|square|social/i.test(w) ? { width: 1080, height: 1080 } : /宽|投屏|wide|screen/i.test(w) ? { width: 1920, height: 1080 } : A4);
+
+/** "一月 120，二月 180" or "Monday: 120, Tuesday: 180" as [label, number] pairs, the numbers as written. */
+const pairsIn = (w) => [...w.matchAll(/(\p{L}[\p{L} ]*?)\s*[:：]?\s*(\d+(?:\.\d+)?)/gu)].map((m) => [m[1].trim(), Number(m[2])]);
+
+/** A bar chart as one inline SVG filling CHART: bars from zero, each value written on it, units and source shown. */
+function chartPage(t, w) {
+  const W = t.chartWords;
+  const data = pairsIn(w).length >= 2 ? pairsIn(w) : W.sample;
+  const { width, height } = CHART;
+  const left = 110, right = 40, top = 120, bottom = 140;
+  const max = Math.max(...data.map(([, v]) => v));
+  const step = (width - left - right) / data.length;
+  const y = (v) => top + (height - top - bottom) * (1 - v / max);
+  const bars = data.map(([label, v], i) => {
+    const x = left + i * step + step * 0.2;
+    return `<rect x="${x}" y="${y(v)}" width="${step * 0.6}" height="${y(0) - y(v)}" fill="#c8743c"/>`
+      + `<text x="${x + step * 0.3}" y="${y(v) - 12}" text-anchor="middle" font-size="26">${v}</text>`
+      + `<text x="${x + step * 0.3}" y="${y(0) + 40}" text-anchor="middle" font-size="24">${esc(label)}</text>`;
+  }).join('');
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fffaf0}svg{display:block;font-family:system-ui,sans-serif;fill:#333}</style></head>\n<body><svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+    + `<text x="${width / 2}" y="70" text-anchor="middle" font-size="40" font-weight="bold">${esc(w || t.chart[0])}</text>`
+    + `<line x1="${left}" y1="${top}" x2="${left}" y2="${y(0)}" stroke="#555" stroke-width="2"/><line x1="${left}" y1="${y(0)}" x2="${width - right}" y2="${y(0)}" stroke="#555" stroke-width="2"/>`
+    + `<text x="${left - 14}" y="${y(0) + 8}" text-anchor="end" font-size="22">0</text><text x="${left - 14}" y="${y(max) + 8}" text-anchor="end" font-size="22">${max}</text>`
+    + `<text x="40" y="${(top + y(0)) / 2}" font-size="22" transform="rotate(-90 40 ${(top + y(0)) / 2})" text-anchor="middle">${esc(W.unit)}</text>`
+    + bars
+    + `<text x="${left}" y="${height - 30}" font-size="20" fill="#777">${esc(W.source)}</text></svg></body></html>\n`;
+}
+
+/** A poster page exactly the size its use calls for: the message biggest, then when and where, blanks for what is missing. */
+function posterPage(t, w) {
+  const W = t.posterWords;
+  const { width, height } = posterSize(w);
+  const big = Math.round(Math.min(width, height) / 9);
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:0}html,body{margin:0}body{width:${width}px;height:${height}px;box-sizing:border-box;padding:${big}px;background:#2f4858;color:#fff8e7;font-family:system-ui,sans-serif;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}h1{font-size:${big}px;line-height:1.15;margin:0}p{font-size:${Math.round(big / 2.4)}px;margin:.4em 0}.sun{width:${big * 2}px;height:${big * 2}px;border-radius:50%;background:#f6ae2d;align-self:flex-end}</style></head>\n`
+    + `<body><div class="sun"></div><h1>${esc(w || t.poster[0])}</h1><div><p>${esc(W.when)}</p><p>${esc(W.where)}</p><p>${esc(W.more)}</p></div></body></html>\n`;
+}
+
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
 export function pickPlay(prompt, state, system = '') {
   state.vars ??= {};
@@ -220,7 +277,22 @@ export function pickPlay(prompt, state, system = '') {
   if (/The user let this commission use these connections/.test(prompt)) return plays[process.env.SIM_CONNECTION_PLAY] ?? plays.connect;
   if (/This folder is the user's own/.test(prompt)) return plays.lent;
   if (/single self-contained page named "index\.html", using the photos/.test(prompt)) return plays.album;
-  if (/write the findings as/.test(prompt)) { state.vars.out = quoted(prompt, 'write the findings as'); return plays.research; }
+  if (/write the findings in .* as two files/.test(prompt)) {
+    state.vars.out = (prompt.match(/^"([^"]+)": a three-sentence summary/m) ?? [])[1];
+    state.vars.sources = (prompt.match(/^"([^"]+)": JSON/m) ?? [])[1];
+    return plays.research;
+  }
+  // Changing a Word, Excel or PowerPoint file by number, and a PDF written again as Word (road-to-1.3.md C3).
+  const changing = /make the changes with mcp__nook-office__edit_(docx|xlsx|pptx), from "([^"]+)" to "([^"]+)"/.exec(prompt);
+  if (changing) {
+    [, state.vars.kind, state.vars.source, state.vars.out] = changing;
+    return plays.officeedit;
+  }
+  if (/A PDF cannot be changed as it is/.test(prompt)) {
+    state.vars.source = quoted(prompt, 'The document to work on is');
+    state.vars.out = quoted(prompt, 'as a Word document');
+    return plays.pdfedit;
+  }
   if (/Write the edited version as/.test(prompt)) {
     state.vars.source = quoted(prompt, 'The document to work on is');
     state.vars.out = quoted(prompt, 'Write the edited version as');
@@ -230,6 +302,17 @@ export function pickPlay(prompt, state, system = '') {
     state.vars.listing = (prompt.match(/^"([^"]+)" lists what is in/m) ?? [])[1];
     state.vars.out = quoted(prompt, 'plan for tidying it up as');
     return plays.tidy;
+  }
+  if (/This is a chart, drawn as a picture/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Draw it as a single self-contained page');
+    state.vars.png = quoted(prompt, 'Then save it as');
+    return plays.chart;
+  }
+  if (/This is a poster, drawn as a picture/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Lay it out as a single self-contained page');
+    state.vars.png = quoted(prompt, 'Then save it as');
+    state.vars.pdf = quoted(prompt, 'also save it as');
+    return plays.poster;
   }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
@@ -285,7 +368,7 @@ const reviewer = (s, t, file) => s.step(() => s.agent('reviewer', t.reviewDesc, 
 }, t.reviewSummary));
 
 const researcher = (s, t, topic) => s.step(() => s.agent('researcher', [...topic].slice(0, 12).join(''), t.researchBrief, async (a) => {
-  await s.tool('WebSearch', { query: topic.slice(0, 30) }, { ...a, effect: () => ({ text: 'Web search results (simulated).' }) });
+  await s.tool('WebSearch', { query: topic.slice(0, 30) }, { ...a, effect: () => ({ text: 'Web search results (simulated): https://example.org/a and https://www.example.org/b/.' }) });
   await s.tool('WebFetch', { url: 'https://example.org/notes', prompt: 'Summarize' }, { ...a, effect: () => ({ text: 'Fetched (simulated).' }) });
 }, t.researchSummary));
 
@@ -412,6 +495,92 @@ export const plays = {
   },
 
   /**
+   * A synced folder (C5): list it, read the Word file in it, write a summary, then save a copy of the summary into the
+   * folder. The first save is declined, so it asks once more, as a model might.
+   */
+  folderlink: {
+    name: 'folderlink',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      await s.step(() => s.think(1));
+      const listed = await s.step(() => s.mcp(server, 'list', {}));
+      const docx = (listed?.text ?? '').split('\n').map((l) => l.split('\t')[0]).find((p) => p.endsWith('.docx'));
+      const read = await s.step(() => s.mcp(server, 'read', { file: docx }));
+      const out = zh ? '摘要.md' : 'summary.md';
+      const first = (read?.text ?? '').split('\n').find((l) => l.trim()) ?? '';
+      await s.step(() => s.write(out, zh ? `# ${docx} 的摘要\n\n开头一句：${first}\n` : `# Summary of ${docx}\n\nIt opens: ${first}\n`));
+      const once = await s.step(() => s.mcp(server, 'save_copy', { file: out }));
+      if (once?.denied) await s.step(() => s.say(zh ? '你没同意，我再问一次。' : 'You said no, so I will ask once more.'));
+      await s.step(() => s.mcp(server, 'save_copy', { file: out }));
+      await s.finish(zh ? `我读了网盘文件夹里的「${docx}」，写了摘要，也存了一份到“小灯屋”里。` : `I read "${docx}" in the synced folder, wrote a summary, and saved a copy into its Lamplight Nook folder.`);
+    },
+  },
+
+  /** A read-only calendar (C5): the coming week's events, laid out as a plan. */
+  calendar: {
+    name: 'calendar',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      await s.step(() => s.think(1));
+      const got = await s.step(() => s.mcp(server, 'events', { from: day(0), to: day(6) }));
+      const out = zh ? '一周计划.md' : 'week-plan.md';
+      await s.step(() => s.write(out, `${zh ? '# 这一周' : '# This week'}\n\n${(got?.text ?? '').split('\n').map((l) => `- ${l}`).join('\n')}\n`));
+      await s.finish(zh ? '我读了你的日历，把这一周排成了计划，日历本身没动。' : 'I read your calendar and laid out the week as a plan. The calendar itself is untouched.');
+    },
+  },
+
+  /** Email drafts (C5): the letter as text, and the same as a draft for the mail program. */
+  maildraft: {
+    name: 'maildraft',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      const subject = zh ? '周六读书会' : 'Book club on Saturday';
+      const body = zh ? '大家好：\n\n这周六下午三点，河边公园见。\n\n[你的名字]\n' : 'Dear all,\n\nSee you on Saturday at 3pm in the park by the river.\n\n[your name]\n';
+      await s.step(() => s.think(1));
+      await s.step(() => s.write(zh ? '信.txt' : 'letter.txt', `${subject}\n\n${body}`));
+      await s.step(() => s.mcp(server, 'draft', { to: ['club@example.org'], subject, body, file: zh ? '信.eml' : 'letter.eml' }));
+      await s.finish(zh ? '信写好了，另外做了一份邮件草稿，在邮件程序里打开，看过再自己发。' : 'The letter is written, with an email draft of it: open it in your mail program, read it and send it yourself.');
+    },
+  },
+
+  /**
+   * The back room and the post (road-to-1.3.md C8), with a calendar, a synced folder and email drafts connected: the week
+   * read from the calendar (Axin brings it), a Word file made at the table and put away in the filing cabinet, a copy saved
+   * into the folder (Axin takes it), the folder looked through once more (Axin has come twice, so Adeng goes to the letter
+   * holder alone), and a draft left in the outbox. Pauses give the walks time to be seen.
+   */
+  backroom: {
+    name: 'backroom',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const o = OFFICE[s.state.lang];
+      const linked = s.servers.filter((n) => /^nook-k\d+$/.test(n));
+      const tools = await Promise.all(linked.map(async (n) => [n, await s.mcpTools(n)]));
+      const serverWith = (tool) => tools.find(([, names]) => names.includes(tool))[0];
+      const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      await s.step(() => s.think(1));
+      await s.step(() => s.mcp(serverWith('events'), 'events', { from: day(0), to: day(6) }));
+      await s.pause(8);
+      await s.step(() => office(s, 'make_docx', { file: o.files.docx, ...o.doc(zh ? '这周安排' : 'This week') }));
+      // Across the room from the letter holder to the table, then to the cabinet: a long walk.
+      await s.pause(30);
+      await s.step(() => s.mcp(serverWith('save_copy'), 'save_copy', { file: o.files.docx }));
+      await s.pause(10);
+      await s.step(() => s.mcp(serverWith('list'), 'list', {}));
+      await s.pause(6);
+      const subject = zh ? '这周安排' : 'This week';
+      await s.step(() => s.mcp(serverWith('draft'), 'draft', { to: ['club@example.org'], subject, body: zh ? '大家好：\n\n这周的安排见附件里的文档。\n' : 'Dear all,\n\nThe plan for this week is in the document.\n', file: zh ? '安排.eml' : 'plan.eml' }));
+      // Back across the room to the counter, where the draft goes in the outbox.
+      await s.pause(20);
+      await s.finish(zh ? '读了日历，做了这周的安排，存了一份到网盘，邮件草稿在待寄筐里。' : 'I read the calendar, made the week\'s plan, saved a copy to the synced folder, and left a draft in the outbox.');
+    },
+  },
+
+  /**
    * Reads the test connection, then looks something up on the web and runs a harmless command (C6): after a read through
    * a connection, both are asked about first. Nothing reaches the network; the fetch is answered here.
    */
@@ -433,6 +602,22 @@ export const plays = {
    * Every office tool once (road-to-1.3.md C1), picked with SIM_PLAY=office: a Word document, a workbook with a SUM, a
    * two-slide deck, and a small page saved as a PDF.
    */
+  /**
+   * The packaged run (road-to-1.3.md C9): a Word file from the shop's own Office tools and a draft through a connection,
+   * so both kinds of nook-* server are seen to start once the app is packaged.
+   */
+  packaged: {
+    name: 'packaged',
+    async run(s) {
+      const o = OFFICE[s.state.lang];
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      await s.step(() => s.think(1));
+      await s.step(() => office(s, 'make_docx', { file: o.files.docx, ...o.doc(s.state.vars.want) }));
+      await s.step(() => s.mcp(server, 'draft', { to: ['club@example.org'], subject: 'C9', body: 'Hello.\n', file: 'letter.eml' }));
+      await s.finish(o.officeDone);
+    },
+  },
+
   office: {
     name: 'office',
     async run(s) {
@@ -462,6 +647,40 @@ export const plays = {
       }
       await s.step(() => s.write(o.readFile, `${got.join('\n\n')}\n`));
       await s.finish(o.readDone);
+    },
+  },
+
+  /**
+   * Changes the samples in tests/fixtures/office by number (road-to-1.3.md C3), as the edit template asks: reads the
+   * original numbered, then one change with the edit tool: "bold" to "plain" in Word, a new line in PowerPoint, 30 to
+   * 40 in Excel.
+   */
+  officeedit: {
+    name: 'officeedit',
+    async run(s) {
+      const { kind, source, out } = s.state.vars;
+      await s.step(() => s.think(1));
+      const read = await s.step(() => office(s, 'read_document', { file: source, numbered: true }));
+      const lines = (read?.text ?? '').split('\n');
+      // The number in front of the text, the last one before it on its line (a table row holds several).
+      const number = (text) => /\[([\d.]+)\][^[]*$/.exec((lines.find((l) => l.includes(text)) ?? '').split(text)[0])?.[1] ?? '0';
+      const [slide, box] = number('Lemon tart').split('.').map(Number);
+      const edits = kind === 'docx' ? [{ n: Number(number('bold words')), text: 'This paragraph has plain words in it.' }]
+        : kind === 'pptx' ? [{ slide, box, text: 'Lemon tart\nIced tea' }]
+        : [{ sheet: 'Sales', cell: 'B3', value: 40 }];
+      await s.step(() => office(s, `edit_${kind}`, { from: source, file: out, edits }));
+      await s.finish(s.state.lang === 'zh' ? '改了一处，原稿没动，改好的另存了一份。' : 'I changed one thing; the original is untouched and the changed copy is saved beside it.');
+    },
+  },
+
+  /** A PDF handed over to change (C3): written again as a Word document with make_docx. */
+  pdfedit: {
+    name: 'pdfedit',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      await s.step(() => s.think(1));
+      await s.step(() => office(s, 'make_docx', { file: s.state.vars.out, title: zh ? '春季菜单' : 'Spring menu', blocks: [{ h: 1, text: zh ? '菜单' : 'Menu' }, { p: zh ? '柠檬挞，热可可。' : 'Lemon tart, hot chocolate.' }] }));
+      await s.finish(zh ? 'PDF 没法照原样改，改好的写成了一份 Word。' : 'A PDF cannot be changed as it is, so the changed version is a Word document.');
     },
   },
 
@@ -564,7 +783,12 @@ export const plays = {
       await p.next();
       await takeNotes(s, t);
       const notes = s.state.notes.map((n) => `\n> ${t.noteLine(n)}\n`).join('');
-      await s.step(() => s.write(s.state.vars.out, t.summaryBody(w) + notes));
+      // SIM_CITE=flawed (scenario cite, C7): one point without a number, one source this round never opened, one conclusion without a source.
+      const flawed = process.env.SIM_CITE === 'flawed';
+      await s.step(() => s.write(s.state.vars.out, t.summaryBody(w, flawed) + notes));
+      const urls = ['https://example.org/a', 'https://example.org/b', 'https://example.org/never'];
+      const list = urls.slice(0, flawed ? 3 : 2).map((url, i) => ({ n: i + 1, title: t.sourceTitles[i], url, checked: '2026-11-19' }));
+      await s.step(() => s.write(s.state.vars.sources ?? 'sources.json', `${JSON.stringify({ sources: list, unsourced: flawed ? [t.unsourced] : [] }, null, 2)}\n`));
       await p.next();
       await reviewer(s, t, s.state.vars.out);
       await p.end();
@@ -619,7 +843,21 @@ export const plays = {
   slides: simpleText('slides', null, (t) => t.slidesDone, { make: (s, o, w) => office(s, 'make_pptx', { file: s.state.vars.out, ...o.deck(w) }) }),
   plan: simpleText('plan', (t, w) => t.planBody(w), (t) => t.planDone),
   resume: simpleText('resume', (t, w) => t.resumeBody(w), (t) => t.resumeDone, { after: (s) => office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf }) }),
-  notes: simpleText('notes', (t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
+  chart: simpleText('chart', (t, w) => chartPage(t, w), (t) => t.chartDone, {
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: CHART.width, height: CHART.height });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  poster: simpleText('poster', (t, w) => posterPage(t, w), (t) => t.posterDone, {
+    after: async (s) => {
+      const size = posterSize(s.state.vars.want || '');
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, ...size });
+      if (size.height === A4.height) await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
 

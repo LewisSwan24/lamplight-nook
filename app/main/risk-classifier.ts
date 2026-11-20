@@ -52,7 +52,7 @@ const DELEGATE_TOOLS = new Set(['Agent', 'Task']);
 /** Claude's own to-do list (TodoWrite before Claude Code 2.1.2xx, the Task* tools after): nothing leaves the app. */
 const PLAN_TOOLS = new Set(['TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet']);
 
-const SECRET_NAME = /(key|token|secret|credential|password|\.env$|\.pem$|id_rsa)/i;
+export const SECRET_NAME = /(key|token|secret|credential|password|\.env$|\.pem$|id_rsa)/i;
 const SYSTEM_DIRS = ['C:\\Windows', 'C:\\Program Files', 'C:\\Program Files (x86)', '/etc', '/usr', '/bin', '/sbin', '/System', '/Library'];
 
 // Read-only commands with no side effects (by command name).
@@ -405,10 +405,12 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
   if (nook?.connection && ctx.round?.paused()) return { risk: 'blocked', reason: R.connectionsPaused };
   if (nook) {
     // The shop's own file tools (C1) read and write files as Read and Write do, so a path outside the folder gets what
-    // those would get there. A connection's tools never touch the commission folder.
+    // those would get there. A connection's tools keep to their own places themselves (C5: a folder's read copies into
+    // the commission folder, a draft is written there, both under the rules make_ tools write by).
     if (!nook.connection) {
       const file = typeof input.file === 'string' && input.file ? input.file : undefined;
-      const page = typeof input.page === 'string' && input.page ? input.page : undefined;
+      // make_pdf reads its page, and the edit tools (C3) the file they start from: those are reads.
+      const page = typeof input.page === 'string' && input.page ? input.page : typeof input.from === 'string' && input.from ? input.from : undefined;
       let verdict: RiskVerdict = { risk: 'safe', reason: R.read };
       if (page) verdict = worse(verdict, classifyCall('Read', { file_path: page }, ctx));
       if (file && nook.kind === 'read') verdict = worse(verdict, classifyCall('Read', { file_path: file }, ctx));

@@ -3,6 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
 import { MAIN_FILES } from '../shared/templates';
+import { emptyTown, TOWN_MOVE } from '../shared/town';
 import { forgetAside, putAside } from './aside';
 import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
 import { afterRound, briefOf, editedBrief } from './project-brief';
@@ -246,8 +247,9 @@ export class MemoryStore {
     return { ...structuredClone(this.shop()), works };
   }
 
+  /** A shop opened since 1.4 starts in the town, with no move to show (road-to-1.4.md D7). */
   private shop(): ShopDays {
-    return this.data.shop ?? { done: 0, grown: [], told: [] };
+    return this.data.shop ?? { done: 0, grown: [], told: [TOWN_MOVE], town: emptyTown() };
   }
 
   /**
@@ -450,7 +452,7 @@ export class MemoryStore {
         greeted: typeof m.greeted === 'string' ? m.greeted : undefined,
         budgetSaid: Array.isArray(m.budgetSaid) ? m.budgetSaid.filter((k) => typeof k === 'string') : undefined,
         shop: m.shop && typeof m.shop.done === 'number'
-          ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [], met: Array.isArray(m.shop.met) ? m.shop.met : undefined }
+          ? { done: m.shop.done, grown: Array.isArray(m.shop.grown) ? m.shop.grown : [], told: Array.isArray(m.shop.told) ? m.shop.told : [], met: Array.isArray(m.shop.met) ? m.shop.met : undefined, town: m.shop.town }
           : undefined,
       };
     } catch {

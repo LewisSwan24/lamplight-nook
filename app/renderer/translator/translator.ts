@@ -1,7 +1,7 @@
 import { parse } from 'yaml';
 import { pattern, strings } from '../../shared/i18n';
 import { AGENT_ACTOR } from '../../shared/staff';
-import type { ActorId, AiEvent, AiEventKind, Bubble, CharacterCommand } from '../../shared/types';
+import type { ActorId, AiEvent, AiEventKind, Bubble, CharacterCommand, Post } from '../../shared/types';
 import { PRIORITY } from './director';
 import { type ActorState, StateMachine } from './state-machine';
 
@@ -18,7 +18,12 @@ type CommandSpec = {
   /** Only speak this actor's own lines (for groups that mix speakers). */
   own_lines?: boolean;
   priority: Priority;
+  /** The post this brings (C8); Axin comes at most POSTMAN_VISITS times a round. */
+  post?: Post;
 };
+
+/** How often Axin comes in a round (road-to-1.3.md C8); after that Adeng goes to the letter holder alone. */
+export const POSTMAN_VISITS = 2;
 
 export type Rule = CommandSpec & {
   on: AiEventKind;
@@ -98,6 +103,8 @@ export class Translator {
    * helpers are shared by both crews.
    */
   private leads = new Map<string, ActorId>();
+  /** How often Axin has come for each round under way (C8). */
+  private visits = new Map<string, number>();
   /** Who came back with the last subagent that finished: the parcel on the counter is theirs. */
   returned: ActorId = 'xiaoju';
 
@@ -128,6 +135,7 @@ export class Translator {
     const i = this.running.indexOf(run);
     if (i >= 0) this.running.splice(i, 1);
     this.ctxs.delete(run);
+    this.visits.delete(run);
     for (const hands of this.hands.values()) for (let k = hands.length - 1; k >= 0; k--) if (hands[k].run === run) hands.splice(k, 1);
   }
 
@@ -266,6 +274,15 @@ export class Translator {
       if (a.prop) cmd.prop = a.prop;
     }
     if (spec.bubble) cmd.bubble = spec.bubble;
+    if (spec.post) {
+      const run = e.run ?? '';
+      const came = this.visits.get(run) ?? 0;
+      if (spec.post === 'outbox') cmd.post = 'outbox';
+      else if (came < POSTMAN_VISITS) {
+        cmd.post = spec.post;
+        this.visits.set(run, came + 1);
+      }
+    }
     if (spec.lines) {
       const target = e.target ?? '';
       const ctx = this.ctxs.get(e.run ?? '') ?? this.ctx;

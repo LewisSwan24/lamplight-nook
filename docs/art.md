@@ -17,6 +17,16 @@ are in `scripts/notices.mjs`.
 Read the license file in each pack before relying on this table. Because the assets may not be redistributed, this
 repository must stay private.
 
+## What the installer carries
+
+Only the pictures our scripts write to `assets/`: whole scenes, furniture layers, overlays and character sheets,
+composed from the packs and often recoloured or redrawn in part. They are packed inside the app's `app.asar`. No tile
+sheet, single tile or generator part from a pack ships as a file of its own. LimeZu is credited in Settings, with a link
+to the itch.io page.
+
+Whether this counts as redistribution under LimeZu's licence has not been asked yet. The question is written at the end
+of `docs/art-1.4.md` (Q-D3 in `docs/road-to-1.4.md`), and 1.4 is not released until the answer is in.
+
 ## Setting up on Windows
 
 Point `assets/vendor/` at the unpacked packs with junctions, one command per pack. Run these in PowerShell from the
@@ -62,7 +72,7 @@ no pixel changed, so compare pixels and restore unchanged files before committin
 | `pieces.py` | Splits `cafe.png` and `study.png` into the empty room and the furniture, with depths for the game and boxes for the walks (`pieces.json`). Run last, after anything that changes a room or an overlay. |
 | `decor.py` | Holiday and weather overlays. |
 | `garden.py`, `animals.py` | The back garden and its animals. |
-| `street.py` | The street seen through the small inset. |
+| `town.py` | The town's street (1.4), also seen through the small inset during errands. |
 | `characters.py`, `portraits.py` | Staff sprite sheets, then portraits from those sheets. |
 | `emotes.py` | The mood bubble strip. |
 | `garden.py` | The garden, and `garden-crops.png` (what comes up in the beds; the sprout is drawn by the script). |

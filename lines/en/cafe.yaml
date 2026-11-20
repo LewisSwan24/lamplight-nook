@@ -31,6 +31,12 @@ planning:
   - { id: plan_02, speaker: adeng, bubbles: ["Which part first..."] }
   - { id: plan_03, speaker: adeng, bubbles: ["Three steps, I think."] }
 
+# A draft is done (road-to-1.3.md C8): it waits in the outbox, and the user sends it.
+draft_ready:
+  - { id: draft_ready_01, speaker: adeng, bubbles: ["The letter's written. It's in the outbox.", "Read it over, then send it yourself."] }
+  - { id: draft_ready_02, speaker: adeng, bubbles: ["The draft's in the outbox.", "Whether it goes is up to you."] }
+  - { id: draft_ready_03, speaker: adeng, bubbles: ["No stamp, and nothing sent.", "It's waiting in the outbox for you."] }
+
 writing:
   - { id: write_01, speaker: adeng, bubbles: ["Starting on the real thing."] }
   - { id: write_02, speaker: adeng, bubbles: ["That bit's done. On to the next."] }

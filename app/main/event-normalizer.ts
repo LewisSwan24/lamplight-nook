@@ -28,6 +28,8 @@ export type NormalizerOptions = {
   longWaitMs?: number;
   /** Window for merging consecutive thinking_tokens messages into one event. */
   thinkingMergeMs?: number;
+  /** The name a tool goes by in the events: a connection's by its kind (nook-tools.ts, kindToolNames). */
+  toolName?: (name: string) => string;
 };
 
 type Running = { tool: string; agent: Agent; target?: string; startedAt: number; longWaitSent: boolean };
@@ -131,7 +133,10 @@ export class EventNormalizer {
     this.thinkingGapMs = opts.thinkingGapMs ?? 5_000;
     this.longWaitMs = opts.longWaitMs ?? 30_000;
     this.thinkingMergeMs = opts.thinkingMergeMs ?? 3_000;
+    this.toolName = opts.toolName ?? ((name) => name);
   }
+
+  private readonly toolName: (name: string) => string;
 
   push(e: RawAgentEvent): AiEvent[] {
     const out: AiEvent[] = [];
@@ -191,7 +196,7 @@ export class EventNormalizer {
 
   private onHook(name: string, p: Obj, t: number, emit: EmitFn) {
     const agent = asAgent(p.agent_type);
-    const tool = str(p.tool_name);
+    const tool = this.toolName(str(p.tool_name) ?? '') || undefined;
     const id = str(p.tool_use_id);
     switch (name) {
       case 'PreToolUse': {

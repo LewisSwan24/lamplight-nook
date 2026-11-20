@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ANCHORS, seatsIn, standPoint } from '../app/renderer/game/layout';
+import { ANCHORS, MAILSLOT, OUTBOX, seatsIn, standPoint } from '../app/renderer/game/layout';
 import { STAFF } from '../app/shared/staff';
 import { readPng } from './png';
 
@@ -61,6 +61,25 @@ describe.each(SCENES)('the %s split into a room and its furniture', (scene) => {
 
   it('has the pieces the rest of the game leans on', () => {
     for (const name of ['counter', 'table', 'shelf', 'workbench']) expect(list.map((p) => p.name)).toContain(name);
+  });
+
+  it('has the filing cabinet beside the bookcase, the letter slot by the door and the outbox on the counter (C8)', () => {
+    const shelf = list.find((p) => p.name === 'shelf')!;
+    const cabinet = list.find((p) => p.name === 'cabinet');
+    expect(cabinet).toBeDefined();
+    expect(cabinet!.x).toBeGreaterThanOrEqual(shelf.x + shelf.w);
+    expect(cabinet!.y + cabinet!.h).toBeLessThan(shelf.y + shelf.h);
+    // Drawn with the dark outline every piece of the shop has: the slot on the wall, the basket on the counter.
+    const outline = (img: Png, x0: number, y0: number, w: number, h: number) => {
+      let n = 0;
+      for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (img.at(x, y).rgb === 0x2a2233 && img.at(x, y).alpha === 255) n++;
+      return n;
+    };
+    expect(outline(room, MAILSLOT.x, MAILSLOT.y, MAILSLOT.w, MAILSLOT.h)).toBeGreaterThan(MAILSLOT.w);
+    const box = OUTBOX[scene];
+    const counter = list.filter((p) => p.name === 'counter' && box.x >= p.x && box.x + box.w <= p.x + p.w && box.y >= p.y && box.y + box.h <= p.y + p.h);
+    expect(counter).toHaveLength(1);
+    expect(outline(picture, box.x, box.y, box.w, box.h)).toBeGreaterThan(box.w);
   });
 
   it('puts a sitter in front of the chair', () => {

@@ -1,4 +1,4 @@
-import { currentScene } from '../shared/scenes';
+import { currentScene, type SceneId } from '../shared/scenes';
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
@@ -8,6 +8,7 @@ import { fill, locale, shorten, strings } from '../shared/i18n';
 import type { ActorId, AnchorId, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
+import { StreetScene } from './game/StreetScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
 import { VisitPlanner, pickVisit, welcomeGuests } from './game/guests';
@@ -41,7 +42,11 @@ import { showUpdateLetter } from './ui/letter';
 import { askMoveIn } from './ui/move-in';
 import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
-import { mountToolbar, noteEvent, setWorking, syncToolbar, view } from './ui/toolbar';
+import { mountToolbar, noteEvent, setOutsideButton, setWorking, syncToolbar, view } from './ui/toolbar';
+import { el, layer } from './ui/dom';
+import { moveTo as moveShop } from './ui/scenes';
+import { MOVERS, OPEN } from './game/town';
+import { TOWN_MOVE } from '../shared/town';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -51,6 +56,7 @@ document.title = strings.app.title;
 document.documentElement.lang = locale();
 
 const scene = new CafeScene();
+const street = new StreetScene();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
@@ -58,7 +64,7 @@ const game = new Phaser.Game({
   height: CANVAS.height,
   pixelArt: true,
   backgroundColor: '#1b1712',
-  scene,
+  scene: [scene, street],
   scale: { mode: Phaser.Scale.NONE },
   // Only clicks on the canvas itself reach the shop; a click on a card must not go through to whoever stands behind it.
   input: { windowEvents: false },
@@ -487,6 +493,7 @@ function resultCard(result: CommissionResult) {
     if (result.run) resultShown.add(result.run);
     showResult(result, {
       open: (path, how) => window.lamplight.openOutput(path, how),
+      openSource: (n) => void window.lamplight.openSource(result.run ?? '', n),
       revise: (id) => void revise(id),
       restore: (id) => window.lamplight.restorePrevious(id),
       undo: (id) => window.lamplight.undoWork(id),
@@ -710,10 +717,13 @@ async function openShop() {
   }
   // Said instead of the usual welcome back: the shop the user knows has just come over. A failed copy changed nothing.
   if (moved === false) greet(strings.ui.moveIn.failed);
-  void refreshShop();
+  const shopShown = refreshShop();
   void noticeBirthday();
   let settings = await api.getSettings();
   applySettings(settings);
+  // A shop from before 1.4 moves onto the street once (road-to-1.4.md D7); the welcome back waits for it.
+  const days = await api.shopState();
+  const moving = settings.onboarded && Boolean(days.town) && !days.told.includes(TOWN_MOVE);
   const S = strings.ui.setup;
   if (!settings.onboarded) {
     settings = await showWelcome(api, settings, await api.envStatus());
@@ -725,12 +735,86 @@ async function openShop() {
     setTimeout(() => greet(S.greetHint), 4000);
   } else if (moved) {
     greet(fill(strings.ui.moveIn.moved, { name: settings.name }));
-  } else if (settings.name) {
+  } else if (settings.name && !moving) {
     setTimeout(() => void greetBack(settings.name), 1200);
   }
   // After the welcome, so that nothing on it can be pushed aside; the same two the scene opens.
-  mountToolbar(api, applySettings, { order: scene.onCounterClick, projects: () => void showProjects(api), shelf: scene.onWorksClick });
+  // The town's street (road-to-1.4.md D1): out of the door and back in on the same page; the work inside goes on.
+  let outside = false;
+  const goOut = (out: boolean) => {
+    if (out === outside) return;
+    outside = out;
+    scene.setOutside(out);
+    // The street button keeps focus otherwise, and the arrow keys and Enter would go to it.
+    if (out) (document.activeElement as HTMLElement | null)?.blur();
+    if (out) game.scene.run('street', { at: currentScene() });
+    else game.scene.sleep('street');
+    document.body.classList.toggle('outside', out);
+    setOutsideButton(out);
+  };
+  const streetNote = el('div.street-note.paper', { role: 'status', hidden: true });
+  layer().append(streetNote);
+  let noteTimer = 0;
+  street.tint = () => scene.tint;
+  street.walker = () => scene.streetWalker();
+  street.onActor = (id) => scene.onActorClick(id);
+  street.onFront = (id, open) => {
+    if (id === currentScene()) return goOut(false);
+    if (open) return void moveShop(api, id as SceneId);
+    streetNote.textContent = strings.ui.town.notes[id];
+    streetNote.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = window.setTimeout(() => { streetNote.hidden = true; }, 3000);
+  };
+  /**
+   * The move onto the street: out of the door, the four carry the shop in, back inside, and what it had gathered settles
+   * into place. A click or a key cuts it short, and everything is in place at once; with calm motion nothing walks. Shown once.
+   */
+  const moveToTown = async (grown: GrowthId[], calm: boolean) => {
+    let cut = false;
+    if (!calm) {
+      scene.growth.setGrown([]);
+      goOut(true);
+      streetNote.textContent = strings.ui.town.moving;
+      streetNote.hidden = false;
+      const skip = (e: Event) => {
+        if (e instanceof KeyboardEvent && !['Escape', 'Enter', ' '].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        street.endParade();
+      };
+      window.addEventListener('pointerdown', skip, true);
+      window.addEventListener('keydown', skip, true);
+      cut = await street.parade(MOVERS, currentScene());
+      window.removeEventListener('pointerdown', skip, true);
+      window.removeEventListener('keydown', skip, true);
+      streetNote.hidden = true;
+      goOut(false);
+    }
+    // Cut short, they are simply there.
+    scene.growth.setGrown(grown, calm || cut ? [] : grown);
+    shopDays.told.add(TOWN_MOVE);
+    await api.markTold(TOWN_MOVE);
+  };
+  window.addEventListener('keydown', (e) => {
+    if (!outside || (e.target as HTMLElement).closest?.('input, textarea, select, button, [role=dialog]')) return;
+    const keys: Record<string, () => void> = {
+      ArrowLeft: () => street.pan(-1),
+      ArrowRight: () => street.pan(1),
+      Enter: () => { const id = street.facing(); street.onFront(id, OPEN.has(id)); },
+      Escape: () => goOut(false),
+    };
+    if (!keys[e.key]) return;
+    e.preventDefault();
+    keys[e.key]();
+  });
+  mountToolbar(api, applySettings, { order: scene.onCounterClick, projects: () => void showProjects(api), shelf: scene.onWorksClick, street: () => goOut(!outside) });
   syncToolbar(settings);
+  if (moving) {
+    await shopShown;
+    await moveToTown(days.grown.map((g) => g.id), settings.reducedMotion || systemCalm.matches);
+    greet(fill(strings.ui.town.moved, { name: settings.name }));
+  }
   // Rounds left unfinished when the app last closed. Those a shutdown interrupted come on one card (B7); otherwise the
   // earliest is offered, the rest next time.
   const left = await api.pendingRounds();
@@ -796,7 +880,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     };
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
-    Object.assign(window, { lamplightDebug: { scene, stage, ui, view, replay: startReplay, pretendRunning, welcome } });
+    Object.assign(window, { lamplightDebug: { scene, street, stage, ui, view, replay: startReplay, pretendRunning, welcome } });
   }
   const env = $('env');
   env.textContent = [
