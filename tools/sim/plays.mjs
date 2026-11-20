@@ -602,6 +602,22 @@ export const plays = {
    * Every office tool once (road-to-1.3.md C1), picked with SIM_PLAY=office: a Word document, a workbook with a SUM, a
    * two-slide deck, and a small page saved as a PDF.
    */
+  /**
+   * The packaged run (road-to-1.3.md C9): a Word file from the shop's own Office tools and a draft through a connection,
+   * so both kinds of nook-* server are seen to start once the app is packaged.
+   */
+  packaged: {
+    name: 'packaged',
+    async run(s) {
+      const o = OFFICE[s.state.lang];
+      const server = s.servers.find((n) => /^nook-k\d+$/.test(n));
+      await s.step(() => s.think(1));
+      await s.step(() => office(s, 'make_docx', { file: o.files.docx, ...o.doc(s.state.vars.want) }));
+      await s.step(() => s.mcp(server, 'draft', { to: ['club@example.org'], subject: 'C9', body: 'Hello.\n', file: 'letter.eml' }));
+      await s.finish(o.officeDone);
+    },
+  },
+
   office: {
     name: 'office',
     async run(s) {
