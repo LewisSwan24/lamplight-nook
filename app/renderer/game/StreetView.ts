@@ -1,7 +1,13 @@
 import Phaser from 'phaser';
 import type { ActorId } from '../../shared/types';
 import { animKey } from './sprites';
-import { INSET, PAVEMENT_Y, STOPS, type StopId, VIEW, panFor, routeHome, stopForTool, walkMs } from './street';
+import { INSET, PAVEMENT_Y, STOPS, STRIP_TOP, type StopId, VIEW, panFor, routeHome, stopForTool, walkMs } from './street';
+
+/** The town's street pictures, drawn in this order (scripts/art/town.py); CafeScene loads them. */
+export const TOWN_LAYERS = ['town-street', 'town-fronts', 'town-props', 'town-signs'] as const;
+
+/** Who is out, where on the town's street, and how she looks just now: what the street scene shows of her. */
+export type Walker = { actor: ActorId; x: number; y: number; texture: string; frame: string | number; alpha: number };
 
 const SLIDE_MS = 260;
 /** How long she stops at the bakery on the way home. */
@@ -18,7 +24,7 @@ const WOOD_LIGHT = 0x8a5f3c;
 export class StreetView {
   private frame: Phaser.GameObjects.Graphics;
   private strip: Phaser.GameObjects.Container;
-  private image: Phaser.GameObjects.Image;
+  private images: Phaser.GameObjects.Image[];
   private walker?: Phaser.GameObjects.Sprite;
   private zone: Phaser.GameObjects.Zone;
   /** Clips the strip to the inset; weather falling in the street uses it too. */
@@ -40,8 +46,9 @@ export class StreetView {
     this.frame.fillStyle(WOOD, 1).fillRect(INSET.x, INSET.y, INSET.w, INSET.border).fillRect(INSET.x, INSET.y + INSET.h - INSET.border, INSET.w, INSET.border);
     this.frame.fillRect(INSET.x, INSET.y, INSET.border, INSET.h).fillRect(INSET.x + INSET.w - INSET.border, INSET.y, INSET.border, INSET.h);
     this.frame.fillStyle(WOOD_LIGHT, 1).fillRect(INSET.x + 1, INSET.y + 1, INSET.w - 2, 1);
-    this.image = scene.add.image(0, 0, 'street').setOrigin(0);
-    this.strip = scene.add.container(VIEW.x, VIEW.y, [this.image]).setDepth(DEPTH).setVisible(false);
+    // The town's street, its lower part: the strip's top is the town's STRIP_TOP.
+    this.images = TOWN_LAYERS.map((key) => scene.add.image(0, -STRIP_TOP, key).setOrigin(0));
+    this.strip = scene.add.container(VIEW.x, VIEW.y, this.images).setDepth(DEPTH).setVisible(false);
     const mask = scene.make.graphics({}, false).fillStyle(0xffffff).fillRect(VIEW.x, VIEW.y, VIEW.w, VIEW.h);
     this.mask = mask.createGeometryMask();
     this.strip.setMask(this.mask);
@@ -58,7 +65,7 @@ export class StreetView {
 
   /** The room's light colour, laid over the street too. */
   setTint(color: number) {
-    this.image.setTint(color);
+    for (const image of this.images) image.setTint(color);
     this.walker?.setTint(color);
   }
 
@@ -72,6 +79,13 @@ export class StreetView {
   headPos(height: number): { x: number; y: number } | null {
     if (!this.open || !this.walker) return null;
     return { x: this.strip.x + this.walker.x, y: this.strip.y + this.walker.y - height - 2 };
+  }
+
+  /** Who is out and where on the town's street, for the street scene (road-to-1.4.md D1); null when nobody is. */
+  walkerState(): Walker | null {
+    if (!this.who || !this.walker) return null;
+    const w = this.walker;
+    return { actor: this.who, x: w.x, y: w.y + STRIP_TOP, texture: w.texture.key, frame: w.frame.name, alpha: w.alpha };
   }
 
   /** Someone stepped out of the shop door: open the inset and walk her to her first shop. */

@@ -4188,6 +4188,31 @@ const SCENARIOS = {
         await sleep(500);
         v = await look();
         check(!v.out && v.room && v.same, 'Escape on the street did not bring me back inside');
+        if (!size) {
+          // An errand (D1, second half): Xiaoju in the inset, and the same Xiaoju out on the town's street. She is sent
+          // out directly; how commissions send her is the apprentice scenario's.
+          await page.evaluate(() => { void window.lamplightDebug.scene.walkTo('xiaoju', 'door'); });
+          let w = null;
+          for (let i = 0; i < 60 && !(w && w.alpha === 1); i++) {
+            await sleep(500);
+            w = await page.evaluate(() => window.lamplightDebug.scene.streetWalker());
+          }
+          check(w && w.actor === 'xiaoju', `Xiaoju did not go out on the street: ${JSON.stringify(w)}`);
+          await shop.shot(join(out, 'street-inset.png'));
+          await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+          await sleep(600);
+          const seen = await page.evaluate(() => {
+            const g = window.lamplightDebug.street;
+            const s = g.children.list.find((o) => o.type === 'Sprite');
+            return s ? { visible: s.visible, x: s.x, y: s.y, cam: g.cameras.main.scrollX, inset: window.lamplightDebug.scene.streetWalker() } : null;
+          });
+          await shop.shot(join(out, 'street-errand.png'));
+          check(seen && seen.visible && seen.x >= seen.cam && seen.x <= seen.cam + 320, `Xiaoju out on an errand was not in view on the street: ${JSON.stringify(seen)}`);
+          // Read a frame or two apart while she walks: a few pixels.
+          check(seen && Math.abs(seen.x - seen.inset.x) < 8 && Math.abs(seen.y - seen.inset.y) < 8, `the street and the inset show her in different places: ${JSON.stringify(seen)}`);
+          await page.keyboard.press('Escape');
+          await sleep(300);
+        }
       } finally { await shop.close(); }
     }
   },

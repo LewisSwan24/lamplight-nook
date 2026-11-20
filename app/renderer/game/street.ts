@@ -1,9 +1,13 @@
+import { currentScene } from '../../shared/scenes';
+import { doorOf, TOWN } from './town';
+
 /**
- * The street outside the shop, seen through a small inset while Xiaoju is out on an errand.
- * The strip (assets/sprites/street.png, scripts/art/street.py) is wider than the inset, which pans to follow her.
+ * The street outside the shop, seen through a small inset while Xiaoju is out on an errand. Since 1.4 it is the town's
+ * own street (town.ts, scripts/art/town.py), the lower part of it: the inset pans along it to follow her, and out on
+ * the street one sees her in the same place.
  */
 
-export const STREET = { width: 560, height: 58 } as const;
+export const STREET = { width: TOWN.width, height: 58 } as const;
 
 /** The inset on the canvas, wooden border included: bottom right, clear of the counter, the table seats and Laoshi's corner. */
 export const INSET = { x: 190, y: 116, w: 128, h: 62, border: 2 } as const;
@@ -13,11 +17,23 @@ export const VIEW = { x: INSET.x + INSET.border, y: INSET.y + INSET.border, w: I
 
 export type StopId = 'nook' | 'bakery' | 'library' | 'post';
 
-/** Strip x of each shop door (where Xiaoju stands to go in); they match FRONTS in scripts/art/street.py. */
-export const STOPS: Record<StopId, number> = { nook: 63, bakery: 232, library: 383, post: 475 };
-
 /** Strip y of feet on the pavement. */
 export const PAVEMENT_Y = 54;
+
+/** The town's y at the top of the strip, so that feet on the strip stand on the town's pavement. */
+export const STRIP_TOP = TOWN.kerb + 10 - PAVEMENT_Y;
+
+const home = currentScene();
+/**
+ * Strip x of each door Xiaoju stops at: the shop's own, the bakery, the post office, and for books the other room
+ * (the study from the cafe, the cafe from the study), which holds the town's library since 1.4.
+ */
+export const STOPS: Record<StopId, number> = {
+  nook: doorOf(home).x,
+  library: doorOf(home === 'study' ? 'cafe' : 'study').x,
+  bakery: doorOf('bakery').x,
+  post: doorOf('post').x,
+};
 
 /** Xiaoju hurries along the street a little faster than she walks in the shop (canvas pixels per second). */
 export const STREET_SPEED = 72;

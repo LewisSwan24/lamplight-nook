@@ -22,7 +22,10 @@ import doorUrl from '../../../assets/sprites/door.png';
 import backDoorUrl from '../../../assets/sprites/back-door.png';
 import laoshiUrl from '../../../assets/sprites/laoshi.png';
 import qingdaiUrl from '../../../assets/sprites/qingdai.png';
-import streetUrl from '../../../assets/sprites/street.png';
+import townFrontsUrl from '../../../assets/sprites/town-fronts.png';
+import townPropsUrl from '../../../assets/sprites/town-props.png';
+import townSignsUrl from '../../../assets/sprites/town-signs.png';
+import townStreetUrl from '../../../assets/sprites/town-street.png';
 import christmasUrl from '../../../assets/sprites/decor-christmas.png';
 import halloweenUrl from '../../../assets/sprites/decor-halloween.png';
 import newYearUrl from '../../../assets/sprites/decor-new_year.png';
@@ -61,7 +64,7 @@ import { ACTORS, MAILSLOT, OUTBOX, ZONES, pathBetween, standPoint, type Facing }
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { GardenView } from './GardenView';
-import { StreetView } from './StreetView';
+import { StreetView, type Walker } from './StreetView';
 import { SKIES, WeatherLayer } from './WeatherLayer';
 import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
 import { INSET, VIEW } from './street';
@@ -212,6 +215,8 @@ export class CafeScene extends Phaser.Scene {
   private tintColor = 0xffffff;
   /** The colour laid over the room just now; the town's street takes it too (road-to-1.4.md D1). */
   get tint(): number { return this.tintColor; }
+  /** Who is out on an errand and where on the town's street, as the inset shows her. */
+  streetWalker(): Walker | null { return this.street?.walkerState() ?? null; }
   /** Out on the street: the room is not drawn and takes no clicks, but the work in it goes on. */
   setOutside(out: boolean) {
     this.sys.setVisible(!out);
@@ -260,7 +265,11 @@ export class CafeScene extends Phaser.Scene {
     // The room itself: the cafe or the study; both share the floor plan in layout.ts.
     this.load.image('cafe', SCENE === 'study' ? studyUrl : cafeUrl);
     this.load.image('pieces', SCENE === 'study' ? studyPiecesUrl : cafePiecesUrl);
-    this.load.image('street', streetUrl);
+    // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
+    this.load.image('town-street', townStreetUrl);
+    this.load.image('town-fronts', townFrontsUrl);
+    this.load.image('town-props', townPropsUrl);
+    this.load.image('town-signs', townSignsUrl);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('garden-crops', gardenCropsUrl, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
