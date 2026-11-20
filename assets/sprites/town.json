@@ -1,0 +1,94 @@
+{
+ "width": 960,
+ "height": 180,
+ "kerb": 124,
+ "road": 152,
+ "fronts": [
+  {
+   "id": "cafe",
+   "x": 8,
+   "w": 144,
+   "door": 80
+  },
+  {
+   "id": "study",
+   "x": 160,
+   "w": 112,
+   "door": 216
+  },
+  {
+   "id": "print",
+   "x": 280,
+   "w": 112,
+   "door": 336
+  },
+  {
+   "id": "studio",
+   "x": 400,
+   "w": 112,
+   "door": 456
+  },
+  {
+   "id": "workshop",
+   "x": 520,
+   "w": 144,
+   "door": 592
+  },
+  {
+   "id": "bakery",
+   "x": 672,
+   "w": 144,
+   "door": 744
+  },
+  {
+   "id": "post",
+   "x": 824,
+   "w": 128,
+   "door": 888
+  }
+ ],
+ "props": [
+  {
+   "name": "Street_Lamp_5",
+   "left": 151,
+   "right": 164,
+   "top": 130,
+   "bottom": 134
+  },
+  {
+   "name": "Bench_1",
+   "left": 270,
+   "right": 296,
+   "top": 134,
+   "bottom": 138
+  },
+  {
+   "name": "Street_Lamp_5",
+   "left": 421,
+   "right": 434,
+   "top": 130,
+   "bottom": 134
+  },
+  {
+   "name": "Tree_1",
+   "left": 574,
+   "right": 578,
+   "top": 132,
+   "bottom": 136
+  },
+  {
+   "name": "Pot_1",
+   "left": 702,
+   "right": 710,
+   "top": 130,
+   "bottom": 134
+  },
+  {
+   "name": "Street_Lamp_5",
+   "left": 841,
+   "right": 854,
+   "top": 130,
+   "bottom": 134
+  }
+ ]
+}

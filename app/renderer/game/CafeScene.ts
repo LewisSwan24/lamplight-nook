@@ -210,6 +210,13 @@ export class CafeScene extends Phaser.Scene {
   period: Period = 'day';
   /** The colour currently laid over the room, which the street inset takes too. */
   private tintColor = 0xffffff;
+  /** The colour laid over the room just now; the town's street takes it too (road-to-1.4.md D1). */
+  get tint(): number { return this.tintColor; }
+  /** Out on the street: the room is not drawn and takes no clicks, but the work in it goes on. */
+  setOutside(out: boolean) {
+    this.sys.setVisible(!out);
+    this.input.enabled = !out;
+  }
   /** The street outside, shown in an inset while someone is out on an errand. */
   private street!: StreetView;
   /** The back garden, beside the shop in this scene; the camera slides over to look at it. */

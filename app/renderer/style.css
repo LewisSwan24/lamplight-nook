@@ -534,6 +534,12 @@ pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; 
 /* The staff carrying boxes to the other room, just before the page reloads. */
 .moving { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 18px 22px; z-index: 50; pointer-events: auto; animation: emote-pop 220ms ease-out; }
 
+/* The town's street (road-to-1.4.md D1): the room's labels stay inside, and a front's note shows near the top. */
+body.outside #labels { visibility: hidden; }
+.street-note { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); max-width: 70%; padding: 8px 14px; z-index: 40; text-align: center; pointer-events: none; }
+.street-note[hidden] { display: none; }
+#ui > .street-note { pointer-events: none; }
+
 /* On a big window the cards, toolbar and notes grow with the scene (main.ts sets --ui from the window size),
    so text keeps its size relative to the pixel art. Labels over the scene scale the same way (above). */
 .card, .dialog, .serious, .parcel, .detail-strip, .caption-bar, .moving { zoom: var(--ui, 1); }

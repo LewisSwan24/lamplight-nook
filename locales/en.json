@@ -691,7 +691,20 @@
       "order": "Commission",
       "progress": "Progress",
       "mute": "Mute",
-      "unmute": "Unmute"
+      "unmute": "Unmute",
+      "street": "Go out to the street",
+      "back": "Back inside"
+    },
+    "town": {
+      "notes": {
+        "cafe": "The cafe.",
+        "study": "The study.",
+        "print": "The print shop is still being fitted out. It opens soon.",
+        "studio": "The studio is still being fitted out. It opens soon.",
+        "workshop": "The workshop is still being fitted out. It opens soon.",
+        "bakery": "Auntie Olive's bakery. Today's bread is just out of the oven.",
+        "post": "Pip's post office. Anything to send, just tell the shop."
+      }
     },
     "access": {
       "captionsButton": "Captions",
