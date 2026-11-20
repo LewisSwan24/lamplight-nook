@@ -524,7 +524,7 @@ export class CafeScene extends Phaser.Scene {
     // An envelope sticking out of the letter holder, and one lying in the outbox basket (road-to-1.3.md C8).
     const envelope = (g: Phaser.GameObjects.Graphics, w: number, h: number) =>
       g.fillStyle(0x2a2233, 1).fillRect(0, 0, w, h).fillStyle(0xfaf6ec, 1).fillRect(1, 1, w - 2, h - 2).fillStyle(0xc8483c, 1).fillRect(Math.floor(w / 2) - 1, 1, 2, 1);
-    this.letter = envelope(this.add.graphics({ x: MAILSLOT.x + 3, y: MAILSLOT.y - 3 }), 6, 5).setDepth(1.6).setVisible(false);
+    this.letter = envelope(this.add.graphics({ x: MAILSLOT.x + 2, y: MAILSLOT.y - 3 }), 6, 5).setDepth(1.6).setVisible(false);
     const box = OUTBOX[SCENE];
     this.envelope = envelope(this.add.graphics({ x: box.x + 1, y: box.y - 2 }), 6, 4).setDepth(COUNTER_TOP + 0.1).setVisible(false);
     this.bell = this.add.graphics({ x: BELL_POS.x, y: BELL_POS.y }).setDepth(COUNTER_TOP + 0.1).setVisible(false);

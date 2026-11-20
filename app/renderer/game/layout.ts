@@ -32,7 +32,7 @@ export const BOARD_SLATE = { x: 94, y: 18, w: 24, h: 13 } as const;
  * The back room and the post (road-to-1.3.md C8), as scripts/art/backroom.py paints them into both scenes: the letter
  * holder on the wall right of the front door, and the outbox basket on the counter (the study's right-hand desk).
  */
-export const MAILSLOT = { x: 306, y: 31, w: 12, h: 12 } as const;
+export const MAILSLOT = { x: 309, y: 31, w: 10, h: 12 } as const;
 export const OUTBOX = { cafe: { x: 262, y: 79, w: 8, h: 5 }, study: { x: 256, y: 80, w: 8, h: 5 } } as const;
 
 /** Anchors: where characters stand (feet position) and which way they face there. */

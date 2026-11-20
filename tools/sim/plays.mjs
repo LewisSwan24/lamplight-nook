@@ -548,6 +548,39 @@ export const plays = {
   },
 
   /**
+   * The back room and the post (road-to-1.3.md C8), with a calendar, a synced folder and email drafts connected: the week
+   * read from the calendar (Axin brings it), a Word file made at the table and put away in the filing cabinet, a copy saved
+   * into the folder (Axin takes it), the folder looked through once more (Axin has come twice, so Adeng goes to the letter
+   * holder alone), and a draft left in the outbox. Pauses give the walks time to be seen.
+   */
+  backroom: {
+    name: 'backroom',
+    async run(s) {
+      const zh = s.state.lang === 'zh';
+      const o = OFFICE[s.state.lang];
+      const linked = s.servers.filter((n) => /^nook-k\d+$/.test(n));
+      const tools = await Promise.all(linked.map(async (n) => [n, await s.mcpTools(n)]));
+      const serverWith = (tool) => tools.find(([, names]) => names.includes(tool))[0];
+      const day = (n) => { const d = new Date(Date.now() + n * 86_400_000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      await s.step(() => s.think(1));
+      await s.step(() => s.mcp(serverWith('events'), 'events', { from: day(0), to: day(6) }));
+      await s.pause(8);
+      await s.step(() => office(s, 'make_docx', { file: o.files.docx, ...o.doc(zh ? '这周安排' : 'This week') }));
+      // Across the room from the letter holder to the table, then to the cabinet: a long walk.
+      await s.pause(30);
+      await s.step(() => s.mcp(serverWith('save_copy'), 'save_copy', { file: o.files.docx }));
+      await s.pause(10);
+      await s.step(() => s.mcp(serverWith('list'), 'list', {}));
+      await s.pause(6);
+      const subject = zh ? '这周安排' : 'This week';
+      await s.step(() => s.mcp(serverWith('draft'), 'draft', { to: ['club@example.org'], subject, body: zh ? '大家好：\n\n这周的安排见附件里的文档。\n' : 'Dear all,\n\nThe plan for this week is in the document.\n', file: zh ? '安排.eml' : 'plan.eml' }));
+      // Back across the room to the counter, where the draft goes in the outbox.
+      await s.pause(20);
+      await s.finish(zh ? '读了日历，做了这周的安排，存了一份到网盘，邮件草稿在待寄筐里。' : 'I read the calendar, made the week\'s plan, saved a copy to the synced folder, and left a draft in the outbox.');
+    },
+  },
+
+  /**
    * Reads the test connection, then looks something up on the web and runs a harmless command (C6): after a read through
    * a connection, both are asked about first. Nothing reaches the network; the fetch is answered here.
    */

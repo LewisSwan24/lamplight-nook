@@ -53,6 +53,13 @@
     or an event that brings a file or starts a program, is shown in its folder instead. A calendar full of very long
     repeats is refused rather than read for minutes.
 
+- **A filing cabinet and the post.** The shop has three new things in it, in the cafe and the study alike: a filing
+  cabinet beside the bookcase, a letter holder by the front door, and an outbox basket on the counter.
+  - Adeng looks Word, Excel and PowerPoint files up at the filing cabinet, and puts each finished file away in it.
+  - What comes from a calendar or a synced folder arrives by post: Axin the postman brings it to the letter holder, and
+    takes away a copy saved into the folder. He comes at most twice a commission; after that Adeng fetches it himself.
+  - A finished email draft goes in the outbox, waiting for you to send it.
+
 ## Unreleased (1.2)
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in
