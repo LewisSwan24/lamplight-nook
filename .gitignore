@@ -14,3 +14,28 @@ real-out/
 real-out-sim/
 real-check/
 lamplight-real-check-*/
+
+# Pictures and sounds built from the purchased packs (LimeZu, Cyberleaf). Their licences forbid
+# redistribution, so they stay on the builder's disk and out of this public repository. See README.
+# Every sprite PNG is ignored by default; the ones our scripts draw entirely by hand are listed back in.
+assets/sprites/*.png
+!assets/sprites/back-door.png
+!assets/sprites/decor-dragon_boat.png
+!assets/sprites/decor-lantern.png
+!assets/sprites/decor-mid_autumn.png
+!assets/sprites/decor-new_year.png
+!assets/sprites/season-*.png
+!assets/sprites/tools.png
+!assets/sprites/town-signs.png
+!assets/sprites/weather-*.png
+!assets/sprites/works.png
+assets/ui/emotes.png
+assets/ui/portraits.png
+assets/ui/you.png
+assets/audio/click.ogg
+assets/audio/open.ogg
+assets/audio/close.ogg
+assets/audio/ask.ogg
+assets/audio/success.ogg
+assets/audio/fail.ogg
+assets/audio/serious.ogg

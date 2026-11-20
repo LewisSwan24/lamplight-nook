@@ -20,6 +20,29 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # The pictures and sounds built from the purchased packs may not be redistributed, so this repository ignores
+      # them and the private LewisSwan24/lamplight-nook-assets keeps a copy (README, "Art and licenses").
+      # ASSETS_DEPLOY_KEY is the private half of a read-only deploy key on that repository.
+      - name: Check that the asset key is set
+        shell: bash
+        env:
+          HAS_KEY: ${{ secrets.ASSETS_DEPLOY_KEY != '' }}
+        run: |
+          if [[ "$HAS_KEY" != true ]]; then
+            echo "::error::The repository secret ASSETS_DEPLOY_KEY is not set, so the art cannot be fetched (README, Art and licenses)."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          repository: LewisSwan24/lamplight-nook-assets
+          ssh-key: ${{ secrets.ASSETS_DEPLOY_KEY }}
+          persist-credentials: false
+          path: pack-assets
+      - name: Copy in the pack-built art and sounds
+        shell: bash
+        run: |
+          node scripts/pack-assets.mjs import pack-assets
+          rm -rf pack-assets
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
