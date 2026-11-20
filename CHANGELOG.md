@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased (1.4)
+
+- **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
+  from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.
+  `docs/art.md` now says what the installer carries, and the question for LimeZu about it is written.
+
 ## Unreleased (1.3)
 
 - **The groundwork for connections.** The notebook has a Connections page, and the commission slip a line saying which

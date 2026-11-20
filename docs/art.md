@@ -17,6 +17,16 @@ are in `scripts/notices.mjs`.
 Read the license file in each pack before relying on this table. Because the assets may not be redistributed, this
 repository must stay private.
 
+## What the installer carries
+
+Only the pictures our scripts write to `assets/`: whole scenes, furniture layers, overlays and character sheets,
+composed from the packs and often recoloured or redrawn in part. They are packed inside the app's `app.asar`. No tile
+sheet, single tile or generator part from a pack ships as a file of its own. LimeZu is credited in Settings, with a link
+to the itch.io page.
+
+Whether this counts as redistribution under LimeZu's licence has not been asked yet. The question is written at the end
+of `docs/art-1.4.md` (Q-D3 in `docs/road-to-1.4.md`), and 1.4 is not released until the answer is in.
+
 ## Setting up on Windows
 
 Point `assets/vendor/` at the unpacked packs with junctions, one command per pack. Run these in PowerShell from the
