@@ -5,6 +5,12 @@ import cafeUrl from '../../../assets/sprites/cafe-room.png';
 import cafePiecesUrl from '../../../assets/sprites/cafe-pieces.png';
 import studyUrl from '../../../assets/sprites/study-room.png';
 import studyPiecesUrl from '../../../assets/sprites/study-pieces.png';
+import printUrl from '../../../assets/sprites/print-room.png';
+import printPiecesUrl from '../../../assets/sprites/print-pieces.png';
+import studioUrl from '../../../assets/sprites/studio-room.png';
+import studioPiecesUrl from '../../../assets/sprites/studio-pieces.png';
+import workshopUrl from '../../../assets/sprites/workshop-room.png';
+import workshopPiecesUrl from '../../../assets/sprites/workshop-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
 import gardenCropsUrl from '../../../assets/sprites/garden-crops.png';
 import dogUrl from '../../../assets/sprites/dog.png';
@@ -41,6 +47,9 @@ import petalsUrl from '../../../assets/sprites/weather-petals.png';
 import rainUrl from '../../../assets/sprites/weather-rain.png';
 import snowUrl from '../../../assets/sprites/weather-snow.png';
 import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
+import aqianUrl from '../../../assets/sprites/aqian.png';
+import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
+import xiaodingUrl from '../../../assets/sprites/xiaoding.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import you1Url from '../../../assets/sprites/you-1.png';
 import you2Url from '../../../assets/sprites/you-2.png';
@@ -54,13 +63,14 @@ import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { fill, strings } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import { currentScene } from '../../shared/scenes';
+import { ROOM_CREW } from '../../shared/staff';
 import catWalkUrl from '../../../assets/sprites/cat-walk.png';
 import { COUNTER_TOP, PIECES } from './pieces';
 import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
 import type { GrowthId } from '../../shared/growth';
 import { walkBetween } from './layout';
-import { ACTORS, MAILSLOT, OUTBOX, ZONES, pathBetween, standPoint, type Facing } from './layout';
+import { ACTORS, CUP_AT, MAILSLOT, OUTBOX, ZONES, pathBetween, standPoint, type Facing } from './layout';
 import { LOOKS, type Look, type Period, msToNextHour, periodAt } from './daytime';
 import { WALK_SPEED, glanceFacing, idleDelay, napDelay } from './life';
 import { GardenView } from './GardenView';
@@ -81,7 +91,7 @@ const DECOR_URLS: Record<Holiday, string> = {
 };
 const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerUrl, autumn: autumnUrl, winter: winterUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
@@ -101,6 +111,8 @@ const DAYLIGHT_MS = 4000;
 const GARDEN_WEATHER_DEPTH = 0.6;
 const VIEW_FADE_MS = 180;
 const SCENE = currentScene();
+/** Who is in this room; the rest are elsewhere (road-to-1.4.md D2). */
+const CREW = ROOM_CREW[SCENE];
 /** Furnishing overlays for every scene (scripts/art/furnish.py); only this scene's are loaded. */
 const FURNISH_URLS = import.meta.glob<string>('../../../assets/sprites/furnish-*.png', { eager: true, query: '?url', import: 'default' });
 const furnishUrl = (part: FurnishPart, choice: string) => FURNISH_URLS[`../../../assets/sprites/furnish-${SCENE}-${part}-${choice}.png`];
@@ -114,7 +126,12 @@ const FLAG = { x: 2, top: 29, pole: 8 } as const;
 /** The dark brown the pixel art is outlined in. */
 const INK = 0x3b2a1e;
 /** The steaming cup: beside the coffee machine on the counter, or between the form and the lamp on the desk. */
-const CUP_POS = SCENE === 'study' ? { x: 232, y: 62 } : { x: 256, y: 64 };
+const CUP_POS = CUP_AT[SCENE];
+/** Each room's picture without its furniture, and the furniture (scripts/art/pieces.py). */
+const ROOM_ART = {
+  cafe: [cafeUrl, cafePiecesUrl], study: [studyUrl, studyPiecesUrl], print: [printUrl, printPiecesUrl],
+  studio: [studioUrl, studioPiecesUrl], workshop: [workshopUrl, workshopPiecesUrl],
+} as const;
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FLOOR_LAMP = 0.2;
 const FORM_POS = { x: 224, y: 78 };
@@ -263,8 +280,8 @@ export class CafeScene extends Phaser.Scene {
 
   preload() {
     // The room itself: the cafe or the study; both share the floor plan in layout.ts.
-    this.load.image('cafe', SCENE === 'study' ? studyUrl : cafeUrl);
-    this.load.image('pieces', SCENE === 'study' ? studyPiecesUrl : cafePiecesUrl);
+    this.load.image('cafe', ROOM_ART[SCENE][0]);
+    this.load.image('pieces', ROOM_ART[SCENE][1]);
     // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
     this.load.image('town-street', townStreetUrl);
     this.load.image('town-fronts', townFrontsUrl);
@@ -356,6 +373,10 @@ export class CafeScene extends Phaser.Scene {
         this.hold(actor);
       });
       this.actors.set(a.id, actor);
+      if (!CREW.includes(a.id)) {
+        this.keepAway(actor);
+        continue;
+      }
       this.hold(actor);
       this.scheduleIdle(actor);
     }
@@ -500,19 +521,20 @@ export class CafeScene extends Phaser.Scene {
    */
   setApprentice(here: boolean, walkIn: boolean) {
     const actor = this.actors.get('xiaodou')!;
-    if (here === actor.sprite.visible) return;
-    if (!here) {
-      // Out of sight beyond the front door, and not on the street either.
-      actor.trip++;
-      actor.tween?.stop();
-      actor.outside = true;
-      actor.at = 'door';
-      actor.sprite.setVisible(false).setAlpha(0);
-      return;
-    }
+    if (here === actor.sprite.visible || !CREW.includes('xiaodou')) return;
+    if (!here) return this.keepAway(actor);
     actor.sprite.setVisible(true);
     if (walkIn && !this.reducedMotion) void this.walkTo('xiaodou', 'counter');
     else this.place('xiaodou', 'counter');
+  }
+
+  /** Out of sight beyond the front door, and not on the street either: not in this room, or not come yet. */
+  private keepAway(actor: Actor) {
+    actor.trip++;
+    actor.tween?.stop();
+    actor.outside = true;
+    actor.at = 'door';
+    actor.sprite.setVisible(false).setAlpha(0);
   }
 
   /** Who is out on an errand. */

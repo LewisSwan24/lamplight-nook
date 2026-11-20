@@ -1,0 +1,144 @@
+# Dialogue for the workshop (road-to-1.4.md D2), in English. Laid over lines/en/cafe.yaml; same groups as lines/workshop.yaml.
+# Tack the tinkerer does all the work; Wick only minds the counter and answers now and then.
+# Spots: the workbench (counter), the tool wall (board), the parts cabinet (shelf), the big table (table),
+# the old computer (corner). Each bubble is at most 44 characters; at most one "!" per bubble.
+
+opening:
+  - { id: ws_revise_again_01, speaker: xiaoding, when: revise_again, bubbles: ["Last time I tightened \"{lastAsk}\".", "This time, \"{brief}\". No problem!"] }
+  - { id: ws_revise_01, speaker: xiaoding, when: revise, bubbles: ["\"{brief}\"? Sure thing.", "No tearing down. I'll build on it."] }
+  - { id: ws_revise_02, speaker: xiaoding, when: revise, bubbles: ["After some use, yeah, it's wobbly.", "\"{brief}\". I'll tighten it up."] }
+  - { id: ws_revise_03, speaker: xiaoding, when: revise, bubbles: ["Old one goes in the parts cabinet.", "\"{brief}\". I'll call you to try it."] }
+  - { id: ws_mem_02, speaker: xiaoding, when: has_stuck_note, bubbles: ["\"{brief}\". Sure thing.", "Last time {stuckNote} jammed on us.", "I'll start by poking at that."] }
+  - { id: ws_mem_01, speaker: xiaoding, when: has_memory, bubbles: ["\"{brief}\". Sure thing.", "Last time you picked {lastChoice}.", "I'll fit that first, swap if it's off."] }
+  - { id: ws_tpl_tool_01, speaker: xiaoding, when: tpl_tool, bubbles: ["A little tool? My favourite kind.", "A web page, if it can be one."] }
+  - { id: ws_handed_01, speaker: xiaoding, when: handed, bubbles: ["Got it. Let me open it up and look.", "\"{brief}\". Sure thing."], reply: { speaker: adeng, bubbles: ["It's on the workbench."] } }
+  - { id: ws_opening_01, speaker: xiaoding, bubbles: ["\"{brief}\"?", "Sure thing. Let's just try it!"] }
+  - { id: ws_opening_02, speaker: xiaoding, bubbles: ["\"{brief}\"...", "Screwdriver? ...Oh. Behind my ear."] }
+  - { id: ws_opening_03, speaker: xiaoding, bubbles: ["A job!", "\"{brief}\". Frame first."] }
+
+planning:
+  - { id: ws_plan_01, speaker: xiaoding, bubbles: ["Quick sketch on the tool wall first."] }
+  - { id: ws_plan_02, speaker: xiaoding, bubbles: ["Which bit goes on first..."] }
+  - { id: ws_plan_03, speaker: xiaoding, bubbles: ["Three steps and done!"] }
+
+draft_ready:
+  - { id: ws_draft_ready_01, speaker: xiaoding, bubbles: ["Letter's written. It's on the workbench.", "Read it, then send it yourself."] }
+  - { id: ws_draft_ready_02, speaker: xiaoding, bubbles: ["Draft's done!", "Sending it's your call."] }
+  - { id: ws_draft_ready_03, speaker: xiaoding, bubbles: ["Not sent. It's under a spanner."] }
+
+writing:
+  - { id: ws_write_01, speaker: xiaoding, bubbles: ["Assembling!"] }
+  - { id: ws_write_02, speaker: xiaoding, bubbles: ["That bit's screwed in. Next."] }
+  - { id: ws_write_03, speaker: xiaoding, bubbles: ["Hm hm hmm...", "This screw fits just right."] }
+  - { id: ws_write_04, speaker: xiaoding, bubbles: ["Put it together first. Pretty later."] }
+
+sub_go_research:
+  - { id: ws_go_rs_rain, speaker: xiaoding, when: sky_rain, bubbles: ["Rain. Keep the parts dry.", "Checking the parts cabinet for {topic}."] }
+  - { id: ws_go_rs_01, speaker: xiaoding, bubbles: ["{topic}? To the parts cabinet!"] }
+  - { id: ws_go_rs_02, speaker: xiaoding, bubbles: ["I'm sure there's a ready-made one. Hang on."] }
+  - { id: ws_go_rs_03, speaker: xiaoding, bubbles: ["Third drawer, or was it the fourth..."] }
+
+sub_back_research:
+  - { id: ws_back_rs_01, speaker: xiaoding, bubbles: ["Found them!", "{count} of them will work."] }
+  - { id: ws_back_rs_02, speaker: xiaoding, bubbles: ["This part's a perfect fit.", "Found an old key while I was at it."] }
+  - { id: ws_back_rs_03, speaker: xiaoding, bubbles: ["All here, smallest to biggest."] }
+
+sub_go_review:
+  - { id: ws_go_rv_01, speaker: xiaoding, bubbles: ["I'll run it on the old computer."] }
+  - { id: ws_go_rv_02, speaker: xiaoding, bubbles: ["Tap it all over, see what rattles."] }
+  - { id: ws_go_rv_03, speaker: xiaoding, bubbles: ["Only one way to know. Try it!"] }
+
+sub_back_review:
+  - { id: ws_back_rv_issue, speaker: xiaoding, when: has_issues, bubbles: ["{issueCount} things rattle.", "Marked each one with tape."] }
+  - { id: ws_back_rv_ok, speaker: xiaoding, when: no_issues, bubbles: ["Ran it three times. Smooth!"] }
+  - { id: ws_back_rv_ok2, speaker: xiaoding, when: no_issues, bubbles: ["Tapped it all over. Solid."], reply: { speaker: adeng, bubbles: ["Good."] } }
+
+sub_go_design:
+  - { id: ws_go_ds_rain, speaker: xiaoding, when: sky_rain, bubbles: ["Rainy day. Good for drawing plans.", "Over to the tool wall."] }
+  - { id: ws_go_ds_01, speaker: xiaoding, bubbles: ["I'll draw it up on the tool wall."] }
+  - { id: ws_go_ds_02, speaker: xiaoding, bubbles: ["Where do the buttons go? Let me see."] }
+  - { id: ws_go_ds_03, speaker: xiaoding, bubbles: ["A cardboard mock-up first!"] }
+
+sub_back_design:
+  - { id: ws_back_ds_01, speaker: xiaoding, bubbles: ["Plans are done!", "Buttons on the right, under your hand."] }
+  - { id: ws_back_ds_02, speaker: xiaoding, bubbles: ["Cardboard mock-up's ready.", "Go on, press it."] }
+  - { id: ws_back_ds_03, speaker: xiaoding, bubbles: ["Drew three. I'd go with the second."] }
+
+stuck:
+  - { id: ws_stuck_01, speaker: xiaoding, bubbles: ["Huh? Won't screw in.", "Let me try another screw."] }
+  - { id: ws_stuck_02, speaker: xiaoding, bubbles: ["Wrong. {whatsWrong}."] }
+  - { id: ws_stuck_03, speaker: xiaoding, bubbles: ["Smoke again..."] }
+  - { id: ws_stuck_04, speaker: xiaoding, bubbles: ["Oops, it's in backwards.", "Apart and again!"] }
+
+stuck_long:
+  - { id: ws_stuck_long_01, speaker: xiaoding, bubbles: ["This one's a tricky one.", "A few more goes. Do your own thing."] }
+  - { id: ws_stuck_long_02, speaker: xiaoding, bubbles: ["Still at it. Not giving up!"] }
+  - { id: ws_stuck_long_03, speaker: xiaoding, bubbles: ["Bit longer. Nearly there."] }
+
+waiting:
+  - { id: ws_wait_01, speaker: xiaoding, bubbles: ["It's spinning. Hang on."] }
+  - { id: ws_wait_02, speaker: xiaoding, bubbles: ["Hm hm hmm... not yet."] }
+  - { id: ws_wait_03, speaker: xiaoding, bubbles: ["The old computer's whirring. Thinking."] }
+
+ask:
+  - { id: ws_ask_color, speaker: xiaoding, when: demo_color, bubbles: ["Cream or mint? I sprayed a bit of each.", "Which one?"] }
+  - { id: ws_ask_01, speaker: xiaoding, bubbles: ["Quick question.", "{question}"] }
+  - { id: ws_ask_02, speaker: xiaoding, bubbles: ["Two ways to put this together.", "Pick one?"] }
+
+react_adopted:
+  - { id: ws_react_ad_01, speaker: xiaoding, bubbles: ["Sure thing. Building it that way!"] }
+  - { id: ws_react_ad_02, speaker: xiaoding, bubbles: ["Got it. I'll stick a note on it."] }
+  - { id: ws_react_ad_03, speaker: xiaoding, bubbles: ["I'd have picked that one too."] }
+
+react_rejected:
+  - { id: ws_react_rj_01, speaker: xiaoding, bubbles: ["OK, your call."] }
+  - { id: ws_react_rj_02, speaker: xiaoding, bubbles: ["Then this part goes back in the drawer."] }
+  - { id: ws_react_rj_03, speaker: xiaoding, bubbles: ["Right, out it comes. Another one."] }
+
+react_delegated:
+  - { id: ws_react_dl_00, speaker: xiaoding, bubbles: ["Sure, I'll decide.", "I'll tell you what I picked."] }
+  - { id: ws_react_dl_01, speaker: xiaoding, bubbles: ["{choice}, then, because {reason}.", "Say if it doesn't feel right."] }
+  - { id: ws_react_dl_02, speaker: xiaoding, bubbles: ["I'll fit {choice} and try it.", "Easy to swap out."] }
+  - { id: ws_react_dl_03, speaker: xiaoding, bubbles: ["{choice}!", "Why's on the tool wall."] }
+
+serious:
+  - { id: ws_serious_01, speaker: xiaoding, bubbles: ["Next step: {action}.", "Once done, {consequence}.", "Have a look before you decide."] }
+  - { id: ws_serious_02, speaker: xiaoding, bubbles: ["Not something I'll just try.", "{action}: {consequence}."] }
+  - { id: ws_serious_03, speaker: xiaoding, bubbles: ["This one won't go back together.", "Read it before you click."] }
+
+refused:
+  - { id: ws_refused_01, speaker: xiaoding, bubbles: ["Can't take that apart.", "Another way."] }
+  - { id: ws_refused_02, speaker: xiaoding, bubbles: ["That's not ours to tinker with."] }
+  - { id: ws_refused_03, speaker: xiaoding, bubbles: ["That's your private stuff. Hands off."] }
+
+serious_yes:
+  - { id: ws_serious_yes_01, speaker: xiaoding, bubbles: ["Sure thing, I'll do it."] }
+  - { id: ws_serious_yes_02, speaker: xiaoding, bubbles: ["Got it. On it now."] }
+  - { id: ws_serious_yes_03, speaker: xiaoding, bubbles: ["Roger!"] }
+
+serious_no:
+  - { id: ws_serious_no_01, speaker: xiaoding, bubbles: ["OK, hands off.", "I'll find a way that doesn't need it."] }
+  - { id: ws_serious_no_02, speaker: xiaoding, bubbles: ["OK, parking that."] }
+  - { id: ws_serious_no_03, speaker: xiaoding, bubbles: ["Not doing it. I'll go around."] }
+
+done:
+  - { id: ws_done_day, speaker: xiaoding, when: daytime, bubbles: ["Built! It's on the workbench.", "Give it a go, see how it handles."] }
+  - { id: ws_done_dusk, speaker: xiaoding, when: dusk, bubbles: ["Built!", "Getting dark. Good time to down tools."] }
+  - { id: ws_done_night, speaker: xiaoding, when: night, bubbles: ["Built.", "It's late. Try it, then get some sleep."] }
+  - { id: ws_done_01, speaker: xiaoding, bubbles: ["Done! Not one screw left over."], reply: { speaker: adeng, bubbles: ["Last time there were three."] } }
+  - { id: ws_done_02, speaker: xiaoding, bubbles: ["Ready. One press and it goes.", "I tried it ten times."] }
+
+failed:
+  - { id: ws_failed_01, speaker: xiaoding, bubbles: ["Didn't get it working this time. Sorry.", "Stuck on {stuckAt}.", "I've written it on the tool wall.", "Next time, another way."] }
+  - { id: ws_failed_02, speaker: xiaoding, bubbles: ["Couldn't build it.", "Stuck on {stuckAt}. Noted."] }
+  - { id: ws_failed_03, speaker: xiaoding, bubbles: ["That's it for today.", "The problem's taped to the tool wall."] }
+
+net_retry:
+  - { id: ws_net_retry_01, speaker: xiaoding, bubbles: ["Fuse blew, I think. I'll try again."] }
+  - { id: ws_net_retry_02, speaker: xiaoding, bubbles: ["Cable's loose. Plugging it in again."] }
+  - { id: ws_net_retry_03, speaker: xiaoding, bubbles: ["Nobody's answering. I'll knock again."] }
+
+cancelled:
+  - { id: ws_cancelled_01, speaker: xiaoding, bubbles: ["OK, we'll put it aside."] }
+  - { id: ws_cancelled_02, speaker: xiaoding, bubbles: ["Fine. What's built stays built."] }
+  - { id: ws_cancelled_03, speaker: xiaoding, bubbles: ["OK, stopping.", "Tools back on the wall."] }

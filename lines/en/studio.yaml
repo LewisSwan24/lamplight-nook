@@ -1,0 +1,144 @@
+# Dialogue for the studio (road-to-1.4.md D2), in English. Laid over lines/en/cafe.yaml; same groups as lines/studio.yaml.
+# Umber the painter does all the work and says little; Wick only minds the counter and answers now and then.
+# Spots: the long table (counter), the easel (board), the frame rack (shelf), the low table (table),
+# the stool by the window (corner). Each bubble is at most 44 characters; at most one "!" per bubble.
+
+opening:
+  - { id: st_revise_again_01, speaker: xiaozhe, when: revise_again, bubbles: ["Last time, \"{lastAsk}\".", "This time, \"{brief}\"."] }
+  - { id: st_revise_01, speaker: xiaozhe, when: revise, bubbles: ["\"{brief}\".", "Another glaze over the old layer."] }
+  - { id: st_revise_02, speaker: xiaozhe, when: revise, bubbles: ["Dry now. It looks a bit muddy.", "\"{brief}\". I'll fix it."] }
+  - { id: st_revise_03, speaker: xiaozhe, when: revise, bubbles: ["The old one can lean on the wall.", "\"{brief}\"."] }
+  - { id: st_mem_02, speaker: xiaozhe, when: has_stuck_note, bubbles: ["\"{brief}\".", "Last time, {stuckNote} got stuck.", "I'll look there first."] }
+  - { id: st_mem_01, speaker: xiaozhe, when: has_memory, bubbles: ["\"{brief}\".", "Last time you chose {lastChoice}.", "I'll start from that colour."] }
+  - { id: st_tpl_album_01, speaker: xiaozhe, when: tpl_album, bubbles: ["The photos. Thanks.", "Warm ones, cool ones. Sorting first."] }
+  - { id: st_handed_01, speaker: xiaozhe, when: handed, bubbles: ["Got them.", "\"{brief}\"."], reply: { speaker: adeng, bubbles: ["They're on the long table."] } }
+  - { id: st_opening_01, speaker: xiaozhe, bubbles: ["\"{brief}\"...", "Mm. That one's a grey-blue."] }
+  - { id: st_opening_02, speaker: xiaozhe, bubbles: ["\"{brief}\".", "I'll rinse my brushes."] }
+  - { id: st_opening_03, speaker: xiaozhe, bubbles: ["All right.", "\"{brief}\". Ground colour first."] }
+
+planning:
+  - { id: st_plan_01, speaker: xiaozhe, bubbles: ["A rough sketch on the easel first."] }
+  - { id: st_plan_02, speaker: xiaozhe, bubbles: ["Big shapes first. Detail last."] }
+  - { id: st_plan_03, speaker: xiaozhe, bubbles: ["Three layers."] }
+
+draft_ready:
+  - { id: st_draft_ready_01, speaker: xiaozhe, bubbles: ["The letter's done. On the long table.", "Read it, then send it."] }
+  - { id: st_draft_ready_02, speaker: xiaozhe, bubbles: ["Draft's done.", "Sending it is up to you."] }
+  - { id: st_draft_ready_03, speaker: xiaozhe, bubbles: ["Not sent.", "It's by the palettes."] }
+
+writing:
+  - { id: st_write_01, speaker: xiaozhe, bubbles: ["Colour going on."] }
+  - { id: st_write_02, speaker: xiaozhe, bubbles: ["That patch is dry. Next one."] }
+  - { id: st_write_03, speaker: xiaozhe, bubbles: ["A wash of burnt umber first."] }
+  - { id: st_write_04, speaker: xiaozhe, bubbles: ["...", "Darker here."] }
+
+sub_go_research:
+  - { id: st_go_rs_rain, speaker: xiaozhe, when: sky_rain, bubbles: ["Rain. The light's gone blue-grey.", "Frame rack. Looking for {topic}."] }
+  - { id: st_go_rs_01, speaker: xiaozhe, bubbles: ["{topic}. I'll check the frame rack."] }
+  - { id: st_go_rs_02, speaker: xiaozhe, bubbles: ["One of the old canvases has it."] }
+  - { id: st_go_rs_03, speaker: xiaozhe, bubbles: ["One moment."] }
+
+sub_back_research:
+  - { id: st_back_rs_01, speaker: xiaozhe, bubbles: ["{count} worth keeping."] }
+  - { id: st_back_rs_02, speaker: xiaozhe, bubbles: ["This one has the right colours."] }
+  - { id: st_back_rs_03, speaker: xiaozhe, bubbles: ["All here.", "Greys on the left, warm ones right."] }
+
+sub_go_review:
+  - { id: st_go_rv_01, speaker: xiaozhe, bubbles: ["I'll look from further back."] }
+  - { id: st_go_rv_02, speaker: xiaozhe, bubbles: ["Better light by the window."] }
+  - { id: st_go_rv_03, speaker: xiaozhe, bubbles: ["Squint, and the mistakes show."] }
+
+sub_back_review:
+  - { id: st_back_rv_issue, speaker: xiaozhe, when: has_issues, bubbles: ["{issueCount} muddy spots.", "Circled in charcoal."] }
+  - { id: st_back_rv_ok, speaker: xiaozhe, when: no_issues, bubbles: ["Near or far, it's clean."] }
+  - { id: st_back_rv_ok2, speaker: xiaozhe, when: no_issues, bubbles: ["Mm. Leave it."], reply: { speaker: adeng, bubbles: ["Good."] } }
+
+sub_go_design:
+  - { id: st_go_ds_rain, speaker: xiaozhe, when: sky_rain, bubbles: ["Rainy day. Quieter colours.", "To the easel."] }
+  - { id: st_go_ds_01, speaker: xiaozhe, bubbles: ["A few strokes on the easel first."] }
+  - { id: st_go_ds_02, speaker: xiaozhe, bubbles: ["Five colours to mix."] }
+  - { id: st_go_ds_03, speaker: xiaozhe, bubbles: ["The ground: a warm off-white."] }
+
+sub_back_design:
+  - { id: st_back_ds_01, speaker: xiaozhe, bubbles: ["Here's the look.", "Five colours, light to dark."] }
+  - { id: st_back_ds_02, speaker: xiaozhe, bubbles: ["Swatches are on the easel.", "Warm. Easy to look at for long."] }
+  - { id: st_back_ds_03, speaker: xiaozhe, bubbles: ["Done. Have a look."] }
+
+stuck:
+  - { id: st_stuck_01, speaker: xiaozhe, bubbles: ["Hm? It's gone grey.", "Mix it another way."] }
+  - { id: st_stuck_02, speaker: xiaozhe, bubbles: ["Wrong. {whatsWrong}."] }
+  - { id: st_stuck_03, speaker: xiaozhe, bubbles: ["Muddy again."] }
+  - { id: st_stuck_04, speaker: xiaozhe, bubbles: ["...", "Scrape it. Start over."] }
+
+stuck_long:
+  - { id: st_stuck_long_01, speaker: xiaozhe, bubbles: ["This part is hard.", "More layers. Go do something else."] }
+  - { id: st_stuck_long_02, speaker: xiaozhe, bubbles: ["Still painting."] }
+  - { id: st_stuck_long_03, speaker: xiaozhe, bubbles: ["Let it dry. Then again."] }
+
+waiting:
+  - { id: st_wait_01, speaker: xiaozhe, bubbles: ["The paint's still wet."] }
+  - { id: st_wait_02, speaker: xiaozhe, bubbles: ["Waiting for this layer to dry."] }
+  - { id: st_wait_03, speaker: xiaozhe, bubbles: ["The sky out there is pale violet."] }
+
+ask:
+  - { id: st_ask_color, speaker: xiaozhe, when: demo_color, bubbles: ["Cream, or mint?", "You pick."] }
+  - { id: st_ask_01, speaker: xiaozhe, bubbles: ["A question.", "{question}"] }
+  - { id: st_ask_02, speaker: xiaozhe, bubbles: ["Two ways to paint it.", "Which one?"] }
+
+react_adopted:
+  - { id: st_react_ad_01, speaker: xiaozhe, bubbles: ["Good. That one."] }
+  - { id: st_react_ad_02, speaker: xiaozhe, bubbles: ["Mm. That colour's right."] }
+  - { id: st_react_ad_03, speaker: xiaozhe, bubbles: ["Noted."] }
+
+react_rejected:
+  - { id: st_react_rj_01, speaker: xiaozhe, bubbles: ["All right. Your call."] }
+  - { id: st_react_rj_02, speaker: xiaozhe, bubbles: ["Then that colour comes off."] }
+  - { id: st_react_rj_03, speaker: xiaozhe, bubbles: ["Mm. Another one."] }
+
+react_delegated:
+  - { id: st_react_dl_00, speaker: xiaozhe, bubbles: ["All right. I'll choose."] }
+  - { id: st_react_dl_01, speaker: xiaozhe, bubbles: ["{choice}, because {reason}.", "Say if you'd rather not."] }
+  - { id: st_react_dl_02, speaker: xiaozhe, bubbles: ["{choice} for now.", "Easy to paint over."] }
+  - { id: st_react_dl_03, speaker: xiaozhe, bubbles: ["{choice}.", "Why is on the back of the canvas."] }
+
+serious:
+  - { id: st_serious_01, speaker: xiaozhe, bubbles: ["Next step: {action}.", "Once done, {consequence}.", "Look first, then decide."] }
+  - { id: st_serious_02, speaker: xiaozhe, bubbles: ["I need your nod.", "{action}: {consequence}."] }
+  - { id: st_serious_03, speaker: xiaozhe, bubbles: ["This stroke can't be painted over.", "Look carefully."] }
+
+refused:
+  - { id: st_refused_01, speaker: xiaozhe, bubbles: ["Not touching that.", "Another way."] }
+  - { id: st_refused_02, speaker: xiaozhe, bubbles: ["Not ours to paint."] }
+  - { id: st_refused_03, speaker: xiaozhe, bubbles: ["That's yours. I won't look."] }
+
+serious_yes:
+  - { id: st_serious_yes_01, speaker: xiaozhe, bubbles: ["OK."] }
+  - { id: st_serious_yes_02, speaker: xiaozhe, bubbles: ["Understood. Painting it."] }
+  - { id: st_serious_yes_03, speaker: xiaozhe, bubbles: ["Mm. I'll do it."] }
+
+serious_no:
+  - { id: st_serious_no_01, speaker: xiaozhe, bubbles: ["All right, I'll leave it.", "Another way that doesn't need it."] }
+  - { id: st_serious_no_02, speaker: xiaozhe, bubbles: ["OK. It can wait."] }
+  - { id: st_serious_no_03, speaker: xiaozhe, bubbles: ["Not painting it. I'll go around."] }
+
+done:
+  - { id: st_done_day, speaker: xiaozhe, when: daytime, bubbles: ["Done. It's on the easel.", "Look while the light's good."] }
+  - { id: st_done_dusk, speaker: xiaozhe, when: dusk, bubbles: ["Done.", "The light's orange now. Good for looking."] }
+  - { id: st_done_night, speaker: xiaozhe, when: night, bubbles: ["Done.", "Lamplight yellows it. Look again at dawn."] }
+  - { id: st_done_01, speaker: xiaozhe, bubbles: ["Dry. You can take it."], reply: { speaker: adeng, bubbles: ["I'll find it a frame."] } }
+  - { id: st_done_02, speaker: xiaozhe, bubbles: ["Done.", "The last stroke was a dot of white."] }
+
+failed:
+  - { id: st_failed_01, speaker: xiaozhe, bubbles: ["It didn't come out this time. Sorry.", "Stuck on {stuckAt}.", "It's in my sketchbook.", "Next time, another way."] }
+  - { id: st_failed_02, speaker: xiaozhe, bubbles: ["Didn't work.", "Stuck on {stuckAt}. Noted."] }
+  - { id: st_failed_03, speaker: xiaozhe, bubbles: ["That's it for today.", "The problem's in my sketchbook."] }
+
+net_retry:
+  - { id: st_net_retry_01, speaker: xiaozhe, bubbles: ["Power's out, I think. I'll try again."] }
+  - { id: st_net_retry_02, speaker: xiaozhe, bubbles: ["The call didn't go through. Again."] }
+  - { id: st_net_retry_03, speaker: xiaozhe, bubbles: ["No answer. I'll ask again soon."] }
+
+cancelled:
+  - { id: st_cancelled_01, speaker: xiaozhe, bubbles: ["OK. Put aside."] }
+  - { id: st_cancelled_02, speaker: xiaozhe, bubbles: ["Fine. What's painted stays."] }
+  - { id: st_cancelled_03, speaker: xiaozhe, bubbles: ["OK, stopping.", "I'll wash the brushes."] }

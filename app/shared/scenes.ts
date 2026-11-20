@@ -5,19 +5,31 @@
  * of a page: the main process hands it to the preload, and moving reloads the page.
  */
 export const SCENES = ['cafe', 'study'] as const;
+/** Where the home shop can be: the counter, Adeng and what the shop gathered are there (road-to-1.4.md Q-D4). */
 export type SceneId = (typeof SCENES)[number];
 export const DEFAULT_SCENE: SceneId = 'cafe';
 
 export const cleanScene = (v: unknown): SceneId | undefined => (SCENES.includes(v as SceneId) ? (v as SceneId) : undefined);
 
-/** The scene of this page (from the preload; the cafe where there is none, as in tests). */
-export const currentScene = (): SceneId => cleanScene((globalThis as { lamplightScene?: unknown }).lamplightScene) ?? DEFAULT_SCENE;
+/** Every room a page can show: the two the home shop can be in, and the three new shops along the street (D2). */
+export const ROOMS = [...SCENES, 'print', 'studio', 'workshop'] as const;
+export type RoomId = (typeof ROOMS)[number];
+export const cleanRoom = (v: unknown): RoomId | undefined => (ROOMS.includes(v as RoomId) ? (v as RoomId) : undefined);
+/** One of the rooms the home shop can be in. */
+export const isScene = (room: RoomId): room is SceneId => (SCENES as readonly string[]).includes(room);
+
+/** Where the home shop is (from the preload): the room settings talk about, whichever room this page shows. */
+export const homeScene = (): SceneId => cleanScene((globalThis as { lamplightHome?: unknown }).lamplightHome) ?? currentHome();
+const currentHome = (): SceneId => { const room = currentScene(); return isScene(room) ? room : DEFAULT_SCENE; };
+
+/** The room this page shows (from the preload; the cafe where there is none, as in tests). */
+export const currentScene = (): RoomId => cleanRoom((globalThis as { lamplightScene?: unknown }).lamplightScene) ?? DEFAULT_SCENE;
 
 /**
  * Keep what belongs to a scene: an entry marked `scene` is left out elsewhere, and in its own scene it
  * replaces the unmarked entry with the same id (the same moment, said to fit the place).
  */
-export function forScene<T extends { id: string; scene?: string }>(items: T[], scene: SceneId): T[] {
+export function forScene<T extends { id: string; scene?: string }>(items: T[], scene: RoomId): T[] {
   const mine = new Map(items.filter((i) => i.scene === scene).map((i) => [i.id, i]));
   const out: T[] = [];
   for (const i of items) {

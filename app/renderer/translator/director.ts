@@ -69,11 +69,17 @@ export class Director {
     return this.play(cmd);
   }
 
-  /** A character finished its current action; returns the next one, if any. */
+  /**
+   * A character finished its current action; returns the next one, if any. Someone who fell behind skips the moves that
+   * newer ones have overtaken, as after a question card: alone in a shop, one person gets every event of a round (D2).
+   */
   finished(actor: ActorId): CharacterCommand | null {
     this.current.delete(actor);
     if (this.frozen || this.held.has(actor)) return null;
-    const next = this.queues.get(actor)?.shift();
+    const at = this.now();
+    const q = (this.queues.get(actor) ?? []).filter((x, i, all) => i === all.length - 1 || at - x.at <= this.staleMs || x.cmd.priority >= PRIORITY.fail);
+    const next = q.shift();
+    this.queues.set(actor, q);
     return next ? this.play(next.cmd) : null;
   }
 

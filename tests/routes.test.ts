@@ -8,7 +8,9 @@ import { ANCHORS, CANVAS, SECOND_CREW, SECOND_SEATS, pathBetween, seatsIn, stand
 import { GUEST_DOOR, GUEST_SPOT, POST_SPOT } from '../app/renderer/game/guests';
 import { YOU_SEAT } from '../app/renderer/game/you';
 import { HOLIDAYS, SEASONS } from '../app/renderer/game/weather';
-import { STAFF } from '../app/shared/staff';
+import { pieceData } from '../app/renderer/game/pieces';
+import { isScene, type RoomId } from '../app/shared/scenes';
+import { ROOM_CREW, STAFF } from '../app/shared/staff';
 import type { ActorId, AnchorId } from '../app/shared/types';
 import { readPng } from './png';
 
@@ -57,14 +59,21 @@ function along(points: Point[]): Point[] {
   return out.filter((p) => !SITTING.some((s) => Math.abs(p.x - s.x) <= 2 && p.y >= s.y - 3 && p.y <= s.y + 16));
 }
 
+// The shops along the street (D2): the floor under each piece, as pieces.json measures it.
+for (const room of ['print', 'studio', 'workshop'] as const) {
+  FURNITURE[room] = pieceData(room).pieces.map((p) => box(p.name, p.x, p.x + p.w, p.y + p.h - p.foot, p.y + p.h));
+}
+
 const SITTING = (['cafe', 'study'] as const).flatMap((s) => Object.values(seatsIn(s).table ?? {}).filter((p) => p.chair));
 
 const ANCHOR_IDS = Object.keys(ANCHORS) as AnchorId[];
 
 /** Each walk a character can take in the shop. */
-function walks(scene: 'cafe' | 'study'): { name: string; points: Point[] }[] {
+function walks(scene: RoomId): { name: string; points: Point[] }[] {
   const out: { name: string; points: Point[] }[] = [];
-  for (const actor of STAFF) {
+  // A shop along the street has its own people (D2); the second crew and the cat are the home shop's.
+  const crew = isScene(scene) ? STAFF : ROOM_CREW[scene];
+  for (const actor of crew) {
     for (const from of ANCHOR_IDS) {
       for (const to of ANCHOR_IDS) {
         if (from === to) continue;
@@ -74,7 +83,7 @@ function walks(scene: 'cafe' | 'study'): { name: string; points: Point[] }[] {
     }
   }
   // The second crew's own places (road-to-1.2.md B9), to and from every zone.
-  for (const actor of SECOND_CREW) {
+  for (const actor of isScene(scene) ? SECOND_CREW : []) {
     for (const from of ANCHOR_IDS) {
       for (const to of ANCHOR_IDS) {
         if (from === to) continue;
@@ -85,17 +94,19 @@ function walks(scene: 'cafe' | 'study'): { name: string; points: Point[] }[] {
       out.push({ name: `${actor}: ${from} to the second crew's ${from}`, points: [first, ...pathBetween(first, from, actor, scene, true)] });
     }
   }
-  const catHome = standPoint('window', 'cat', scene);
-  const catCounter = standPoint('counter', 'cat', scene);
-  out.push({ name: 'cat: window to counter', points: [catHome, ...pathBetween(catHome, 'counter', 'cat', scene)] });
-  out.push({ name: 'cat: counter to window', points: [catCounter, ...pathBetween(catCounter, 'window', 'cat', scene)] });
+  if (isScene(scene)) {
+    const catHome = standPoint('window', 'cat', scene);
+    const catCounter = standPoint('counter', 'cat', scene);
+    out.push({ name: 'cat: window to counter', points: [catHome, ...pathBetween(catHome, 'counter', 'cat', scene)] });
+    out.push({ name: 'cat: counter to window', points: [catCounter, ...pathBetween(catCounter, 'window', 'cat', scene)] });
+  }
   const trips: [string, Point, Point][] = [
     ['door to counter', GUEST_DOOR, GUEST_SPOT], ['counter to the door', GUEST_SPOT, GUEST_DOOR],
     ['counter to the seat', GUEST_SPOT, YOU_SEAT], ['seat to the counter', YOU_SEAT, GUEST_SPOT],
     ['door to the letter holder', GUEST_DOOR, POST_SPOT], ['letter holder to the door', POST_SPOT, GUEST_DOOR],
   ];
   for (const [name, from, to] of trips) out.push({ name, points: [from, ...walkBetween(from, to, scene)] });
-  for (const actor of STAFF) {
+  for (const actor of crew) {
     for (const from of ANCHOR_IDS) {
       const start = standPoint(from, actor, scene);
       out.push({ name: `${actor}: ${from} to the back door`, points: [start, ...pathToBackDoor(start, scene)] });
@@ -110,7 +121,7 @@ describe('walking through the shop', () => {
   for (const [scene, furniture] of Object.entries(FURNITURE)) {
     it(`no walk crosses the furniture in the ${scene}`, () => {
       const crossed = new Set<string>();
-      for (const walk of walks(scene as 'cafe' | 'study')) {
+      for (const walk of walks(scene as RoomId)) {
         for (const p of along(walk.points)) {
           for (const b of furniture) if (hits(p, b)) crossed.add(`${walk.name} crosses the ${b.name}`);
         }

@@ -10,9 +10,12 @@ match the rug behind it, nobody shows through.
 An overlay image (a growth piece, the holiday decorations, the weather's touches) that lies on a piece goes just above
 the highest one it touches; pieces.json lists them under `on`.
 
-Writes assets/sprites/<scene>-room.png, <scene>-pieces.png (one sheet, top to bottom) and pieces.json.
+Writes assets/sprites/<scene>-room.png, <scene>-pieces.png (one sheet, top to bottom) and pieces.json, for the cafe,
+the study and the three shops of road-to-1.4.md D2 (shops.py): print-room.png and print-pieces.png, studio-room.png
+and studio-pieces.png, workshop-room.png and workshop-pieces.png.
 Run after every other art script: python3 scripts/art/pieces.py
 """
+import importlib
 import json
 import re
 from pathlib import Path
@@ -24,6 +27,8 @@ import rug
 import scene
 import study
 
+# The shops, by name; `print` is looked up rather than imported, so it does not hide the builtin.
+SHOPS = {name: importlib.import_module(name) for name in ('print', 'studio', 'workshop')}
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/sprites'
 W, H = scene.W, scene.H
@@ -32,7 +37,10 @@ SEAT_BASE = {'bench': 121.5, 'sofa': 124.5}
 # How much of a piece's height on screen is floor it stands on, counted from its foot; the rest rises in front of
 # whoever walks behind it. Walkers go round this part only (game/pieces.ts).
 FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'cabinet': 8, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
-        'study': {'table': 12, 'sofa': 20, 'counter': 8, 'shelf': 16, 'cabinet': 8, 'workbench': 14, 'lamp': 8, 'plant_l': 8, 'plant_r': 8}}
+        'study': {'table': 12, 'sofa': 20, 'counter': 8, 'shelf': 16, 'cabinet': 8, 'workbench': 14, 'lamp': 8, 'plant_l': 8, 'plant_r': 8},
+        'print': {'table': 14, 'press': 8, 'counter': 8, 'shelf': 16, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'studio': {'table': 12, 'easel': 6, 'counter': 8, 'shelf': 18, 'workbench': 6, 'lamp': 8, 'plant_l': 8, 'plant_r': 8},
+        'workshop': {'table': 14, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8}}
 CHAIR_FOOT = 12
 WALL = ('window', 'window2', 'window3', 'board')
 # Where the floor starts: what ends higher up hangs on the wall.
@@ -84,6 +92,15 @@ def study_boxes():
     return boxes
 
 
+def shop_boxes(room):
+    boxes = {}
+    for name, image, pos in room.FURNITURE:
+        if name:
+            box = box_of(image, pos)
+            boxes[name] = union(boxes[name], box) if name in boxes else box
+    return boxes
+
+
 def cafe_room():
     img = scene.shell()
     for name, rect, pos in scene.FURNITURE:
@@ -102,6 +119,14 @@ def study_room():
     for name, sheet, rect, pos in study.FURNITURE:
         if not name:
             img.alpha_composite(study.piece(sheet, rect), pos)
+    return img
+
+
+def shop_room(room):
+    img = room.shell()
+    for name, image, pos in room.FURNITURE:
+        if not name:
+            img.alpha_composite(image, pos)
     return img
 
 
@@ -191,7 +216,9 @@ def floor_decor():
 if __name__ == '__main__':
     chairs = chair_boxes()
     data = {}
-    for name, room, boxes in (('cafe', cafe_room(), cafe_boxes()), ('study', study_room(), study_boxes())):
+    rooms = [('cafe', cafe_room(), cafe_boxes()), ('study', study_room(), study_boxes())]
+    rooms += [(name, shop_room(room), shop_boxes(room)) for name, room in SHOPS.items()]
+    for name, room, boxes in rooms:
         pieces = split(name, room, boxes, chairs)
         data[name] = {'pieces': pieces, 'on': overlays_on(pieces, name), 'decor': floor_decor()}
     # Where each growth piece shows, so it can be clicked (game/objects.ts).

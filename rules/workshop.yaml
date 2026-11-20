@@ -1,0 +1,387 @@
+# Workshop rules (road-to-1.4.md D2): the same format as rules/cafe.yaml, whose header explains it.
+# All the work goes to Xiaoding the tinkerer; Adeng only minds the counter until D3 sends work over.
+# The cafe's spots go by other names here: counter = workbench, board = tool wall,
+# shelf = parts cabinet, table = big table, corner = the old computer. Nobody goes out: helpers' errands are
+# Xiaoding walking to a spot. The filing cabinet and the letter holder are the home shop's, so they stay out of it.
+
+- on: session_start
+  actor: xiaoding
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: opening
+  priority: work
+  extra:
+    - { actor: adeng, state: ready, moveTo: counter, anim: idle, priority: chat }
+
+# Chalking the steps up by the tool wall.
+- on: plan
+  actor: xiaoding
+  state: working
+  moveTo: board
+  anim: write
+  bubble: note
+  lines: planning
+  priority: work
+
+- on: thinking
+  actor: xiaoding
+  state: thinking
+  anim: spin_cup
+  bubble: dots
+  priority: work
+
+# Helpers' errands: digging through the parts cabinet, tapping it over at the old computer, drawing it up at the tool wall.
+- on: subagent_start
+  when: { agent: researcher }
+  actor: xiaoding
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: researcher }
+  actor: xiaoding
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: reviewer }
+  actor: xiaoding
+  state: checking
+  moveTo: corner
+  anim: hammer
+  lines: sub_go_review
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: reviewer }
+  actor: xiaoding
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: sub_back_review
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: designer }
+  actor: xiaoding
+  state: working
+  moveTo: board
+  anim: read
+  bubble: idea
+  lines: sub_go_design
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: designer }
+  actor: xiaoding
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_design
+  priority: subagent
+
+# Unrecognized helpers: dug out of the parts cabinet too.
+- on: subagent_start
+  actor: xiaoding
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  actor: xiaoding
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: tool_start
+  when: { agent: researcher }
+  actor: xiaoding
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+- on: tool_start
+  when: { agent: reviewer }
+  actor: xiaoding
+  state: checking
+  anim: hammer
+  priority: work
+
+- on: tool_start
+  when: { agent: designer }
+  actor: xiaoding
+  state: working
+  anim: read
+  bubble: idea
+  priority: work
+
+- on: tool_start
+  when: { agent: unknown }
+  actor: xiaoding
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+# The list on the tool wall changes: Xiaoding goes over and reads it through.
+- on: progress
+  when: { agent: main }
+  actor: xiaoding
+  state: working
+  moveTo: board
+  anim: read
+  priority: chat
+
+# Office tools: a document is read at the parts cabinet; a finished file is laid on the workbench.
+- on: tool_start
+  when: { agent: main, tool: mcp__nook-office__read_document }
+  actor: xiaoding
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: [mcp__nook-office__make_docx, mcp__nook-office__make_xlsx, mcp__nook-office__make_pptx, mcp__nook-office__make_pdf, mcp__nook-office__edit_docx, mcp__nook-office__edit_xlsx, mcp__nook-office__edit_pptx, mcp__nook-office__render_png] }
+  actor: xiaoding
+  state: working
+  moveTo: counter
+  anim: gift
+  priority: work
+
+# Connections: no letter holder here, so what comes in is read at the workbench.
+- on: tool_start
+  when: { agent: main, tool: [mcp__nook-calendar__events, mcp__nook-folder__list, mcp__nook-folder__read] }
+  actor: xiaoding
+  state: working
+  moveTo: counter
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-folder__save_copy }
+  actor: xiaoding
+  state: working
+  moveTo: shelf
+  anim: gift
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-maildraft__draft }
+  actor: xiaoding
+  state: working
+  moveTo: counter
+  anim: gift
+  lines: draft_ready
+  priority: work
+
+# Building it at the workbench.
+- on: tool_start
+  when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
+  actor: xiaoding
+  state: working
+  moveTo: counter
+  anim: write
+  lines: writing
+  priority: work
+
+# Running something is typing at the old computer.
+- on: tool_start
+  when: { agent: main, tool: [Bash, PowerShell] }
+  actor: xiaoding
+  state: working
+  moveTo: corner
+  anim: write
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [WebSearch, WebFetch] }
+  actor: xiaoding
+  state: working
+  moveTo: counter
+  anim: phone
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Read, Glob, Grep] }
+  actor: xiaoding
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_start
+  when: { agent: main }
+  actor: xiaoding
+  state: working
+  moveTo: table
+  anim: write
+  priority: work
+
+- on: long_wait
+  actor: xiaoding
+  state: waiting
+  moveTo: window
+  anim: drink
+  bubble: tea
+  lines: waiting
+  priority: work
+
+- on: tool_fail
+  when: { failStreak: { lt: 3 } }
+  actor: xiaoding
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck
+  own_lines: true
+  priority: fail
+
+- on: tool_fail
+  actor: xiaoding
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck_long
+  priority: fail
+
+- on: tool_ok
+  when: { agent: main }
+  actor: xiaoding
+  state: working
+  priority: chat
+
+- on: ask_user
+  actor: xiaoding
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: permission
+  when: { risk: [serious, blocked] }
+  actor: xiaoding
+  state: serious
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: serious
+  priority: serious
+
+- on: permission
+  actor: xiaoding
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: decision
+  when: { choice: picked }
+  actor: xiaoding
+  state: reacting
+  anim: idle
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  when: { choice: delegated }
+  actor: xiaoding
+  state: reacting
+  anim: idle
+  lines: react_delegated
+  priority: fail
+
+- on: decision
+  when: { choice: allowed, risk: serious }
+  actor: xiaoding
+  state: reacting
+  lines: serious_yes
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: blocked }
+  actor: xiaoding
+  state: working
+  lines: refused
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: serious }
+  actor: xiaoding
+  state: reacting
+  lines: serious_no
+  priority: fail
+
+- on: decision
+  when: { choice: allowed }
+  actor: xiaoding
+  state: reacting
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  actor: xiaoding
+  state: reacting
+  lines: react_rejected
+  own_lines: true
+  priority: fail
+
+- on: done
+  actor: xiaoding
+  state: wrapping
+  moveTo: counter
+  anim: idle
+  lines: done
+  priority: fail
+
+- on: failed
+  actor: xiaoding
+  state: low
+  moveTo: counter
+  anim: idle
+  lines: failed
+  priority: fail
+
+- on: net_error
+  actor: xiaoding
+  state: low
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: failed
+  priority: fail
+
+- on: net_retry
+  actor: xiaoding
+  state: waiting
+  moveTo: window
+  anim: idle
+  bubble: dots
+  lines: net_retry
+  priority: fail
+
+- on: cancelled
+  actor: xiaoding
+  state: idle
+  moveTo: counter
+  anim: idle
+  lines: cancelled
+  priority: fail

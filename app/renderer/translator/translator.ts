@@ -1,6 +1,6 @@
 import { parse } from 'yaml';
 import { pattern, strings } from '../../shared/i18n';
-import { AGENT_ACTOR } from '../../shared/staff';
+import { AGENT_ACTOR, ROOM_CREW } from '../../shared/staff';
 import type { ActorId, AiEvent, AiEventKind, Bubble, CharacterCommand, Post } from '../../shared/types';
 import { PRIORITY } from './director';
 import { type ActorState, StateMachine } from './state-machine';
@@ -107,6 +107,13 @@ export class Translator {
   private visits = new Map<string, number>();
   /** Who came back with the last subagent that finished: the parcel on the counter is theirs. */
   returned: ActorId = 'xiaoju';
+  /** Who is in the room on screen (D2). An errand whose usual runner is elsewhere goes to the room's own person. */
+  crew: readonly ActorId[] = ROOM_CREW.cafe;
+
+  private runner(agent: AiEvent['agent']): ActorId {
+    const usual = AGENT_ACTOR[agent];
+    return this.crew.includes(usual) ? usual : this.crew[this.crew.length - 1];
+  }
 
   constructor(private rules: Rule[], private anims: AnimTable, private ctx: TranslateContext = {}) {}
 
@@ -206,7 +213,7 @@ export class Translator {
 
   /** Who plays a rule's part: Adeng's is the round's lead's. */
   private actorOf(spec: CommandSpec, e: AiEvent): ActorId {
-    if (spec.actor === '{agent}') return e.agent === 'main' ? this.leadOf(e.run) : AGENT_ACTOR[e.agent];
+    if (spec.actor === '{agent}') return e.agent === 'main' ? this.leadOf(e.run) : this.runner(e.agent);
     return spec.actor === 'adeng' ? this.leadOf(e.run) : spec.actor;
   }
 
@@ -215,7 +222,7 @@ export class Translator {
    * otherwise Adeng says it will wait its turn. Whoever set off first is back first, and sets off on the next.
    */
   private errand(e: AiEvent): CharacterCommand[] {
-    const lead = AGENT_ACTOR[e.agent];
+    const lead = this.runner(e.agent);
     const run = e.run ?? '';
     const hands = this.hands.get(lead) ?? [];
     this.hands.set(lead, hands);
@@ -249,7 +256,7 @@ export class Translator {
 
   /** Who is out on an agent's errands just now, or the agent's own actor when nobody is. */
   helpersOf(agent: AiEvent['agent']): ActorId[] {
-    const lead = AGENT_ACTOR[agent];
+    const lead = this.runner(agent);
     const hands = this.hands.get(lead);
     return hands?.length ? hands.map((h) => h.actor) : [lead];
   }

@@ -51,7 +51,7 @@ import { boardRow, projectFolders, projectSettled, timelineRows } from './projec
 import { newSession, projectBackground } from './project-brief';
 import { localDay } from '../shared/localday';
 import { ProjectVersions, type Scope } from './project-versions';
-import { cleanScene } from '../shared/scenes';
+import { cleanRoom, cleanScene, type RoomId } from '../shared/scenes';
 import { CONNECTION_ID, ConnectionStore } from './connections';
 import { ActionLog, ConnectionReads, RoundActions } from './action-log';
 import { calendarKind, type FetchText, folderKind, type KindDef, maildraftKind, offerOf, testKind } from './connection-kinds';
@@ -526,12 +526,25 @@ ipcMain.handle(IPC.openWorkRoot, async () => {
 ipcMain.handle(IPC.openLink, (_e, link: ExternalLink) => (LINKS[link] ? shell.openExternal(LINKS[link]) : undefined));
 ipcMain.handle(IPC.appVersion, () => app.getVersion());
 ipcMain.on(IPC.locale, (e) => { e.returnValue = locale(); });
-ipcMain.on(IPC.scene, (e) => { e.returnValue = settings.get().scene; });
+/** A room gone into from the street that is not the home shop (road-to-1.4.md D2). Never saved: the app opens at home. */
+let visiting: RoomId | undefined;
+ipcMain.on(IPC.scene, (e) => { e.returnValue = visiting ?? settings.get().scene; });
+ipcMain.on(IPC.home, (e) => { e.returnValue = settings.get().scene; });
 // Moving waits while a commission runs: reloading the page would lose the stage that acts it out.
 ipcMain.handle(IPC.moveScene, (_e, scene: unknown): boolean => {
   const next = cleanScene(scene);
   if (!next || runs.size || queue.queued.length || !win) return false;
   settings.update({ scene: next });
+  visiting = undefined;
+  mini.destroy();
+  win.webContents.reload();
+  return true;
+});
+// Going into another room waits the same way.
+ipcMain.handle(IPC.visitRoom, (_e, room: unknown): boolean => {
+  const next = cleanRoom(room);
+  if (!next || runs.size || queue.queued.length || !win) return false;
+  visiting = next === settings.get().scene ? undefined : next;
   mini.destroy();
   win.webContents.reload();
   return true;

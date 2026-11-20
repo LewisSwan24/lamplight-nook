@@ -1,4 +1,4 @@
-import { currentScene, type SceneId } from '../shared/scenes';
+import { currentScene, isScene, type RoomId } from '../shared/scenes';
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
@@ -44,7 +44,6 @@ import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, setOutsideButton, setWorking, syncToolbar, view } from './ui/toolbar';
 import { el, layer } from './ui/dom';
-import { moveTo as moveShop } from './ui/scenes';
 import { MOVERS, OPEN } from './game/town';
 import { TOWN_MOVE } from '../shared/town';
 
@@ -176,15 +175,17 @@ setInterval(() => {
     shopDays.told.add(talk.id);
     void window.lamplight.markTold(talk.id);
   }
-  tendGarden(!busy);
+  if (atHome) tendGarden(!busy);
   bringLetter(!busy && !blocked && scene.view === 'shop');
-  dropIn(!busy && !blocked && scene.view === 'shop');
+  if (atHome) dropIn(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
 }, 5000);
 
 // The back garden: when the shop is quiet someone wanders out now and then; work calls everyone back in,
 // and so do rain and nightfall.
 const gardenPlanner = new GardenPlanner(Date.now());
+/** The garden, the neighbours dropping in, what the shop gathered and the works shelf are the home shop's (D2). */
+const atHome = isScene(currentScene());
 function tendGarden(quiet: boolean) {
   const { sky } = scene.outside();
   const open = gardenOpen(sky, scene.period);
@@ -369,8 +370,8 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   const state = await window.lamplight.shopState();
   // The scene builds its props on its first frame; wait for it when the shop has only just opened.
   while (!scene.growth) await new Promise((r) => setTimeout(r, 100));
-  scene.growth.setGrown(state.grown.map((g) => g.id), fresh);
-  scene.growth.setWorks(state.works.map((w) => w.icon));
+  scene.growth.setGrown(atHome ? state.grown.map((g) => g.id) : [], fresh);
+  scene.growth.setWorks(atHome ? state.works.map((w) => w.icon) : []);
   scene.garden.setWorksDone(state.done);
   stage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
@@ -687,7 +688,9 @@ function applySettings(s: Settings) {
   document.body.classList.toggle('reduce-motion', calm);
   scene.setReducedMotion(calm);
   scene.setYouLook(s.avatar);
-  scene.setFurnishing(s.furnish[currentScene()]);
+  // Furnishing is the home shop's; the shops along the street are as they are drawn.
+  const room = currentScene();
+  if (isScene(room)) scene.setFurnishing(s.furnish[room]);
   scene.youName = s.name;
   syncToolbar(s);
 }
@@ -760,8 +763,12 @@ async function openShop() {
   street.onActor = (id) => scene.onActorClick(id);
   street.onFront = (id, open) => {
     if (id === currentScene()) return goOut(false);
-    if (open) return void moveShop(api, id as SceneId);
-    streetNote.textContent = strings.ui.town.notes[id];
+    // Another room is a visit: the home shop stays where it is (road-to-1.4.md D2). Not while work goes on in here.
+    if (open) return void api.visitRoom(id as RoomId).then((ok) => { if (!ok) say(strings.ui.town.busy); });
+    say(strings.ui.town.notes[id]);
+  };
+  const say = (text: string) => {
+    streetNote.textContent = text;
     streetNote.hidden = false;
     clearTimeout(noteTimer);
     noteTimer = window.setTimeout(() => { streetNote.hidden = true; }, 3000);

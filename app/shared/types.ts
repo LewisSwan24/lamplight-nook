@@ -1,7 +1,7 @@
 import type { Furnishings } from './furnish';
 import type { TownDays } from './town';
 import type { Todo } from './board';
-import type { SceneId } from './scenes';
+import type { RoomId, SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
@@ -11,7 +11,7 @@ import type { TemplateId } from './templates';
 /** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner' | 'cabinet' | 'mailslot';
 
-export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'cat';
+export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'cat';
 /** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
 export type GuestId = 'baker' | 'postman' | 'mechanic' | 'granny' | 'student';
 /** Anyone who can say something in the shop. */
@@ -272,6 +272,8 @@ export interface LamplightApi {
   showShop(): Promise<void>;
   /** Move the shop to another scene: saves it and reloads the page; false while a commission runs. */
   moveScene(scene: SceneId): Promise<boolean>;
+  /** Go into another room along the street, without moving the home shop (road-to-1.4.md D2). */
+  visitRoom(room: RoomId): Promise<boolean>;
   /** A new version is out (road-to-1.1.md A1): the postman brings the letter. */
   onUpdate(cb: (offer: UpdateOffer) => void): () => void;
   /** The user said "update": fetch it, to go in when the shop closes. False if it could not be fetched. */
@@ -466,6 +468,8 @@ export const IPC = {
   locale: 'app:locale',
   scene: 'app:scene',
   moveScene: 'app:move-scene',
+  home: 'app:home',
+  visitRoom: 'app:visit-room',
   relaunch: 'app:relaunch',
   legalNotices: 'app:legal-notices',
   saveApiKey: 'key:save',

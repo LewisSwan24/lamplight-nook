@@ -1,10 +1,12 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ANCHORS, MAILSLOT, OUTBOX, seatsIn, standPoint } from '../app/renderer/game/layout';
-import { STAFF } from '../app/shared/staff';
+import { ROOMS, isScene } from '../app/shared/scenes';
+import { ROOM_CREW } from '../app/shared/staff';
 import { readPng } from './png';
 
-const SCENES = ['cafe', 'study'] as const;
+// Every room, the three shops along the street included (road-to-1.4.md D2).
+const SCENES = ROOMS;
 type Piece = { name: string; x: number; y: number; w: number; h: number; sy: number; base: number };
 const pieces = JSON.parse(readFileSync('assets/sprites/pieces.json', 'utf8')) as Record<(typeof SCENES)[number], { pieces: Piece[]; on: Record<string, number> }>;
 type Png = ReturnType<typeof readPng>;
@@ -63,7 +65,8 @@ describe.each(SCENES)('the %s split into a room and its furniture', (scene) => {
     for (const name of ['counter', 'table', 'shelf', 'workbench']) expect(list.map((p) => p.name)).toContain(name);
   });
 
-  it('has the filing cabinet beside the bookcase, the letter slot by the door and the outbox on the counter (C8)', () => {
+  // The back room's things are the home shop's (C8): the shops along the street have none.
+  it.skipIf(!isScene(scene))('has the filing cabinet beside the bookcase, the letter slot by the door and the outbox on the counter (C8)', () => {
     const shelf = list.find((p) => p.name === 'shelf')!;
     const cabinet = list.find((p) => p.name === 'cabinet');
     expect(cabinet).toBeDefined();
@@ -76,7 +79,7 @@ describe.each(SCENES)('the %s split into a room and its furniture', (scene) => {
       return n;
     };
     expect(outline(room, MAILSLOT.x, MAILSLOT.y, MAILSLOT.w, MAILSLOT.h)).toBeGreaterThan(MAILSLOT.w);
-    const box = OUTBOX[scene];
+    const box = OUTBOX[scene as 'cafe' | 'study'];
     const counter = list.filter((p) => p.name === 'counter' && box.x >= p.x && box.x + box.w <= p.x + p.w && box.y >= p.y && box.y + box.h <= p.y + p.h);
     expect(counter).toHaveLength(1);
     expect(outline(picture, box.x, box.y, box.w, box.h)).toBeGreaterThan(box.w);
@@ -85,8 +88,9 @@ describe.each(SCENES)('the %s split into a room and its furniture', (scene) => {
   it('puts a sitter in front of the chair', () => {
     const seats = list.filter((p) => /^(chair|bench|sofa)/.test(p.name));
     for (const places of Object.values(seatsIn(scene))) {
-      for (const seat of Object.values(places ?? {})) {
-        if (!seat.chair) continue;
+      // Only the seats of those in the room: the shops along the street have no bench or sofa (D2).
+      for (const [actor, seat] of Object.entries(places ?? {})) {
+        if (!seat.chair || !ROOM_CREW[scene].includes(actor as never)) continue;
         const chair = seats.find((c) => seat.x >= c.x - 2 && seat.x < c.x + c.w + 2 && seat.y >= c.y && seat.y <= c.y + c.h + 3)!;
         expect(chair.base).toBeLessThan(seat.y);
       }
@@ -96,7 +100,7 @@ describe.each(SCENES)('the %s split into a room and its furniture', (scene) => {
   it('never hides most of someone standing at their place', () => {
     const hidden: string[] = [];
     for (const place of Object.keys(ANCHORS) as (keyof typeof ANCHORS)[]) {
-      for (const actor of STAFF) {
+      for (const actor of ROOM_CREW[scene].filter((a) => a !== 'cat')) {
         const spot = standPoint(place, actor, scene);
         let covered = 0;
         for (let y = spot.y - 24; y < spot.y; y++) {

@@ -361,8 +361,9 @@ export class Shop {
   async order({ template, want, details, audience, files } = {}) {
     const counter = this.page.locator("button.hotspot");
     const labels = await counter.evaluateAll((bs) => bs.map((b) => b.getAttribute('aria-label')));
-    const desk = this.L.sceneText?.study?.ui?.access?.hotspotCounter;
-    const label = labels.find((l) => l === this.L.ui.access.hotspotCounter || l === desk) ?? this.L.ui.access.hotspotCounter;
+    // Every room calls its counter by its own name: the study's desk, the print shop's composing desk (D2).
+    const desks = [this.L.ui.access.hotspotCounter, ...Object.values(this.L.sceneText ?? {}).map((t) => t?.ui?.access?.hotspotCounter)];
+    const label = labels.find((l) => desks.includes(l)) ?? this.L.ui.access.hotspotCounter;
     await this.hotspot(label);
     await this.page.waitForSelector('form.commission');
     if (template) {

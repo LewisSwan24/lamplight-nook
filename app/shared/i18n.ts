@@ -4,7 +4,7 @@
 // (main/locale-boot.ts), and the renderer reads it from the preload. Changing it in settings restarts the app.
 import zh from '../../locales/zh-CN.json';
 import en from '../../locales/en.json';
-import { currentScene, type SceneId } from './scenes';
+import { currentScene, type RoomId } from './scenes';
 
 export type Strings = typeof zh;
 export type Locale = 'zh-CN' | 'en';
@@ -30,7 +30,7 @@ const boot = (globalThis as { lamplightLocale?: unknown }).lamplightLocale;
 let lang: Locale = isLocale(boot) ? boot : 'zh-CN';
 
 /** Strings with a scene's own wording laid over them (`sceneText.<scene>`: the names of the spots, hints that mention them). */
-export function withScene(S: Strings, scene: SceneId): Strings {
+export function withScene(S: Strings, scene: RoomId): Strings {
   const over = (S.sceneText as Record<string, unknown>)[scene];
   if (!over) return S;
   const merge = (base: unknown, top: unknown): unknown => {

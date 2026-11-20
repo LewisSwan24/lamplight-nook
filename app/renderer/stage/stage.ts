@@ -1,6 +1,7 @@
 import { plainOf } from '../../main/event-normalizer';
 import { fill, strings } from '../../shared/i18n';
-import { STAFF } from '../../shared/staff';
+import { currentScene } from '../../shared/scenes';
+import { ROOM_CREW, STAFF } from '../../shared/staff';
 import type { ActorId, AiEvent, CharacterCommand } from '../../shared/types';
 import type { CafeScene } from '../game/CafeScene';
 import { outsideFlags } from '../game/weather';
@@ -81,6 +82,7 @@ export class Stage {
   constructor(private scene: CafeScene, opts: { brief?: string } = {}) {
     const book = ruleBook();
     this.translator = new Translator(book.rules, book.anims, { brief: opts.brief });
+    this.translator.crew = ROOM_CREW[currentScene()];
     this.director = new Director(toLineBook(book.lines));
     onRuleBookChange((b) => {
       this.translator.reload(b.rules, b.anims);
@@ -294,9 +296,10 @@ export class Stage {
     info.state = cmd.state;
     // Working for a round (B9): its flag goes up, and its crew's places are theirs; done, or sent home, it comes down.
     if (cmd.run !== undefined && actor !== 'cat') {
-      const leading = this.translator.crews().get(actor) !== undefined;
-      if (OFF_DUTY.includes(cmd.state) || (cmd.state === READY && !leading)) this.wearing.delete(actor);
-      else if (cmd.state !== READY) this.wearing.set(actor, cmd.run);
+      // A lead who is done helping the other round goes back to their own, rather than waiting for its next move to say so.
+      const own = this.translator.crews().get(actor);
+      if (OFF_DUTY.includes(cmd.state) || (cmd.state === READY && own === undefined)) this.wearing.delete(actor);
+      else this.wearing.set(actor, cmd.state === READY ? own! : cmd.run);
       this.redress();
     }
     if (this.catchingUp) return this.skip(cmd, info);

@@ -19,6 +19,9 @@
     "laoshi": "老石",
     "qingdai": "青黛",
     "xiaodou": "小豆",
+    "aqian": "阿铅",
+    "xiaozhe": "小赭",
+    "xiaoding": "小钉",
     "cat": "栗子"
   },
   "animals": {
@@ -698,6 +701,7 @@
     "town": {
       "moving": "店搬到街上来了。点一下就跳过。",
       "moved": "{name}，东西都搬过来了，摆得和原来一样。",
+      "busy": "店里有活在做，做完再过去。",
       "notes": {
         "cafe": "咖啡馆。",
         "study": "书房。",
@@ -1377,6 +1381,48 @@
         "access": {
           "hotspotCounter": "书桌：递一张委托",
           "hotspotShop": "后门：回书房"
+        }
+      }
+    },
+    "print": {
+      "zones": {
+        "counter": "排字台",
+        "board": "印机",
+        "shelf": "纸架",
+        "table": "裁纸台",
+        "corner": "装订桌"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "排字台：递一张委托"
+        }
+      }
+    },
+    "studio": {
+      "zones": {
+        "counter": "长桌",
+        "board": "画架",
+        "shelf": "画框架",
+        "table": "矮桌",
+        "corner": "窗边的高凳"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "长桌：递一张委托"
+        }
+      }
+    },
+    "workshop": {
+      "zones": {
+        "counter": "工作台",
+        "board": "工具墙",
+        "shelf": "零件柜",
+        "table": "大木桌",
+        "corner": "旧电脑"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "工作台：递一张委托"
         }
       }
     }

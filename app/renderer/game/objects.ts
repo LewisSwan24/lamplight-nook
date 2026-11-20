@@ -1,8 +1,9 @@
 import { fill, type LOCALES } from '../../shared/i18n';
 import { GROWTH, type GrowthId } from '../../shared/growth';
-import type { SceneId } from '../../shared/scenes';
+import { isScene, type RoomId } from '../../shared/scenes';
 import type { ActorId, AnchorId } from '../../shared/types';
 import type { Period } from './daytime';
+import { CUP_AT } from './layout';
 import { pieceData } from './pieces';
 import type { Sky } from './weather';
 
@@ -28,18 +29,20 @@ const WALL: Partial<Record<FixedObject, { x: number; y: number; w: number; h: nu
   sidewindow: { x: 197, y: 12, w: 28, h: 28 },
   frontdoor: { x: 288, y: 16, w: 16, h: 32 },
 };
-const CUP = { cafe: { x: 258, y: 78, w: 12, h: 14 }, study: { x: 234, y: 76, w: 12, h: 14 } };
+// The cup's picture stands above the spot that answers for it.
+const cupBox = (scene: RoomId) => ({ x: CUP_AT[scene].x + 2, y: CUP_AT[scene].y + 14, w: 12, h: 14 });
 
-export function objectBoxes(scene: SceneId): ObjectBox[] {
+export function objectBoxes(scene: RoomId): ObjectBox[] {
   const { pieces, grow } = pieceData(scene);
   const out: ObjectBox[] = [];
   for (const id of FIXED) {
     const name = PIECE_OF[id];
     const piece = name && pieces.find((p) => p.name === name);
-    const place = piece ? { x: piece.x, y: piece.y, w: piece.w, h: piece.h } : WALL[id] ?? (id === 'cup' ? CUP[scene] : null);
+    const place = piece ? { x: piece.x, y: piece.y, w: piece.w, h: piece.h } : WALL[id] ?? (id === 'cup' ? cupBox(scene) : null);
     if (place) out.push({ id, ...place });
   }
-  for (const g of GROWTH) out.push({ id: `grow-${g.id}`, ...(grow as Record<string, { x: number; y: number; w: number; h: number }>)[g.id] });
+  // What the shop gathered stands in the home shop only (D7).
+  if (isScene(scene)) for (const g of GROWTH) out.push({ id: `grow-${g.id}`, ...(grow as Record<string, { x: number; y: number; w: number; h: number }>)[g.id] });
   return out;
 }
 

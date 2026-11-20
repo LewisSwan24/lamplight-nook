@@ -44,6 +44,27 @@ STAFF = {
                    'Outfits/16x16/Outfit_17_01.png', 'Hairstyles/16x16/Hairstyle_03_03.png'],
         'recolor': {'Hairstyles/16x16/Hairstyle_03_03.png': [((0, 45), '#9C3F2C')]},
     },
+    # The three new shops (road-to-1.4.md D2), written as aqian.png, xiaozhe.png and xiaoding.png.
+    # Aqian (Pica) of the print shop: an old typesetter, grey hair, thin glasses, shirtsleeves and a dark work apron
+    # (the apron outfit Adeng wears, dyed slate). Fair where Laoshi is dark, and no beard.
+    'aqian': {
+        'layers': ['Bodies/16x16/Body_03.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_09_01.png', 'Hairstyles/16x16/Hairstyle_20_05.png',
+                   'Accessories/16x16/Accessory_15_Glasses_06.png'],
+        'recolor': {'Outfits/16x16/Outfit_09_01.png': [((340, 20), '#3B4152')]},
+    },
+    # Xiaozhe (Umber) of the studio: a quiet painter with a dark bob and an ochre smock.
+    'xiaozhe': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_13_01.png', 'Hairstyles/16x16/Hairstyle_10_06.png'],
+        'recolor': {'Outfits/16x16/Outfit_13_01.png': [((170, 240), '#C98F3A')]},
+    },
+    # Xiaoding (Tack) of the workshop: a quick young tinkerer, a ginger quiff and a denim boiler suit.
+    'xiaoding': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_16_01.png', 'Hairstyles/16x16/Hairstyle_26_01.png'],
+        'recolor': {'Outfits/16x16/Outfit_16_01.png': [((15, 60), '#4F78B0')]},
+    },
 }
 
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and
@@ -141,7 +162,16 @@ def add_scarf(sheet, outfit, colour):
                         s[x, y + 1] = (*dark, 255)
 
 
-def build(name, recipe):
+def save(img, path, **options):
+    """Write the picture unless the file already holds the same one, so a re-run leaves the PNGs byte for byte."""
+    if path.exists():
+        with Image.open(path) as old:
+            if old.size == img.size and old.convert('RGBA').tobytes() == img.convert('RGBA').tobytes():
+                return
+    img.save(path, **options)
+
+
+def build(name, recipe, write=True):
     sheet = None
     outfit = None
     for rel in recipe['layers']:
@@ -154,7 +184,8 @@ def build(name, recipe):
     if 'scarf' in recipe:
         add_scarf(sheet, outfit, recipe['scarf'])
     OUT.mkdir(parents=True, exist_ok=True)
-    sheet.save(OUT / f'{name}.png')
+    if write:
+        save(sheet, OUT / f'{name}.png')
     return sheet
 
 
@@ -194,7 +225,7 @@ def build_cat_walk():
             for x, c in enumerate(row):
                 if c != '.':
                     sheet.putpixel((f * 20 + x, y), (*colour[c], 255))
-    sheet.save(OUT / 'cat-walk.png')
+    save(sheet, OUT / 'cat-walk.png')
 
 
 def build_cat():
@@ -209,7 +240,7 @@ def build_cat():
             r, g, b, a = px[x, y]
             if a and (r, g, b) in lut:
                 px[x, y] = (*lut[(r, g, b)], a)
-    img.save(OUT / 'cat.png')
+    save(img, OUT / 'cat.png')
 
 
 if __name__ == '__main__':
@@ -221,6 +252,6 @@ if __name__ == '__main__':
     print('built cat')
     for n, layers in enumerate(PLAYERS, 1):
         layers = [layers[0], 'Eyes/16x16/Eyes_01.png', *layers[1:]]
-        sheet = build(f'you-{n}', {'layers': layers})
-        sheet.crop((0, 0, SHEET_SIZE[0], PLAYER_ROWS * 32)).save(OUT / f'you-{n}.png', optimize=True)
+        sheet = build(f'you-{n}', {'layers': layers}, write=False)
+        save(sheet.crop((0, 0, SHEET_SIZE[0], PLAYER_ROWS * 32)), OUT / f'you-{n}.png', optimize=True)
         print('built', f'you-{n}')
