@@ -461,7 +461,7 @@ const SCENARIOS = {
     }
 
     // A card that must be answered comes first, then this one.
-    home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': 'garbage', 'pending.json': JSON.stringify({ workDir: join(tmpdir(), 'nowhere'), form: { want: 'x' }, id: 'c1' }) });
+    home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': 'garbage', 'pending.json': JSON.stringify({ workDir: join(tmpdir(), 'nowhere'), form: { want: 'x' }, id: 'c1', startedAt: 1760000000000 }) });
     shop = await launch({ lang, home, debug: true });
     try {
       await shop.page.waitForSelector('.pending-card', { timeout: 10_000 });
