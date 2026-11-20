@@ -4,7 +4,7 @@
 // (main/locale-boot.ts), and the renderer reads it from the preload. Changing it in settings restarts the app.
 import zh from '../../locales/zh-CN.json';
 import en from '../../locales/en.json';
-import { currentScene, type RoomId } from './scenes';
+import { homeScene, type RoomId } from './scenes';
 
 export type Strings = typeof zh;
 export type Locale = 'zh-CN' | 'en';
@@ -43,14 +43,17 @@ export function withScene(S: Strings, scene: RoomId): Strings {
 }
 
 /** The strings of the current language. Modules may keep a reference to a part of it: it never changes after start-up. */
-export let strings: Strings = withScene(LOCALES[lang], currentScene());
+export let strings: Strings = withScene(LOCALES[lang], homeScene());
+
+/** The strings as a room says them: the home shop's are `strings`, a room along the street lays its own words over them (D2). */
+export const wordsIn = (room: RoomId): Strings => withScene(LOCALES[lang], room);
 
 export const locale = () => lang;
 
 /** Only for start-up (and tests): later changes would not reach parts other modules already hold. */
 export function setLocale(next: Locale) {
   lang = next;
-  strings = withScene(LOCALES[next], currentScene());
+  strings = withScene(LOCALES[next], homeScene());
 }
 
 /** Fill `{name}` placeholders. Unknown placeholders are left as-is. */

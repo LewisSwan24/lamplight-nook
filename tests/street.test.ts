@@ -12,7 +12,7 @@ describe('street inset', () => {
     for (const spot of Object.values(SEATS.table ?? {})) expect(spot!.y < INSET.y || spot!.x + 8 <= INSET.x).toBe(true);
     for (const id of ['adeng', 'xiaoju', 'laoshi'] as const) {
       // A character is 16px wide, centred on its feet.
-      expect(standPoint('corner', id).x + 8).toBeLessThanOrEqual(INSET.x);
+      expect(standPoint('corner', id, 'cafe').x + 8).toBeLessThanOrEqual(INSET.x);
     }
     expect(ANCHORS.counter.y).toBeLessThan(INSET.y);
   });

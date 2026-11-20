@@ -68,7 +68,7 @@ export const SPOTS: GardenSpot[] = [
 ];
 
 /** In the shop: from wherever someone stands to the back door. */
-export function pathToBackDoor(from: Point, scene?: RoomId): Point[] {
+export function pathToBackDoor(from: Point, scene: RoomId): Point[] {
   return walkBetween(from, BACK_DOOR_SPOT, scene);
 }
 

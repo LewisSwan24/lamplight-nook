@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ANCHORS, standPoint, walkBetween } from '../app/renderer/game/layout';
 import { hitsFeet } from '../app/renderer/game/path';
@@ -46,6 +47,15 @@ describe('the rooms', () => {
 
   it('loads a sprite sheet for everyone who stands in a room', () => {
     for (const r of ROOMS) for (const a of ROOM_CREW[r]) if (a !== 'cat') expect(STAFF_IDS, `${r}: ${a}`).toContain(a);
+  });
+});
+
+describe('the room on screen (road-to-1.4.md D2, second half)', () => {
+  const files = (dir: string): string[] => readdirSync(dir, { withFileTypes: true })
+    .flatMap((f) => (f.isDirectory() ? files(join(dir, f.name)) : f.name.endsWith('.ts') ? [join(dir, f.name)] : []));
+
+  it('is never read from the page: each room is built knowing which it is, so going in needs no reload', () => {
+    expect(files('app').filter((f) => /currentScene|lamplightScene/.test(read(f)))).toEqual([]);
   });
 });
 

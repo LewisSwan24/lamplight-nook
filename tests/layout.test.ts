@@ -31,12 +31,12 @@ describe('scene layout', () => {
   });
 
   it('paths end at the anchor', () => {
-    const path = pathBetween(ANCHORS.shelf, 'door');
+    const path = pathBetween(ANCHORS.shelf, 'door', undefined, 'cafe');
     expect(path.at(-1)).toEqual({ x: ANCHORS.door.x, y: ANCHORS.door.y });
   });
 
   it('no movement when already there', () => {
-    expect(pathBetween(ANCHORS.door, 'door')).toEqual([]);
+    expect(pathBetween(ANCHORS.door, 'door', undefined, 'cafe')).toEqual([]);
   });
 });
 

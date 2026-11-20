@@ -8,6 +8,8 @@ export type DirectorOptions = {
   lineCooldownMs?: number;
   /** After unfreezing, low-priority commands queued longer ago than this are dropped. */
   staleMs?: number;
+  /** Someone who finishes a move skips queued moves older than this that newer ones have overtaken (D2). */
+  behindMs?: number;
   now?: () => number;
 };
 
@@ -33,11 +35,14 @@ export class Director {
   private held = new Set<ActorId>();
   private readonly cooldown: number;
   private readonly staleMs: number;
+  private readonly behindMs: number;
   private readonly now: () => number;
 
   constructor(private lines: LineBook, opts: DirectorOptions = {}) {
     this.cooldown = opts.lineCooldownMs ?? 30_000;
     this.staleMs = opts.staleMs ?? 5_000;
+    // Longer than after a card: a trip a few seconds late (the cabinet, C8) still plays; only a real backlog is cut.
+    this.behindMs = opts.behindMs ?? 15_000;
     this.now = opts.now ?? Date.now;
   }
 
@@ -77,7 +82,7 @@ export class Director {
     this.current.delete(actor);
     if (this.frozen || this.held.has(actor)) return null;
     const at = this.now();
-    const q = (this.queues.get(actor) ?? []).filter((x, i, all) => i === all.length - 1 || at - x.at <= this.staleMs || x.cmd.priority >= PRIORITY.fail);
+    const q = (this.queues.get(actor) ?? []).filter((x, i, all) => i === all.length - 1 || at - x.at <= this.behindMs || x.cmd.priority >= PRIORITY.fail);
     const next = q.shift();
     this.queues.set(actor, q);
     return next ? this.play(next.cmd) : null;

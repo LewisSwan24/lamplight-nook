@@ -1,5 +1,5 @@
 import data from '../../../assets/sprites/town.json';
-import { ROOMS } from '../../shared/scenes';
+import { ROOMS, type RoomId } from '../../shared/scenes';
 import type { ShopId } from '../../shared/town';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
@@ -19,6 +19,16 @@ export const FRONTS = data.fronts as Front[];
 
 /** The fronts one can go into: every room (D2). The bakery and the post office stay neighbours' doors. */
 export const OPEN: ReadonlySet<ShopId> = new Set(ROOMS);
+
+/**
+ * What a click on a front does (D2): back into the room you came out of, into another room (the home shop is one, from
+ * the others), or a word on the street. Another room waits while work goes on: only one room works at a time until D3.
+ */
+export function entering(id: ShopId, at: { here: RoomId; busy: boolean }): 'back' | 'visit' | 'busy' | 'closed' {
+  if (id === at.here) return 'back';
+  if (!OPEN.has(id)) return 'closed';
+  return at.busy ? 'busy' : 'visit';
+}
 
 /** How much of the street the canvas shows at once. */
 export const CAMERA_W = CANVAS.width;

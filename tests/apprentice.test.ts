@@ -62,7 +62,7 @@ describe('the apprentice joins the shop', () => {
   it('has a place to stand at every anchor', () => {
     for (const anchor of Object.keys(ANCHORS) as AnchorId[]) {
       for (const actor of STAFF) {
-        const p = standPoint(anchor, actor);
+        const p = standPoint(anchor, actor, 'cafe');
         expect(Number.isFinite(p.x) && Number.isFinite(p.y), `${actor} at ${anchor}`).toBe(true);
       }
     }

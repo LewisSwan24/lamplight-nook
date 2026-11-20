@@ -1,3 +1,4 @@
+import type { RoomId } from '../../shared/scenes';
 import { overlayDepth } from './pieces';
 import Phaser from 'phaser';
 import { FALLING, HOLIDAYS, type Holiday, type Season, type Sky, multiply } from './weather';
@@ -41,7 +42,7 @@ export class WeatherLayer {
    * `glass` is a mask texture of the window panes; `outdoors` are other views of the outside
    * (the street inset), each with its own mask and depth.
    */
-  constructor(private scene: Phaser.Scene, private glass: string, private outdoors: Outdoor[] = []) {
+  constructor(private scene: Phaser.Scene, private room: RoomId, private glass: string, private outdoors: Outdoor[] = []) {
     if (!scene.textures.exists('weather-px')) {
       const g = scene.make.graphics({}, false).fillStyle(0xffffff).fillRect(0, 0, 1, 1);
       g.generateTexture('weather-px', 1, 1);
@@ -55,17 +56,17 @@ export class WeatherLayer {
   /** Put out the season's piece (it stays hidden while a festival is up). */
   setSeason(season: Season) {
     this.season = season;
-    this.seasonDecor.setTexture(`season-${season}`).setDepth(overlayDepth(`season-${season}`, DECOR_DEPTH));
+    this.seasonDecor.setTexture(`season-${season}`).setDepth(overlayDepth(this.room, `season-${season}`, DECOR_DEPTH));
   }
 
   /** Change what falls outside and which decorations are up. */
   set(sky: Sky, holiday: Holiday | null) {
     this.sky = sky;
     this.holiday = holiday;
-    if (holiday) this.decor.setTexture(`decor-${holiday}`).setDepth(overlayDepth(`decor-${holiday}`, DECOR_DEPTH));
+    if (holiday) this.decor.setTexture(`decor-${holiday}`).setDepth(overlayDepth(this.room, `decor-${holiday}`, DECOR_DEPTH));
     this.decor.setVisible(!!holiday);
     this.seasonDecor.setVisible(!holiday);
-    if (sky !== 'clear') this.touch.setTexture(`weather-${sky}`).setDepth(overlayDepth(`weather-${sky}`, DECOR_DEPTH));
+    if (sky !== 'clear') this.touch.setTexture(`weather-${sky}`).setDepth(overlayDepth(this.room, `weather-${sky}`, DECOR_DEPTH));
     this.touch.setVisible(sky !== 'clear');
     this.restart();
   }

@@ -42,11 +42,11 @@ describe('the player\'s visit', () => {
   };
 
   it('comes in, hands over the slip, sits by the lamp, picks up the result and goes, never through furniture', () => {
-    expect(walk(YOU_DOOR, walkBetween(YOU_DOOR, YOU_COUNTER))).toEqual(YOU_COUNTER);
-    const seat = walk(YOU_COUNTER, walkBetween(YOU_COUNTER, YOU_SEAT));
+    expect(walk(YOU_DOOR, walkBetween(YOU_DOOR, YOU_COUNTER, 'cafe'))).toEqual(YOU_COUNTER);
+    const seat = walk(YOU_COUNTER, walkBetween(YOU_COUNTER, YOU_SEAT, 'cafe'));
     expect(seat).toEqual({ x: YOU_SEAT.x, y: YOU_SEAT.y });
-    expect(walk(seat, walkBetween(seat, YOU_COUNTER))).toEqual(YOU_COUNTER);
-    expect(walk(YOU_COUNTER, walkBetween(YOU_COUNTER, YOU_DOOR))).toEqual(YOU_DOOR);
+    expect(walk(seat, walkBetween(seat, YOU_COUNTER, 'cafe'))).toEqual(YOU_COUNTER);
+    expect(walk(YOU_COUNTER, walkBetween(YOU_COUNTER, YOU_DOOR, 'cafe'))).toEqual(YOU_DOOR);
   });
 
   it('sits the way the chair faces, which sitting can do', () => {

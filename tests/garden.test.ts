@@ -61,8 +61,8 @@ describe('the way to the back garden', () => {
   it('walks from every home to the back door without crossing furniture', () => {
     for (const a of ACTORS) {
       for (const anchor of Object.keys(ANCHORS) as (keyof typeof ANCHORS)[]) {
-        const from = standPoint(anchor, a.id);
-        const path = pathToBackDoor(from);
+        const from = standPoint(anchor, a.id, 'cafe');
+        const path = pathToBackDoor(from, 'cafe');
         expect(path.at(-1)).toEqual(BACK_DOOR_SPOT);
       }
     }

@@ -1,6 +1,5 @@
 import { plainOf } from '../../main/event-normalizer';
 import { fill, strings } from '../../shared/i18n';
-import { currentScene } from '../../shared/scenes';
 import { ROOM_CREW, STAFF } from '../../shared/staff';
 import type { ActorId, AiEvent, CharacterCommand } from '../../shared/types';
 import type { CafeScene } from '../game/CafeScene';
@@ -79,15 +78,23 @@ export class Stage {
   /** Called with every event, live or replayed (the detail strip listens here). */
   onEvent: (e: AiEvent) => void = () => {};
 
+  /** Stops listening for rule file changes, when the room is left (D2). */
+  readonly dispose: () => void;
+
   constructor(private scene: CafeScene, opts: { brief?: string } = {}) {
-    const book = ruleBook();
+    const book = ruleBook(scene.room);
     this.translator = new Translator(book.rules, book.anims, { brief: opts.brief });
-    this.translator.crew = ROOM_CREW[currentScene()];
+    this.translator.crew = ROOM_CREW[scene.room];
     this.director = new Director(toLineBook(book.lines));
-    onRuleBookChange((b) => {
+    const off = onRuleBookChange(() => {
+      const b = ruleBook(scene.room);
       this.translator.reload(b.rules, b.anims);
       this.director.setLines(toLineBook(b.lines));
     });
+    this.dispose = () => {
+      off();
+      for (const t of this.timers.values()) clearTimeout(t);
+    };
   }
 
   /** Xiaodou the apprentice is in the shop from the tenth work (shared/staff.ts); `walkIn` the day they come. */

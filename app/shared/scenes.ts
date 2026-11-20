@@ -2,7 +2,8 @@
  * Where the shop is (plan.md R4): the cafe on the street, or the study at home. Both share one floor plan
  * (renderer/game/layout.ts), so the staff move, sit and work the same way in each; the furniture, the names
  * of the spots and a few lines that mention them change. Like the language, the scene is fixed for the life
- * of a page: the main process hands it to the preload, and moving reloads the page.
+ * of a page: the main process hands it to the preload, and moving reloads the page. Going into one of the other
+ * rooms along the street does not (road-to-1.4.md D2).
  */
 export const SCENES = ['cafe', 'study'] as const;
 /** Where the home shop can be: the counter, Adeng and what the shop gathered are there (road-to-1.4.md Q-D4). */
@@ -18,12 +19,11 @@ export const cleanRoom = (v: unknown): RoomId | undefined => (ROOMS.includes(v a
 /** One of the rooms the home shop can be in. */
 export const isScene = (room: RoomId): room is SceneId => (SCENES as readonly string[]).includes(room);
 
-/** Where the home shop is (from the preload): the room settings talk about, whichever room this page shows. */
-export const homeScene = (): SceneId => cleanScene((globalThis as { lamplightHome?: unknown }).lamplightHome) ?? currentHome();
-const currentHome = (): SceneId => { const room = currentScene(); return isScene(room) ? room : DEFAULT_SCENE; };
-
-/** The room this page shows (from the preload; the cafe where there is none, as in tests). */
-export const currentScene = (): RoomId => cleanRoom((globalThis as { lamplightScene?: unknown }).lamplightScene) ?? DEFAULT_SCENE;
+/**
+ * Where the home shop is (from the preload; the cafe where there is none, as in tests). The other rooms are built
+ * knowing which they are, and going into one needs no reload (road-to-1.4.md D2).
+ */
+export const homeScene = (): SceneId => cleanScene((globalThis as { lamplightHome?: unknown }).lamplightHome) ?? DEFAULT_SCENE;
 
 /**
  * Keep what belongs to a scene: an entry marked `scene` is left out elsewhere, and in its own scene it

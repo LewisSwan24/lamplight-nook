@@ -1,4 +1,4 @@
-import { fill, strings } from '../../shared/i18n';
+import { fill, strings, wordsIn } from '../../shared/i18n';
 import type { ActorId } from '../../shared/types';
 import type { CafeScene, Target } from '../game/CafeScene';
 import { el, layer } from './dom';
@@ -6,6 +6,8 @@ import { el, layer } from './dom';
 const A = strings.ui.access;
 const buttons = new Map<Target, HTMLButtonElement>();
 let box: HTMLElement | null = null;
+/** The room the buttons were made for: going into another one makes them again, with its names (D2). */
+let shown: CafeScene | null = null;
 
 const PLACES: Partial<Record<Target, string>> = {
   counter: A.hotspotCounter, bell: A.hotspotBell, backdoor: A.hotspotGarden, shopdoor: A.hotspotShop,
@@ -14,7 +16,7 @@ const PLACES: Partial<Record<Target, string>> = {
 const O = strings.ui.objects;
 const objectName = (id: string): string | undefined =>
   id.startsWith('grow-') ? O.grown[id.slice(5) as keyof typeof O.grown] : O.names[id as keyof typeof O.names];
-const label = (id: Target) => PLACES[id] ?? objectName(id) ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
+const label = (id: Target, scene: CafeScene) => (id === 'counter' ? wordsIn(scene.room).ui.access.hotspotCounter : PLACES[id]) ?? objectName(id) ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
 
 /**
  * Invisible buttons over the counter, the doors and each character, so the shop works from the keyboard:
@@ -26,12 +28,17 @@ export function updateHotspots(scene: CafeScene, rect: DOMRect, scale: number) {
     box = el('div.hotspots');
     layer().append(box);
   }
+  if (scene !== shown) {
+    shown = scene;
+    buttons.clear();
+    box.replaceChildren();
+  }
   const seen = new Set<Target>();
   for (const h of scene.hotspots()) {
     seen.add(h.id);
     let b = buttons.get(h.id);
     if (!b) {
-      b = el('button.hotspot', { 'aria-label': label(h.id), onclick: () => scene.activate(h.id) }) as HTMLButtonElement;
+      b = el('button.hotspot', { 'aria-label': label(h.id, scene), onclick: () => scene.activate(h.id) }) as HTMLButtonElement;
       b.addEventListener('focus', () => scene.highlight(h.id));
       b.addEventListener('blur', () => scene.highlight(null));
       buttons.set(h.id, b);

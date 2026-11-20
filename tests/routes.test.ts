@@ -170,7 +170,7 @@ describe('walking through the shop', () => {
   });
 
   it('takes the same way every time', () => {
-    const from = standPoint('shelf', 'adeng');
+    const from = standPoint('shelf', 'adeng', 'cafe');
     expect(pathBetween(from, 'door', 'adeng', 'cafe')).toEqual(pathBetween(from, 'door', 'adeng', 'cafe'));
   });
 
@@ -181,7 +181,7 @@ describe('walking through the shop', () => {
       for (const a of actors) {
         for (const b of actors) {
           if (a >= b) continue;
-          const [p, q] = [standPoint(anchor, a), standPoint(anchor, b)];
+          const [p, q] = [standPoint(anchor, a, 'cafe'), standPoint(anchor, b, 'cafe')];
           if (Math.hypot(p.x - q.x, p.y - q.y) < 8) crowded.push(`${a} and ${b} at the ${anchor}`);
         }
       }
