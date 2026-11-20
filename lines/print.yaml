@@ -1,0 +1,144 @@
+# Dialogue for the print shop (road-to-1.4.md D2), laid over lines/cafe.yaml: same format, same rules.
+# Aqian the typesetter does all the work; Adeng only minds the counter and answers now and then.
+# Spots: 排字台 (counter), 印机 (board), 纸架 (shelf), 裁纸台 (table), 装订桌 (corner).
+
+opening:
+  - { id: pr_revise_again_01, speaker: aqian, when: revise_again, bubbles: ["上一版改的是{lastAsk}。", "这一版是{brief}，我记在样张边上。"] }
+  - { id: pr_revise_01, speaker: aqian, when: revise, bubbles: ["{brief}，好。", "旧版不拆，在它上面改字。"] }
+  - { id: pr_revise_02, speaker: aqian, when: revise, bubbles: ["拿回来再看，是有几处要动。", "{brief}，这就重排。"] }
+  - { id: pr_revise_03, speaker: aqian, when: revise, bubbles: ["旧样张先夹好。", "{brief}，改完再打一张给你。"] }
+  - { id: pr_mem_02, speaker: aqian, when: has_stuck_note, bubbles: ["{brief}，好。", "上回在{stuckNote}卡过。", "这回我先把那儿校一遍。"] }
+  - { id: pr_mem_01, speaker: aqian, when: has_memory, bubbles: ["{brief}，好。", "上回你定的是{lastChoice}。", "照老规矩来，不合适再改。"] }
+  - { id: pr_tpl_sheet_01, speaker: aqian, when: tpl_sheet, bubbles: ["做表格，先打格子。", "线要直，数要对齐。"] }
+  - { id: pr_tpl_resume_01, speaker: aqian, when: tpl_resume, bubbles: ["简历一个字也不能虚。", "没有的那栏，空着等你填。"] }
+  - { id: pr_handed_01, speaker: aqian, when: handed, bubbles: ["稿子收下了，我先过一遍。", "{brief}，好。"], reply: { speaker: adeng, bubbles: ["放排字台上了。"] } }
+  - { id: pr_opening_01, speaker: aqian, bubbles: ["{brief}……", "好，我去拣字。"] }
+  - { id: pr_opening_02, speaker: aqian, bubbles: ["是要{brief}？", "坐，慢工出细活。"] }
+  - { id: pr_opening_03, speaker: aqian, bubbles: ["{brief}。", "我把眼镜擦一擦就开工。"] }
+
+planning:
+  - { id: pr_plan_01, speaker: aqian, bubbles: ["先在印机上把版式摆一摆。"] }
+  - { id: pr_plan_02, speaker: aqian, bubbles: ["标题几号字，正文几号字……"] }
+  - { id: pr_plan_03, speaker: aqian, bubbles: ["分三版排，一版一版来。"] }
+
+draft_ready:
+  - { id: pr_draft_ready_01, speaker: aqian, bubbles: ["信排好了，放在排字台上。", "你看过，再自己寄。"] }
+  - { id: pr_draft_ready_02, speaker: aqian, bubbles: ["草稿印出来了。", "寄不寄，你拿主意。"] }
+  - { id: pr_draft_ready_03, speaker: aqian, bubbles: ["信封我没封口。", "你念一遍再寄。"] }
+
+writing:
+  - { id: pr_write_01, speaker: aqian, bubbles: ["开始排正文了。"] }
+  - { id: pr_write_02, speaker: aqian, bubbles: ["这一段排完，下一段。"] }
+  - { id: pr_write_03, speaker: aqian, bubbles: ["一行，两行……", "字距匀一匀。"] }
+  - { id: pr_write_04, speaker: aqian, bubbles: ["这个字缺了，换个同号的。"] }
+
+sub_go_research:
+  - { id: pr_go_rs_rain, speaker: aqian, when: sky_rain, bubbles: ["下雨天纸返潮。", "我去纸架那边查查{topic}。"] }
+  - { id: pr_go_rs_01, speaker: aqian, bubbles: ["{topic}，我去纸架上翻翻。"] }
+  - { id: pr_go_rs_02, speaker: aqian, bubbles: ["老样本里该有，我去找找。"] }
+  - { id: pr_go_rs_03, speaker: aqian, bubbles: ["稍等，我去纸架那边。"] }
+
+sub_back_research:
+  - { id: pr_back_rs_01, speaker: aqian, bubbles: ["找着了。", "能用的有{count}份。"] }
+  - { id: pr_back_rs_02, speaker: aqian, bubbles: ["旧样本里夹着一张。", "正好用得上。"] }
+  - { id: pr_back_rs_03, speaker: aqian, bubbles: ["都抄下来了，你过目。"] }
+
+sub_go_review:
+  - { id: pr_go_rv_01, speaker: aqian, bubbles: ["打一张校样，我念一遍。"] }
+  - { id: pr_go_rv_02, speaker: aqian, bubbles: ["我到装订桌那边校一校。"] }
+  - { id: pr_go_rv_03, speaker: aqian, bubbles: ["一字一字念，错不了。"] }
+
+sub_back_review:
+  - { id: pr_back_rv_issue, speaker: aqian, when: has_issues, bubbles: ["校出{issueCount}处。", "都用红笔圈上了。"] }
+  - { id: pr_back_rv_ok, speaker: aqian, when: no_issues, bubbles: ["念完了，一个错字也没有。"] }
+  - { id: pr_back_rv_ok2, speaker: aqian, when: no_issues, bubbles: ["校过两遍，干净。"], reply: { speaker: adeng, bubbles: ["那就好。"] } }
+
+sub_go_design:
+  - { id: pr_go_ds_rain, speaker: aqian, when: sky_rain, bubbles: ["下雨天，墨要调稠一点。", "我先在印机上摆个样。"] }
+  - { id: pr_go_ds_01, speaker: aqian, bubbles: ["版式我先在印机上摆一摆。"] }
+  - { id: pr_go_ds_02, speaker: aqian, bubbles: ["配什么字体，我试几样。"] }
+  - { id: pr_go_ds_03, speaker: aqian, bubbles: ["天头地脚，先留够。"] }
+
+sub_back_design:
+  - { id: pr_back_ds_01, speaker: aqian, bubbles: ["样子摆好了。", "标题大一号，正文宋体。"] }
+  - { id: pr_back_ds_02, speaker: aqian, bubbles: ["打了张样，你看看。"] }
+  - { id: pr_back_ds_03, speaker: aqian, bubbles: ["行距放宽了一点。", "久看不费眼。"] }
+
+stuck:
+  - { id: pr_stuck_01, speaker: aqian, bubbles: ["嗯？这一行对不齐。", "我换个排法。"] }
+  - { id: pr_stuck_02, speaker: aqian, bubbles: ["不对。{whatsWrong}。"] }
+  - { id: pr_stuck_03, speaker: aqian, bubbles: ["又是这一格。"] }
+  - { id: pr_stuck_04, speaker: aqian, bubbles: ["……这个字放反了。", "重来。"] }
+
+stuck_long:
+  - { id: pr_stuck_long_01, speaker: aqian, bubbles: ["这一版难排。", "我得多试几回，你别等我。"] }
+  - { id: pr_stuck_long_02, speaker: aqian, bubbles: ["还在排，没撂下。"] }
+  - { id: pr_stuck_long_03, speaker: aqian, bubbles: ["急不得，再给我一会儿。"] }
+
+waiting:
+  - { id: pr_wait_01, speaker: aqian, bubbles: ["墨还没干，等等。"] }
+  - { id: pr_wait_02, speaker: aqian, bubbles: ["它在印，我们喝口茶。"] }
+  - { id: pr_wait_03, speaker: aqian, bubbles: ["老机器，慢一点，稳当。"] }
+
+ask:
+  - { id: pr_ask_color, speaker: aqian, when: demo_color, bubbles: ["奶油白和浅薄荷，我拿不准。", "你看哪个印出来像样？"] }
+  - { id: pr_ask_01, speaker: aqian, bubbles: ["有一处要问问你。", "{question}"] }
+  - { id: pr_ask_02, speaker: aqian, bubbles: ["这里能排成两种样子。", "你要哪一种？"] }
+
+react_adopted:
+  - { id: pr_react_ad_01, speaker: aqian, bubbles: ["好，就照你说的排。"] }
+  - { id: pr_react_ad_02, speaker: aqian, bubbles: ["记下了，我在样张上标一笔。"] }
+  - { id: pr_react_ad_03, speaker: aqian, bubbles: ["嗯，这样排更顺。"] }
+
+react_rejected:
+  - { id: pr_react_rj_01, speaker: aqian, bubbles: ["好，听你的。"] }
+  - { id: pr_react_rj_02, speaker: aqian, bubbles: ["那这块铅字我收回去。"] }
+  - { id: pr_react_rj_03, speaker: aqian, bubbles: ["行，换一版。"] }
+
+react_delegated:
+  - { id: pr_react_dl_00, speaker: aqian, bubbles: ["好，我来定。", "定了跟你说。"] }
+  - { id: pr_react_dl_01, speaker: aqian, bubbles: ["那就{choice}，因为{reason}。", "不顺眼随时说。"] }
+  - { id: pr_react_dl_02, speaker: aqian, bubbles: ["先排{choice}。", "不合适再换。"] }
+  - { id: pr_react_dl_03, speaker: aqian, bubbles: ["就{choice}。", "缘由我写在样张背面了。"] }
+
+serious:
+  - { id: pr_serious_01, speaker: aqian, bubbles: ["这一步要{action}。", "做了就{consequence}。", "你看清楚再定。"] }
+  - { id: pr_serious_02, speaker: aqian, bubbles: ["这里得你点个头。", "{action}，{consequence}。"] }
+  - { id: pr_serious_03, speaker: aqian, bubbles: ["印出去就收不回了。", "你看仔细再点。"] }
+
+refused:
+  - { id: pr_refused_01, speaker: aqian, bubbles: ["这个我不碰。", "换条路走。"] }
+  - { id: pr_refused_02, speaker: aqian, bubbles: ["这不是我们该印的。"] }
+  - { id: pr_refused_03, speaker: aqian, bubbles: ["那是你的私信，我不拆。"] }
+
+serious_yes:
+  - { id: pr_serious_yes_01, speaker: aqian, bubbles: ["好，我来。"] }
+  - { id: pr_serious_yes_02, speaker: aqian, bubbles: ["知道了，这就上机。"] }
+  - { id: pr_serious_yes_03, speaker: aqian, bubbles: ["好。"] }
+
+serious_no:
+  - { id: pr_serious_no_01, speaker: aqian, bubbles: ["好，不动它。", "我换个不用这样的排法。"] }
+  - { id: pr_serious_no_02, speaker: aqian, bubbles: ["好，先搁着。"] }
+  - { id: pr_serious_no_03, speaker: aqian, bubbles: ["不印了。我绕过去。"] }
+
+done:
+  - { id: pr_done_day, speaker: aqian, when: daytime, bubbles: ["印好了，在排字台上。", "你看看，合不合用。"] }
+  - { id: pr_done_dusk, speaker: aqian, when: dusk, bubbles: ["印好了。", "趁天还亮，你看一遍。"] }
+  - { id: pr_done_night, speaker: aqian, when: night, bubbles: ["印好了。", "这么晚了，看完早点歇着。"] }
+  - { id: pr_done_01, speaker: aqian, bubbles: ["裁齐了，也装订好了。"], reply: { speaker: adeng, bubbles: ["我替你包起来。"] } }
+  - { id: pr_done_02, speaker: aqian, bubbles: ["最后念了一遍，没错字。", "交给你。"] }
+
+failed:
+  - { id: pr_failed_01, speaker: aqian, bubbles: ["这回没印成，对不住。", "卡在{stuckAt}。", "我记在样张背面了。", "下回换个排法。"] }
+  - { id: pr_failed_02, speaker: aqian, bubbles: ["没排出来。", "卡在{stuckAt}，我记下了。"] }
+  - { id: pr_failed_03, speaker: aqian, bubbles: ["今天先到这儿。", "毛病我写在纸上了。"] }
+
+net_retry:
+  - { id: pr_net_retry_01, speaker: aqian, bubbles: ["电好像断了，我等等再开机。"] }
+  - { id: pr_net_retry_02, speaker: aqian, bubbles: ["电话没打通，我再拨一回。"] }
+  - { id: pr_net_retry_03, speaker: aqian, bubbles: ["外头没人应，过会儿再问。"] }
+
+cancelled:
+  - { id: pr_cancelled_01, speaker: aqian, bubbles: ["好，那先搁着。"] }
+  - { id: pr_cancelled_02, speaker: aqian, bubbles: ["行，排好的版都留着。"] }
+  - { id: pr_cancelled_03, speaker: aqian, bubbles: ["好，先不印了。"] }

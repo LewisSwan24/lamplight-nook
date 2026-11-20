@@ -4,14 +4,21 @@
 
 - **Out to the street.** A new toolbar button takes you out of the shop onto the town's street, without reloading:
   seven fronts in a row, panned along by dragging or with the arrow keys, by day and by night. Your own front, Enter
-  in front of it, Escape or the same button takes you back in, and the work inside goes on meanwhile. The print shop,
-  the studio and the workshop are still being fitted out; the bakery and the post office belong to the neighbours.
+  in front of it, Escape or the same button takes you back in, and the work inside goes on meanwhile. The bakery and
+  the post office belong to the neighbours.
 - **The shop moves onto the street.** A shop from 1.3 or before opens once onto the street: Wick, Clem, Flint
   and Iris carry it in, a box each, and inside everything it had gathered settles back where it was. A click skips
   it; with reduced motion nothing walks. Your data is copied aside first, as with every upgrade (data version 5).
 - **Errands on the real street.** The small window that shows Clem out on an errand now looks onto the town's street,
   and out of the door you see her there, in the same place: at the post office for the web, at the other room for
   books, past the bakery on the way back from far off. A click on her out there works as in the window.
+- **Three new shops.** The print shop, the studio and the workshop open onto the street, each with someone of its
+  own: Pica the old typesetter, Umber the quiet painter and Tack, who hums at the bench. Go in at a front and take a
+  commission there; Wick minds the counter, the rest of your crew stays at home, and your home shop does not change.
+  The app still opens at home. Going in still reloads the page for now.
+- **Catching up.** When work comes faster than someone can act it out, they now skip the moves that newer ones have
+  overtaken and catch up, instead of playing the backlog out long after the work is done. Trouble and questions are
+  never skipped.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.

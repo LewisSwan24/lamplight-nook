@@ -1,4 +1,4 @@
-import { STAFF } from '../../shared/staff';
+import { ALL_STAFF } from '../../shared/staff';
 import type { ActorId, GuestId } from '../../shared/types';
 import type { Facing } from './layout';
 
@@ -37,7 +37,7 @@ export const STAFF_ANIMS: Record<string, StaffAnim> = {
   throw: { row: 12, frames: 14, fps: 12, repeat: 0, dirs: DIRECTIONS },
 };
 
-export const STAFF_IDS: ActorId[] = STAFF;
+export const STAFF_IDS: ActorId[] = ALL_STAFF;
 
 /** Animation key for an actor, animation and facing. */
 export function animKey(actor: ActorId | GuestId | `you-${number}`, anim: string, facing: Facing): string {

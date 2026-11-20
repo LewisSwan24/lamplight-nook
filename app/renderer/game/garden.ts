@@ -1,3 +1,4 @@
+import type { RoomId } from '../../shared/scenes';
 import type { ActorId } from '../../shared/types';
 import type { Line } from '../translator/lines';
 import type { Period } from './daytime';
@@ -67,7 +68,7 @@ export const SPOTS: GardenSpot[] = [
 ];
 
 /** In the shop: from wherever someone stands to the back door. */
-export function pathToBackDoor(from: Point, scene?: 'cafe' | 'study'): Point[] {
+export function pathToBackDoor(from: Point, scene?: RoomId): Point[] {
   return walkBetween(from, BACK_DOOR_SPOT, scene);
 }
 

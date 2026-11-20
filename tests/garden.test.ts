@@ -6,6 +6,7 @@ import {
 } from '../app/renderer/game/garden';
 import { parseLines } from '../app/renderer/translator/lines';
 import { ACTORS, ANCHORS, CANVAS, ZONES, standPoint } from '../app/renderer/game/layout';
+import { ROOM_CREW } from '../app/shared/staff';
 
 /** Seeded random, so runs are repeatable. */
 function seeded(seed: number) {
@@ -82,7 +83,8 @@ describe('the way to the back garden', () => {
   });
 
   it('has something to do out there for everyone, the cat included', () => {
-    for (const a of ACTORS) expect(SPOTS.some((s) => s.who.includes(a.id)), a.id).toBe(true);
+    // The garden is the home shop's; the shops along the street have their own people (D2).
+    for (const a of ACTORS.filter((x) => ROOM_CREW.cafe.includes(x.id))) expect(SPOTS.some((s) => s.who.includes(a.id)), a.id).toBe(true);
   });
 });
 

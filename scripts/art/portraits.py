@@ -10,13 +10,16 @@ from pathlib import Path
 
 from PIL import Image
 
+from characters import save
+
 ROOT = Path(__file__).resolve().parents[2]
 SPRITES = ROOT / 'assets/sprites'
 OUT = ROOT / 'assets/ui/portraits.png'
 CELL = 16
 
 # Keep both orders in sync with app/renderer/ui/portraits.ts.
-STAFF = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodou']
+# The shops' staff (road-to-1.4.md D2) come after the home shop's, so the rows above them keep their places.
+STAFF = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodou', 'aqian', 'xiaozhe', 'xiaoding']
 EXPRESSIONS = ['calm', 'happy', 'troubled', 'unsure', 'serious']
 
 # Front-facing idle frame: row 1, direction slot 3 (down), first of 6 frames; 16x32 cells.
@@ -32,6 +35,9 @@ FACES = {
     'laoshi': {'eyes': [(5, 20), (10, 20)], 'glasses': True},
     'qingdai': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
     'xiaodou': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
+    'aqian': {'eyes': [(5, 20), (10, 20)], 'glasses': True},
+    'xiaozhe': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
+    'xiaoding': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
 }
 INK = (58, 58, 80, 255)
 BROW = (72, 54, 50, 255)
@@ -106,7 +112,7 @@ def main():
             express(frame, name, FACES[staff])
             out.paste(frame.crop((0, TOP, 16, TOP + CELL)), (col * CELL, row * CELL))
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    out.save(OUT)
+    save(out, OUT)
     print('wrote', OUT.relative_to(ROOT))
     write_players()
 
@@ -124,7 +130,7 @@ def write_players():
     for n in range(PLAYER_COUNT):
         sheet = Image.open(SPRITES / f'you-{n + 1}.png').convert('RGBA')
         out.paste(sheet.crop((fx, fy, fx + 16, fy + 32)), (n * 16, 0))
-    out.save(PLAYERS_OUT)
+    save(out, PLAYERS_OUT)
     print('wrote', PLAYERS_OUT.relative_to(ROOT))
 
 

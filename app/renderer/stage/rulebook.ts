@@ -6,21 +6,39 @@ import zhLines from '../../../lines/cafe.yaml?raw';
 import zhChats from '../../../lines/chats.yaml?raw';
 import enLines from '../../../lines/en/cafe.yaml?raw';
 import enChats from '../../../lines/en/chats.yaml?raw';
+// The three shops along the street (road-to-1.4.md D2): rules of their own, and lines laid over the cafe's.
+import printRules from '../../../rules/print.yaml?raw';
+import studioRules from '../../../rules/studio.yaml?raw';
+import workshopRules from '../../../rules/workshop.yaml?raw';
+import zhPrint from '../../../lines/print.yaml?raw';
+import zhStudio from '../../../lines/studio.yaml?raw';
+import zhWorkshop from '../../../lines/workshop.yaml?raw';
+import enPrint from '../../../lines/en/print.yaml?raw';
+import enStudio from '../../../lines/en/studio.yaml?raw';
+import enWorkshop from '../../../lines/en/workshop.yaml?raw';
 import { locale } from '../../shared/i18n';
-import { currentScene } from '../../shared/scenes';
+import { currentScene, type RoomId } from '../../shared/scenes';
 import { type Chat, type LineLibrary, chatsForScene, linesForScene, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
 import { parseAnimTable, parseRules, type AnimTable, type Rule } from '../translator/translator';
 
 export type RuleBook = { rules: Rule[]; anims: AnimTable; lines: LineLibrary; chats: Chat[] };
 
+/** A shop's own rule file and lines; the cafe and the study share the cafe's. Only the cafe's reload in dev mode. */
+const OWN: Partial<Record<RoomId, { rules: string; zh: string; en: string }>> = {
+  print: { rules: printRules, zh: zhPrint, en: enPrint },
+  studio: { rules: studioRules, zh: zhStudio, en: enStudio },
+  workshop: { rules: workshopRules, zh: zhWorkshop, en: enWorkshop },
+};
+
 function build(r: string, a: string, l: string, c: string): RuleBook {
-  const allLines = parseLines(l);
+  const own = OWN[currentScene()];
+  const allLines = { ...parseLines(l), ...(own ? parseLines(english ? own.en : own.zh) : {}) };
   const allChats = parseChats(c);
   const problems = [...lintLines(allLines), ...lintChats(allChats)];
   if (problems.length) console.warn(`Dialogue lint:\n${problems.join('\n')}`);
   // Only what fits the room the shop is in (shared/scenes.ts).
   const scene = currentScene();
-  return { rules: parseRules(r), anims: parseAnimTable(a), lines: linesForScene(allLines, scene), chats: chatsForScene(allChats, scene) };
+  return { rules: parseRules(own ? own.rules : r), anims: parseAnimTable(a), lines: linesForScene(allLines, scene), chats: chatsForScene(allChats, scene) };
 }
 
 const english = locale() === 'en';

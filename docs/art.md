@@ -67,13 +67,14 @@ no pixel changed, so compare pixels and restore unchanged files before committin
 |---|---|
 | `scene.py` | The cafe background, and the back door in the near wall (`back-door.png`, drawn by the script). Calls `rug.py`. Run `furnish.py` afterwards. |
 | `study.py` | The study background. Run `furnish.py` afterwards. |
+| `print.py`, `studio.py`, `workshop.py` | The three shops along the street (1.4), on the cafe's floor plan. The press, the type rack and the book press are drawn by the script. They share `shops.py`. No furnishing overlays. |
 | `rug.py` | The cafe's rug and the bench's top edge, and can repaint an existing `cafe.png`. |
 | `furnish.py` | The wall, curtain and rug colour overlays for each scene. |
-| `pieces.py` | Splits `cafe.png` and `study.png` into the empty room and the furniture, with depths for the game and boxes for the walks (`pieces.json`). Run last, after anything that changes a room or an overlay. |
+| `pieces.py` | Splits every room (`cafe.png`, `study.png` and the three shops') into the empty room and the furniture, with depths for the game and boxes for the walks (`pieces.json`). Run last, after anything that changes a room or an overlay. |
 | `decor.py` | Holiday and weather overlays. |
 | `garden.py`, `animals.py` | The back garden and its animals. |
 | `town.py` | The town's street (1.4), also seen through the small inset during errands. |
-| `characters.py`, `portraits.py` | Staff sprite sheets, then portraits from those sheets. |
+| `characters.py`, `portraits.py` | Staff sprite sheets, then portraits from those sheets. Both write a file only when its pixels changed. |
 | `emotes.py` | The mood bubble strip. |
 | `garden.py` | The garden, and `garden-crops.png` (what comes up in the beds; the sprout is drawn by the script). |
 | `tools.py` | The toolbar icons. Drawn by the script, no pack needed. |

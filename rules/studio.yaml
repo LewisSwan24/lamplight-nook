@@ -1,0 +1,387 @@
+# Studio rules (road-to-1.4.md D2): the same format as rules/cafe.yaml, whose header explains it.
+# All the work goes to Xiaozhe the painter; Adeng only minds the counter until D3 sends work over.
+# The cafe's spots go by other names here: counter = long table with the palettes, board = the easel,
+# shelf = frame rack, table = low table, corner = stool by the window. Nobody goes out: helpers' errands are
+# Xiaozhe walking to a spot. The filing cabinet and the letter holder are the home shop's, so they stay out of it.
+
+- on: session_start
+  actor: xiaozhe
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: opening
+  priority: work
+  extra:
+    - { actor: adeng, state: ready, moveTo: counter, anim: idle, priority: chat }
+
+# Blocking the job in on the easel.
+- on: plan
+  actor: xiaozhe
+  state: working
+  moveTo: board
+  anim: write
+  bubble: note
+  lines: planning
+  priority: work
+
+- on: thinking
+  actor: xiaozhe
+  state: thinking
+  anim: idle
+  bubble: dots
+  priority: work
+
+# Helpers' errands: looking it up at the frame rack, stepping back on the window stool to look, sketching at the easel.
+- on: subagent_start
+  when: { agent: researcher }
+  actor: xiaozhe
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: researcher }
+  actor: xiaozhe
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: reviewer }
+  actor: xiaozhe
+  state: checking
+  moveTo: corner
+  anim: read
+  lines: sub_go_review
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: reviewer }
+  actor: xiaozhe
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: sub_back_review
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: designer }
+  actor: xiaozhe
+  state: working
+  moveTo: board
+  anim: read
+  bubble: idea
+  lines: sub_go_design
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: designer }
+  actor: xiaozhe
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_design
+  priority: subagent
+
+# Unrecognized helpers: looked up at the frame rack too.
+- on: subagent_start
+  actor: xiaozhe
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  actor: xiaozhe
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: tool_start
+  when: { agent: researcher }
+  actor: xiaozhe
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+- on: tool_start
+  when: { agent: reviewer }
+  actor: xiaozhe
+  state: checking
+  anim: read
+  priority: work
+
+- on: tool_start
+  when: { agent: designer }
+  actor: xiaozhe
+  state: working
+  anim: read
+  bubble: idea
+  priority: work
+
+- on: tool_start
+  when: { agent: unknown }
+  actor: xiaozhe
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+# The list on the easel changes: Xiaozhe goes over and reads it through.
+- on: progress
+  when: { agent: main }
+  actor: xiaozhe
+  state: working
+  moveTo: board
+  anim: read
+  priority: chat
+
+# Office tools: a document is read at the frame rack; a finished file is laid on the long table.
+- on: tool_start
+  when: { agent: main, tool: mcp__nook-office__read_document }
+  actor: xiaozhe
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: [mcp__nook-office__make_docx, mcp__nook-office__make_xlsx, mcp__nook-office__make_pptx, mcp__nook-office__make_pdf, mcp__nook-office__edit_docx, mcp__nook-office__edit_xlsx, mcp__nook-office__edit_pptx, mcp__nook-office__render_png] }
+  actor: xiaozhe
+  state: working
+  moveTo: counter
+  anim: gift
+  priority: work
+
+# Connections: no letter holder here, so what comes in is read at the long table.
+- on: tool_start
+  when: { agent: main, tool: [mcp__nook-calendar__events, mcp__nook-folder__list, mcp__nook-folder__read] }
+  actor: xiaozhe
+  state: working
+  moveTo: counter
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-folder__save_copy }
+  actor: xiaozhe
+  state: working
+  moveTo: shelf
+  anim: gift
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-maildraft__draft }
+  actor: xiaozhe
+  state: working
+  moveTo: counter
+  anim: gift
+  lines: draft_ready
+  priority: work
+
+# Painting at the easel.
+- on: tool_start
+  when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
+  actor: xiaozhe
+  state: working
+  moveTo: board
+  anim: write
+  lines: writing
+  priority: work
+
+# Running something is mixing paint at the long table.
+- on: tool_start
+  when: { agent: main, tool: [Bash, PowerShell] }
+  actor: xiaozhe
+  state: working
+  moveTo: counter
+  anim: write
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [WebSearch, WebFetch] }
+  actor: xiaozhe
+  state: working
+  moveTo: counter
+  anim: phone
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Read, Glob, Grep] }
+  actor: xiaozhe
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_start
+  when: { agent: main }
+  actor: xiaozhe
+  state: working
+  moveTo: table
+  anim: write
+  priority: work
+
+- on: long_wait
+  actor: xiaozhe
+  state: waiting
+  moveTo: window
+  anim: drink
+  bubble: tea
+  lines: waiting
+  priority: work
+
+- on: tool_fail
+  when: { failStreak: { lt: 3 } }
+  actor: xiaozhe
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck
+  own_lines: true
+  priority: fail
+
+- on: tool_fail
+  actor: xiaozhe
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck_long
+  priority: fail
+
+- on: tool_ok
+  when: { agent: main }
+  actor: xiaozhe
+  state: working
+  priority: chat
+
+- on: ask_user
+  actor: xiaozhe
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: permission
+  when: { risk: [serious, blocked] }
+  actor: xiaozhe
+  state: serious
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: serious
+  priority: serious
+
+- on: permission
+  actor: xiaozhe
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: decision
+  when: { choice: picked }
+  actor: xiaozhe
+  state: reacting
+  anim: idle
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  when: { choice: delegated }
+  actor: xiaozhe
+  state: reacting
+  anim: idle
+  lines: react_delegated
+  priority: fail
+
+- on: decision
+  when: { choice: allowed, risk: serious }
+  actor: xiaozhe
+  state: reacting
+  lines: serious_yes
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: blocked }
+  actor: xiaozhe
+  state: working
+  lines: refused
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: serious }
+  actor: xiaozhe
+  state: reacting
+  lines: serious_no
+  priority: fail
+
+- on: decision
+  when: { choice: allowed }
+  actor: xiaozhe
+  state: reacting
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  actor: xiaozhe
+  state: reacting
+  lines: react_rejected
+  own_lines: true
+  priority: fail
+
+- on: done
+  actor: xiaozhe
+  state: wrapping
+  moveTo: counter
+  anim: idle
+  lines: done
+  priority: fail
+
+- on: failed
+  actor: xiaozhe
+  state: low
+  moveTo: counter
+  anim: idle
+  lines: failed
+  priority: fail
+
+- on: net_error
+  actor: xiaozhe
+  state: low
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: failed
+  priority: fail
+
+- on: net_retry
+  actor: xiaozhe
+  state: waiting
+  moveTo: window
+  anim: idle
+  bubble: dots
+  lines: net_retry
+  priority: fail
+
+- on: cancelled
+  actor: xiaozhe
+  state: idle
+  moveTo: counter
+  anim: idle
+  lines: cancelled
+  priority: fail

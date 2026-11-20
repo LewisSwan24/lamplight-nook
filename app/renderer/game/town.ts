@@ -1,4 +1,5 @@
 import data from '../../../assets/sprites/town.json';
+import { ROOMS } from '../../shared/scenes';
 import type { ShopId } from '../../shared/town';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
@@ -16,8 +17,8 @@ export type Front = { id: ShopId; x: number; w: number; door: number };
 export const TOWN = { width: data.width, height: data.height, kerb: data.kerb, road: data.road } as const;
 export const FRONTS = data.fronts as Front[];
 
-/** The fronts one can go into. The print shop, the studio and the workshop open with D2; the bakery and the post office stay neighbours' doors. */
-export const OPEN: ReadonlySet<ShopId> = new Set(['cafe', 'study']);
+/** The fronts one can go into: every room (D2). The bakery and the post office stay neighbours' doors. */
+export const OPEN: ReadonlySet<ShopId> = new Set(ROOMS);
 
 /** How much of the street the canvas shows at once. */
 export const CAMERA_W = CANVAS.width;

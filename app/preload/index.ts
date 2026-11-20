@@ -94,6 +94,7 @@ const api: LamplightApi = {
   onMiniState: (cb) => on(IPC.miniPush, cb),
   showShop: () => ipcRenderer.invoke(IPC.showShop),
   moveScene: (scene) => ipcRenderer.invoke(IPC.moveScene, scene),
+  visitRoom: (room) => ipcRenderer.invoke(IPC.visitRoom, room),
   onUpdate: (cb) => on(IPC.updateOffer, cb),
   downloadUpdate: () => ipcRenderer.invoke(IPC.downloadUpdate),
 };
@@ -103,3 +104,5 @@ contextBridge.exposeInMainWorld('lamplight', api);
 contextBridge.exposeInMainWorld('lamplightLocale', ipcRenderer.sendSync(IPC.locale));
 // Where the shop is, also fixed for the page's life (shared/scenes.ts reads it as it loads).
 contextBridge.exposeInMainWorld('lamplightScene', ipcRenderer.sendSync(IPC.scene));
+// Where the home shop is, which a room along the street is not (road-to-1.4.md D2).
+contextBridge.exposeInMainWorld('lamplightHome', ipcRenderer.sendSync(IPC.home));

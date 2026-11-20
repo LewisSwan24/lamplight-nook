@@ -26,6 +26,28 @@ describe('director pacing', () => {
     expect(d.finished('adeng')?.anim).toBe('write2');
   });
 
+  it('someone who fell behind skips what newer work has overtaken, and catches up with now (road-to-1.4.md D2)', () => {
+    const { d, tick } = setup();
+    d.submit(cmd({ anim: 'write' }));
+    for (const anim of ['a', 'b', 'c']) d.submit(cmd({ anim }));
+    tick(6_000);
+    d.submit(cmd({ anim: 'now' }));
+    expect(d.finished('adeng')?.anim).toBe('now');
+    expect(d.finished('adeng')).toBeNull();
+  });
+
+  it('a stale move still plays when it is the latest, and trouble is never skipped', () => {
+    const { d, tick } = setup();
+    d.submit(cmd({ priority: PRIORITY.fail, anim: 'sweat' }));
+    d.submit(cmd({ priority: PRIORITY.fail, anim: 'scratch' }));
+    d.submit(cmd({ anim: 'b' }));
+    d.submit(cmd({ anim: 'c' }));
+    tick(6_000);
+    expect(d.finished('adeng')?.anim).toBe('scratch');
+    expect(d.finished('adeng')?.anim).toBe('c');
+    expect(d.finished('adeng')).toBeNull();
+  });
+
   it('higher priority interrupts', () => {
     const { d } = setup();
     d.submit(cmd({ anim: 'write' }));

@@ -1,0 +1,143 @@
+# Dialogue for the workshop (road-to-1.4.md D2), laid over lines/cafe.yaml: same format, same rules.
+# Xiaoding the tinkerer does all the work; Adeng only minds the counter and answers now and then.
+# Spots: 工作台 (counter), 工具墙 (board), 零件柜 (shelf), 大木桌 (table), 旧电脑 (corner).
+
+opening:
+  - { id: ws_revise_again_01, speaker: xiaoding, when: revise_again, bubbles: ["上回拧的是{lastAsk}。", "这回{brief}，没问题！"] }
+  - { id: ws_revise_01, speaker: xiaoding, when: revise, bubbles: ["{brief}？好嘞。", "不拆旧的，在上面改。"] }
+  - { id: ws_revise_02, speaker: xiaoding, when: revise, bubbles: ["用了一阵，是有点松。", "{brief}，我来紧一紧。"] }
+  - { id: ws_revise_03, speaker: xiaoding, when: revise, bubbles: ["旧的先放零件柜里。", "{brief}，改完叫你试。"] }
+  - { id: ws_mem_02, speaker: xiaoding, when: has_stuck_note, bubbles: ["{brief}，好嘞。", "上回在{stuckNote}卡过。", "这回先拿那儿开刀。"] }
+  - { id: ws_mem_01, speaker: xiaoding, when: has_memory, bubbles: ["{brief}，好嘞。", "上回你挑的{lastChoice}。", "先照那个装，不行再换。"] }
+  - { id: ws_tpl_tool_01, speaker: xiaoding, when: tpl_tool, bubbles: ["做小工具，我最拿手。", "能做成网页就做成网页。"] }
+  - { id: ws_handed_01, speaker: xiaoding, when: handed, bubbles: ["东西收到，我先拆开看看。", "{brief}，好嘞。"], reply: { speaker: adeng, bubbles: ["在工作台上。"] } }
+  - { id: ws_opening_01, speaker: xiaoding, bubbles: ["{brief}？", "好嘞，先试试再说！"] }
+  - { id: ws_opening_02, speaker: xiaoding, bubbles: ["{brief}……", "螺丝刀呢？……在耳朵上夹着。"] }
+  - { id: ws_opening_03, speaker: xiaoding, bubbles: ["来活儿了！", "{brief}，我先搭个架子。"] }
+
+planning:
+  - { id: ws_plan_01, speaker: xiaoding, bubbles: ["先在工具墙上画个草图。"] }
+  - { id: ws_plan_02, speaker: xiaoding, bubbles: ["先装哪块呢……"] }
+  - { id: ws_plan_03, speaker: xiaoding, bubbles: ["三步，搞定！"] }
+
+draft_ready:
+  - { id: ws_draft_ready_01, speaker: xiaoding, bubbles: ["信写好了，在工作台上。", "你看完自己寄。"] }
+  - { id: ws_draft_ready_02, speaker: xiaoding, bubbles: ["草稿好了！", "寄不寄你说了算。"] }
+  - { id: ws_draft_ready_03, speaker: xiaoding, bubbles: ["信没寄，我拿扳手压着呢。"] }
+
+writing:
+  - { id: ws_write_01, speaker: xiaoding, bubbles: ["开装！"] }
+  - { id: ws_write_02, speaker: xiaoding, bubbles: ["这块拧好了，下一块。"] }
+  - { id: ws_write_03, speaker: xiaoding, bubbles: ["哼哼哼……", "这颗螺丝刚好。"] }
+  - { id: ws_write_04, speaker: xiaoding, bubbles: ["先拼起来，好不好看再说。"] }
+
+sub_go_research:
+  - { id: ws_go_rs_rain, speaker: xiaoding, when: sky_rain, bubbles: ["下雨了，零件别受潮。", "我去零件柜找{topic}。"] }
+  - { id: ws_go_rs_01, speaker: xiaoding, bubbles: ["{topic}？零件柜里翻翻！"] }
+  - { id: ws_go_rs_02, speaker: xiaoding, bubbles: ["我记得有个现成的，等我。"] }
+  - { id: ws_go_rs_03, speaker: xiaoding, bubbles: ["第三个抽屉，还是第四个……"] }
+
+sub_back_research:
+  - { id: ws_back_rs_01, speaker: xiaoding, bubbles: ["翻到了！", "能用的有{count}个。"] }
+  - { id: ws_back_rs_02, speaker: xiaoding, bubbles: ["这个零件正合适。", "还顺手找着一把旧钥匙。"] }
+  - { id: ws_back_rs_03, speaker: xiaoding, bubbles: ["都在这儿，按大小排好了。"] }
+
+sub_go_review:
+  - { id: ws_go_rv_01, speaker: xiaoding, bubbles: ["我去旧电脑上跑一遍。"] }
+  - { id: ws_go_rv_02, speaker: xiaoding, bubbles: ["敲敲打打，看哪儿会响。"] }
+  - { id: ws_go_rv_03, speaker: xiaoding, bubbles: ["试一下才知道！"] }
+
+sub_back_review:
+  - { id: ws_back_rv_issue, speaker: xiaoding, when: has_issues, bubbles: ["{issueCount}处会响。", "我贴了胶布做记号。"] }
+  - { id: ws_back_rv_ok, speaker: xiaoding, when: no_issues, bubbles: ["跑了三遍，一点不卡！"] }
+  - { id: ws_back_rv_ok2, speaker: xiaoding, when: no_issues, bubbles: ["敲遍了，结实。"], reply: { speaker: adeng, bubbles: ["那就好。"] } }
+
+sub_go_design:
+  - { id: ws_go_ds_rain, speaker: xiaoding, when: sky_rain, bubbles: ["下雨天，正好画图纸。", "我去工具墙那边。"] }
+  - { id: ws_go_ds_01, speaker: xiaoding, bubbles: ["我在工具墙上画张图纸。"] }
+  - { id: ws_go_ds_02, speaker: xiaoding, bubbles: ["按钮放哪儿，我比划比划。"] }
+  - { id: ws_go_ds_03, speaker: xiaoding, bubbles: ["先拿纸板搭个样子！"] }
+
+sub_back_design:
+  - { id: ws_back_ds_01, speaker: xiaoding, bubbles: ["图纸画好了！", "按钮在右边，手一伸就到。"] }
+  - { id: ws_back_ds_02, speaker: xiaoding, bubbles: ["纸板样子搭好了。", "你按按看。"] }
+  - { id: ws_back_ds_03, speaker: xiaoding, bubbles: ["画了三版，我觉得第二版好。"] }
+
+stuck:
+  - { id: ws_stuck_01, speaker: xiaoding, bubbles: ["咦？拧不上。", "换个螺丝试试。"] }
+  - { id: ws_stuck_02, speaker: xiaoding, bubbles: ["不对。{whatsWrong}。"] }
+  - { id: ws_stuck_03, speaker: xiaoding, bubbles: ["又冒烟了……"] }
+  - { id: ws_stuck_04, speaker: xiaoding, bubbles: ["哎，装反了。", "拆了重来！"] }
+
+stuck_long:
+  - { id: ws_stuck_long_01, speaker: xiaoding, bubbles: ["这个有点难搞。", "我得多试几回，你先忙。"] }
+  - { id: ws_stuck_long_02, speaker: xiaoding, bubbles: ["还在弄，没扔下！"] }
+  - { id: ws_stuck_long_03, speaker: xiaoding, bubbles: ["再给我一会儿，快了。"] }
+
+waiting:
+  - { id: ws_wait_01, speaker: xiaoding, bubbles: ["它在转，等等。"] }
+  - { id: ws_wait_02, speaker: xiaoding, bubbles: ["哼哼哼……还没好。"] }
+  - { id: ws_wait_03, speaker: xiaoding, bubbles: ["旧电脑呼呼响，在算呢。"] }
+
+ask:
+  - { id: ws_ask_color, speaker: xiaoding, when: demo_color, bubbles: ["奶油白和浅薄荷，我都喷了一块。", "你要哪个？"] }
+  - { id: ws_ask_01, speaker: xiaoding, bubbles: ["问你个事儿。", "{question}"] }
+  - { id: ws_ask_02, speaker: xiaoding, bubbles: ["这儿有两种装法。", "你挑一个？"] }
+
+react_adopted:
+  - { id: ws_react_ad_01, speaker: xiaoding, bubbles: ["好嘞，就这么装！"] }
+  - { id: ws_react_ad_02, speaker: xiaoding, bubbles: ["记下了，我贴张条子。"] }
+  - { id: ws_react_ad_03, speaker: xiaoding, bubbles: ["我也觉得这个好使。"] }
+
+react_rejected:
+  - { id: ws_react_rj_01, speaker: xiaoding, bubbles: ["行，听你的。"] }
+  - { id: ws_react_rj_02, speaker: xiaoding, bubbles: ["那这个零件放回柜里。"] }
+  - { id: ws_react_rj_03, speaker: xiaoding, bubbles: ["好，拆了换一个。"] }
+
+react_delegated:
+  - { id: ws_react_dl_00, speaker: xiaoding, bubbles: ["好嘞，我来定。", "定了跟你说。"] }
+  - { id: ws_react_dl_01, speaker: xiaoding, bubbles: ["那就{choice}，因为{reason}。", "不顺手随时说。"] }
+  - { id: ws_react_dl_02, speaker: xiaoding, bubbles: ["先装{choice}试试。", "不行再拆。"] }
+  - { id: ws_react_dl_03, speaker: xiaoding, bubbles: ["就{choice}！", "理由写在工具墙上了。"] }
+
+serious:
+  - { id: ws_serious_01, speaker: xiaoding, bubbles: ["这一步要{action}。", "做了就{consequence}。", "你看一眼再定。"] }
+  - { id: ws_serious_02, speaker: xiaoding, bubbles: ["这儿我不敢乱试。", "{action}，{consequence}。"] }
+  - { id: ws_serious_03, speaker: xiaoding, bubbles: ["这个拆了装不回去。", "你看清楚再点。"] }
+
+refused:
+  - { id: ws_refused_01, speaker: xiaoding, bubbles: ["这个不能拆。", "换条路。"] }
+  - { id: ws_refused_02, speaker: xiaoding, bubbles: ["这不归我们动手。"] }
+  - { id: ws_refused_03, speaker: xiaoding, bubbles: ["那是你的私事，我不翻。"] }
+
+serious_yes:
+  - { id: ws_serious_yes_01, speaker: xiaoding, bubbles: ["好嘞，我来。"] }
+  - { id: ws_serious_yes_02, speaker: xiaoding, bubbles: ["知道了，这就动手。"] }
+  - { id: ws_serious_yes_03, speaker: xiaoding, bubbles: ["收到！"] }
+
+serious_no:
+  - { id: ws_serious_no_01, speaker: xiaoding, bubbles: ["好，不碰它。", "我换个不用这样的法子。"] }
+  - { id: ws_serious_no_02, speaker: xiaoding, bubbles: ["好，先放着。"] }
+  - { id: ws_serious_no_03, speaker: xiaoding, bubbles: ["不弄了，我绕过去。"] }
+
+done:
+  - { id: ws_done_day, speaker: xiaoding, when: daytime, bubbles: ["装好了，在工作台上！", "你试试顺不顺手。"] }
+  - { id: ws_done_dusk, speaker: xiaoding, when: dusk, bubbles: ["装好了！", "天快黑了，正好收工。"] }
+  - { id: ws_done_night, speaker: xiaoding, when: night, bubbles: ["装好了。", "这么晚了，试完早点睡。"] }
+  - { id: ws_done_01, speaker: xiaoding, bubbles: ["搞定！一颗螺丝都没剩。"], reply: { speaker: adeng, bubbles: ["上回剩了三颗。"] } }
+  - { id: ws_done_02, speaker: xiaoding, bubbles: ["好了，按一下就能用。", "我试了十遍。"] }
+
+failed:
+  - { id: ws_failed_01, speaker: xiaoding, bubbles: ["这回没弄成，对不起。", "卡在{stuckAt}。", "我写在工具墙上了。", "下回换个法子。"] }
+  - { id: ws_failed_02, speaker: xiaoding, bubbles: ["没装成。", "卡在{stuckAt}，记下了。"] }
+  - { id: ws_failed_03, speaker: xiaoding, bubbles: ["今天先到这儿。", "毛病我贴在工具墙上了。"] }
+
+net_retry:
+  - { id: ws_net_retry_01, speaker: xiaoding, bubbles: ["好像跳闸了，我等等再试。"] }
+  - { id: ws_net_retry_02, speaker: xiaoding, bubbles: ["线没接上，我再插一次。"] }
+  - { id: ws_net_retry_03, speaker: xiaoding, bubbles: ["外面没人应，过会儿再敲。"] }
+
+cancelled:
+  - { id: ws_cancelled_01, speaker: xiaoding, bubbles: ["好，那先放着。"] }
+  - { id: ws_cancelled_02, speaker: xiaoding, bubbles: ["行，装好的都留着。"] }
+  - { id: ws_cancelled_03, speaker: xiaoding, bubbles: ["好，不弄了。", "工具我挂回墙上。"] }

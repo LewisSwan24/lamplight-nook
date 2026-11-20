@@ -6,7 +6,7 @@ import { PORTRAIT_STAFF } from '../app/renderer/ui/expression';
 import { parseChats, parseLines, pickLine } from '../app/renderer/translator/lines';
 import { shopTimeline } from '../app/shared/days';
 import { strings } from '../app/shared/i18n';
-import { APPRENTICE_AT, STAFF, apprenticeHere, apprenticeNews } from '../app/shared/staff';
+import { APPRENTICE_AT, SHOP_STAFF, STAFF, apprenticeHere, apprenticeNews } from '../app/shared/staff';
 import type { AnchorId, CommissionMemo, Memory } from '../app/shared/types';
 import { readPng } from './png';
 
@@ -28,8 +28,9 @@ describe('the apprentice joins the shop', () => {
 
   it('is one of the staff everywhere the staff are listed', () => {
     expect(STAFF).toContain('xiaodou');
-    expect(STAFF_IDS).toEqual(STAFF);
-    expect(PORTRAIT_STAFF).toEqual(STAFF);
+    expect(STAFF_IDS).toEqual([...STAFF, ...SHOP_STAFF]);
+    // The shops' own people come after, in D2's order.
+    expect(PORTRAIT_STAFF).toEqual([...STAFF, ...SHOP_STAFF]);
     expect(ACTORS.map((a) => a.id)).toContain('xiaodou');
     expect(strings.actors.xiaodou).toBe('小豆');
   });
@@ -55,7 +56,7 @@ describe('the apprentice joins the shop', () => {
       expect(same, other).toBe(false);
     }
     const portraits = readPng('assets/ui/portraits.png');
-    expect(portraits.height).toBe(16 * STAFF.length);
+    expect(portraits.height).toBe(16 * PORTRAIT_STAFF.length);
   });
 
   it('has a place to stand at every anchor', () => {

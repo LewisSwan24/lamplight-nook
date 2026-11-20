@@ -4130,6 +4130,103 @@ const SCENARIOS = {
 
   /** The study at home: same work, its own furniture and lines. */
   /**
+   * The three new shops (road-to-1.4.md D2): gone into from the street without moving the home shop, each with its own
+   * person, who takes a commission round the room's places while the home crew stays home. By day, by night and in a
+   * small window; back home through the cafe's front, and the app opens at home again.
+   */
+  async shops(lang, out) {
+    const WHO = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding' };
+    const HOME_CREW = ['xiaoju', 'laoshi', 'qingdai', 'xiaodou', 'cat'];
+    const room = (page) => page.evaluate(() => window.lamplightScene);
+    const visit = async (page, id) => {
+      await page.evaluate((i) => window.lamplightDebug.street.onFront(i, true), id);
+      for (const end = Date.now() + 15_000; Date.now() < end; await sleep(300)) {
+        if (await room(page).catch(() => null) === id && await page.locator('.toolbar').count()) break;
+      }
+      await sleep(2500);
+    };
+    for (const size of [undefined, [640, 360]]) {
+      const small = size ? '-640' : '';
+      const home = freshHome({ 'settings.json': onboarded(lang) });
+      const shop = await launch({ lang, home, speed: SPEED, ...(size ? { size } : {}) });
+      const { page } = shop;
+      try {
+        await sleep(2500);
+        for (const [id, person] of Object.entries(WHO)) {
+          await visit(page, id);
+          check(await room(page) === id, `${id}: did not go in`);
+          check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).scene === 'cafe', `${id}: going in moved the home shop`);
+          const who = () => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ['adeng', person, ...HOME_CREW]);
+          const first = await who();
+          check(first[person] !== null && first.adeng === 'counter', `${id}: ${person} or Adeng is not there: ${JSON.stringify(first)}`);
+          check(HOME_CREW.every((a) => first[a] === null), `${id}: someone from home is here: ${JSON.stringify(first)}`);
+          check(await page.evaluate((a) => window.lamplightDebug.scene.textures.exists(a), person), `${id}: ${person} has no picture`);
+          if (size) {
+            await shop.shot(join(out, `shops-${id}${small}.png`));
+            continue;
+          }
+          for (const period of ['day', 'night']) {
+            await page.evaluate((x) => window.lamplightDebug.scene.setPeriod(x, true), period);
+            await sleep(600);
+            await shop.shot(join(out, `shops-${id}-${period}.png`));
+          }
+          await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+          const places = new Set();
+          let homeSeen = '';
+          await shop.order({ template: 'page', want: W[lang].page });
+          await shop.submit();
+          const done = await shop.workUntilDone({
+            onTick: async () => {
+              const now = await who();
+              if (now[person]) places.add(now[person]);
+              const stray = HOME_CREW.find((a) => now[a] !== null);
+              if (stray) homeSeen = stray;
+            },
+          });
+          check(done.ok, `${id}: the commission did not finish: ${JSON.stringify(done).slice(0, 300)}`);
+          check(places.size >= 2, `${id}: ${person} only went to ${[...places]}`);
+          check(!homeSeen, `${id}: ${homeSeen} turned up from home`);
+          await shop.shot(join(out, `shops-${id}-done.png`));
+          const parcels = await page.locator('.parcel .card-title').allInnerTexts();
+          check(parcels.every((t) => t.includes(locale(lang).actors[person])), `${id}: a parcel names someone not here: ${parcels}`);
+          await page.keyboard.press('Escape');
+          await sleep(500);
+          // Every place in the room, walked to in the app, once the stage has played out what the work left: in a fast run
+          // every event of the round lands on the one person, so they have a queue of moves to finish first.
+          const drained = Date.now();
+          const left = () => page.evaluate((a) => { const d = window.lamplightDebug.stage.director; return (d.queues.get(a)?.length ?? 0) + (d.current.has(a) ? 1 : 0); }, person);
+          for (const end = Date.now() + 120_000; (await left()) > 0 && Date.now() < end;) await sleep(500);
+          console.log(`  ${id}: ${person} played out the round ${Math.round((Date.now() - drained) / 1000)} s after it ended`);
+          await sleep(1000);
+          for (const spot of ['board', 'shelf', 'table', 'corner', 'counter']) {
+            // Idle wandering may send them elsewhere on the way: a few tries.
+            let at = null;
+            for (let k = 0; k < 3 && at !== spot; k++) at = await page.evaluate(async ([a, s]) => { await window.lamplightDebug.scene.walkTo(a, s); return window.lamplightDebug.scene.anchorOf(a); }, [person, spot]);
+            check(at === spot, `${id}: ${person} did not get to the ${spot} (${at})`);
+          }
+        }
+        await visit(page, 'cafe');
+        check(await room(page) === 'cafe', 'did not get back home');
+        const back = await page.evaluate(() => ['xiaoju', 'laoshi', 'qingdai'].map((a) => window.lamplightDebug.scene.anchorOf(a)));
+        check(back.every((a) => a !== null), `the home crew is not home: ${back}`);
+      } finally { await shop.close(); }
+      if (size) continue;
+      // Closed while in another shop: it opens at home again.
+      let again = await launch({ lang, home, speed: SPEED });
+      try {
+        await sleep(2500);
+        await visit(again.page, 'studio');
+        check(await room(again.page) === 'studio', 'did not go into the studio');
+      } finally { await again.close(); }
+      again = await launch({ lang, home, speed: SPEED });
+      try {
+        await sleep(2500);
+        check(await room(again.page) === 'cafe', 'the app did not open at home after a visit');
+      } finally { await again.close(); }
+    }
+  },
+
+  /**
    * The old shop moves into the town (road-to-1.4.md D7): a 1.3 shop opens onto the street and the four carry it in;
    * back inside, all it had gathered settles into place and every work is on the shelf. Opened again, it stays put.
    * Another 1.3 shop cuts the move short with a click, and the click does nothing else.
@@ -4241,8 +4338,8 @@ const SCENARIOS = {
         await sleep(200);
         const along = await look();
         check(along.x > v.x, 'the arrow keys do not move along the street');
-        await clickFront('print');
-        check((await page.locator('.street-note').innerText()) === L.ui.town.notes.print, 'the print shop does not say it is not open yet');
+        await clickFront('bakery');
+        check((await page.locator('.street-note').innerText()) === L.ui.town.notes.bakery, 'the bakery does not say it is the neighbours');
         await shop.shot(join(out, `street-closed${small}.png`));
         v = await look();
         check(v.out, 'a front not open yet took me somewhere');

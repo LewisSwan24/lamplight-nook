@@ -32,18 +32,18 @@
 | `town-props.png` | D1 路灯、长椅、花盆、树、站牌 | Modern Exteriors：`3_City_Props` | `scripts/art/town.py` |
 | `town-signs.png` | D1 七块店招 | 手画，字用像素字 | `scripts/art/town.py` |
 | `town.json` | D1 门面、门和街上小件的位置，游戏和测试都读它 | Modern Exteriors，跟街景一起算出来 | `scripts/art/town.py` |
-| `print.png` | D2 印刷铺内景 | Modern Interiors：`Room_Builder` 的地板和墙，`1_Generic` 的桌子、柜子、纸箱；手画的印刷机和铅字架 | `scripts/art/print.py` |
+| `print.png` | D2 印刷铺内景 | Modern Interiors：`Room_Builder` 的地板和墙，`7_Art` 的长桌，`1_Generic` 的小桌，`2_LivingRoom` 的盆栽；手画的印刷机、排字台和铅字架、纸架、压书板 | `scripts/art/print.py` |
 | `print-room.png` | D2 印刷铺，家具后面那层 | Modern Interiors，同 `print.png` | `scripts/art/pieces.py` |
 | `print-pieces.png` | D2 印刷铺，家具前面那层 | Modern Interiors，同 `print.png` | `scripts/art/pieces.py` |
-| `studio.png` | D2 画室内景 | Modern Interiors：`Room_Builder`，`7_Art` 的画架、颜料、画布、凳子 | `scripts/art/studio.py` |
+| `studio.png` | D2 画室内景 | Modern Interiors：`Room_Builder`，`7_Art` 的画架、颜料、长桌、陶罐、画框、调色板，`14_Basement` 的高凳；手画的颜料架和晾画的绳 | `scripts/art/studio.py` |
 | `studio-room.png` | D2 画室，家具后面那层 | Modern Interiors，同 `studio.png` | `scripts/art/pieces.py` |
 | `studio-pieces.png` | D2 画室，家具前面那层 | Modern Interiors，同 `studio.png` | `scripts/art/pieces.py` |
-| `workshop.png` | D2 工坊内景 | Modern Farm：DIY 和木工工作台；Modern Interiors：`Room_Builder`，`1_Generic` 的墙上工具和电脑桌 | `scripts/art/workshop.py` |
+| `workshop.png` | D2 工坊内景 | Modern Farm：DIY 工作台，DIY 和木工台上的工具；Modern Interiors：`Room_Builder`，`1_Generic` 的墙上工具和纸箱，`5_Classroom_and_library` 的旧电脑桌，`14_Basement` 的桌子；手画的洞洞板和零件柜 | `scripts/art/workshop.py` |
 | `workshop-room.png` | D2 工坊，家具后面那层 | Modern Farm 和 Modern Interiors，同 `workshop.png` | `scripts/art/pieces.py` |
 | `workshop-pieces.png` | D2 工坊，家具前面那层 | Modern Farm 和 Modern Interiors，同 `workshop.png` | `scripts/art/pieces.py` |
-| `staff-print.png` | D2 印刷铺的店员 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
-| `staff-studio.png` | D2 画室的店员 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
-| `staff-workshop.png` | D2 工坊的店员 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
+| `aqian.png` | D2 印刷铺的店员阿铅 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
+| `xiaozhe.png` | D2 画室的店员小赭 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
+| `xiaoding.png` | D2 工坊的店员小钉 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
 | `town-grow.png` | D5 集市摊、喷泉、花坛、小公园 | Modern Exteriors：`9_Shopping_Center_and_Markets` 的摊子，`17_Garden` 的喷泉和花 | `scripts/art/town.py` |
 | `town-decor.png` | D6 四季和六个节日 | Modern Exteriors：`19_Graveyard` 的南瓜；Modern Interiors：`15_Christmas`；手画的雪、灯笼和节日小摊 | `scripts/art/decor.py` |
 | `shops-decor.png` | D6 三间新店里的节日装饰 | Modern Interiors：`15_Christmas`、`11_Halloween`；手画的灯笼 | `scripts/art/decor.py` |

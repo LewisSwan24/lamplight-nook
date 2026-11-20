@@ -1,3 +1,4 @@
+import type { RoomId } from './scenes';
 import type { ActorId, AiEvent } from './types';
 
 /** Who performs an agent's events. Unrecognized subagents are played by Xiaoju. */
@@ -5,6 +6,23 @@ export const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', r
 
 /** Everyone who works in the shop, in the order of the portraits; Xiaodou the apprentice last (road-to-1.1.md A5). */
 export const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodou'];
+
+/** The three who keep the new shops (road-to-1.4.md D2): Pica the typesetter, Umber the painter, Tack the tinkerer. */
+export const SHOP_STAFF: ActorId[] = ['aqian', 'xiaozhe', 'xiaoding'];
+/** Everyone, in the order of the portraits. */
+export const ALL_STAFF: ActorId[] = [...STAFF, ...SHOP_STAFF];
+
+/**
+ * Who is in each room. The rest are elsewhere: drawn nowhere, never sent anywhere. Adeng minds a new shop's counter
+ * until D3 has him carry the slip over from home instead.
+ */
+export const ROOM_CREW: Record<RoomId, ActorId[]> = {
+  cafe: [...STAFF, 'cat'],
+  study: [...STAFF, 'cat'],
+  print: ['adeng', 'aqian'],
+  studio: ['adeng', 'xiaozhe'],
+  workshop: ['adeng', 'xiaoding'],
+};
 
 /**
  * The apprentice comes once this many works are finished with the user, and stays. Xiaodou only runs the errands that

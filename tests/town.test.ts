@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hitsFeet } from '../app/renderer/game/path';
 import { WALK_SPEED } from '../app/renderer/game/life';
-import { CAMERA_W, FRONTS, MOVERS, OPEN, cameraFor, doorOf, frontAt, paradePlan, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
+import { CAMERA_W, FRONTS, MOVERS, cameraFor, doorOf, frontAt, paradePlan, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
 
 // The town's street (road-to-1.4.md D1): seven fronts along a pavement wider than the canvas.
 
@@ -10,10 +10,6 @@ describe('the street', () => {
     expect(FRONTS.map((f) => f.id)).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post']);
     for (const [a, b] of FRONTS.slice(1).map((f, i) => [FRONTS[i], f])) expect(b.x).toBeGreaterThan(a.x + a.w);
     expect(FRONTS.at(-1)!.x + FRONTS.at(-1)!.w).toBeLessThanOrEqual(TOWN.width);
-  });
-
-  it('opens only the cafe and the study until the new shops are built (D2)', () => {
-    expect([...OPEN]).toEqual(['cafe', 'study']);
   });
 
   it('stands every door on the pavement, clear of the lamps and benches', () => {

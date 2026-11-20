@@ -1,0 +1,143 @@
+# Dialogue for the studio (road-to-1.4.md D2), laid over lines/cafe.yaml: same format, same rules.
+# Xiaozhe the painter does all the work and says little; Adeng only minds the counter and answers now and then.
+# Spots: 长桌 (counter), 画架 (board), 画框架 (shelf), 矮桌 (table), 窗边的高凳 (corner).
+
+opening:
+  - { id: st_revise_again_01, speaker: xiaozhe, when: revise_again, bubbles: ["上回是{lastAsk}。", "这回，{brief}。"] }
+  - { id: st_revise_01, speaker: xiaozhe, when: revise, bubbles: ["{brief}。", "在原来那层上再罩一遍。"] }
+  - { id: st_revise_02, speaker: xiaozhe, when: revise, bubbles: ["干了再看，是有点闷。", "{brief}，我来改。"] }
+  - { id: st_revise_03, speaker: xiaozhe, when: revise, bubbles: ["旧的那张先靠墙放着。", "{brief}。"] }
+  - { id: st_mem_02, speaker: xiaozhe, when: has_stuck_note, bubbles: ["{brief}。", "上回在{stuckNote}卡住了。", "这次先看那儿。"] }
+  - { id: st_mem_01, speaker: xiaozhe, when: has_memory, bubbles: ["{brief}。", "上回你挑了{lastChoice}。", "先从那个颜色起。"] }
+  - { id: st_tpl_album_01, speaker: xiaozhe, when: tpl_album, bubbles: ["照片收下了。", "先看看每张偏冷还是偏暖。"] }
+  - { id: st_handed_01, speaker: xiaozhe, when: handed, bubbles: ["东西收下了。", "{brief}。"], reply: { speaker: adeng, bubbles: ["放长桌上了。"] } }
+  - { id: st_opening_01, speaker: xiaozhe, bubbles: ["{brief}……", "嗯，是灰蓝色的。"] }
+  - { id: st_opening_02, speaker: xiaozhe, bubbles: ["{brief}。", "我去洗笔。"] }
+  - { id: st_opening_03, speaker: xiaozhe, bubbles: ["好。", "{brief}，先打底。"] }
+
+planning:
+  - { id: st_plan_01, speaker: xiaozhe, bubbles: ["先在画架上起个稿。"] }
+  - { id: st_plan_02, speaker: xiaozhe, bubbles: ["大块先铺，细的后画。"] }
+  - { id: st_plan_03, speaker: xiaozhe, bubbles: ["分三层。"] }
+
+draft_ready:
+  - { id: st_draft_ready_01, speaker: xiaozhe, bubbles: ["信写好了，在长桌上。", "你看过再寄。"] }
+  - { id: st_draft_ready_02, speaker: xiaozhe, bubbles: ["草稿好了。", "寄不寄，你定。"] }
+  - { id: st_draft_ready_03, speaker: xiaozhe, bubbles: ["信没寄。", "压在调色板旁边。"] }
+
+writing:
+  - { id: st_write_01, speaker: xiaozhe, bubbles: ["上色了。"] }
+  - { id: st_write_02, speaker: xiaozhe, bubbles: ["这块干了，画下一块。"] }
+  - { id: st_write_03, speaker: xiaozhe, bubbles: ["先铺一层赭石。"] }
+  - { id: st_write_04, speaker: xiaozhe, bubbles: ["……", "这里再暗一点。"] }
+
+sub_go_research:
+  - { id: st_go_rs_rain, speaker: xiaozhe, when: sky_rain, bubbles: ["雨天，光是青灰的。", "我去画框架那边找{topic}。"] }
+  - { id: st_go_rs_01, speaker: xiaozhe, bubbles: ["{topic}。我去翻翻画框架。"] }
+  - { id: st_go_rs_02, speaker: xiaozhe, bubbles: ["旧画里该有。"] }
+  - { id: st_go_rs_03, speaker: xiaozhe, bubbles: ["等一下。"] }
+
+sub_back_research:
+  - { id: st_back_rs_01, speaker: xiaozhe, bubbles: ["找到{count}张能用的。"] }
+  - { id: st_back_rs_02, speaker: xiaozhe, bubbles: ["这张的颜色对。"] }
+  - { id: st_back_rs_03, speaker: xiaozhe, bubbles: ["都在这儿了。", "灰的放左边，暖的放右边。"] }
+
+sub_go_review:
+  - { id: st_go_rv_01, speaker: xiaozhe, bubbles: ["我坐远一点看。"] }
+  - { id: st_go_rv_02, speaker: xiaozhe, bubbles: ["窗边光好，我去那儿看看。"] }
+  - { id: st_go_rv_03, speaker: xiaozhe, bubbles: ["眯着眼看，才看得出毛病。"] }
+
+sub_back_review:
+  - { id: st_back_rv_issue, speaker: xiaozhe, when: has_issues, bubbles: ["{issueCount}处发脏。", "用炭笔圈出来了。"] }
+  - { id: st_back_rv_ok, speaker: xiaozhe, when: no_issues, bubbles: ["远看近看，都干净。"] }
+  - { id: st_back_rv_ok2, speaker: xiaozhe, when: no_issues, bubbles: ["嗯。不用动了。"], reply: { speaker: adeng, bubbles: ["那就好。"] } }
+
+sub_go_design:
+  - { id: st_go_ds_rain, speaker: xiaozhe, when: sky_rain, bubbles: ["下雨天，颜色收一收。", "我去画架那边。"] }
+  - { id: st_go_ds_01, speaker: xiaozhe, bubbles: ["我在画架上试几笔。"] }
+  - { id: st_go_ds_02, speaker: xiaozhe, bubbles: ["先调五个颜色。"] }
+  - { id: st_go_ds_03, speaker: xiaozhe, bubbles: ["底色，暖一点的米白。"] }
+
+sub_back_design:
+  - { id: st_back_ds_01, speaker: xiaozhe, bubbles: ["样子定了。", "五个颜色，从浅到深。"] }
+  - { id: st_back_ds_02, speaker: xiaozhe, bubbles: ["色卡贴在画架上了。", "偏暖，久看不累。"] }
+  - { id: st_back_ds_03, speaker: xiaozhe, bubbles: ["画好了。你看看。"] }
+
+stuck:
+  - { id: st_stuck_01, speaker: xiaozhe, bubbles: ["嗯？颜色发灰了。", "换个调法。"] }
+  - { id: st_stuck_02, speaker: xiaozhe, bubbles: ["不对。{whatsWrong}。"] }
+  - { id: st_stuck_03, speaker: xiaozhe, bubbles: ["又糊了。"] }
+  - { id: st_stuck_04, speaker: xiaozhe, bubbles: ["……", "刮掉，重画。"] }
+
+stuck_long:
+  - { id: st_stuck_long_01, speaker: xiaozhe, bubbles: ["这块难画。", "要多试几层，你去忙。"] }
+  - { id: st_stuck_long_02, speaker: xiaozhe, bubbles: ["还在画。"] }
+  - { id: st_stuck_long_03, speaker: xiaozhe, bubbles: ["等它干一干，再来。"] }
+
+waiting:
+  - { id: st_wait_01, speaker: xiaozhe, bubbles: ["颜料还没干。"] }
+  - { id: st_wait_02, speaker: xiaozhe, bubbles: ["等这层干透。"] }
+  - { id: st_wait_03, speaker: xiaozhe, bubbles: ["窗外的天，是淡紫的。"] }
+
+ask:
+  - { id: st_ask_color, speaker: xiaozhe, when: demo_color, bubbles: ["奶油白，还是浅薄荷？", "你挑。"] }
+  - { id: st_ask_01, speaker: xiaozhe, bubbles: ["问你一件事。", "{question}"] }
+  - { id: st_ask_02, speaker: xiaozhe, bubbles: ["两种画法。", "你要哪种？"] }
+
+react_adopted:
+  - { id: st_react_ad_01, speaker: xiaozhe, bubbles: ["好，就这个。"] }
+  - { id: st_react_ad_02, speaker: xiaozhe, bubbles: ["嗯。这个颜色对。"] }
+  - { id: st_react_ad_03, speaker: xiaozhe, bubbles: ["记下了。"] }
+
+react_rejected:
+  - { id: st_react_rj_01, speaker: xiaozhe, bubbles: ["好，听你的。"] }
+  - { id: st_react_rj_02, speaker: xiaozhe, bubbles: ["那这块颜色刮掉。"] }
+  - { id: st_react_rj_03, speaker: xiaozhe, bubbles: ["嗯，换一个。"] }
+
+react_delegated:
+  - { id: st_react_dl_00, speaker: xiaozhe, bubbles: ["好，我来定。"] }
+  - { id: st_react_dl_01, speaker: xiaozhe, bubbles: ["{choice}，因为{reason}。", "不喜欢就说。"] }
+  - { id: st_react_dl_02, speaker: xiaozhe, bubbles: ["先用{choice}。", "不对再换。"] }
+  - { id: st_react_dl_03, speaker: xiaozhe, bubbles: ["{choice}。", "为什么，我写在画背面了。"] }
+
+serious:
+  - { id: st_serious_01, speaker: xiaozhe, bubbles: ["这一步要{action}。", "做了，{consequence}。", "你看一下再定。"] }
+  - { id: st_serious_02, speaker: xiaozhe, bubbles: ["这里要你点头。", "{action}，{consequence}。"] }
+  - { id: st_serious_03, speaker: xiaozhe, bubbles: ["这一笔下去就盖不掉了。", "你看清楚。"] }
+
+refused:
+  - { id: st_refused_01, speaker: xiaozhe, bubbles: ["这个不碰。", "换条路。"] }
+  - { id: st_refused_02, speaker: xiaozhe, bubbles: ["这不归我们画。"] }
+  - { id: st_refused_03, speaker: xiaozhe, bubbles: ["那是你自己的东西。我不看。"] }
+
+serious_yes:
+  - { id: st_serious_yes_01, speaker: xiaozhe, bubbles: ["好。"] }
+  - { id: st_serious_yes_02, speaker: xiaozhe, bubbles: ["知道了，画。"] }
+  - { id: st_serious_yes_03, speaker: xiaozhe, bubbles: ["嗯，我来。"] }
+
+serious_no:
+  - { id: st_serious_no_01, speaker: xiaozhe, bubbles: ["好，不动它。", "换个不用这样的画法。"] }
+  - { id: st_serious_no_02, speaker: xiaozhe, bubbles: ["好，先放着。"] }
+  - { id: st_serious_no_03, speaker: xiaozhe, bubbles: ["不画了。绕开它。"] }
+
+done:
+  - { id: st_done_day, speaker: xiaozhe, when: daytime, bubbles: ["画好了，在画架上。", "趁亮，你看看。"] }
+  - { id: st_done_dusk, speaker: xiaozhe, when: dusk, bubbles: ["好了。", "这会儿的光是橘色的，正好看。"] }
+  - { id: st_done_night, speaker: xiaozhe, when: night, bubbles: ["好了。", "灯下颜色偏黄，明早再看一眼。"] }
+  - { id: st_done_01, speaker: xiaozhe, bubbles: ["干透了，可以拿走。"], reply: { speaker: adeng, bubbles: ["我找个框给它。"] } }
+  - { id: st_done_02, speaker: xiaozhe, bubbles: ["好了。", "最后一笔，是一点白。"] }
+
+failed:
+  - { id: st_failed_01, speaker: xiaozhe, bubbles: ["这次没画成，对不起。", "卡在{stuckAt}。", "我记在速写本上了。", "下次换个画法。"] }
+  - { id: st_failed_02, speaker: xiaozhe, bubbles: ["没画出来。", "卡在{stuckAt}。记下了。"] }
+  - { id: st_failed_03, speaker: xiaozhe, bubbles: ["今天先到这儿。", "问题记在速写本上了。"] }
+
+net_retry:
+  - { id: st_net_retry_01, speaker: xiaozhe, bubbles: ["好像断电了。等等再试。"] }
+  - { id: st_net_retry_02, speaker: xiaozhe, bubbles: ["电话没通。再拨一次。"] }
+  - { id: st_net_retry_03, speaker: xiaozhe, bubbles: ["外面没人应。过会儿再问。"] }
+
+cancelled:
+  - { id: st_cancelled_01, speaker: xiaozhe, bubbles: ["好，先放着。"] }
+  - { id: st_cancelled_02, speaker: xiaozhe, bubbles: ["行。画了的都留着。"] }
+  - { id: st_cancelled_03, speaker: xiaozhe, bubbles: ["好，不画了。", "笔我先洗了。"] }

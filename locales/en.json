@@ -19,6 +19,9 @@
     "laoshi": "Flint",
     "qingdai": "Iris",
     "xiaodou": "Bean",
+    "aqian": "Pica",
+    "xiaozhe": "Umber",
+    "xiaoding": "Tack",
     "cat": "Chestnut"
   },
   "animals": {
@@ -698,6 +701,7 @@
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
       "moved": "All moved in, {name}. Everything is where it was.",
+      "busy": "There is work under way in here. Go over once it is done.",
       "notes": {
         "cafe": "The cafe.",
         "study": "The study.",
@@ -1377,6 +1381,48 @@
         "access": {
           "hotspotCounter": "Desk: hand in a commission",
           "hotspotShop": "Back door: to the study"
+        }
+      }
+    },
+    "print": {
+      "zones": {
+        "counter": "the composing desk",
+        "board": "the press",
+        "shelf": "the paper rack",
+        "table": "the cutting table",
+        "corner": "the binding table"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Composing desk: hand in a commission"
+        }
+      }
+    },
+    "studio": {
+      "zones": {
+        "counter": "the long table",
+        "board": "the easel",
+        "shelf": "the frame rack",
+        "table": "the low table",
+        "corner": "the stool by the window"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Long table: hand in a commission"
+        }
+      }
+    },
+    "workshop": {
+      "zones": {
+        "counter": "the workbench",
+        "board": "the tool wall",
+        "shelf": "the parts cabinet",
+        "table": "the big table",
+        "corner": "the old computer"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Workbench: hand in a commission"
         }
       }
     }

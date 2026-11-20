@@ -10,7 +10,7 @@ import { lookPicker, withPortrait } from './portraits';
 import { moveTo, scenePicker, sceneRow } from './scenes';
 import { FURNISH_CHOICES, FURNISH_PARTS, SWATCHES, type Furnishing } from '../../shared/furnish';
 import { keyTextParts } from './key-text';
-import { currentScene, type SceneId } from '../../shared/scenes';
+import { homeScene, type SceneId } from '../../shared/scenes';
 
 const S = strings.ui.setup;
 /** Where people write to; the same address as on the website and the store page. */
@@ -197,7 +197,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
         el('div.actions', {}, el('button.default', { onclick: folder }, S.next)),
       );
     };
-    let scene: SceneId = currentScene();
+    let scene: SceneId = homeScene();
     const folder = () => page(
       withPortrait('adeng', 'happy', el('div.card-title', {}, S.folderTitle), el('div', {}, S.folderText)),
       folderRow(api, settings, (s) => { settings = s; }),
@@ -208,7 +208,7 @@ export function showWelcome(api: LamplightApi, settings: Settings, env: EnvStatu
         closePanel();
         const saved = await api.saveSettings({ name: name.value.trim(), avatar: look, onboarded: true });
         // Picking the study moves the shop there before it opens (the page reloads into the new room).
-        if (scene !== currentScene() && (await moveTo(api, scene))) return;
+        if (scene !== homeScene() && (await moveTo(api, scene))) return;
         resolve(saved);
       } }, S.openShop)),
     );
@@ -415,7 +415,7 @@ let lastTab: SettingsTab = 'basics';
 /** Furnishing the scene the shop is in: a row of colour swatches for the walls, the curtains and the rug. */
 function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement[] {
   const F = strings.ui.furnish;
-  const here = currentScene();
+  const here = homeScene();
   let mine: Furnishing = { ...settings.furnish[here] };
   return [
     el('div.hint', {}, fill(F.hint, { scene: strings.ui.scene[here] })),

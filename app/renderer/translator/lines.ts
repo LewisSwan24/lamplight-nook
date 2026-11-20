@@ -4,7 +4,7 @@ import { parse } from 'yaml';
 import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky } from '../game/weather';
-import { SCENES, forScene, type SceneId } from '../../shared/scenes';
+import { ROOMS, forScene, type RoomId } from '../../shared/scenes';
 import type { LineBook } from './director';
 
 export type Line = {
@@ -14,7 +14,7 @@ export type Line = {
   when?: string;
   reply?: { speaker: ActorId; bubbles: string[] };
   /** Said only in this scene; replaces the line with the same id there (shared/scenes.ts). */
-  scene?: SceneId;
+  scene?: RoomId;
 };
 export type LineLibrary = Record<string, Line[]>;
 
@@ -39,7 +39,7 @@ export type Chat = {
   /** A little story told only once, ever (remembered in Adeng's notebook). */
   once?: boolean;
   /** Only in this scene (shared/scenes.ts); replaces the chat with the same id there. */
-  scene?: SceneId;
+  scene?: RoomId;
   turns: { speaker: Speaker; text: string }[];
 };
 
@@ -71,11 +71,11 @@ export function parseLines(text: string): LineLibrary {
 }
 
 /** The lines and chats for one scene: entries marked for another scene drop out, its own replace their twins. */
-export function linesForScene(lib: LineLibrary, scene: SceneId): LineLibrary {
+export function linesForScene(lib: LineLibrary, scene: RoomId): LineLibrary {
   return Object.fromEntries(Object.entries(lib).map(([group, lines]) => [group, forScene(lines, scene)]));
 }
-export const chatsForScene = (chats: Chat[], scene: SceneId) => forScene(chats, scene);
-export const knownScene = (scene: unknown) => scene === undefined || SCENES.includes(scene as SceneId);
+export const chatsForScene = (chats: Chat[], scene: RoomId) => forScene(chats, scene);
+export const knownScene = (scene: unknown) => scene === undefined || ROOMS.includes(scene as RoomId);
 
 /** Line library -> the Director's line book (bubbles joined by newlines; a reply keeps its own speaker). */
 export function toLineBook(lib: LineLibrary): LineBook {
