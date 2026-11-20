@@ -1,0 +1,53 @@
+import { describe, expect, it } from 'vitest';
+import { hitsFeet } from '../app/renderer/game/path';
+import { CAMERA_W, FRONTS, OPEN, cameraFor, doorOf, frontAt, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
+
+// The town's street (road-to-1.4.md D1): seven fronts along a pavement wider than the canvas.
+
+describe('the street', () => {
+  it('has seven fronts in a row, the cafe first and the post office last, inside the street', () => {
+    expect(FRONTS.map((f) => f.id)).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post']);
+    for (const [a, b] of FRONTS.slice(1).map((f, i) => [FRONTS[i], f])) expect(b.x).toBeGreaterThan(a.x + a.w);
+    expect(FRONTS.at(-1)!.x + FRONTS.at(-1)!.w).toBeLessThanOrEqual(TOWN.width);
+  });
+
+  it('opens only the cafe and the study until the new shops are built (D2)', () => {
+    expect([...OPEN]).toEqual(['cafe', 'study']);
+  });
+
+  it('stands every door on the pavement, clear of the lamps and benches', () => {
+    const area = streetArea();
+    for (const f of FRONTS) {
+      const d = doorOf(f.id);
+      expect(d.x).toBe(f.door);
+      expect(d.y).toBeGreaterThanOrEqual(area.top);
+      expect(area.obstacles.some((o) => hitsFeet(d, o)), f.id).toBe(false);
+    }
+  });
+
+  it('walks from every door to every other without going through anything', () => {
+    const area = streetArea();
+    for (const a of FRONTS) {
+      for (const b of FRONTS) {
+        if (a === b) continue;
+        const walk = streetWalk(doorOf(a.id), doorOf(b.id));
+        expect(walk.at(-1), `${a.id} to ${b.id}`).toEqual(doorOf(b.id));
+        for (const p of walk) expect(area.obstacles.some((o) => hitsFeet(p, o)), `${a.id} to ${b.id} at ${p.x},${p.y}`).toBe(false);
+        for (const p of walk) expect(p.y >= area.top && p.y <= area.bottom, `${a.id} to ${b.id} leaves the pavement`).toBe(true);
+      }
+    }
+  });
+
+  it('knows which front was clicked, and nothing between them', () => {
+    const study = FRONTS.find((f) => f.id === 'study')!;
+    expect(frontAt(study.x + 4, 100)).toBe('study');
+    expect(frontAt(study.x - 4, 100)).toBeNull();
+    expect(frontAt(study.x + 4, TOWN.kerb + 20)).toBeNull();
+  });
+
+  it('pans to keep a point in the middle, without showing past either end', () => {
+    expect(cameraFor(0)).toBe(0);
+    expect(cameraFor(TOWN.width)).toBe(TOWN.width - CAMERA_W);
+    expect(cameraFor(500)).toBe(500 - CAMERA_W / 2);
+  });
+});

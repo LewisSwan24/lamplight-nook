@@ -199,6 +199,25 @@ ICONS = {
         '......xxxx......',
         '................',
     ],
+    # The street (road-to-1.4.md D1): a shop front with its window and door, a lamp beside it, the pavement below.
+    'street': [
+        '................',
+        '...xxxxxx.......',
+        '..xaaaaaax....x.',
+        '.xaaaaaaaax..xhx',
+        'xxxxxxxxxxxx.xhx',
+        '.xppppppppx...x.',
+        '.xpxxpxxxpx...x.',
+        '.xpxmpxbxpx...x.',
+        '.xpxxpxbxpx...x.',
+        '.xppppxbxpx...x.',
+        '.xppppxbxpx...x.',
+        '.xxxxxxxxxx..xxx',
+        'ssssssssssssssss',
+        '................',
+        '................',
+        '................',
+    ],
 }
 
 

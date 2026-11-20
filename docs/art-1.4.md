@@ -31,6 +31,7 @@
 | `town-fronts.png` | D1 七个门面 | Modern Exteriors：`5_Floor_Modular_Buildings`、`4_Generic_Buildings`、`22_Post_Office`、`9_Shopping_Center_and_Markets` 的橱窗 | `scripts/art/town.py` |
 | `town-props.png` | D1 路灯、长椅、花盆、树、站牌 | Modern Exteriors：`3_City_Props` | `scripts/art/town.py` |
 | `town-signs.png` | D1 七块店招 | 手画，字用像素字 | `scripts/art/town.py` |
+| `town.json` | D1 门面、门和街上小件的位置，游戏和测试都读它 | Modern Exteriors，跟街景一起算出来 | `scripts/art/town.py` |
 | `print.png` | D2 印刷铺内景 | Modern Interiors：`Room_Builder` 的地板和墙，`1_Generic` 的桌子、柜子、纸箱；手画的印刷机和铅字架 | `scripts/art/print.py` |
 | `print-room.png` | D2 印刷铺，家具后面那层 | Modern Interiors，同 `print.png` | `scripts/art/pieces.py` |
 | `print-pieces.png` | D2 印刷铺，家具前面那层 | Modern Interiors，同 `print.png` | `scripts/art/pieces.py` |

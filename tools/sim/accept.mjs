@@ -4129,6 +4129,69 @@ const SCENARIOS = {
   },
 
   /** The study at home: same work, its own furniture and lines. */
+  /**
+   * The town's street (road-to-1.4.md D1): out of the door from the toolbar and back in on the same page, along the
+   * street with the arrow keys, a front not open yet saying so, back in through the shop's own front and with Escape.
+   * By day, by night and in a small window.
+   */
+  async street(lang, out) {
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const L = locale(lang);
+    for (const size of [undefined, [640, 360]]) {
+      const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: SPEED, ...(size ? { size } : {}) });
+      const { page } = shop;
+      const small = size ? '-640' : '';
+      try {
+        await sleep(2500);
+        await page.evaluate(() => { window.samePage = true; });
+        const look = () => page.evaluate(() => {
+          const g = window.lamplightDebug.street;
+          return { out: g.sys.isActive() && g.sys.isVisible(), x: g.cameras.main.scrollX, room: window.lamplightDebug.scene.sys.isVisible(), same: window.samePage === true };
+        });
+        /** Click a front, in the middle of its upper floor, with the street scrolled to it. */
+        const clickFront = async (id) => {
+          const f = town.fronts.find((x) => x.id === id);
+          await page.evaluate((i) => window.lamplightDebug.street.lookAt(i), id);
+          await sleep(200);
+          const { x: scroll } = await look();
+          const box = await page.locator('#game canvas').boundingBox();
+          const k = box.width / 320;
+          await page.mouse.click(box.x + (f.x + f.w / 2 - scroll) * k, box.y + 60 * k);
+          await sleep(500);
+        };
+        await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+        await sleep(800);
+        let v = await look();
+        check(v.out && !v.room, `the street did not show${small}`);
+        check(await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.back}"]`).count() === 1, 'the street button does not say it takes you back in');
+        for (const period of size ? ['day'] : ['day', 'night']) {
+          await page.evaluate((x) => window.lamplightDebug.scene.setPeriod(x, true), period);
+          await sleep(300);
+          await shop.shot(join(out, `street-${period}${small}.png`));
+        }
+        await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+        for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+        await sleep(200);
+        const along = await look();
+        check(along.x > v.x, 'the arrow keys do not move along the street');
+        await clickFront('print');
+        check((await page.locator('.street-note').innerText()) === L.ui.town.notes.print, 'the print shop does not say it is not open yet');
+        await shop.shot(join(out, `street-closed${small}.png`));
+        v = await look();
+        check(v.out, 'a front not open yet took me somewhere');
+        await clickFront('cafe');
+        v = await look();
+        check(!v.out && v.room && v.same, `going in at the cafe did not bring the room back on the same page: ${JSON.stringify(v)} ${await page.evaluate(() => document.elementFromPoint(innerWidth * 0.25, innerHeight * 0.33)?.className)}`);
+        await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+        await sleep(500);
+        await page.keyboard.press('Escape');
+        await sleep(500);
+        v = await look();
+        check(!v.out && v.room && v.same, 'Escape on the street did not bring me back inside');
+      } finally { await shop.close(); }
+    }
+  },
+
   async study(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang, { scene: 'study' }) });
     const shop = await launch({ lang, home, speed: SPEED });
@@ -4732,8 +4795,8 @@ const SCENARIOS = {
     const tipShown = (i) => buttons.nth(i).evaluate((b) => getComputedStyle(b, '::after').opacity === '1');
     const settingsFile = () => JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8'));
     try {
-      const want = [L.ui.toolbar.order, L.ui.projects.button, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.settings];
-      check(await buttons.count() === 7, `the toolbar has ${await buttons.count()} buttons`);
+      const want = [L.ui.toolbar.order, L.ui.projects.button, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.street, L.ui.toolbar.settings];
+      check(await buttons.count() === 8, `the toolbar has ${await buttons.count()} buttons`);
       for (const [i, label] of want.entries()) {
         check(await tip(i) === label, `button ${i} says ${await tip(i)}, not ${label}`);
         check(await buttons.nth(i).getAttribute('aria-label') === label, `button ${i} has no spoken name`);
