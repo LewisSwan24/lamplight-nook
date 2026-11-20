@@ -144,5 +144,21 @@ python scripts/audio/sfx.py        # the UI sounds
 
 `docs/art.md` says which pack each script reads and what it writes.
 
+### Releases on GitHub
+
+The release workflow builds from a clean checkout, so it takes the pack-built files from a private repository,
+`LewisSwan24/lamplight-nook-assets`, through a read-only deploy key held in this repository's secret
+`ASSETS_DEPLOY_KEY`. It stops with an error when the secret is missing, and `scripts/pack-assets.mjs import`
+refuses any file this repository does not ignore, so the private copy cannot change code.
+
+After rebuilding or adding art, update the private copy before tagging a release, with that repository cloned
+next to this one:
+
+```bash
+node scripts/pack-assets.mjs export ../lamplight-nook-assets
+```
+
+Then commit and push in `../lamplight-nook-assets`. The export also deletes files there that are no longer built.
+
 Character sheets keep the generator layout: 16x32 frames, 56 per row, directional animations in
 right/up/left/down order (see `app/renderer/game/sprites.ts`).
