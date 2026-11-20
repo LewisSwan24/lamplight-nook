@@ -752,6 +752,8 @@ async function openShop() {
   layer().append(streetNote);
   let noteTimer = 0;
   street.tint = () => scene.tint;
+  street.walker = () => scene.streetWalker();
+  street.onActor = (id) => scene.onActorClick(id);
   street.onFront = (id, open) => {
     if (id === currentScene()) return goOut(false);
     if (open) return void moveShop(api, id as SceneId);

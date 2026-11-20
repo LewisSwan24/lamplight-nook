@@ -6,6 +6,9 @@
   seven fronts in a row, panned along by dragging or with the arrow keys, by day and by night. Your own front, Enter
   in front of it, Escape or the same button takes you back in, and the work inside goes on meanwhile. The print shop,
   the studio and the workshop are still being fitted out; the bakery and the post office belong to the neighbours.
+- **Errands on the real street.** The small window that shows Clem out on an errand now looks onto the town's street,
+  and out of the door you see her there, in the same place: at the post office for the web, at the other room for
+  books, past the bakery on the way back from far off. A click on her out there works as in the window.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.

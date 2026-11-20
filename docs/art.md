@@ -72,7 +72,7 @@ no pixel changed, so compare pixels and restore unchanged files before committin
 | `pieces.py` | Splits `cafe.png` and `study.png` into the empty room and the furniture, with depths for the game and boxes for the walks (`pieces.json`). Run last, after anything that changes a room or an overlay. |
 | `decor.py` | Holiday and weather overlays. |
 | `garden.py`, `animals.py` | The back garden and its animals. |
-| `street.py` | The street seen through the small inset. |
+| `town.py` | The town's street (1.4), also seen through the small inset during errands. |
 | `characters.py`, `portraits.py` | Staff sprite sheets, then portraits from those sheets. |
 | `emotes.py` | The mood bubble strip. |
 | `garden.py` | The garden, and `garden-crops.png` (what comes up in the beds; the sprout is drawn by the script). |
