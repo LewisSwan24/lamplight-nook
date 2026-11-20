@@ -61,7 +61,7 @@ OUTBOX = [
 
 # Top-left of each on the canvas. The cabinet and the holder sit the same in both scenes; the basket sits on the
 # counter in the cafe and on the right-hand desk in the study, clear of the cup, the lamp and the globe.
-CABINET_AT = (58, 98)
+CABINET_AT = (65, 98)
 MAILSLOT_AT = (306, 31)
 OUTBOX_AT = {'cafe': (262, 79), 'study': (256, 80)}
 

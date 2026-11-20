@@ -178,6 +178,54 @@
   priority: chat
 
 # Adeng's own work
+# The back room and the post (road-to-1.3.md C8). The shop's own Office tools: a document is looked up at the filing
+# cabinet, and a finished file is put away in it. Helpers never use these tools, so only Adeng plays them.
+- on: tool_start
+  when: { agent: main, tool: mcp__nook-office__read_document }
+  actor: adeng
+  state: working
+  moveTo: cabinet
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: [mcp__nook-office__make_docx, mcp__nook-office__make_xlsx, mcp__nook-office__make_pptx, mcp__nook-office__make_pdf, mcp__nook-office__edit_docx, mcp__nook-office__edit_xlsx, mcp__nook-office__edit_pptx, mcp__nook-office__render_png] }
+  actor: adeng
+  state: working
+  moveTo: cabinet
+  anim: gift
+  priority: work
+
+# Connections come by post: Axin brings what is read from a calendar or a synced folder to the letter holder, and takes a
+# copy to be saved away. A draft goes in the outbox for the user to send.
+- on: tool_start
+  when: { agent: main, tool: [mcp__nook-calendar__events, mcp__nook-folder__list, mcp__nook-folder__read] }
+  actor: adeng
+  state: working
+  moveTo: mailslot
+  anim: read
+  post: deliver
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-folder__save_copy }
+  actor: adeng
+  state: working
+  moveTo: mailslot
+  anim: gift
+  post: collect
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-maildraft__draft }
+  actor: adeng
+  state: working
+  moveTo: counter
+  anim: gift
+  lines: draft_ready
+  post: outbox
+  priority: work
+
 - on: tool_start
   when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
   actor: adeng

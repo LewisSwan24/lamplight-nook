@@ -39,7 +39,7 @@ export type NookTool = {
  * One server: the shop's own (office) or a connection's (named by its id, with `connection` saying which). `used` hears of
  * each call, before it runs.
  */
-export type NookServer = { name: string; tools: NookTool[]; used?: (t: NookTool) => void; connection?: { id: string; label: string } };
+export type NookServer = { name: string; tools: NookTool[]; used?: (t: NookTool) => void; connection?: { id: string; label: string; kind?: string } };
 /** A tool of this round, with the connection it belongs to, if any. */
 export type RoundTool = NookTool & { connection?: { id: string; label: string } };
 
@@ -47,6 +47,18 @@ export type RoundTool = NookTool & { connection?: { id: string; label: string } 
 const ALWAYS_ASK = new Set<ToolKind>(['outside', 'final']);
 
 export const nookName = (server: string, toolName: string) => `mcp__${NOOK_PREFIX}${server}__${toolName}`;
+
+/**
+ * A tool's name with a connection's number swapped for its kind (`mcp__nook-k17__events` -> `mcp__nook-calendar__events`), for
+ * the shop to play it whatever the number (road-to-1.3.md C8). Every other name stays as it is.
+ */
+export function kindToolNames(servers: NookServer[]): (name: string) => string {
+  const kinds = new Map(servers.flatMap((s) => (s.connection?.kind ? [[`mcp__${NOOK_PREFIX}${s.name}__`, `mcp__${NOOK_PREFIX}${s.connection.kind}__`] as const] : [])));
+  return (name) => {
+    for (const [from, to] of kinds) if (name.startsWith(from)) return to + name.slice(from.length);
+    return name;
+  };
+}
 
 /**
  * The SDK's config for one server, its tools bound to this round. With `actions`, a connection's every call is written

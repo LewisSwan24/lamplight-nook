@@ -17,7 +17,7 @@ type Box = { name: string; left: number; right: number; top: number; bottom: num
 const box = (name: string, left: number, right: number, top: number, bottom: number): Box => ({ name, left, right, top, bottom });
 
 /** The floor under what stands in the room, measured from cafe.png and study.png; what rises above it can hide a walker. */
-const SHARED = [box('left chair', 98, 111, 86, 98), box('right chair', 189, 202, 86, 98), box('workbench', 128, 144, 144, 158), box('filing cabinet', 58, 72, 112, 120)];
+const SHARED = [box('left chair', 98, 111, 86, 98), box('right chair', 189, 202, 86, 98), box('workbench', 128, 144, 144, 158), box('filing cabinet', 65, 79, 112, 120)];
 const FURNITURE: Record<string, Box[]> = {
   cafe: [
     ...SHARED,

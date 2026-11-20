@@ -46,7 +46,7 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
   counter: { x: 228, y: 84, facing: 'down' },
   door: { x: 295, y: 56, facing: 'up' },
   // Beside the filing cabinet, as at the bookcase; and under the letter holder, left of where Axin stands.
-  cabinet: { x: 80, y: 118, facing: 'left' },
+  cabinet: { x: 88, y: 118, facing: 'left' },
   mailslot: { x: 303, y: 60, facing: 'up' },
 };
 
@@ -93,6 +93,8 @@ export const SEATS: Partial<Record<AnchorId, Partial<Record<ActorId, Spot>>>> = 
   shelf: {
     laoshi: { x: 78, y: 128, facing: 'left' },
     qingdai: { x: 78, y: 140, facing: 'left' },
+    // Below the others: a slot of her own would stand her behind the filing cabinet (road-to-1.3.md C8).
+    xiaodou: { x: 78, y: 152, facing: 'left' },
   },
   corner: {
     qingdai: { x: 104, y: 160, facing: 'right' },

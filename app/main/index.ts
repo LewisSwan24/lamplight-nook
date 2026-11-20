@@ -372,7 +372,7 @@ const kindOf = (kind: unknown) => connectionKinds().find((k) => k.kind === kind)
 /** A connection's server for a round: its tools, each call noted as its last use; null for a kind this build cannot run. */
 function connectionServer(c: Connection): NookServer | null {
   const def = kindOf(c.kind);
-  return def ? { name: c.id, tools: def.tools(c, () => connections.secret(c.id)), used: () => connections.used(c.id), connection: { id: c.id, label: c.label } } : null;
+  return def ? { name: c.id, tools: def.tools(c, () => connections.secret(c.id)), used: () => connections.used(c.id), connection: { id: c.id, label: c.label, kind: c.kind } } : null;
 }
 /** Each round's preview pages for the result card's thumbnail (C1), in the data folder, the newest runs' only. */
 const previewsDir = () => join(app.getPath('userData'), 'previews');

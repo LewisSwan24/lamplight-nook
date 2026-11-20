@@ -444,7 +444,7 @@ describe('the filing cabinet and the post (C8)', () => {
     for (const tool of ['make_docx', 'make_xlsx', 'make_pptx', 'make_pdf', 'edit_docx', 'edit_xlsx', 'edit_pptx', 'render_png']) {
       const t = round();
       expect(adeng(t, { tool: office(tool) }), tool).toMatchObject({ moveTo: 'table' });
-      expect(adeng(t, { kind: 'tool_ok', tool: office(tool) }), tool).toMatchObject({ moveTo: 'cabinet', action: 'gift' });
+      expect(adeng(t, { kind: 'tool_ok', tool: office(tool) }), tool).toMatchObject({ moveTo: 'cabinet', anim: 'gift' });
     }
   });
 

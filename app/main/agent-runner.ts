@@ -22,7 +22,7 @@ import { InputQueue } from './input-queue';
 import { agentEnv, type Credentials } from './api-key';
 import { estimateUsd, type Usage } from './prices';
 import type { RoundActions } from './action-log';
-import { mcpServersOf, toolsByName, type NookServer } from './nook-tools';
+import { kindToolNames, mcpServersOf, toolsByName, type NookServer } from './nook-tools';
 import { urlsSeen } from './citations';
 
 /** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
@@ -160,7 +160,8 @@ export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 
 export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
-  const normalizer = new EventNormalizer();
+  // A connection's tools go by its kind in the events, so the shop plays them whatever the connection's number (C8).
+  const normalizer = new EventNormalizer({ toolName: kindToolNames(nook?.servers ?? []) });
   const sendAi = (events: AiEvent[]) => { if (emitAi) for (const e of events) emitAi(e); };
   const record = (e: Omit<RawAgentEvent, 't'>) => {
     const raw = recorder.write({ t: Date.now(), ...e });
