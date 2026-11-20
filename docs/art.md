@@ -14,8 +14,11 @@ are in `scripts/notices.mjs`.
 | Modern UI SFX | Cyberleaf Studio | `sfx/Cyberleaf-ModernUISFX` | Commercial use allowed. No redistribution or remixing for release. |
 | LXGW WenKai Screen | LXGW | `fonts/lxgw-wenkai-screen-webfont` | SIL OFL 1.1. npm package `lxgw-wenkai-screen-webfont`. |
 
-Read the license file in each pack before relying on this table. Because the assets may not be redistributed, this
-repository must stay private.
+Read the license file in each pack before relying on this table. Because the assets may not be redistributed, the
+repository is public without them: every picture or sound a script builds from a pack is listed in `.gitignore` and
+stays on the builder's disk. Only pictures drawn entirely by a script, the synthesised sounds, the CC BY music and the
+OFL font are tracked. A new sprite PNG is ignored by default; if a script draws it with no pack pixels, list it back
+in `.gitignore` with a `!` line.
 
 ## What the installer carries
 

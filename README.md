@@ -102,20 +102,47 @@ version into the exe): `npm run build && npx electron-builder --win nsis --publi
 
 ## Art and licenses
 
-Art comes from purchased packs (LimeZu Modern Interiors / Exteriors / Farm, Cyberleaf Modern UI SFX).
-Their licenses forbid redistributing the original files, so raw packs go in the git-ignored `assets/vendor/`
-and this repository must stay private. LimeZu requires credit: https://limezu.itch.io/
+Most of the art and the UI sounds come from purchased packs: LimeZu Modern Interiors, Modern Exteriors and
+Modern Farm (https://limezu.itch.io/), and Cyberleaf Modern UI SFX. Their licenses forbid redistributing the
+files, so **this repository does not contain them, nor the pictures and sounds our scripts build from them.**
+Those files are listed in `.gitignore`. LimeZu requires credit, which the app gives in Settings.
 
-`assets/sprites/` holds only the images the app uses, built from the packs by our scripts:
+What the repository does carry:
+
+- Pictures our scripts draw entirely by hand: the toolbar icons, the works-shelf icons, the back door, the
+  holiday lanterns and decorations for New Year, Dragon Boat and Mid-Autumn, the season sprigs, the weather
+  touches, the town's shop signs, and the app, tray and Store icons.
+- Sounds synthesised by `scripts/audio/sfx.py` (door, ding, mallet, pencil).
+- Music by Alex Morgan under CC BY 4.0 (`assets/audio/music/CREDITS.md`).
+- The LXGW WenKai Screen handwriting subset under the SIL OFL 1.1 (`assets/fonts/hand-OFL.txt`).
+
+A fresh clone therefore does not build: the renderer imports the scene pictures directly, so `npm run build`
+stops at the first missing one (`assets/sprites/cafe.png`). `npm run typecheck` still passes, and so do most tests;
+the ones that read the missing pictures fail. To build the app:
+
+1. Buy the four packs from their authors.
+2. Unpack them into the git-ignored `assets/vendor/` as `docs/art.md` describes (folder names and the
+   Windows junction commands are there).
+3. Install Pillow and NumPy for Python, and ffmpeg with libvorbis.
+4. Run the scripts from the repository root, in this order:
 
 ```bash
-# Unzip the Modern Interiors pack into assets/vendor/ first (1_Interiors/, 2_Characters/, 3_Animated_objects/).
-python3 scripts/art/characters.py   # the three staff from generator layers, recoloured; the chestnut shop cat
-python3 scripts/art/scene.py        # the 320x180 cafe background
-python3 scripts/art/furnish.py      # wall, curtain and rug colour choices for each scene (needs only the backgrounds)
-python3 scripts/art/growth.py --icons  # the works-shelf icons alone (without --icons it also needs the pack)
-python3 scripts/art/tools.py           # the toolbar icons
+python scripts/art/characters.py   # staff and guest sheets from the character generator, the shop cat, the player
+python scripts/art/portraits.py    # staff portraits and the player's face, cut from those sheets
+python scripts/art/emotes.py       # the mood bubble strip
+python scripts/art/scene.py        # the cafe background (calls rug.py), the clock, cup and door animations
+python scripts/art/study.py        # the study background
+python scripts/art/furnish.py      # wall, curtain and rug colour choices for each scene
+python scripts/art/decor.py        # holiday, season and weather overlays
+python scripts/art/growth.py       # what the shop gathers, and the works-shelf icons
+python scripts/art/garden.py       # the back garden and its crops
+python scripts/art/animals.py      # the dog and the hens
+python scripts/art/town.py         # the town's street, fronts, props and signs
+python scripts/art/pieces.py       # splits the rooms into floor and furniture; run last
+python scripts/audio/sfx.py        # the UI sounds
 ```
+
+`docs/art.md` says which pack each script reads and what it writes.
 
 Character sheets keep the generator layout: 16x32 frames, 56 per row, directional animations in
 right/up/left/down order (see `app/renderer/game/sprites.ts`).
