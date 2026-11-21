@@ -68,6 +68,11 @@ export class StateMachine {
     return true;
   }
 
+  /** Set a state outside the usual order: an errand to another shop (road-to-1.4.md D3) can start in the middle of work. */
+  put(actor: ActorId, state: ActorState) {
+    this.states.set(actor, state);
+  }
+
   /** The current action finished: transitional states land on their next state. Returns the new state, or null if unchanged. */
   settle(actor: ActorId): ActorState | null {
     const next = SETTLE[this.get(actor)];

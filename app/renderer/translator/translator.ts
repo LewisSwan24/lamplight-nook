@@ -1,6 +1,8 @@
 import { parse } from 'yaml';
 import { pattern, strings } from '../../shared/i18n';
 import { AGENT_ACTOR, ROOM_CREW } from '../../shared/staff';
+import { errandTo, type StreetShop } from '../../shared/dispatch';
+import type { RoomId } from '../../shared/scenes';
 import type { ActorId, AiEvent, AiEventKind, Bubble, CharacterCommand, Post } from '../../shared/types';
 import { PRIORITY } from './director';
 import { type ActorState, StateMachine } from './state-machine';
@@ -20,6 +22,8 @@ type CommandSpec = {
   priority: Priority;
   /** The post this brings (C8); Axin comes at most POSTMAN_VISITS times a round. */
   post?: Post;
+  /** Out of the door again once done here (road-to-1.4.md D3): Adeng after handing an order over in a shop. */
+  leave?: boolean;
 };
 
 /** How often Axin comes in a round (road-to-1.3.md C8); after that Adeng goes to the letter holder alone. */
@@ -103,12 +107,16 @@ export class Translator {
    * helpers are shared by both crews.
    */
   private leads = new Map<string, ActorId>();
+  /** The rounds that started beside another and take the second crew's places (B9). */
+  private seconds = new Set<string>();
   /** How often Axin has come for each round under way (C8). */
   private visits = new Map<string, number>();
   /** Who came back with the last subagent that finished: the parcel on the counter is theirs. */
   returned: ActorId = 'xiaoju';
   /** Who is in the room on screen (D2). An errand whose usual runner is elsewhere goes to the room's own person. */
   crew: readonly ActorId[] = ROOM_CREW.cafe;
+  /** The room this plays in (D3): a tool that belongs to another of the street shops sends someone there. */
+  room: RoomId = 'cafe';
 
   private runner(agent: AiEvent['agent']): ActorId {
     const usual = AGENT_ACTOR[agent];
@@ -146,9 +154,22 @@ export class Translator {
     for (const hands of this.hands.values()) for (let k = hands.length - 1; k >= 0; k--) if (hands[k].run === run) hands.splice(k, 1);
   }
 
-  /** Who leads a round: Adeng for the first under way (and for replays), Qingdai for a second beside it. */
+  /**
+   * Who leads a round: at home, Adeng for the first under way (and for replays), Qingdai for a second beside it; in a
+   * street shop, its own person (D3).
+   */
   leadOf(run = ''): ActorId {
-    return this.leads.get(run) ?? 'adeng';
+    return this.leads.get(run) ?? (this.shop ? this.crew[this.crew.length - 1] : 'adeng');
+  }
+
+  /** Whether a round started beside another, and so its crew takes the second crew's places (B9). */
+  second(run = ''): boolean {
+    return this.seconds.has(run);
+  }
+
+  /** One of the street shops, where nobody from home works (D3). */
+  private get shop(): boolean {
+    return this.room === 'print' || this.room === 'studio' || this.room === 'workshop';
   }
 
   /** Who is working for which round just now (B9): each round's lead, and whoever is on one of its errands. */
@@ -182,12 +203,17 @@ export class Translator {
       }
       // A round's lead stays known after it ends, for its last lines still to be said.
       if (!this.running.includes(run)) {
+        const beside = this.running.some((r) => r !== run && !this.seconds.has(r));
         this.running.push(run);
-        this.leads.set(run, this.running.some((r) => r !== run && this.leadOf(r) === 'adeng') ? 'qingdai' : 'adeng');
+        if (beside) this.seconds.add(run);
+        else this.seconds.delete(run);
+        // A street shop's own person leads every round there, the second from the second crew's places (D3).
+        this.leads.set(run, this.shop ? this.crew[this.crew.length - 1] : beside ? 'qingdai' : 'adeng');
       }
       if (!this.ctxs.has(run)) this.ctxs.set(run, this.ctx);
     }
-    const out = e.kind === 'subagent_start' || e.kind === 'subagent_stop' ? this.errand(e) : this.apply(e);
+    const away = e.agent === 'main' && (e.kind === 'tool_start' || e.kind === 'tool_ok' || e.kind === 'tool_fail') ? errandTo(this.room, e.tool) : undefined;
+    const out = away ? this.across(e, away) : e.kind === 'subagent_start' || e.kind === 'subagent_stop' ? this.errand(e) : this.apply(e);
     if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') this.let(run);
     return out;
   }
@@ -211,10 +237,10 @@ export class Translator {
     return out;
   }
 
-  /** Who plays a rule's part: Adeng's is the round's lead's. */
+  /** Who plays a rule's part: Adeng's is the round's lead's, except in a street shop, where he only brings the slip (D3). */
   private actorOf(spec: CommandSpec, e: AiEvent): ActorId {
     if (spec.actor === '{agent}') return e.agent === 'main' ? this.leadOf(e.run) : this.runner(e.agent);
-    return spec.actor === 'adeng' ? this.leadOf(e.run) : spec.actor;
+    return spec.actor === 'adeng' && !this.shop ? this.leadOf(e.run) : spec.actor;
   }
 
   /**
@@ -254,6 +280,46 @@ export class Translator {
     return [...back, ...this.apply({ ...e, kind: 'subagent_start', target: undefined, run: next }, who)];
   }
 
+  /**
+   * A tool that belongs to another street shop (D3): this room's runner sets off with it while that shop's person does it
+   * over there; done, that person walks in with it, hands it over and goes back, and the runner is back at work.
+   * Something that went wrong comes back too, with a drop of sweat and no word.
+   */
+  private across(e: AiEvent, to: StreetShop): CharacterCommand[] {
+    const runner = this.runner('researcher');
+    const maker = ROOM_CREW[to][ROOM_CREW[to].length - 1];
+    const S = strings.ui.town.shops;
+    const run = e.run !== undefined ? { run: e.run } : {};
+    const said = (group: string, actor: ActorId, shop: RoomId) => ({ group, vars: { shop: S[shop] }, speaker: actor });
+    if (e.kind === 'tool_start') {
+      this.states.put(runner, 'out');
+      return [
+        { actor: runner, state: 'out', moveTo: 'door', priority: PRIORITY.subagent, ...run, line: said('cross_out', runner, to) },
+        { actor: maker, room: to, state: 'working', moveTo: 'board', anim: 'write', priority: PRIORITY.work, ...run, line: said('cross_take', maker, this.room) },
+      ];
+    }
+    const ok = e.kind === 'tool_ok';
+    this.states.put(runner, 'working');
+    this.states.put(maker, 'ready');
+    return [
+      { actor: maker, state: 'ready', moveTo: 'counter', anim: ok ? 'gift' : 'idle', priority: PRIORITY.subagent, leave: true, ...run, ...(ok ? { line: said('cross_back', maker, to) } : { bubble: 'sweat' as const }) },
+      { actor: runner, state: 'working', moveTo: 'counter', anim: 'idle', priority: PRIORITY.subagent, ...run },
+      { actor: maker, room: to, state: 'ready', moveTo: 'counter', anim: 'idle', priority: PRIORITY.chat, ...run },
+    ];
+  }
+
+  /** An order for a street shop (D3): Adeng takes the slip out of the home shop's door, saying where it goes. */
+  dispatch(run: string, shop: StreetShop): CharacterCommand[] {
+    this.states.put('adeng', 'out');
+    return [{ actor: 'adeng', state: 'out', moveTo: 'door', priority: PRIORITY.work, run, line: { group: 'dispatch_go', vars: { shop: strings.ui.town.shops[shop] }, speaker: 'adeng' } }];
+  }
+
+  /** Back from carrying an order over: Adeng is at the home shop's counter again. */
+  homeAgain(): CharacterCommand[] {
+    this.states.put('adeng', 'ready');
+    return [{ actor: 'adeng', state: 'ready', moveTo: 'counter', anim: 'idle', priority: PRIORITY.chat }];
+  }
+
   /** Who is out on an agent's errands just now, or the agent's own actor when nobody is. */
   helpersOf(agent: AiEvent['agent']): ActorId[] {
     const lead = this.runner(agent);
@@ -272,7 +338,7 @@ export class Translator {
     if (e.run !== undefined) cmd.run = e.run;
     // The counter is Adeng's place: Qingdai's crew takes and hands over its work at her seat by the blackboard instead. Those
     // a rule only brings along (everyone home at the start or the end) go to their own places.
-    if (spec.moveTo) cmd.moveTo = spec.moveTo === 'counter' && own && this.leadOf(e.run) === 'qingdai' ? 'board' : spec.moveTo;
+    if (spec.moveTo) cmd.moveTo = spec.moveTo === 'counter' && own && !this.shop && this.leadOf(e.run) === 'qingdai' ? 'board' : spec.moveTo;
     if (spec.anim) {
       const a = resolveAnim(this.anims, actor, spec.anim);
       cmd.anim = a.anim;
@@ -281,6 +347,7 @@ export class Translator {
       if (a.prop) cmd.prop = a.prop;
     }
     if (spec.bubble) cmd.bubble = spec.bubble;
+    if (spec.leave) cmd.leave = true;
     if (spec.post) {
       const run = e.run ?? '';
       const came = this.visits.get(run) ?? 0;

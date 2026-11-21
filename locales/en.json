@@ -701,7 +701,8 @@
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
       "moved": "All moved in, {name}. Everything is where it was.",
-      "busy": "There is work under way in here. Go over once it is done.",
+      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop" },
+      "calling": "A question from {shop}. Click to go over",
       "notes": {
         "cafe": "The cafe.",
         "study": "The study.",

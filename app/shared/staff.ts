@@ -13,15 +13,15 @@ export const SHOP_STAFF: ActorId[] = ['aqian', 'xiaozhe', 'xiaoding'];
 export const ALL_STAFF: ActorId[] = [...STAFF, ...SHOP_STAFF];
 
 /**
- * Who is in each room. The rest are elsewhere: drawn nowhere, never sent anywhere. Adeng minds a new shop's counter
- * until D3 has him carry the slip over from home instead.
+ * Who is in each room. The rest are elsewhere, out of sight beyond the door, and come in only when sent: Adeng with an
+ * order from home, or another shop's person bringing back what they made for this one (road-to-1.4.md D3).
  */
 export const ROOM_CREW: Record<RoomId, ActorId[]> = {
   cafe: [...STAFF, 'cat'],
   study: [...STAFF, 'cat'],
-  print: ['adeng', 'aqian'],
-  studio: ['adeng', 'xiaozhe'],
-  workshop: ['adeng', 'xiaoding'],
+  print: ['aqian'],
+  studio: ['xiaozhe'],
+  workshop: ['xiaoding'],
 };
 
 /**

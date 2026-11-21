@@ -71,6 +71,10 @@ export class Director {
       this.queues.set(cmd.actor, q);
       return null;
     }
+    // Sent out of the door on an errand (road-to-1.4.md D3): the ordinary work still waiting would only walk them back in.
+    if (cmd.moveTo === 'door' && cmd.priority > PRIORITY.work) {
+      this.queues.set(cmd.actor, (this.queues.get(cmd.actor) ?? []).filter((x) => x.cmd.priority >= cmd.priority));
+    }
     return this.play(cmd);
   }
 

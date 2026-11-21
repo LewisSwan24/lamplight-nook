@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, powerMonitor, powerSaveBlocker, safeStorage, session, shell } from 'electron';
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { template } from '../shared/templates';
+import { shopOf, template } from '../shared/templates';
 import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
@@ -640,7 +640,11 @@ function runInfos(): RunInfo[] {
   const fresh = [...under.filter((r) => !r.project.id).map((r) => r.id), ...queue.queued.filter((t) => !t.project).map((t) => t.id)];
   const color = (run: string, project?: string) => (project ? projects.findIndex((p) => p.id === project) : projects.length + fresh.indexOf(run));
   return [
-    ...under.map((r): RunInfo => ({ run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id) })),
+    ...under.map((r): RunInfo => {
+      // Where it is played (D3): the shop its kind of work belongs to; the home shop's rounds say nothing.
+      const shop = shopOf(r.job.form.template);
+      return { run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id), ...(shop === 'home' ? {} : { shop }) };
+    }),
     ...queue.queued.map((t): RunInfo => {
       const waits = t.waits ?? 'slot';
       const behind = waits === 'money' ? [] : under.filter((r) => waits === 'slot' || (t.folder && overlaps(r.job.workDir, t.folder))).map((r) => r.project.title);
@@ -833,7 +837,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
       const changes = lent ? versions.lentChanges(job.workDir) : undefined;
-      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before);
+      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before, job.form.template);
       // The main file may sit in a subfolder of a lent one.
       const main = outputs.main ? relative(job.workDir, outputs.main) : undefined;
       const round = { ...tally.result(Date.now(), result.ok, result.error), ...(result.contextTokens ? { contextTokens: result.contextTokens } : {}) };

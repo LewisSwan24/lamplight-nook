@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hitsFeet } from '../app/renderer/game/path';
 import { WALK_SPEED } from '../app/renderer/game/life';
-import { CAMERA_W, FRONTS, MOVERS, cameraFor, doorOf, entering, frontAt, paradePlan, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
+import { CAMERA_W, FRONTS, MOVERS, cameraFor, doorOf, entering, followsOrder, frontAt, paradePlan, roomFor, streetArea, streetWalk, TOWN } from '../app/renderer/game/town';
 
 // The town's street (road-to-1.4.md D1): seven fronts along a pavement wider than the canvas.
 
@@ -72,22 +72,38 @@ describe('moving into the town (road-to-1.4.md D7)', () => {
   }
 });
 
-describe('going in at a front (road-to-1.4.md D2)', () => {
-  it('goes back into the room you came out of, busy or not', () => {
-    expect(entering('cafe', { here: 'cafe', busy: false })).toBe('back');
-    expect(entering('print', { here: 'print', busy: true })).toBe('back');
+describe('going in at a front (road-to-1.4.md D2, D3)', () => {
+  it('goes back into the room you came out of', () => {
+    expect(entering('cafe', { here: 'cafe' })).toBe('back');
+    expect(entering('print', { here: 'print' })).toBe('back');
   });
 
-  it('goes into another room, the home shop included, only while nothing is being worked on', () => {
-    expect(entering('studio', { here: 'cafe', busy: false })).toBe('visit');
-    expect(entering('cafe', { here: 'studio', busy: false })).toBe('visit');
-    expect(entering('study', { here: 'cafe', busy: false })).toBe('visit');
-    expect(entering('studio', { here: 'cafe', busy: true })).toBe('busy');
-    expect(entering('cafe', { here: 'workshop', busy: true })).toBe('busy');
+  it('goes into another room, the home shop included, whether or not work is under way (D3: every room keeps working)', () => {
+    expect(entering('studio', { here: 'cafe' })).toBe('visit');
+    expect(entering('cafe', { here: 'studio' })).toBe('visit');
+    expect(entering('study', { here: 'cafe' })).toBe('visit');
+    expect(entering('cafe', { here: 'workshop' })).toBe('visit');
   });
 
   it("only has a word for the neighbours' shops", () => {
-    expect(entering('bakery', { here: 'cafe', busy: false })).toBe('closed');
-    expect(entering('post', { here: 'cafe', busy: true })).toBe('closed');
+    expect(entering('bakery', { here: 'cafe' })).toBe('closed');
+    expect(entering('post', { here: 'cafe' })).toBe('closed');
+  });
+});
+
+describe('orders sent to the shops (road-to-1.4.md D3)', () => {
+  it('plays a round in its shop, and the home kinds in whichever room the home shop is', () => {
+    expect(roomFor('print', 'cafe')).toBe('print');
+    expect(roomFor('studio', 'study')).toBe('studio');
+    expect(roomFor('home', 'study')).toBe('study');
+    expect(roomFor(undefined, 'cafe')).toBe('cafe');
+  });
+
+  it('takes the view to the newest order, unless the user went somewhere else after placing it', () => {
+    expect(followsOrder({ placedAt: 1000, movedAt: 0 })).toBe(true);
+    expect(followsOrder({ placedAt: 1000, movedAt: 1000 })).toBe(true);
+    expect(followsOrder({ placedAt: 1000, movedAt: 1500 })).toBe(false);
+    // A round nobody placed just now (a scheduled one, or one that waited in the queue) does not pull the view.
+    expect(followsOrder({ placedAt: undefined, movedAt: 0 })).toBe(false);
   });
 });

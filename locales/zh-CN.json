@@ -701,7 +701,8 @@
     "town": {
       "moving": "店搬到街上来了。点一下就跳过。",
       "moved": "{name}，东西都搬过来了，摆得和原来一样。",
-      "busy": "店里有活在做，做完再过去。",
+      "shops": { "cafe": "咖啡馆", "study": "书房", "print": "印刷铺", "studio": "画室", "workshop": "工坊" },
+      "calling": "{shop}有事要问你，点这里过去",
       "notes": {
         "cafe": "咖啡馆。",
         "study": "书房。",

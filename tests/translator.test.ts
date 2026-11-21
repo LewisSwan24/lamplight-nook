@@ -2,12 +2,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { normalizeAll } from '../app/main/event-normalizer';
-import { Director } from '../app/renderer/translator/director';
+import { Director, PRIORITY } from '../app/renderer/translator/director';
 import { parseLines, toLineBook } from '../app/renderer/translator/lines';
 import { ACTOR_STATES, StateMachine, canMove } from '../app/renderer/translator/state-machine';
 import { Translator, parseAnimTable, parseRules, resolveAnim } from '../app/renderer/translator/translator';
 import { STAFF_ANIMS } from '../app/renderer/game/sprites';
-import type { ActorId, AiEvent, RawAgentEvent } from '../app/shared/types';
+import type { ActorId, AiEvent, CharacterCommand, RawAgentEvent } from '../app/shared/types';
+import { ROOM_CREW } from '../app/shared/staff';
+import { strings } from '../app/shared/i18n';
 
 const root = join(__dirname, '..');
 const read = (p: string) => readFileSync(join(root, p), 'utf8');
@@ -481,6 +483,105 @@ describe('the filing cabinet and the post (C8)', () => {
     for (const tool of [office('read_document'), 'mcp__nook-calendar__events']) {
       const cmds = t.translate(ev({ run: 'r1', agent: 'researcher', tool }));
       expect(cmds.some((c) => c.moveTo === 'cabinet' || c.moveTo === 'mailslot' || c.post), tool).toBe(false);
+    }
+  });
+});
+
+describe('orders sent to the shops (road-to-1.4.md D3)', () => {
+  const office = (tool: string) => `mcp__nook-office__${tool}`;
+  type Shop = 'print' | 'studio' | 'workshop';
+  const inShop = (room: Shop) => {
+    const t = new Translator(parseRules(read(`rules/${room}.yaml`)), anims, { brief: 'x' });
+    t.room = room;
+    t.crew = ROOM_CREW[room];
+    return t;
+  };
+  const started = (room: Shop) => {
+    const t = inShop(room);
+    t.translate(ev({ kind: 'session_start', run: 'r1' }));
+    return t;
+  };
+  const of = (cmds: CharacterCommand[], actor: ActorId) => cmds.find((c) => c.actor === actor);
+
+  it('has Adeng come into the shop with the slip, hand it over at the counter and go home again', () => {
+    for (const [room, who] of [['print', 'aqian'], ['studio', 'xiaozhe'], ['workshop', 'xiaoding']] as const) {
+      const cmds = inShop(room).translate(ev({ kind: 'session_start', run: 'r1' }));
+      expect(of(cmds, 'adeng'), room).toMatchObject({ moveTo: 'counter', anim: 'gift', leave: true, line: { group: 'dispatch_hand', speaker: 'adeng' } });
+      expect(of(cmds, who), room).toMatchObject({ moveTo: 'counter', line: { group: 'opening' } });
+    }
+  });
+
+  it('has Adeng take the slip out of the home shop, and come back to the counter after', () => {
+    const t = new Translator(rules, anims);
+    expect(t.dispatch('r1', 'print')).toMatchObject([{ actor: 'adeng', moveTo: 'door', run: 'r1', line: { group: 'dispatch_go', vars: { shop: strings.ui.town.shops.print } } }]);
+    expect(t.homeAgain()).toMatchObject([{ actor: 'adeng', moveTo: 'counter', state: 'ready' }]);
+  });
+
+  it('sends render_png in a print order to the studio, whose painter brings the picture back', () => {
+    const t = started('print');
+    const out = t.translate(ev({ run: 'r1', tool: office('render_png') }));
+    // Aqian sets off with it; in the studio, Umber gets to work at the easel.
+    expect(of(out, 'aqian')).toMatchObject({ moveTo: 'door', line: { group: 'cross_out', speaker: 'aqian', vars: { shop: strings.ui.town.shops.studio } } });
+    expect(of(out, 'aqian')?.room).toBeUndefined();
+    expect(of(out, 'xiaozhe')).toMatchObject({ room: 'studio', moveTo: 'board', state: 'working', run: 'r1', line: { group: 'cross_take', speaker: 'xiaozhe', vars: { shop: strings.ui.town.shops.print } } });
+    const back = t.translate(ev({ run: 'r1', kind: 'tool_ok', tool: office('render_png') }));
+    // Umber walks into the print shop with it, hands it over and goes back; Aqian is back at the composing desk.
+    expect(of(back, 'xiaozhe')).toMatchObject({ moveTo: 'counter', anim: 'gift', leave: true, line: { group: 'cross_back', speaker: 'xiaozhe' } });
+    expect(of(back, 'xiaozhe')?.room).toBeUndefined();
+    expect(of(back, 'aqian')).toMatchObject({ moveTo: 'counter', state: 'working' });
+    // Like a helper's errand, it plays at once rather than waiting behind a backlog of ordinary work, alone in a shop.
+    for (const c of [of(out, 'aqian'), of(back, 'xiaozhe'), of(back, 'aqian')]) expect(c?.priority).toBe(PRIORITY.subagent);
+  });
+
+  it('brings a picture that went wrong back too, with a drop of sweat and no word', () => {
+    const t = started('print');
+    t.translate(ev({ run: 'r1', tool: office('render_png') }));
+    const back = t.translate(ev({ run: 'r1', kind: 'tool_fail', tool: office('render_png') }));
+    expect(of(back, 'xiaozhe')).toMatchObject({ moveTo: 'counter', bubble: 'sweat', leave: true });
+    expect(of(back, 'xiaozhe')?.line).toBeUndefined();
+  });
+
+  it("sends a poster's PDF from the studio to the print shop, and draws the picture at home", () => {
+    const t = started('studio');
+    const png = t.translate(ev({ run: 'r1', tool: office('render_png') }));
+    expect(png.some((c) => c.room !== undefined || c.moveTo === 'door')).toBe(false);
+    const pdf = t.translate(ev({ run: 'r1', tool: office('make_pdf') }));
+    expect(of(pdf, 'xiaozhe')).toMatchObject({ moveTo: 'door', line: { group: 'cross_out' } });
+    expect(of(pdf, 'aqian')).toMatchObject({ room: 'print', moveTo: 'board' });
+  });
+
+  it("has a shop's own person lead a second order there too, from the second crew's places; Adeng still brings the slip", () => {
+    const t = started('print');
+    const second = t.translate(ev({ kind: 'session_start', run: 'r2' }));
+    expect([t.leadOf('r1'), t.leadOf('r2')]).toEqual(['aqian', 'aqian']);
+    expect([t.second('r1'), t.second('r2')]).toEqual([false, true]);
+    expect(second.some((c) => c.actor === 'qingdai')).toBe(false);
+    expect(of(second, 'adeng')).toMatchObject({ leave: true, line: { group: 'dispatch_hand' } });
+    // At home the second round is still Qingdai's, from her seat by the blackboard (B9).
+    const home = new Translator(rules, anims);
+    home.translate(ev({ kind: 'session_start', run: 'r1' }));
+    home.translate(ev({ kind: 'session_start', run: 'r2' }));
+    expect([home.leadOf('r2'), home.second('r1'), home.second('r2')]).toEqual(['qingdai', false, true]);
+  });
+
+  it("leaves the home shop's office work to its own table and filing cabinet (C8)", () => {
+    const t = new Translator(rules, anims);
+    t.translate(ev({ kind: 'session_start', run: 'r1' }));
+    for (const tool of ['render_png', 'make_pdf']) {
+      const cmds = t.translate(ev({ run: 'r1', tool: office(tool) }));
+      expect(cmds.some((c) => c.room !== undefined || c.moveTo === 'door'), tool).toBe(false);
+    }
+  });
+
+  it('has three lines at least for every speaker of every errand group, in both languages', () => {
+    const want: Record<string, ActorId[]> = {
+      dispatch_go: ['adeng'], dispatch_hand: ['adeng'], cross_out: ['aqian', 'xiaozhe', 'xiaoding'], cross_take: ['aqian', 'xiaozhe'], cross_back: ['aqian', 'xiaozhe'],
+    };
+    for (const file of ['lines/cafe.yaml', 'lines/en/cafe.yaml']) {
+      const lib = parseLines(read(file));
+      for (const [group, speakers] of Object.entries(want)) {
+        for (const s of speakers) expect(lib[group]?.filter((l) => l.speaker === s).length ?? 0, `${file} ${group} ${s}`).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 });

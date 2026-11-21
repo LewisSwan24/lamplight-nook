@@ -1,5 +1,6 @@
 # Studio rules (road-to-1.4.md D2): the same format as rules/cafe.yaml, whose header explains it.
-# All the work goes to Xiaozhe the painter; Adeng only minds the counter until D3 sends work over.
+# All the work goes to Xiaozhe the painter; Adeng only comes in with the order from home (D3),
+# hands it over at the counter and goes home again.
 # The cafe's spots go by other names here: counter = long table with the palettes, board = the easel,
 # shelf = frame rack, table = low table, corner = stool by the window. Nobody goes out: helpers' errands are
 # Xiaozhe walking to a spot. The filing cabinet and the letter holder are the home shop's, so they stay out of it.
@@ -12,7 +13,7 @@
   lines: opening
   priority: work
   extra:
-    - { actor: adeng, state: ready, moveTo: counter, anim: idle, priority: chat }
+    - { actor: adeng, state: ready, moveTo: counter, anim: gift, lines: dispatch_hand, own_lines: true, leave: true, priority: work }
 
 # Blocking the job in on the easel.
 - on: plan

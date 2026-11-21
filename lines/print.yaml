@@ -11,7 +11,7 @@ opening:
   - { id: pr_mem_01, speaker: aqian, when: has_memory, bubbles: ["{brief}，好。", "上回你定的是{lastChoice}。", "照老规矩来，不合适再改。"] }
   - { id: pr_tpl_sheet_01, speaker: aqian, when: tpl_sheet, bubbles: ["做表格，先打格子。", "线要直，数要对齐。"] }
   - { id: pr_tpl_resume_01, speaker: aqian, when: tpl_resume, bubbles: ["简历一个字也不能虚。", "没有的那栏，空着等你填。"] }
-  - { id: pr_handed_01, speaker: aqian, when: handed, bubbles: ["稿子收下了，我先过一遍。", "{brief}，好。"], reply: { speaker: adeng, bubbles: ["放排字台上了。"] } }
+  - { id: pr_handed_01, speaker: aqian, when: handed, bubbles: ["稿子收下了，我先过一遍。", "{brief}，好。"] }
   - { id: pr_opening_01, speaker: aqian, bubbles: ["{brief}……", "好，我去拣字。"] }
   - { id: pr_opening_02, speaker: aqian, bubbles: ["是要{brief}？", "坐，慢工出细活。"] }
   - { id: pr_opening_03, speaker: aqian, bubbles: ["{brief}。", "我把眼镜擦一擦就开工。"] }
@@ -51,7 +51,7 @@ sub_go_review:
 sub_back_review:
   - { id: pr_back_rv_issue, speaker: aqian, when: has_issues, bubbles: ["校出{issueCount}处。", "都用红笔圈上了。"] }
   - { id: pr_back_rv_ok, speaker: aqian, when: no_issues, bubbles: ["念完了，一个错字也没有。"] }
-  - { id: pr_back_rv_ok2, speaker: aqian, when: no_issues, bubbles: ["校过两遍，干净。"], reply: { speaker: adeng, bubbles: ["那就好。"] } }
+  - { id: pr_back_rv_ok2, speaker: aqian, when: no_issues, bubbles: ["校过两遍，干净。"] }
 
 sub_go_design:
   - { id: pr_go_ds_rain, speaker: aqian, when: sky_rain, bubbles: ["下雨天，墨要调稠一点。", "我先在印机上摆个样。"] }
@@ -125,7 +125,7 @@ done:
   - { id: pr_done_day, speaker: aqian, when: daytime, bubbles: ["印好了，在排字台上。", "你看看，合不合用。"] }
   - { id: pr_done_dusk, speaker: aqian, when: dusk, bubbles: ["印好了。", "趁天还亮，你看一遍。"] }
   - { id: pr_done_night, speaker: aqian, when: night, bubbles: ["印好了。", "这么晚了，看完早点歇着。"] }
-  - { id: pr_done_01, speaker: aqian, bubbles: ["裁齐了，也装订好了。"], reply: { speaker: adeng, bubbles: ["我替你包起来。"] } }
+  - { id: pr_done_01, speaker: aqian, bubbles: ["裁齐了，也装订好了。"] }
   - { id: pr_done_02, speaker: aqian, bubbles: ["最后念了一遍，没错字。", "交给你。"] }
 
 failed:

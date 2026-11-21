@@ -263,6 +263,16 @@ describe('the main output', () => {
     expect(out.main).toBe(join(work, `${F.revisedPrefix}letter.txt`));
   });
 
+  it("puts a street shop's own kind of result first, before what another shop brought along (road-to-1.4.md D3)", () => {
+    // A Word notice from the print shop with a picture the studio drew as a page: the notice is the result.
+    const work = dir();
+    for (const n of ['figure.html', 'figure.png', 'notice.docx']) writeFileSync(join(work, n), '');
+    expect(collectOutputs(work, new Set(), 'document').main).toBe(join(work, 'notice.docx'));
+    // Without a street shop's kind, the usual order: any page before a Word file.
+    expect(collectOutputs(work, new Set()).main).toBe(join(work, 'figure.html'));
+    expect(collectOutputs(work, new Set(), 'letter').main).toBe(join(work, 'figure.html'));
+  });
+
   it('a chart or poster picture comes before the page it was drawn from (C2)', () => {
     const { work, out } = made(F.chartPage, F.chartPng);
     expect(out.main).toBe(join(work, F.chartPng));

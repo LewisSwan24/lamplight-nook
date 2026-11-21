@@ -10,7 +10,7 @@ opening:
   - { id: ws_mem_02, speaker: xiaoding, when: has_stuck_note, bubbles: ["{brief}，好嘞。", "上回在{stuckNote}卡过。", "这回先拿那儿开刀。"] }
   - { id: ws_mem_01, speaker: xiaoding, when: has_memory, bubbles: ["{brief}，好嘞。", "上回你挑的{lastChoice}。", "先照那个装，不行再换。"] }
   - { id: ws_tpl_tool_01, speaker: xiaoding, when: tpl_tool, bubbles: ["做小工具，我最拿手。", "能做成网页就做成网页。"] }
-  - { id: ws_handed_01, speaker: xiaoding, when: handed, bubbles: ["东西收到，我先拆开看看。", "{brief}，好嘞。"], reply: { speaker: adeng, bubbles: ["在工作台上。"] } }
+  - { id: ws_handed_01, speaker: xiaoding, when: handed, bubbles: ["东西收到，我先拆开看看。", "{brief}，好嘞。"] }
   - { id: ws_opening_01, speaker: xiaoding, bubbles: ["{brief}？", "好嘞，先试试再说！"] }
   - { id: ws_opening_02, speaker: xiaoding, bubbles: ["{brief}……", "螺丝刀呢？……在耳朵上夹着。"] }
   - { id: ws_opening_03, speaker: xiaoding, bubbles: ["来活儿了！", "{brief}，我先搭个架子。"] }
@@ -50,7 +50,7 @@ sub_go_review:
 sub_back_review:
   - { id: ws_back_rv_issue, speaker: xiaoding, when: has_issues, bubbles: ["{issueCount}处会响。", "我贴了胶布做记号。"] }
   - { id: ws_back_rv_ok, speaker: xiaoding, when: no_issues, bubbles: ["跑了三遍，一点不卡！"] }
-  - { id: ws_back_rv_ok2, speaker: xiaoding, when: no_issues, bubbles: ["敲遍了，结实。"], reply: { speaker: adeng, bubbles: ["那就好。"] } }
+  - { id: ws_back_rv_ok2, speaker: xiaoding, when: no_issues, bubbles: ["敲遍了，结实。"] }
 
 sub_go_design:
   - { id: ws_go_ds_rain, speaker: xiaoding, when: sky_rain, bubbles: ["下雨天，正好画图纸。", "我去工具墙那边。"] }
@@ -124,7 +124,7 @@ done:
   - { id: ws_done_day, speaker: xiaoding, when: daytime, bubbles: ["装好了，在工作台上！", "你试试顺不顺手。"] }
   - { id: ws_done_dusk, speaker: xiaoding, when: dusk, bubbles: ["装好了！", "天快黑了，正好收工。"] }
   - { id: ws_done_night, speaker: xiaoding, when: night, bubbles: ["装好了。", "这么晚了，试完早点睡。"] }
-  - { id: ws_done_01, speaker: xiaoding, bubbles: ["搞定！一颗螺丝都没剩。"], reply: { speaker: adeng, bubbles: ["上回剩了三颗。"] } }
+  - { id: ws_done_01, speaker: xiaoding, bubbles: ["搞定！一颗螺丝都没剩。"] }
   - { id: ws_done_02, speaker: xiaoding, bubbles: ["好了，按一下就能用。", "我试了十遍。"] }
 
 failed:

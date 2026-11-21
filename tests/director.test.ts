@@ -26,6 +26,17 @@ describe('director pacing', () => {
     expect(d.finished('adeng')?.anim).toBe('write2');
   });
 
+  it('someone sent out of the door on an errand drops the ordinary work still waiting, so it does not walk them back in (D3)', () => {
+    const { d } = setup();
+    d.submit(cmd({ actor: 'aqian', anim: 'write' }));
+    expect(d.submit(cmd({ actor: 'aqian', moveTo: 'board' }))).toBeNull();
+    const out = d.submit(cmd({ actor: 'aqian', moveTo: 'door', priority: PRIORITY.subagent }));
+    expect(out?.moveTo).toBe('door');
+    expect(d.finished('aqian')).toBeNull();
+    // What comes after the errand plays as usual.
+    expect(d.submit(cmd({ actor: 'aqian', moveTo: 'counter' }))?.moveTo).toBe('counter');
+  });
+
   it('someone who fell behind skips what newer work has overtaken, and catches up with now (road-to-1.4.md D2)', () => {
     const { d, tick } = setup();
     d.submit(cmd({ anim: 'write' }));
