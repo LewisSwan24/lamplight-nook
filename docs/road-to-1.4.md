@@ -37,7 +37,7 @@
 | D1 | 街道和多场景切换 | 1.3 | L | 是 | 否 | 已合并（#119、#120），按店建场景挪到 D2 |
 | D7 | 老店升级成小镇 | D1 | M | 少量 | 否 | 已合并（#121） |
 | D2 | 三间新店 | D1、D9 | L | 是 | 否 | 已合并（#123、#124） |
-| D3 | 派单到店 | D2 | M | 否 | 约 $3 | 已合并，真 key 那一遍挪到 D10 |
+| D3 | 派单到店 | D2 | M | 否 | 约 $3 | 已合并（#125），真 key 那一遍挪到 D10 |
 | D8 | 性能和低配机 | D2 | M | 否 | 否 | 未开工 |
 | D5 | 小镇随作品成长 | D1 | L | 是 | 否 | 未开工 |
 | D6 | 全街的季节和节日 | D5 | M | 是 | 否 | 未开工 |
@@ -401,4 +401,4 @@
 | 2026-11-20 | D7 | #121 | 先写测试，看着失败：`migrate.test.ts` 的第 5 版、`memory.test.ts` 的新店默认、`town.test.ts` 的搬家路线。`growth.test.ts` 原来认为新店的 `told` 是空的，现在带着 `town-move`，跟着改了。`npx vitest run` 全过，`tsc` 干净。新场景 `movetown` 中英文都过；`upgrade`、`baddata`、`street`、`firstuse`、`storemove`、`grownline` 重跑过。`firstuse` 一直认为欢迎以后工具栏有 6 个按钮，现在有 8 个，D1 以前就对不上了，这次改了。`upgrade` 要的旧版数据从主目录的 `legacy-out` 拷过来才跑得了。搬家、搬完和跳过的截图中英文都看过。没查的：真机上的帧率；“减少动画”那条路只在代码里，没有场景 |
 | 2026-11-20 | D2 前一半 | #123 | 先写测试，看着失败：新的 `tests/rooms.test.ts` 管店、店员、规则、台词、家具、站位和走路，后来又加了店员的图要载入、跑腿归店里的人这两条；`director.test.ts` 加了跳过旧动作的两条。`npx vitest run` 全过，`tsc` 干净。新场景 `shops` 中英文都过。`crowd` 在 Director 改完以后失败，换回旧的又过，查出带头的人帮完别人回不了自己那一拨，改了再过。`parallel`、`meeting`、`apprentice`、`street`、`menus`、`study`、`firstuse`、`upgrade`、`progress` 中英文重跑过。截图看过三轮：第一轮新店员是一块缺图的黑方块，第二轮结果卡片写的是老石，都改了，场景也加了检查。没查的：低配机的帧率（D8）；两单同时在新店里做时，第二单的带头人是不在店里的青黛，只有开门那句会跳过 |
 | 2026-11-20 | D2 后一半 | #124 | 先写测试，看着失败：`rooms.test.ts` 加一条读源码的测试，查 `app/` 下没有 `currentScene` 和 `lamplightScene`；`town.test.ts` 加 `entering` 的三条；`director.test.ts` 加落后十秒照演的一条。`npx vitest run` 全过，`tsc` 干净。`shops` 中英文都过，现在还查同一个页面、有活时门关着、主店没重建、离开的店拆掉了。`backroom` 换回旧的 Director 能过，改成 15 秒以后再过。`street`、`study`、`keyboard`、`furnish`、`seasons`、`objects`、`walk`、`beds`、`movetown`、`crowd`、`apprentice`、`menus`、`firstuse` 中英文重跑过。截图看过：白天截图发暗，查出两处，主店没藏起来，换光时没停掉上一次，都改了。没查的：几间店同时干活（D3）；低配机上两个场景同时跑的帧率（D8） |
-| 2026-11-21 | D3 | #PR | 先写测试，看着失败。`templates-registry` 查每种活归哪间店。`translator.test.ts` 查派单、跑腿、第二单的带头人和跑腿的急事。`town.test.ts` 查 `entering` 和跟着新单走。`rooms.test.ts` 查阿灯只在开单时来。`director.test.ts` 查出门跑腿时丢掉排着的旧动作。`templates.test.ts` 查新店的主文件。`office-safe.test.ts` 查自己做的幻灯片能打开。`npx vitest run` 全过，`tsc` 干净。新场景 `dispatch` 中英文都过，还在 640×360 下跑。`shops`、`crowd`、`office` 中英文都过，`parallel` 中英文过（在带头人和急事改动以前）。`crowd` 英文第一遍说两拨人没等过同一个跑腿的人，单独重跑就过，是时机问题，没改。截图看过送单、交单、去画室和回来。没查的：真 key 那一遍（约 $3，挪到 D10 一起跑）；其他场景没重跑，全量验收留到 D10 |
+| 2026-11-21 | D3 | #125 | 先写测试，看着失败。`templates-registry` 查每种活归哪间店。`translator.test.ts` 查派单、跑腿、第二单的带头人和跑腿的急事。`town.test.ts` 查 `entering` 和跟着新单走。`rooms.test.ts` 查阿灯只在开单时来。`director.test.ts` 查出门跑腿时丢掉排着的旧动作。`templates.test.ts` 查新店的主文件。`office-safe.test.ts` 查自己做的幻灯片能打开。`npx vitest run` 全过，`tsc` 干净。新场景 `dispatch` 中英文都过，还在 640×360 下跑。`shops`、`crowd`、`office` 中英文都过，`parallel` 中英文过（在带头人和急事改动以前）。`crowd` 英文第一遍说两拨人没等过同一个跑腿的人，单独重跑就过，是时机问题，没改。截图看过送单、交单、去画室和回来。没查的：真 key 那一遍（约 $3，挪到 D10 一起跑）；其他场景没重跑，全量验收留到 D10 |
