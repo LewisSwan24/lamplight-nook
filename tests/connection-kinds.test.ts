@@ -6,6 +6,7 @@ import { strings } from '../app/shared/i18n';
 import type { Connection } from '../app/shared/types';
 import { calendarAddress, calendarKind, type FetchText, folderKind, maildraftKind, offerOf } from '../app/main/connection-kinds';
 import type { NookTool, ToolCtx } from '../app/main/nook-tools';
+import { DraftRecord } from '../app/main/drafts';
 
 const dir = () => mkdtempSync(join(tmpdir(), 'kinds-'));
 const ctxIn = (workDir: string, preexisting: string[] = []): ToolCtx => ({ run: 'r1', workDir, signal: new AbortController().signal, preexisting: new Set(preexisting) });
@@ -93,16 +94,20 @@ describe('the first real connections (road-to-1.3.md C5)', () => {
 
   it('email drafts write an .eml in the commission folder, never over a file that was there, and never send', async () => {
     const work = dir();
-    const k = maildraftKind();
+    const drafts = new DraftRecord(join(dir(), 'drafts.json'));
+    const k = maildraftKind(drafts);
     expect(await k.setup({})).toEqual({ label: strings.ui.connections.kinds.maildraft.label, config: {} });
     const t = tool(k.tools(conn('maildraft', {}), () => null), 'draft');
     expect(t.kind).toBe('make');
     expect(text(await t.run({ to: ['ann@example.org'], subject: '读书会', body: 'Hi', file: 'letter.eml' }, ctxIn(work)))).toMatch(/letter\.eml/);
     expect(readFileSync(join(work, 'letter.eml'), 'utf8')).toMatch(/^X-Unsent: 1$/m);
+    // On the record of drafts, so it opens with a click; a file that was there before is not.
+    expect(drafts.wrote(join(work, 'letter.eml'))).toBe(true);
     mkdirSync(join(work, 'sub'));
     writeFileSync(join(work, 'sub', 'mine.eml'), 'theirs');
     await expect(t.run({ to: [], subject: 's', body: 'b', file: 'sub/mine.eml' }, ctxIn(work, [join(work, 'sub', 'mine.eml')]))).rejects.toThrow();
     expect(readFileSync(join(work, 'sub', 'mine.eml'), 'utf8')).toBe('theirs');
+    expect(drafts.wrote(join(work, 'sub', 'mine.eml'))).toBe(false);
     expect((await t.run({ to: ['not an address'], subject: 's', body: 'b', file: 'x.eml' }, ctxIn(work))).isError).toBe(true);
     await expect(t.run({ to: [], subject: 's', body: 'b', file: 'x.txt' }, ctxIn(work))).rejects.toThrow(/must end in \.eml/);
   });
