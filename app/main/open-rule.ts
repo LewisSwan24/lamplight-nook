@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { extname } from 'node:path';
 import type { NotOpened } from '../shared/types';
+import type { DraftRecord } from './drafts';
 import { officeSafe } from './office/safe';
 
 /**
@@ -93,14 +94,17 @@ function plain(path: string, ext: string): boolean | undefined {
 
 /**
  * Whether a click opens the file or only shows it in its folder: the result card, the works shelf and an old version
- * all go by this. An Office file that failed the look inside says why, for the card.
+ * all go by this. An Office file that failed the look inside says why, for the card. A mail opens only when it is also a
+ * draft the shop's draft tool wrote, unchanged (`drafts`, road-to-1.4.md): no reading of ours can match every mail
+ * program's, so the check above is a second line. An event has no tool of ours to write it and goes by its contents.
  */
-export function howToOpen(path: string): { open: true } | { open: false; why?: NotOpened } {
+export function howToOpen(path: string, drafts: DraftRecord): { open: true } | { open: false; why?: NotOpened } {
   const ext = extname(path).toLowerCase();
   if (!OPENABLE.has(ext)) return { open: false };
   if (ext === '.eml' || ext === '.ics') {
     const ok = plain(path, ext);
-    return ok ? { open: true } : { open: false, why: ok === undefined ? 'unreadable' : 'notPlain' };
+    if (!ok) return { open: false, why: ok === undefined ? 'unreadable' : 'notPlain' };
+    return ext === '.ics' || drafts.wrote(path) ? { open: true } : { open: false, why: 'notOurs' };
   }
   if (!OFFICE.has(ext)) return { open: true };
   const look = officeSafe(path);

@@ -43,6 +43,7 @@ import { exportName, workEntries } from './export';
 import { imageThumb, pageThumb, pageToPdf, pageToPng, pictureToPng } from './print';
 import { officeServer, prunePreviews, thumbSource } from './office/tools';
 import { howToOpen } from './open-rule';
+import { DraftRecord } from './drafts';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
 import { copyMaterials, sortHandOver } from './materials';
@@ -121,6 +122,7 @@ let connections: ConnectionStore;
 /** The record of outside actions (road-to-1.3.md C6), actions.jsonl in the data folder. */
 let actionLog: ActionLog;
 let connectionReads: ConnectionReads;
+let drafts: DraftRecord;
 let spend: SpendLedger;
 /** What the rounds under way may still spend (road-to-1.2.md B8). */
 const reservations = new Reservations();
@@ -354,7 +356,7 @@ ipcMain.handle(IPC.monthCapNews, (): number | null => {
 const connectionKinds = (): KindDef[] => [
   folderKind(pickLinkFolder, (path) => holdsTooMuch(path) || [settings.get().workRoot, app.getPath('userData')].some((own) => insideForReal(own, path))),
   calendarKind(fetchCalendar, !app.isPackaged),
-  maildraftKind(),
+  maildraftKind(drafts),
   ...(app.isPackaged ? [] : [testKind(() => process.env.LAMPLIGHT_TEST_SECRET || `test-${randomUUID()}`, join(app.getPath('userData'), 'test-outside'))]),
 ];
 /** The folder a synced-folder connection links (C5), picked in the main process's own dialog. */
@@ -1119,7 +1121,7 @@ ipcMain.handle(IPC.openWork, async (_e, id: string): Promise<boolean> => {
   if (!memo?.folder || !existsSync(memo.folder)) return false;
   const main = memo.main ? join(memo.folder, memo.main) : null;
   if (main && existsSync(main) && insideForReal(memo.folder, main)) {
-    if (howToOpen(main).open) return (await shell.openPath(main)) === '';
+    if (howToOpen(main, drafts).open) return (await shell.openPath(main)) === '';
     shell.showItemInFolder(main);
     return true;
   }
@@ -1278,7 +1280,7 @@ ipcMain.handle(IPC.openVersion, async (_e, id: string, round: number): Promise<b
   const file = main && existsSync(join(lookingAt, main)) && isInside(lookingAt, join(lookingAt, main)) ? join(lookingAt, main) : lookingAt;
   log?.info('open version', { round });
   // Same rule as opening a work: only kinds that are safe to open; anything else is shown in its folder.
-  if (file !== lookingAt && !howToOpen(file).open) { shell.showItemInFolder(file); return true; }
+  if (file !== lookingAt && !howToOpen(file, drafts).open) { shell.showItemInFolder(file); return true; }
   return (await shell.openPath(file)) === '';
 });
 ipcMain.handle(IPC.revertProject, (_e, id: string, round: number): boolean => {
@@ -1447,6 +1449,7 @@ function openData() {
   spend = new SpendLedger(join(dir, 'spend.json'));
   actionLog = new ActionLog(join(dir, 'actions.jsonl'));
   connectionReads = new ConnectionReads(join(dir, 'connection-reads.json'));
+  drafts = new DraftRecord(join(dir, 'drafts.json'));
   settings = new SettingsStore(join(dir, 'settings.json'), app.getPath('documents'), () => startingMonthCap(spend.months(), now()));
   pending = new PendingStore(join(dir, 'pending'), join(dir, 'pending.json'));
   schedules = new ScheduleStore(join(dir, 'schedules.json'));
@@ -1490,7 +1493,8 @@ ipcMain.handle(IPC.clearMemory, (): boolean => {
   spend.forget();
   actionLog.clear();
   // connection-reads.json stays: a session it marks may still be carried on, and must keep asking (C6). It holds only
-  // session ids and connection names, nothing that was read.
+  // session ids and connection names, nothing that was read. drafts.json stays too: it holds only fingerprints, and
+  // clearing it would only keep the drafts already written from opening with a click.
   pruneRecordings(join(app.getPath('userData'), 'recordings'), 0);
   prunePreviews(previewsDir(), 0);
   return true;
@@ -1510,7 +1514,7 @@ ipcMain.handle(IPC.openOutput, async (_e, path: string, how: 'open' | 'reveal'):
   if (!allowed.some((dir) => insideForReal(dir, path))) return { ok: false };
   if (how === 'reveal') { shell.showItemInFolder(path); return { ok: true }; }
   // Only kinds that are safe to open (open-rule.ts); an Office file that failed its look inside says why on the card.
-  const rule = howToOpen(path);
+  const rule = howToOpen(path, drafts);
   if (rule.open) await shell.openPath(path);
   else shell.showItemInFolder(path);
   return rule.open || !rule.why ? { ok: true } : { ok: true, why: rule.why };

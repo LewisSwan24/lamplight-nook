@@ -3,6 +3,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { z } from 'zod';
 import { fill, strings } from '../shared/i18n';
 import type { Connection, ConnectionKind, ConnectionOffer, Grant, SetupError } from '../shared/types';
+import type { DraftRecord } from './drafts';
 import { draftEml, EmlError } from './eml';
 import { FolderLinkError, listLinked, readLinked, saveCopy, undoCopy } from './folder-link';
 import { eventsBetween, eventsText, IcsError } from './ics';
@@ -183,8 +184,11 @@ export function calendarKind(fetchText: FetchText, allowLocal: boolean, zone?: s
   };
 }
 
-/** Email drafts (C5): no account, no secret; one tool writing a draft into the commission folder, never sending it. */
-export function maildraftKind(): KindDef {
+/**
+ * Email drafts (C5): no account, no secret; one tool writing a draft into the commission folder, never sending it. Each
+ * draft goes on `drafts`, which is what lets it open with a click (road-to-1.4.md).
+ */
+export function maildraftKind(drafts: DraftRecord): KindDef {
   const K = () => strings.ui.connections.kinds.maildraft;
   return {
     kind: 'maildraft',
@@ -210,6 +214,7 @@ export function maildraftKind(): KindDef {
         }
         mkdirSync(dirname(full), { recursive: true });
         writeFileSync(full, eml, { flag: 'wx' });
+        drafts.add(eml);
         return said(`Wrote the draft "${relative(ctx.workDir, full)}". The user opens it in their mail program from the result card and sends it themselves.`);
       },
     }],
