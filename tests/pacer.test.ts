@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACTIVE_FPS, REST_AFTER_MS, RESTING_FPS, applyFps, framesPerSecond } from '../app/renderer/game/pacer';
+import { ACTIVE_FPS, REST_AFTER_MS, RESTING_FPS, SAVING_FPS, SAVING_RESTING_FPS, applyFps, framesPerSecond } from '../app/renderer/game/pacer';
 
 describe('frame pacing', () => {
   it('draws at 30 while a commission runs, however long nobody touches anything', () => {
@@ -9,6 +9,15 @@ describe('frame pacing', () => {
   it('rests at 15 once the shop has been quiet for two minutes', () => {
     expect(framesPerSecond({ busy: false, sinceInputMs: REST_AFTER_MS - 1 })).toBe(ACTIVE_FPS);
     expect(framesPerSecond({ busy: false, sinceInputMs: REST_AFTER_MS })).toBe(RESTING_FPS);
+  });
+
+  it('draws fewer frames to save power: 20 while anything goes on, 10 at rest (road-to-1.4.md D8)', () => {
+    expect([SAVING_FPS, SAVING_RESTING_FPS]).toEqual([20, 10]);
+    expect(framesPerSecond({ busy: true, sinceInputMs: 0, saving: true })).toBe(SAVING_FPS);
+    expect(framesPerSecond({ busy: false, sinceInputMs: REST_AFTER_MS - 1, saving: true })).toBe(SAVING_FPS);
+    expect(framesPerSecond({ busy: false, sinceInputMs: REST_AFTER_MS, saving: true })).toBe(SAVING_RESTING_FPS);
+    // Never fewer frames than the slowest animations have (walks are 10 a second).
+    expect(SAVING_RESTING_FPS).toBeGreaterThanOrEqual(10);
   });
 
   it('moves the frame limiter of a running loop', () => {

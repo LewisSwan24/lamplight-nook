@@ -5112,13 +5112,15 @@ const SCENARIOS = {
     const { page, L } = shop;
     check(await shop.app.evaluate(({ Menu }) => Menu.getApplicationMenu() === null), "the window shows Electron's File, Edit and View menus");
     const S = L.ui.setup;
-    const buttons = page.locator('.toolbar button.tool-btn');
+    // The calling button (road-to-1.4.md D3) stands apart: hidden until a shop out of sight has a question.
+    const buttons = page.locator('.toolbar button.tool-btn:not(.calling)');
     const tip = (i) => buttons.nth(i).getAttribute('data-tip');
     const tipShown = (i) => buttons.nth(i).evaluate((b) => getComputedStyle(b, '::after').opacity === '1');
     const settingsFile = () => JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8'));
     try {
       const want = [L.ui.toolbar.order, L.ui.projects.button, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.street, L.ui.toolbar.settings];
       check(await buttons.count() === 8, `the toolbar has ${await buttons.count()} buttons`);
+      check(await page.locator('.toolbar button.tool-btn.calling').isHidden(), 'the calling button shows with nobody calling');
       for (const [i, label] of want.entries()) {
         check(await tip(i) === label, `button ${i} says ${await tip(i)}, not ${label}`);
         check(await buttons.nth(i).getAttribute('aria-label') === label, `button ${i} has no spoken name`);
@@ -5205,6 +5207,16 @@ const SCENARIOS = {
       await has('input[type=range]', 'sight: volume');
       check((await body()).includes(L.ui.access.captionsToggle), 'sight: captions');
       check((await body()).includes(L.ui.access.reduceMotion), 'sight: less motion');
+      // Saving power (road-to-1.4.md D8): the switch is here, and turning it on draws fewer frames at once.
+      check((await body()).includes(L.ui.access.powerSaving), 'sight: save power');
+      const limit = () => page.evaluate(() => window.lamplightDebug.scene.game.loop.fpsLimit);
+      const before = await limit();
+      await page.locator('label.toggle', { hasText: L.ui.access.powerSaving }).click();
+      for (const end = Date.now() + 3000; Date.now() < end && await limit() === before; await sleep(100));
+      check(before === 30 && await limit() === 20, `saving power did not lower the frames: ${before} -> ${await limit()}`);
+      await page.locator('label.toggle', { hasText: L.ui.access.powerSaving }).click();
+      for (const end = Date.now() + 3000; Date.now() < end && await limit() !== 30; await sleep(100));
+      check(await limit() === 30, `saving power off did not bring the frames back: ${await limit()}`);
       check((await body()).includes(L.ui.access.detailedToggle), 'sight: what the staff are doing');
       check(!(await body()).includes(L.ui.tray.notifyToggle), 'sight: notifications still here');
       await shop.shot(join(out, 'menus-settings-sight.png'));

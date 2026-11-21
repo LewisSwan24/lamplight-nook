@@ -413,11 +413,11 @@ onProjectMeet((row) => {
   if (r) void meeting(r.run, 'board');
 });
 
-// Frame pacing: 30 a second while anything is going on, 15 once the shop has been quiet for a while.
+// Frame pacing: 30 a second while anything is going on, 15 once the shop has been quiet for a while; 20 and 10 to save power.
 let lastInput = Date.now();
 for (const type of ['pointerdown', 'pointermove', 'keydown', 'wheel']) window.addEventListener(type, () => { lastInput = Date.now(); }, { passive: true, capture: true });
 const pace = () => {
-  const fps = framesPerSecond({ busy: running !== null, sinceInputMs: Date.now() - lastInput });
+  const fps = framesPerSecond({ busy: running !== null, sinceInputMs: Date.now() - lastInput, saving: current?.powerSaving });
   if (game.loop.fpsLimit !== fps) applyFps(game.loop as unknown as Loop, fps);
 };
 setInterval(pace, 5000);
@@ -814,6 +814,8 @@ function applySettings(s: Settings) {
   const calm = s.reducedMotion || systemCalm.matches;
   document.body.classList.toggle('reduce-motion', calm);
   scene.setReducedMotion(calm);
+  // Saving power takes effect at once, not at the pacer's next look.
+  pace();
   scene.setYouLook(s.avatar);
   // Furnishing is the home shop's; the shops along the street are as they are drawn.
   const room = scene.room;

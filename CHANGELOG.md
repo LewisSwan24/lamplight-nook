@@ -29,6 +29,9 @@
 - **Slides the shop made open with a click.** Every deck the shop made carried an empty folder that the safety check
   took for an embedded object, so the card only showed the deck in its folder. An empty folder no longer counts;
   anything inside one still does.
+- **Save power.** A new switch in Settings, under accessibility, draws fewer frames a second: 20 while anything goes on
+  and 10 at rest, instead of 30 and 15, for a slow computer or a laptop on battery. A shop out of sight no longer moves
+  its shadows and what people carry each frame; its work goes on as before.
 - **Only the shop's own mail drafts open with a click.** A mail opens in your mail program from the card only when it is
   a draft the shop's draft tool wrote, unchanged since; the shop keeps a fingerprint of each one, never the mail. A mail
   written any other way, or changed after, is shown in its folder, and the card says why.

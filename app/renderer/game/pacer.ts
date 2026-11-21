@@ -5,12 +5,19 @@
  */
 export const ACTIVE_FPS = 30;
 export const RESTING_FPS = 15;
+/**
+ * Saving power, from settings (road-to-1.4.md D8): fewer frames, never fewer than the walks have (10 a second), so every
+ * animation still shows each of its frames.
+ */
+export const SAVING_FPS = 20;
+export const SAVING_RESTING_FPS = 10;
 /** Quiet this long (no commission running, no clicks or keys) before resting. */
 export const REST_AFTER_MS = 2 * 60_000;
 
-export function framesPerSecond(state: { busy: boolean; sinceInputMs: number }): number {
-  if (state.busy) return ACTIVE_FPS;
-  return state.sinceInputMs >= REST_AFTER_MS ? RESTING_FPS : ACTIVE_FPS;
+export function framesPerSecond(state: { busy: boolean; sinceInputMs: number; saving?: boolean }): number {
+  const [active, resting] = state.saving ? [SAVING_FPS, SAVING_RESTING_FPS] : [ACTIVE_FPS, RESTING_FPS];
+  if (state.busy) return active;
+  return state.sinceInputMs >= REST_AFTER_MS ? resting : active;
 }
 
 /** The part of Phaser's TimeStep the pacer adjusts (its limiter, set up by `fps.limit` in the game config). */

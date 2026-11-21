@@ -455,6 +455,12 @@ export class CafeScene extends Phaser.Scene {
   }
 
   update() {
+    // Out of sight (road-to-1.4.md D8) nothing in the room is drawn: the work goes on, but shadows, props and flags wait
+    // until it is looked at again. The street keeps up, for whoever is out on an errand there.
+    if (!this.sys.settings.visible) {
+      this.street.update();
+      return;
+    }
     if (this.you) this.you.shadow.setPosition(this.you.sprite.x, this.you.sprite.y - 1).setDepth(this.you.sprite.depth - 0.5).setAlpha(0.28 * this.you.sprite.alpha);
     if (this.guest) this.guest.shadow.setPosition(this.guest.sprite.x, this.guest.sprite.y - 1).setDepth(this.guest.sprite.depth - 0.5).setAlpha(0.28 * this.guest.sprite.alpha);
     this.street.update();
