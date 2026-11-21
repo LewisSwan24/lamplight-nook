@@ -20,6 +20,9 @@
 - **Catching up.** When work comes faster than someone can act it out, they now skip the moves that newer ones have
   overtaken and catch up, instead of playing the backlog out long after the work is done. Trouble and questions are
   never skipped.
+- **Slides the shop made open with a click.** Every deck the shop made carried an empty folder that the safety check
+  took for an embedded object, so the card only showed the deck in its folder. An empty folder no longer counts;
+  anything inside one still does.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.

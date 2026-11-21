@@ -121,7 +121,9 @@ const everyElement = (el: El): El[] => elements(el).flatMap((k) => [k, ...everyE
 export function officeSafe(file: string): OfficeVerdict {
   try {
     const zip = readZip(readFileSync(file));
-    const names = [...zip.keys()];
+    // An empty folder entry holds nothing Office could open or run. pptxgenjs writes an empty ppt/embeddings/ into every
+    // deck, which alone would stop the shop's own slides (road-to-1.4.md D3); a folder entry with bytes in it still counts.
+    const names = [...zip.keys()].filter((n) => !(n.endsWith('/') && zip.get(n)!().length === 0));
     if (names.some((n) => /(^|\/)vbaProject\.bin$/i.test(n))) return { ok: false, reason: 'macros' };
     if (names.some((n) => EMBEDDED_PART.test(n))) return { ok: false, reason: 'embedded' };
     let macros = false;
