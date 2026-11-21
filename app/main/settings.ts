@@ -40,7 +40,7 @@ export class SettingsStore {
 
   /** `firstMonthCap` decides the monthly cap for settings saved before there was one (budget.ts startingMonthCap). */
   constructor(private file: string, documentsDir: string, firstMonthCap = () => MONTH_CAP_DEFAULT) {
-    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, powerSaving: false, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), budgetUsd: DEFAULT_BUDGET, monthCapUsd: MONTH_CAP_DEFAULT, language: 'system' };
+    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, powerSaving: false, lan: false, lanPort: 0, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), budgetUsd: DEFAULT_BUDGET, monthCapUsd: MONTH_CAP_DEFAULT, language: 'system' };
     const saved = this.read();
     this.data = { ...defaults, ...saved };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
@@ -66,9 +66,11 @@ export class SettingsStore {
     const clean: Partial<Settings> = {};
     if (typeof patch.name === 'string') clean.name = patch.name.trim().slice(0, 20);
     if (typeof patch.workRoot === 'string' && patch.workRoot.trim()) clean.workRoot = patch.workRoot.trim();
-    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'powerSaving', 'notify', 'closeToTray', 'openAtLogin', 'schedulesPaused', 'connectionsPaused', 'mini', 'updates'] as const) {
+    for (const flag of ['onboarded', 'muted', 'detailed', 'captions', 'reducedMotion', 'powerSaving', 'notify', 'closeToTray', 'openAtLogin', 'schedulesPaused', 'connectionsPaused', 'mini', 'updates', 'lan'] as const) {
       if (typeof patch[flag] === 'boolean') clean[flag] = patch[flag];
     }
+    // The home-network port (docs/plan-1.5.md E1): picked once, kept; 0 until then.
+    if (Number.isInteger(patch.lanPort) && patch.lanPort! >= 1024 && patch.lanPort! <= 65535) clean.lanPort = patch.lanPort;
     const avatar = cleanAvatar(patch.avatar);
     if (avatar !== undefined) clean.avatar = avatar;
     const volume = cleanVolume(patch.volume);

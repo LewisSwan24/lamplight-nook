@@ -7,6 +7,7 @@
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
 import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import { closeSync, copyFileSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -4718,6 +4719,61 @@ const SCENARIOS = {
           await shop.shot(join(out, 'stories-5-workshop.png'));
         }
       } finally { await shop.close(); }
+    }
+  },
+
+  /**
+   * The shop on the home network (docs/plan-1.5.md E1): off at first; switched on in settings it shows where it listens,
+   * a QR code pairs a phone (a real Chrome at phone size), the phone sees what goes on during a commission, and once the
+   * desktop removes it the phone is refused at once.
+   */
+  async lan(lang, out) {
+    const L = locale(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { chromium } = createRequire(import.meta.url)('playwright');
+    const browser = await chromium.launch({ channel: 'chrome' });
+    const { page } = shop;
+    try {
+      await sleep(2000);
+      await shop.openSettings('work');
+      check(await page.locator('.settings .lan').count() === 1, 'no home-network section in settings');
+      check(await page.locator('.settings .lan-address').count() === 0, 'the home-network connection is on before it was switched on');
+      await page.locator('label.toggle', { hasText: L.ui.lan.toggle }).click();
+      await sleep(1500);
+      const address = await page.locator('.settings .lan-address').innerText();
+      check(/(^|\D)(10|172\.(1[6-9]|2\d|3[01])|192\.168)\.\d+\.\d+:\d+/.test(address), `it does not listen on a home-network address: ${address}`);
+      const port = JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).lanPort;
+      check(port >= 47800 && address.includes(`:${port}`), `the port was not picked and kept: ${port}`);
+      await page.locator('.settings .lan-pair').click();
+      await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+      const url = await page.locator('.settings .lan-qr').getAttribute('data-url');
+      await page.locator('.settings .lan-qr').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'lan-settings-qr.png'));
+
+      const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
+      await phone.goto(url);
+      await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.connected, { timeout: 10_000 });
+      check(!(await phone.evaluate(() => location.hash)), 'the key stayed in the address bar on the phone');
+      await sleep(2500);
+      check(await page.locator('.settings .lan-devices li[data-paired="true"]').count() === 1, 'the desktop does not show the phone as paired');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      await phone.waitForFunction(() => document.querySelectorAll('#events li').length > 0, null, { timeout: 30_000 });
+      await phone.screenshot({ path: join(out, 'lan-phone-events.png') });
+      check((await shop.workUntilDone()).ok, 'the commission did not finish');
+
+      await shop.openSettings('work');
+      await page.locator('.settings .lan-devices li button.link').first().click();
+      await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.refused, { timeout: 10_000 });
+      await phone.screenshot({ path: join(out, 'lan-phone-removed.png') });
+      check(await page.locator('.settings .lan-devices li').count() === 0, 'the removed phone is still listed');
+    } finally {
+      await browser.close();
+      await shop.close();
     }
   },
 

@@ -699,6 +699,28 @@
       "street": "Go out to the street",
       "back": "Back inside"
     },
+    "lan": {
+      "title": "Phones and other computers",
+      "toggle": "Paired phones and computers on your home network can connect to watch the shop",
+      "intro": "Only on the same Wi-Fi. The first time, Windows Firewall may ask once: choose Allow.",
+      "address": "Address: {address}",
+      "pair": "Pair a new device",
+      "scan": "Scan this with the phone. It holds that device's own key, so keep it to yourself.",
+      "devices": "Paired devices",
+      "none": "No devices paired yet.",
+      "waiting": "waiting to be scanned",
+      "paired": "paired",
+      "remove": "Remove",
+      "deviceName": "Device {n}",
+      "off": "Switched off.",
+      "page": {
+        "title": "Lamplight Nook",
+        "connected": "Connected to the shop.",
+        "pairing": "Pairing…",
+        "refused": "The shop does not know this device any more. Pair it again on the computer.",
+        "noKey": "Open this page from the QR code on the computer."
+      }
+    },
     "stories": {
       "title": "{who} · Chapter {n} · {title}",
       "heard": "Thank you"

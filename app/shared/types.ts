@@ -66,7 +66,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -227,6 +227,11 @@ export interface LamplightApi {
   markMet(id: GuestId): Promise<void>;
   /** A neighbour on the street has told the chapter they had waiting (road-to-1.4.md D4): the chapter, or null if none was. */
   tellStory(who: GuestId): Promise<number | null>;
+  /** The home-network connection (docs/plan-1.5.md E1): where it listens and the paired devices. */
+  lanState(): Promise<LanState>;
+  /** A new device to pair: the address with its key, and a QR code of it (SVG). */
+  lanPair(): Promise<{ url: string; svg: string } | null>;
+  lanRemove(id: string): Promise<LanState>;
   /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
   relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'taken' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
@@ -528,6 +533,9 @@ export const IPC = {
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
   tellStory: 'shop:tell-story',
+  lanState: 'lan:state',
+  lanPair: 'lan:pair',
+  lanRemove: 'lan:remove',
   restorePrevious: 'commission:restore-previous',
   projectBoard: 'project:board',
   projectTimeline: 'project:timeline',
@@ -833,6 +841,8 @@ export type ProjectTimeline = {
 export type ExportResult = 'saved' | 'cancelled' | 'gone' | 'empty';
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
+/** The home-network connection as the settings show it (docs/plan-1.5.md E1). */
+export type LanState = { on: boolean; addresses: string[]; devices: { id: string; name: string; added: string; paired: boolean; lastSeen?: string }[] };
 /** `today`: the day by the shop's clock (main/clock.ts), which the simulations can move on; the stories go by it (D4). */
 export type ShopState = ShopDays & { works: Work[]; today: string };
 /** A place where a commission got stuck ("pits we fell into together"). */

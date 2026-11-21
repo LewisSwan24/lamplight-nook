@@ -58,6 +58,10 @@ import { ActionLog, ConnectionReads, RoundActions } from './action-log';
 import { calendarKind, type FetchText, folderKind, type KindDef, maildraftKind, offerOf, testKind } from './connection-kinds';
 import { type NookServer, connectionServers } from './nook-tools';
 import { randomUUID } from 'node:crypto';
+import { networkInterfaces } from 'node:os';
+import qrcode from 'qrcode-generator';
+import { homeAddresses, LanServer } from './lan';
+import { lanPage } from './lan-page';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -233,6 +237,7 @@ function emittersFor(run: string, project: RunProject) {
     emit: emitters.emit,
     emitAi: (event: AiEvent) => {
       send(IPC.aiEvent, { ...event, raw: undefined, run, project });
+      lan?.push({ t: event.t, kind: event.kind, agent: event.agent, plain: event.plain });
       mini.feed({ type: 'ai', run, project: many() ? project.title : undefined, event: { kind: event.kind, agent: event.agent, plain: event.plain, todos: event.todos } });
       if (lead()?.id !== run) return;
       if (event.agent === 'main' && event.todos) tray.setStep(stepCount(event.todos));
@@ -506,6 +511,7 @@ ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
   const saved = settings.update(rest);
   // Switched back on: look now rather than in up to six hours.
   if (saved.updates && !before.updates) void updates?.check();
+  if (saved.lan !== before.lan) void applyLan(saved);
   if (saved.openAtLogin !== before.openAtLogin) {
     app.setLoginItemSettings(loginItem(saved.openAtLogin));
     log?.info('open at login', { on: saved.openAtLogin });
@@ -1114,6 +1120,40 @@ ipcMain.handle(IPC.removeSchedule, (_e, id: unknown): boolean => {
 });
 ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState(now()));
 // The stories go by the shop's clock, which the simulations can move on (D4); memory.ts refuses a chapter not waiting.
+/**
+ * The shop on the home network (docs/plan-1.5.md E1): listening only while the switch is on, on a port picked the first
+ * time from 47800 up and kept after that.
+ */
+let lan: LanServer | null = null;
+async function applyLan(s: Settings) {
+  if (!lan) return;
+  if (!s.lan) return void (await lan.stop());
+  for (let port = s.lanPort || 47800; port < (s.lanPort || 47800) + 100; port++) {
+    try {
+      await lan.start(port);
+      if (s.lanPort !== port) settings.update({ lanPort: port });
+      log?.info('lan on', { port, addresses: lan.listeningOn().length });
+      return;
+    } catch (err) {
+      await lan.stop();
+      if (s.lanPort) return void log?.warn('lan could not listen', { port, error: String(err) });
+    }
+  }
+}
+const lanState = () => ({ on: !!lan?.listening, addresses: lan?.listeningOn() ?? [], devices: lan?.devices() ?? [] });
+ipcMain.handle(IPC.lanState, () => lanState());
+ipcMain.handle(IPC.lanPair, () => {
+  if (!lan?.listening) return null;
+  const { url } = lan.pair(fill(strings.ui.lan.deviceName, { n: lan.devices().length + 1 }));
+  const qr = qrcode(0, 'M');
+  qr.addData(url);
+  qr.make();
+  return { url, svg: qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }) };
+});
+ipcMain.handle(IPC.lanRemove, (_e, id: unknown) => {
+  if (typeof id === 'string') lan?.remove(id);
+  return lanState();
+});
 ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
 ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
@@ -1563,6 +1603,8 @@ app.whenReady().then(() => {
   openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   connections = new ConnectionStore(app.getPath('userData'), safeStorage);
+  lan = new LanServer({ file: join(app.getPath('userData'), 'devices.json'), addresses: () => homeAddresses(networkInterfaces()), page: () => lanPage(strings.ui.lan.page) });
+  void applyLan(settings.get());
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   prunePreviews(previewsDir());
   createWindow();

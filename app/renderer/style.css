@@ -161,6 +161,8 @@ body.debug #debug { display: block; }
 /* A neighbour's chapter on the street (road-to-1.4.md D4): what they say in the hand, then what they left. */
 .story-card .story-line { font-family: var(--hand); font-size: 18px; line-height: 1.4; margin: 2px 0; }
 .story-card .story-left { font-size: 13px; opacity: 0.8; margin: 10px 0 4px; }
+.lan .lan-qr svg { width: 168px; height: 168px; background: #fff; display: block; margin: 6px 0; }
+.lan .lan-devices { margin: 4px 0; padding-left: 18px; }
 .story-card .story-buttons { display: flex; justify-content: flex-end; margin-top: 6px; }
 .card-scroll { padding-right: 6px; }
 .dialog .who { font-family: var(--hand); font-size: 17px; color: var(--accent); }
