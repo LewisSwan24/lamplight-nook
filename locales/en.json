@@ -1041,7 +1041,8 @@
       "externalTemplate": "This file fetches a template from elsewhere when it opens, so it is shown in its folder instead.",
       "externalLink": "This file links to files or addresses outside it and would fetch them when it opens, so it is shown in its folder instead.",
       "unreadable": "This file can't be read and may be damaged, so it is shown in its folder instead.",
-      "notPlain": "This mail or calendar file brings more than plain text: an attachment, a web page or something to run. It is shown in its folder instead."
+      "notPlain": "This mail or calendar file brings more than plain text: an attachment, a web page or something to run. It is shown in its folder instead.",
+      "notOurs": "This mail was not written by the shop's draft tool, or was changed after it was written. It is shown in its folder instead."
     },
     "citations": {
       "title": "Sources",

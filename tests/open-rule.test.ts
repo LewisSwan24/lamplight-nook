@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { DraftRecord } from '../app/main/drafts';
 import { draftEml } from '../app/main/eml';
 import { howToOpen } from '../app/main/open-rule';
 import { readZip } from '../app/main/office/unzip';
@@ -9,6 +10,10 @@ import { zip } from '../app/main/zip';
 
 const FIXTURES = 'tests/fixtures/office';
 const dir = mkdtempSync(join(tmpdir(), 'open-rule-'));
+const drafts = new DraftRecord(join(dir, 'drafts.json'));
+/** A mail put on the record of drafts, as the draft tool does when it writes one (road-to-1.4.md). */
+const howToOpenHere = (path: string) => howToOpen(path, drafts);
+const ours = (text: string) => (drafts.add(text), text);
 
 /** A copy of an Office-saved fixture with one more part, saved as `name`. */
 function withPart(fixture: string, name: string, part: string, data: string): string {
@@ -22,36 +27,36 @@ function withPart(fixture: string, name: string, part: string, data: string): st
 describe('howToOpen', () => {
   it('opens pages, text, tables, pictures and PDFs as before, without looking inside', () => {
     for (const f of ['a.html', 'a.HTM', 'a.md', 'a.txt', 'a.csv', 'a.json', 'a.png', 'a.jpg', 'a.jpeg', 'a.gif', 'a.webp', 'a.pdf']) {
-      expect(howToOpen(join(dir, f)), f).toEqual({ open: true });
+      expect(howToOpenHere(join(dir, f)), f).toEqual({ open: true });
     }
   });
 
   it('opens Word, Excel and PowerPoint files only once a look inside finds nothing that runs or reaches out', () => {
-    for (const f of ['sample.docx', 'sample.xlsx', 'sample.pptx']) expect(howToOpen(join(FIXTURES, f)), f).toEqual({ open: true });
-    expect(howToOpen(withPart('sample.docx', 'vba.docx', 'word/vbaProject.bin', 'macro'))).toEqual({ open: false, why: 'macros' });
+    for (const f of ['sample.docx', 'sample.xlsx', 'sample.pptx']) expect(howToOpenHere(join(FIXTURES, f)), f).toEqual({ open: true });
+    expect(howToOpenHere(withPart('sample.docx', 'vba.docx', 'word/vbaProject.bin', 'macro'))).toEqual({ open: false, why: 'macros' });
     const broken = join(dir, 'broken.xlsx');
     writeFileSync(broken, 'not a zip');
-    expect(howToOpen(broken)).toEqual({ open: false, why: 'unreadable' });
+    expect(howToOpenHere(broken)).toEqual({ open: false, why: 'unreadable' });
   });
 
   it('never opens the macro kinds or anything that runs, and gives no reason: they are simply not opened', () => {
-    for (const f of ['a.docm', 'a.xlsm', 'a.pptm', 'a.exe', 'a.cmd', 'a.ps1', 'a.lnk', 'a.js', 'noext']) expect(howToOpen(join(dir, f)), f).toEqual({ open: false });
+    for (const f of ['a.docm', 'a.xlsm', 'a.pptm', 'a.exe', 'a.cmd', 'a.ps1', 'a.lnk', 'a.js', 'noext']) expect(howToOpenHere(join(dir, f)), f).toEqual({ open: false });
   });
 
   it('opens an email draft in the mail program and an event in the calendar program, only when they are plain (C5)', () => {
     const file = (name: string, text: string | Buffer) => (writeFileSync(join(dir, name), text), join(dir, name));
-    expect(howToOpen(file('draft.eml', draftEml({ to: ['a@example.com'], subject: '周会', body: 'Hello\nthere' })))).toEqual({ open: true });
+    expect(howToOpenHere(file('draft.eml', ours(draftEml({ to: ['a@example.com'], subject: '周会', body: 'Hello\nthere' }))))).toEqual({ open: true });
     const ev = (...lines: string[]) => ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:1', 'DTSTART:20261120T090000Z', 'SUMMARY:Tea', ...lines, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-    expect(howToOpen(file('EVENT.ICS', ev('BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-PT15M', 'END:VALARM')))).toEqual({ open: true });
+    expect(howToOpenHere(file('EVENT.ICS', ev('BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-PT15M', 'END:VALARM')))).toEqual({ open: true });
     // What a calendar program writes for an ordinary event, time zone and all.
     const full = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//x//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Plans',
       'BEGIN:VTIMEZONE', 'TZID:Asia/Shanghai', 'BEGIN:STANDARD', 'DTSTART:19700101T000000', 'TZOFFSETFROM:+0800', 'TZOFFSETTO:+0800', 'TZNAME:CST', 'END:STANDARD', 'END:VTIMEZONE',
       'BEGIN:VEVENT', 'UID:2', 'DTSTAMP:20261120T000000Z', 'DTSTART;TZID=Asia/Shanghai:20261120T090000', 'DTEND;TZID=Asia/Shanghai:20261120T100000',
       'SUMMARY:读书会', 'DESCRIPTION:第一章，一段很长的说明', ' 折到了下一行', 'LOCATION:Room 2', 'RRULE:FREQ=WEEKLY;COUNT=4', 'EXDATE;TZID=Asia/Shanghai:20261127T090000', 'STATUS:CONFIRMED',
       'TRANSP:OPAQUE', 'SEQUENCE:0', 'CATEGORIES:Reading', 'URL:https://example.com/club', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-    expect(howToOpen(file('full.ics', full))).toEqual({ open: true });
-    expect(howToOpen(file('qp.eml', 'To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset="UTF-8"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nhi =E4=BD=A0 and a long line that goes on=\r\n and on\r\n'))).toEqual({ open: true });
-    expect(howToOpen(file('ascii.eml', 'To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset=us-ascii\r\n\r\nhi\r\n'))).toEqual({ open: true });
+    expect(howToOpenHere(file('full.ics', full))).toEqual({ open: true });
+    expect(howToOpenHere(file('qp.eml', ours('To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset="UTF-8"\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nhi =E4=BD=A0 and a long line that goes on=\r\n and on\r\n')))).toEqual({ open: true });
+    expect(howToOpenHere(file('ascii.eml', ours('To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset=us-ascii\r\n\r\nhi\r\n')))).toEqual({ open: true });
     // A mail with attachments, a page or no type of its own, and an event that brings a file or starts a program.
     const head = 'To: a@example.com\r\nSubject: x\r\nX-Unsent: 1\r\nMIME-Version: 1.0\r\n';
     for (const [name, text] of [
@@ -95,7 +100,20 @@ describe('howToOpen', () => {
       ['todo.ics', ev().replace('BEGIN:VEVENT', 'BEGIN:VTODO').replace('END:VEVENT', 'END:VTODO')],
       ['no-body.eml', `${head}Content-Type: text/plain\r\nContent-Disposition: attachment; filename="a.cmd"`],
       ['two-encodings.eml', `${head}Content-Type: text/plain\r\nContent-Transfer-Encoding: 7bit\r\nContent-Transfer-Encoding: base64\r\n\r\n${Buffer.from('begin 644 run.exe\r\nM35J0\r\nend\r\n').toString('base64')}\r\n`],
-    ] as [string, string | Buffer][]) expect(howToOpen(file(name, text)), name).toEqual({ open: false, why: 'notPlain' });
-    expect(howToOpen(join(dir, 'missing.eml'))).toEqual({ open: false, why: 'unreadable' });
+    ] as [string, string | Buffer][]) expect(howToOpenHere(file(name, text)), name).toEqual({ open: false, why: 'notPlain' });
+    expect(howToOpenHere(join(dir, 'missing.eml'))).toEqual({ open: false, why: 'unreadable' });
+  });
+
+  it("opens a mail only when the shop's draft tool wrote it, byte for byte; an event goes by its contents alone", () => {
+    const file = (name: string, text: string) => (writeFileSync(join(dir, name), text), join(dir, name));
+    // Plain, but written some other way: by the staff with their own tools, or put in the folder by anyone.
+    const plainMail = 'To: a@example.com\r\nSubject: x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhi\r\n';
+    expect(howToOpenHere(file('theirs.eml', plainMail))).toEqual({ open: false, why: 'notOurs' });
+    // The tool's own draft, changed afterwards.
+    const mine = ours(draftEml({ to: ['a@example.com'], subject: 'Tea', body: 'At four' }));
+    expect(howToOpenHere(file('mine.eml', mine))).toEqual({ open: true });
+    expect(howToOpenHere(file('mine.eml', mine.replace('\r\n\r\n', '\r\nX-Note: changed\r\n\r\n')))).toEqual({ open: false, why: 'notOurs' });
+    // Not plain is still said first, on the record or not.
+    expect(howToOpenHere(file('page.eml', ours(plainMail.replace('text/plain', 'text/html'))))).toEqual({ open: false, why: 'notPlain' });
   });
 });
