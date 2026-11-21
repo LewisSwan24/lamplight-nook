@@ -39,13 +39,24 @@ export class TownGrowth {
     }
   }
 
+  private counts?: TownCounts;
+  /** Street pieces put away for now: the cart while a festival stands in its place (D6). */
+  private away: string[] = [];
+
   /** Show what the town has with these counts. */
   show(counts: TownCounts) {
+    this.counts = counts;
     const street = streetGrown(counts.total);
     for (const { part, image } of this.parts) {
       const shop = shopOf(part);
-      image.setVisible(shop ? (frontGrown(counts.shops[shop]) as string[]).includes(part.id) : (street as string[]).includes(part.id));
+      image.setVisible(shop ? (frontGrown(counts.shops[shop]) as string[]).includes(part.id) : (street as string[]).includes(part.id) && !this.away.includes(part.id));
     }
+  }
+
+  /** Put these street pieces away (and the others back). */
+  putAway(ids: string[]) {
+    this.away = ids;
+    if (this.counts) this.show(this.counts);
   }
 
   /** Whether a piece is out, on the street or at a shop's front (for the acceptance scenarios). */

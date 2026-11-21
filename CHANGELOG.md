@@ -41,6 +41,14 @@
   sign, a string of flags. The print shop, the studio and the workshop each count their own and hang four pieces of
   their own inside. A shop from before 1.4 opens onto a street that has already grown with what it did, and someone in
   the shop says a word when something new comes. The home shop still counts every commission, as before.
+- **The street through the year.** The street follows the seasons: blossom on the trees in spring with petals on the
+  pavement, shade under them in summer, red leaves in autumn, snow on the roofs and treetops in winter. Every festival
+  reaches it: red lanterns at every door for the New Year, wreaths and a tree in the lot at Christmas, a pumpkin
+  lantern at each door and a pile in the lot at Halloween, lantern riddles, a zongzi stall and a mooncake stall; the
+  market cart steps aside meanwhile. Rain and snow fall on the street too, leave puddles or snow on the ground, and
+  whoever is out on an errand walks under an umbrella. The print shop, the studio and the workshop now have their own
+  decorations for each festival instead of the cafe's, hung clear of their furniture, each with a piece of its own: a
+  printed poster, a little painting, a sign cut from wood.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.

@@ -1,5 +1,6 @@
 import type { RoomId } from '../../shared/scenes';
 import { overlayDepth } from './pieces';
+import { DECOR_SHOPS, roomDecor } from './streetdecor';
 import Phaser from 'phaser';
 import { FALLING, HOLIDAYS, type Holiday, type Season, type Sky, multiply } from './weather';
 
@@ -48,6 +49,11 @@ export class WeatherLayer {
       g.generateTexture('weather-px', 1, 1);
       g.destroy();
     }
+    // The shops along the street have their own decorations, a frame each (road-to-1.4.md D6, scripts/art/decor.py).
+    const shops = scene.textures.get('shops-decor');
+    DECOR_SHOPS.forEach((shop, row) => HOLIDAYS.forEach((h, col) => {
+      if (!shops.has(`${shop}-${h}`)) shops.add(`${shop}-${h}`, 0, col * 320, row * 180, 320, 180);
+    }));
     this.decor = scene.add.image(0, 0, `decor-${HOLIDAYS[0]}`).setOrigin(0).setDepth(DECOR_DEPTH).setVisible(false);
     this.touch = scene.add.image(0, 0, `weather-${SKIES[0]}`).setOrigin(0).setDepth(DECOR_DEPTH).setVisible(false);
     this.seasonDecor = scene.add.image(0, 0, `season-${this.season}`).setOrigin(0).setDepth(DECOR_DEPTH);
@@ -63,7 +69,10 @@ export class WeatherLayer {
   set(sky: Sky, holiday: Holiday | null) {
     this.sky = sky;
     this.holiday = holiday;
-    if (holiday) this.decor.setTexture(`decor-${holiday}`).setDepth(overlayDepth(this.room, `decor-${holiday}`, DECOR_DEPTH));
+    if (holiday) {
+      const { key, frame } = roomDecor(this.room, holiday);
+      this.decor.setTexture(key, frame).setDepth(overlayDepth(this.room, `decor-${holiday}`, DECOR_DEPTH));
+    }
     this.decor.setVisible(!!holiday);
     this.seasonDecor.setVisible(!holiday);
     if (sky !== 'clear') this.touch.setTexture(`weather-${sky}`).setDepth(overlayDepth(this.room, `weather-${sky}`, DECOR_DEPTH));

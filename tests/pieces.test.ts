@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ANCHORS, MAILSLOT, OUTBOX, seatsIn, standPoint } from '../app/renderer/game/layout';
+import { DECOR_SHOPS } from '../app/renderer/game/streetdecor';
+import { HOLIDAYS } from '../app/renderer/game/weather';
 import { ROOMS, isScene } from '../app/shared/scenes';
 import { ROOM_CREW } from '../app/shared/staff';
 import { readPng } from './png';
@@ -12,6 +14,14 @@ const pieces = JSON.parse(readFileSync('assets/sprites/pieces.json', 'utf8')) as
 type Png = ReturnType<typeof readPng>;
 
 const pixel = (img: Png, x: number, y: number) => img.at(x, y);
+/** An overlay as a room shows it: a shop along the street hangs its own frame of shops-decor.png for a festival (D6). */
+const shopsDecor = readPng('assets/sprites/shops-decor.png');
+function overlayIn(scene: string, file: string): Png {
+  const row = (DECOR_SHOPS as readonly string[]).indexOf(scene);
+  const col = (HOLIDAYS as readonly string[]).indexOf(file.replace(/^decor-|\.png$/g, ''));
+  if (row < 0 || col < 0 || !file.startsWith('decor-')) return readPng(`assets/sprites/${file}`);
+  return { ...shopsDecor, width: 320, height: 180, at: (x: number, y: number) => shopsDecor.at(col * 320 + x, row * 180 + y) };
+}
 const inPiece = (p: Piece, sheet: Png, x: number, y: number) =>
   x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h && pixel(sheet, x - p.x, p.sy + y - p.y).alpha > 0;
 
@@ -48,7 +58,7 @@ describe.each(SCENES)('the %s split into a room and its furniture', (scene) => {
     const under: string[] = [];
     const names = readdirSync('assets/sprites').filter((f) => /^(grow|decor|weather|season)-.*\.png$/.test(f));
     for (const file of names) {
-      const overlay = readPng(`assets/sprites/${file}`);
+      const overlay = overlayIn(scene, file);
       const depth = pieces[scene].on[file.replace('.png', '')] ?? 1.5;
       for (const p of list) {
         for (let y = p.y; y < p.y + p.h; y++) {

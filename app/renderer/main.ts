@@ -906,6 +906,8 @@ async function openShop() {
   let noteTimer = 0;
   street.tint = () => scene.tint;
   street.walker = () => scene.streetWalker();
+  street.outside = () => scene.outside();
+  street.calm = () => scene.reducedMotion;
   street.onActor = (id) => scene.onActorClick(id);
   street.onFront = (id, open) => {
     const go = entering(id, { here: scene.room });

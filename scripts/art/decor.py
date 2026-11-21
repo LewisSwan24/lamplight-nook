@@ -238,8 +238,453 @@ def draw_with(img, rows, x, y, colors):
                 img.putpixel((x + dx, y + dy), colors[c])
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# The three shops along the street (road-to-1.4.md D6): shops-decor.png, a row per shop and a column per festival, each
+# frame a whole room. What all three have hangs on the wall right of the window (SLOT), stands on the big table
+# (TABLE_PIECE) or in the corner by the door that walkers already go round; each shop adds one thing of its own at
+# SHOP_PIECE: the print shop a poster it printed, the studio a little painting, the workshop a sign cut from wood.
+SHOPS = ['print', 'studio', 'workshop']
+HOLIDAY_ORDER = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']  # weather.ts HOLIDAYS
+SHOP_PIECE = (180, 18)  # top-left of each shop's own piece, on the wall clear of the press, the drying line, the pegboard
+# The festival's piece on the wall: the narrow strip right of the window, before what the shop grows there (D5) from x 234.
+SLOT = (224, 16)
+BAT = ['....s....', '....s....', 'k..kkk..k', 'kk.kgk.kk', 'kkkkkkkkk', '.kk.k.kk.', '.k.....k.']
+
+
+def SMALL_LANTERN_OF(colour):
+    return [row.replace('R', colour) for row in SMALL_LANTERN]
+# A little picture of each festival, for the poster, the painting and the wooden sign: k black, n green-white.
+MOTIFS = {
+    'halloween': ['....t....', '...t.....', '.ooooooo.', 'oooooooo.', 'okoookoo.', 'oooooooo.', 'ookkkkoo.', '.ooooooo.', '.........'],
+    'christmas': ['....y....', '....L....', '...LLL...', '..LrLLL..', '...LLL...', '..LLLyL..', '.LrLLLLL.', '....b....', '...bbb...'],
+    'new_year': ['....r....', '...rrr...', '..rrgrr..', '.rrgggrr.', 'rrgggggrr', '.rrgggrr.', '..rrgrr..', '...rrr...', '....r....'],
+    'lantern': ['....s....', '...ggg...', '.rrrrrrr.', 'rrdrrrdrr', 'rrdrrrdrr', 'rrdrrrdrr', '.rrrrrrr.', '...ggg...', '....w....'],
+    'dragon_boat': ['....L....', '...LL....', '...LDL...', '..LDLLL..', '..rrrrr..', '.LLDLLDL.', '.LDLLLDL.', 'LLLLLLLLL', '.........'],
+    'mid_autumn': ['...mmm...', '.mmmmmm..', 'mmmmmwmm.', 'mmmmmmmm.', 'mmwmmmmm.', 'mmmmmmmm.', '.mmmmmm..', '...mmm...', '.........'],
+}
+COLORS.update({'k': (58, 30, 24, 255), 'n': (236, 240, 226, 255), 'e': (196, 154, 104, 255), 'E': (232, 200, 146, 255)})
+
+
+def poster(motif):
+    """A printed sheet: white paper in an outline, a red band along the top, the festival in the middle."""
+    rows = ['xxxxxxxxxxxxx'] + ['xrrrrrrrrrrrx'] + ['xwwwwwwwwwwwx'] * 12 + ['xxxxxxxxxxxxx']
+    rows = [list(r) for r in rows]
+    for dy, row in enumerate(motif):
+        for dx, c in enumerate(row):
+            if c != '.':
+                rows[3 + dy][2 + dx] = c
+    rows[13][3:10] = list('wxwxxwx')  # a line of type under the picture
+    return [''.join(r) for r in rows]
+
+
+def painting(motif):
+    """A small canvas in a wooden frame, hung from a nail."""
+    rows = ['......s......', '.....s.s.....', '....s...s....', 'bbbbbbbbbbbbb'] + ['bnnnnnnnnnnnb'] * 11 + ['bbbbbbbbbbbbb']
+    rows = [list(r) for r in rows]
+    for dy, row in enumerate(motif):
+        for dx, c in enumerate(row):
+            if c != '.':
+                rows[5 + dy][2 + dx] = c
+    return [''.join(r) for r in rows]
+
+
+def wooden_sign(motif):
+    """The festival's shape cut from a board: every pixel of it in wood, the outline darker, on a string from a nail."""
+    shape = {(dx, dy) for dy, row in enumerate(motif) for dx, c in enumerate(row) if c != '.'}
+    w, h = len(motif[0]) + 2, len(motif) + 2
+    rows = [['.'] * w for _ in range(h + 3)]
+    rows[0][w // 2] = 's'
+    rows[1][w // 2 - 1] = rows[1][w // 2 + 1] = 's'
+    rows[2][w // 2 - 2] = rows[2][w // 2 + 2] = 's'
+    for dx, dy in shape:
+        edge = any((dx + ax, dy + ay) not in shape for ax, ay in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+        rows[3 + dy + 1][dx + 1] = 'b' if edge else ('E' if (dx + dy) % 3 else 'e')
+    return [''.join(r) for r in rows]
+
+
+OWN_PIECE = {'print': poster, 'studio': painting, 'workshop': wooden_sign}
+
+
+def shop_frame(shop, holiday):
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    tx, ty = TABLE_PIECE
+    sx, sy = SLOT
+    if holiday == 'halloween':
+        draw(img, BAT, sx, sy)
+        img.alpha_composite(halloween.crop((163, 6, 189, 28)), (290, 154))  # a pile of pumpkins in the corner by the door
+        img.alpha_composite(halloween.crop((83, 7, 93, 22)), (tx - 2, ty - 14))  # a small pumpkin on the big table
+    elif holiday == 'christmas':
+        img.alpha_composite(christmas.crop((17, 12, 47, 47)), (288, 143))  # the tree in the corner, as in the cafe
+        img.alpha_composite(christmas.crop((0, 100, 30, 140)), (288, 139))
+        img.alpha_composite(christmas.crop((147, 10, 157, 25)), (sx, sy + 6))  # a stocking on the wall
+        img.alpha_composite(christmas.crop((226, 109, 238, 128)), (tx + 1, ty - 19))  # a little tree on the table
+    elif holiday == 'new_year':
+        draw(img, LANTERN, sx, sy)
+        draw(img, FU, 292, 22)
+        for x, y in COUPLETS:
+            for dy in range(26):
+                for dx in range(3):
+                    img.putpixel((x + dx, y + dy), COLORS['r'])
+                if dy % 5 == 2:
+                    img.putpixel((x + 1, y + dy), COLORS['g'])
+    elif holiday == 'lantern':
+        draw(img, SMALL_LANTERN_OF('r'), sx + 1, sy - 2)
+        draw_at(img, LOTUS, tx - 1, ty)
+    elif holiday == 'dragon_boat':
+        draw(img, MUGWORT, sx + 1, sy - 1)
+        draw_at(img, ZONGZI_PLATE, tx - 3, ty)
+    elif holiday == 'mid_autumn':
+        draw(img, MOON_LANTERN, sx + 1, sy - 1)
+        draw_at(img, MOONCAKES, tx - 2, ty)
+    draw(img, OWN_PIECE[shop](MOTIFS[holiday]), *SHOP_PIECE)
+    return img
+
+
+def shops_decor():
+    sheet = Image.new('RGBA', (W * len(HOLIDAY_ORDER), H * len(SHOPS)), (0, 0, 0, 0))
+    for row, shop in enumerate(SHOPS):
+        for col, holiday in enumerate(HOLIDAY_ORDER):
+            sheet.alpha_composite(shop_frame(shop, holiday), (col * W, row * H))
+    return sheet
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The town's street through the year (road-to-1.4.md D6): town-decor.png, the pieces packed into one sheet, and
+# town-decor.json, where each piece stands on the street. Read after scripts/art/town.py has drawn the street.
+EXTERIORS = ROOT / 'assets/vendor/Modern_Exteriors_16x16/ME_Theme_Sorter_16x16'
+# The doors as drawn on each front: left x, right x, top. town.json's door is where walkers go in, not always the door.
+DOORS = {'cafe': (97, 127, 92), 'study': (212, 234, 89), 'print': (368, 392, 90), 'studio': (488, 512, 90),
+         'workshop': (608, 640, 92), 'bakery': (928, 960, 88), 'post': (1028, 1084, 95)}
+# The pumpkin goes right of the door, except where something grows there.
+PUMPKIN_LEFT = {'bakery'}
+# Where the cart stands in the lot (town.json grow 'stall'): a festival's own piece takes its place.
+SPOT = (674, 712)
+SPOT_BOTTOM = 121
+# 'k' kerb snow, 'W' snow, 'B' snow's blue shade, 'P' puddle, 'Q' puddle's shine, 'S' summer shade.
+STREET_COLORS = {'W': (246, 248, 252, 255), 'B': (206, 218, 236, 255), 'P': (138, 166, 200, 150), 'Q': (206, 222, 240, 190),
+                 'S': (22, 44, 26, 72)}
+# The umbrella the one on an errand opens in rain or snow: c canopy, C its shade, h handle.
+UMBRELLA_UP = [
+    '........c........',
+    '.....ccCcCcc.....',
+    '...cccCcccCccc...',
+    '.ccccCcccccCcccc.',
+    'cccccCcccccCccccc',
+    'CcCcCcCcCcCcCcCcC',
+    '........h........',
+    '........h........',
+    '........h........',
+    '........h........',
+    '........h........',
+    '........h........',
+    '........h........',
+    '........h........',
+    '........h........',
+    '........h........',
+    '.......hh........',
+]
+UMBRELLA_COLORS = {'c': (204, 76, 70, 255), 'C': (150, 46, 44, 255), 'h': (70, 50, 40, 255)}
+# Where its top-left goes from the walker's feet, the middle of her bottom edge: the canopy just over her head (about
+# 22 pixels up), the handle down her side to her hand.
+UMBRELLA_AT = (-4, -29)
+WREATH = ['...LDL...', '..DLyLD..', '.LD...DL.', '.D.....D.', '.L.....L.', '.DL...LD.', '..LDrDL..', '...rrr...', '..r...r..']
+
+
+def lcg(seed):
+    """The same scatter every build."""
+    while True:
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff
+        yield seed
+
+
+def street_canvas(town):
+    return Image.new('RGBA', (town['width'], town['height']), (0, 0, 0, 0))
+
+
+def is_leaf(px):
+    r, g, b, a = px
+    return a > 0 and g > r + 6 and g >= b
+
+
+def trees(town):
+    """Each tree along the street: its picture, its top-left, and the growth piece it comes with (None: always there)."""
+    props = Image.open(OUT / 'town-props.png').convert('RGBA')
+    out = []
+    for p in town['props']:
+        if p['name'].startswith('Tree'):
+            l, t, r, b = props.crop((p['left'] - 24, 0, p['right'] + 24, p['bottom'])).getbbox()
+            x, y = p['left'] - 24 + l, t
+            out.append((props.crop((x, y, x + r - l, b)), x, y, None))
+    grow = Image.open(OUT / 'town-grow.png').convert('RGBA')
+    for p in town['grow']:
+        if p['id'] == 'park' and p['h'] > 30:
+            out.append((grow.crop((p['sx'], p['sy'], p['sx'] + p['w'], p['sy'] + p['h'])), p['x'], p['y'], 'park'))
+    return out
+
+
+def tree_season(season, tree, x, y, img):
+    """What the season does to one tree: blossom, shade, red leaves or snow on top."""
+    w, h = tree.size
+    leaf = {(i, j) for j in range(h) for i in range(w) if is_leaf(tree.getpixel((i, j)))}
+    for i, j in leaf:
+        if season == 'spring' and i % 4 == (j // 4) % 4 and j % 4 == 1 and ((i * 7 + j * 13) % 5) < 3:
+            for dx, dy in ((0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)):
+                if (i + dx, j + dy) in leaf:
+                    img.putpixel((x + i + dx, y + j + dy), (252, 236, 240, 255) if (dx, dy) == (0, 0) else COLORS['p'])
+        elif season == 'autumn':
+            r, g, b, _ = tree.getpixel((i, j))
+            lum = (r + g + b) / 3
+            colour = (150, 60, 30) if lum < 80 else (205, 96, 40) if lum < 115 else (232, 140, 52) if lum < 150 else (246, 196, 84)
+            img.putpixel((x + i, y + j), colour + (255,))
+        elif season == 'winter' and (i, j - 1) not in leaf:
+            img.putpixel((x + i, y + j), STREET_COLORS['W'])
+            if (i, j + 1) in leaf and (i + j) % 2:
+                img.putpixel((x + i, y + j + 1), STREET_COLORS['B'])
+
+
+def ellipse(img, cx, cy, rx, ry, colour):
+    for yy in range(cy - ry, cy + ry + 1):
+        for xx in range(cx - rx, cx + rx + 1):
+            if ((xx - cx) / max(rx, 1)) ** 2 + ((yy - cy) / max(ry, 1)) ** 2 <= 1 and 0 <= xx < img.width and 0 <= yy < img.height:
+                img.putpixel((xx, yy), colour)
+
+
+def bits(img, seed, n, area, colours):
+    """Little two-pixel pieces (petals, leaves) scattered over an area: x0, x1, y0, y1."""
+    x0, x1, y0, y1 = area
+    roll = lcg(seed)
+    for _ in range(n):
+        x, y, c = x0 + next(roll) % (x1 - x0), y0 + next(roll) % (y1 - y0), colours[next(roll) % len(colours)]
+        img.putpixel((x, y), COLORS[c])
+        img.putpixel((x + 1, y), COLORS[c])
+
+
+def roof_snow(town, img):
+    """Snow over the roof tiles above the fronts: white, the edges of the tiles showing light blue, thick along the eaves."""
+    street = Image.open(OUT / 'town-street.png').convert('RGBA')
+    fronts = Image.open(OUT / 'town-fronts.png').convert('RGBA')
+    tile = street.crop((32, 0, 48, 16))  # a roof tile above the cafe; the street starts with an alley
+    light = sorted(range(16), key=lambda j: -sum(sum(tile.getpixel((i, j))[:3]) for i in range(16)))[:8]
+    for x in range(town['width']):
+        roof = [y for y in range(town['kerb']) if fronts.getpixel((x, y))[3] == 0 and street.getpixel((x, y)) == tile.getpixel((x % 16, y % 16))]
+        if not roof or roof[0] != 0:
+            continue
+        end = 0
+        while end + 1 < len(roof) and roof[end + 1] == roof[end] + 1:
+            end += 1
+        for y in roof[:end + 1]:
+            img.putpixel((x, y), STREET_COLORS['W'] if y % 16 in light or y >= roof[end] - 1 else STREET_COLORS['B'])
+
+
+def stall(awning, goods, lantern_rows=None):
+    """A festival stall for the lot: a striped awning on two posts over a wooden counter, the goods on top."""
+    w, h = 36, 34
+    rows = [['.'] * w for _ in range(h)]
+    for x in range(w):
+        rows[0][x] = 'x'
+        for y in range(1, 5):
+            rows[y][x] = awning[(x // 4) % 2]
+        rows[5][x] = awning[(x // 4) % 2] if (x // 2) % 2 == 0 else '.'
+    for y in range(6, h):
+        for x in (1, 2, w - 3, w - 2):
+            rows[y][x] = 'b'
+    for x in range(w):
+        rows[22][x] = 'c'
+        rows[23][x] = 'c'
+        for y in range(24, h - 1):
+            rows[y][x] = 't' if x in (0, w - 1) or y == 28 else 'b'
+        rows[h - 1][x] = 'x'
+    for dy, row in enumerate(goods):
+        for dx, c in enumerate(row):
+            if c != '.':
+                rows[22 - len(goods) + dy][4 + dx] = c
+    if lantern_rows:
+        for dy, row in enumerate(lantern_rows):
+            for dx, c in enumerate(row):
+                if c != '.':
+                    rows[6 + dy][w - 11 + dx] = c
+    return [''.join(r) for r in rows]
+
+
+ZONGZI = ['...L.....L.....L.....L...', '..LDL...LDL...LDL...LDL..', '.LwLDL.LwLDL.LwLDL.LwLDL.', 'LLrLLLLLLrLLLLLLrLLLLLLrL']
+MOONCAKE_ROW = ['.xxx..xxx..xxx..xxx..xxx', 'xcycx.xcycxxcycx.xcycxcyc', 'xcccx.xcccxxcccx.xcccxccc', '.xxx..xxx..xxx..xxx..xxx']
+
+
+def riddle_lanterns():
+    """Two bamboo poles with a rope between them, little lanterns hanging off it, each with a riddle slip."""
+    w, h = 38, 42
+    img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    for y in range(h):
+        for x in (1, w - 2):
+            img.putpixel((x, y), COLORS['e'] if y % 6 else COLORS['t'])
+            img.putpixel((x + 1, y), COLORS['b'])
+    for x in range(3, w - 2):
+        img.putpixel((x, 3 + (1 if 8 <= x <= w - 9 else 0)), COLORS['s'])
+    for x, colour in zip((5, 13, 21, 29), 'roro'):
+        draw(img, [row.replace('R', colour) for row in SMALL_LANTERN], x, 4)
+        for y in range(15, 19):
+            img.putpixel((x + 3, y), COLORS['w'])
+    return img
+
+
+def pumpkin_pile():
+    def graveyard(name):
+        p = Image.open(EXTERIORS / '19_Graveyard_Singles_16x16' / f'ME_Singles_Graveyard_16x16_{name}.png').convert('RGBA')
+        return p.crop(p.getbbox())
+    pile, lit, small = halloween.crop((163, 6, 189, 28)), graveyard('Little_Yellow_Lights_Pumpkin_1'), graveyard('Little_Pumpkin_1')
+    w, h = SPOT[1] - SPOT[0], 24
+    img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    img.alpha_composite(small, (0, h - small.height))
+    img.alpha_composite(pile, (w - pile.width - 2, h - pile.height))
+    img.alpha_composite(lit, (w // 2 - 6, h - lit.height))
+    return img.crop(img.getbbox())
+
+
+def jack_o_lantern():
+    p = Image.open(EXTERIORS / '19_Graveyard_Singles_16x16' / 'ME_Singles_Graveyard_16x16_Little_Yellow_Lights_Pumpkin_1.png').convert('RGBA')
+    return p.crop(p.getbbox())
+
+
+def street_layers(town):
+    """Every layer of the street's decorations: (id, flags, full-street picture)."""
+    layers = []
+    kerb, road, width = town['kerb'], town['road'], town['width']
+    lot = town['lot']
+    pavement = (4, width - 6, kerb + 2, road - 2)
+    grass = (lot['x'] + 2, lot['x'] + lot['w'] - 4, kerb - 14, kerb - 2)
+    standing = trees(town)
+
+    def layer(id_, ground=False, **flags):
+        img = street_canvas(town)
+        layers.append((id_, dict(flags, ground=ground), img))
+        return img
+
+    for season in ('spring', 'summer', 'autumn', 'winter'):
+        on_ground = layer(season, ground=True)
+        for tree, x, y, with_ in standing:
+            up = layer(season, **({'with': with_} if with_ else {}))
+            tree_season(season, tree, x, y, up)
+            if season == 'summer':
+                shade = layer(season, ground=True, **({'with': with_} if with_ else {}))
+                ellipse(shade, x + tree.width // 2, y + tree.height - 1, tree.width // 2 + 2, 3, STREET_COLORS['S'])
+        if season == 'spring':
+            bits(on_ground, 11, 80, pavement, 'ppw')
+        if season == 'autumn':
+            bits(on_ground, 23, 110, pavement, 'ordc')
+            bits(on_ground, 29, 30, grass, 'ordc')
+        if season == 'winter':
+            roof_snow(town, on_ground)
+
+    # The New Year: two red lanterns at every door. Christmas: a wreath on it. Halloween: a pumpkin lantern beside it.
+    new_year, xmas, halloween_ = layer('new_year'), layer('christmas'), layer('halloween')
+    jack = jack_o_lantern()
+    signs = [g for g in town['grow'] if g['id'] == 'sign']
+    for shop, (left, right, top) in DOORS.items():
+        for x in (left - 11, right + 2):
+            # A lantern that would hang over the shop's new sign (D5) hangs just inside it instead.
+            sign = next((g for g in signs if x < g['x'] + g['w'] and g['x'] < x + 9), None)
+            draw(new_year, LANTERN, sign['x'] - 10 if sign else x, top - 9)
+        draw(xmas, WREATH, (left + right) // 2 - 4, top + 2)
+        jx = left - 2 - jack.width if shop in PUMPKIN_LEFT else right + 2
+        halloween_.alpha_composite(jack, (jx, kerb + 3 - jack.height))
+
+    # In the lot, where the cart stands: a tree, a pile of pumpkins, the lantern riddles, a zongzi and a mooncake stall.
+    def in_lot(id_, img):
+        layer(id_, lot=True).alpha_composite(img, (SPOT[0] + (SPOT[1] - SPOT[0] - img.width) // 2, SPOT_BOTTOM - img.height + 1))
+
+    tree = Image.new('RGBA', (30, 40), (0, 0, 0, 0))
+    tree.alpha_composite(christmas.crop((17, 12, 47, 47)), (0, 5))
+    tree.alpha_composite(christmas.crop((0, 100, 30, 140)), (0, 1))
+    in_lot('christmas', tree.crop(tree.getbbox()))
+    in_lot('halloween', pumpkin_pile())
+    in_lot('lantern', riddle_lanterns())
+    zongzi = Image.new('RGBA', (36, 34), (0, 0, 0, 0))
+    draw(zongzi, stall('Ln', ZONGZI), 0, 0)
+    in_lot('dragon_boat', zongzi)
+    mooncakes = Image.new('RGBA', (36, 34), (0, 0, 0, 0))
+    draw(mooncakes, stall('rg', MOONCAKE_ROW, MOON_LANTERN), 0, 0)
+    in_lot('mid_autumn', mooncakes)
+
+    # Rain leaves puddles on the pavement and the road; snow lies along the kerb and in drifts on the pavement.
+    rain = layer('rain', ground=True)
+    roll = lcg(37)
+    for i in range(34):
+        x = 8 + next(roll) % (width - 30)
+        y = (kerb + 5 + next(roll) % 20) if i % 2 else (road + 6 + next(roll) % 18)
+        rx = 4 + next(roll) % 6
+        ellipse(rain, x, y, rx, 1 + i % 2, STREET_COLORS['P'])
+        for dx in range(-rx // 2, 1):
+            rain.putpixel((x + dx, y - 1 + (i % 2 == 0)), STREET_COLORS['Q'])
+    snow = layer('snow', ground=True)
+    roll = lcg(41)
+    for x in range(width):
+        snow.putpixel((x, kerb), STREET_COLORS['W'])
+        if next(roll) % 3:
+            snow.putpixel((x, kerb + 1), STREET_COLORS['W'])
+        if next(roll) % 4 == 0:
+            snow.putpixel((x, road - 1), STREET_COLORS['W'])
+    for i in range(46):
+        x = 10 + next(roll) % (width - 30)
+        y = kerb + 4 + next(roll) % 22
+        ellipse(snow, x, y, 5 + next(roll) % 9, 1 + next(roll) % 2, STREET_COLORS['W'])
+        for dx in range(-3, 4):
+            snow.putpixel((x + dx, y + 2), STREET_COLORS['B'])
+    for i in range(20):
+        ellipse(snow, 10 + next(roll) % (width - 30), road + 3 + next(roll) % 22, 4 + next(roll) % 6, 1, STREET_COLORS['W'])
+    return layers
+
+
+def town_decor():
+    """Cut every layer into pieces no wider than CHUNK, pack them into one sheet, and say where each one goes."""
+    import json
+    town = json.loads((OUT / 'town.json').read_text('utf8'))
+    CHUNK = 192
+    pieces = []
+    for id_, flags, img in street_layers(town):
+        for cx in range(0, img.width, CHUNK):
+            chunk = img.crop((cx, 0, min(cx + CHUNK, img.width), img.height))
+            box = chunk.getbbox()
+            if box:
+                pieces.append((id_, flags, chunk.crop(box), cx + box[0], box[1]))
+    umbrella = Image.new('RGBA', (len(UMBRELLA_UP[0]), len(UMBRELLA_UP)), (0, 0, 0, 0))
+    draw_with(umbrella, UMBRELLA_UP, 0, 0, UMBRELLA_COLORS)
+    # Shelf packing, tallest first, a pixel apart.
+    SHEET_W = 512
+    order = sorted(range(len(pieces)), key=lambda i: -pieces[i][2].height)
+    at, x, y, shelf = {}, 0, 0, 0
+    for i in order + ['umbrella']:
+        img = umbrella if i == 'umbrella' else pieces[i][2]
+        if x + img.width > SHEET_W:
+            x, y, shelf = 0, y + shelf + 1, 0
+        at[i] = (x, y)
+        x += img.width + 1
+        shelf = max(shelf, img.height)
+    sheet = Image.new('RGBA', (SHEET_W, y + shelf), (0, 0, 0, 0))
+    parts = []
+    for i, (id_, flags, img, px, py) in enumerate(pieces):
+        sheet.alpha_composite(img, at[i])
+        part = {'id': id_, 'sx': at[i][0], 'sy': at[i][1], 'w': img.width, 'h': img.height, 'x': px, 'y': py}
+        if flags.get('ground'):
+            part['ground'] = True
+        if flags.get('with'):
+            part['with'] = flags['with']
+        if flags.get('lot'):
+            part['lot'] = True
+        parts.append(part)
+    sheet.alpha_composite(umbrella, at['umbrella'])
+    parts.sort(key=lambda p: (not p.get('ground', False), p['y'] + p['h']))
+    data = {'parts': parts, 'umbrella': {'sx': at['umbrella'][0], 'sy': at['umbrella'][1], 'w': umbrella.width,
+                                         'h': umbrella.height, 'x': UMBRELLA_AT[0], 'y': UMBRELLA_AT[1]}}
+    sheet.save(OUT / 'town-decor.png', optimize=True)
+    with open(OUT / 'town-decor.json', 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(data, f, indent=1)
+        f.write('\n')
+
+
 def build():
     OUT.mkdir(parents=True, exist_ok=True)
+    shops_decor().save(OUT / 'shops-decor.png', optimize=True)
+    town_decor()
     for name, pieces in PIECES.items():
         img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         for sheet, rect, pos in pieces:
@@ -257,4 +702,4 @@ def build():
 
 if __name__ == '__main__':
     build()
-    print('built decor-*.png, season-*.png and weather-*.png')
+    print('built decor-*.png, season-*.png, weather-*.png, shops-decor.png, town-decor.png and town-decor.json')

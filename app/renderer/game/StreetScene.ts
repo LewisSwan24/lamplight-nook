@@ -3,13 +3,16 @@ import frontsUrl from '../../../assets/sprites/town-fronts.png';
 import propsUrl from '../../../assets/sprites/town-props.png';
 import signsUrl from '../../../assets/sprites/town-signs.png';
 import streetUrl from '../../../assets/sprites/town-street.png';
-import type { TownCounts } from '../../shared/towngrow';
+import { streetGrown, type TownCounts } from '../../shared/towngrow';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
 import { animKey } from './sprites';
 import type { Walker } from './StreetView';
 import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, type ShopId, TOWN } from './town';
+import { type Outside, putAway } from './streetdecor';
+import { addUmbrella, holdUmbrella, preloadTownDecor, TownDecor } from './TownDecor';
 import { preloadTownGrowth, TownGrowth } from './TownGrowth';
+import { FALLING } from './weather';
 
 /** How far one press of an arrow key moves along the street. */
 const PAN_STEP = 48;
@@ -19,6 +22,8 @@ const DRAG = 3;
 const BOX = { w: 8, h: 6, fill: 0xa8743f, edge: 0x5e3b1e, ahead: 4, up: 7 };
 /** Stepping in at the door: up the step and out of sight. */
 const IN_MS = 360;
+/** Drawn bottom to top: the street, what lies on it, the fronts and props, what has grown, then what stands in front (D6). */
+const DEPTH = { street: 0, ground: 0.5, fronts: 1, grown: 2, up: 3, people: 10, falling: 20 };
 
 /**
  * The town's street (road-to-1.4.md D1): seven fronts in a row, wider than the canvas. Dragging or the arrow keys
@@ -33,6 +38,16 @@ export class StreetScene extends Phaser.Scene {
   walker: () => Walker | null = () => null;
   /** She was clicked out here. */
   onActor: (id: ActorId) => void = () => {};
+  /** Today's season, festival and weather, as the shop has them (CafeScene.outside). */
+  outside: () => Outside = () => ({ season: 'spring', holiday: null, sky: 'clear' });
+  /** Less motion asked for: nothing falls, the day is only greyer. */
+  calm: () => boolean = () => false;
+  /** The street's season, festival and weather (D6), once the scene is up. */
+  decor?: TownDecor;
+  private umbrella?: Phaser.GameObjects.Image;
+  private falling?: Phaser.GameObjects.Particles.ParticleEmitter;
+  /** What the street was last dressed for, so it changes only when the day does. */
+  private dressed = '';
   /** The one out on an errand, copied from the inset every frame so both show her in the same place and pose. */
   private seen?: Phaser.GameObjects.Sprite;
   private shade!: Phaser.GameObjects.Rectangle;
@@ -53,12 +68,22 @@ export class StreetScene extends Phaser.Scene {
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
     if (!this.textures.exists('town-grow')) preloadTownGrowth(this.load);
+    if (!this.textures.exists('town-decor')) preloadTownDecor(this.load);
   }
 
   create(data: { at?: ShopId }) {
-    for (const key of ['town-street', 'town-fronts', 'town-props', 'town-signs']) this.add.image(0, 0, key).setOrigin(0);
+    for (const key of ['town-street', 'town-fronts', 'town-props', 'town-signs']) {
+      this.add.image(0, 0, key).setOrigin(0).setDepth(key === 'town-street' ? DEPTH.street : DEPTH.fronts);
+    }
     this.growth = new TownGrowth(this);
+    for (const image of this.growth.images) image.setDepth(DEPTH.grown);
     if (this.counts) this.growth.show(this.counts);
+    this.decor = new TownDecor(this);
+    for (const image of this.decor.ground) image.setDepth(DEPTH.ground);
+    for (const image of this.decor.up) image.setDepth(DEPTH.up);
+    if (this.counts) this.decor.setGrown(streetGrown(this.counts.total));
+    this.umbrella = addUmbrella(this).setDepth(DEPTH.people + 0.5);
+    this.dressed = '';
     this.shade = this.add.rectangle(0, 0, CANVAS.width, CANVAS.height, 0xffffff).setOrigin(0).setScrollFactor(0).setDepth(999)
       .setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.cameras.main.setBounds(0, 0, TOWN.width, TOWN.height);
@@ -86,17 +111,51 @@ export class StreetScene extends Phaser.Scene {
   setTown(counts: TownCounts) {
     this.counts = counts;
     this.growth?.show(counts);
+    this.decor?.setGrown(streetGrown(counts.total));
   }
 
   update() {
     this.shade.setFillStyle(this.tint());
+    this.dress();
     const w = this.walker();
     if (!w) {
       this.seen?.setVisible(false);
+      this.umbrella?.setVisible(false);
       return;
     }
-    this.seen ??= this.add.sprite(w.x, w.y, w.texture).setOrigin(0.5, 1).setDepth(10);
+    this.seen ??= this.add.sprite(w.x, w.y, w.texture).setOrigin(0.5, 1).setDepth(DEPTH.people);
     this.seen.setVisible(true).setPosition(w.x, w.y).setAlpha(w.alpha).setTexture(w.texture, w.frame);
+    if (this.umbrella) holdUmbrella(this.umbrella.setVisible(!!this.decor?.umbrella).setAlpha(w.alpha), w.x, w.y);
+  }
+
+  /** Follow the shop's day: the season, the festival, the weather and what falls from the sky (D6). */
+  private dress() {
+    const outside = this.outside();
+    const calm = this.calm();
+    const key = `${outside.season} ${outside.holiday} ${outside.sky} ${calm}`;
+    if (key === this.dressed || !this.decor) return;
+    this.dressed = key;
+    this.decor.setOutside(outside);
+    this.growth?.putAway(putAway(outside));
+    this.falling?.destroy();
+    this.falling = undefined;
+    if (outside.sky === 'clear' || calm) return;
+    // As past the shop's windows (WeatherLayer), over the whole view, which moves with nobody.
+    const f = FALLING[outside.sky];
+    const lifespan = ((CANVAS.height + 8) / f.speed) * 1000;
+    const sway = outside.sky === 'rain' ? 0 : f.drift;
+    this.falling = this.add.particles(0, 0, 'weather-px', {
+      x: { min: -Math.abs(f.drift), max: CANVAS.width + Math.abs(f.drift) },
+      y: -4,
+      speedY: { min: f.speed * 0.8, max: f.speed * 1.2 },
+      speedX: { min: f.drift - sway, max: f.drift + sway },
+      scaleX: f.w,
+      scaleY: f.h,
+      tint: f.color,
+      lifespan,
+      frequency: 1000 / (f.perSecond * (CANVAS.width / 64)),
+      advance: lifespan,
+    }).setScrollFactor(0).setDepth(DEPTH.falling);
   }
 
   /**
@@ -118,8 +177,8 @@ export class StreetScene extends Phaser.Scene {
       };
       this.paradeEnd = end;
       for (const step of plan) {
-        const person = this.add.sprite(step.from, y, step.actor).setOrigin(0.5, 1).setDepth(10).play(animKey(step.actor, 'walk', 'left'), true);
-        const box = this.add.rectangle(step.from - BOX.ahead, y - BOX.up, BOX.w, BOX.h, BOX.fill).setStrokeStyle(1, BOX.edge).setDepth(11);
+        const person = this.add.sprite(step.from, y, step.actor).setOrigin(0.5, 1).setDepth(DEPTH.people).play(animKey(step.actor, 'walk', 'left'), true);
+        const box = this.add.rectangle(step.from - BOX.ahead, y - BOX.up, BOX.w, BOX.h, BOX.fill).setStrokeStyle(1, BOX.edge).setDepth(DEPTH.people + 1);
         made.push(person, box);
         this.tweens.add({
           targets: [person, box], x: `-=${step.from - step.to}`, delay: step.delay, duration: step.ms,

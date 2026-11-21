@@ -175,6 +175,19 @@ def split(name, room, boxes, chairs):
     return pieces
 
 
+# The festivals in order of their columns in shops-decor.png (decor.py), where the shops along the street have their own.
+HOLIDAYS = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']
+
+
+def overlay_of(path, name):
+    """The overlay as this room shows it: a shop along the street has its own festival decorations (road-to-1.4.md D6)."""
+    holiday = path.stem[len('decor-'):]
+    if name in SHOPS and path.name.startswith('decor-') and holiday in HOLIDAYS:
+        col, row = HOLIDAYS.index(holiday), list(SHOPS).index(name)
+        return Image.open(OUT / 'shops-decor.png').convert('RGBA').crop((col * 320, row * 180, col * 320 + 320, row * 180 + 180))
+    return Image.open(path).convert('RGBA')
+
+
 def overlays_on(pieces, name):
     """Overlay image -> the depth just above the highest piece it touches."""
     sheet = Image.open(OUT / f'{name}-pieces.png').convert('RGBA')
@@ -182,7 +195,7 @@ def overlays_on(pieces, name):
     for path in sorted(OUT.glob('*.png')):
         if not re.match(r'(grow|decor|weather|season)-', path.name):
             continue
-        overlay = Image.open(path).convert('RGBA')
+        overlay = overlay_of(path, name)
         touched = [p['base'] for p in pieces if any(
             overlay.getpixel((x, y))[3] > 0 and sheet.getpixel((x - p['x'], p['sy'] + y - p['y']))[3] > 0
             for y in range(p['y'], p['y'] + p['h']) for x in range(p['x'], p['x'] + p['w']))]

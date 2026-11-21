@@ -304,6 +304,30 @@
     "w": 13,
     "h": 10
    },
+   "print-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "print-proof": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "print-ribbon": {
+    "x": 270,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "print-typecase": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
    "readinglamp": {
     "x": 125,
     "y": 81,
@@ -321,6 +345,30 @@
     "y": 19,
     "w": 12,
     "h": 11
+   },
+   "studio-gallery": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 13
+   },
+   "studio-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "studio-palette": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 9
+   },
+   "studio-sketch": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
    },
    "sunset": {
     "x": 275,
@@ -345,6 +393,30 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-blueprint": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
+   "workshop-clock": {
+    "x": 252,
+    "y": 18,
+    "w": 12,
+    "h": 13
+   },
+   "workshop-gear": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "workshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
    }
   }
  },
@@ -658,6 +730,30 @@
     "w": 13,
     "h": 10
    },
+   "print-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "print-proof": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "print-ribbon": {
+    "x": 270,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "print-typecase": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
    "readinglamp": {
     "x": 125,
     "y": 81,
@@ -675,6 +771,30 @@
     "y": 19,
     "w": 12,
     "h": 11
+   },
+   "studio-gallery": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 13
+   },
+   "studio-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "studio-palette": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 9
+   },
+   "studio-sketch": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
    },
    "sunset": {
     "x": 275,
@@ -699,6 +819,30 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-blueprint": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
+   "workshop-clock": {
+    "x": 252,
+    "y": 18,
+    "w": 12,
+    "h": 13
+   },
+   "workshop-gear": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "workshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
    }
   }
  },
@@ -816,11 +960,6 @@
    }
   ],
   "on": {
-   "decor-christmas": 57.1,
-   "decor-dragon_boat": 57.1,
-   "decor-halloween": 156.1,
-   "decor-lantern": 57.1,
-   "decor-new_year": 57.1,
    "grow-album": 102.1,
    "grow-bonsai": 156.1,
    "grow-books": 156.1,
@@ -999,6 +1138,30 @@
     "w": 13,
     "h": 10
    },
+   "print-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "print-proof": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "print-ribbon": {
+    "x": 270,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "print-typecase": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
    "readinglamp": {
     "x": 125,
     "y": 81,
@@ -1016,6 +1179,30 @@
     "y": 19,
     "w": 12,
     "h": 11
+   },
+   "studio-gallery": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 13
+   },
+   "studio-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "studio-palette": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 9
+   },
+   "studio-sketch": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
    },
    "sunset": {
     "x": 275,
@@ -1040,6 +1227,30 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-blueprint": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
+   "workshop-clock": {
+    "x": 252,
+    "y": 18,
+    "w": 12,
+    "h": 13
+   },
+   "workshop-gear": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "workshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
    }
   }
  },
@@ -1159,7 +1370,8 @@
   "on": {
    "decor-christmas": 102.1,
    "decor-dragon_boat": 102.1,
-   "decor-halloween": 158.1,
+   "decor-halloween": 102.1,
+   "decor-lantern": 102.1,
    "decor-mid_autumn": 102.1,
    "grow-album": 102.1,
    "grow-aquarium": 158.1,
@@ -1343,6 +1555,30 @@
     "w": 13,
     "h": 10
    },
+   "print-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "print-proof": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "print-ribbon": {
+    "x": 270,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "print-typecase": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
    "readinglamp": {
     "x": 125,
     "y": 81,
@@ -1360,6 +1596,30 @@
     "y": 19,
     "w": 12,
     "h": 11
+   },
+   "studio-gallery": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 13
+   },
+   "studio-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "studio-palette": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 9
+   },
+   "studio-sketch": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
    },
    "sunset": {
     "x": 275,
@@ -1384,6 +1644,30 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-blueprint": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
+   "workshop-clock": {
+    "x": 252,
+    "y": 18,
+    "w": 12,
+    "h": 13
+   },
+   "workshop-gear": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "workshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
    }
   }
  },
@@ -1493,7 +1777,8 @@
   "on": {
    "decor-christmas": 143.1,
    "decor-dragon_boat": 102.1,
-   "decor-halloween": 156.1,
+   "decor-halloween": 102.1,
+   "decor-lantern": 102.1,
    "decor-mid_autumn": 102.1,
    "grow-album": 102.1,
    "grow-bonsai": 156.1,
@@ -1674,6 +1959,30 @@
     "w": 13,
     "h": 10
    },
+   "print-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "print-proof": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "print-ribbon": {
+    "x": 270,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "print-typecase": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
    "readinglamp": {
     "x": 125,
     "y": 81,
@@ -1691,6 +2000,30 @@
     "y": 19,
     "w": 12,
     "h": 11
+   },
+   "studio-gallery": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 13
+   },
+   "studio-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "studio-palette": {
+    "x": 252,
+    "y": 18,
+    "w": 14,
+    "h": 9
+   },
+   "studio-sketch": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
    },
    "sunset": {
     "x": 275,
@@ -1715,6 +2048,30 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-blueprint": {
+    "x": 270,
+    "y": 18,
+    "w": 14,
+    "h": 11
+   },
+   "workshop-clock": {
+    "x": 252,
+    "y": 18,
+    "w": 12,
+    "h": 13
+   },
+   "workshop-gear": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
+   "workshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
    }
   }
  }
