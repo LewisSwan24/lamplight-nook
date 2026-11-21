@@ -1,7 +1,10 @@
 // Reading a long run (soak.mjs). Kept apart from it so the unit tests need no browser driver: CI has none.
 
-/** Things that may wander a little as the staff move about; anything past this between the halves is a leak. */
-const ALLOWED = { objects: 12, tweens: 12, timers: 12, dom: 60, listeners: 40, heapMB: 12, mainHeapMB: 8 };
+/**
+ * Things that may wander a little as the staff move about; anything past this between the halves is a leak. A room left
+ * behind after going in and out is one scene more, or its pictures loaded again (road-to-1.4.md D8).
+ */
+const ALLOWED = { objects: 12, tweens: 12, timers: 12, dom: 60, listeners: 40, heapMB: 12, mainHeapMB: 8, scenes: 0, textures: 2 };
 
 /** The middle value, so one busy moment in the shop does not count as growth. */
 const middle = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];

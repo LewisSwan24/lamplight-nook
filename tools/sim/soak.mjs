@@ -5,6 +5,7 @@
 //
 //   node tools/sim/soak.mjs --rounds 100 --every 5 --out sim-out/soak [--lang en] [--speed 60]
 //   node tools/sim/soak.mjs --idle 120 --out sim-out/soak-idle       (the shop left open with nothing on, in minutes)
+//   node tools/sim/soak.mjs --walks 100 --every 5 --out sim-out/soak-walks   (out onto the street and into a shop, and back)
 //
 // Exit 1 if something keeps growing. Spends nothing: the stand-in never touches the network.
 
@@ -25,6 +26,8 @@ async function reading(shop, round) {
     window.gc();
     const { scene } = window.lamplightDebug;
     return {
+      scenes: scene.game.scene.scenes.length,
+      textures: scene.textures.getTextureKeys().length,
       objects: scene.children.list.length,
       tweens: scene.tweens.getTweens().length,
       timers: scene.time._active.length + scene.time._pendingInsertion.length,
@@ -87,6 +90,50 @@ async function idle({ minutes, out, lang }) {
   return Object.values(result).some((r) => r.leaking) ? 1 : 0;
 }
 
+/**
+ * Out onto the street and into a shop, round the three new ones, and home again (road-to-1.4.md D8): each room is built
+ * going in and taken down coming out, so whatever one leaves behind adds up. A reading at home every so many walks.
+ */
+async function walks({ times, every, out, lang }) {
+  mkdirSync(out, { recursive: true });
+  const log = join(out, `walks-${lang}.jsonl`);
+  writeFileSync(log, '');
+  const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), size: 'small', debug: true, args: ['--js-flags=--expose-gc', '--enable-precise-memory-info'] });
+  const room = () => shop.page.evaluate(() => window.lamplightDebug.scene.room);
+  const go = async (id) => {
+    await shop.page.evaluate((i) => window.lamplightDebug.street.onFront(i, true), id);
+    for (const end = Date.now() + 15_000; Date.now() < end && await room() !== id; await sleep(200));
+    if (await room() !== id) throw new Error(`could not go into the ${id}`);
+    await sleep(800);
+  };
+  const SHOPS = ['print', 'studio', 'workshop'];
+  const readings = [];
+  try {
+    await sleep(2500);
+    for (let walk = 1; walk <= times; walk++) {
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.toolbar.street}"]`).click();
+      await sleep(600);
+      await go(SHOPS[walk % SHOPS.length]);
+      if (walk % every === 0) {
+        await go('cafe');
+        const r = await reading(shop, walk);
+        readings.push(r);
+        appendFileSync(log, `${JSON.stringify(r)}\n`);
+        console.log(`walk ${walk}: ${JSON.stringify(r)}`);
+      }
+    }
+  } catch (e) {
+    await shop.shot(join(out, `walks-failed-${lang}.png`));
+    throw e;
+  } finally {
+    await shop.close();
+  }
+  const result = compareHalves(readings);
+  writeFileSync(join(out, `walks-result-${lang}.json`), JSON.stringify({ times, result, last: readings.at(-1) }, null, 2));
+  console.table(result);
+  return Object.values(result).some((r) => r.leaking) ? 1 : 0;
+}
+
 async function soak({ rounds, every, out, lang, speed }) {
   mkdirSync(out, { recursive: true });
   const log = join(out, `readings-${lang}.jsonl`);
@@ -139,6 +186,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const common = { out: arg('out', 'sim-out/soak'), lang: arg('lang', 'zh-CN') };
   const code = arg('idle')
     ? await idle({ ...common, minutes: Number(arg('idle')) })
+    : arg('walks') ? await walks({ ...common, times: Number(arg('walks')), every: Number(arg('every', 5)) })
     : await soak({ ...common, rounds: Number(arg('rounds', 100)), every: Number(arg('every', 5)), speed: Number(arg('speed', 60)) });
   process.exit(code);
 }

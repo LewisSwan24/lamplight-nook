@@ -720,6 +720,7 @@
       "sectionLabel": "Seeing and hearing",
       "captionsToggle": "Always show the latest line at the bottom",
       "reduceMotion": "Less motion (no hops or flashes, lights change at once)",
+      "powerSaving": "Save power (fewer frames a second, for a slow computer or on battery)",
       "detailedToggle": "Show what the staff are doing at the bottom of the window",
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",

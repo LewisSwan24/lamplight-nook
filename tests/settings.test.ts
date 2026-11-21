@@ -10,13 +10,13 @@ const fresh = () => join(mkdtempSync(join(tmpdir(), 'lamplight-settings-')), 'se
 describe('settings store', () => {
   it('starts with the default work folder and no name', () => {
     const s = new SettingsStore(fresh(), '/docs').get();
-    expect(s).toEqual({ name: '', avatar: 1, workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: 'cafe', furnish: cleanFurnishings(undefined), budgetUsd: 3, monthCapUsd: 20, language: 'system' });
+    expect(s).toEqual({ name: '', avatar: 1, workRoot: defaultWorkRoot('/docs'), onboarded: false, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, powerSaving: false, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: 'cafe', furnish: cleanFurnishings(undefined), budgetUsd: 3, monthCapUsd: 20, language: 'system' });
   });
 
   it('saves and reloads changes', () => {
     const file = fresh();
-    new SettingsStore(file, '/docs').update({ name: '  Lin  ', avatar: 5, onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, openAtLogin: true, schedulesPaused: true, connectionsPaused: true, mini: false, updates: false, scene: 'study', budgetUsd: 5, monthCapUsd: 100, language: 'en' });
-    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', avatar: 5, workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, notify: false, closeToTray: true, openAtLogin: true, schedulesPaused: true, connectionsPaused: true, mini: false, updates: false, scene: 'study', furnish: cleanFurnishings(undefined), budgetUsd: 5, monthCapUsd: 100, language: 'en' });
+    new SettingsStore(file, '/docs').update({ name: '  Lin  ', avatar: 5, onboarded: true, workRoot: '/work', muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, powerSaving: true, notify: false, closeToTray: true, openAtLogin: true, schedulesPaused: true, connectionsPaused: true, mini: false, updates: false, scene: 'study', budgetUsd: 5, monthCapUsd: 100, language: 'en' });
+    expect(new SettingsStore(file, '/docs').get()).toEqual({ name: 'Lin', avatar: 5, workRoot: '/work', onboarded: true, muted: true, detailed: true, volume: 40, captions: true, reducedMotion: true, powerSaving: true, notify: false, closeToTray: true, openAtLogin: true, schedulesPaused: true, connectionsPaused: true, mini: false, updates: false, scene: 'study', furnish: cleanFurnishings(undefined), budgetUsd: 5, monthCapUsd: 100, language: 'en' });
   });
 
   it('opening at login is off at first, and starts the shop in the tray (road-to-1.2.md B6)', () => {

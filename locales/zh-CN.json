@@ -720,6 +720,7 @@
       "sectionLabel": "看和听",
       "captionsToggle": "在画面下方一直显示刚说的话",
       "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
+      "powerSaving": "省电模式（每秒画得少一些，适合慢电脑或用电池时）",
       "detailedToggle": "在画面下方显示店员在做什么",
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",

@@ -270,7 +270,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused';
+type Switch = 'captions' | 'reducedMotion' | 'powerSaving' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -463,7 +463,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     sight: [
       el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
       el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
-        switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion], ['detailed', strings.ui.access.detailedToggle]])),
+        switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion], ['powerSaving', strings.ui.access.powerSaving], ['detailed', strings.ui.access.detailedToggle]])),
     ],
     work: [
       el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
