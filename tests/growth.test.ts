@@ -110,7 +110,7 @@ describe('the shop grows with the commissions done together', () => {
     expect(store.shopState().told).toEqual([TOWN_MOVE, 'story_chestnut']);
     store.clear();
     // Back to a shop opened since 1.4: in the town, with no move to show.
-    expect(store.shopState()).toEqual({ done: 0, grown: [], told: [TOWN_MOVE], town: emptyTown(), works: [] });
+    expect(store.shopState()).toEqual({ done: 0, grown: [], told: [TOWN_MOVE], town: emptyTown(), works: [], today: expect.any(String) });
   });
 
   it('has a line for every new piece, in both languages', () => {

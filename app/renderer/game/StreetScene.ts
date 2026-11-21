@@ -12,6 +12,8 @@ import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, type ShopId, TOWN
 import { type Outside, putAway } from './streetdecor';
 import { addUmbrella, holdUmbrella, preloadTownDecor, TownDecor } from './TownDecor';
 import { preloadTownGrowth, TownGrowth } from './TownGrowth';
+import { preloadTownStories, TownStories } from './TownStories';
+import type { Teller } from '../../shared/stories';
 import { FALLING } from './weather';
 
 /** How far one press of an arrow key moves along the street. */
@@ -22,8 +24,11 @@ const DRAG = 3;
 const BOX = { w: 8, h: 6, fill: 0xa8743f, edge: 0x5e3b1e, ahead: 4, up: 7 };
 /** Stepping in at the door: up the step and out of sight. */
 const IN_MS = 360;
-/** Drawn bottom to top: the street, what lies on it, the fronts and props, what has grown, then what stands in front (D6). */
-const DEPTH = { street: 0, ground: 0.5, fronts: 1, grown: 2, up: 3, people: 10, falling: 20 };
+/**
+ * Drawn bottom to top: the street, what lies on it, the fronts and props, what has grown, what the stories left (D4), then
+ * what stands in front (D6), the people and what falls.
+ */
+const DEPTH = { street: 0, ground: 0.5, fronts: 1, grown: 2, story: 2.5, up: 3, people: 10, falling: 20 };
 
 /**
  * The town's street (road-to-1.4.md D1): seven fronts in a row, wider than the canvas. Dragging or the arrow keys
@@ -38,6 +43,8 @@ export class StreetScene extends Phaser.Scene {
   walker: () => Walker | null = () => null;
   /** She was clicked out here. */
   onActor: (id: ActorId) => void = () => {};
+  /** A neighbour waiting with a chapter was clicked (D4). */
+  onNeighbour: (who: Teller) => void = () => {};
   /** Today's season, festival and weather, as the shop has them (CafeScene.outside). */
   outside: () => Outside = () => ({ season: 'spring', holiday: null, sky: 'clear' });
   /** Less motion asked for: nothing falls, the day is only greyer. */
@@ -57,6 +64,9 @@ export class StreetScene extends Phaser.Scene {
   /** What the town has grown (D5), once the scene is up; the counts it was last told, for when it comes up. */
   growth?: TownGrowth;
   private counts?: TownCounts;
+  /** The neighbours' stories (D4), once the scene is up; who waits and what was left, as last told. */
+  stories?: TownStories;
+  private tales: { waiting: Teller[]; left: string[] } = { waiting: [], left: [] };
 
   constructor() {
     super({ key: 'street', active: false });
@@ -69,6 +79,7 @@ export class StreetScene extends Phaser.Scene {
     }
     if (!this.textures.exists('town-grow')) preloadTownGrowth(this.load);
     if (!this.textures.exists('town-decor')) preloadTownDecor(this.load);
+    if (!this.textures.exists('town-story')) preloadTownStories(this.load);
   }
 
   create(data: { at?: ShopId }) {
@@ -82,6 +93,8 @@ export class StreetScene extends Phaser.Scene {
     for (const image of this.decor.ground) image.setDepth(DEPTH.ground);
     for (const image of this.decor.up) image.setDepth(DEPTH.up);
     if (this.counts) this.decor.setGrown(streetGrown(this.counts.total));
+    this.stories = new TownStories(this, { things: DEPTH.story, people: DEPTH.people });
+    this.stories.show(this.tales.waiting, this.tales.left, this.calm());
     this.umbrella = addUmbrella(this).setDepth(DEPTH.people + 0.5);
     this.dressed = '';
     this.shade = this.add.rectangle(0, 0, CANVAS.width, CANVAS.height, 0xffffff).setOrigin(0).setScrollFactor(0).setDepth(999)
@@ -101,6 +114,8 @@ export class StreetScene extends Phaser.Scene {
       if (!press || press.moved) return;
       const out = this.walker();
       if (out && this.seen?.visible && this.seen.getBounds().contains(p.worldX, p.worldY)) return this.onActor(out.actor);
+      const who = this.stories?.at(p.worldX, p.worldY);
+      if (who) return this.onNeighbour(who);
       const id = frontAt(p.worldX, p.worldY);
       if (id) this.onFront(id, OPEN.has(id));
     });
@@ -112,6 +127,12 @@ export class StreetScene extends Phaser.Scene {
     this.counts = counts;
     this.growth?.show(counts);
     this.decor?.setGrown(streetGrown(counts.total));
+  }
+
+  /** Who has a chapter waiting and what the chapters told have left (D4). */
+  setStories(waiting: Teller[], left: string[]) {
+    this.tales = { waiting, left };
+    this.stories?.show(waiting, left, this.calm());
   }
 
   update() {

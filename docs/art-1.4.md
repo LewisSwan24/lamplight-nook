@@ -60,7 +60,8 @@
 | `town-decor.png` | D6 街上的四季、六个节日、水洼和积雪，跑腿的人撑的伞 | Modern Exteriors：`19_Graveyard` 的南瓜灯；Modern Interiors：`15_Christmas` 的圣诞树，`11_Halloween` 的南瓜堆；手画的雪、落叶、花、树荫、水洼、灯笼、花环、灯谜、粽子摊、月饼摊和伞 | `scripts/art/decor.py` |
 | `town-decor.json` | D6 街上每一块装饰的位置，游戏和测试都读它 | Modern Exteriors 和 Modern Interiors，跟 `town-decor.png` 一起算出来 | `scripts/art/decor.py` |
 | `shops-decor.png` | D6 三间新店里的节日装饰 | Modern Interiors：`15_Christmas`、`11_Halloween`；手画的灯笼、蝙蝠、海报、小画和木牌 | `scripts/art/decor.py` |
-| `town-story.png` | D4 故事留下的东西 | 手画：旧自行车；Modern Interiors：`1_Generic` 的小书架 | `scripts/art/town.py` |
+| `town-story.png` | D4 街坊的故事留在街上的十五样东西，等着讲故事的人头上的小气泡 | 手画：车铃、工具箱、打气筒、车牌、旧自行车、坐垫、小米、月季、鸟窝、小板凳、书、告示、仙人掌、小书架、学士帽 | `scripts/art/story.py` |
+| `town-story.json` | D4 每样东西摆在哪，三个街坊站在哪，游戏和测试都读它 | 手画，跟 `town-story.png` 一起算出来 | `scripts/art/story.py` |
 
 ## 给 LimeZu 的问题
 

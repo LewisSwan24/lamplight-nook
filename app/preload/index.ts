@@ -69,6 +69,7 @@ const api: LamplightApi = {
   relinkWork: (id) => ipcRenderer.invoke(IPC.relinkWork, id),
   markTold: (id) => ipcRenderer.invoke(IPC.markTold, id),
   markMet: (id) => ipcRenderer.invoke(IPC.markMet, id),
+  tellStory: (who) => ipcRenderer.invoke(IPC.tellStory, who),
   reviseCommission: (req) => ipcRenderer.invoke(IPC.reviseCommission, req),
   restorePrevious: (id) => ipcRenderer.invoke(IPC.restorePrevious, id),
   undoWork: (id) => ipcRenderer.invoke(IPC.undoWork, id),

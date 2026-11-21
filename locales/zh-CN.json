@@ -142,6 +142,7 @@
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
     "emotionWord": "{id}: names an emotion directly \"{text}\"",
     "badChat": "{id}: a chat needs at least two turns and `when` of idle or waiting",
+    "badStory": "{id}: a neighbour needs five chapters, each with a title, a note, 2 to 5 bubbles and the thing it leaves",
     "maxBubble": 20
   },
   "defaults": {
@@ -697,6 +698,10 @@
       "unmute": "打开声音",
       "street": "去街上",
       "back": "回店里"
+    },
+    "stories": {
+      "title": "{who} · 第{n}章 · {title}",
+      "heard": "听完了"
     },
     "town": {
       "moving": "店搬到街上来了。点一下就跳过。",

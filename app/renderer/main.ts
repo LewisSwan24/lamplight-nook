@@ -48,6 +48,8 @@ import { MOVERS, OPEN, entering, followsOrder, roomFor } from './game/town';
 import type { StreetShop } from '../shared/dispatch';
 import { TOWN_MOVE } from '../shared/town';
 import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
+import { leftBehind, nextChapter, waiting, type Stories, type Teller } from '../shared/stories';
+import { showStory } from './ui/story';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -467,12 +469,28 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()) };
   street.setTown(shopDays.town);
+  tellAbout(state);
   showTownIn(home.room, home);
   for (const [room, built] of rooms) showTownIn(room, built.scene);
   worksKept = state.works.length;
   const projects = await window.lamplight.projectBoard();
   projectsKept = projects.length;
   renderPins(projects);
+}
+/**
+ * The neighbours' stories (road-to-1.4.md D4): who has a chapter waiting, by the shop's clock, stands out on the street
+ * with a bubble; what the chapters told have left stands there too. Nothing else says a chapter is waiting.
+ */
+let tales: { stories: Stories; done: number; today: string } = { stories: {}, done: 0, today: '' };
+function tellAbout(state: { done: number; today: string; town?: { stories: Stories } }) {
+  tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today };
+  street.setStories(waiting(tales.stories, tales.done, tales.today), leftBehind(tales.stories));
+}
+/** A waiting neighbour was clicked: the chapter on a card, written down as told once the card is closed. */
+function hearStory(who: Teller) {
+  const chapter = nextChapter(who, tales.stories, tales.done, tales.today);
+  if (chapter === null) return;
+  showStory(who, chapter, () => void window.lamplight.tellStory(who).then(async () => tellAbout(await window.lamplight.shopState())));
 }
 /** How many projects there are: with any, the blackboard doubles as the project board when nothing is chalked on it. */
 let projectsKept = 0;
@@ -896,6 +914,8 @@ async function openShop() {
     scene.setOutside(out);
     // The street button keeps focus otherwise, and the arrow keys and Enter would go to it.
     if (out) (document.activeElement as HTMLElement | null)?.blur();
+    // A new day may have brought a chapter since the shop last looked (D4).
+    if (out) void window.lamplight.shopState().then(tellAbout);
     if (out) game.scene.run('street', { at: scene.room });
     else game.scene.sleep('street');
     document.body.classList.toggle('outside', out);
@@ -909,6 +929,7 @@ async function openShop() {
   street.outside = () => scene.outside();
   street.calm = () => scene.reducedMotion;
   street.onActor = (id) => scene.onActorClick(id);
+  street.onNeighbour = hearStory;
   street.onFront = (id, open) => {
     const go = entering(id, { here: scene.room });
     if (go === 'back') return goOut(false);

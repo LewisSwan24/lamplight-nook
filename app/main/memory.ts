@@ -5,6 +5,7 @@ import { localDay } from '../shared/localday';
 import { MAIN_FILES } from '../shared/templates';
 import type { Shop } from '../shared/dispatch';
 import { emptyTown, type Gathered, TOWN_MOVE } from '../shared/town';
+import { nextChapter, told } from '../shared/stories';
 import { roomGrown, streetGrown } from '../shared/towngrow';
 import { forgetAside, putAside } from './aside';
 import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
@@ -253,13 +254,29 @@ export class MemoryStore {
     this.save();
   }
 
-  /** The shop's days and the works shelf: finished commissions, latest first. */
-  shopState(): ShopState {
+  /**
+   * A neighbour has told the chapter they had waiting (road-to-1.4.md D4): the day is written down. Returns the chapter,
+   * or null when they had none today, so a chapter is never told twice and none is skipped.
+   */
+  tellStory(who: GuestId, now = new Date()): number | null {
+    const shop = this.shop();
+    if (!shop.town) return null;
+    const today = localDay(now);
+    const chapter = nextChapter(who, shop.town.stories, shop.done, today);
+    if (chapter === null) return null;
+    shop.town.stories = told(shop.town.stories, who, shop.done, today);
+    this.data.shop = shop;
+    this.save();
+    return chapter;
+  }
+
+  /** The shop's days and the works shelf: finished commissions, latest first. `today` by the shop's clock, for the stories. */
+  shopState(now = new Date()): ShopState {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
       id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
       page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
     }));
-    return { ...structuredClone(this.shop()), works };
+    return { ...structuredClone(this.shop()), works, today: localDay(now) };
   }
 
   /** A shop opened since 1.4 starts in the town, with no move to show (road-to-1.4.md D7). */
