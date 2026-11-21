@@ -851,7 +851,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
         : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched, usd: spentThisRun }, stuckHere);
       if (entry) keepRound(entry);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
-      const grew = result.ok && !r ? memory.finished() : [];
+      const grew = result.ok && !r ? memory.finished(new Date(), shopOf(job.form.template)) : [];
       // A research write-up is checked against its sources and against what this round searched or fetched (C7).
       const F = strings.ui.files;
       const citations = job.form.template === 'research' ? citationsIn(job.workDir, { summary: F.summary, sources: F.sources }, result.seenUrls ?? []) : undefined;

@@ -43,9 +43,13 @@ export const CAMERA_W = CANVAS.width;
 /** Where feet stand at a door: on the pavement, just in front of it. */
 export const doorOf = (id: ShopId): Point => ({ x: FRONTS.find((f) => f.id === id)!.door, y: TOWN.kerb + 4 });
 
-/** The pavement, with what stands on it. */
+/**
+ * The pavement, with what stands on it: what is there from the start, and what grows there (D5), grown or not, so a
+ * walk stays the same as the town grows.
+ */
 export function streetArea(): Area {
-  const obstacles: Box[] = data.props.map((p) => ({ left: p.left - 1, right: p.right + 1, top: p.top - 1, bottom: p.bottom + 1 }));
+  const feet = [...data.props, ...data.grow.flatMap((p) => ('foot' in p && p.foot ? [p.foot] : []))];
+  const obstacles: Box[] = feet.map((p) => ({ left: p.left - 1, right: p.right + 1, top: p.top - 1, bottom: p.bottom + 1 }));
   return { left: 4, right: TOWN.width - 4, top: TOWN.kerb + 4, bottom: TOWN.road - 4, obstacles };
 }
 

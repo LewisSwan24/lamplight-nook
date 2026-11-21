@@ -4427,6 +4427,105 @@ const SCENARIOS = {
   },
 
   /**
+   * The town grows with the work (road-to-1.4.md D5): a shop with 0, 10, 30 and 100 commissions done, split between the
+   * home shop and the shops along the street, opens onto a street with that much grown on it, each front by its own
+   * count; inside the print shop its own pieces hang. Then a commission brings the lamps, and someone says so.
+   */
+  async towngrow(lang, out) {
+    const L = locale(lang);
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const STREET = [['lamps', 3], ['bench', 6], ['flowers', 10], ['stall', 20], ['park', 40], ['fountain', 70]];
+    const FRONT = [['pot', 2], ['sign', 8], ['bunting', 20]];
+    const due = (list, n) => list.filter(([, at]) => n >= at).map(([id]) => id);
+    // How many of the total each shop along the street did; the home shop did the rest.
+    const SPLITS = { 0: {}, 10: { print: 8 }, 30: { print: 20, studio: 3, workshop: 2 }, 100: { print: 30, studio: 25, workshop: 20 } };
+    const seed = (done, split) => freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [], stuckNotes: [], greeted: 'c1',
+        shop: { done, told: ['town-move'], grown: [], met: [], town: { shops: Object.fromEntries(Object.entries(split).map(([s, n]) => [s, { done: n, grown: [] }])), street: [], stories: {} } },
+      }),
+    });
+    const goOut = async (page) => {
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(800);
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(300);
+    };
+    const shown = (page) => page.evaluate(() => {
+      const g = window.lamplightDebug.street.growth;
+      const ids = ['lamps', 'bench', 'flowers', 'stall', 'park', 'fountain'];
+      const fronts = Object.fromEntries(['cafe', 'study', 'print', 'studio', 'workshop'].map((s) => [s, ['pot', 'sign', 'bunting'].filter((id) => g.shows(id, s))]));
+      return { street: ids.filter((id) => g.shows(id)), fronts };
+    });
+    const scrollTo = (page, x) => page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, x);
+
+    for (const [done, split] of Object.entries(SPLITS).map(([d, s]) => [Number(d), s])) {
+      const shop = await launch({ lang, home: seed(done, split), speed: SPEED });
+      const { page } = shop;
+      try {
+        await sleep(2500);
+        await goOut(page);
+        const v = await shown(page);
+        check(JSON.stringify(v.street) === JSON.stringify(due(STREET, done)), `${done} done: the street shows ${v.street}`);
+        const own = { cafe: done - Object.values(split).reduce((a, b) => a + b, 0), study: 0, print: 0, studio: 0, workshop: 0, ...split };
+        for (const [s, n] of Object.entries(own)) check(JSON.stringify(v.fronts[s]) === JSON.stringify(due(FRONT, n)), `${done} done: the ${s} front shows ${v.fronts[s]} for ${n} of its own`);
+        await scrollTo(page, 0);
+        await sleep(300);
+        await shop.shot(join(out, `towngrow-${done}-home.png`));
+        await scrollTo(page, town.lot.x + town.lot.w / 2 - 160);
+        await sleep(300);
+        await shop.shot(join(out, `towngrow-${done}-lot.png`));
+        if (done === 100) {
+          await page.evaluate(() => window.lamplightDebug.street.lookAt('print'));
+          await sleep(300);
+          await shop.shot(join(out, 'towngrow-100-print-front.png'));
+          await page.keyboard.press('Enter');
+          await sleep(1500);
+          const inside = await page.evaluate(() => {
+            const room = window.lamplightDebug.rooms.get('print')?.scene;
+            return { here: window.lamplightDebug.scene.room, pieces: ['print-proof', 'print-ivy', 'print-typecase', 'print-ribbon'].filter((id) => room?.growth.shows(id)) };
+          });
+          check(inside.here === 'print', `Enter in front of the print shop went to ${inside.here}`);
+          check(inside.pieces.length === 4, `the print shop with thirty of its own shows ${inside.pieces}`);
+          await shop.shot(join(out, 'towngrow-100-print-inside.png'));
+        }
+      } finally { await shop.close(); }
+    }
+
+    // A commission done that brings the lamps: they are on the street, and someone says so in the shop.
+    const lamps = lang === 'en' ? 'Two new lamps on the street!' : '街上多了两盏路灯。';
+    const home = seed(2, {});
+    const shop = await launch({ lang, home, debug: true, speed: 100 });
+    try {
+      await sleep(2000);
+      await shop.page.evaluate(() => {
+        window.heard = [];
+        setInterval(() => {
+          const now = document.getElementById('labels').innerText;
+          if (window.heard.at(-1) !== now) window.heard.push(now);
+        }, 200);
+      });
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission did not finish');
+      await sleep(1500);
+      await shop.page.keyboard.press('Escape');
+      let said = false;
+      for (const start = Date.now(); !said && Date.now() - start < 40_000; await sleep(500)) {
+        said = await shop.page.evaluate((w) => window.heard.some((h) => h.includes(w)), lamps);
+      }
+      check(said, 'nobody said the street has new lamps');
+      await shop.shot(join(out, 'towngrow-lamps-line.png'));
+      const saved = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+      check(saved.shop.town.street.map((g) => g.id).join() === 'lamps', `the day the lamps came was not written down: ${JSON.stringify(saved.shop.town.street)}`);
+      await goOut(shop.page);
+      check((await shown(shop.page)).street.join() === 'lamps', 'the new lamps are not on the street');
+    } finally { await shop.close(); }
+  },
+
+  /**
    * The town's street (road-to-1.4.md D1): out of the door from the toolbar and back in on the same page, along the
    * street with the arrow keys, a front not open yet saying so, back in through the shop's own front and with Escape.
    * By day, by night and in a small window.

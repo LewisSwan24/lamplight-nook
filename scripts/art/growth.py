@@ -214,6 +214,59 @@ COLORS = {
 ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster']
 
 
+# What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
+# on the walls, so nobody walks round them: the right wall past the window (three slots) and the corner left of the
+# first window. The rooms share one skeleton (shops.py), so the slots are the same in each.
+# Writes assets/sprites/grow-<shop>-<id>.png, in the repository since nothing in them comes from a pack:
+#   print: grow-print-proof.png, grow-print-ivy.png, grow-print-typecase.png, grow-print-ribbon.png
+#   studio: grow-studio-sketch.png, grow-studio-ivy.png, grow-studio-palette.png, grow-studio-gallery.png
+#   workshop: grow-workshop-gear.png, grow-workshop-ivy.png, grow-workshop-clock.png, grow-workshop-blueprint.png
+ROOM_DRAWN = {
+    'ivy': ['....x....', '....x....', '..xxxxx..', '.xoooooox'[:9], '.xoooooox'[:9], '..xxxxx..', '.gg.g.gg.', 'g.g.g.g.g',
+            '.g..g..g.', '.g.gg..g.', 'g...g.g..', '....g....', '...g.....'],
+    'proof': ['xxxxxxxxxxxx', 'xkkkkkkkkkkx', 'xkwwwwwwwwkx', 'xkwxxxxxwwkx', 'xkwwwwwwwwkx', 'xkwxxxxxxwkx', 'xkwxxxxwwwkx',
+              'xkwwwwwwwwkx', 'xkwxxxxxxwkx', 'xkwwwwwwrwkx', 'xkkkkkkkkkkx', 'xxxxxxxxxxxx'],
+    'typecase': ['xxxxxxxxxxxxxx', 'xkkkkkkkkkkkkx', 'xkGkGkGkGkGkkx', 'xkkkkkkkkkkkkx', 'xkGkGkhkGkGkkx', 'xkkkkkkkkkkkkx',
+                 'xkhkGkGkGkhkkx', 'xkkkkkkkkkkkkx', 'xkGkGkGkhkGkkx', 'xkkkkkkkkkkkkx', 'xxxxxxxxxxxxxx'],
+    'ribbon': ['xxxxxxxxxxxx', 'xyyyyyyyyyyx', 'xyllllllllyx', 'xyyyyyyyyyyx', 'xyllllllyyyx', 'xyyyyyyyyyyx', 'xylllllyyyyx',
+               'xyyyyyyyrryx', 'xyyyyyyrGGrx', 'xxxxxxxxrrxx', '........r.r.', '.......r...r'],
+    'sketch': ['xxxxxxxxxxxx', 'xbbbbbbbbbbx', 'xbwwwwwwwwbx', 'xbwwwllwwwbx', 'xbwwlwwlwwbx', 'xbwwlwwlwwbx', 'xbwwwllwwwbx',
+               'xbwwwlwwwwbx', 'xbwwllllwwbx', 'xbwwwwwwwwbx', 'xbbbbbbbbbbx', 'xxxxxxxxxxxx'],
+    'palette': ['...xxxxxxx....', '.xxoooooooxx..', 'xooroooaoooox.', 'xoooooooooooox', 'xogoooofooxxx.', 'xoooooooox....',
+                'xoouoooox.....', '.xooooooxx....', '..xxxxxxxx....'],
+    'gallery': ['xxxxxx..xxxxxx', 'xbbbbx..xbbbbx', 'xbaagx..xbffbx', 'xbgggx..xbsfbx', 'xbbbbx..xbbbbx', 'xxxxxx..xxxxxx',
+                '..............', '...xxxxxxxx...', '...xbbbbbbx...', '...xbuuuubx...', '...xbugGubx...', '...xbbbbbbx...',
+                '...xxxxxxxx...'],
+    'gear': ['xxxxxxxxxxxx', 'xkkkkkkkkkkx', 'xkuuuhhuuukx', 'xkuhhGGhhukx', 'xkuhGuuGhukx', 'xkhGuuuuGhkx', 'xkhGuuuuGhkx',
+             'xkuhGuuGhukx', 'xkuhhGGhhukx', 'xkuuuhhuuukx', 'xkkkkkkkkkkx', 'xxxxxxxxxxxx'],
+    'clock': ['...xxxxxx...', '..xkkkkkkx..', '.xkwwwwwwkx.', 'xkwwwxwwwwkx', 'xkwwwxwwwwkx', 'xkwwwxwwwwkx', 'xkwwwxxxwwkx',
+              'xkwwwwwwwwkx', '.xkwwwwwwkx.', '..xkkkkkkx..', '...xxxxxx...', '.....GG.....', '.....GG.....'],
+    'blueprint': ['..r........r..', 'xxxxxxxxxxxxxx', 'xuuuuuuuuuuuux', 'xuwwwwwuuwuuux', 'xuwuuuwuuwuuux', 'xuwuuuwwwwwuux',
+                  'xuwwwwwuuuwuux', 'xuuuuwuuuuwuux', 'xuuuuwwwwwwuux', 'xuuuuuuuuuuuux', 'xxxxxxxxxxxxxx'],
+}
+ROOM_SLOTS = {'first': (234, 20), 'ivy': (7, 17), 'eighth': (252, 18), 'twentieth': (270, 18)}
+# Shop -> (piece, slot), in the order they come (shared/growth.ts ROOM_GROWTH).
+ROOM_PIECES = {
+    'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],
+    'studio': [('sketch', 'first'), ('ivy', 'ivy'), ('palette', 'eighth'), ('gallery', 'twentieth')],
+    'workshop': [('gear', 'first'), ('ivy', 'ivy'), ('clock', 'eighth'), ('blueprint', 'twentieth')],
+}
+
+
+def room_overlays():
+    """Each street shop's pieces, one 320x180 overlay apiece, named grow-<shop>-<piece>.png."""
+    for shop, pieces in ROOM_PIECES.items():
+        for piece, slot in pieces:
+            rows = ROOM_DRAWN[piece]
+            img = Image.new('RGBA', (len(rows[0]), len(rows)), (0, 0, 0, 0))
+            for y, row in enumerate(rows):
+                assert len(row) == len(rows[0]), (piece, row)
+                for x, c in enumerate(row):
+                    if c != '.':
+                        img.putpixel((x, y), COLORS[c])
+            overlay([(img, ROOM_SLOTS[slot])]).save(OUT / f'grow-{shop}-{piece}.png', optimize=True)
+
+
 def overlay(pieces):
     img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     for piece, at in pieces:
@@ -236,6 +289,10 @@ if __name__ == '__main__':
     if '--icons' in sys.argv:  # only the works-shelf icons, which need no vendor art
         icons().save(OUT / 'works.png', optimize=True)
         sys.exit(print('wrote works.png'))
+    if '--rooms' in sys.argv:  # only the street shops' pieces, which need no vendor art either
+        room_overlays()
+        sys.exit(print('wrote the street shops\' growth overlays'))
+    room_overlays()
     PIECES = pieces_by_id()
     for gid, pieces in PIECES.items():
         overlay(pieces).save(OUT / f'grow-{gid}.png', optimize=True)

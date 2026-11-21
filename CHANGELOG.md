@@ -35,6 +35,12 @@
 - **Only the shop's own mail drafts open with a click.** A mail opens in your mail program from the card only when it is
   a draft the shop's draft tool wrote, unchanged since; the shop keeps a fingerprint of each one, never the mail. A mail
   written any other way, or changed after, is shown in its folder, and the card says why.
+- **The town grows with the work.** The street now has an empty lot between the workshop and the bakery. With
+  everything done together, lamps and a bench come to the pavement, then tubs of flowers, and the lot gets a market
+  cart, a little park and at seventy a fountain. Each front grows with its own shop's work: a pot by the door, a new
+  sign, a string of flags. The print shop, the studio and the workshop each count their own and hang four pieces of
+  their own inside. A shop from before 1.4 opens onto a street that has already grown with what it did, and someone in
+  the shop says a word when something new comes. The home shop still counts every commission, as before.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.

@@ -44,7 +44,19 @@
 | `aqian.png` | D2 印刷铺的店员阿铅 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
 | `xiaozhe.png` | D2 画室的店员小赭 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
 | `xiaoding.png` | D2 工坊的店员小钉 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
-| `town-grow.png` | D5 集市摊、喷泉、花坛、小公园 | Modern Exteriors：`9_Shopping_Center_and_Markets` 的摊子，`17_Garden` 的喷泉和花 | `scripts/art/town.py` |
+| `town-grow.png` | D5 街上长出来的路灯、长椅、大花盆、推车、小公园、喷泉；门口的花盆、新招牌和小旗 | Modern Exteriors：`3_City_Props` 的路灯、长椅、树、花丛、喷泉和花盆，`17_Garden` 的推车和大花盆；手画的招牌和小旗 | `scripts/art/town.py` |
+| `grow-print-proof.png` | D5 印刷铺墙上长出来的第一张印样 | 手画 | `scripts/art/growth.py` |
+| `grow-print-ivy.png` | D5 印刷铺墙上长出来的吊着的绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-print-typecase.png` | D5 印刷铺墙上长出来的铅字盘 | 手画 | `scripts/art/growth.py` |
+| `grow-print-ribbon.png` | D5 印刷铺墙上长出来的奖状 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-sketch.png` | D5 画室墙上长出来的第一张画稿 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-ivy.png` | D5 画室墙上长出来的吊着的绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-palette.png` | D5 画室墙上长出来的调色板 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-gallery.png` | D5 画室墙上长出来的一墙小画 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-gear.png` | D5 工坊墙上长出来的框起来的齿轮 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-ivy.png` | D5 工坊墙上长出来的吊着的绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-clock.png` | D5 工坊墙上长出来的挂钟 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-blueprint.png` | D5 工坊墙上长出来的图纸 | 手画 | `scripts/art/growth.py` |
 | `town-decor.png` | D6 四季和六个节日 | Modern Exteriors：`19_Graveyard` 的南瓜；Modern Interiors：`15_Christmas`；手画的雪、灯笼和节日小摊 | `scripts/art/decor.py` |
 | `shops-decor.png` | D6 三间新店里的节日装饰 | Modern Interiors：`15_Christmas`、`11_Halloween`；手画的灯笼 | `scripts/art/decor.py` |
 | `town-story.png` | D4 故事留下的东西 | 手画：旧自行车；Modern Interiors：`1_Generic` 的小书架 | `scripts/art/town.py` |
