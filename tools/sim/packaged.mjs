@@ -235,6 +235,33 @@ try {
   check(files.some((f) => f.endsWith('.docx')), `nook-office made a Word file (${files.join(', ')})`);
   check(files.some((f) => f.endsWith('.eml')), 'the drafts connection wrote a draft');
   await shop.shot(join(out, 'connection.png'));
+
+  // The town (road-to-1.4.md D10): out onto the street, with everything that stands on it, then into each new shop.
+  // The last result's card is put away first, so the pictures show the town.
+  await page.keyboard.press('Escape');
+  await sleep(400);
+  await page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.toolbar.street}"]`).click();
+  await sleep(1500);
+  const street = await page.evaluate(() => {
+    const g = window.lamplightDebug.street;
+    return { out: g.sys.isActive() && g.sys.isVisible(), pictures: ['town-street', 'town-fronts', 'town-props', 'town-signs', 'town-grow', 'town-decor', 'town-story'].filter((k) => !g.textures.exists(k)) };
+  });
+  check(street.out, 'the street shows');
+  check(street.pictures.length === 0, `the street's pictures loaded (missing: ${street.pictures.join(', ')})`);
+  await shop.shot(join(out, 'street.png'));
+  for (const room of ['print', 'studio', 'workshop']) {
+    await page.evaluate((r) => window.lamplightDebug.street.lookAt(r), room);
+    await sleep(300);
+    await page.keyboard.press('Enter');
+    await sleep(2500);
+    const inside = await page.evaluate((r) => ({ here: window.lamplightDebug.scene.room, room: window.lamplightDebug.scene.textures.exists(`room-${r}`) }), room);
+    check(inside.here === room && inside.room, `the ${room} opens with its room (${JSON.stringify(inside)})`);
+    await shop.shot(join(out, `${room}.png`));
+    await page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.toolbar.street}"]`).click();
+    await sleep(1200);
+  }
+  await page.keyboard.press('Escape');
+  await sleep(800);
   check(await stop(run), 'it closes by itself');
   // It looked for a new version on opening, for real. Offline or not, that is only ever a line in the log.
   const logs = join(home.data, 'logs');
