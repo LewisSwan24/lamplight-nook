@@ -14,12 +14,21 @@
   books, past the bakery on the way back from far off. A click on her out there works as in the window.
 - **Three new shops.** The print shop, the studio and the workshop open onto the street, each with someone of its
   own: Pica the old typesetter, Umber the quiet painter and Tack, who hums at the bench. Go in at a front and take a
-  commission there; Wick minds the counter, the rest of your crew stays at home, and your home shop does not change.
-  The app still opens at home. Going in and out happens on the same page, without a reload; while a shop is at work,
-  the door to another one stays shut.
+  commission there; your crew stays at home, and your home shop does not change. The app still opens at home. Going
+  in and out happens on the same page, without a reload.
+- **Orders go to their shop.** Each kind of work has its shop: Word, slides, spreadsheets and résumés at the print
+  shop, charts, posters and albums at the studio, small tools and web pages at the workshop, the rest at home. You
+  still order at your home counter; Wick takes the slip over, hands it in and walks back, and the view goes along to
+  watch, unless you have wandered off meanwhile. A step that belongs to another shop, such as the picture in a
+  report, is done there: Pica carries it over, Umber paints it and brings it back. Shops keep working while you are
+  elsewhere, two orders can run in two shops at once, and a shop out of sight with a question lights up on the
+  toolbar until you answer or go in.
 - **Catching up.** When work comes faster than someone can act it out, they now skip the moves that newer ones have
   overtaken and catch up, instead of playing the backlog out long after the work is done. Trouble and questions are
   never skipped.
+- **Slides the shop made open with a click.** Every deck the shop made carried an empty folder that the safety check
+  took for an embedded object, so the card only showed the deck in its folder. An empty folder no longer counts;
+  anything inside one still does.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.

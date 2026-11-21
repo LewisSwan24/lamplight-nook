@@ -3,7 +3,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LOCALES } from '../app/shared/i18n';
 import { WORK_ICONS } from '../app/shared/growth';
-import { EDITABLE, MAIN_FILES, MAX_EDIT_BYTES, TEMPLATES, template } from '../app/shared/templates';
+import { EDITABLE, MAIN_FILES, MAX_EDIT_BYTES, TEMPLATES, shopOf, template } from '../app/shared/templates';
+import { SHOPS } from '../app/shared/dispatch';
 
 /** The one table of templates (road-to-1.1.md A7): every record has what the rest of the app looks up by its id. */
 describe('the template table', () => {
@@ -91,6 +92,18 @@ describe('the template table', () => {
       [11, 'index', { id: 'postcards', at: 1 }],
       [12, 'page', { id: 'toolbox', at: 1 }],
     ]);
+  });
+
+  it('sends every kind of work to a shop (road-to-1.4.md D3)', () => {
+    const at = (shop: string) => TEMPLATES.filter((t) => t.shop === shop).map((t) => t.id).sort();
+    expect(at('print')).toEqual(['document', 'resume', 'sheet', 'slides']);
+    expect(at('studio')).toEqual(['album', 'chart', 'poster']);
+    expect(at('workshop')).toEqual(['page', 'tool']);
+    expect(at('home')).toEqual(['edit', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);
+    for (const t of TEMPLATES) expect(SHOPS, t.id).toContain(t.shop);
+    // A commission without a kind (written in the user's own words), or the demo, stays in the home shop.
+    expect(shopOf(undefined)).toBe('home');
+    expect(shopOf('poster')).toBe('studio');
   });
 
   it('repeats its steps in a round of changes, except research', () => {

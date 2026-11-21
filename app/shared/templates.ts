@@ -1,5 +1,6 @@
 import type { Strings } from './i18n';
 import type { GuestId } from './types';
+import type { Shop } from './dispatch';
 
 /**
  * The ready-made kinds of commission (road-to-1.1.md A7), one record each, in the order of the stickers on the form.
@@ -47,6 +48,8 @@ export const MAIN_FILES = {
 
 export type TemplateSpec = {
   id: string;
+  /** Where the work is done (road-to-1.4.md D3): the order is taken at home and carried to this shop. */
+  shop: Shop;
   /** Frame in assets/sprites/works.png for the works shelf. */
   icon: number;
   source?: SourceKind;
@@ -102,14 +105,14 @@ function editSteps({ original, revised }: PromptParts): string[] {
 
 export const TEMPLATES = [
   {
-    id: 'page', icon: 0, revise: true, main: 'index', growth: { id: 'monitor', at: 3 }, guest: 'mechanic',
+    id: 'page', shop: 'workshop', icon: 0, revise: true, main: 'index', growth: { id: 'monitor', at: 3 }, guest: 'mechanic',
     steps: () => [
       'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
       'Keep data in localStorage if the page needs to remember anything.',
     ],
   },
   {
-    id: 'research', icon: 1, revise: false, main: 'writeup', growth: { id: 'books', at: 2 }, guest: 'student',
+    id: 'research', shop: 'home', icon: 1, revise: false, main: 'writeup', growth: { id: 'books', at: 2 }, guest: 'student',
     steps: ({ language, files }) => [
       'This is a research commission: do not make a web page.',
       `Send the researcher subagent to look it up, then write the findings in ${language} as two files.`,
@@ -121,11 +124,11 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'edit', icon: 2, revise: true, main: 'revised', source: { kind: 'file', extensions: EDITABLE, maxBytes: MAX_EDIT_BYTES },
+    id: 'edit', shop: 'home', icon: 2, revise: true, main: 'revised', source: { kind: 'file', extensions: EDITABLE, maxBytes: MAX_EDIT_BYTES },
     steps: editSteps,
   },
   {
-    id: 'tidy', icon: 3, revise: true, main: 'writeup', source: { kind: 'folder' },
+    id: 'tidy', shop: 'home', icon: 3, revise: true, main: 'writeup', source: { kind: 'folder' },
     steps: ({ language, files, sourceName }) => [
       `"${files.listing}" lists what is in the user's folder "${sourceName}": relative path, size in bytes, last modified date. Folders end with "/".`,
       'You cannot see that folder and must not try to look for it. Work only from the list.',
@@ -135,7 +138,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'letter', icon: 5, revise: true, main: 'table', growth: { id: 'letters', at: 2 },
+    id: 'letter', shop: 'home', icon: 5, revise: true, main: 'table', growth: { id: 'letters', at: 2 },
     steps: ({ language, files }) => [
       'This is a letter or an email: do not make a web page.',
       `Write it as "${files.letter}" in ${language}, as plain text the user can copy straight into an email or onto paper.`,
@@ -145,7 +148,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'sheet', icon: 6, revise: true, main: 'office', growth: { id: 'ledger', at: 2 },
+    id: 'sheet', shop: 'print', icon: 6, revise: true, main: 'office', growth: { id: 'ledger', at: 2 },
     steps: ({ language, files }) => [
       'This is a table: do not make a web page.',
       `Build it with the mcp__nook-office__make_xlsx tool as "${files.sheet}": give the tool the structure (sheets, columns with their formats, rows) and it makes the Excel file. Never write Office XML or an .xlsx by hand, and do not make a CSV.`,
@@ -155,7 +158,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'plan', icon: 7, revise: true, main: 'writeup', growth: { id: 'calendar', at: 1 },
+    id: 'plan', shop: 'home', icon: 7, revise: true, main: 'writeup', growth: { id: 'calendar', at: 1 },
     steps: ({ language, files }) => [
       'This is a plan: do not make a web page.',
       `Write it as "${files.plan}" in ${language}: one line on the goal first, then the plan as a table by day or by week (whichever fits),`,
@@ -164,7 +167,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'album', icon: 8, revise: true, main: 'index', photos: true, growth: { id: 'album', at: 1 }, guest: 'granny',
+    id: 'album', shop: 'studio', icon: 8, revise: true, main: 'index', photos: true, growth: { id: 'album', at: 1 }, guest: 'granny',
     steps: ({ files }) => [
       `Make a little photo album as a single self-contained page named "index.html", using the photos in the folder "${files.materials}".`,
       `Show the photos straight from that folder with relative paths (for example "${files.materials}/photo.jpg"); do not copy, resize or change them.`,
@@ -173,7 +176,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'resume', icon: 9, revise: true, main: 'page', growth: { id: 'briefcase', at: 1 },
+    id: 'resume', shop: 'print', icon: 9, revise: true, main: 'page', growth: { id: 'briefcase', at: 1 },
     steps: ({ language, files }) => [
       'This is a résumé: one page, made to be printed.',
       `Make it as a single self-contained page named "${files.resume}": CSS inline, laid out for one A4 page, with print styles so that the browser's "Print to PDF" gives one clean page.`,
@@ -184,7 +187,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'notes', icon: 10, revise: true, main: 'writeup', growth: { id: 'readinglamp', at: 1 },
+    id: 'notes', shop: 'home', icon: 10, revise: true, main: 'writeup', growth: { id: 'readinglamp', at: 1 },
     steps: ({ language, files }) => [
       'These are reading notes: do not make a web page.',
       `Write them as "${files.notes}" in ${language}, in Markdown: a short paragraph on what the book is about, then the main ideas as a list, then quotations, then a few questions to think about.`,
@@ -193,7 +196,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'travel', icon: 11, revise: true, main: 'index', growth: { id: 'postcards', at: 1 },
+    id: 'travel', shop: 'home', icon: 11, revise: true, main: 'index', growth: { id: 'postcards', at: 1 },
     steps: ({ language }) => [
       'This is a travel guide.',
       'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
@@ -204,7 +207,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'tool', icon: 12, revise: true, main: 'page', growth: { id: 'toolbox', at: 1 },
+    id: 'tool', shop: 'workshop', icon: 12, revise: true, main: 'page', growth: { id: 'toolbox', at: 1 },
     steps: ({ language, files }) => [
       'This is a small tool.',
       `If it can work inside a browser (reading files the user picks, changing text, working with a table, calculating), make it as a single self-contained page named "${files.tool}": CSS and JavaScript inline, no build step, working straight from disk. It reads only the files the user picks on the page and offers its results as a download.`,
@@ -215,7 +218,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'document', icon: 13, revise: true, main: 'office',
+    id: 'document', shop: 'print', icon: 13, revise: true, main: 'office',
     steps: ({ language, files }) => [
       'This is a Word document: do not make a web page.',
       `Build it with the mcp__nook-office__make_docx tool as "${files.document}" in ${language}: give the tool the structure (a title, headings, paragraphs, lists, tables, pictures from this folder) and it makes the file. Never write Office XML or a .docx by hand.`,
@@ -225,7 +228,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'slides', icon: 14, revise: true, main: 'office',
+    id: 'slides', shop: 'print', icon: 14, revise: true, main: 'office',
     steps: ({ language, files }) => [
       'This is a slide deck: do not make a web page.',
       `Build it with the mcp__nook-office__make_pptx tool as "${files.slides}" in ${language}: give the tool the structure (a title slide, then one idea per slide, pictures from this folder, notes for the speaker) and it makes the file. Never write Office XML or a .pptx by hand.`,
@@ -235,7 +238,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'chart', icon: 15, revise: true, main: 'picture',
+    id: 'chart', shop: 'studio', icon: 15, revise: true, main: 'picture',
     steps: ({ language, files }) => [
       'This is a chart, drawn as a picture.',
       `Read the data first: what the user wrote in the request, or the table they handed over in "${files.materials}" (mcp__nook-office__read_document reads Excel files; read a CSV as text).`,
@@ -249,7 +252,7 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'poster', icon: 16, revise: true, main: 'picture',
+    id: 'poster', shop: 'studio', icon: 16, revise: true, main: 'picture',
     steps: ({ language, files }) => [
       'This is a poster, drawn as a picture.',
       'Pick its size from what it is for: A4 for printing, 794 by 1123; a square for a social post, 1080 by 1080; a wide one for a screen, 1920 by 1080. A4 if the request does not say.',
@@ -268,3 +271,5 @@ export type TemplateId = (typeof TEMPLATES)[number]['id'];
 export type BroughtId = Extract<(typeof TEMPLATES)[number], { growth: object }>['growth']['id'];
 
 export const template = (id: TemplateId): TemplateSpec => TEMPLATES.find((t) => t.id === id)!;
+/** Which shop does a kind of work (road-to-1.4.md D3); work of no kind, and the demo, stays in the home shop. */
+export const shopOf = (id: TemplateId | undefined): Shop => (id ? template(id).shop : 'home');

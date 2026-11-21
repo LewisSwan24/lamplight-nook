@@ -322,3 +322,41 @@ grow:
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["A teapot on the desk.", "A cup for anyone who comes in."] }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["Fruit on the reading table!", "The tangerines are mine."] }
+
+# Orders sent to the shops along the street (road-to-1.4.md D3); see lines/cafe.yaml. {shop} is "the print shop" and so on.
+dispatch_go:
+  - { id: dispatch_go_01, speaker: adeng, bubbles: ["This one's for {shop}.", "I'll take the slip over."] }
+  - { id: dispatch_go_02, speaker: adeng, bubbles: ["Nobody does this like {shop}.", "Back in a bit."] }
+  - { id: dispatch_go_03, speaker: adeng, bubbles: ["Slip in hand,", "off to {shop}."] }
+
+dispatch_hand:
+  - { id: dispatch_hand_01, speaker: adeng, bubbles: ["{brief}. All yours.", "I'll mind the shop."] }
+  - { id: dispatch_hand_02, speaker: adeng, bubbles: ["One for you: {brief}.", "Give me a shout when it's done."] }
+  - { id: dispatch_hand_03, speaker: adeng, bubbles: ["Slip's on the desk.", "I'm heading back."] }
+
+cross_out:
+  - { id: cross_out_aq_01, speaker: aqian, bubbles: ["This step wants {shop}.", "Back shortly."] }
+  - { id: cross_out_aq_02, speaker: aqian, bubbles: ["They know this at {shop}.", "I'll take it over."] }
+  - { id: cross_out_aq_03, speaker: aqian, bubbles: ["Can't set this in type.", "Off to {shop}."] }
+  - { id: cross_out_xz_01, speaker: xiaozhe, bubbles: ["That's one for {shop}."] }
+  - { id: cross_out_xz_02, speaker: xiaozhe, bubbles: ["Going over to {shop}."] }
+  - { id: cross_out_xz_03, speaker: xiaozhe, bubbles: ["{shop} should do this.", "I'll carry it."] }
+  - { id: cross_out_xd_01, speaker: xiaoding, bubbles: ["{shop} has the right gear.", "Borrowing a hand!"] }
+  - { id: cross_out_xd_02, speaker: xiaoding, bubbles: ["That's {shop}'s job.", "Back in a jiffy!"] }
+  - { id: cross_out_xd_03, speaker: xiaoding, bubbles: ["Over to {shop},", "humming all the way."] }
+
+cross_take:
+  - { id: cross_take_aq_01, speaker: aqian, bubbles: ["A print for {shop}.", "Setting it now."] }
+  - { id: cross_take_aq_02, speaker: aqian, bubbles: ["Work from {shop}.", "Every letter checked."] }
+  - { id: cross_take_aq_03, speaker: aqian, bubbles: ["{shop}'s job.", "Leave it with me."] }
+  - { id: cross_take_xz_01, speaker: xiaozhe, bubbles: ["{shop} wants a picture.", "I'll paint it."] }
+  - { id: cross_take_xz_02, speaker: xiaozhe, bubbles: ["For {shop}...", "colours first."] }
+  - { id: cross_take_xz_03, speaker: xiaozhe, bubbles: ["One for {shop}.", "Umber underneath."] }
+
+cross_back:
+  - { id: cross_back_aq_01, speaker: aqian, bubbles: ["Printed. The ink's still fresh."] }
+  - { id: cross_back_aq_02, speaker: aqian, bubbles: ["Done at {shop}.", "Have a look."] }
+  - { id: cross_back_aq_03, speaker: aqian, bubbles: ["Set and printed,", "not a letter wrong."] }
+  - { id: cross_back_xz_01, speaker: xiaozhe, bubbles: ["Painted.", "See if the colours suit."] }
+  - { id: cross_back_xz_02, speaker: xiaozhe, bubbles: ["Here's the picture.", "It's dry."] }
+  - { id: cross_back_xz_03, speaker: xiaozhe, bubbles: ["From {shop},", "for you."] }

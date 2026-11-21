@@ -1,6 +1,6 @@
 import { strings } from '../../shared/i18n';
 import { escapeChoice } from '../../shared/decision';
-import type { DecisionRequest } from '../../shared/types';
+import type { ActorId, DecisionRequest } from '../../shared/types';
 import { setSerious, sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { withPortrait } from './portraits';
@@ -13,8 +13,11 @@ export const CONFIRM_DELAY_MS = 1000;
  * Show a decision. Questions and ordinary permissions use the watercolor dialog; serious steps use the
  * plain confirmation card. Resolves with the chosen option id.
  */
-/** `named`: two rounds are under way (B5), so the card says which project asks, before the question. */
-export function showDecision(req: DecisionRequest, named = false): Promise<string> {
+/**
+ * `named`: two rounds are under way (B5), so the card says which project asks, before the question. `asker`: who asks, when
+ * the round is played in a shop along the street (road-to-1.4.md D3), where its own person does the asking.
+ */
+export function showDecision(req: DecisionRequest, named = false, asker?: ActorId): Promise<string> {
   return new Promise((resolve) => {
     const backdrop = el('div.backdrop');
     const serious = req.kind === 'serious';
@@ -40,7 +43,7 @@ export function showDecision(req: DecisionRequest, named = false): Promise<strin
     };
     document.addEventListener('keydown', onKey, true);
     const title = named && req.project ? `${req.project.title} \u00B7 ${req.title}` : req.title;
-    backdrop.append(req.kind === 'serious' ? seriousCard({ ...req, title }, close) : dialog({ ...req, title }, close));
+    backdrop.append(req.kind === 'serious' ? seriousCard({ ...req, title }, close) : dialog({ ...req, title }, close, asker));
     layer().append(backdrop);
     // Serious mode: the music stops and a single alert is the only sound.
     if (serious) setSerious(true);
@@ -49,8 +52,8 @@ export function showDecision(req: DecisionRequest, named = false): Promise<strin
   });
 }
 
-function dialog(req: DecisionRequest, close: (id: string) => void) {
-  const actor = req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng';
+function dialog(req: DecisionRequest, close: (id: string) => void, asker?: ActorId) {
+  const actor = asker ?? (req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng');
   return el('div.dialog.paper', { role: 'dialog', 'aria-modal': 'true', 'aria-label': req.title },
     withPortrait(actor, 'unsure',
       el('div.who', {}, strings.actors[actor]),

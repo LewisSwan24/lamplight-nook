@@ -39,8 +39,8 @@ describe('the rooms', () => {
     expect(OPEN.has('post')).toBe(false);
   });
 
-  it('each new shop has its own person, with Adeng minding the counter until D3 takes him home', () => {
-    for (const r of NEW) expect(ROOM_CREW[r]).toEqual(['adeng', WHO[r]]);
+  it('each new shop has its own person; Adeng only comes in with an order and goes home again (D3)', () => {
+    for (const r of NEW) expect(ROOM_CREW[r]).toEqual([WHO[r]]);
     for (const r of SCENES) expect(ROOM_CREW[r]).toEqual([...STAFF, 'cat']);
     expect(ALL_STAFF).toEqual([...STAFF, 'aqian', 'xiaozhe', 'xiaoding']);
   });
@@ -63,6 +63,7 @@ describe.each(NEW)('the %s', (room) => {
   const rules = parseRules(read(`rules/${room}.yaml`));
   const steps = rules.flatMap((r) => [r, ...(r.extra ?? [])]);
   const lines = { zh: parseLines(read(`lines/${room}.yaml`)), en: parseLines(read(`lines/en/${room}.yaml`)) };
+  const base = { zh: parseLines(read('lines/cafe.yaml')), en: parseLines(read('lines/en/cafe.yaml')) };
 
   it('answers every event the cafe answers', () => {
     const kinds = (rs: typeof rules) => new Set(rs.map((r) => r.on));
@@ -70,7 +71,11 @@ describe.each(NEW)('the %s', (room) => {
   });
 
   it('gives the work to its own person, and commands nobody who is not in the room', () => {
-    for (const s of steps) expect(ROOM_CREW[room], `${s.actor}`).toContain(s.actor);
+    // Adeng only comes in with the order and goes again (D3).
+    for (const r of rules) for (const s of [r, ...(r.extra ?? [])]) {
+      if (s.actor === 'adeng') expect([r.on, s.leave], room).toEqual(['session_start', true]);
+      else expect(ROOM_CREW[room], `${s.actor}`).toContain(s.actor);
+    }
     const WORK: AiEvent['kind'][] = ['plan', 'thinking', 'tool_start', 'tool_ok', 'tool_fail', 'subagent_start', 'subagent_stop'];
     const work = rules.filter((r) => WORK.includes(r.on as AiEvent['kind']));
     expect(work.length).toBeGreaterThan(0);
@@ -81,7 +86,8 @@ describe.each(NEW)('the %s', (room) => {
     for (const s of steps) {
       if (!s.lines) continue;
       for (const lang of ['zh', 'en'] as const) {
-        const group = lines[lang][s.lines];
+        // A shop's lines are laid over the cafe's (stage/rulebook.ts).
+        const group = lines[lang][s.lines] ?? base[lang][s.lines];
         expect(group, `${lang} ${s.lines}`).toBeDefined();
         expect(group.length, `${lang} ${s.lines}`).toBeGreaterThanOrEqual(3);
       }

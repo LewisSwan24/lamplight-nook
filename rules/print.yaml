@@ -1,5 +1,6 @@
 # Print shop rules (road-to-1.4.md D2): the same format as rules/cafe.yaml, whose header explains it.
-# All the work goes to Aqian the typesetter; Adeng only minds the counter until D3 sends work over.
+# All the work goes to Aqian the typesetter; Adeng only comes in with the order from home (D3),
+# hands it over at the counter and goes home again.
 # The cafe's spots go by other names here: counter = composing desk with the type case, board = the press,
 # shelf = paper rack, table = cutting table, corner = binding table. Nobody goes out: helpers' errands are
 # Aqian walking to a spot. The filing cabinet and the letter holder are the home shop's, so they stay out of it.
@@ -12,7 +13,7 @@
   lines: opening
   priority: work
   extra:
-    - { actor: adeng, state: ready, moveTo: counter, anim: idle, priority: chat }
+    - { actor: adeng, state: ready, moveTo: counter, anim: gift, lines: dispatch_hand, own_lines: true, leave: true, priority: work }
 
 # Laying out the job on the press bed.
 - on: plan

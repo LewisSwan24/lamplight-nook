@@ -10,7 +10,7 @@ opening:
   - { id: st_mem_02, speaker: xiaozhe, when: has_stuck_note, bubbles: ["{brief}。", "上回在{stuckNote}卡住了。", "这次先看那儿。"] }
   - { id: st_mem_01, speaker: xiaozhe, when: has_memory, bubbles: ["{brief}。", "上回你挑了{lastChoice}。", "先从那个颜色起。"] }
   - { id: st_tpl_album_01, speaker: xiaozhe, when: tpl_album, bubbles: ["照片收下了。", "先看看每张偏冷还是偏暖。"] }
-  - { id: st_handed_01, speaker: xiaozhe, when: handed, bubbles: ["东西收下了。", "{brief}。"], reply: { speaker: adeng, bubbles: ["放长桌上了。"] } }
+  - { id: st_handed_01, speaker: xiaozhe, when: handed, bubbles: ["东西收下了。", "{brief}。"] }
   - { id: st_opening_01, speaker: xiaozhe, bubbles: ["{brief}……", "嗯，是灰蓝色的。"] }
   - { id: st_opening_02, speaker: xiaozhe, bubbles: ["{brief}。", "我去洗笔。"] }
   - { id: st_opening_03, speaker: xiaozhe, bubbles: ["好。", "{brief}，先打底。"] }
@@ -50,7 +50,7 @@ sub_go_review:
 sub_back_review:
   - { id: st_back_rv_issue, speaker: xiaozhe, when: has_issues, bubbles: ["{issueCount}处发脏。", "用炭笔圈出来了。"] }
   - { id: st_back_rv_ok, speaker: xiaozhe, when: no_issues, bubbles: ["远看近看，都干净。"] }
-  - { id: st_back_rv_ok2, speaker: xiaozhe, when: no_issues, bubbles: ["嗯。不用动了。"], reply: { speaker: adeng, bubbles: ["那就好。"] } }
+  - { id: st_back_rv_ok2, speaker: xiaozhe, when: no_issues, bubbles: ["嗯。不用动了。"] }
 
 sub_go_design:
   - { id: st_go_ds_rain, speaker: xiaozhe, when: sky_rain, bubbles: ["下雨天，颜色收一收。", "我去画架那边。"] }
@@ -124,7 +124,7 @@ done:
   - { id: st_done_day, speaker: xiaozhe, when: daytime, bubbles: ["画好了，在画架上。", "趁亮，你看看。"] }
   - { id: st_done_dusk, speaker: xiaozhe, when: dusk, bubbles: ["好了。", "这会儿的光是橘色的，正好看。"] }
   - { id: st_done_night, speaker: xiaozhe, when: night, bubbles: ["好了。", "灯下颜色偏黄，明早再看一眼。"] }
-  - { id: st_done_01, speaker: xiaozhe, bubbles: ["干透了，可以拿走。"], reply: { speaker: adeng, bubbles: ["我找个框给它。"] } }
+  - { id: st_done_01, speaker: xiaozhe, bubbles: ["干透了，可以拿走。"] }
   - { id: st_done_02, speaker: xiaozhe, bubbles: ["好了。", "最后一笔，是一点白。"] }
 
 failed:

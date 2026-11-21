@@ -12,7 +12,7 @@ opening:
   - { id: pr_mem_01, speaker: aqian, when: has_memory, bubbles: ["\"{brief}\". Very well.", "Last time you chose {lastChoice}.", "The old way, then. Say if it's wrong."] }
   - { id: pr_tpl_sheet_01, speaker: aqian, when: tpl_sheet, bubbles: ["A table. Rules first, then figures.", "Straight lines, columns lined up."] }
   - { id: pr_tpl_resume_01, speaker: aqian, when: tpl_resume, bubbles: ["A résumé. Not one word made up.", "What's missing stays blank for you."] }
-  - { id: pr_handed_01, speaker: aqian, when: handed, bubbles: ["I'll read your pages through first.", "\"{brief}\". Very well."], reply: { speaker: adeng, bubbles: ["They're on the composing desk."] } }
+  - { id: pr_handed_01, speaker: aqian, when: handed, bubbles: ["I'll read your pages through first.", "\"{brief}\". Very well."] }
   - { id: pr_opening_01, speaker: aqian, bubbles: ["\"{brief}\"...", "Right. I'll start picking type."] }
   - { id: pr_opening_02, speaker: aqian, bubbles: ["So, \"{brief}\"?", "Sit down. Good work takes its time."] }
   - { id: pr_opening_03, speaker: aqian, bubbles: ["\"{brief}\".", "Let me wipe my glasses, then we begin."] }
@@ -52,7 +52,7 @@ sub_go_review:
 sub_back_review:
   - { id: pr_back_rv_issue, speaker: aqian, when: has_issues, bubbles: ["{issueCount} slips in the proof.", "Circled in red, every one."] }
   - { id: pr_back_rv_ok, speaker: aqian, when: no_issues, bubbles: ["Read it all aloud. Not one literal."] }
-  - { id: pr_back_rv_ok2, speaker: aqian, when: no_issues, bubbles: ["Proofed twice. Clean."], reply: { speaker: adeng, bubbles: ["Good."] } }
+  - { id: pr_back_rv_ok2, speaker: aqian, when: no_issues, bubbles: ["Proofed twice. Clean."] }
 
 sub_go_design:
   - { id: pr_go_ds_rain, speaker: aqian, when: sky_rain, bubbles: ["Rainy day. A stiffer ink, I think.", "I'll make up a sample on the press."] }
@@ -126,7 +126,7 @@ done:
   - { id: pr_done_day, speaker: aqian, when: daytime, bubbles: ["Printed. It's on the composing desk.", "See if it serves."] }
   - { id: pr_done_dusk, speaker: aqian, when: dusk, bubbles: ["Printed.", "Read it while there's still light."] }
   - { id: pr_done_night, speaker: aqian, when: night, bubbles: ["Printed.", "It's late. Read it, then get some rest."] }
-  - { id: pr_done_01, speaker: aqian, bubbles: ["Trimmed square and bound."], reply: { speaker: adeng, bubbles: ["I'll wrap it for you."] } }
+  - { id: pr_done_01, speaker: aqian, bubbles: ["Trimmed square and bound."] }
   - { id: pr_done_02, speaker: aqian, bubbles: ["One last read aloud. No literals.", "It's yours."] }
 
 failed:

@@ -11,7 +11,7 @@ opening:
   - { id: ws_mem_02, speaker: xiaoding, when: has_stuck_note, bubbles: ["\"{brief}\". Sure thing.", "Last time {stuckNote} jammed on us.", "I'll start by poking at that."] }
   - { id: ws_mem_01, speaker: xiaoding, when: has_memory, bubbles: ["\"{brief}\". Sure thing.", "Last time you picked {lastChoice}.", "I'll fit that first, swap if it's off."] }
   - { id: ws_tpl_tool_01, speaker: xiaoding, when: tpl_tool, bubbles: ["A little tool? My favourite kind.", "A web page, if it can be one."] }
-  - { id: ws_handed_01, speaker: xiaoding, when: handed, bubbles: ["Got it. Let me open it up and look.", "\"{brief}\". Sure thing."], reply: { speaker: adeng, bubbles: ["It's on the workbench."] } }
+  - { id: ws_handed_01, speaker: xiaoding, when: handed, bubbles: ["Got it. Let me open it up and look.", "\"{brief}\". Sure thing."] }
   - { id: ws_opening_01, speaker: xiaoding, bubbles: ["\"{brief}\"?", "Sure thing. Let's just try it!"] }
   - { id: ws_opening_02, speaker: xiaoding, bubbles: ["\"{brief}\"...", "Screwdriver? ...Oh. Behind my ear."] }
   - { id: ws_opening_03, speaker: xiaoding, bubbles: ["A job!", "\"{brief}\". Frame first."] }
@@ -51,7 +51,7 @@ sub_go_review:
 sub_back_review:
   - { id: ws_back_rv_issue, speaker: xiaoding, when: has_issues, bubbles: ["{issueCount} things rattle.", "Marked each one with tape."] }
   - { id: ws_back_rv_ok, speaker: xiaoding, when: no_issues, bubbles: ["Ran it three times. Smooth!"] }
-  - { id: ws_back_rv_ok2, speaker: xiaoding, when: no_issues, bubbles: ["Tapped it all over. Solid."], reply: { speaker: adeng, bubbles: ["Good."] } }
+  - { id: ws_back_rv_ok2, speaker: xiaoding, when: no_issues, bubbles: ["Tapped it all over. Solid."] }
 
 sub_go_design:
   - { id: ws_go_ds_rain, speaker: xiaoding, when: sky_rain, bubbles: ["Rainy day. Good for drawing plans.", "Over to the tool wall."] }
@@ -125,7 +125,7 @@ done:
   - { id: ws_done_day, speaker: xiaoding, when: daytime, bubbles: ["Built! It's on the workbench.", "Give it a go, see how it handles."] }
   - { id: ws_done_dusk, speaker: xiaoding, when: dusk, bubbles: ["Built!", "Getting dark. Good time to down tools."] }
   - { id: ws_done_night, speaker: xiaoding, when: night, bubbles: ["Built.", "It's late. Try it, then get some sleep."] }
-  - { id: ws_done_01, speaker: xiaoding, bubbles: ["Done! Not one screw left over."], reply: { speaker: adeng, bubbles: ["Last time there were three."] } }
+  - { id: ws_done_01, speaker: xiaoding, bubbles: ["Done! Not one screw left over."] }
   - { id: ws_done_02, speaker: xiaoding, bubbles: ["Ready. One press and it goes.", "I tried it ten times."] }
 
 failed:

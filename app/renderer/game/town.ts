@@ -22,13 +22,20 @@ export const OPEN: ReadonlySet<ShopId> = new Set(ROOMS);
 
 /**
  * What a click on a front does (D2): back into the room you came out of, into another room (the home shop is one, from
- * the others), or a word on the street. Another room waits while work goes on: only one room works at a time until D3.
+ * the others), or a word on the street. Every room keeps working while you are elsewhere (D3), so any can be gone into.
  */
-export function entering(id: ShopId, at: { here: RoomId; busy: boolean }): 'back' | 'visit' | 'busy' | 'closed' {
+export function entering(id: ShopId, at: { here: RoomId }): 'back' | 'visit' | 'closed' {
   if (id === at.here) return 'back';
-  if (!OPEN.has(id)) return 'closed';
-  return at.busy ? 'busy' : 'visit';
+  return OPEN.has(id) ? 'visit' : 'closed';
 }
+
+export { roomFor } from '../../shared/dispatch';
+
+/**
+ * Whether the view goes to the shop of a round that just started (D3): only one the user placed, and only if they have
+ * not gone into another room or out on the street since. Once they walk off, nothing pulls them back.
+ */
+export const followsOrder = (at: { placedAt?: number; movedAt: number }): boolean => at.placedAt !== undefined && at.movedAt <= at.placedAt;
 
 /** How much of the street the canvas shows at once. */
 export const CAMERA_W = CANVAS.width;

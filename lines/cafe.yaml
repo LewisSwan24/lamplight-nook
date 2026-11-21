@@ -322,3 +322,44 @@ grow:
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["书桌上添了把茶壶。", "来的人都能喝一杯。"] }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["阅读桌上有水果了！", "橘子是我的。"] }
+
+# Orders sent to the shops along the street (road-to-1.4.md D3). Adeng takes the slip out of the home shop (`dispatch_go`)
+# and hands it over in the shop (`dispatch_hand`). A tool that belongs to another shop: this shop's person sets off
+# (`cross_out`), that shop's person takes it on over there (`cross_take`) and brings it back (`cross_back`).
+# {shop} is where it goes, where it came from, or where it was made.
+dispatch_go:
+  - { id: dispatch_go_01, speaker: adeng, bubbles: ["这单是{shop}的活。", "我把单子送过去。"] }
+  - { id: dispatch_go_02, speaker: adeng, bubbles: ["{shop}做这个最拿手。", "我跑一趟。"] }
+  - { id: dispatch_go_03, speaker: adeng, bubbles: ["单子我拿着，", "这就送去{shop}。"] }
+
+dispatch_hand:
+  - { id: dispatch_hand_01, speaker: adeng, bubbles: ["{brief}，交给你了。", "我回店里看着。"] }
+  - { id: dispatch_hand_02, speaker: adeng, bubbles: ["来了一单，{brief}。", "做好了说一声。"] }
+  - { id: dispatch_hand_03, speaker: adeng, bubbles: ["单子放这儿了。", "我先回去。"] }
+
+cross_out:
+  - { id: cross_out_aq_01, speaker: aqian, bubbles: ["这一步得请{shop}帮忙。", "我去去就回。"] }
+  - { id: cross_out_aq_02, speaker: aqian, bubbles: ["{shop}那边手熟，", "我拿过去。"] }
+  - { id: cross_out_aq_03, speaker: aqian, bubbles: ["这个排不出来。", "去{shop}找人。"] }
+  - { id: cross_out_xz_01, speaker: xiaozhe, bubbles: ["这个{shop}在行。", "我送过去。"] }
+  - { id: cross_out_xz_02, speaker: xiaozhe, bubbles: ["我去{shop}一趟。"] }
+  - { id: cross_out_xz_03, speaker: xiaozhe, bubbles: ["这件得{shop}来做。"] }
+  - { id: cross_out_xd_01, speaker: xiaoding, bubbles: ["{shop}有现成的家伙。", "我去借个手！"] }
+  - { id: cross_out_xd_02, speaker: xiaoding, bubbles: ["这个归{shop}管，", "马上回来！"] }
+  - { id: cross_out_xd_03, speaker: xiaoding, bubbles: ["去{shop}一趟，", "顺路哼两句。"] }
+
+cross_take:
+  - { id: cross_take_aq_01, speaker: aqian, bubbles: ["{shop}要印一份。", "好，照着排。"] }
+  - { id: cross_take_aq_02, speaker: aqian, bubbles: ["{shop}送来的活，", "我一个字一个字对。"] }
+  - { id: cross_take_aq_03, speaker: aqian, bubbles: ["{shop}的单子，", "交给我。"] }
+  - { id: cross_take_xz_01, speaker: xiaozhe, bubbles: ["{shop}要一张图。", "我来画。"] }
+  - { id: cross_take_xz_02, speaker: xiaozhe, bubbles: ["{shop}的活……", "先挑颜色。"] }
+  - { id: cross_take_xz_03, speaker: xiaozhe, bubbles: ["给{shop}画一张，", "赭色打底。"] }
+
+cross_back:
+  - { id: cross_back_aq_01, speaker: aqian, bubbles: ["印好了，墨还新。"] }
+  - { id: cross_back_aq_02, speaker: aqian, bubbles: ["{shop}那边印完了。", "你点一点。"] }
+  - { id: cross_back_aq_03, speaker: aqian, bubbles: ["排好了，一字不差。"] }
+  - { id: cross_back_xz_01, speaker: xiaozhe, bubbles: ["画好了。", "颜色你看看。"] }
+  - { id: cross_back_xz_02, speaker: xiaozhe, bubbles: ["图给你，", "干了，不会蹭。"] }
+  - { id: cross_back_xz_03, speaker: xiaozhe, bubbles: ["从{shop}拿来的，", "你收好。"] }

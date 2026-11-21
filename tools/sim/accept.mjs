@@ -339,8 +339,10 @@ async function checkBubbles(shop) {
  * Another commission while one is under way (road-to-1.2.md B5): the counter shows the running card, and "take another
  * commission" there opens the slip.
  */
-async function another(shop, { template, want }, counter = shop.L.ui.access.hotspotCounter) {
-  await shop.hotspot(counter);
+async function another(shop, { template, want }, counter) {
+  // The counter of whichever room is on screen: the view follows the last order to its shop (road-to-1.4.md D3).
+  const room = await shop.page.evaluate(() => window.lamplightDebug.scene.room);
+  await shop.hotspot(counter ?? shop.L.sceneText[room]?.ui.access.hotspotCounter ?? shop.L.ui.access.hotspotCounter);
   await shop.page.locator('.running-card .progress-another').click();
   await shop.page.waitForSelector('form.commission');
   const chip = shop.page.locator('form.commission .template-chip', { hasText: shop.L.ui.templates[template] });
@@ -3649,19 +3651,30 @@ const SCENARIOS = {
     // The stand-in's page asks its colour question in this play (plays.mjs), so a question comes while both are at work.
     const shop = await launch({ lang, home, speed: Math.max(SPEED, 700), scenario: 'projectmemo' });
     try {
+      // Two orders in two shops (road-to-1.4.md D3): the page in the workshop, the research at home. The view follows each.
+      const where = () => shop.page.evaluate(() => ({ room: window.lamplightDebug.scene.room, rooms: [...window.lamplightDebug.rooms.keys()] }));
       await shop.order({ template: 'page', want: W[lang].page });
       await shop.submit();
       check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
+      await sleep(3500);
+      check((await where()).room === 'workshop', `the view did not follow the page to the workshop: ${JSON.stringify(await where())}`);
       await another(shop, { template: 'research', want: W[lang].research });
       check(await waitForLog(home, 'run start', 2, 10_000), 'the second commission did not start beside the first');
       check(logged(home, 'run end').length === 0, 'the first had ended before the second started');
       await sleep(1500);
+      const both = await where();
+      check(both.room === 'cafe' && both.rooms.includes('workshop'), `the two are not each in their shop: ${JSON.stringify(both)}`);
       await shop.shot(join(out, 'parallel-two.png'));
+      // A question from the workshop, out of sight, lights its front on the toolbar (D3).
+      const workshopName = L.ui.town.shops.workshop;
+      const lit = () => shop.page.evaluate(() => { const b = document.querySelector('.tool-btn.calling'); return b && !b.hidden ? b.textContent : null; });
+      const calls = [];
       // The page's colour question, asked while both are at work, names its project before the question.
       const asked = await shop.maybe('.backdrop .question', 30_000);
       check(asked && logged(home, 'run end').length === 0, 'no question came while both were at work');
       const q = await asked.innerText();
       check(q.includes(' · '), `a question while two are at work does not name its project: ${q}`);
+      calls.push(await lit());
       await shop.shot(join(out, 'parallel-ask.png'));
       await shop.page.keyboard.press('1');
       await sleep(600);
@@ -3670,8 +3683,12 @@ const SCENARIOS = {
       check(next, 'no question came from the other round');
       const q2 = await next.innerText();
       check(q2 !== q && q2.includes(' · '), `the second question reads ${q2}`);
+      calls.push(await lit());
+      if (calls[1]) await shop.shot(join(out, 'parallel-calling.png'));
+      check(calls.filter(Boolean).length === 1 && calls.find(Boolean) === workshopName, `the workshop's front lit for ${JSON.stringify(calls)}`);
       await shop.page.keyboard.press('2');
       await sleep(600);
+      check(await lit() === null, 'the front stayed lit after the answer');
       await another(shop, { template: 'letter', want: W[lang].letter });
       check(await waitForLog(home, 'run queued', 1, 10_000), 'the third commission did not wait in the queue');
       check(logged(home, 'run start').length === 2, 'a third round started beside two');
@@ -3715,6 +3732,90 @@ const SCENARIOS = {
       const picked = (question) => Object.values(memos.find((c) => question.includes(c.title))?.choices ?? {});
       check(JSON.stringify([picked(q), picked(q2)]) === JSON.stringify([[colours[0]], [colours[1]]]), `the answers went to ${JSON.stringify(memos.map((c) => [c.title, c.choices]))}`);
     } finally { await shop.close(); }
+  },
+
+  /**
+   * An order carried to its shop (road-to-1.4.md D3): a notice, done in the print shop, with a picture in it. Adeng takes
+   * the slip out of the home shop and the view follows him into the print shop, where he hands it over and goes home again.
+   * For the picture Aqian sets off for the studio, where Umber paints it, and Umber walks into the print shop with it and
+   * goes back. Done, the studio is taken down, the print shop stays on screen and Adeng is at the home counter again. Also
+   * at the smallest window.
+   */
+  async dispatch(lang, out) {
+    for (const size of [undefined, [640, 360]]) {
+      const small = size ? '-640' : '';
+      const home = freshHome({ 'settings.json': onboarded(lang) });
+      const shop = await launch({ lang, home, speed: 900, scenario: 'dispatch', ...(size ? { size } : {}) });
+      const { page } = shop;
+      const state = () => page.evaluate(() => {
+        const d = window.lamplightDebug;
+        const at = (room, who) => d.rooms.get(room)?.scene.anchorOf(who) ?? null;
+        return {
+          room: d.scene.room,
+          rooms: [...d.rooms.keys()],
+          home: at('cafe', 'adeng'),
+          print: { adeng: at('print', 'adeng'), aqian: at('print', 'aqian'), xiaozhe: at('print', 'xiaozhe') },
+          studio: at('studio', 'xiaozhe'),
+          // Who is still walking in the print shop: an anchor is set as a walk starts, so a moment waits for them to arrive.
+          walking: ['adeng', 'aqian', 'xiaozhe'].filter((a) => d.rooms.get('print')?.scene.actors.get(a)?.tween?.isPlaying()),
+          says: [...d.scene.speech].map(([id, s]) => [id, s.text]),
+        };
+      });
+      const seen = new Map();
+      // What was seen at each look, kept beside the screenshots: a moment never seen is worked out from it.
+      const trace = [];
+      const watch = async (moment, ok) => {
+        if (seen.has(moment)) return;
+        const s = await state();
+        trace.push({ at: Date.now(), moment, room: s.room, rooms: s.rooms, home: s.home, print: s.print, studio: s.studio, walking: s.walking });
+        if (!ok(s)) return;
+        seen.set(moment, s);
+        await sleep(400);
+        await checkBubbles(shop);
+        await shop.shot(join(out, `dispatch-${moment}${small}.png`));
+      };
+      // The moments, each looked at once: Adeng carrying the slip out of the home shop; handing it over in the print shop;
+      // Aqian gone to the studio while Umber paints; Umber in the print shop with the picture.
+      const moments = async () => {
+        await watch('slip', (s) => s.room === 'cafe' && s.home === 'door');
+        await watch('handover', (s) => s.room === 'print' && s.print.adeng === 'counter' && !s.walking.includes('adeng'));
+        // Aqian says where she is going first, then heads out: on her way to the door counts.
+        await watch('studio', (s) => s.room === 'print' && (s.print.aqian === null || s.print.aqian === 'door') && s.studio === 'board');
+        await watch('back', (s) => s.room === 'print' && s.print.xiaozhe === 'counter' && !s.walking.includes('xiaozhe'));
+      };
+      try {
+        await sleep(2500);
+        await shop.order({ template: 'document', want: W[lang].document });
+        await shop.submit();
+        check(await waitForLog(home, 'run start', 1, 10_000), 'the commission did not start');
+        for (const end = Date.now() + 8000; Date.now() < end && !seen.has('handover'); await sleep(150)) await moments();
+        const r = await shop.workUntilDone({ onTick: moments });
+        // The picture may come back as the round ends: Umber is still on his way in. A few more looks.
+        for (const end = Date.now() + 10_000; Date.now() < end && !seen.has('back'); await sleep(200)) await moments();
+        writeFileSync(join(out, `dispatch-trace${small}.json`), JSON.stringify(trace, null, 1));
+        check(r.ok, `the commission did not finish: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+        for (const m of ['handover', 'studio', 'back']) check(seen.has(m), `never saw "${m}": ${JSON.stringify([...seen.keys()])}`);
+        // Umber says his line at the counter, then goes back to the studio.
+        let after = await state();
+        for (const end = Date.now() + 15_000; Date.now() < end && (after.print.xiaozhe !== null || after.print.adeng !== null); await sleep(300)) after = await state();
+        check(after.room === 'print', `the view left the print shop: ${after.room}`);
+        check(!after.rooms.includes('studio'), `the studio is still up with nothing to do: ${after.rooms}`);
+        check(after.print.xiaozhe === null && after.print.adeng === null, `someone from another shop stayed: ${JSON.stringify(after.print)}`);
+        // The picture was really made, beside the notice.
+        const folder = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1)?.folder;
+        check(folder && existsSync(join(folder, 'figure.png')), `no picture in ${folder}`);
+        await shop.page.keyboard.press('Escape');
+        let homeAgain = null;
+        for (const end = Date.now() + 20_000; Date.now() < end && homeAgain !== 'counter'; await sleep(500)) homeAgain = (await state()).home;
+        check(homeAgain === 'counter', `Adeng is not back at the home counter: ${homeAgain}`);
+        // Back home: the print shop has nothing left to do and is taken down.
+        await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+        await sleep(2500);
+        const last = await state();
+        check(last.room === 'cafe' && !last.rooms.includes('print'), `going home left ${JSON.stringify(last.rooms)}`);
+        await shop.shot(join(out, `dispatch-home${small}.png`));
+      } finally { await shop.close(); }
+    }
   },
 
   /**
@@ -3806,7 +3907,8 @@ const SCENARIOS = {
       try {
         // The light settles first: a change of light still under way would take back the night set for a picture.
         await sleep(4500);
-        await shop.order({ template: 'page', want: W[lang].page });
+        // Two home kinds of work, so both crews are in the home shop (road-to-1.4.md D3: a page goes to the workshop).
+        await shop.order({ template: 'letter', want: W[lang].letter });
         await shop.submit();
         check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
         await another(shop, { template: 'research', want: W[lang].research }, room === 'study' ? locale(lang).sceneText.study.ui.access.hotspotCounter : undefined);
@@ -4137,6 +4239,8 @@ const SCENARIOS = {
    */
   async shops(lang, out) {
     const WHO = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding' };
+    // A kind of work each shop does itself (road-to-1.4.md D3), so the order is played in the shop it is placed in.
+    const KIND = { print: 'document', studio: 'chart', workshop: 'page' };
     const HOME_CREW = ['xiaoju', 'laoshi', 'qingdai', 'xiaodou', 'cat'];
     const room = (page) => page.evaluate(() => window.lamplightDebug.scene.room);
     const visit = async (page, id) => {
@@ -4152,7 +4256,9 @@ const SCENARIOS = {
     for (const size of [undefined, [640, 360]]) {
       const small = size ? '-640' : '';
       const home = freshHome({ 'settings.json': onboarded(lang) });
-      const shop = await launch({ lang, home, speed: SPEED, ...(size ? { size } : {}) });
+      // Each round is held halfway until the scenario has been home and back: a quick round would otherwise be over first.
+      const hold = join(home.home, 'hold');
+      const shop = await launch({ lang, home, speed: SPEED, scenario: 'hold', simEnv: { SIM_HOLD: hold }, ...(size ? { size } : {}) });
       const { page } = shop;
       try {
         await sleep(2500);
@@ -4163,7 +4269,8 @@ const SCENARIOS = {
           check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).scene === 'cafe', `${id}: going in moved the home shop`);
           const who = () => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ['adeng', person, ...HOME_CREW]);
           const first = await who();
-          check(first[person] !== null && first.adeng === 'counter', `${id}: ${person} or Adeng is not there: ${JSON.stringify(first)}`);
+          // Adeng only comes in with an order (D3).
+          check(first[person] !== null && first.adeng === null, `${id}: ${person} is not there, or Adeng is: ${JSON.stringify(first)}`);
           check(HOME_CREW.every((a) => first[a] === null), `${id}: someone from home is here: ${JSON.stringify(first)}`);
           check(await page.evaluate((a) => window.lamplightDebug.scene.textures.exists(a), person), `${id}: ${person} has no picture`);
           if (size) {
@@ -4178,12 +4285,24 @@ const SCENARIOS = {
           await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
           const places = new Set();
           let homeSeen = '';
-          await shop.order({ template: 'page', want: W[lang].page });
+          const starts = logged(home, 'run start').length;
+          writeFileSync(hold, '');
+          await shop.order({ template: KIND[id], want: W[lang][KIND[id]] });
           await shop.submit();
-          // While this room works, the door to another stays shut, and says why.
-          await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
-          check(await room(page) === id, `${id}: went home while the work went on`);
-          check((await page.locator('.street-note').innerText()).includes(locale(lang).ui.town.busy), `${id}: no word on why the door is shut`);
+          check(await waitForLog(home, 'run start', starts + 1, 10_000), `${id}: the commission did not start`);
+          // Where the person goes over the whole round, looked at in the page: the scenario steps out for part of it.
+          await page.evaluate((a) => {
+            window.workRoom = window.lamplightDebug.scene;
+            window.places = new Set();
+            window.placeTimer = setInterval(() => { const at = window.workRoom.anchorOf(a); if (at) window.places.add(at); }, 100);
+          }, person);
+          // While this room works, home is a door away (D3); back again, it is the same room, still at work.
+          await visit(page, 'cafe');
+          check(await room(page) === 'cafe', `${id}: could not go home while the work went on`);
+          check(await page.evaluate((r) => Boolean(window.lamplightDebug.rooms.get(r)), id), `${id}: the room was taken down while it worked`);
+          await visit(page, id);
+          check(await page.evaluate(() => window.lamplightDebug.scene === window.workRoom), `${id}: the room was built again`);
+          rmSync(hold, { force: true });
           const done = await shop.workUntilDone({
             onTick: async () => {
               const now = await who();
@@ -4193,6 +4312,7 @@ const SCENARIOS = {
             },
           });
           check(done.ok, `${id}: the commission did not finish: ${JSON.stringify(done).slice(0, 300)}`);
+          for (const at of await page.evaluate(() => { clearInterval(window.placeTimer); return [...window.places]; })) places.add(at);
           check(places.size >= 2, `${id}: ${person} only went to ${[...places]}`);
           check(!homeSeen, `${id}: ${homeSeen} turned up from home`);
           await shop.shot(join(out, `shops-${id}-done.png`));

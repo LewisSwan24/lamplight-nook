@@ -6,6 +6,7 @@ import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId } from './templates';
+import type { Shop } from './dispatch';
 
 /** Scene anchors: characters only move between these points. */
 /** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
@@ -584,9 +585,10 @@ export type AiEvent = {
 /**
  * A round under way or in the queue (road-to-1.2.md B5): at work, waiting for the user's answer, or queued, and then why
  * (no free place, its project at work, not enough money) and behind which rounds. `color` is its project's card colour, the
- * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9).
+ * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9). `shop`:
+ * where it is played (road-to-1.4.md D3), from its commission's kind; absent for the home shop.
  */
-export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[] };
+export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[]; shop?: Shop };
 
 /** The project a round works on, as the shop names it: its id once it has one (a new commission gets it as it ends), and its title. */
 export type RunProject = { id?: string; title: string };
@@ -617,6 +619,13 @@ export type CharacterCommand = {
    * goes in the outbox on the counter for the user to send (`outbox`).
    */
   post?: Post;
+  /**
+   * Played in another room (road-to-1.4.md D3): the shop that does an errand for this one. Without it, the room whose
+   * round it is.
+   */
+  room?: RoomId;
+  /** Out of the door again once done here: Adeng after handing over an order, a shop's person after bringing work back (D3). */
+  leave?: boolean;
 };
 
 export type Post = 'deliver' | 'collect' | 'outbox';

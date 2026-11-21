@@ -411,6 +411,12 @@ async function twist(s, t, scenario) {
       await s.say(picked ? t.pickColor(picked) : t.leftToMe(colors[0]));
     });
   }
+  // A picture for a print order (road-to-1.4.md D3): drawn as a page and saved with render_png, which the studio's
+  // painter does and brings back. Slow enough to watch the errand.
+  if (scenario === 'dispatch') {
+    await s.step(() => s.write('figure.html', '<!doctype html><meta charset="utf-8"><body style="margin:0;background:#f6efe3"><svg width="600" height="400"><rect x="60" y="120" width="120" height="240" fill="#c0703a"/><rect x="240" y="60" width="120" height="300" fill="#7a9a5a"/><rect x="420" y="200" width="120" height="160" fill="#5a7aa0"/></svg></body>\n'));
+    await s.step(() => s.mcp('nook-office', 'render_png', { page: 'figure.html', file: 'figure.png', width: 600, height: 400 }, { slow: 16 }));
+  }
   if (scenario === 'longwait') await s.step(() => s.tool('Bash', { command: 'node --version', description: 'wait' }, { slow: 50, effect: () => ({ text: 'v22' }) }));
   if (scenario === 'stuck') {
     for (let i = 0; i < 3; i++) await s.step(() => s.tool('Bash', { command: 'node build.js', description: 'build' }, { effect: () => ({ text: 'Error: Cannot find module build.js', error: true }) }));

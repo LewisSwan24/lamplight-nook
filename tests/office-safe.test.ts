@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { officeSafe } from '../app/main/office/safe';
 import { readZip } from '../app/main/office/unzip';
+import { makePptx } from '../app/main/office/pptx';
 import { zip } from '../app/main/zip';
 
 const FIXTURES = 'tests/fixtures/office';
@@ -58,6 +59,19 @@ describe('officeSafe', () => {
   it('lets a plain web link through', () => {
     const file = changed('sample.pptx', 'link.pptx', (p) => addRel(p, 'ppt/slides/_rels/slide2.xml.rels', rel('hyperlink', 'https://example.com/')));
     expect(officeSafe(file)).toEqual({ ok: true });
+  });
+
+  it('passes a deck the shop makes itself: an empty folder entry carries nothing, anything inside it still stops the file', async () => {
+    // pptxgenjs writes an empty ppt/embeddings/ into every deck; found when a print-shop deck would not open (road-to-1.4.md D3).
+    const deck = join(dir, 'made.pptx');
+    writeFileSync(deck, await makePptx({ title: '通知', slides: [{ layout: 'title', title: '通知', bullets: ['小灯屋'] }, { layout: 'bullets', title: '要点', bullets: ['第一点'], notes: '先讲第一点。' }] }, () => Buffer.alloc(0)));
+    expect(officeSafe(deck)).toEqual({ ok: true });
+    expect(officeSafe(changed('sample.pptx', 'folder.pptx', (p) => p.set('ppt/embeddings/', Buffer.alloc(0))))).toEqual({ ok: true });
+    expect(officeSafe(changed('sample.pptx', 'folder-data.pptx', (p) => p.set('ppt/embeddings/', Buffer.from('ole'))))).toEqual({ ok: false, reason: 'embedded' });
+    expect(officeSafe(changed('sample.pptx', 'folder-part.pptx', (p) => {
+      p.set('ppt/embeddings/', Buffer.alloc(0));
+      p.set('ppt/embeddings/oleObject1.bin', Buffer.from('ole'));
+    }))).toEqual({ ok: false, reason: 'embedded' });
   });
 
   it('stops embedded objects and controls, even ones kept inside the package', () => {

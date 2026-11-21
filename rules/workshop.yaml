@@ -1,5 +1,6 @@
 # Workshop rules (road-to-1.4.md D2): the same format as rules/cafe.yaml, whose header explains it.
-# All the work goes to Xiaoding the tinkerer; Adeng only minds the counter until D3 sends work over.
+# All the work goes to Xiaoding the tinkerer; Adeng only comes in with the order from home (D3),
+# hands it over at the counter and goes home again.
 # The cafe's spots go by other names here: counter = workbench, board = tool wall,
 # shelf = parts cabinet, table = big table, corner = the old computer. Nobody goes out: helpers' errands are
 # Xiaoding walking to a spot. The filing cabinet and the letter holder are the home shop's, so they stay out of it.
@@ -12,7 +13,7 @@
   lines: opening
   priority: work
   extra:
-    - { actor: adeng, state: ready, moveTo: counter, anim: idle, priority: chat }
+    - { actor: adeng, state: ready, moveTo: counter, anim: gift, lines: dispatch_hand, own_lines: true, leave: true, priority: work }
 
 # Chalking the steps up by the tool wall.
 - on: plan
