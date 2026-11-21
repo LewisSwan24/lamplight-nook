@@ -47,6 +47,7 @@ import { el, layer } from './ui/dom';
 import { MOVERS, OPEN, entering, followsOrder, roomFor } from './game/town';
 import type { StreetShop } from '../shared/dispatch';
 import { TOWN_MOVE } from '../shared/town';
+import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -195,6 +196,7 @@ function roomOf(room: RoomId): Promise<Room> {
     next.sys.setVisible(false);
     await next.ready;
     next.setOutside(true);
+    showTownIn(room, next);
     if (current) next.setReducedMotion(current.reducedMotion || systemCalm.matches);
     const built = { scene: next, stage: new Stage(next) };
     built.stage.onEvent = noteEvent;
@@ -446,7 +448,12 @@ window.lamplight.onDecision((req) => {
   }).catch((e) => append(`decision failed: ${e}`));
 });
 // What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
-let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string } = { done: 0, told: new Set(), made: {} };
+let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; town: TownCounts } = { done: 0, told: new Set(), made: {}, town: townCounts({ done: 0 }, homeScene()) };
+/** What the town has grown (road-to-1.4.md D5): the street and its inset in every room, and a shop's own pieces inside it. */
+function showTownIn(room: RoomId, at: CafeScene) {
+  at.setTown(shopDays.town);
+  if (isStreetShop(room)) at.growth.setGrown(roomGrown(room, shopDays.town.shops[room]).map((id) => `${room}-${id}`));
+}
 /** How many works were on the shelf before this result came back (the shelf only shows from the first). */
 let worksKept = 0;
 /** `justFinished`: a work has just come back, so the apprentice it brings walks in rather than simply being there. */
@@ -458,7 +465,10 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   home.growth.setWorks(state.works.map((w) => w.icon));
   home.garden.setWorksDone(state.done);
   homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
-  shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title) };
+  shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()) };
+  street.setTown(shopDays.town);
+  showTownIn(home.room, home);
+  for (const [room, built] of rooms) showTownIn(room, built.scene);
   worksKept = state.works.length;
   const projects = await window.lamplight.projectBoard();
   projectsKept = projects.length;
@@ -472,6 +482,8 @@ function noticeGrowth(ids: GrowthId[]) {
   if (id) sayOnce(`grow_${id}`, GROWTH_LINE_DELAY_MS);
 }
 const GROWTH_LINE_DELAY_MS = 4000;
+/** After anything new in the home shop has had its word: what grew in the town (D5). */
+const TOWN_LINE_DELAY_MS = 7000;
 /** After anything new in the shop has had its word. */
 const BEDS_LINE_DELAY_MS = 10_000;
 /** After the apprentice has walked in from the street. */
@@ -502,13 +514,13 @@ setInterval(() => {
 let onceLines: Promise<unknown> = Promise.resolve();
 let forgotten = 0;
 /** Said only once in the life of the shop, so it waits until someone is in the room to hear it, nothing lies over the shop, and the speaker is there and free. */
-function sayOnce(line: string, delay: number, said?: () => void) {
+function sayOnce(line: string, delay: number, said?: () => void, vars: Record<string, string> = {}) {
   const due = Date.now() + delay;
   const asked = forgotten;
   onceLines = onceLines.then(async () => {
     await wait(due - Date.now());
     while (asked === forgotten) {
-      const turns = pickLine(ruleBook(home.room).lines.grow ?? [], [line], {}) ?? [];
+      const turns = pickLine(ruleBook(home.room).lines.grow ?? [], [line], vars) ?? [];
       const unheard = document.hidden || scene.view !== 'shop' || document.querySelector('#ui > .card, #ui > form.card, .backdrop, .legal-backdrop');
       if (!unheard && turns.every((t) => scene.anchorOf(t.speaker) !== null && !scene.busyTalking(t.speaker))) {
         said?.();
@@ -552,7 +564,11 @@ onNotebookForget(() => {
 });
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
+  const town = shopDays.town;
   void refreshShop(result.grew ?? [], true).then(() => {
+    for (const news of townNews(town, shopDays.town)) {
+      sayOnce(news.line, TOWN_LINE_DELAY_MS, undefined, news.shop ? { shop: strings.ui.town.shops[news.shop] } : {});
+    }
     noticeBeds(bedNews(before, shopDays.done));
     // Adeng introduces the apprentice once they are through the door.
     if (apprenticeNews(before, shopDays.done)) sayOnce('grow_apprentice', APPRENTICE_LINE_DELAY_MS);

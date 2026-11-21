@@ -3,11 +3,13 @@ import frontsUrl from '../../../assets/sprites/town-fronts.png';
 import propsUrl from '../../../assets/sprites/town-props.png';
 import signsUrl from '../../../assets/sprites/town-signs.png';
 import streetUrl from '../../../assets/sprites/town-street.png';
+import type { TownCounts } from '../../shared/towngrow';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
 import { animKey } from './sprites';
 import type { Walker } from './StreetView';
 import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, type ShopId, TOWN } from './town';
+import { preloadTownGrowth, TownGrowth } from './TownGrowth';
 
 /** How far one press of an arrow key moves along the street. */
 const PAN_STEP = 48;
@@ -37,6 +39,9 @@ export class StreetScene extends Phaser.Scene {
   /** Ends the move under way, if one is. */
   private paradeEnd?: (cut: boolean) => void;
   private press: { x: number; scroll: number; moved: boolean } | null = null;
+  /** What the town has grown (D5), once the scene is up; the counts it was last told, for when it comes up. */
+  growth?: TownGrowth;
+  private counts?: TownCounts;
 
   constructor() {
     super({ key: 'street', active: false });
@@ -47,10 +52,13 @@ export class StreetScene extends Phaser.Scene {
     for (const [key, url] of [['town-street', streetUrl], ['town-fronts', frontsUrl], ['town-props', propsUrl], ['town-signs', signsUrl]]) {
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
+    if (!this.textures.exists('town-grow')) preloadTownGrowth(this.load);
   }
 
   create(data: { at?: ShopId }) {
     for (const key of ['town-street', 'town-fronts', 'town-props', 'town-signs']) this.add.image(0, 0, key).setOrigin(0);
+    this.growth = new TownGrowth(this);
+    if (this.counts) this.growth.show(this.counts);
     this.shade = this.add.rectangle(0, 0, CANVAS.width, CANVAS.height, 0xffffff).setOrigin(0).setScrollFactor(0).setDepth(999)
       .setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.cameras.main.setBounds(0, 0, TOWN.width, TOWN.height);
@@ -72,6 +80,12 @@ export class StreetScene extends Phaser.Scene {
       if (id) this.onFront(id, OPEN.has(id));
     });
     this.events.on(Phaser.Scenes.Events.WAKE, (_sys: unknown, d?: { at?: ShopId }) => this.arrive(d?.at ?? 'cafe'));
+  }
+
+  /** What the town has done, so the street shows what has grown with it (D5). */
+  setTown(counts: TownCounts) {
+    this.counts = counts;
+    this.growth?.show(counts);
   }
 
   update() {

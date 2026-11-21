@@ -78,6 +78,8 @@ import { StreetView, type Walker } from './StreetView';
 import { SKIES, WeatherLayer } from './WeatherLayer';
 import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
 import { INSET, VIEW } from './street';
+import { preloadTownGrowth } from './TownGrowth';
+import type { TownCounts } from '../../shared/towngrow';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT, POST_SPOT } from './guests';
@@ -229,6 +231,12 @@ export class CafeScene extends Phaser.Scene {
   get tint(): number { return this.tintColor; }
   /** Who is out on an errand and where on the town's street, as the inset shows her. */
   streetWalker(): Walker | null { return this.street?.walkerState() ?? null; }
+  /** What the town has grown, in the inset (D5); kept for when the inset is built. */
+  setTown(counts: TownCounts) {
+    this.town = counts;
+    this.street?.setTown(counts);
+  }
+  private town?: TownCounts;
   /** Out on the street: the room is not drawn and takes no clicks, but the work in it goes on. */
   setOutside(out: boolean) {
     this.sys.setVisible(!out);
@@ -312,6 +320,7 @@ export class CafeScene extends Phaser.Scene {
     this.load.image('town-fronts', townFrontsUrl);
     this.load.image('town-props', townPropsUrl);
     this.load.image('town-signs', townSignsUrl);
+    preloadTownGrowth(this.load);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('garden-crops', gardenCropsUrl, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
@@ -403,6 +412,7 @@ export class CafeScene extends Phaser.Scene {
     this.setApprentice(false, false);
     this.addLight();
     this.street = new StreetView(this);
+    if (this.town) this.street.setTown(this.town);
     this.street.onClick = (id) => this.onActorClick(id);
     this.garden = new GardenView(this);
     this.garden.onDoorClick = () => this.activate('shopdoor');

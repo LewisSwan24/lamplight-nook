@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { ActorId } from '../../shared/types';
+import type { TownCounts } from '../../shared/towngrow';
 import { animKey } from './sprites';
+import { TownGrowth } from './TownGrowth';
 import { INSET, PAVEMENT_Y, STOPS, STRIP_TOP, type StopId, VIEW, panFor, routeHome, stopForTool, walkMs } from './street';
 
 /** The town's street pictures, drawn in this order (scripts/art/town.py); CafeScene loads them. */
@@ -25,6 +27,8 @@ export class StreetView {
   private frame: Phaser.GameObjects.Graphics;
   private strip: Phaser.GameObjects.Container;
   private images: Phaser.GameObjects.Image[];
+  /** What the town has grown (D5), in the inset as on the street. */
+  private growth: TownGrowth;
   private walker?: Phaser.GameObjects.Sprite;
   private zone: Phaser.GameObjects.Zone;
   /** Clips the strip to the inset; weather falling in the street uses it too. */
@@ -47,7 +51,8 @@ export class StreetView {
     this.frame.fillRect(INSET.x, INSET.y, INSET.border, INSET.h).fillRect(INSET.x + INSET.w - INSET.border, INSET.y, INSET.border, INSET.h);
     this.frame.fillStyle(WOOD_LIGHT, 1).fillRect(INSET.x + 1, INSET.y + 1, INSET.w - 2, 1);
     // The town's street, its lower part: the strip's top is the town's STRIP_TOP.
-    this.images = TOWN_LAYERS.map((key) => scene.add.image(0, -STRIP_TOP, key).setOrigin(0));
+    this.growth = new TownGrowth(scene, STRIP_TOP);
+    this.images = [...TOWN_LAYERS.map((key) => scene.add.image(0, -STRIP_TOP, key).setOrigin(0)), ...this.growth.images];
     this.strip = scene.add.container(VIEW.x, VIEW.y, this.images).setDepth(DEPTH).setVisible(false);
     const mask = scene.make.graphics({}, false).fillStyle(0xffffff).fillRect(VIEW.x, VIEW.y, VIEW.w, VIEW.h);
     this.mask = mask.createGeometryMask();
@@ -67,6 +72,11 @@ export class StreetView {
   setTint(color: number) {
     for (const image of this.images) image.setTint(color);
     this.walker?.setTint(color);
+  }
+
+  /** What the town has done, so the inset shows what has grown along the street. */
+  setTown(counts: TownCounts) {
+    this.growth.show(counts);
   }
 
   /** Keep the strip scrolled to the walker. */

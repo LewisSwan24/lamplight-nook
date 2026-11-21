@@ -318,6 +318,28 @@ grow:
   - { id: grow_cushion, speaker: xiaoju, when: grow_cushion, bubbles: ["给栗子缝了个垫子！", "它还没赏脸躺过。"] }
   - { id: grow_hat, speaker: qingdai, when: grow_hat, bubbles: ["门边挂了顶草帽。", "夏天出门写生戴。"] }
   - { id: grow_plaque, speaker: adeng, when: grow_plaque, bubbles: ["一百单了。", "街坊凑钱，给店里做了块匾。"], reply: { speaker: laoshi, bubbles: ["挂正了。"] } }
+  # The town grows too (road-to-1.4.md D5, shared/towngrow.ts): the street, a shop's front ({shop}), inside the shops along the street.
+  - { id: grow_street_lamps, speaker: xiaoju, when: grow_street_lamps, bubbles: ["街上多了两盏路灯。", "晚上回来不摸黑了。"] }
+  - { id: grow_street_bench, speaker: laoshi, when: grow_street_bench, bubbles: ["街边放了张长椅。", "走累了能坐坐。"] }
+  - { id: grow_street_flowers, speaker: qingdai, when: grow_street_flowers, bubbles: ["街上摆了几盆大花。", "红的黄的粉的，都开了。"] }
+  - { id: grow_street_stall, speaker: xiaoju, when: grow_street_stall, bubbles: ["空地上来了辆推车，卖花卖菜！", "我去看看有没有橘子。"] }
+  - { id: grow_street_park, speaker: adeng, when: grow_street_park, bubbles: ["空地种上树了。", "街坊说要弄成个小公园。"] }
+  - { id: grow_street_fountain, speaker: qingdai, when: grow_street_fountain, bubbles: ["空地上修了座喷泉。", "七十单了，街上热闹起来了。"], reply: { speaker: laoshi, bubbles: ["水声挺好听。"] } }
+  - { id: grow_front_pot, speaker: adeng, when: grow_front_pot, bubbles: ["{shop}门口摆了盆花。"] }
+  - { id: grow_front_sign, speaker: xiaoju, when: grow_front_sign, bubbles: ["{shop}换了块新招牌！", "老远就看得见。"] }
+  - { id: grow_front_bunting, speaker: qingdai, when: grow_front_bunting, bubbles: ["{shop}门上拉了串小旗。", "那边的活最近真多。"] }
+  - { id: grow_print_proof, speaker: adeng, when: grow_print_proof, bubbles: ["印刷铺把印的第一张挂上墙了。"] }
+  - { id: grow_print_ivy, speaker: xiaoju, when: grow_print_ivy, bubbles: ["印刷铺墙角吊了盆绿萝。"] }
+  - { id: grow_print_typecase, speaker: laoshi, when: grow_print_typecase, bubbles: ["阿铅把铅字盘挂起来了。", "一格一个字。"] }
+  - { id: grow_print_ribbon, speaker: adeng, when: grow_print_ribbon, bubbles: ["印刷铺得了张奖状。", "二十单，阿铅说要镶个框。"] }
+  - { id: grow_studio_sketch, speaker: qingdai, when: grow_studio_sketch, bubbles: ["画室挂了第一张画稿。"] }
+  - { id: grow_studio_ivy, speaker: xiaoju, when: grow_studio_ivy, bubbles: ["画室也吊了盆绿萝！"] }
+  - { id: grow_studio_palette, speaker: qingdai, when: grow_studio_palette, bubbles: ["小赭把用旧的调色板挂墙上了。", "颜料都干成一块块的了。"] }
+  - { id: grow_studio_gallery, speaker: qingdai, when: grow_studio_gallery, bubbles: ["画室墙上挂满了小画。", "二十单，一单一张。"] }
+  - { id: grow_workshop_gear, speaker: laoshi, when: grow_workshop_gear, bubbles: ["工坊把第一个齿轮镶进框里了。"] }
+  - { id: grow_workshop_ivy, speaker: xiaoju, when: grow_workshop_ivy, bubbles: ["工坊里吊了盆绿萝，油味淡多了。"] }
+  - { id: grow_workshop_clock, speaker: laoshi, when: grow_workshop_clock, bubbles: ["小钉自己做了个挂钟。", "走得挺准。"] }
+  - { id: grow_workshop_blueprint, speaker: adeng, when: grow_workshop_blueprint, bubbles: ["工坊墙上钉了张图纸。", "二十单了，小钉说要做个大的。"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["书桌上添了把茶壶。", "来的人都能喝一杯。"] }
