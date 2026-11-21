@@ -238,7 +238,7 @@ describe('the town (road-to-1.4.md D7)', () => {
 
   it('keeps the town when the notebook is saved again, and the move once shown', () => {
     const file = join(mkdtempSync(join(tmpdir(), 'lamplight-town-')), 'memory.json');
-    const town = { shops: { print: { done: 2, grown: [{ id: 'press', date: '2026-12-01' }] } }, street: [{ id: 'bicycle', date: '2026-12-02' }], stories: { zhou: 2 } };
+    const town = { shops: { print: { done: 2, grown: [{ id: 'press', date: '2026-12-01' }] } }, street: [{ id: 'bicycle', date: '2026-12-02' }], stories: { mechanic: ['2026-12-02'] } };
     writeFileSync(file, JSON.stringify({ commissions: [], stuckNotes: [], shop: { done: 3, grown: [], told: [], town } }));
     const store = new MemoryStore(file);
     store.markTold(TOWN_MOVE);

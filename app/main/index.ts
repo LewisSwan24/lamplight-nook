@@ -1112,7 +1112,9 @@ ipcMain.handle(IPC.removeSchedule, (_e, id: unknown): boolean => {
   lookAtSchedules();
   return true;
 });
-ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState());
+ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState(now()));
+// The stories go by the shop's clock, which the simulations can move on (D4); memory.ts refuses a chapter not waiting.
+ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
 ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
 // From the works shelf: the main thing a commission made, or its folder; only what the notebook recorded.

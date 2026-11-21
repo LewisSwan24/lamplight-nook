@@ -225,6 +225,8 @@ export interface LamplightApi {
   /** A one-off story has been told; it won't come up again. */
   markTold(id: string): Promise<void>;
   markMet(id: GuestId): Promise<void>;
+  /** A neighbour on the street has told the chapter they had waiting (road-to-1.4.md D4): the chapter, or null if none was. */
+  tellStory(who: GuestId): Promise<number | null>;
   /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
   relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'taken' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
@@ -525,6 +527,7 @@ export const IPC = {
   relinkWork: 'shop:relink-work',
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
+  tellStory: 'shop:tell-story',
   restorePrevious: 'commission:restore-previous',
   projectBoard: 'project:board',
   projectTimeline: 'project:timeline',
@@ -830,7 +833,8 @@ export type ProjectTimeline = {
 export type ExportResult = 'saved' | 'cancelled' | 'gone' | 'empty';
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
-export type ShopState = ShopDays & { works: Work[] };
+/** `today`: the day by the shop's clock (main/clock.ts), which the simulations can move on; the stories go by it (D4). */
+export type ShopState = ShopDays & { works: Work[]; today: string };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {

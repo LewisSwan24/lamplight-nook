@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
+import { parse as parseYaml } from 'yaml';
 import { mainCards } from './cards.mjs';
 import { pdfSays, readPdf } from './pdftext.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
@@ -4628,6 +4629,99 @@ const SCENARIOS = {
   },
 
   /**
+   * The neighbours' stories (road-to-1.4.md D4): a shop that has done 50, opened on the days the chapters come, 30 days in
+   * all. Each time Old Zhou, Granny Chen and Xiaohe wait at their places with a bubble; a click opens the chapter, closing
+   * it writes it down and leaves its thing on the street. A day too early nobody waits; at the end all fifteen things are
+   * there and nobody waits any more.
+   */
+  async stories(lang, out) {
+    const L = locale(lang);
+    const book = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/stories.yaml' : 'lines/stories.yaml'), 'utf8'));
+    const art = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town-story.json'), 'utf8'));
+    const TELLERS = ['mechanic', 'granny', 'student'];
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [], stuckNotes: [], greeted: 'c1',
+        shop: { done: 50, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } },
+      }),
+    });
+    const goOut = async (page) => {
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(1000);
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(300);
+    };
+    const seen = (page) => page.evaluate((ids) => {
+      const s = window.lamplightDebug.street.stories;
+      return { waiting: s.waiting(), left: ids.filter((id) => s.shows(id)) };
+    }, art.parts.map((p) => p.id));
+    const scrollTo = async (page, x) => {
+      await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = Math.round(Math.max(0, Math.min(x - 160, 1128 - 320))); }, x);
+      await sleep(300);
+    };
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.stories;
+    // The days the chapters come (0, 3, 4, 5 and 7 days apart) and the day before the second, when nobody waits.
+    const DAYS = [['2026-11-20', 1], ['2026-11-22', 0], ['2026-11-23', 2], ['2026-11-27', 3], ['2026-12-02', 4], ['2026-12-09', 5], ['2026-12-20', 0]];
+    for (const [day, chapter] of DAYS) {
+      const shop = await launch({ lang, home, speed: SPEED, clock: `${day}T10:00` });
+      const { page } = shop;
+      try {
+        await sleep(2500);
+        await goOut(page);
+        let v = await seen(page);
+        const told = chapter ? chapter - 1 : Math.min(5, DAYS.filter(([d, c]) => c && d < day).length);
+        check(v.left.length === told * 3, `${day}: ${v.left.length} things on the street after ${told} chapters each`);
+        if (!chapter) {
+          check(v.waiting.length === 0, `${day}: ${v.waiting} waiting on a day with no chapter`);
+          if (told === 5) {
+            for (const [name, x] of [['cafe', 80], ['study', 260], ['workshop', 615]]) {
+              await scrollTo(page, x);
+              await shop.shot(join(out, `stories-all-${name}.png`));
+            }
+          }
+          continue;
+        }
+        check(JSON.stringify(v.waiting) === JSON.stringify(TELLERS), `${day}: waiting ${v.waiting}, not all three`);
+        if (chapter === 1) {
+          await scrollTo(page, 260);
+          await shop.shot(join(out, 'stories-waiting-study.png'));
+        }
+        for (const who of TELLERS) {
+          const at = art.waits[who];
+          await scrollTo(page, at.x);
+          const spot = await page.evaluate((w) => window.lamplightDebug.street.stories.spot(w), who);
+          const scroll = await page.evaluate(() => window.lamplightDebug.street.cameras.main.scrollX);
+          const box = await page.locator('#game canvas').boundingBox();
+          const k = box.width / 320;
+          await page.mouse.click(box.x + (spot.x - scroll) * k, box.y + spot.y * k);
+          await sleep(600);
+          const card = page.locator(`.story-card[data-teller="${who}"][data-chapter="${chapter}"]`);
+          check(await card.count() === 1, `${day}: clicking ${who} opened no card for chapter ${chapter}`);
+          const c = book[who][chapter - 1];
+          const text = await card.innerText();
+          check(text.includes(L.guests[who]) && text.includes(c.title) && text.includes(c.lines[0]) && text.includes(c.note), `${day}: ${who}'s card does not tell chapter ${chapter}: ${text}`);
+          if (chapter === 1 || chapter === 5) await shop.shot(join(out, `stories-${who}-${chapter}-card.png`));
+          await card.locator('button.primary').click();
+          await sleep(800);
+          v = await seen(page);
+          check(!v.waiting.includes(who), `${day}: ${who} still waits after telling chapter ${chapter}`);
+          check(v.left.includes(c.left), `${day}: ${c.left} is not on the street after ${who}'s chapter ${chapter}`);
+          check((saved()[who] ?? []).length === chapter && saved()[who].at(-1) === day, `${day}: ${who}'s chapters were not written down: ${JSON.stringify(saved())}`);
+          // Nobody waits where they stood now: a click there is a click on the front behind (D1).
+          check(await page.evaluate((p) => window.lamplightDebug.street.stories.at(p.x, p.y), spot) === null, `${day}: ${who} still answers a click after chapter ${chapter}`);
+        }
+        if (chapter === 5) {
+          await scrollTo(page, 615);
+          await shop.shot(join(out, 'stories-5-workshop.png'));
+        }
+      } finally { await shop.close(); }
+    }
+  },
+
+  /**
    * The town's street (road-to-1.4.md D1): out of the door from the toolbar and back in on the same page, along the
    * street with the arrow keys, a front not open yet saying so, back in through the shop's own front and with Escape.
    * By day, by night and in a small window.
@@ -4701,7 +4795,8 @@ const SCENARIOS = {
           await sleep(600);
           const seen = await page.evaluate(() => {
             const g = window.lamplightDebug.street;
-            const s = g.children.list.find((o) => o.type === 'Sprite');
+            // The one out on an errand, not a neighbour waiting with a story (D4).
+            const s = g.seen;
             return s ? { visible: s.visible, x: s.x, y: s.y, cam: g.cameras.main.scrollX, inset: window.lamplightDebug.scene.streetWalker() } : null;
           });
           await shop.shot(join(out, 'street-errand.png'));

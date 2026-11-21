@@ -5,6 +5,7 @@ import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky } from '../game/weather';
 import { ROOMS, forScene, type RoomId } from '../../shared/scenes';
+import { CHAPTERS, TELLERS } from '../../shared/stories';
 import type { LineBook } from './director';
 
 export type Line = {
@@ -174,4 +175,36 @@ function checkBubble(id: string, speaker: Speaker, text: string, problems: strin
   if (speaker === 'laoshi' && particles > 0) problems.push(fill(L.laoshiParticle, { id, text }));
   if (particles > 1) problems.push(fill(L.tooManyParticles, { id, text }));
   if (rules.emotions.test(text)) problems.push(fill(L.emotionWord, { id, text }));
+}
+
+/** A chapter of a neighbour's story (lines/stories.yaml, road-to-1.4.md D4): told on the street, one bubble a line. */
+export type StoryChapter = { title: string; left: string; note: string; lines: string[] };
+export type StoryBook = Record<string, StoryChapter[]>;
+
+export function parseStories(text: string): StoryBook {
+  const raw = (parse(text) ?? {}) as Record<string, Partial<StoryChapter>[]>;
+  return Object.fromEntries(Object.entries(raw).map(([who, chapters]) => [who, chapters.map((c) => ({
+    title: String(c.title ?? ''), left: String(c.left ?? ''), note: String(c.note ?? ''), lines: (c.lines ?? []).map(String),
+  }))]));
+}
+
+/**
+ * The bubble rules for the stories too, plus: the three neighbours with five chapters each, every chapter with a title,
+ * a note of what it leaves (two bubbles long at most), two to five bubbles, and the thing shared/stories.ts says it leaves.
+ */
+export function lintStories(book: StoryBook, S: Strings = strings): string[] {
+  const rules = rulesFor(S);
+  const problems: string[] = [];
+  for (const who of Object.keys(book)) if (!(TELLERS as readonly string[]).includes(who)) problems.push(fill(L.badStory, { id: who }));
+  for (const who of TELLERS) {
+    const chapters = book[who] ?? [];
+    if (chapters.length !== CHAPTERS[who].length) problems.push(fill(L.badStory, { id: who }));
+    chapters.forEach((c, i) => {
+      const id = `${who}_${i + 1}`;
+      const bad = !c.title || !c.note || visibleLength(c.note) > rules.max * 2 || c.lines.length < 2 || c.lines.length > 5 || c.left !== CHAPTERS[who][i]?.left;
+      if (bad) problems.push(fill(L.badStory, { id }));
+      for (const text of c.lines) checkBubble(id, who, text, problems, rules);
+    });
+  }
+  return problems;
 }

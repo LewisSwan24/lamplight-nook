@@ -157,7 +157,11 @@ body.debug #debug { display: block; }
 .dialog > * { flex-shrink: 0; }
 /* Only the inside scrolls, so the paper always covers the whole card. */
 .dialog > .options, .card-scroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
-.actor-card, .notice-card, .notebook-trouble { display: flex; flex-direction: column; }
+.actor-card, .notice-card, .notebook-trouble, .story-card { display: flex; flex-direction: column; }
+/* A neighbour's chapter on the street (road-to-1.4.md D4): what they say in the hand, then what they left. */
+.story-card .story-line { font-family: var(--hand); font-size: 18px; line-height: 1.4; margin: 2px 0; }
+.story-card .story-left { font-size: 13px; opacity: 0.8; margin: 10px 0 4px; }
+.story-card .story-buttons { display: flex; justify-content: flex-end; margin-top: 6px; }
 .card-scroll { padding-right: 6px; }
 .dialog .who { font-family: var(--hand); font-size: 17px; color: var(--accent); }
 .dialog .question { font-family: var(--hand); font-size: 22px; line-height: 1.35; margin: 4px 0; }

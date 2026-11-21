@@ -49,6 +49,12 @@
   whoever is out on an errand walks under an umbrella. The print shop, the studio and the workshop now have their own
   decorations for each festival instead of the cafe's, hung clear of their furniture, each with a piece of its own: a
   printed poster, a little painting, a sign cut from wood.
+- **The neighbours' stories.** Old Zhou, Granny Chen and Xiaohe each have a story in five chapters, which come with
+  the work done together and the days gone by. When one has a chapter, they wait out on the street at their own place,
+  Old Zhou at the workshop, Granny Chen on the bench, Xiaohe outside the study, with a small bubble overhead; nothing
+  else reminds you. Click them to hear it. Each chapter leaves something on the street, from the bell of the old bike
+  Old Zhou is mending to the little lending shelf by the study, and at the end the mended bicycle stands by the cafe
+  door. Forgetting everything starts the stories over.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.
