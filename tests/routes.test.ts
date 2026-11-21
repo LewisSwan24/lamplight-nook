@@ -149,6 +149,31 @@ describe('walking through the shop', () => {
     });
   }
 
+  // The new shops' own festival decorations (D6): a frame each in shops-decor.png, row by shop, column by festival.
+  const shopsDecor = sprite('shops-decor.png');
+  (['print', 'studio', 'workshop'] as const).forEach((room, row) => {
+    it(`no walk crosses the festival decorations on the floor of the ${room}`, () => {
+      // Which festivals paint each pixel of the floor, so the walks are gone through once.
+      const painted = new Map<number, string[]>();
+      HOLIDAYS.forEach((holiday, col) => {
+        for (let y = 0; y < 180; y++) {
+          for (let x = 0; x < 320; x++) if (shopsDecor.at(col * 320 + x, row * 180 + y).alpha > 0) painted.set(y * 320 + x, [...(painted.get(y * 320 + x) ?? []), holiday]);
+        }
+      });
+      const crossed = new Set<string>();
+      for (const walk of walks(room)) {
+        for (const p of along(walk.points)) {
+          for (let y = Math.round(p.y - FEET.up); y <= p.y + FEET.down; y++) {
+            for (let x = Math.round(p.x - FEET.x); x <= p.x + FEET.x; x++) {
+              for (const holiday of painted.get(y * 320 + x) ?? []) crossed.add(`${holiday}: ${walk.name}`);
+            }
+          }
+        }
+      }
+      expect([...crossed]).toEqual([]);
+    });
+  });
+
   it('keeps everyone on the canvas', () => {
     const off = [...walks('cafe'), ...walks('study')].filter((w) => along(w.points).some((p) => p.x < 0 || p.x > CANVAS.width || p.y < 0 || p.y > CANVAS.height));
     expect(off.map((w) => w.name)).toEqual([]);

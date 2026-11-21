@@ -402,6 +402,104 @@ const COUNTED_PIECES = [
   ['sunset', 35], ['star', 50], ['chime', 55], ['aquarium', 60], ['scroll', 65], ['teapot', 70], ['gramophone', 75], ['cushion', 80], ['hat', 90], ['plaque', 100],
 ];
 
+/**
+ * The street through the year (road-to-1.4.md D6), out of a shop past a hundred works: each season and each festival
+ * once, rain and snow with Xiaoju out under an umbrella, and each festival in the three shops along the street.
+ */
+async function seasonsOnTheStreet(shop, out) {
+  const { page, L } = shop;
+  const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+  const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+  const set = (sky, holiday, season) => page.evaluate(([sky, holiday, season]) => {
+    const { scene } = window.lamplightDebug;
+    scene.setWeather(sky, holiday, false);
+    if (season) scene.setSeason(season);
+    scene.setPeriod('day', true);
+  }, [sky, holiday, season]);
+  const street = () => page.evaluate(() => {
+    const s = window.lamplightDebug.street;
+    const ids = ['spring', 'summer', 'autumn', 'winter', 'halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn', 'rain', 'snow'];
+    return { decor: ids.filter((id) => s.decor.shows(id)), cart: s.growth.shows('stall'), umbrella: !!s.umbrella?.visible };
+  });
+  const scrollTo = (x) => page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, x);
+
+  await set('clear', null, 'spring');
+  await streetButton();
+  await sleep(800);
+  for (const season of ['spring', 'summer', 'autumn', 'winter']) {
+    await set('clear', null, season);
+    await sleep(300);
+    const v = await street();
+    check(JSON.stringify(v.decor) === JSON.stringify([season]), `in ${season} the street shows ${v.decor}`);
+    // The tree by the workshop and the two in the lot.
+    await scrollTo(500);
+    await sleep(200);
+    await shop.shot(join(out, `seasons-street-${season}.png`));
+  }
+  for (const holiday of ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']) {
+    const season = { halloween: 'autumn', christmas: 'winter', new_year: 'winter', lantern: 'spring', dragon_boat: 'summer', mid_autumn: 'autumn' }[holiday];
+    await set('clear', holiday, season);
+    await sleep(300);
+    const v = await street();
+    check(v.decor.includes(holiday) && v.decor.includes(season), `at ${holiday} the street shows ${v.decor}`);
+    // The New Year has no stall: the cart stays out. The others stand where it does.
+    check(v.cart === (holiday === 'new_year'), `at ${holiday} the cart is ${v.cart ? 'out' : 'away'}`);
+    await scrollTo(holiday === 'new_year' ? 0 : town.lot.x + town.lot.w / 2 - 200);
+    await sleep(200);
+    await shop.shot(join(out, `seasons-street-${holiday}.png`));
+  }
+  for (const sky of ['rain', 'snow']) {
+    await set(sky, null, sky === 'snow' ? 'winter' : 'summer');
+    await sleep(600);
+    const v = await street();
+    check(v.decor.includes(sky), `on a ${sky} day the street shows ${v.decor}`);
+    await scrollTo(0);
+    await sleep(200);
+    await shop.shot(join(out, `seasons-street-${sky}.png`));
+  }
+
+  // Xiaoju goes out on an errand in the snow: an umbrella over her, in the inset and on the street.
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  await page.evaluate(() => { void window.lamplightDebug.scene.walkTo('xiaoju', 'door'); });
+  let w = null;
+  for (let i = 0; i < 60 && !(w && w.alpha === 1); i++) {
+    await sleep(500);
+    w = await page.evaluate(() => window.lamplightDebug.scene.streetWalker());
+  }
+  check(w && w.actor === 'xiaoju', `Xiaoju did not go out: ${JSON.stringify(w)}`);
+  const inset = await page.evaluate(() => !!window.lamplightDebug.scene.street.umbrella?.visible);
+  check(inset, 'no umbrella over Xiaoju in the inset on a snowy day');
+  await shop.shot(join(out, 'seasons-street-umbrella-inset.png'));
+  await streetButton();
+  await sleep(800);
+  check((await street()).umbrella, 'no umbrella over Xiaoju on the street on a snowy day');
+  await shop.shot(join(out, 'seasons-street-umbrella.png'));
+
+  // Each festival in each shop along the street: its own frame of shops-decor.png.
+  for (const room of ['print', 'studio', 'workshop']) {
+    await page.evaluate((room) => window.lamplightDebug.street.lookAt(room), room);
+    await page.keyboard.press('Enter');
+    await sleep(1500);
+    check(await page.evaluate(() => window.lamplightDebug.scene.room) === room, `Enter in front of the ${room} did not go in`);
+    for (const holiday of ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']) {
+      await set('clear', holiday);
+      await sleep(300);
+      const frame = await page.evaluate(() => {
+        const d = window.lamplightDebug.scene.weather.decor;
+        return d.visible ? `${d.texture.key}:${d.frame.name}` : null;
+      });
+      check(frame === `shops-decor:${room}-${holiday}`, `the ${room} at ${holiday} shows ${frame}`);
+      await shop.shot(join(out, `seasons-${room}-${holiday}.png`));
+    }
+    await set('clear', null);
+    await streetButton();
+    await sleep(800);
+  }
+  await page.keyboard.press('Escape');
+  await sleep(500);
+}
+
 const SCENARIOS = {
   /** Data files that cannot be read: nothing is written over, the shop says so, and work goes on. */
   async baddata(lang, out) {
@@ -1794,7 +1892,8 @@ const SCENARIOS = {
   },
 
   /**
-   * Every season and every festival in a shop past a hundred works (road-to-1.1.md A9): the season's vase on the big
+   * Every season and every festival in a shop past a hundred works (road-to-1.1.md A9; the street and the shops along it,
+   * road-to-1.4.md D6, in seasonsOnTheStreet): the season's vase on the big
    * table and the beds out back, each festival's decorations, and what the baker brings up for each of them.
    */
   async seasons(lang, out) {
@@ -1839,6 +1938,7 @@ const SCENARIOS = {
           await sleep(400);
           await shop.shot(join(out, `seasons-${scene}-${holiday}.png`));
         }
+        if (scene === 'cafe') await seasonsOnTheStreet(shop, out);
       } finally {
         await shop.close();
       }
@@ -4448,6 +4548,8 @@ const SCENARIOS = {
       }),
     });
     const goOut = async (page) => {
+      // A plain day: a festival would put the cart away (D6).
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
       await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
       await sleep(800);
       await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));

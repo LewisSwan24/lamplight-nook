@@ -32,6 +32,7 @@ import townFrontsUrl from '../../../assets/sprites/town-fronts.png';
 import townPropsUrl from '../../../assets/sprites/town-props.png';
 import townSignsUrl from '../../../assets/sprites/town-signs.png';
 import townStreetUrl from '../../../assets/sprites/town-street.png';
+import shopsDecorUrl from '../../../assets/sprites/shops-decor.png';
 import christmasUrl from '../../../assets/sprites/decor-christmas.png';
 import halloweenUrl from '../../../assets/sprites/decor-halloween.png';
 import newYearUrl from '../../../assets/sprites/decor-new_year.png';
@@ -78,6 +79,7 @@ import { StreetView, type Walker } from './StreetView';
 import { SKIES, WeatherLayer } from './WeatherLayer';
 import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
 import { INSET, VIEW } from './street';
+import { preloadTownDecor } from './TownDecor';
 import { preloadTownGrowth } from './TownGrowth';
 import type { TownCounts } from '../../shared/towngrow';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
@@ -321,6 +323,8 @@ export class CafeScene extends Phaser.Scene {
     this.load.image('town-props', townPropsUrl);
     this.load.image('town-signs', townSignsUrl);
     preloadTownGrowth(this.load);
+    preloadTownDecor(this.load);
+    this.load.image('shops-decor', shopsDecorUrl);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('garden-crops', gardenCropsUrl, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
@@ -781,12 +785,14 @@ export class CafeScene extends Phaser.Scene {
   setSeason(season: Season) {
     this.weather.setSeason(season);
     this.garden.setSeason(season);
+    this.street?.setOutside(this.outside());
   }
 
   /** Show a kind of weather and a holiday's decorations (also for screenshots: lamplightDebug.scene.setWeather). */
   setWeather(sky: Sky, holiday: Holiday | null = null, now = true) {
     const before = withWeather(LOOKS[this.period], this.weather.sky);
     this.weather.set(sky, holiday);
+    this.street?.setOutside(this.outside());
     this.setPeriod(this.period, now, before);
   }
 
