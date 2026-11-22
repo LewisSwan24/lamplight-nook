@@ -1358,7 +1358,7 @@
   "legal": {
     "privacy": [
       "# Privacy",
-      "Last updated: November 20, 2026",
+      "Last updated: November 22, 2026",
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
       "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records; your connections and the record of outside actions (a calendar's address is encrypted like the key).",
@@ -1368,6 +1368,9 @@
       "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. If you tick a connection on a commission slip, the files the staff read in the synced folder and the events they read in the calendar are sent to Anthropic the same way. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",
       "When you save an API key, Lamplight Nook makes one free request to Anthropic to check that it works.",
       "If you connect a calendar, the calendar's address you gave is used to fetch it straight from this computer. Other than that, Lamplight Nook connects to no servers. When the staff look things up they visit the web pages they find.",
+      "# Sharing, postcards and your home network",
+      "Sharing a work or sending a postcard saves a file that you pass on yourself; Lamplight Nook uploads nothing for you. A shared work carries the work alone: folder paths, your home folder and anything like a key are wiped from it, and the slip, the staff's notes and the recordings are not in it. A postcard carries only how your shop looks and the name you go by, with no works, commissions, spending or dates.",
+      "The home network switch is off by default. When it is on, Lamplight Nook serves a small page on this computer to your home network only, just phones and computers you have paired can connect, and every message is encrypted with the key made when pairing. A paired phone sees what the shop is doing and what it is waiting for you to answer, never your key, folder paths or spending. None of it goes through a server of ours.",
       "# Diagnostics",
       "A diagnostics file leaves your computer only when you export it in Settings and send it to us yourself. It holds the app's log and an outline of your computer and settings, with no API key and nothing from your commissions.",
       "# Contact",

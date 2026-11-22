@@ -21,6 +21,10 @@
   then walks round your shop and your street in a window of its own. Nobody there is working, and nothing clicked in it
   can change their own shop; Escape or "Go home" closes it. A file that is not a postcard, is too big, or holds anything
   the shop does not know is not opened.
+- **What goes out, written down.** A work shared as a zip no longer carries what the shop put in its folder to work
+  from: the list of your folder made for a tidying commission, and the files the staff read in from a connected cloud
+  folder. What you handed over yourself still goes with it. The privacy note in the app and the Store listing now say
+  what a shared work and a postcard carry, and that the home-network page is off until you switch it on.
 
 ## Unreleased (1.4)
 

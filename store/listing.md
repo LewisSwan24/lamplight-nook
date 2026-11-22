@@ -44,6 +44,10 @@ Text for Partner Center (Store listings, one per language). Keep both languages 
 
 委托的内容会通过 Claude Code、用你自己的 Key 发给 Anthropic 处理。委托单上勾了连接的话，店员从网盘文件夹和日历里读到的内容也会一起发过去。连了日历，这台电脑会按你给的订阅地址去取日程。
 
+分享作品和寄明信片，都是存成一个文件，由你自己发给别人。分享的文件只带作品本身，文件夹路径和像 Key 的字符串都会抹掉。明信片只带小店的样子和你的称呼。
+
+家里网络的开关默认关着。打开以后，只有配对过的手机和电脑能连进来，每条消息都加密，也不经过我们的服务器。
+
 ### 新内容
 
 1.0 版：
@@ -96,6 +100,10 @@ undone, such as deleting files, always waits for you, and the default is "not no
 Lamplight Nook collects none of your data: no analytics, no ads, and no servers of ours. Your settings, key and work stay on your computer.
 
 Commissions are sent to Anthropic through Claude Code with your own key. If you tick a connection on a commission slip, what the staff read in the synced folder and the calendar goes with it. A connected calendar is fetched from this computer at the address you gave.
+
+Sharing a work or sending a postcard saves a file that you pass on yourself. A shared work carries the work alone, with folder paths and anything like a key wiped. A postcard carries only how your shop looks and the name you go by.
+
+The home-network switch is off by default. When it is on, only phones and computers you have paired can connect, every message is encrypted, and nothing goes through a server of ours.
 
 ### What's new
 
