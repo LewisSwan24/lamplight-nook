@@ -48,6 +48,9 @@ import { howToOpen } from './open-rule';
 import { DraftRecord } from './drafts';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
+import { VisitWindow } from './visit';
+import { readPostcardFile } from './postcard';
+import { makePostcard, postcardText } from '../shared/postcard';
 import { copyMaterials, sortHandOver } from './materials';
 import { stepCount } from '../shared/board';
 import { boardRow, projectFolders, projectSettled, timelineRows } from './projects';
@@ -123,6 +126,11 @@ const busyIn = (folder: string) => [...runs.values()].some((r) => r.job.workDir 
 const mini = new MiniWindow(join(here, '../preload/index.cjs'), (w) => {
   if (process.env.ELECTRON_RENDERER_URL) w.loadURL(`${process.env.ELECTRON_RENDERER_URL}/mini.html`);
   else w.loadFile(join(here, '../renderer/mini.html'));
+});
+/** Someone else's shop, from a postcard (docs/plan-1.5.md E3), in a window of its own over this one. */
+const visit = new VisitWindow(join(here, '../preload/visit.cjs'), (w) => {
+  if (process.env.ELECTRON_RENDERER_URL) w.loadURL(`${process.env.ELECTRON_RENDERER_URL}/visit.html`);
+  else w.loadFile(join(here, '../renderer/visit.html'));
 });
 /** Show the corner window exactly when the shop is out of sight and the user wants it. */
 function updateMini() {
@@ -1171,6 +1179,31 @@ ipcMain.handle(IPC.lanPair, () => {
 ipcMain.handle(IPC.lanRemove, (_e, id: unknown) => {
   if (typeof id === 'string') lan?.remove(id);
   return lanState();
+});
+// A postcard of the shop (docs/plan-1.5.md E3): only what makes it look the way it does, to a file the user picks.
+const POSTCARD_FILTER = () => [{ name: strings.ui.notebook.postcardKind, extensions: ['nook'] }];
+ipcMain.handle(IPC.sendPostcard, async (): Promise<boolean> => {
+  if (!win) return false;
+  const s = settings.get();
+  const card = makePostcard(s.name.trim() || strings.ui.visit.someone, s, memory.shopState(now()));
+  const name = fill(strings.ui.notebook.postcardFile, { name: card.name }).replace(/[\\/:*?"<>|\p{Cc}]/gu, '_').replace(/[. ]+$/, '');
+  const r = await dialog.showSaveDialog(win, { defaultPath: join(app.getPath('documents'), `${name}.nook`), filters: POSTCARD_FILTER() });
+  if (r.canceled || !r.filePath) return false;
+  writeFileSync(r.filePath, postcardText(card));
+  return true;
+});
+// Someone else's postcard: read as data only, and looked at in a window that can change nothing here.
+ipcMain.handle(IPC.openPostcard, async (): Promise<'open' | 'big' | 'notPostcard' | 'broken' | null> => {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, { defaultPath: app.getPath('documents'), properties: ['openFile'], filters: POSTCARD_FILTER() });
+  if (r.canceled || !r.filePaths[0]) return null;
+  const read = readPostcardFile(r.filePaths[0]);
+  if (!read.ok) {
+    log?.info('postcard not opened', { reason: read.reason });
+    return read.reason;
+  }
+  visit.show(read.card, win);
+  return 'open';
 });
 ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));

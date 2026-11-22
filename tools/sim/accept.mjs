@@ -3365,6 +3365,139 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * A postcard (docs/plan-1.5.md E3): one shop sends one, another looks at it. Two data folders: the sender's study, grown
+   * and furnished, and the looker's own little cafe. A file that is not a postcard does not open; the postcard does, in a
+   * window of its own, shows their shop and their street, and closing it is home again, with nothing of one's own changed.
+   */
+  async postcard(lang, out) {
+    const L = locale(lang);
+    const N = L.ui.notebook, V = L.ui.visit;
+    const mail = join(tmpdir(), `lamplight-postcard-${process.pid}-${lang}`);
+    rmSync(mail, { recursive: true, force: true });
+    mkdirSync(mail);
+    const card = join(mail, 'shop.nook');
+    const sender = lang === 'en' ? 'Mira' : '阿梅';
+    const memoryOf = (done, grown, shops, stories) => JSON.stringify({
+      commissions: [], stuckNotes: [], projects: [], greeted: 'c1',
+      shop: { done, told: ['town-move'], grown: grown.map((id) => ({ id, date: '2026-10-01' })), met: [],
+        town: { shops: Object.fromEntries(Object.entries(shops).map(([s, n]) => [s, { done: n, grown: [] }])), street: [], stories } },
+    });
+    const notebook = async (shop) => {
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.notebook.title}"]`).click();
+      await shop.page.waitForSelector('.notebook .notebook-postcard');
+      await shop.page.locator('.notebook .notebook-postcard').scrollIntoViewIfNeeded();
+    };
+    const said = (shop, text) => shop.page.waitForFunction((t) => document.querySelector('.notebook-postcard-said')?.textContent === t, text, { timeout: 10_000 });
+
+    // The sender: the study, furnished, thirty works done, three shops along the street busy, two chapters heard.
+    const GROWN = ['painting', 'plant', 'lights', 'fruit', 'guitar', 'bonsai', 'easel', 'trophy'];
+    const from = freshHome({
+      'settings.json': onboarded(lang, { name: sender, scene: 'study', furnish: { cafe: { wall: 'default', curtain: 'default', rug: 'default' }, study: { wall: 'sage', curtain: 'rose', rug: 'plum' } } }),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': memoryOf(30, GROWN, { print: 20, studio: 3, workshop: 2 }, { mechanic: ['2026-10-02', '2026-10-09'] }),
+    });
+    let shop = await launch({ lang, home: from, speed: SPEED });
+    try {
+      await sleep(2000);
+      await notebook(shop);
+      await shop.shot(join(out, 'postcard-notebook.png'));
+      await shop.app.evaluate(({ dialog }, path) => {
+        dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return { canceled: false, filePath: path }; };
+      }, card);
+      await shop.page.locator('.notebook .postcard-send').click();
+      await said(shop, N.postcardSent);
+      const offered = await shop.app.evaluate(() => globalThis.offered);
+      check(offered.endsWith('.nook') && offered.includes(sender), `the dialog offers ${offered}`);
+      await shop.shot(join(out, 'postcard-sent.png'));
+    } finally { await shop.close(); }
+    const text = readFileSync(card, 'utf8');
+    check(!/\d{4}-\d{2}-\d{2}/.test(text) && !text.includes(from.home) && !text.includes('workRoot'), `the postcard carries more than it should: ${text}`);
+
+    // The looker: their own cafe, three works done, nothing furnished.
+    const to = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': memoryOf(3, ['painting', 'plant', 'lights'], {}, {}),
+    });
+    const mine = () => ['memory.json', 'settings.json'].map((f) => readFileSync(join(to.data, f), 'utf8')).join('\n');
+    shop = await launch({ lang, home: to, speed: SPEED, debug: true });
+    try {
+      await sleep(2500);
+      const before = mine();
+      const pick = (path) => shop.app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, path);
+      await notebook(shop);
+      // Not a postcard, and a postcard someone has tampered with: neither opens, and no window comes up.
+      const zip = join(mail, 'other.nook');
+      writeFileSync(zip, Buffer.from('504b0304140000000800', 'hex'));
+      await pick(zip);
+      await shop.page.locator('.notebook .postcard-open').click();
+      await said(shop, N.postcardNotPostcard);
+      const tampered = join(mail, 'tampered.nook');
+      writeFileSync(tampered, text.replace('"done": 30', '"done": 30, "spend": 99'));
+      await pick(tampered);
+      await shop.page.locator('.notebook .postcard-open').click();
+      await said(shop, N.postcardBroken);
+      await shop.shot(join(out, 'postcard-broken.png'));
+      check(shop.app.windows().length === 1, 'a window came up for a file that did not open');
+
+      await pick(card);
+      const opened = shop.app.waitForEvent('window');
+      await shop.page.locator('.notebook .postcard-open').click();
+      const visit = await opened;
+      await visit.waitForSelector('.postcard .postcard-enter');
+      await sleep(1500);
+      check((await visit.locator('.postcard-from').innerText()).includes(sender), 'the postcard does not say who sent it');
+      check((await visit.evaluate(() => typeof window.lamplight)) === 'undefined', 'the postcard window can reach the shop');
+      await visit.screenshot({ path: join(out, 'postcard-card.png') });
+
+      await visit.locator('.postcard .postcard-enter').click();
+      await visit.waitForSelector('.visit-bar');
+      await sleep(1500);
+      check((await visit.locator('.visit-where').innerText()).includes(sender), 'the bar does not say whose shop this is');
+      const inside = await visit.evaluate((grown) => {
+        const { room } = window.visitDebug;
+        return { room: room.room, furnish: room.furnishing, shown: grown.filter((id) => room.growth.shows(id)) };
+      }, GROWN);
+      check(inside.room === 'study', `the visit is in the ${inside.room}`);
+      check(JSON.stringify(inside.furnish) === JSON.stringify({ wall: 'sage', curtain: 'rose', rug: 'plum' }), `furnished as ${JSON.stringify(inside.furnish)}`);
+      check(inside.shown.length === GROWN.length, `only ${inside.shown} of what grew there shows`);
+      // Clicking round their shop changes nothing at home: the staff, the counter, the shelf, the board.
+      const box = await visit.locator('#game canvas').boundingBox();
+      for (const [x, y] of [[0.5, 0.6], [0.2, 0.5], [0.8, 0.4], [0.35, 0.25], [0.6, 0.75]]) {
+        await visit.mouse.click(box.x + box.width * x, box.y + box.height * y);
+        await sleep(300);
+      }
+      await sleep(1000);
+      await visit.screenshot({ path: join(out, 'postcard-inside.png') });
+
+      await visit.evaluate(() => { window.visitDebug.room.setWeather('clear', null, false); window.visitDebug.room.setPeriod('day', true); });
+      await visit.locator('.visit-street').click();
+      await sleep(1500);
+      const street = await visit.evaluate(() => {
+        const g = window.visitDebug.street.growth;
+        return { street: ['lamps', 'bench', 'flowers', 'stall', 'park', 'fountain'].filter((id) => g.shows(id)), print: ['pot', 'sign', 'bunting'].filter((id) => g.shows(id, 'print')) };
+      });
+      check(JSON.stringify(street.street) === '["lamps","bench","flowers","stall"]', `their street shows ${street.street}`);
+      check(JSON.stringify(street.print) === '["pot","sign","bunting"]', `their print shop's front shows ${street.print}`);
+      await visit.screenshot({ path: join(out, 'postcard-street.png') });
+      check((await visit.locator('.visit-street').innerText()) === V.inside, 'the bar does not offer the way back in');
+
+      const closed = visit.waitForEvent('close');
+      // The window goes with the key, so the press itself never hears back.
+      await visit.keyboard.press('Escape').catch(() => {});
+      await closed;
+      await sleep(1000);
+      check(shop.app.windows().length === 1, 'the postcard window is still there');
+      const home = await shop.page.evaluate(() => ({ room: window.lamplightDebug.scene.room, outside: document.body.classList.contains('outside') }));
+      check(home.room === 'cafe' && !home.outside, `home is ${JSON.stringify(home)}`);
+      await shop.page.keyboard.press('Escape');
+      await sleep(800);
+      await shop.shot(join(out, 'postcard-home.png'));
+      check(mine() === before, 'something of the looker\'s own changed');
+    } finally { await shop.close(); }
+  },
+
   /** A meeting during the run: the note reaches the work. */
   async meeting(lang, out) {
     const home = freshHome({ 'settings.json': onboarded(lang) });

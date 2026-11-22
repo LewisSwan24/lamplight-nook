@@ -745,6 +745,18 @@
         "post": "Pip's post office. Anything to send, just tell the shop."
       }
     },
+    "visit": {
+      "title": "{name}'s shop",
+      "someone": "A friend",
+      "from": "A postcard from {name}",
+      "enter": "Go in",
+      "banner": "You're in {name}'s shop",
+      "home": "Go home",
+      "street": "Out to the street",
+      "inside": "Back inside",
+      "onlyHere": "Just {name}'s shop today.",
+      "stamp": "Lamplight Nook"
+    },
     "access": {
       "captionsButton": "Captions",
       "captionsTitle": "Captions",
@@ -943,6 +955,16 @@
       "ledgerCleared": "Cleared. Every commission is still here.",
       "ledgerMinutes": "{m} min {s} s",
       "ledgerSeconds": "{s} s",
+      "postcardTitle": "Postcards",
+      "postcardText": "Send a friend the shop as it looks now. Only the furnishing, what has grown and the street; no works, commissions or spending.",
+      "postcardSend": "Send a postcard",
+      "postcardOpen": "Look at a postcard",
+      "postcardSent": "Saved. Send the file to a friend and they can open it in their own Lamplight Nook.",
+      "postcardFile": "{name}'s shop",
+      "postcardKind": "Lamplight Nook postcard",
+      "postcardBig": "That file is too big to be a postcard. It wasn't opened.",
+      "postcardNotPostcard": "That isn't a Lamplight Nook postcard. It wasn't opened.",
+      "postcardBroken": "This postcard is damaged and can't be opened.",
       "ledgerJoin": ", ",
       "ledgerKind": {
         "net": "connection lost {n}×",

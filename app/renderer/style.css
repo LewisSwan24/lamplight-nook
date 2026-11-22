@@ -384,6 +384,8 @@ body.reduce-motion .tool-btn.calling { animation: none; }
 .notebook-pages:focus-visible { outline: 2px dashed var(--accent); outline-offset: 2px; }
 .notebook-pages ul { margin: 0; padding-left: 18px; }
 .notebook-pages h4 { margin: 6px 0 2px; }
+.notebook-postcard-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 2px; }
+.notebook-postcard-said:empty { display: none; }
 .notebook-date { color: #6b5c4a; font-size: 12px; }
 .notebook-open, .notebook-revise { margin-left: 10px; }
 .notebook-choice { color: #6b5a48; font-size: 14px; padding-left: 4px; }

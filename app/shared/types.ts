@@ -232,6 +232,10 @@ export interface LamplightApi {
   /** A new device to pair: the address with its key, and a QR code of it (SVG). */
   lanPair(): Promise<{ url: string; svg: string } | null>;
   lanRemove(id: string): Promise<LanState>;
+  /** A postcard of the shop (docs/plan-1.5.md E3), saved where the user picks: true once saved, false if cancelled. */
+  sendPostcard(): Promise<boolean>;
+  /** A postcard to look at, picked by the user: 'open' once its window is up, why not otherwise, null if cancelled. */
+  openPostcard(): Promise<'open' | 'big' | 'notPostcard' | 'broken' | null>;
   /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
   relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'taken' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
@@ -543,6 +547,11 @@ export const IPC = {
   lanState: 'lan:state',
   lanPair: 'lan:pair',
   lanRemove: 'lan:remove',
+  sendPostcard: 'postcard:send',
+  openPostcard: 'postcard:open',
+  /** The postcard being looked at, for its own window's preload (sync), and leaving it. */
+  visitCard: 'visit:card',
+  visitHome: 'visit:home',
   restorePrevious: 'commission:restore-previous',
   projectBoard: 'project:board',
   projectTimeline: 'project:timeline',
