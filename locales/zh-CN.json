@@ -699,6 +699,28 @@
       "street": "去街上",
       "back": "回店里"
     },
+    "lan": {
+      "title": "手机和别的电脑",
+      "toggle": "家里网络里配对过的手机和电脑可以连进来看店",
+      "intro": "只在同一个 Wi-Fi 里能用。第一次打开时，Windows 防火墙可能会问一次，选“允许”。",
+      "address": "地址：{address}",
+      "pair": "配对一台新设备",
+      "scan": "用手机扫这个码。码里有这台设备自己的钥匙，别给别人看。",
+      "devices": "配对过的设备",
+      "none": "还没有配对过的设备。",
+      "waiting": "等它扫码",
+      "paired": "已配对",
+      "remove": "取消",
+      "deviceName": "设备 {n}",
+      "off": "没有打开。",
+      "page": {
+        "title": "小灯屋",
+        "connected": "连上店里了。",
+        "pairing": "正在配对……",
+        "refused": "店里不认这台设备了。到电脑上重新配对。",
+        "noKey": "请用电脑上的二维码打开这一页。"
+      }
+    },
     "stories": {
       "title": "{who} · 第{n}章 · {title}",
       "heard": "听完了"

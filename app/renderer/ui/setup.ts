@@ -270,7 +270,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'powerSaving' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused';
+type Switch = 'captions' | 'reducedMotion' | 'powerSaving' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused' | 'lan';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -445,6 +445,44 @@ function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Setting
 
 /** Settings, in the five tabs of docs/information-structure.md: who you are, the shop, sight and sound, working, and about. */
 /** `tab`: open on that tab rather than the one last looked at. */
+/**
+ * Phones and other computers on the home network (docs/plan-1.5.md E1): the switch, where the shop listens, a QR code for
+ * pairing a new device and the paired ones, each with a button to remove it. Refreshed every two seconds while shown,
+ * so a device that has just scanned the code shows as paired.
+ */
+function lanSection(api: LamplightApi, settings: Settings, onChange: (s: Settings) => void): HTMLElement {
+  const L = strings.ui.lan;
+  const body = el('div.lan-body');
+  const qr = el('div.lan-qr', { hidden: true });
+  const render = async () => {
+    const st = await api.lanState();
+    if (!st.on) qr.hidden = true;
+    body.replaceChildren(
+      st.on ? el('div.lan-address', {}, fill(L.address, { address: st.addresses.join(', ') })) : el('div.hint', {}, L.off),
+      st.on ? el('button.lan-pair', { type: 'button', onclick: async () => {
+        const got = await api.lanPair();
+        if (!got) return;
+        // The SVG is drawn by the main process from the address alone (qrcode-generator), never from anything typed.
+        qr.innerHTML = got.svg;
+        qr.dataset.url = got.url;
+        qr.append(el('div.hint', {}, L.scan));
+        qr.hidden = false;
+        void render();
+      } }, L.pair) : '',
+      el('div.lan-devices-label', {}, L.devices),
+      st.devices.length
+        ? el('ul.lan-devices', {}, ...st.devices.map((d) => el('li', { 'data-device': d.id, 'data-paired': String(d.paired) }, `${d.name} · ${d.paired ? L.paired : L.waiting} `,
+          el('button.link', { type: 'button', onclick: async () => { await api.lanRemove(d.id); void render(); } }, L.remove))))
+        : el('div.hint', {}, L.none),
+    );
+  };
+  const timer = window.setInterval(() => { if (!body.isConnected) window.clearInterval(timer); else void render(); }, 2000);
+  void render();
+  // The server starts or stops after the switch is saved.
+  const changed = (s: Settings) => { onChange(s); window.setTimeout(() => void render(), 500); };
+  return el('section.lan', {}, el('h4', {}, L.title), switchRows(api, settings, changed, [['lan', L.toggle]]), el('div.hint', {}, L.intro), body, qr);
+}
+
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void, tab?: SettingsTab) {
   const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name, 'aria-label': S.nameLabel }) as HTMLInputElement;
@@ -477,6 +515,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section.connections-pause', {}, el('h4', {}, strings.ui.connections.settingsLabel),
         switchRows(api, settings, onChange, [['connectionsPaused', strings.ui.connections.pauseAll]]),
         el('div.hint', {}, strings.ui.connections.pauseAllHint)),
+      lanSection(api, settings, onChange),
     ],
     about: [
       el('section', {}, el('h4', {}, S.legalLabel),
