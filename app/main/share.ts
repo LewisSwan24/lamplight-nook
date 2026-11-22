@@ -68,7 +68,9 @@ function local(folder: string, from: string, ref: string): string | null {
   const path = resolve(dirname(from), rel);
   return isInside(folder, path) && statSync(path, { throwIfNoEntry: false })?.isFile() && reallyInside(folder, path) ? path : null;
 }
-const dataUri = (path: string) => `data:${MIME[extname(path).toLowerCase()] ?? 'application/octet-stream'};base64,${readFileSync(path).toString('base64')}`;
+/** A file of the work written into the page. Scrubbed first: once it is base64, the page's own scrub cannot see into it. */
+const dataUri = (folder: string, path: string) =>
+  `data:${MIME[extname(path).toLowerCase()] ?? 'application/octet-stream'};base64,${scrub(readFileSync(path), path, folder).toString('base64')}`;
 
 /** A stylesheet with its own files written in and nothing it would fetch from elsewhere. */
 function css(folder: string, from: string, text: string): string {
@@ -77,7 +79,7 @@ function css(folder: string, from: string, text: string): string {
     .replace(/url\(\s*(['"]?)([^'")]*)\1\s*\)/gi, (whole, _q, ref: string) => {
       if (/^data:/i.test(ref.trim())) return whole;
       const path = local(folder, from, ref.trim());
-      return path ? `url("${dataUri(path)}")` : 'none';
+      return path ? `url("${dataUri(folder, path)}")` : 'none';
     });
 }
 
@@ -100,7 +102,7 @@ export function singlePage(folder: string, file: string): string {
     const href = attr(tag, 'href') ?? '';
     const path = local(folder, from, href);
     if (/\brel\s*=\s*["']?[^"'>]*stylesheet/i.test(tag)) return path ? `<style>${css(folder, path, readFileSync(path, 'utf8'))}</style>` : '';
-    return path ? tag.replace(ATTR('href'), ` href="${dataUri(path)}"`) : '';
+    return path ? tag.replace(ATTR('href'), ` href="${dataUri(folder, path)}"`) : '';
   });
   html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi, (whole, open: string) => {
     const src = attr(open, 'src');
@@ -116,7 +118,7 @@ export function singlePage(folder: string, file: string): string {
       const ref = attr(out, name);
       if (ref === undefined || /^data:/i.test(ref)) continue;
       const path = local(folder, from, ref);
-      out = out.replace(ATTR(name), path ? ` ${name}="${dataUri(path)}"` : '');
+      out = out.replace(ATTR(name), path ? ` ${name}="${dataUri(folder, path)}"` : '');
     }
     out = out.replace(ATTR('srcset'), '');
     const style = attr(out, 'style');

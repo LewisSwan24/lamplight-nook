@@ -117,6 +117,17 @@ describe('what goes out', () => {
     }
     expect(entries.find((e) => e.name === 'logo.png')!.data.equals(PNG)).toBe(true);
   });
+
+  it('wipes the folder and keys from a text file written into a page too, where base64 would hide them', async () => {
+    const { folder } = work();
+    writeFileSync(join(folder, 'mark.svg'), `<svg xmlns="http://www.w3.org/2000/svg"><text>${folder} ${KEY}</text></svg>`);
+    writeFileSync(join(folder, 'index.html'), '<!doctype html><html><body><img src="mark.svg" alt=""></body></html>');
+    const page = (await shareBytes({ folder, main: 'index.html', title: 'Mark', as: 'page' })).data.toString();
+    const svg = Buffer.from(/data:image\/svg\+xml;base64,([^"]+)/.exec(page)![1], 'base64').toString();
+    expect(svg).toContain('<text>');
+    expect(svg).not.toContain(folder);
+    expect(svg).not.toContain('sk-ant');
+  });
 });
 
 describe('saving into a connected cloud folder', () => {
