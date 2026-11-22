@@ -3,6 +3,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { NetworkInterfaceInfo } from 'node:os';
 import nacl from 'tweetnacl';
+import type { DecisionRequest } from '../shared/types';
 import { lanPage } from './lan-page';
 
 /**
@@ -18,6 +19,12 @@ import { lanPage } from './lan-page';
 export type LanEvent = { t: number; kind: string; agent: string; plain: string };
 export type LanDevice = { id: string; name: string; added: string; paired: boolean; lastSeen?: string };
 type Kept = LanDevice & { key: string; counter: number };
+/** A request waiting for an answer, as the phone sees it (E4): never `detail`, which holds the whole command and its paths. */
+export type LanAsk = { id: string; kind: DecisionRequest['kind']; agent: string; title: string; reason?: string; options: { id: string; label: string }[] };
+
+export function toLanAsk(req: DecisionRequest): LanAsk {
+  return { id: req.id, kind: req.kind, agent: req.agent, title: req.title, ...(req.reason ? { reason: req.reason } : {}), options: req.options.map(({ id, label }) => ({ id, label })) };
+}
 
 /** 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16: the home network. Never loopback, link-local or public addresses. */
 export function homeAddresses(nets: NodeJS.Dict<NetworkInterfaceInfo[]>): string[] {
@@ -49,8 +56,10 @@ export class LanServer {
   private pausedUntil = 0;
   private now: () => number;
   private waitMs: number;
+  /** Goes up whenever a request comes or goes, so a phone knows whether its list is current. */
+  private version = 0;
 
-  constructor(private opts: { file: string; addresses: () => string[]; now?: () => number; waitMs?: number; page?: () => string }) {
+  constructor(private opts: { file: string; addresses: () => string[]; now?: () => number; waitMs?: number; page?: () => string; asks?: () => LanAsk[]; answer?: (id: string, choice: string) => boolean }) {
     this.file = opts.file;
     this.now = opts.now ?? Date.now;
     this.waitMs = opts.waitMs ?? WAIT_MS;
@@ -122,6 +131,12 @@ export class LanServer {
     for (const wake of this.waiting) wake();
   }
 
+  /** A request came or went: waiting phones get the new list now. */
+  asksChanged() {
+    this.version++;
+    for (const wake of this.waiting) wake();
+  }
+
   private save() {
     writeFileSync(`${this.file}.tmp`, JSON.stringify(this.kept, null, 1));
     renameSync(`${this.file}.tmp`, this.file);
@@ -134,7 +149,7 @@ export class LanServer {
     };
     if (!this.hosts.has(req.headers.host ?? '')) return end(403);
     if (req.method === 'GET' && req.url === '/') return end(200, (this.opts.page ?? lanPage)(), 'text/html; charset=utf-8');
-    if (req.method !== 'POST' || (req.url !== '/pair' && req.url !== '/poll')) return end(404);
+    if (req.method !== 'POST' || (req.url !== '/pair' && req.url !== '/poll' && req.url !== '/answer')) return end(404);
     const pairing = req.url === '/pair';
     if (pairing && this.now() < this.pausedUntil) return end(429);
     const said = await this.read(req);
@@ -156,12 +171,17 @@ export class LanServer {
       return end(200, JSON.stringify(this.seal(device, { ok: true })), 'application/json');
     }
     this.save();
+    if (req.url === '/answer') {
+      const ok = typeof message.id === 'string' && typeof message.choice === 'string' && (this.opts.answer?.(message.id, message.choice) ?? false);
+      return end(200, JSON.stringify(this.seal(device, { ok })), 'application/json');
+    }
     const after = typeof message.after === 'number' ? message.after : 0;
-    if (!this.events.some((e) => e.seq > after)) await this.waitForNews();
+    // A phone that already has the current list of requests waits for something new; one that has not, gets it now.
+    if (!this.events.some((e) => e.seq > after) && message.asks === this.version) await this.waitForNews();
     // Removed while it waited: nothing more for it.
     if (!this.kept.includes(device)) return end(403);
     const events = this.events.filter((e) => e.seq > after);
-    return end(200, JSON.stringify(this.seal(device, { events, next: this.seq })), 'application/json');
+    return end(200, JSON.stringify(this.seal(device, { events, next: this.seq, asks: this.opts.asks?.() ?? [], version: this.version })), 'application/json');
   }
 
   private waitForNews() {
@@ -190,7 +210,7 @@ export class LanServer {
     });
   }
 
-  private unseal(device: Kept, said: { n: string; b: string }): { c?: unknown; after?: unknown } | null {
+  private unseal(device: Kept, said: { n: string; b: string }): { c?: unknown; after?: unknown; asks?: unknown; id?: unknown; choice?: unknown } | null {
     const nonce = unb64(said.n);
     if (nonce.length !== nacl.secretbox.nonceLength) return null;
     const opened = nacl.secretbox.open(unb64(said.b), nonce, unb64(device.key));

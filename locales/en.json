@@ -713,12 +713,17 @@
       "remove": "Remove",
       "deviceName": "Device {n}",
       "off": "Switched off.",
+      "answeredOnPhone": "(answered on the phone)",
       "page": {
         "title": "Lamplight Nook",
         "connected": "Connected to the shop.",
         "pairing": "Pairing…",
         "refused": "The shop does not know this device any more. Pair it again on the computer.",
-        "noKey": "Open this page from the QR code on the computer."
+        "noKey": "Open this page from the QR code on the computer.",
+        "asks": "Waiting for you",
+        "serious": "Answer this one at the computer.",
+        "remind": "While this page is open, it tells you when something is asked. Closed, it cannot.",
+        "waiting": "A question for you"
       }
     },
     "stories": {

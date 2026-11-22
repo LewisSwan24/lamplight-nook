@@ -4723,6 +4723,53 @@ const SCENARIOS = {
   },
 
   /**
+   * The phone page (docs/plan-1.5.md E4): a paired phone sees what waits for an answer while a commission runs, answers
+   * it there, and the card on the desk is put away; the commission goes on to the end.
+   */
+  async phone(lang, out) {
+    const L = locale(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { chromium } = createRequire(import.meta.url)('playwright');
+    const browser = await chromium.launch({ channel: 'chrome' });
+    const { page } = shop;
+    try {
+      await sleep(2000);
+      await shop.openSettings('work');
+      await page.locator('label.toggle', { hasText: L.ui.lan.toggle }).click();
+      await sleep(1500);
+      await page.locator('.settings .lan-pair').click();
+      await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+      const url = await page.locator('.settings .lan-qr').getAttribute('data-url');
+      const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
+      await phone.goto(url);
+      await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.connected, { timeout: 10_000 });
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      // The first thing the shop asks shows on both: a card on the desk, buttons on the phone.
+      const ask = phone.locator('#asks li:not([data-kind="serious"])').first();
+      await ask.waitFor({ timeout: 60_000 });
+      await page.waitForSelector('.backdrop', { timeout: 10_000 });
+      check((await phone.title()).startsWith(L.ui.lan.page.waiting), `the phone's title does not say something is asked: ${await phone.title()}`);
+      await phone.screenshot({ path: join(out, 'phone-ask.png') });
+      await shop.shot(join(out, 'phone-desk-before.png'));
+      await ask.locator('button').first().click();
+      await page.waitForFunction(() => !document.querySelector('.backdrop'), null, { timeout: 5000 }).catch(() => {});
+      check(await page.locator('.backdrop').count() === 0, 'the card on the desk stayed after the phone answered');
+      await phone.waitForFunction(() => document.querySelectorAll('#asks li').length === 0 || document.getElementById('asking').hidden, null, { timeout: 5000 }).catch(() => {});
+      await shop.shot(join(out, 'phone-desk-after.png'));
+      await phone.screenshot({ path: join(out, 'phone-answered.png') });
+      check((await shop.workUntilDone()).ok, 'the commission did not finish after the phone answered');
+    } finally {
+      await browser.close();
+      await shop.close();
+    }
+  },
+
+  /**
    * The shop on the home network (docs/plan-1.5.md E1): off at first; switched on in settings it shows where it listens,
    * a QR code pairs a phone (a real Chrome at phone size), the phone sees what goes on during a commission, and once the
    * desktop removes it the phone is refused at once.

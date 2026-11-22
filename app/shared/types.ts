@@ -271,6 +271,8 @@ export interface LamplightApi {
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
+  /** A request was answered on a paired phone first (docs/plan-1.5.md E4): its card is put away. */
+  onDecisionSettled(cb: (s: { id: string }) => void): () => void;
   onResult(cb: (r: CommissionResult) => void): () => void;
   /** A finished round's thumbnail, which comes a moment after its result card (road-to-1.3.md C1). */
   onResultPreview(cb: (p: { run: string; png: string }) => void): () => void;
@@ -516,6 +518,7 @@ export const IPC = {
   openOutput: 'commission:open-output',
   openSource: 'commission:open-source',
   decision: 'decision:request',
+  decisionSettled: 'decision:settled',
   answer: 'decision:answer',
   recallForCommission: 'memory:recall-commission',
   recallOnOpen: 'memory:recall-open',
