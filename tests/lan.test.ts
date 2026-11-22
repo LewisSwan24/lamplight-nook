@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import nacl from 'tweetnacl';
 import { afterEach, describe, expect, it } from 'vitest';
-import { homeAddresses, LanServer } from '../app/main/lan';
+import { DecisionBroker } from '../app/main/decision-broker';
+import { homeAddresses, LanServer, toLanAsk } from '../app/main/lan';
+import type { DecisionRequest } from '../app/shared/types';
 
 // The connection on the home network (docs/plan-1.5.md E1): off until switched on, only on home-network addresses,
 // only paired devices, every message sealed with the device's own key.
@@ -148,5 +150,89 @@ describe('the server', () => {
     const again = new LanServer({ file: s.file, addresses: () => ['127.0.0.1'] });
     expect(again.devices().map((d) => d.id)).toEqual([tablet.id]);
     expect(JSON.stringify(again.devices())).not.toContain(tablet.key);
+  });
+});
+
+// E4: what waits for an answer goes to the phone too, and whichever side answers first settles it.
+const permission: Omit<DecisionRequest, 'id'> = {
+  kind: 'permission', agent: 'main', tool: 'Bash', title: 'Run the check', reason: 'It runs a program',
+  detail: 'node C:/Users/someone/secret/check.js', options: [{ id: 'allow', label: 'Allow' }, { id: 'deny', label: 'Deny' }], defaultId: 'allow',
+};
+
+/** A server and a broker wired the way the app wires them. */
+async function wired() {
+  const settled: { id: string; choice: string; by: string }[] = [];
+  let s!: LanServer;
+  const broker = new DecisionBroker(() => s.asksChanged(), (req, choice, by) => settled.push({ id: req.id, choice, by }));
+  s = new LanServer({
+    file: join(mkdtempSync(join(tmpdir(), 'lamplight-lan-')), 'devices.json'), addresses: () => ['127.0.0.1'], now: () => clock, waitMs: 5000,
+    asks: () => broker.open().map(toLanAsk),
+    answer: (id, choice) => broker.answer({ id, choice }, 'phone'),
+  });
+  servers.push(s);
+  const port = await s.start(0);
+  const { id, key } = s.pair('phone');
+  const k = unb64(key);
+  await send(port, '/pair', sealed(id, k, { c: 1 }));
+  return { s, broker, settled, port, id, k };
+}
+
+describe('requests on the phone', () => {
+  it('hands a paired device what waits for an answer, without the command or its paths', async () => {
+    const { broker, port, id, k } = await wired();
+    void broker.ask(permission);
+    const said = open(k, (await send(port, '/poll', sealed(id, k, { c: 2, after: 0 }))).text);
+    expect(said.asks).toEqual([{ id: 'd1', kind: 'permission', agent: 'main', title: 'Run the check', reason: 'It runs a program', options: [{ id: 'allow', label: 'Allow' }, { id: 'deny', label: 'Deny' }] }]);
+    expect(JSON.stringify(said)).not.toContain('secret');
+  });
+
+  it('wakes a waiting poll as soon as a request comes or goes', async () => {
+    const { broker, port, id, k } = await wired();
+    const first = open(k, (await send(port, '/poll', sealed(id, k, { c: 2, after: 0 }))).text);
+    const started = Date.now();
+    setTimeout(() => void broker.ask(permission), 100);
+    const next = open(k, (await send(port, '/poll', sealed(id, k, { c: 3, after: first.next, asks: first.version }))).text);
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(next.asks.map((a: { id: string }) => a.id)).toEqual(['d1']);
+  });
+
+  it('takes an answer from the phone, and the desk hears it was answered there', async () => {
+    const { broker, settled, port, id, k } = await wired();
+    const asked = broker.ask(permission);
+    const got = await send(port, '/answer', sealed(id, k, { c: 2, id: 'd1', choice: 'deny' }));
+    expect(got.status).toBe(200);
+    expect(open(k, got.text)).toEqual({ ok: true });
+    expect(await asked).toBe('deny');
+    expect(settled).toEqual([{ id: 'd1', choice: 'deny', by: 'phone' }]);
+    // The desk was second: too late.
+    expect(broker.answer({ id: 'd1', choice: 'allow' })).toBe(false);
+  });
+
+  it('the desk answering first takes the request off the phone', async () => {
+    const { broker, settled, port, id, k } = await wired();
+    void broker.ask(permission);
+    broker.answer({ id: 'd1', choice: 'allow' });
+    expect(settled).toEqual([{ id: 'd1', choice: 'allow', by: 'desk' }]);
+    expect(open(k, (await send(port, '/answer', sealed(id, k, { c: 2, id: 'd1', choice: 'deny' }))).text)).toEqual({ ok: false });
+    expect(open(k, (await send(port, '/poll', sealed(id, k, { c: 3, after: 0 }))).text).asks).toEqual([]);
+  });
+
+  it('never takes a serious step from the phone', async () => {
+    const { broker, port, id, k } = await wired();
+    void broker.ask({ ...permission, kind: 'serious', defaultId: 'deny' });
+    expect(open(k, (await send(port, '/poll', sealed(id, k, { c: 2, after: 0 }))).text).asks[0].kind).toBe('serious');
+    expect(open(k, (await send(port, '/answer', sealed(id, k, { c: 3, id: 'd1', choice: 'allow' }))).text)).toEqual({ ok: false });
+    expect(broker.waiting).toBe(1);
+  });
+
+  it('takes no answer from a device it does not know, or one played again', async () => {
+    const { broker, port, id, k } = await wired();
+    void broker.ask(permission);
+    expect((await send(port, '/answer', sealed('nobody', k, { c: 2, id: 'd1', choice: 'allow' }))).status).toBe(403);
+    const once = sealed(id, k, { c: 2, id: 'd1', choice: 'deny' });
+    void broker.ask(permission);
+    expect((await send(port, '/answer', once)).status).toBe(200);
+    expect((await send(port, '/answer', { ...once })).status).toBe(403);
+    expect(broker.waiting).toBe(1);
   });
 });

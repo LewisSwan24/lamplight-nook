@@ -8,6 +8,20 @@ import { withPortrait } from './portraits';
 const D = strings.decision;
 /** The confirm button on the serious card can't be clicked for this long, to prevent accidental clicks. */
 export const CONFIRM_DELAY_MS = 1000;
+/** The card on screen for each request, to put away when the phone answered first (docs/plan-1.5.md E4). */
+const showing = new Map<string, () => void>();
+
+/** Put away a request's card without answering it: it was answered elsewhere. False if it was not on screen. */
+export function dismissDecision(id: string): boolean {
+  const put = showing.get(id);
+  put?.();
+  return Boolean(put);
+}
+
+/** Who asks, in the dialog and in the caption log. */
+export function askerOf(req: DecisionRequest, asker?: ActorId): ActorId {
+  return asker ?? (req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng');
+}
 
 /**
  * Show a decision. Questions and ordinary permissions use the watercolor dialog; serious steps use the
@@ -22,6 +36,7 @@ export function showDecision(req: DecisionRequest, named = false, asker?: ActorI
     const backdrop = el('div.backdrop');
     const serious = req.kind === 'serious';
     const close = (choice: string) => {
+      showing.delete(req.id);
       document.removeEventListener('keydown', onKey, true);
       backdrop.remove();
       if (serious) setSerious(false);
@@ -42,6 +57,8 @@ export function showDecision(req: DecisionRequest, named = false, asker?: ActorI
       }
     };
     document.addEventListener('keydown', onKey, true);
+    // Answered elsewhere: the card goes, with no choice of its own.
+    showing.set(req.id, () => close(''));
     const title = named && req.project ? `${req.project.title} \u00B7 ${req.title}` : req.title;
     backdrop.append(req.kind === 'serious' ? seriousCard({ ...req, title }, close) : dialog({ ...req, title }, close, asker));
     layer().append(backdrop);
@@ -53,7 +70,7 @@ export function showDecision(req: DecisionRequest, named = false, asker?: ActorI
 }
 
 function dialog(req: DecisionRequest, close: (id: string) => void, asker?: ActorId) {
-  const actor = asker ?? (req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng');
+  const actor = askerOf(req, asker);
   return el('div.dialog.paper', { role: 'dialog', 'aria-modal': 'true', 'aria-label': req.title },
     withPortrait(actor, 'unsure',
       el('div.who', {}, strings.actors[actor]),

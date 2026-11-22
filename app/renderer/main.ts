@@ -19,7 +19,7 @@ import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { openingTurns, pickLine } from './translator/lines';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar, showCaptionLog } from './ui/captions';
-import { showDecision } from './ui/decision';
+import { askerOf, dismissDecision, showDecision } from './ui/decision';
 import { showMeeting } from './ui/meeting';
 import { updateHotspots } from './ui/hotspots';
 import { formatUsd } from '../shared/money';
@@ -438,14 +438,22 @@ scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 // One at a time, in the order they came, so two cards never sit on top of each other.
 let decisions = Promise.resolve();
+/** Requests a paired phone answered first (E4); one still in the queue is never shown. */
+const answeredOnPhone = new Set<string>();
+window.lamplight.onDecisionSettled(({ id }) => {
+  answeredOnPhone.add(id);
+  dismissDecision(id);
+});
 window.lamplight.onDecision((req) => {
   // A question from a shop out of sight (D3): its front lights up on the toolbar until it is answered or gone into.
   const from = roomOfRun(req.run);
   if (from !== scene.room) setCalling(from);
   decisions = decisions.then(async () => {
     // In a street shop its own person asks (D3).
-    const choice = await showDecision(req, live().length > 1, isScene(from) ? undefined : ROOM_CREW[from][ROOM_CREW[from].length - 1]);
+    const asker = isScene(from) ? undefined : ROOM_CREW[from][ROOM_CREW[from].length - 1];
+    const choice = answeredOnPhone.has(req.id) ? '' : await showDecision(req, live().length > 1, asker);
     setCalling(null, from);
+    if (answeredOnPhone.delete(req.id)) return recordLine(askerOf(req, asker), `${req.title} ${strings.ui.lan.answeredOnPhone}`);
     await window.lamplight.answerDecision({ id: req.id, choice });
   }).catch((e) => append(`decision failed: ${e}`));
 });

@@ -90,6 +90,7 @@ const api: LamplightApi = {
   onRawEvent: (cb) => on(IPC.rawEvent, cb),
   onAiEvent: (cb) => on(IPC.aiEvent, cb),
   onDecision: (cb) => on(IPC.decision, cb),
+  onDecisionSettled: (cb) => on(IPC.decisionSettled, cb),
   onResult: (cb) => on(IPC.result, cb),
   onResultPreview: (cb) => on(IPC.resultPreview, cb),
   onScheduled: (cb) => on(IPC.scheduled, cb),

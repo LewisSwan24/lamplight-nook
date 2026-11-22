@@ -713,12 +713,17 @@
       "remove": "取消",
       "deviceName": "设备 {n}",
       "off": "没有打开。",
+      "answeredOnPhone": "（在手机上答了）",
       "page": {
         "title": "小灯屋",
         "connected": "连上店里了。",
         "pairing": "正在配对……",
         "refused": "店里不认这台设备了。到电脑上重新配对。",
-        "noKey": "请用电脑上的二维码打开这一页。"
+        "noKey": "请用电脑上的二维码打开这一页。",
+        "asks": "等你答的",
+        "serious": "这一步要回到电脑前答。",
+        "remind": "网页开着时，来了请求会提醒你。关了网页就收不到。",
+        "waiting": "有事问你"
       }
     },
     "stories": {

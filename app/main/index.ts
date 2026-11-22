@@ -60,7 +60,7 @@ import { type NookServer, connectionServers } from './nook-tools';
 import { randomUUID } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import qrcode from 'qrcode-generator';
-import { homeAddresses, LanServer } from './lan';
+import { homeAddresses, LanServer, toLanAsk } from './lan';
 import { lanPage } from './lan-page';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -73,11 +73,27 @@ process.on('unhandledRejection', (reason) => log?.error('unhandled rejection', r
 let win: BrowserWindow | null = null;
 
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
+/** After any answer: the tray and the small window calm down once nothing waits, and the rounds list is current. */
+function afterAnswer() {
+  if (!broker.waiting) {
+    tray.calm();
+    mini.feed({ type: 'answered' });
+  }
+  sendRuns();
+}
 const broker = new DecisionBroker((req) => {
   send(IPC.decision, req);
+  lan?.asksChanged();
   mini.feed({ type: 'ask', serious: req.kind === 'serious', run: req.run, project: many() ? req.project?.title : undefined });
   if (tray.attention(req, settings.get().notify)) log?.info('notice', { kind: 'ask', run: req.run });
   sendRuns();
+}, (req, _choice, by) => {
+  lan?.asksChanged();
+  // Answered on the phone first: the card on the desk is put away (E4).
+  if (by === 'phone') {
+    send(IPC.decisionSettled, { id: req.id });
+    afterAnswer();
+  }
 });
 const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
 /** The lamp in the tray. Quitting from its menu closes for real, even with "close to tray" on. */
@@ -1462,11 +1478,7 @@ ipcMain.handle(IPC.dropPending, (_e, run: unknown) => {
 
 ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
   const ok = broker.answer(answer);
-  if (!broker.waiting) {
-    tray.calm();
-    mini.feed({ type: 'answered' });
-  }
-  sendRuns();
+  afterAnswer();
   return ok;
 });
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
@@ -1603,7 +1615,7 @@ app.whenReady().then(() => {
   openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   connections = new ConnectionStore(app.getPath('userData'), safeStorage);
-  lan = new LanServer({ file: join(app.getPath('userData'), 'devices.json'), addresses: () => homeAddresses(networkInterfaces()), page: () => lanPage(strings.ui.lan.page) });
+  lan = new LanServer({ file: join(app.getPath('userData'), 'devices.json'), addresses: () => homeAddresses(networkInterfaces()), page: () => lanPage(strings.ui.lan.page), asks: () => broker.open().map(toLanAsk), answer: (id, choice) => broker.answer({ id, choice }, 'phone') });
   void applyLan(settings.get());
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   prunePreviews(previewsDir());
