@@ -15,6 +15,12 @@
   for each choice. Answer there and the card on the computer goes away, noted in the caption log; whichever side
   answers first counts. A serious step only says to answer it at the computer. While the page is open, its tab title
   changes and the phone buzzes once when something is asked. Commands and folder paths never reach the phone.
+- **Shop postcards.** The notebook can send a postcard: a small `.nook` file with your shop as it looks now, its
+  furnishing, what has grown in it and along the street, and how far the neighbours' stories have got. It holds no
+  works, commissions, spending or dates. A friend picks "Look at a postcard" in their own notebook, sees the card first,
+  then walks round your shop and your street in a window of its own. Nobody there is working, and nothing clicked in it
+  can change their own shop; Escape or "Go home" closes it. A file that is not a postcard, is too big, or holds anything
+  the shop does not know is not opened.
 
 ## Unreleased (1.4)
 

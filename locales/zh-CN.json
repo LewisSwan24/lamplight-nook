@@ -745,6 +745,18 @@
         "post": "阿信的邮局。要寄什么，跟店里说一声就行。"
       }
     },
+    "visit": {
+      "title": "{name}的小店",
+      "someone": "朋友",
+      "from": "来自 {name} 的明信片",
+      "enter": "进去看看",
+      "banner": "你在 {name} 的小店",
+      "home": "回家",
+      "street": "到街上去",
+      "inside": "回店里",
+      "onlyHere": "今天只来看 {name} 的这一间。",
+      "stamp": "小灯屋"
+    },
     "access": {
       "captionsButton": "字幕记录",
       "captionsTitle": "字幕记录",
@@ -943,6 +955,16 @@
       "ledgerCleared": "记录清掉了，做过的委托都还在。",
       "ledgerMinutes": "{m} 分 {s} 秒",
       "ledgerSeconds": "{s} 秒",
+      "postcardTitle": "明信片",
+      "postcardText": "把小店现在的样子寄给朋友。只有摆设、长出来的东西和街上的样子，不带作品、委托和花费。",
+      "postcardSend": "寄一张明信片",
+      "postcardOpen": "看一张明信片",
+      "postcardSent": "存好了。把这个文件发给朋友，他们在自己的小灯屋里打开。",
+      "postcardFile": "{name}的小店",
+      "postcardKind": "小灯屋明信片",
+      "postcardBig": "这个文件太大了，不是明信片，没有打开。",
+      "postcardNotPostcard": "这不是小灯屋的明信片，没有打开。",
+      "postcardBroken": "这张明信片坏了，打不开。",
       "ledgerJoin": "、",
       "ledgerKind": {
         "net": "断网 {n} 次",
