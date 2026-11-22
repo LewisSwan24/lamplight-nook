@@ -145,6 +145,15 @@ describe('the privacy note (road-to-1.3.md C9)', () => {
     expect(note(en)).toMatch(/calendar's address[^\n]*this computer/i);
   });
 
+  it('says what a shared work and a postcard carry, and that the home network is off until switched on (plan-1.5.md E6)', () => {
+    expect(note(zh)).toMatch(/分享[^\n]*只带作品本身/);
+    expect(note(zh)).toMatch(/明信片[^\n]*称呼/);
+    expect(note(zh)).toMatch(/家里网络[^\n]*默认关[^\n]*配对过/);
+    expect(note(en)).toMatch(/shared work[^\n]*the work alone/i);
+    expect(note(en)).toMatch(/postcard[^\n]*name you go by/i);
+    expect(note(en)).toMatch(/home network[^\n]*off[^\n]*paired/i);
+  });
+
   it('lists the connections and the record of outside actions among what stays on the computer', () => {
     expect(note(zh)).toMatch(/连接[^\n]*外部动作的记录/);
     expect(note(en)).toMatch(/connections[^\n]*record of outside actions/i);

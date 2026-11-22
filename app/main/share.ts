@@ -4,6 +4,7 @@ import { dirname, extname, join, resolve } from 'node:path';
 import { folderName } from './commission';
 import { workEntries } from './export';
 import { isInside, reallyInside } from './paths';
+import { LOCALES } from '../shared/i18n';
 import { zip } from './zip';
 
 /**
@@ -16,6 +17,14 @@ import type { ShareFormat } from '../shared/types';
 export type { ShareFormat };
 
 const PAGE = /\.html?$/i;
+
+/**
+ * What the shop put in the work's folder to work from, which is not the work (E6): the list of the user's folder a tidying
+ * commission is given, and what the staff read in from a connected cloud folder. Named in either language, since the
+ * work may have been made in the other one. What the user handed over for the work stays: the work often uses it.
+ */
+const INPUTS = Object.values(LOCALES).flatMap((S) => [S.ui.files.listing, `${S.ui.files.fromFolder}/`]);
+const isInput = (rel: string) => INPUTS.some((n) => (n.endsWith('/') ? rel.startsWith(n) : rel === n));
 /** Documents and pictures that are shared as they are. */
 const AS_IS = /\.(docx|pptx|xlsx|pdf|md|txt|csv|png|jpe?g|gif|webp|svg)$/i;
 
@@ -138,6 +147,6 @@ export async function shareBytes(o: {
   if (o.as === 'pdf' && main && o.pdf) return { name: `${name}.pdf`, data: await o.pdf(o.folder, main) };
   if (o.as === 'page' && main) return { name: `${name}.html`, data: scrub(Buffer.from(singlePage(o.folder, main)), main, o.folder) };
   if (o.as === 'file' && main) return { name: `${name}${extname(main)}`, data: scrub(readFileSync(join(o.folder, main)), main, o.folder) };
-  const entries = workEntries(o.folder, o.touched).map((e) => ({ name: e.name, data: scrub(Buffer.from(e.data), e.name, o.folder) }));
+  const entries = workEntries(o.folder, o.touched).filter((e) => !isInput(e.name)).map((e) => ({ name: e.name, data: scrub(Buffer.from(e.data), e.name, o.folder) }));
   return { name: `${name}.zip`, data: entries.length ? zip(entries) : Buffer.alloc(0) };
 }
