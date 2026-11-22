@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased (1.5)
+
+- **The shop on your home network.** A new switch in Settings, off by default, lets a phone or another computer at
+  home follow what the shop is doing. Switch it on, pair a device by scanning the QR code, and its browser shows what
+  goes on in the shop as it happens. Only addresses on your home network are listened on, each device has a key of its
+  own that encrypts every message, and removing a device in Settings shuts it out at once. For now the page is a plain
+  list; the real phone page comes next.
+
 ## Unreleased (1.4)
 
 - **Out to the street.** A new toolbar button takes you out of the shop onto the town's street, without reloading:

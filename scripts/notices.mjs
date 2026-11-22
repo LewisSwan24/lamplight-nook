@@ -97,6 +97,8 @@ const MISSING_TEXT = {
   'lazy-val': mit('Vladimir Krivosheev'),
   // readable-stream's, through jszip; package.json says MIT, author Julian Gruber.
   isarray: mit('Julian Gruber'),
+  // The settings' pairing QR code (E1); package.json says MIT, and dist/qrcode.js opens with "Copyright (c) 2009 Kazuhiko Arase".
+  'qrcode-generator': mit('2009 Kazuhiko Arase'),
 };
 
 /** A package and everything it depends on at run time (dependencies only: optional and peer ones are not shipped). */
