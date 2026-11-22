@@ -8,7 +8,7 @@ import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, ne
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { shopOf, template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type ShareFormat, type ShareOptions, type ShareResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -39,7 +39,9 @@ import { now, setClock } from './clock';
 import { localMonth } from '../shared/localday';
 import { RoundTally } from './tally';
 import { zip } from './zip';
-import { exportName, workEntries } from './export';
+import { workEntries } from './export';
+import { saveBytes } from './folder-link';
+import { shareBytes, shareFormats } from './share';
 import { imageThumb, pageThumb, pageToPdf, pageToPng, pictureToPng } from './print';
 import { officeServer, prunePreviews, thumbSource } from './office/tools';
 import { howToOpen } from './open-rule';
@@ -1377,31 +1379,36 @@ ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
   log?.info('undo lent work', { done: skipped !== null, skipped: skipped?.length });
   return skipped;
 });
-// "Take it away" from the works shelf (road-to-1.1.md A8): the work becomes a file saved where the user picks, for
-// them to pass on however they like. Nothing is uploaded or sent from here.
-ipcMain.handle(IPC.exportWork, async (_e, id: string, as: 'zip' | 'pdf'): Promise<ExportResult> => {
+// Sharing from the works shelf (road-to-1.1.md A8, docs/plan-1.5.md E2): the work becomes one file, saved where the
+// user picks or into a connected cloud folder, for them to pass on however they like. Nothing is uploaded or sent from here.
+const cloudFolders = () => connections.list().filter((c) => c.kind === 'folder' && !c.paused);
+ipcMain.handle(IPC.shareOptions, (_e, id: string): ShareOptions | null => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  if (!memo?.folder) return null;
+  return { formats: shareFormats(memo.main, memo.form?.template), clouds: cloudFolders().map((c) => ({ id: c.id, label: c.label })) };
+});
+ipcMain.handle(IPC.shareWork, async (_e, id: string, as: ShareFormat, cloud?: string): Promise<ShareResult> => {
   const memo = typeof id === 'string' ? memory.find(id) : undefined;
   const folder = memo?.folder;
-  if (!memo || !folder || !existsSync(folder)) return 'gone';
-  return as === 'pdf' ? exportPdf(memo, folder) : exportZip(memo, folder);
-});
-async function exportZip(memo: CommissionMemo, folder: string): Promise<ExportResult> {
+  if (!memo || !folder || !existsSync(folder) || !shareFormats(memo.main, memo.form?.template).includes(as)) return 'gone';
+  const main = memo.main && join(folder, memo.main);
+  if (as !== 'zip' && (!main || !existsSync(main) || !insideForReal(folder, main))) return 'gone';
   // In a folder the user lent, only what this commission touched: the rest is theirs and stays where it is.
-  const entries = workEntries(folder, memo.form?.inPlace ? memo.touched ?? [] : undefined);
-  if (!entries.length) return 'empty';
-  const to = await saveAs(exportName(memo.title, 'zip'), 'Zip', 'zip');
+  const out = await shareBytes({ folder, main: memo.main, title: memo.title, as, touched: memo.form?.inPlace ? memo.touched ?? [] : undefined, pdf: (at, file) => pageToPdf(at, join(at, file)) });
+  if (!out.data.length) return 'empty';
+  if (typeof cloud === 'string') {
+    const c = cloudFolders().find((x) => x.id === cloud);
+    if (!c) return 'gone';
+    saveBytes(String(c.config.path), String(c.config.saveTo), out.name, out.data);
+    log?.info('work shared', { as, into: 'cloud' });
+    return 'cloud';
+  }
+  const ext = extname(out.name).slice(1);
+  const to = await saveAs(out.name, ext.toUpperCase(), ext);
   if (!to) return 'cancelled';
-  writeFileSync(to, zip(entries));
+  writeFileSync(to, out.data);
   return saved(to);
-}
-async function exportPdf(memo: CommissionMemo, folder: string): Promise<ExportResult> {
-  const page = memo.main && join(folder, memo.main);
-  if (!page || !existsSync(page) || !insideForReal(folder, page)) return 'gone';
-  const to = await saveAs(exportName(memo.title, 'pdf'), 'PDF', 'pdf');
-  if (!to) return 'cancelled';
-  writeFileSync(to, await pageToPdf(folder, page));
-  return saved(to);
-}
+});
 /** Where the user wants the file (the desktop is offered first, as for the diagnostics); null if they cancel. */
 async function saveAs(name: string, kind: string, ext: string): Promise<string | null> {
   const r = await dialog.showSaveDialog(win!, { defaultPath: join(app.getPath('desktop'), name), filters: [{ name: kind, extensions: [ext] }] });

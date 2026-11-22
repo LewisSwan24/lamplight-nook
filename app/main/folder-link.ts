@@ -1,4 +1,4 @@
-import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { SEEN } from '../shared/pictures';
 import { listFolder } from './commission';
@@ -86,6 +86,25 @@ export function saveCopy(root: string, saveTo: string, workDir: string, rel: str
     const to = join(dir, freeName(dir, basename(src)));
     try {
       copyFileSync(src, to, constants.COPYFILE_EXCL);
+      return to;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+    }
+  }
+}
+
+/**
+ * A shared work (docs/plan-1.5.md E2) written into the folder's own subfolder `saveTo`, under a free name: nothing
+ * there is ever replaced, and a subfolder that leads elsewhere gets nothing. Returns where it went.
+ */
+export function saveBytes(root: string, saveTo: string, name: string, data: Buffer): string {
+  const dir = join(root, saveTo);
+  if (lstatSync(dir, { throwIfNoEntry: false })?.isSymbolicLink() || !reallyInside(root, dir)) throw new FolderLinkError(`"${saveTo}" in the connected folder leads somewhere else, so nothing is saved.`);
+  mkdirSync(dir, { recursive: true });
+  for (;;) {
+    const to = join(dir, freeName(dir, basename(name)));
+    try {
+      writeFileSync(to, data, { flag: 'wx' });
       return to;
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;

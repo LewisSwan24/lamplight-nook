@@ -244,7 +244,10 @@ export interface LamplightApi {
    */
   undoWork(id: string): Promise<string[] | null>;
   /** Save a finished work as a file where the user picks: its files in a zip, or its page as a PDF. Nothing is sent anywhere. */
-  exportWork(id: string, as: 'zip' | 'pdf'): Promise<ExportResult>;
+  /** How a work on the shelf can be shared (E2): its formats, the one that suits it first, and the cloud folders it can go into. */
+  shareOptions(id: string): Promise<ShareOptions | null>;
+  /** Share a work as one file: saved where the user picks, or into a connected cloud folder (`cloud`, its id). */
+  shareWork(id: string, as: ShareFormat, cloud?: string): Promise<ShareResult>;
   /** The project board (B2): every project, latest touched first. */
   projectBoard(): Promise<ProjectRow[]>;
   /** A project's timeline, one row per round; null for a project there isn't. */
@@ -505,7 +508,8 @@ export const IPC = {
   chooseSource: 'commission:choose-source',
   chooseLent: 'commission:choose-lent',
   undoWork: 'commission:undo',
-  exportWork: 'shop:export-work',
+  shareOptions: 'shop:share-options',
+  shareWork: 'shop:share-work',
   handOver: 'commission:hand-over',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
@@ -842,6 +846,11 @@ export type ProjectTimeline = {
 
 /** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */
 export type ExportResult = 'saved' | 'cancelled' | 'gone' | 'empty';
+/** How a work goes out (docs/plan-1.5.md E2): a page as a PDF or as one page file, a document or picture as it is, or a zip. */
+export type ShareFormat = 'pdf' | 'page' | 'file' | 'zip';
+export type ShareOptions = { formats: ShareFormat[]; clouds: { id: string; label: string }[] };
+/** `cloud`: it went into a connected cloud folder, for the user to share from there. */
+export type ShareResult = ExportResult | 'cloud';
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
 /** The home-network connection as the settings show it (docs/plan-1.5.md E1). */
