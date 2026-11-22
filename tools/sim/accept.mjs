@@ -3162,7 +3162,8 @@ const SCENARIOS = {
       dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return path ? { canceled: false, filePath: path } : { canceled: true }; };
     }, path);
     const openShelf = async () => {
-      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
       await shop.page.waitForSelector('.shelf-card li.work');
       return shop.page.locator('.shelf-card li.work').first();
     };
@@ -3255,6 +3256,112 @@ const SCENARIOS = {
       check(JSON.stringify(filesIn(lentOut)) === JSON.stringify(touched), `the lent work's zip holds ${filesIn(lentOut).join(', ')}`);
       check(touched.every((f) => readFileSync(join(lentOut, f)).equals(readFileSync(join(site, f)))), 'the lent work\'s files are not the same bytes');
       await shop.shot(join(out, 'export-lent.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Sharing from the works shelf (docs/plan-1.5.md E2): a page goes out as one page file with nothing from outside and no
+   * folder path, and as a PDF into a connected cloud folder; a small tool only as a zip; a Word document as it is.
+   */
+  async share(lang, out) {
+    const S = locale(lang).ui.shelf;
+    const cloud = join(tmpdir(), `lamplight-cloud-${process.pid}-${lang}`);
+    rmSync(cloud, { recursive: true, force: true });
+    mkdirSync(cloud);
+    const folderLink = { id: 'k1763800000000', kind: 'folder', label: 'Cloud', added: '2026-11-22', config: { path: cloud, saveTo: 'Lamplight' } };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'connections.json': JSON.stringify({ connections: [folderLink] }) });
+    const takeTo = join(home.home, 'shared');
+    mkdirSync(takeTo);
+    const harness = (shop) => ({
+      saveAt: (path) => shop.app.evaluate(({ dialog, shell }, path) => {
+        shell.showItemInFolder = () => {};
+        dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return path ? { canceled: false, filePath: path } : { canceled: true }; };
+      }, path),
+      row: async () => {
+        // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+        await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
+        await shop.page.waitForSelector('.shelf-card li.work');
+        return shop.page.locator('.shelf-card li.work').first();
+      },
+      said: (text) => shop.page.waitForFunction((t) => document.querySelector('.shelf-card li.work .work-note')?.textContent === t, text, { timeout: 20_000 }),
+    });
+    let shop = await launch({ lang, home, speed: SPEED });
+    try {
+      const h = harness(shop);
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the page did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      const work = latestCommission(home);
+      // The page names its own folder and loads a picture from the network: neither may go out.
+      writeFileSync(join(work, 'index.html'), readFileSync(join(work, 'index.html'), 'utf8').replace('<main>', `<main><p>${work}</p><img src="https://far.example/x.png" alt="">`));
+      let row = await h.row();
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-pdf').waitFor();
+      const offered = await row.locator('.work-note button').evaluateAll((bs) => bs.map((b) => b.className));
+      check(JSON.stringify(offered.map((c) => c.split(' ').find((x) => x.startsWith('take-')))) === '["take-pdf","take-page","take-zip"]', `a page offers ${offered}`);
+      await shop.shot(join(out, 'share-formats.png'));
+      await row.locator('.work-note .take-page').click();
+      await row.locator('.work-note .share-cloud').waitFor();
+      check((await row.locator('.work-note .share-cloud').innerText()).includes('Cloud'), 'the cloud folder is not offered');
+      await shop.shot(join(out, 'share-where.png'));
+      await h.saveAt(join(takeTo, 'page.html'));
+      await row.locator('.work-note .share-here').click();
+      await h.said(S.taken);
+      const page = readFileSync(join(takeTo, 'page.html'), 'utf8');
+      check(!page.includes(work) && !page.includes(work.replaceAll('\\', '/')), 'the shared page names its folder');
+      check(!/<(img|script|link)\b[^>]*(https?:|\/\/|file:)/i.test(page.replace(/data:[^"')\s]+/g, '')), 'the shared page still loads from outside');
+      check(page.includes('<h1>'), 'the shared page lost its words');
+
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-pdf').click();
+      await row.locator('.work-note .share-cloud').click();
+      await h.said(S.inCloud.replace('{name}', 'Cloud'));
+      const inCloud = readdirSync(join(cloud, 'Lamplight'));
+      check(inCloud.length === 1 && inCloud[0].endsWith('.pdf') && readFileSync(join(cloud, 'Lamplight', inCloud[0])).subarray(0, 5).toString() === '%PDF-', `the cloud folder holds ${inCloud}`);
+      await shop.shot(join(out, 'share-cloud.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(500);
+
+      // A small tool has only one way out: straight to where it goes.
+      await shop.order({ template: 'tool', want: W[lang].tool ?? W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the tool did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      row = await h.row();
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .share-here').waitFor();
+      check(await row.locator('.work-note [class*="take-"]').count() === 0, 'a tool offers a choice of format');
+      await h.saveAt(join(takeTo, 'tool.zip'));
+      await row.locator('.work-note .share-here').click();
+      await h.said(S.taken);
+      check(readFileSync(join(takeTo, 'tool.zip')).subarray(0, 2).toString() === 'PK', 'the tool did not go out as a zip');
+    } finally { await shop.close(); }
+
+    // A Word document goes as it is, here with no cloud folder: the save dialog asks at once.
+    const home2 = freshHome({ 'settings.json': onboarded(lang) });
+    shop = await launch({ lang, home: home2, speed: SPEED, simEnv: { SIM_PLAY: 'office' } });
+    try {
+      const h = harness(shop);
+      await shop.order({ template: 'document', want: W[lang].document });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the document did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      const row = await h.row();
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-file').waitFor();
+      check(await row.locator('.work-note button').first().evaluate((b) => b.classList.contains('take-file')), 'a document does not offer itself as it is first');
+      await h.saveAt(join(takeTo, 'document.docx'));
+      await row.locator('.work-note .take-file').click();
+      await h.said(S.taken);
+      const offeredName = await shop.app.evaluate(() => globalThis.offered);
+      // The office play makes a Word file, a workbook and a deck; whichever is its main file goes as it is.
+      check(/\.(docx|xlsx|pptx)$/.test(offeredName), `the document is offered as ${offeredName}`);
+      check(readFileSync(join(takeTo, 'document.docx')).subarray(0, 2).toString() === 'PK', 'the document is not an Office file');
+      await shop.shot(join(out, 'share-document.png'));
     } finally { await shop.close(); }
   },
 
@@ -5429,7 +5536,8 @@ const SCENARIOS = {
       try {
         await sleep(3000);
         await shop.page.keyboard.press('Escape');
-        await shop.hotspot(shop.L.ui.access.hotspotWorks);
+        // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+        await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
         await shop.page.waitForSelector('.shelf-card li.work');
         const titles = await shop.page.locator('.shelf-card li.work .work-text b').allInnerTexts();
         if (shot) await shop.shot(join(out, shot));
@@ -5995,7 +6103,8 @@ const SCENARIOS = {
       await card.$('button.default').then((b) => b.click());
       await sleep(2500);
       check(await shop.page.locator('.welcome').count() === 0, 'the welcome came up after moving in');
-      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
       await shop.page.waitForSelector('.shelf-card li.work');
       check(await shop.page.locator('.shelf-card li.work').count() === 3, `the shelf shows ${await shop.page.locator('.shelf-card li.work').count()} of 3 works`);
       const shelf = await shop.page.locator('.shelf-card').innerText();

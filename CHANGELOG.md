@@ -6,6 +6,11 @@
   home follow what the shop is doing. Switch it on, pair a device by scanning the QR code, and its browser shows what
   goes on in the shop as it happens. Only addresses on your home network are listened on, each device has a key of its
   own that encrypts every message, and removing a device in Settings shuts it out at once.
+- **Share a work.** "Take it away" on the works shelf is now "Share", and offers the format that suits the work
+  first: a page as a PDF or as one page file with its pictures and styles inside, a document or picture as it is,
+  anything else as a zip; a small tool always goes whole. With a cloud folder connected, the file can go straight into
+  it, for you to share from there. What goes out is the work alone: the folder it was made in, your home folder and
+  anything like a key are wiped from the text in it.
 - **Answer from your phone.** The paired page now shows what the shop is waiting for you to decide, with a button
   for each choice. Answer there and the card on the computer goes away, noted in the caption log; whichever side
   answers first counts. A serious step only says to answer it at the computer. While the page is open, its tab title

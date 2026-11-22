@@ -3,7 +3,7 @@ import { WORK_ICONS, type WorkIcon } from '../../shared/growth';
 import { fill, locale, strings } from '../../shared/i18n';
 import { monthName } from '../../shared/localday';
 import { byMonth, filterWorks, kindsOf, type ShelfFilter } from '../../shared/shelf';
-import type { LamplightApi, Work } from '../../shared/types';
+import type { LamplightApi, ShareFormat, ShareOptions, Work } from '../../shared/types';
 import { el } from './dom';
 import { closeButton, replaceOpen } from './panels';
 import { withPortrait } from './portraits';
@@ -37,19 +37,30 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
       if (found === 'broad') note.replaceChildren(W.relinkBroad, ' ', note.querySelector('button')!);
       if (found === 'taken') note.replaceChildren(W.relinkTaken, ' ', note.querySelector('button')!);
     } }, W.relink)] : []));
-    // Taken away as a file the user saves and passes on themselves (road-to-1.1.md A8). A cancelled save changes nothing.
-    const takeAs = async (as: 'zip' | 'pdf') => {
-      const done = await api.exportWork(w.id, as);
+    // Shared as one file the user saves, or puts in a connected cloud folder, and passes on themselves (road-to-1.1.md
+    // A8, docs/plan-1.5.md E2). A cancelled save changes nothing.
+    const shareAs = async (as: ShareFormat, cloud?: ShareOptions['clouds'][number]) => {
+      const done = await api.shareWork(w.id, as, cloud?.id);
       if (done === 'gone') showGone();
       if (done === 'empty') note.textContent = W.takeEmpty;
       if (done === 'saved') note.textContent = W.taken;
+      if (done === 'cloud') note.textContent = fill(W.inCloud, { name: cloud!.label });
     };
-    // A page can also go as a PDF, so the user picks which; anything else is a zip straight away.
-    const take = () => {
-      if (!w.page) return void takeAs('zip');
-      note.replaceChildren(W.takeAs, ' ',
-        el('button.link.take-zip', { type: 'button', onclick: () => takeAs('zip') }, W.takeZip), ' ',
-        el('button.link.take-pdf', { type: 'button', onclick: () => takeAs('pdf') }, W.takePdf));
+    // With a cloud folder connected, the user says where it goes; otherwise the save dialog asks.
+    const where = (as: ShareFormat, clouds: ShareOptions['clouds']) => {
+      if (!clouds.length) return void shareAs(as);
+      note.replaceChildren(W.shareWhere, ' ',
+        el('button.link.share-here', { type: 'button', onclick: () => shareAs(as) }, W.shareHere),
+        ...clouds.flatMap((c) => [' ', el('button.link.share-cloud', { type: 'button', onclick: () => shareAs(as, c) }, fill(W.shareInto, { name: c.label }))]));
+      note.querySelector('button')!.focus();
+    };
+    // The format that suits the work comes first; with only one, there is nothing to pick.
+    const take = async () => {
+      const o = await api.shareOptions(w.id);
+      if (!o) return showGone();
+      if (o.formats.length === 1) return where(o.formats[0], o.clouds);
+      const label = { pdf: W.takePdf, page: W.takePage, file: W.takeFile, zip: W.takeZip };
+      note.replaceChildren(W.takeAs, ...o.formats.flatMap((f) => [' ', el(`button.link.take-${f}`, { type: 'button', onclick: () => where(f, o.clouds) }, label[f])]));
       note.querySelector('button')!.focus();
     };
     return el('li.work', {},
