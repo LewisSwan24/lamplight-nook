@@ -179,7 +179,11 @@ export function lanPage(words: LanWords = ENGLISH): string {
   }
   if (me.paired) return poll();
   state.textContent = W.pairing;
-  post('/pair', {}).then(function () { me.paired = true; localStorage.setItem('nook', JSON.stringify(me)); state.textContent = W.connected; poll(); }, function () { state.textContent = W.refused; });
+  // The QR code's key works once: from here on this device uses the key of its own the shop hands back (E7).
+  post('/pair', {}).then(function (r) {
+    me.key = r.key; key = unb64(r.key); me.paired = true; localStorage.setItem('nook', JSON.stringify(me));
+    state.textContent = W.connected; poll();
+  }, function () { state.textContent = W.refused; });
 })();
 </script></body></html>`;
 }

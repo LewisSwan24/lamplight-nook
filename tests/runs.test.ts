@@ -106,3 +106,17 @@ describe('run ids', () => {
     expect(runId(1600000000000)).toBe('r1700000000002');
   });
 });
+
+// E7: a device removed while what it handed in still waits; that is called off at once, as if pressed at the desk.
+describe('a removed device', () => {
+  it('has what it left in the queue called off, and nothing else', () => {
+    const q = new RunQueue();
+    q.add(ticket('a', { person: 'd1' }));
+    q.add(ticket('b'));
+    q.add(ticket('c', { person: 'd1' }));
+    q.add(ticket('d', { person: 'd2' }));
+    expect(ids(q.cancelFrom('d1'))).toEqual(['a', 'c']);
+    expect(ids([...q.queued])).toEqual(['b', 'd']);
+    expect(q.cancelFrom('d1')).toEqual([]);
+  });
+});

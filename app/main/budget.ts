@@ -15,6 +15,10 @@ export const WARN_SHARE = 0.8;
 export type CapKind = 'month' | 'project' | 'person';
 /** The caps on a round, in US dollars; 0 or absent is no cap. */
 export type Caps = { roundUsd: number; monthUsd: number; projectUsd?: number; personUsd?: number };
+/** Next to nothing, so a cap of it lets nothing start: what a device removed from the shop may still spend (E5, E7). */
+export const GONE_USD = 0.000001;
+/** A person's own cap from their paired device: 0 leaves them to the shop's caps; a device since removed fails closed. */
+export const personCapUsd = (device?: { capUsd: number }): number => (device ? device.capUsd : GONE_USD);
 /** What the ledger says was spent this month, on the project, and by the person who handed the round in. */
 export type Spent = { month: number; project: number; person?: number };
 /** A round that may not start: the cap it ran into, what was spent under it and what is left (never below nothing). */

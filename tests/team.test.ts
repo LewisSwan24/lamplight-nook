@@ -60,8 +60,9 @@ async function shop() {
   let c = 1;
   const device = async (name: string) => {
     const { id, key } = s.pair(name);
-    const k = unb64(key);
-    await send(port, '/pair', sealed(id, k, { c: c++ }));
+    // The QR code's key works once; the shop hands back the device's own (E7).
+    const code = unb64(key);
+    const k = unb64(open(code, (await send(port, '/pair', sealed(id, code, { c: c++ }))).text).key);
     return { id, say: (path: string, message: object) => send(port, path, sealed(id, k, { c: c++, ...message })), open: (text: string) => open(k, text) };
   };
   return { s, broker, port, file, commissions, device };

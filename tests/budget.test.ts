@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MIN_START_USD, MONTH_CAP_DEFAULT, Reservations, startingMonthCap, warnings } from '../app/main/budget';
+import { MIN_START_USD, MONTH_CAP_DEFAULT, personCapUsd, Reservations, startingMonthCap, warnings } from '../app/main/budget';
 import { MemoryStore } from '../app/main/memory';
 import { SettingsStore } from '../app/main/settings';
 import { SpendLedger } from '../app/main/spend';
@@ -221,5 +221,18 @@ describe('the monthly cap in settings', () => {
     const file = fresh();
     writeFileSync(file, JSON.stringify({ monthCapUsd: 'lots' }));
     expect(new SettingsStore(file, '/docs', () => 50).get().monthCapUsd).toBe(50);
+  });
+});
+
+// E7: what a person may spend comes from their paired device; one removed since spends nothing (fails closed).
+describe('a person cap from a device', () => {
+  const spent = { month: 0, project: 0, person: 0 };
+  it('starts nothing for a device that is gone', () => {
+    const caps = { roundUsd: 2, monthUsd: 100, personUsd: personCapUsd(undefined) };
+    expect(new Reservations().reserve('r1', undefined, caps, spent, 'gone')).toMatchObject({ refused: { cap: 'person' } });
+  });
+  it('leaves a device with no cap of its own to the shop caps, and holds one that has a cap to it', () => {
+    expect(new Reservations().reserve('r1', undefined, { roundUsd: 2, monthUsd: 100, personUsd: personCapUsd({ capUsd: 0 }) }, spent, 'd1')).toMatchObject({ usd: 2, by: 'round' });
+    expect(new Reservations().reserve('r1', undefined, { roundUsd: 2, monthUsd: 100, personUsd: personCapUsd({ capUsd: 1 }) }, spent, 'd1')).toMatchObject({ usd: 1, by: 'person' });
   });
 });

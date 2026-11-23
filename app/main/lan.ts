@@ -13,7 +13,8 @@ import { lanPage } from './lan-page';
  * only travels in the QR code's #fragment; every message either way is sealed with it (tweetnacl secretbox), because a
  * browser gives no crypto.subtle to a page on http://192.168.x.x. A message carries a counter that only goes up, so none
  * can be played again. The Host header must be one of our own addresses, so no other web page can reach in through the
- * browser. Five wrong pairing tries close pairing for a minute.
+ * browser. Five wrong pairing tries close pairing for a minute. A QR code pairs once, within ten minutes, and the device
+ * gets a fresh key of its own as it pairs (E7).
  */
 
 /** What the shop tells paired devices: a slice of each event the window gets, never paths or the raw stream. */
@@ -53,9 +54,22 @@ export type { LanRole };
 
 const PAIR_TRIES = 5;
 const PAIR_PAUSE_MS = 60_000;
+/** A QR code nobody scanned stops pairing after this long (E7); pairing again on the computer makes a new one. */
+const PAIR_FRESH_MS = 10 * 60_000;
 const WAIT_MS = 25_000;
 const KEEP_EVENTS = 200;
 const MAX_BODY = 16_384;
+/** A request still arriving after this long is cut off (E7). The long poll waits on our side, after it has arrived. */
+const SLOW_MS = 10_000;
+/**
+ * What the page may do (E7): its own inline script and style, talk only to the shop that served it, never be framed by
+ * another page (which could press its buttons), and send no address along when it is left.
+ */
+const PAGE_HEADERS = {
+  'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+};
 const b64 = (u: Uint8Array) => Buffer.from(u).toString('base64');
 const unb64 = (s: string) => new Uint8Array(Buffer.from(s, 'base64'));
 
@@ -72,17 +86,19 @@ export class LanServer {
   private pausedUntil = 0;
   private now: () => number;
   private waitMs: number;
+  private slowMs: number;
   /** Goes up whenever a request comes or goes, so a phone knows whether its list is current. */
   private version = 0;
 
   constructor(private opts: {
-    file: string; addresses: () => string[]; now?: () => number; waitMs?: number; page?: () => string; asks?: () => LanAsk[]; answer?: (id: string, choice: string) => boolean;
+    file: string; addresses: () => string[]; now?: () => number; waitMs?: number; slowMs?: number; page?: () => string; asks?: () => LanAsk[]; answer?: (id: string, choice: string) => boolean;
     /** A commission handed in from a device allowed to (E5). */
     commission?: (who: { id: string; name: string }, form: FarForm) => Promise<FarTaken>;
   }) {
     this.file = opts.file;
     this.now = opts.now ?? Date.now;
     this.waitMs = opts.waitMs ?? WAIT_MS;
+    this.slowMs = opts.slowMs ?? SLOW_MS;
     const read = existsSync(this.file) ? (JSON.parse(readFileSync(this.file, 'utf8')) as Partial<Kept>[]) : [];
     this.kept = read.map((d) => ({ ...d, role: LAN_ROLES.includes(d.role!) ? d.role! : 'approve', capUsd: typeof d.capUsd === 'number' ? d.capUsd : 0 }) as Kept);
   }
@@ -101,7 +117,9 @@ export class LanServer {
     await this.stop();
     this.port = port;
     for (const address of this.opts.addresses()) {
-      const server = createServer((req, res) => void this.handle(req, res));
+      // A request that dribbles in (a slow sender holding connections open) is cut off once it has taken too long.
+      const slow = { requestTimeout: this.slowMs, headersTimeout: this.slowMs, connectionsCheckingInterval: Math.min(1000, this.slowMs / 3) };
+      const server = createServer(slow, (req, res) => void this.handle(req, res));
       await new Promise<void>((resolve, reject) => {
         server.once('error', reject);
         server.listen(this.port, address, () => resolve());
@@ -181,19 +199,23 @@ export class LanServer {
   }
 
   private async handle(req: IncomingMessage, res: ServerResponse) {
-    const end = (status: number, body = '', type = 'text/plain') => {
-      res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+    const end = (status: number, body = '', type = 'text/plain', more = {}) => {
+      // Cut off while it arrived (too large, too slow): there is nobody left to answer.
+      if (res.socket?.destroyed) return;
+      res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...more });
       res.end(body);
     };
     if (!this.hosts.has(req.headers.host ?? '')) return end(403);
-    if (req.method === 'GET' && req.url === '/') return end(200, (this.opts.page ?? lanPage)(), 'text/html; charset=utf-8');
+    if (req.method === 'GET' && req.url === '/') return end(200, (this.opts.page ?? lanPage)(), 'text/html; charset=utf-8', PAGE_HEADERS);
     if (req.method !== 'POST' || !['/pair', '/poll', '/answer', '/commission'].includes(req.url ?? '')) return end(404);
     const pairing = req.url === '/pair';
     if (pairing && this.now() < this.pausedUntil) return end(429);
     const said = await this.read(req);
     const device = said && this.kept.find((d) => d.id === said.id);
     const message = device && said ? this.unseal(device, said) : null;
-    if (!device || !message || typeof message.c !== 'number' || message.c <= device.counter || (!pairing && !device.paired)) {
+    // A QR code pairs once, and only while it is fresh (E7): a photo of it, or the address copied, is no use later.
+    const spent = pairing && device && (device.paired || this.now() - Date.parse(device.added) > PAIR_FRESH_MS);
+    if (!device || !message || typeof message.c !== 'number' || message.c <= device.counter || (!pairing && !device.paired) || spent) {
       if (pairing && ++this.wrongTries >= PAIR_TRIES) {
         this.wrongTries = 0;
         this.pausedUntil = this.now() + PAIR_PAUSE_MS;
@@ -203,10 +225,14 @@ export class LanServer {
     device.counter = message.c;
     device.lastSeen = new Date(this.now()).toISOString();
     if (pairing) {
+      // The device's own key from now on, sent sealed with the code's; the key in the QR code opens nothing after this.
+      const key = b64(nacl.randomBytes(nacl.secretbox.keyLength));
+      const sealed = this.seal(device, { ok: true, key });
+      device.key = key;
       device.paired = true;
       this.wrongTries = 0;
       this.save();
-      return end(200, JSON.stringify(this.seal(device, { ok: true })), 'application/json');
+      return end(200, JSON.stringify(sealed), 'application/json');
     }
     this.save();
     const reply = (message: unknown) => end(200, JSON.stringify(this.seal(device, message)), 'application/json');
@@ -255,6 +281,8 @@ export class LanServer {
           resolve(null);
         }
       });
+      // Cut off before it all came (too slow): nothing to read, and nothing left waiting on it.
+      req.on('close', () => resolve(null));
     });
   }
 
