@@ -25,6 +25,11 @@
   from: the list of your folder made for a tidying commission, and the files the staff read in from a connected cloud
   folder. What you handed over yourself still goes with it. The privacy note in the app and the Store listing now say
   what a shared work and a postcard carry, and that the home-network page is off until you switch it on.
+- **One shop, several people.** Each paired device now has a role, set in Settings: watch only, answer requests, or
+  hand in commissions too. A device that may hand in commissions shows a short slip on its page: what you would like
+  made and which kind, for the kinds that need no file. It queues like one started at the desk, and its result card
+  shows on the computer. You can give each such device a monthly limit of its own, under the shop's. The monthly
+  ledger in Settings shows who spent what: the computer itself, each device by name, and "a removed device".
 
 ## Unreleased (1.4)
 
