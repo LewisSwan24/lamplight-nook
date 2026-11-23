@@ -52,7 +52,7 @@ h1{font-size:24px;margin:0 0 8px}h2{font-size:17px;margin:16px 0 8px}
 #asks svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 #events{list-style:none;padding:0;margin:12px 0 0}#events li{padding:6px 0;border-bottom:1px solid #e0cfae}
 #hand-in{background:#fbf5e8;border:2px solid #8a6a4a;border-radius:6px;padding:12px;margin:12px 0 0;max-width:560px}
-#hand-in label{display:block;font-size:14px;margin:8px 0 4px}#hand-in textarea,#hand-in select{font:inherit;width:100%;box-sizing:border-box;border:1px solid #8a6a4a;border-radius:4px;background:#fffdf7;padding:6px}
+#hand-in h2{margin-top:0}#hand-in label{display:block;font-size:14px;margin:8px 0 4px}#hand-in textarea,#hand-in select{font:inherit;width:100%;box-sizing:border-box;border:1px solid #8a6a4a;border-radius:4px;background:#fffdf7;padding:6px}
 #hand-in textarea{min-height:88px}#hand-in button{font:inherit;min-height:44px;margin-top:10px;padding:6px 16px;border:2px solid #8a6a4a;border-radius:6px;background:#e3ecd2;color:#3b2a1e}
 #said{font-size:14px;margin:8px 0 0}`;
 

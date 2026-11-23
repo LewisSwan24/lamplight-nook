@@ -607,7 +607,9 @@ function projectOf(job: Job, again: boolean): Project | undefined {
 }
 /** A paired device's person, for their own cap (docs/plan-1.5.md E5); a removed device has none. */
 const personOf = (id?: string) => (id ? lan?.devices().find((d) => d.id === id) : undefined);
-const capsFor = (project?: Project, person?: string): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd, personUsd: personOf(person)?.capUsd });
+// A device removed while its commission waited in the queue: what it handed in is not spent on (E5).
+const GONE_USD = 0.000001;
+const capsFor = (project?: Project, person?: string): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd, personUsd: person ? (personOf(person)?.capUsd ?? GONE_USD) : undefined });
 /** What the ledger has this month, on the project (every folder its commissions worked in, all sessions) and by the person. */
 function spentOn(project?: Project, person?: string): Spent {
   const folders = project ? projectFolders(project, memory.get().commissions) : [];

@@ -5065,6 +5065,104 @@ const SCENARIOS = {
   },
 
   /**
+   * One shop, several people (docs/plan-1.5.md E5): a phone set to watch only sees what is asked but has nothing to press,
+   * a computer's browser set to hand in commissions sends one, the owner answers at the desk, the work is made, and the
+   * settings ledger shows who spent what. A monthly limit for the browser's person turns the next one away at once.
+   */
+  async team(lang, out) {
+    const L = locale(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    // A play that asks a question, so the phone has something it cannot answer.
+    let shop = await launch({ lang, home, speed: SPEED, scenario: 'projectmemo' });
+    const { chromium } = createRequire(import.meta.url)('playwright');
+    const browser = await chromium.launch({ channel: 'chrome' });
+    let { page } = shop;
+    const pair = async (context) => {
+      await page.locator('.settings .lan-pair').click();
+      await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+      const url = await page.locator('.settings .lan-qr').getAttribute('data-url');
+      const p = await context.newPage();
+      await p.goto(url);
+      await p.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.connected, { timeout: 10_000 });
+      return p;
+    };
+    try {
+      await sleep(2000);
+      await shop.openSettings('work');
+      await page.locator('label.toggle', { hasText: L.ui.lan.toggle }).click();
+      await sleep(1500);
+      const phone = await pair(await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true }));
+      const desk = await pair(await browser.newContext({ viewport: { width: 1024, height: 720 } }));
+      await sleep(2500);
+      const rows = page.locator('.settings .lan-devices li');
+      check(await rows.count() === 2, `${await rows.count()} devices listed`);
+      check(await page.locator('.settings .lan-devices li[data-role="approve"]').count() === 2, 'a new device does not start as one that may answer');
+      await rows.nth(0).locator('select.lan-role').selectOption('watch');
+      await sleep(500);
+      await rows.nth(1).locator('select.lan-role').selectOption('commission');
+      await sleep(500);
+      await rows.nth(1).locator('select.lan-cap').selectOption('2');
+      await sleep(500);
+      await page.locator('.settings .lan-devices').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'team-settings.png'));
+      const devices = JSON.parse(readFileSync(join(home.data, 'devices.json'), 'utf8'));
+      check(devices.map((d) => d.role).join() === 'watch,commission' && devices[1].capUsd === 2, `devices kept as ${JSON.stringify(devices.map((d) => [d.role, d.capUsd]))}`);
+      const deskName = devices[1].name;
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      // The phone learns it only watches; the browser gets the slip.
+      await phone.waitForFunction(() => document.body.dataset.role === 'watch', null, { timeout: 10_000 });
+      check(await phone.locator('#hand-in').isHidden(), 'a phone that only watches can hand in commissions');
+      await desk.waitForFunction(() => document.body.dataset.role === 'commission', null, { timeout: 10_000 });
+      await desk.locator('#want').fill(lang === 'zh-CN' ? '做一个记每天喝了几杯水的小网页' : 'A small page to count the glasses of water I drink each day');
+      await desk.locator('#kind').selectOption('page');
+      await desk.screenshot({ path: join(out, 'team-browser-slip.png') });
+      await desk.locator('#send').click();
+      await desk.waitForFunction((w) => document.getElementById('said')?.textContent === w, L.ui.lan.page.sent, { timeout: 10_000 });
+      await desk.screenshot({ path: join(out, 'team-browser-sent.png') });
+
+      // What the shop asks shows on the phone with nothing to press; the owner answers at the desk.
+      const ask = phone.locator('#asks li').first();
+      await ask.waitFor({ timeout: 60_000 });
+      check(await ask.locator('button').count() === 0, 'a phone that only watches has buttons to answer with');
+      await phone.screenshot({ path: join(out, 'team-phone-watching.png') });
+      check((await shop.workUntilDone()).ok, 'the commission handed in from the browser did not finish');
+      await shop.shot(join(out, 'team-result.png'));
+
+      const spend = JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+      check(spend.some((e) => e.who === devices[1].id), `the round was not put to the browser's person: ${JSON.stringify(spend)}`);
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await shop.openSettings('work');
+      await page.locator('.spend-months summary').click();
+      await page.waitForSelector('.spend-book tr.spend-person', { timeout: 5000 });
+      const people = await page.locator('.spend-book tr.spend-person').allInnerTexts();
+      check(people.some((r) => r.includes(deskName)), `the ledger does not name the browser's person: ${people.join(' | ')}`);
+      await page.locator('.spend-months').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'team-ledger.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      // Past its person's limit, the next one is turned away at the door and nothing starts. The ledger is read as the
+      // shop opens, so the extra spending goes in while it is closed; the browser finds the shop again by itself.
+      await shop.close();
+      const kept = JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+      writeFileSync(join(home.data, 'spend.json'), JSON.stringify([...kept, { key: 'C:/w/far|s', usd: 2.5, month: kept[0].month, who: devices[1].id }]));
+      shop = await launch({ lang, home, speed: SPEED });
+      page = shop.page;
+      await sleep(3000);
+      await desk.locator('#want').fill('one more');
+      await desk.locator('#send').click();
+      await desk.waitForFunction((w) => document.getElementById('said')?.textContent === w, L.ui.lan.page.cap, { timeout: 10_000 });
+      await desk.screenshot({ path: join(out, 'team-browser-cap.png') });
+    } finally {
+      await browser.close();
+      await shop.close();
+    }
+  },
+
+  /**
    * The town's street (road-to-1.4.md D1): out of the door from the toolbar and back in on the same page, along the
    * street with the arrow keys, a front not open yet saying so, back in through the shop's own front and with Escape.
    * By day, by night and in a small window.
