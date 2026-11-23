@@ -2,7 +2,7 @@ import { fill, locale, strings } from '../../shared/i18n';
 import { monthName } from '../../shared/localday';
 import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
-import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
+import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type LanRole, type LanState, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closeButton, closePanel, nameCard, replaceOpen } from './panels';
 import { el, layer } from './dom';
@@ -296,10 +296,13 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
     if (!months.open) return;
     const list = await api.spendMonths();
     const total = list.reduce((sum, m) => sum + m.usd, 0);
-    book.replaceChildren(...list.map((m) => el('tr', {},
+    book.replaceChildren(...list.flatMap((m) => [el('tr', {},
       el('th', { scope: 'row' }, monthName(m.month, locale())),
       el('td', {}, m.commissions === 1 ? S.spendBookOne : fill(S.spendBookCount, { n: String(m.commissions) })),
-      el('td', {}, m.estimated ? fill(S.spendBookEstimated, { cost: formatUsd(m.usd), estimated: formatUsd(m.estimated) }) : formatUsd(m.usd)))),
+      el('td', {}, m.estimated ? fill(S.spendBookEstimated, { cost: formatUsd(m.usd), estimated: formatUsd(m.estimated) }) : formatUsd(m.usd))),
+      // Who spent it, when someone other than the owner did (E5).
+      ...(m.people ?? []).map((p) => el('tr.spend-person', { 'data-who': p.who ?? '' },
+        el('td', {}), el('th', { scope: 'row' }, p.who === '' ? S.spendBookOwner : p.who ?? S.spendBookRemoved), el('td', {}, formatUsd(p.usd))))]),
     el('tr.spend-total', {}, el('th', { scope: 'row', colspan: 2 }, S.spendBookTotal), el('td', {}, formatUsd(total))));
     if (!list.length) book.replaceChildren(el('tr', {}, el('th', {}, S.spendBookEmpty)));
   } }, el('summary', {}, S.spendBook), book) as HTMLDetailsElement;
@@ -450,6 +453,22 @@ function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Setting
  * pairing a new device and the paired ones, each with a button to remove it. Refreshed every two seconds while shown,
  * so a device that has just scanned the code shows as paired.
  */
+/**
+ * What a paired device may do, and for one that may hand in commissions, what its person may spend in a month
+ * (docs/plan-1.5.md E5). The server holds the device to both; this is only where the owner sets them.
+ */
+function deviceChoices(api: LamplightApi, d: LanState['devices'][number], changed: () => void): HTMLElement {
+  const L = strings.ui.lan;
+  const role = el('select.lan-role', { 'aria-label': `${L.roleLabel} \u00B7 ${d.name}` }, ...(['watch', 'approve', 'commission'] as const).map((r) =>
+    el('option', { value: r, selected: r === d.role }, L.roles[r]))) as HTMLSelectElement;
+  role.addEventListener('change', async () => { await api.lanSetRole(d.id, role.value as LanRole); changed(); });
+  if (d.role !== 'commission') return el('span.lan-choices', {}, role);
+  const cap = el('select.lan-cap', { 'aria-label': `${L.capLabel} \u00B7 ${d.name}` }, ...[0, 1, 2, 5, 10].map((usd) =>
+    el('option', { value: usd, selected: usd === d.capUsd }, usd ? fill(L.capEach, { cap: formatUsd(usd) }) : L.capNone))) as HTMLSelectElement;
+  cap.addEventListener('change', async () => { await api.lanSetCap(d.id, Number(cap.value)); changed(); });
+  return el('span.lan-choices', {}, role, ' ', cap);
+}
+
 function lanSection(api: LamplightApi, settings: Settings, onChange: (s: Settings) => void): HTMLElement {
   const L = strings.ui.lan;
   const body = el('div.lan-body');
@@ -471,12 +490,14 @@ function lanSection(api: LamplightApi, settings: Settings, onChange: (s: Setting
       } }, L.pair) : '',
       el('div.lan-devices-label', {}, L.devices),
       st.devices.length
-        ? el('ul.lan-devices', {}, ...st.devices.map((d) => el('li', { 'data-device': d.id, 'data-paired': String(d.paired) }, `${d.name} · ${d.paired ? L.paired : L.waiting} `,
+        ? el('ul.lan-devices', {}, ...st.devices.map((d) => el('li', { 'data-device': d.id, 'data-paired': String(d.paired), 'data-role': d.role }, `${d.name} · ${d.paired ? L.paired : L.waiting} `,
+          deviceChoices(api, d, () => void render()),
           el('button.link', { type: 'button', onclick: async () => { await api.lanRemove(d.id); void render(); } }, L.remove))))
         : el('div.hint', {}, L.none),
     );
   };
-  const timer = window.setInterval(() => { if (!body.isConnected) window.clearInterval(timer); else void render(); }, 2000);
+  // Not while the user is choosing in the list: drawing it again would close the open choice.
+  const timer = window.setInterval(() => { if (!body.isConnected) window.clearInterval(timer); else if (!body.contains(document.activeElement)) void render(); }, 2000);
   void render();
   // The server starts or stops after the switch is saved.
   const changed = (s: Settings) => { onChange(s); window.setTimeout(() => void render(), 500); };

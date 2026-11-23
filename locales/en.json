@@ -424,6 +424,8 @@
       "spendBookCount": "{n} commissions",
       "spendBookOne": "1 commission",
       "spendBookTotal": "All together",
+      "spendBookOwner": "At the computer",
+      "spendBookRemoved": "A removed device",
       "spendBookEmpty": "Nothing spent yet.",
       "budgetLabel": "Most to spend per round",
       "budgetNone": "No limit",
@@ -661,6 +663,8 @@
       "budgetRetry": "Carry on",
       "monthCapTitle": "This month's limit is reached",
       "monthCapText": "About {spent} has gone this month, of the {cap} monthly limit. What is left is not enough for another round. Raise the limit in Settings, or wait for next month.",
+      "personCapTitle": "This person's limit is reached",
+      "personCapText": "Commissions from {person} have cost about {spent} this month, of the {cap} limit you gave them. What is left is not enough for another round. Raise their limit in Settings, beside the device, or wait for next month.",
       "projectCapTitle": "This project's limit is reached",
       "projectCapText": "\"{project}\" has cost about {spent}, of its {cap} limit. What is left is not enough for another round. You can raise the project's limit in the notebook.",
       "capSettings": "Open Settings",
@@ -712,6 +716,11 @@
       "paired": "paired",
       "remove": "Remove",
       "deviceName": "Device {n}",
+      "roleLabel": "What it may do",
+      "roles": { "watch": "Watch only", "approve": "Can answer", "commission": "Can commission" },
+      "capLabel": "Monthly limit for this person",
+      "capEach": "up to {cap} a month",
+      "capNone": "no limit of its own",
       "off": "Switched off.",
       "answeredOnPhone": "(answered on the phone)",
       "page": {
@@ -723,7 +732,15 @@
         "asks": "Waiting for you",
         "serious": "Answer this one at the computer.",
         "remind": "While this page is open, it tells you when something is asked. Closed, it cannot.",
-        "waiting": "A question for you"
+        "waiting": "A question for you",
+        "watching": "This device only watches. The owner answers at the computer.",
+        "handIn": "Hand in a commission",
+        "want": "What would you like made?",
+        "kind": "What kind of work",
+        "send": "Hand it in",
+        "sent": "Handed in. It waits its turn in the shop, and the owner sees the result on the computer.",
+        "cap": "Your limit for this month is reached, so the shop cannot take it.",
+        "form": "Say what you would like made."
       }
     },
     "stories": {

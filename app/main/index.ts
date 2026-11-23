@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, powerMonitor, powerSaveBlocker, safeStorage, session, shell } from 'electron';
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { shopOf, template } from '../shared/templates';
+import { FROM_AFAR, shopOf, template } from '../shared/templates';
 import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type ShareFormat, type ShareOptions, type ShareResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
@@ -65,7 +65,7 @@ import { type NookServer, connectionServers } from './nook-tools';
 import { randomUUID } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import qrcode from 'qrcode-generator';
-import { homeAddresses, LanServer, toLanAsk } from './lan';
+import { homeAddresses, LAN_ROLES, LanServer, type LanRole, toLanAsk } from './lan';
 import { lanPage } from './lan-page';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -373,7 +373,10 @@ ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
 ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth(now()));
-ipcMain.handle(IPC.spendMonths, () => spend.months());
+// Who spent it, by name: the owner at the computer, a paired device, or one since removed (E5).
+ipcMain.handle(IPC.spendMonths, () => spend.months().map(({ people, ...m }) => people
+  ? { ...m, people: Object.entries(people).map(([who, usd]) => ({ who: who ? (personOf(who)?.name ?? null) : '', usd })) }
+  : m));
 ipcMain.handle(IPC.monthBudget, () => ({ capUsd: settings.get().monthCapUsd, spentUsd: spend.thisMonth(now()) }));
 ipcMain.handle(IPC.monthCapNews, (): number | null => {
   const raised = settings.raisedMonthCap ? settings.get().monthCapUsd : null;
@@ -602,29 +605,33 @@ function projectOf(job: Job, again: boolean): Project | undefined {
     : again ? notebook.commissions.find((c) => c.folder === job.workDir && c.result === 'failed')?.project : undefined;
   return notebook.projects.find((p) => p.id === id);
 }
-const capsFor = (project?: Project): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd });
-/** What the ledger has this month and on the project: every folder its commissions worked in, all sessions. */
-function spentOn(project?: Project): Spent {
+/** A paired device's person, for their own cap (docs/plan-1.5.md E5); a removed device has none. */
+const personOf = (id?: string) => (id ? lan?.devices().find((d) => d.id === id) : undefined);
+// A device removed while its commission waited in the queue: what it handed in is not spent on (E5).
+const GONE_USD = 0.000001;
+const capsFor = (project?: Project, person?: string): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd, personUsd: person ? (personOf(person)?.capUsd ?? GONE_USD) : undefined });
+/** What the ledger has this month, on the project (every folder its commissions worked in, all sessions) and by the person. */
+function spentOn(project?: Project, person?: string): Spent {
   const folders = project ? projectFolders(project, memory.get().commissions) : [];
-  return { month: spend.thisMonth(now()), project: folders.reduce((sum, f) => sum + spend.forCommission(f), 0) };
+  return { month: spend.thisMonth(now()), project: folders.reduce((sum, f) => sum + spend.forCommission(f), 0), ...(person ? { person: spend.thisMonthBy(person, now()) } : {}) };
 }
 /** Where a cap stands once a round is settled. */
 function noteOn(cap: CapKind, caps: Caps, spent: Spent): Refusal {
-  const capUsd = cap === 'month' ? caps.monthUsd : caps.projectUsd!;
-  const spentUsd = cap === 'month' ? spent.month : spent.project;
+  const capUsd = cap === 'month' ? caps.monthUsd : cap === 'project' ? caps.projectUsd! : caps.personUsd!;
+  const spentUsd = cap === 'month' ? spent.month : cap === 'project' ? spent.project : spent.person ?? 0;
   return { cap, capUsd, spentUsd, leftUsd: Math.max(0, capUsd - spentUsd) };
 }
 /** A round a month or project cap stopped, or would not let start: the card says which and where it stands. */
-const capStop = (r: Refusal, project?: Project): { error: string; cap: BudgetNote } =>
-  ({ error: r.cap === 'month' ? 'monthCap' : 'projectCap', cap: { ...r, ...(r.cap === 'project' ? { project: project!.title } : {}) } });
+const capStop = (r: Refusal, project?: Project, person?: string): { error: string; cap: BudgetNote } =>
+  ({ error: `${r.cap}Cap`, cap: { ...r, ...(r.cap === 'project' ? { project: project!.title } : {}), ...(r.cap === 'person' ? { person: personOf(person)?.name ?? '' } : {}) } });
 /**
  * Whether a new round may start at all, asked before anything is made or kept for it (a new folder, the previous version).
  * Only the ledger counts here: what the rounds under way hold is theirs only until they end, so a round short of money
  * because of them waits in the queue instead (B5 rule 5).
  */
-function refused(project: Project | undefined, workDir: string): RunResult | null {
-  const grant = new Reservations().reserve('asking', project?.id, capsFor(project), spentOn(project));
-  return 'refused' in grant ? { ok: false, recordingPath: '', workDir, ...capStop(grant.refused, project) } : null;
+function refused(project: Project | undefined, workDir: string, person?: string): RunResult | null {
+  const grant = new Reservations().reserve('asking', project?.id, capsFor(project, person), spentOn(project, person), person);
+  return 'refused' in grant ? { ok: false, recordingPath: '', workDir, ...capStop(grant.refused, project, person) } : null;
 }
 
 /**
@@ -632,10 +639,10 @@ function refused(project: Project | undefined, workDir: string): RunResult | nul
  * it may spend already held; once it ends that is let go and the queue moves on. Called off while it waits, its caller
  * hears so and nothing was spent.
  */
-function queued(folder: string | undefined, project: Project | undefined, title: string, start: (run: string, grant: Grant) => Promise<RunResult>, by: Ticket['by'] = 'user', id = runId(Date.now())): Promise<RunResult> {
+function queued(folder: string | undefined, project: Project | undefined, title: string, start: (run: string, grant: Grant) => Promise<RunResult>, by: Ticket['by'] = 'user', id = runId(Date.now()), person?: string): Promise<RunResult> {
   return new Promise((resolve) => {
     queue.add({
-      id, folder, project: project?.id, by, title,
+      id, folder, project: project?.id, by, title, ...(person ? { person } : {}),
       go: (grant) => void start(id, grant).then((r) => {
         reservations.settle(id);
         // One that failed for the network around a sleep holds no place while it waits to be carried on (B5 rule 4).
@@ -658,7 +665,7 @@ function pump() {
   const projects = memory.get().projects;
   const starting = queue.take(active, overlaps, (t) => {
     const p = projects.find((x) => x.id === t.project);
-    const grant = reservations.reserve(t.id, p?.id, capsFor(p), spentOn(p));
+    const grant = reservations.reserve(t.id, p?.id, capsFor(p, t.person), spentOn(p, t.person), t.person);
     if ('refused' in grant) return false;
     t.grant = grant;
     return true;
@@ -699,14 +706,14 @@ function sendRuns() {
 function carryOn(job: Job): Promise<RunResult> {
   const project = projectOf(job, true);
   const id = runId(Date.now());
-  const stop = refused(project, job.workDir);
+  const stop = refused(project, job.workDir, job.form.by?.id);
   if (stop) {
     // It stays the one to carry on, once the cap allows.
     pending.save({ ...job, run: id, state: 'failed', why: stop.error, at: Date.now() });
     return Promise.resolve({ ...stop, run: id, carryOn: true });
   }
   pending.save({ ...job, run: id, state: 'queued', at: Date.now() });
-  const done = queued(job.workDir, project, project?.title ?? commissionTitle(job.form), (run, grant) => runJob(run, grant, job, true, project), 'user', id);
+  const done = queued(job.workDir, project, project?.title ?? commissionTitle(job.form), (run, grant) => runJob(run, grant, job, true, project), 'user', id, job.form.by?.id);
   // A scheduled round carried on is that schedule's round, not a missed one (B7).
   return job.schedule ? done.then((r) => { scheduleRan(job.schedule!, r); return r; }) : done;
 }
@@ -736,7 +743,7 @@ async function afterWake(r: RunResult): Promise<RunResult> {
 function countUnreported(r: Run, usd = r.unreported?.() ?? 0): number {
   if (r.counted) return 0;
   r.counted = true;
-  return spend.estimate(r.job.workDir, r.job.sessionId, usd, now());
+  return spend.estimate(r.job.workDir, r.job.sessionId, usd, now(), r.job.form.by?.id);
 }
 
 /** Keep the computer awake exactly while a round runs (B7). */
@@ -853,13 +860,14 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     log?.info('run end', { run, ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
     // What it spent since Claude Code last said is estimated from its tokens, on a line of its own (B7).
-    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now()) + countUnreported(me, result.estimatedUsd ?? 0);
+    const person = job.form.by?.id;
+    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now(), person) + countUnreported(me, result.estimatedUsd ?? 0);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     // Settled: the ledger has what the round cost. A month or project cap that set this round's limit and stopped it is
     // that cap's stop, not the per-round one. Caps it took past eight tenths are said once; a cap stop says it already.
-    const spent = spentOn(project);
-    const stoppedBy = result.error === 'budget' && (grant.by === 'month' || grant.by === 'project') ? grant.by : null;
-    const stop = stoppedBy ? capStop(noteOn(stoppedBy, capsFor(project), spent), project) : undefined;
+    const spent = spentOn(project, person);
+    const stoppedBy = result.error === 'budget' && (grant.by === 'month' || grant.by === 'project' || grant.by === 'person') ? grant.by : null;
+    const stop = stoppedBy ? capStop(noteOn(stoppedBy, capsFor(project, person), spent), project, person) : undefined;
     const error = stop?.error ?? result.error;
     const near = warnings(capsFor(project), spent, memory.get().budgetSaid ?? [], localMonth(now()), project?.id);
     if (near.length) memory.budgetSaid(near.map((w) => w.key));
@@ -992,7 +1000,7 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
 
 /** A new commission in a new folder, asked of the caps first, then queued; `by` a schedule goes after the user's own (B5 rule 2). */
 function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: string): Promise<RunResult> {
-  const stop = refused(undefined, '');
+  const stop = refused(undefined, '', form.by?.id);
   if (stop) return Promise.resolve(stop);
   const f = form.demo ? { ...form, materials: undefined } : form;
   // Its folder is made when its turn comes, so one called off in the queue leaves nothing behind.
@@ -1003,7 +1011,7 @@ function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: st
     prepareSource(workDir, f);
     try { await copyMaterials(workDir, f.materials ?? [], pictureToPng); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
     return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now(), ...(schedule ? { schedule } : {}) }, false);
-  }, by);
+  }, by, runId(Date.now()), f.by?.id);
 }
 
 /**
@@ -1048,7 +1056,8 @@ async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] =
     const restored = restoredSince.has(memo.id);
     restoredSince.delete(memo.id);
     keepLatest(latest);
-    const form = latest.form ?? { want: latest.title };
+    // Changes asked for at the desk are the owner's, whoever handed the work in (E5).
+    const form = { ...(latest.form ?? { want: latest.title }), by: undefined };
     // A session grown long, or left for over a week, is not picked up: the project background and the folder carry the work
     // over (B3), and a fresh session reads far less each round.
     const fromSession = newSession(latest.rounds?.at(-1) ?? { date: latest.date }, localDay(now())) ? undefined : latest.sessionId;
@@ -1112,6 +1121,18 @@ function runScheduled(s: Schedule) {
     send(IPC.scheduled, { ...r, title });
   });
 }
+/**
+ * A commission handed in from a paired device that may do so (plan-1.5.md E5). Turned away at once when its person's
+ * limit (or the shop's) is spent; otherwise it queues like one started at the desk, and its card shows here as a scheduled
+ * one's does, since nobody pressed anything on this computer.
+ */
+function fromAfar(who: { id: string; name: string }, form: { want: string; template: CommissionTemplate }): Promise<{ ok: true } | { ok: false; why: 'cap' }> {
+  if (refused(undefined, '', who.id)) return Promise.resolve({ ok: false, why: 'cap' });
+  const f: CommissionForm = { want: form.want, template: form.template, by: who };
+  void startNew(f).then((r) => { if (r.error !== 'cancelled') send(IPC.scheduled, { ...r, title: commissionTitle(f) }); });
+  return Promise.resolve({ ok: true });
+}
+
 /** How a schedule's round went, for the project board; called off (the shop closing, the computer shutting down) is no outcome. */
 function scheduleRan(id: string, r: RunResult) {
   if (r.error === 'cancelled' || !schedules.list().some((s) => s.id === id)) return;
@@ -1175,6 +1196,14 @@ ipcMain.handle(IPC.lanPair, () => {
   qr.addData(url);
   qr.make();
   return { url, svg: qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }) };
+});
+ipcMain.handle(IPC.lanSetRole, (_e, id: unknown, role: unknown) => {
+  if (typeof id === 'string' && LAN_ROLES.includes(role as LanRole)) lan?.setRole(id, role as LanRole);
+  return lanState();
+});
+ipcMain.handle(IPC.lanSetCap, (_e, id: unknown, usd: unknown) => {
+  if (typeof id === 'string' && typeof usd === 'number') lan?.setCap(id, usd);
+  return lanState();
 });
 ipcMain.handle(IPC.lanRemove, (_e, id: unknown) => {
   if (typeof id === 'string') lan?.remove(id);
@@ -1655,7 +1684,7 @@ app.whenReady().then(() => {
   openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   connections = new ConnectionStore(app.getPath('userData'), safeStorage);
-  lan = new LanServer({ file: join(app.getPath('userData'), 'devices.json'), addresses: () => homeAddresses(networkInterfaces()), page: () => lanPage(strings.ui.lan.page), asks: () => broker.open().map(toLanAsk), answer: (id, choice) => broker.answer({ id, choice }, 'phone') });
+  lan = new LanServer({ file: join(app.getPath('userData'), 'devices.json'), addresses: () => homeAddresses(networkInterfaces()), page: () => lanPage({ ...strings.ui.lan.page, kinds: Object.fromEntries(FROM_AFAR.map((id) => [id, strings.ui.templates[id]])) }), asks: () => broker.open().map(toLanAsk), answer: (id, choice) => broker.answer({ id, choice }, 'phone'), commission: fromAfar });
   void applyLan(settings.get());
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   prunePreviews(previewsDir());

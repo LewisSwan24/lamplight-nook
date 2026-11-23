@@ -271,5 +271,10 @@ export type TemplateId = (typeof TEMPLATES)[number]['id'];
 export type BroughtId = Extract<(typeof TEMPLATES)[number], { growth: object }>['growth']['id'];
 
 export const template = (id: TemplateId): TemplateSpec => TEMPLATES.find((t) => t.id === id)!;
+/**
+ * The kinds of work a browser on the home network may hand in (docs/plan-1.5.md E5): none that starts from a file or a
+ * folder or from photos picked on this computer, which a page elsewhere cannot reach.
+ */
+export const FROM_AFAR: readonly TemplateId[] = TEMPLATES.filter((t) => !('source' in t) && !('photos' in t)).map((t) => t.id);
 /** Which shop does a kind of work (road-to-1.4.md D3); work of no kind, and the demo, stays in the home shop. */
 export const shopOf = (id: TemplateId | undefined): Shop => (id ? template(id).shop : 'home');

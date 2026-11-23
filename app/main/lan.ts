@@ -3,7 +3,8 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { NetworkInterfaceInfo } from 'node:os';
 import nacl from 'tweetnacl';
-import type { DecisionRequest } from '../shared/types';
+import { FROM_AFAR, type TemplateId } from '../shared/templates';
+import type { DecisionRequest, LanRole } from '../shared/types';
 import { lanPage } from './lan-page';
 
 /**
@@ -17,8 +18,21 @@ import { lanPage } from './lan-page';
 
 /** What the shop tells paired devices: a slice of each event the window gets, never paths or the raw stream. */
 export type LanEvent = { t: number; kind: string; agent: string; plain: string };
-export type LanDevice = { id: string; name: string; added: string; paired: boolean; lastSeen?: string };
+/**
+ * What a paired device may do (E5): watch only, answer requests too, or hand in commissions as well. The server holds a
+ * device to it; the page only follows. A device paired before roles came is one that answers, as every one was then.
+ */
+export const LAN_ROLES: readonly LanRole[] = ['watch', 'approve', 'commission'];
+/** What a person may spend in a calendar month, in US dollars (0: no cap of their own). */
+export const PERSON_CAP_CHOICES = [0, 1, 2, 5, 10] as const;
+export type LanDevice = { id: string; name: string; added: string; paired: boolean; lastSeen?: string; role: LanRole; capUsd: number };
 type Kept = LanDevice & { key: string; counter: number };
+/** A commission handed in from a browser: what is wanted and which kind of work (only one a page can hand in). */
+export type FarForm = { want: string; template: TemplateId };
+/** How a commission from afar was taken: queued, or why not (the form, or a cap that stops it starting). */
+export type FarTaken = { ok: true } | { ok: false; why: 'form' | 'cap' | 'busy' };
+/** The most a want may say from a page, as on the desk's own slip. */
+const WANT_MAX = 2000;
 /** A request waiting for an answer, as the phone sees it (E4): never `detail`, which holds the whole command and its paths. */
 export type LanAsk = { id: string; kind: DecisionRequest['kind']; agent: string; title: string; reason?: string; options: { id: string; label: string }[] };
 
@@ -34,6 +48,8 @@ export function homeAddresses(nets: NodeJS.Dict<NetworkInterfaceInfo[]>): string
   };
   return Object.values(nets).flatMap((list) => (list ?? []).filter((n) => n.family === 'IPv4' && !n.internal && home(n.address)).map((n) => n.address));
 }
+
+export type { LanRole };
 
 const PAIR_TRIES = 5;
 const PAIR_PAUSE_MS = 60_000;
@@ -59,11 +75,16 @@ export class LanServer {
   /** Goes up whenever a request comes or goes, so a phone knows whether its list is current. */
   private version = 0;
 
-  constructor(private opts: { file: string; addresses: () => string[]; now?: () => number; waitMs?: number; page?: () => string; asks?: () => LanAsk[]; answer?: (id: string, choice: string) => boolean }) {
+  constructor(private opts: {
+    file: string; addresses: () => string[]; now?: () => number; waitMs?: number; page?: () => string; asks?: () => LanAsk[]; answer?: (id: string, choice: string) => boolean;
+    /** A commission handed in from a device allowed to (E5). */
+    commission?: (who: { id: string; name: string }, form: FarForm) => Promise<FarTaken>;
+  }) {
     this.file = opts.file;
     this.now = opts.now ?? Date.now;
     this.waitMs = opts.waitMs ?? WAIT_MS;
-    this.kept = existsSync(this.file) ? (JSON.parse(readFileSync(this.file, 'utf8')) as Kept[]) : [];
+    const read = existsSync(this.file) ? (JSON.parse(readFileSync(this.file, 'utf8')) as Partial<Kept>[]) : [];
+    this.kept = read.map((d) => ({ ...d, role: LAN_ROLES.includes(d.role!) ? d.role! : 'approve', capUsd: typeof d.capUsd === 'number' ? d.capUsd : 0 }) as Kept);
   }
 
   get listening() {
@@ -104,7 +125,7 @@ export class LanServer {
   pair(name: string): { id: string; key: string; url: string } {
     const id = randomBytes(8).toString('hex');
     const key = b64(nacl.randomBytes(nacl.secretbox.keyLength));
-    this.kept.push({ id, name, key, added: new Date(this.now()).toISOString(), paired: false, counter: 0 });
+    this.kept.push({ id, name, key, added: new Date(this.now()).toISOString(), paired: false, counter: 0, role: 'approve', capUsd: 0 });
     this.save();
     // A Wi-Fi router hands out 192.168.x.x; 172.x is often a virtual adapter (WSL, Hyper-V) that no phone can reach.
     const rank = (h: string) => (h.startsWith('192.168.') ? 0 : h.startsWith('10.') ? 1 : 2);
@@ -113,7 +134,24 @@ export class LanServer {
   }
 
   devices(): LanDevice[] {
-    return this.kept.map(({ id, name, added, paired, lastSeen }) => ({ id, name, added, paired, ...(lastSeen ? { lastSeen } : {}) }));
+    return this.kept.map(({ id, name, added, paired, lastSeen, role, capUsd }) => ({ id, name, added, paired, ...(lastSeen ? { lastSeen } : {}), role, capUsd }));
+  }
+
+  /** The owner changed what a device may do; a poll it has waiting hears at once. */
+  setRole(id: string, role: LanRole) {
+    const d = this.kept.find((x) => x.id === id);
+    if (!d || !LAN_ROLES.includes(role)) return;
+    d.role = role;
+    this.save();
+    for (const wake of this.waiting) wake();
+  }
+
+  /** The owner set what a device's person may spend in a month (0: no cap of their own). */
+  setCap(id: string, usd: number) {
+    const d = this.kept.find((x) => x.id === id);
+    if (!d || !(PERSON_CAP_CHOICES as readonly number[]).includes(usd)) return;
+    d.capUsd = usd;
+    this.save();
   }
 
   /** Forget a device: its next message is refused. */
@@ -149,7 +187,7 @@ export class LanServer {
     };
     if (!this.hosts.has(req.headers.host ?? '')) return end(403);
     if (req.method === 'GET' && req.url === '/') return end(200, (this.opts.page ?? lanPage)(), 'text/html; charset=utf-8');
-    if (req.method !== 'POST' || (req.url !== '/pair' && req.url !== '/poll' && req.url !== '/answer')) return end(404);
+    if (req.method !== 'POST' || !['/pair', '/poll', '/answer', '/commission'].includes(req.url ?? '')) return end(404);
     const pairing = req.url === '/pair';
     if (pairing && this.now() < this.pausedUntil) return end(429);
     const said = await this.read(req);
@@ -171,9 +209,19 @@ export class LanServer {
       return end(200, JSON.stringify(this.seal(device, { ok: true })), 'application/json');
     }
     this.save();
+    const reply = (message: unknown) => end(200, JSON.stringify(this.seal(device, message)), 'application/json');
     if (req.url === '/answer') {
+      // Watching only: the request stays for someone who may answer it (E5).
+      if (device.role === 'watch') return end(403);
       const ok = typeof message.id === 'string' && typeof message.choice === 'string' && (this.opts.answer?.(message.id, message.choice) ?? false);
-      return end(200, JSON.stringify(this.seal(device, { ok })), 'application/json');
+      return reply({ ok });
+    }
+    if (req.url === '/commission') {
+      if (device.role !== 'commission' || !this.opts.commission) return end(403);
+      const want = typeof message.want === 'string' ? message.want.trim() : '';
+      const kind = message.template;
+      if (!want || want.length > WANT_MAX || typeof kind !== 'string' || !(FROM_AFAR as readonly string[]).includes(kind)) return reply({ ok: false, why: 'form' });
+      return reply(await this.opts.commission({ id: device.id, name: device.name }, { want, template: kind as TemplateId }));
     }
     const after = typeof message.after === 'number' ? message.after : 0;
     // A phone that already has the current list of requests waits for something new; one that has not, gets it now.
@@ -181,7 +229,7 @@ export class LanServer {
     // Removed while it waited: nothing more for it.
     if (!this.kept.includes(device)) return end(403);
     const events = this.events.filter((e) => e.seq > after);
-    return end(200, JSON.stringify(this.seal(device, { events, next: this.seq, asks: this.opts.asks?.() ?? [], version: this.version })), 'application/json');
+    return reply({ events, next: this.seq, asks: this.opts.asks?.() ?? [], version: this.version, role: device.role });
   }
 
   private waitForNews() {
@@ -210,7 +258,7 @@ export class LanServer {
     });
   }
 
-  private unseal(device: Kept, said: { n: string; b: string }): { c?: unknown; after?: unknown; asks?: unknown; id?: unknown; choice?: unknown } | null {
+  private unseal(device: Kept, said: { n: string; b: string }): { c?: unknown; after?: unknown; asks?: unknown; id?: unknown; choice?: unknown; want?: unknown; template?: unknown } | null {
     const nonce = unb64(said.n);
     if (nonce.length !== nacl.secretbox.nonceLength) return null;
     const opened = nacl.secretbox.open(unb64(said.b), nonce, unb64(device.key));

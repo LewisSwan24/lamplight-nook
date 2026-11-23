@@ -4,7 +4,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, w
 import { basename, dirname, join } from 'node:path';
 
 /** What a session cost in one month, as Claude Code estimated it. A session spanning months has one entry for each. */
-type Entry = { key: string; usd: number; month: string; /** Estimated from tokens: a stretch Claude Code never reported (B7). */ estimated?: true };
+type Entry = { key: string; usd: number; month: string; /** Estimated from tokens: a stretch Claude Code never reported (B7). */ estimated?: true;
+  /** The paired device whose person handed the commission in (docs/plan-1.5.md E5); absent: the owner. */ who?: string };
 
 const month = localMonth;
 /** The part of a key before the session: a commission's folder, or `consult:<id>` for a talk with Adeng (B4). */
@@ -27,7 +28,7 @@ export class SpendLedger {
   }
 
   /** Keeps a run's reported total and returns what this run itself added. */
-  record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date()): number {
+  record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date(), who?: string): number {
     if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return 0;
     const key = `${workDir}|${sessionId ?? ''}`;
     const earlier = this.entries.filter((e) => e.key === key && !e.estimated);
@@ -38,7 +39,7 @@ export class SpendLedger {
     if (grew > 0.000001) {
       const here = earlier.find((e) => e.month === month(now));
       if (here) here.usd += grew;
-      else this.entries.push({ key, usd: grew, month: month(now) });
+      else this.entries.push({ key, usd: grew, month: month(now), ...(who ? { who } : {}) });
     }
     this.save();
     return Math.max(grew, 0);
@@ -49,9 +50,9 @@ export class SpendLedger {
    * estimated from its tokens (road-to-1.2.md B7). Kept on a line of its own, apart from the session's reported total, so
    * the total's growth later is still counted once; returns what it added.
    */
-  estimate(workDir: string, sessionId: string | undefined, usd: number, now = new Date()): number {
+  estimate(workDir: string, sessionId: string | undefined, usd: number, now = new Date(), who?: string): number {
     if (!(usd > 0.000001)) return 0;
-    this.entries.push({ key: `${workDir}|${sessionId ?? ''}`, usd, month: month(now), estimated: true });
+    this.entries.push({ key: `${workDir}|${sessionId ?? ''}`, usd, month: month(now), estimated: true, ...(who ? { who } : {}) });
     this.save();
     return usd;
   }
@@ -91,6 +92,22 @@ export class SpendLedger {
     return this.entries.filter((e) => e.key.startsWith(`${workDir}|`)).reduce((sum, e) => sum + e.usd, 0);
   }
 
+  /** What each person spent this month, by device id ('' is the owner): together, the whole shop's month (E5). */
+  byPerson(now = new Date()): Record<string, number> {
+    return this.people(this.entries.filter((e) => e.month === month(now)));
+  }
+
+  /** What one person has spent this month, for their own cap. */
+  thisMonthBy(who: string, now = new Date()): number {
+    return this.byPerson(now)[who] ?? 0;
+  }
+
+  private people(entries: Entry[]): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const e of entries) out[e.who ?? ''] = (out[e.who ?? ''] ?? 0) + e.usd;
+    return out;
+  }
+
   thisMonth(now = new Date()): number {
     const m = month(now);
     return this.entries.filter((e) => e.month === m).reduce((sum, e) => sum + e.usd, 0);
@@ -103,12 +120,14 @@ export class SpendLedger {
   }
 
   /** Each month that cost anything, newest first, and how many commissions it went on (talks with Adeng are not commissions). */
-  months(): { month: string; usd: number; estimated?: number; commissions: number }[] {
+  months(): { month: string; usd: number; estimated?: number; commissions: number; people?: Record<string, number> }[] {
     const months = new Set(this.entries.map((e) => e.month));
     return [...months].sort().reverse().map((m) => {
       const here = this.entries.filter((e) => e.month === m);
       const estimated = here.filter((e) => e.estimated).reduce((sum, e) => sum + e.usd, 0);
-      return { month: m, usd: here.reduce((sum, e) => sum + e.usd, 0), ...(estimated ? { estimated } : {}), commissions: new Set(here.filter((e) => !isConsult(e.key)).map((e) => folderOf(e.key))).size };
+      return { month: m, usd: here.reduce((sum, e) => sum + e.usd, 0), ...(estimated ? { estimated } : {}), commissions: new Set(here.filter((e) => !isConsult(e.key)).map((e) => folderOf(e.key))).size,
+        // Who spent what, once anyone but the owner has (E5).
+        ...(here.some((e) => e.who) ? { people: this.people(here) } : {}) };
     });
   }
 
@@ -117,7 +136,7 @@ export class SpendLedger {
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8'));
       if (!Array.isArray(parsed)) throw new Error('not a ledger');
-      return parsed.filter((e) => e && typeof e.key === 'string' && typeof e.usd === 'number' && typeof e.month === 'string');
+      return parsed.filter((e) => e && typeof e.key === 'string' && typeof e.usd === 'number' && typeof e.month === 'string' && (e.who === undefined || typeof e.who === 'string'));
     } catch {
       putAside(this.file);
       this.damaged = true;
