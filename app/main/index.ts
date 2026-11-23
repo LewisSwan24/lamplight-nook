@@ -33,7 +33,7 @@ import { SettingsStore, defaultWorkRoot, loginItem } from './settings';
 import { ScheduleStore, due, nextTime, wakeIn } from './schedule';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
-import { type Caps, type CapKind, type Grant, type Refusal, type Spent, Reservations, startingMonthCap, warnings } from './budget';
+import { type Caps, type CapKind, type Grant, type Refusal, type Spent, personCapUsd, Reservations, startingMonthCap, warnings } from './budget';
 import { RunQueue, runId, type Ticket } from './runs';
 import { now, setClock } from './clock';
 import { localMonth } from '../shared/localday';
@@ -607,9 +607,8 @@ function projectOf(job: Job, again: boolean): Project | undefined {
 }
 /** A paired device's person, for their own cap (docs/plan-1.5.md E5); a removed device has none. */
 const personOf = (id?: string) => (id ? lan?.devices().find((d) => d.id === id) : undefined);
-// A device removed while its commission waited in the queue: what it handed in is not spent on (E5).
-const GONE_USD = 0.000001;
-const capsFor = (project?: Project, person?: string): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd, personUsd: person ? (personOf(person)?.capUsd ?? GONE_USD) : undefined });
+// A device removed since it handed something in: that is not spent on (E5, E7).
+const capsFor = (project?: Project, person?: string): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd, personUsd: person ? personCapUsd(personOf(person)) : undefined });
 /** What the ledger has this month, on the project (every folder its commissions worked in, all sessions) and by the person. */
 function spentOn(project?: Project, person?: string): Spent {
   const folders = project ? projectFolders(project, memory.get().commissions) : [];
@@ -1206,7 +1205,13 @@ ipcMain.handle(IPC.lanSetCap, (_e, id: unknown, usd: unknown) => {
   return lanState();
 });
 ipcMain.handle(IPC.lanRemove, (_e, id: unknown) => {
-  if (typeof id === 'string') lan?.remove(id);
+  if (typeof id !== 'string') return lanState();
+  lan?.remove(id);
+  // What it handed in and still waits in the queue is called off too (E7); a round already under way carries on.
+  const gone = queue.cancelFrom(id);
+  if (gone.length) log?.info('runs called off with their device', { runs: gone.length });
+  for (const t of gone) t.drop();
+  pump();
   return lanState();
 });
 // A postcard of the shop (docs/plan-1.5.md E3): only what makes it look the way it does, to a file the user picks.

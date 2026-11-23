@@ -45,6 +45,13 @@ export class RunQueue<T extends Ticket = Ticket> {
     return i < 0 ? undefined : this.line.splice(i, 1)[0];
   }
 
+  /** Everything a paired device left waiting, called off when the device is removed (plan-1.5.md E7). */
+  cancelFrom(person: string): T[] {
+    const gone = this.line.filter((t) => t.person === person);
+    this.line = this.line.filter((t) => t.person !== person);
+    return gone;
+  }
+
   /**
    * The rounds that may start now, in order, taken out of the queue; the rest are marked with why they wait. `same` says
    * whether two folders are the same work; `afford` holds the money for a round about to start, or says there is not

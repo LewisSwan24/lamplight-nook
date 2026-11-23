@@ -1,5 +1,6 @@
-import { request } from 'node:http';
-import { mkdtempSync } from 'node:fs';
+import { request, type IncomingHttpHeaders } from 'node:http';
+import { connect } from 'node:net';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import nacl from 'tweetnacl';
@@ -24,13 +25,13 @@ function make() {
 }
 
 /** A raw request, so the Host header can be anything. */
-function send(port: number, path: string, body?: unknown, host = `127.0.0.1:${port}`): Promise<{ status: number; text: string }> {
+function send(port: number, path: string, body?: unknown, host = `127.0.0.1:${port}`): Promise<{ status: number; text: string; headers: IncomingHttpHeaders }> {
   return new Promise((resolve, reject) => {
     const data = body === undefined ? undefined : JSON.stringify(body);
     const req = request({ host: '127.0.0.1', port, path, method: data ? 'POST' : 'GET', headers: { Host: host, 'Content-Type': 'application/json' } }, (res) => {
       let text = '';
       res.on('data', (c) => { text += c; });
-      res.on('end', () => resolve({ status: res.statusCode ?? 0, text }));
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, text, headers: res.headers }));
     });
     req.on('error', reject);
     req.end(data);
@@ -46,6 +47,12 @@ const open = (key: Uint8Array, text: string) => {
   const { n, b } = JSON.parse(text);
   return JSON.parse(new TextDecoder().decode(nacl.secretbox.open(unb64(b), unb64(n), key)!));
 };
+/** Pair as the page does (E7): prove the QR code's key once, then keep the fresh key the shop hands back. */
+async function pairUp(s: LanServer, port: number, name = 'phone') {
+  const { id, key } = s.pair(name);
+  const got = await send(port, '/pair', sealed(id, unb64(key), { c: 1 }));
+  return { id, k: unb64(open(unb64(key), got.text).key) };
+}
 
 describe('which addresses count as the home network', () => {
   it('keeps the private IPv4 ranges and nothing else', () => {
@@ -101,12 +108,69 @@ describe('the server', () => {
     expect(s.devices()).toMatchObject([{ id, paired: true }]);
   });
 
-  it('refuses an unknown device, a wrong key and a message it has seen before', async () => {
+  it('takes a pairing code once: the shop hands back a fresh key, and the code opens nothing after', async () => {
     const s = make();
     const port = await s.start(0);
     const { id, key } = s.pair('phone');
-    const k = unb64(key);
-    await send(port, '/pair', sealed(id, k, { c: 1 }));
+    const code = unb64(key);
+    const fresh = unb64(open(code, (await send(port, '/pair', sealed(id, code, { c: 1 }))).text).key);
+    expect(fresh).toHaveLength(32);
+    expect(b64(fresh)).not.toBe(key);
+    // Someone who photographed the QR code, or copied the address: neither pairing again nor polling gets them in.
+    expect((await send(port, '/pair', sealed(id, code, { c: 50 }))).status).toBe(403);
+    expect((await send(port, '/poll', sealed(id, code, { c: 51, after: 0 }))).status).toBe(403);
+    expect((await send(port, '/poll', sealed(id, fresh, { c: 52, after: 0 }))).status).toBe(200);
+    // Nor does the paired device pair a second time.
+    expect((await send(port, '/pair', sealed(id, fresh, { c: 53 }))).status).toBe(403);
+    expect(readFileSync(s.file, 'utf8')).not.toContain(key);
+  });
+
+  it('lets a code nobody scanned go stale after ten minutes', async () => {
+    const s = make();
+    const port = await s.start(0);
+    const { id, key } = s.pair('phone');
+    clock += 10 * 60_000 + 1;
+    expect((await send(port, '/pair', sealed(id, unb64(key), { c: 1 }))).status).toBe(403);
+  });
+
+  it('serves the page so that no other page can frame it or send what it holds anywhere else', async () => {
+    const s = make();
+    const port = await s.start(0);
+    const { headers } = await send(port, '/');
+    expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(headers['content-security-policy']).toContain("connect-src 'self'");
+    expect(headers['content-security-policy']).toContain("default-src 'none'");
+    expect(headers['x-frame-options']).toBe('DENY');
+    expect(headers['referrer-policy']).toBe('no-referrer');
+  });
+
+  it('cuts off a request that never finishes arriving', async () => {
+    const s = new LanServer({ file: join(mkdtempSync(join(tmpdir(), 'lamplight-lan-')), 'devices.json'), addresses: () => ['127.0.0.1'], slowMs: 300 });
+    servers.push(s);
+    const port = await s.start(0);
+    const took = await new Promise<number>((resolve) => {
+      const t0 = Date.now();
+      const sock = connect(port, '127.0.0.1', () => sock.write(`POST /poll HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{"id":`));
+      sock.on('error', () => {});
+      sock.on('close', () => resolve(Date.now() - t0));
+      sock.resume();
+    });
+    expect(took).toBeLessThan(2500);
+  });
+
+  it('refuses a request too large to be a message, and goes on answering', async () => {
+    const s = make();
+    const port = await s.start(0);
+    const { id, k } = await pairUp(s, port);
+    const big = await send(port, '/poll', { id, n: 'x', b: 'y'.repeat(40_000) }).catch(() => ({ status: 0 }));
+    expect([0, 403]).toContain(big.status);
+    expect((await send(port, '/poll', sealed(id, k, { c: 2, after: 0 }))).status).toBe(200);
+  });
+
+  it('refuses an unknown device, a wrong key and a message it has seen before', async () => {
+    const s = make();
+    const port = await s.start(0);
+    const { id, k } = await pairUp(s, port);
     expect((await send(port, '/poll', sealed('nobody', k, { c: 2, after: 0 }))).status).toBe(403);
     expect((await send(port, '/poll', sealed(id, nacl.randomBytes(32), { c: 2, after: 0 }))).status).toBe(403);
     expect((await send(port, '/poll', sealed(id, k, { c: 2, after: 0 }))).status).toBe(200);
@@ -116,9 +180,7 @@ describe('the server', () => {
   it('hands a paired device what goes on in the shop, sealed with its key', async () => {
     const s = make();
     const port = await s.start(0);
-    const { id, key } = s.pair('phone');
-    const k = unb64(key);
-    await send(port, '/pair', sealed(id, k, { c: 1 }));
+    const { id, k } = await pairUp(s, port);
     s.push({ t: 5, kind: 'tool', agent: 'adeng', plain: 'Reading the brief' });
     const got = await send(port, '/poll', sealed(id, k, { c: 2, after: 0 }));
     const said = open(k, got.text);
@@ -141,12 +203,10 @@ describe('the server', () => {
   it('shuts a removed device out at once, and remembers the devices across a restart', async () => {
     const s = make();
     const port = await s.start(0);
-    const phone = s.pair('phone');
+    const phone = await pairUp(s, port);
     const tablet = s.pair('tablet');
-    const k = unb64(phone.key);
-    await send(port, '/pair', sealed(phone.id, k, { c: 1 }));
     s.remove(phone.id);
-    expect((await send(port, '/poll', sealed(phone.id, k, { c: 2, after: 0 }))).status).toBe(403);
+    expect((await send(port, '/poll', sealed(phone.id, phone.k, { c: 2, after: 0 }))).status).toBe(403);
     const again = new LanServer({ file: s.file, addresses: () => ['127.0.0.1'] });
     expect(again.devices().map((d) => d.id)).toEqual([tablet.id]);
     expect(JSON.stringify(again.devices())).not.toContain(tablet.key);
@@ -171,9 +231,7 @@ async function wired() {
   });
   servers.push(s);
   const port = await s.start(0);
-  const { id, key } = s.pair('phone');
-  const k = unb64(key);
-  await send(port, '/pair', sealed(id, k, { c: 1 }));
+  const { id, k } = await pairUp(s, port);
   return { s, broker, settled, port, id, k };
 }
 

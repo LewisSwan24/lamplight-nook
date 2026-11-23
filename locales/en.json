@@ -709,7 +709,7 @@
       "intro": "Only on the same Wi-Fi. The first time, Windows Firewall may ask once: choose Allow.",
       "address": "Address: {address}",
       "pair": "Pair a new device",
-      "scan": "Scan this with the phone. It holds that device's own key, so keep it to yourself.",
+      "scan": "Scan this with the phone within ten minutes; it pairs one device, once. Until then it holds that device's key, so keep it to yourself.",
       "devices": "Paired devices",
       "none": "No devices paired yet.",
       "waiting": "waiting to be scanned",
@@ -1375,7 +1375,7 @@
   "legal": {
     "privacy": [
       "# Privacy",
-      "Last updated: November 22, 2026",
+      "Last updated: November 23, 2026",
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
       "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records; your connections and the record of outside actions (a calendar's address is encrypted like the key).",
@@ -1388,6 +1388,7 @@
       "# Sharing, postcards and your home network",
       "Sharing a work or sending a postcard saves a file that you pass on yourself; Lamplight Nook uploads nothing for you. A shared work carries the work alone: folder paths, your home folder and anything like a key are wiped from it, and the slip, the staff's notes and the recordings are not in it. A postcard carries only how your shop looks and the name you go by, with no works, commissions, spending or dates.",
       "The home network switch is off by default. When it is on, Lamplight Nook serves a small page on this computer to your home network only, just phones and computers you have paired can connect, and every message is encrypted with the key made when pairing. A paired phone sees what the shop is doing and what it is waiting for you to answer, never your key, folder paths or spending. None of it goes through a server of ours.",
+      "One known limit: the page itself reaches the phone over plain HTTP, because a home network has no other way to serve it. Someone else on the same network could change the page on its way, and a changed page could see what that phone sees and do what that device is allowed to do. Turn the switch on only on a network you trust, and off again when you are done.",
       "# Diagnostics",
       "A diagnostics file leaves your computer only when you export it in Settings and send it to us yourself. It holds the app's log and an outline of your computer and settings, with no API key and nothing from your commissions.",
       "# Contact",

@@ -475,7 +475,9 @@ function lanSection(api: LamplightApi, settings: Settings, onChange: (s: Setting
   const qr = el('div.lan-qr', { hidden: true });
   const render = async () => {
     const st = await api.lanState();
-    if (!st.on) qr.hidden = true;
+    // The code pairs once (E7): when its device has paired there is nothing left to scan.
+    const showing = /#d=([^&]+)/.exec(qr.dataset.url ?? '')?.[1];
+    if (!st.on || st.devices.some((d) => d.id === showing && d.paired)) qr.hidden = true;
     body.replaceChildren(
       st.on ? el('div.lan-address', {}, fill(L.address, { address: st.addresses.join(', ') })) : el('div.hint', {}, L.off),
       st.on ? el('button.lan-pair', { type: 'button', onclick: async () => {

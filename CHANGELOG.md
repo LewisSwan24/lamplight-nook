@@ -30,6 +30,13 @@
   made and which kind, for the kinds that need no file. It queues like one started at the desk, and its result card
   shows on the computer. You can give each such device a monthly limit of its own, under the shop's. The monthly
   ledger in Settings shows who spent what: the computer itself, each device by name, and "a removed device".
+- **The home-network page, reviewed.** A pairing QR code now works once and only within ten minutes: as a device
+  pairs, the shop gives it a fresh key of its own, so a photo of the code or a copied address opens nothing later, and
+  the code is put away in Settings. Removing a device also calls off what it handed in that is still waiting in the
+  queue. A request that keeps trickling in is cut off after ten seconds, and the page can no longer be framed by
+  another page or talk to anything but the shop. The privacy note now says plainly that the page itself reaches the
+  phone over plain HTTP, so someone else on the same network could change it, and that the switch is best used on a
+  network you trust.
 
 ## Unreleased (1.4)
 
