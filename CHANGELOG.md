@@ -37,6 +37,10 @@
   another page or talk to anything but the shop. The privacy note now says plainly that the page itself reaches the
   phone over plain HTTP, so someone else on the same network could change it, and that the switch is best used on a
   network you trust.
+- **Checked before release.** The packaged app is now checked with the home-network switch on: a phone-sized
+  browser pairs from the QR code's address and the page loads. Pairing, watching, answering, handing in from a second
+  browser and removing were walked through with an Android emulator standing in for a phone. The installer is about
+  45 KiB larger than 1.4's.
 
 ## Unreleased (1.4)
 

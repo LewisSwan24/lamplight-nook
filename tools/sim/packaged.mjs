@@ -262,6 +262,36 @@ try {
   }
   await page.keyboard.press('Escape');
   await sleep(800);
+
+  // The home network in a packaged shop (docs/plan-1.5.md E8): the switch on, a phone-sized Chrome pairs from the QR
+  // code's address, the page loads with its headers and says it is connected, then the device is removed and the switch
+  // goes off again. Needs this computer on a home network (10.x, 172.16-31.x or 192.168.x).
+  await shop.openSettings('work');
+  await page.locator('label.toggle', { hasText: shop.L.ui.lan.toggle }).click();
+  await sleep(1500);
+  await page.locator('.settings .lan-pair').click();
+  await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+  const lanUrl = await page.locator('.settings .lan-qr').getAttribute('data-url');
+  const browser = await chromium.launch({ channel: 'chrome' });
+  try {
+    const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
+    const served = await phone.goto(lanUrl);
+    check(/frame-ancestors 'none'/.test(served.headers()['content-security-policy'] ?? ''), `the phone page comes from ${new URL(lanUrl).host} with its security policy`);
+    const connected = await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, shop.L.ui.lan.page.connected, { timeout: 10_000 }).then(() => true, () => false);
+    check(connected, 'the phone page pairs and says it is connected');
+    await phone.screenshot({ path: join(out, 'phone.png') });
+    await sleep(2500);
+    check(await page.locator('.settings .lan-qr').isHidden(), 'the QR code is put away once its device has paired');
+    await page.locator('.settings .lan-devices li button.link').click();
+    await sleep(500);
+    check(await page.locator('.settings .lan-devices li').count() === 0, 'the device is removed');
+  } finally {
+    await browser.close();
+  }
+  await page.locator('label.toggle', { hasText: shop.L.ui.lan.toggle }).click();
+  await sleep(500);
+  await page.keyboard.press('Escape');
+  await sleep(500);
   check(await stop(run), 'it closes by itself');
   // It looked for a new version on opening, for real. Offline or not, that is only ever a line in the log.
   const logs = join(home.data, 'logs');

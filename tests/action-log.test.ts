@@ -139,8 +139,8 @@ describe('the record of outside actions (road-to-1.3.md C6)', () => {
     expect(many.list()).toHaveLength(ACTIONS_MAX);
     expect(many.list()[0].said).toBe('n3');
     expect(new ActionLog(file, () => now).list()).toHaveLength(ACTIONS_MAX);
-    // 5,003 lines appended one by one take a few seconds on Windows.
-  }, 30_000);
+    // 5,003 lines appended one by one take a few seconds on Windows, and over 30 when the whole suite runs at once (E8).
+  }, 120_000);
 
   it('an undo marks the action undone and is recorded on a line of its own', () => {
     const dir = folder();
