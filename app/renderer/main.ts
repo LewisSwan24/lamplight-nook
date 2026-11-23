@@ -743,7 +743,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   // No card to put away (called off, no key, no Claude Code): with nothing else going on, the plan goes now.
   // A cap's card offers to carry on only work that was under way; the vars say where the cap stands.
   const again = r.cap && !r.carryOn ? null : () => void run(want, () => window.lamplight.retryCommission(r.run));
-  const cap: Record<string, string> = r.cap ? { spent: formatUsd(r.cap.spentUsd), cap: formatUsd(r.cap.capUsd), left: formatUsd(r.cap.leftUsd), project: r.cap.project ?? '' } : {};
+  const cap: Record<string, string> = r.cap ? { spent: formatUsd(r.cap.spentUsd), cap: formatUsd(r.cap.capUsd), left: formatUsd(r.cap.leftUsd), project: r.cap.project ?? '', person: r.cap.person ?? '' } : {};
   if (hasFailureCard(r.error)) await whenFree();
   if (!showFailure(window.lamplight, r.error ?? '', again, { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0), ...cap }, r.cap ? undefined : r.workDir, (r.budget ?? []).map(budgetLine)) && !live().some((x) => x.run !== r.run)) clearWorkSigns();
 }

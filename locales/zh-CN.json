@@ -424,6 +424,8 @@
       "spendBookCount": "{n} 单",
       "spendBookOne": "1 单",
       "spendBookTotal": "合计",
+      "spendBookOwner": "在电脑上",
+      "spendBookRemoved": "已取消的设备",
       "spendBookEmpty": "还没有花过钱。",
       "budgetLabel": "每一轮最多花",
       "budgetNone": "不设上限",
@@ -661,6 +663,8 @@
       "budgetRetry": "接着做",
       "monthCapTitle": "这个月的钱花到上限了",
       "monthCapText": "这个月已经花了约 {spent}，每月上限是 {cap}，剩下的不够再做一轮。可以去设置里调高上限，或者等到下个月。",
+      "personCapTitle": "这个人的上限到了",
+      "personCapText": "{person} 递来的委托这个月花了约 {spent}，你给的上限是 {cap}，剩下的不够再做一轮。可以在设置里那台设备旁边调高上限，或者等到下个月。",
       "projectCapTitle": "这个项目花到上限了",
       "projectCapText": "「{project}」已经花了约 {spent}，项目上限是 {cap}，剩下的不够再做一轮。可以在笔记本里调高这个项目的上限。",
       "capSettings": "去设置",
@@ -712,6 +716,11 @@
       "paired": "已配对",
       "remove": "取消",
       "deviceName": "设备 {n}",
+      "roleLabel": "能做什么",
+      "roles": { "watch": "只能看", "approve": "能批准", "commission": "能递委托" },
+      "capLabel": "这个人每月的上限",
+      "capEach": "每月最多 {cap}",
+      "capNone": "不单独设上限",
       "off": "没有打开。",
       "answeredOnPhone": "（在手机上答了）",
       "page": {
@@ -723,7 +732,15 @@
         "asks": "等你答的",
         "serious": "这一步要回到电脑前答。",
         "remind": "网页开着时，来了请求会提醒你。关了网页就收不到。",
-        "waiting": "有事问你"
+        "waiting": "有事问你",
+        "watching": "这台设备只能看。请求由店主在电脑上答。",
+        "handIn": "递一份委托",
+        "want": "想做点什么？",
+        "kind": "做哪一种",
+        "send": "递进去",
+        "sent": "递进去了。它在店里排队，做好了店主在电脑上看。",
+        "cap": "你这个月的上限用完了，店里接不了。",
+        "form": "写一句想做什么。"
       }
     },
     "stories": {

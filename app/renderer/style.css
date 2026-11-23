@@ -566,3 +566,5 @@ body.outside #labels { visibility: hidden; }
 /* The rounds a shutdown interrupted (B7): one line each, the list scrolls when there are many. */
 .interrupted-list { max-height: 7.5em; overflow-y: auto; margin: 8px 0 0; padding-left: 4px; list-style-position: inside; }
 .interrupted-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spend-book tr.spend-person { border-bottom: none; color: #6a5440; }
+.spend-book tr.spend-person th { padding-left: 12px; }

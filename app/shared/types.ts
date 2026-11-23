@@ -101,7 +101,7 @@ export type RunResult = { /** The round's run id (B5), for trying it again. */ r
   /** The web addresses this round searched or fetched, for checking a write-up's sources (road-to-1.3.md C7). */ seenUrls?: string[] };
 
 /** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
-export type BudgetNote = { cap: 'month' | 'project'; capUsd: number; spentUsd: number; leftUsd: number; project?: string };
+export type BudgetNote = { cap: 'month' | 'project' | 'person'; capUsd: number; spentUsd: number; leftUsd: number; project?: string; /** A person's own cap (E5): the device's name. */ person?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export type DataDamage = { notebook: 'restored' | 'lost' | 'missing' | null; settings: boolean; ledger: boolean };
@@ -137,7 +137,8 @@ export interface LamplightApi {
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
   /** Every month that cost anything, newest first. */
-  spendMonths(): Promise<{ month: string; usd: number; estimated?: number; commissions: number }[]>;
+  /** `people` only for a month someone other than the owner spent in: `who` is '' for the owner, null for a removed device. */
+  spendMonths(): Promise<{ month: string; usd: number; estimated?: number; commissions: number; people?: { who: string | null; usd: number }[] }[]>;
   /** This month's cap (0: none) and what has been spent under it. */
   monthBudget(): Promise<{ capUsd: number; spentUsd: number }>;
   /** The monthly cap, when it was set above the default on upgrading from what was spent before. Asking takes it: it is said once. */
@@ -232,6 +233,9 @@ export interface LamplightApi {
   /** A new device to pair: the address with its key, and a QR code of it (SVG). */
   lanPair(): Promise<{ url: string; svg: string } | null>;
   lanRemove(id: string): Promise<LanState>;
+  /** What a device may do, and what its person may spend in a month (E5). */
+  lanSetRole(id: string, role: LanRole): Promise<LanState>;
+  lanSetCap(id: string, usd: number): Promise<LanState>;
   /** A postcard of the shop (docs/plan-1.5.md E3), saved where the user picks: true once saved, false if cancelled. */
   sendPostcard(): Promise<boolean>;
   /** A postcard to look at, picked by the user: 'open' once its window is up, why not otherwise, null if cancelled. */
@@ -308,7 +312,9 @@ export type CommissionTemplate = TemplateId;
  * `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in.
  * `connections`: the connections ticked under "this one may use" (road-to-1.3.md C4); none unless the user ticks one.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[] };
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[];
+  /** Handed in from a paired device on the home network (docs/plan-1.5.md E5): which one. Absent: the owner, at the desk. */
+  by?: { id: string; name: string } };
 
 /**
  * What a tool of the shop's own (an in-process `nook-*` MCP server, road-to-1.3.md C4) may do, which sets how it is asked:
@@ -547,6 +553,8 @@ export const IPC = {
   lanState: 'lan:state',
   lanPair: 'lan:pair',
   lanRemove: 'lan:remove',
+  lanSetRole: 'lan:set-role',
+  lanSetCap: 'lan:set-cap',
   sendPostcard: 'postcard:send',
   openPostcard: 'postcard:open',
   /** The postcard being looked at, for its own window's preload (sync), and leaving it. */
@@ -863,7 +871,9 @@ export type ShareResult = ExportResult | 'cloud';
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
 /** The home-network connection as the settings show it (docs/plan-1.5.md E1). */
-export type LanState = { on: boolean; addresses: string[]; devices: { id: string; name: string; added: string; paired: boolean; lastSeen?: string }[] };
+/** What a paired device may do (docs/plan-1.5.md E5): watch only, answer requests too, or hand in commissions as well. */
+export type LanRole = 'watch' | 'approve' | 'commission';
+export type LanState = { on: boolean; addresses: string[]; devices: { id: string; name: string; added: string; paired: boolean; lastSeen?: string; role: LanRole; capUsd: number }[] };
 /** `today`: the day by the shop's clock (main/clock.ts), which the simulations can move on; the stories go by it (D4). */
 export type ShopState = ShopDays & { works: Work[]; today: string };
 /** A place where a commission got stuck ("pits we fell into together"). */
