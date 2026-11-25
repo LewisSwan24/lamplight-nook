@@ -123,6 +123,8 @@ describe('new neighbours, who come because of the work', () => {
     // The bakery's two kinds (plan-1.6.md F1): Old Ma from the noodle bar comes for a menu, Lin from upstairs for a recipe.
     expect(welcomeGuests({ menu: 1 })).toEqual(['baker', 'postman', 'cook']);
     expect(welcomeGuests({ recipe: 1, page: 1 })).toEqual(['baker', 'postman', 'mechanic', 'lodger']);
+    // The post office's (plan-1.6.md F2): Fern from the flower shop for a card, Mrs Wu from the residents' committee for a newsletter.
+    expect(welcomeGuests({ card: 1, newsletter: 1 })).toEqual(['baker', 'postman', 'florist', 'organizer']);
   });
 
   it('only sends those who are welcome, and someone new soon after they are', () => {

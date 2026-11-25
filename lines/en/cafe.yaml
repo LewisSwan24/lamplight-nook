@@ -310,7 +310,9 @@ grow:
   - { id: grow_readinglamp, speaker: xiaoju, when: grow_readinglamp, bubbles: ["A reading lamp on the table!", "Easier on the eyes at night."] }
   - { id: grow_postcards, speaker: qingdai, when: grow_postcards, bubbles: ["Postcards pinned on the wall.", "All places we haven't been yet."] }
   - { id: grow_toolbox, speaker: laoshi, when: grow_toolbox, bubbles: ["Toolbox goes here.", "Help yourself."] }
-  - { id: grow_chalkboard, speaker: xiaoju, when: grow_chalkboard, bubbles: ["A little chalkboard on the wall!", "Old Ma has the same one in his shop."] }
+  - { id: grow_chalkboard, speaker: xiaoju, when: grow_chalkboard, bubbles: ["A little chalkboard against the wall!", "Old Ma has the same one in his shop."] }
+  - { id: grow_cardline, speaker: xiaoju, when: grow_cardline, bubbles: ["Cards on a string across the window!", "Fern says cards look better hung up."] }
+  - { id: grow_newsletters, speaker: laoshi, when: grow_newsletters, bubbles: ["A pile of newsletters on the sill.", "Mrs Wu asked us to hand them out."], reply: { speaker: adeng, bubbles: ["Take one with your coffee."] } }
   - { id: grow_cookbook, speaker: laoshi, when: grow_cookbook, bubbles: ["Auntie Olive gave us a recipe book.", "Copied out by hand, every word."], reply: { speaker: xiaoju, bubbles: ["Page one is scallion pancakes!"] } }
   - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["Wind chimes by the window.", "They ring when the breeze comes in."] }
   - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["Sixty jobs, so we got goldfish!", "One's called Wick Junior."], reply: { speaker: laoshi, bubbles: ["I'll change the water."] } }
@@ -346,6 +348,10 @@ grow:
   - { id: grow_bakery_ivy, speaker: xiaoju, when: grow_bakery_ivy, bubbles: ["Ivy in the bakery too.", "It likes it by the ovens."] }
   - { id: grow_bakery_pin, speaker: laoshi, when: grow_bakery_pin, bubbles: ["Her old rolling pin is on the wall now.", "Twenty years of use. She won't part with it."] }
   - { id: grow_bakery_garland, speaker: adeng, when: grow_bakery_garland, bubbles: ["A string of little buns in the bakery.", "Twenty jobs. Auntie Olive is celebrating."] }
+  - { id: grow_post_stamp, speaker: adeng, when: grow_post_stamp, bubbles: ["The post office framed its first stamp.", "Pip says his hands shook that day."] }
+  - { id: grow_post_ivy, speaker: xiaoju, when: grow_post_ivy, bubbles: ["The post office has an ivy pot too.", "By the sorting rack. It keeps the sun off."] }
+  - { id: grow_post_horn, speaker: laoshi, when: grow_post_horn, bubbles: ["Pip hung a brass post horn up.", "Riders blew those, back in the day."] }
+  - { id: grow_post_map, speaker: adeng, when: grow_post_map, bubbles: ["A map of the rounds in the post office.", "Twenty jobs. Pip says every door has a pin."] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["A teapot on the desk.", "A cup for anyone who comes in."] }
@@ -375,6 +381,9 @@ cross_out:
   - { id: cross_out_gy_01, speaker: guiyi, bubbles: ["This needs {shop}'s help.", "I'll turn the oven down."] }
   - { id: cross_out_gy_02, speaker: guiyi, bubbles: ["{shop} is good at this.", "I'll take them a couple of rolls."] }
   - { id: cross_out_gy_03, speaker: guiyi, bubbles: ["Popping over to {shop}.", "The dough can rest meanwhile."] }
+  - { id: cross_out_ax_01, speaker: axin, bubbles: ["This goes on to {shop}.", "It's on my way."] }
+  - { id: cross_out_ax_02, speaker: axin, bubbles: ["{shop} is good at this.", "I'll run it over."] }
+  - { id: cross_out_ax_03, speaker: axin, bubbles: ["Forwarding it to {shop}.", "I'll bring back a receipt."] }
 
 cross_take:
   - { id: cross_take_aq_01, speaker: aqian, bubbles: ["A print for {shop}.", "Setting it now."] }

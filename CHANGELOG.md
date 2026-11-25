@@ -2,6 +2,18 @@
 
 ## Unreleased (1.6)
 
+- **The post office opens.** Pip's post office along the street can be gone into now: a green counter with a parcel
+  scale, a sorting rack of pigeonholes where he works, a parcel shelf, a packing table and a green postbox. Two new kinds
+  of commission are made there. A **card** is drawn as a picture, postcard-sized unless you ask for one for the phone,
+  with a PDF to print; your words go on it as you wrote them. A **newsletter** is a Word document with a PDF to pin up,
+  the news under short headings and the dates listed at the end; anything missing is left blank. A card brings a string
+  of cards to the home shop's side window and Fern from the flower shop; two newsletters bring a pile of them on the
+  window sill and Mrs Wu from the residents' committee. The post office grows its own four pieces and has its own
+  festival envelope. Pip still brings the post to the home shop.
+- **Postcards on the wall.** Every postcard you open is kept on the cork board in the post office, newest first, six at
+  most. Point at one to see who sent it; click it to look round their shop again. Only what the postcard itself carries
+  is kept, no dates.
+- The menu board a menu brings no longer hides behind the clock: it stands against the left wall.
 - **The bakery opens.** Auntie Olive's bakery along the street can be gone into now, like the print shop, the studio and
   the workshop: ovens, racks of bread, a kneading table and a glass bread counter, with her at work in it. Two new kinds
   of commission are made there. A **menu** is drawn as a picture (A4 unless you ask for a square or a wide one) with a

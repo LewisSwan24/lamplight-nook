@@ -53,8 +53,8 @@ import { DraftRecord } from './drafts';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
 import { VisitWindow } from './visit';
-import { readPostcardFile } from './postcard';
-import { makePostcard, postcardText } from '../shared/postcard';
+import { PostcardWall, readPostcardFile } from './postcard';
+import { makePostcard, postcardText, wallCards } from '../shared/postcard';
 import { copyMaterials, sortHandOver } from './materials';
 import { stepCount } from '../shared/board';
 import { boardRow, projectFolders, projectSettled, timelineRows } from './projects';
@@ -147,6 +147,7 @@ let pending: PendingStore;
 /** The scheduled commissions (road-to-1.2.md B6). */
 let schedules: ScheduleStore;
 let memory: MemoryStore;
+let postcards: PostcardWall;
 let versions: VersionStore;
 /** Every round's version of every project (B2), in the same folder as the lent folders' originals. */
 let projectVersions: ProjectVersions;
@@ -1282,8 +1283,17 @@ ipcMain.handle(IPC.openPostcard, async (): Promise<'open' | 'big' | 'notPostcard
     log?.info('postcard not opened', { reason: read.reason });
     return read.reason;
   }
+  postcards.keep(read.card);
   visit.show(read.card, win);
   return 'open';
+});
+// The post office's wall (plan-1.6.md F2): the postcards opened before, and one of them looked at again.
+ipcMain.handle(IPC.keptPostcards, () => wallCards(postcards.cards()));
+ipcMain.handle(IPC.openKeptPostcard, (_e, i: number): boolean => {
+  const card = postcards.card(i);
+  if (!win || !card) return false;
+  visit.show(card, win);
+  return true;
 });
 ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
@@ -1628,6 +1638,7 @@ function openData() {
   pending = new PendingStore(join(dir, 'pending'), join(dir, 'pending.json'));
   schedules = new ScheduleStore(join(dir, 'schedules.json'));
   memory = new MemoryStore(join(dir, 'memory.json'));
+  postcards = new PostcardWall(dir);
   versions = new VersionStore(join(dir, 'versions'));
   projectVersions = new ProjectVersions(join(dir, 'versions'));
   if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });

@@ -5,6 +5,7 @@ import { LOCALES } from '../app/shared/i18n';
 import { WORK_ICONS } from '../app/shared/growth';
 import { EDITABLE, MAIN_FILES, MAX_EDIT_BYTES, TEMPLATES, shopOf, template } from '../app/shared/templates';
 import { SHOPS } from '../app/shared/dispatch';
+import { readPng } from './png';
 
 /** The one table of templates (road-to-1.1.md A7): every record has what the rest of the app looks up by its id. */
 describe('the template table', () => {
@@ -28,7 +29,7 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter']);
   });
 
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
@@ -48,8 +49,8 @@ describe('the template table', () => {
   });
 
   it('adds a menu and a recipe last, both made in the bakery, each with its piece and its neighbour (plan-1.6.md F1)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['menu', 'recipe']);
-    expect(TEMPLATES.slice(-2).map((t) => [t.shop, t.icon, t.main, 'growth' in t ? t.growth : null, 'guest' in t ? t.guest : null])).toEqual([
+    expect(TEMPLATES.map((t) => t.id).slice(16, 18)).toEqual(['menu', 'recipe']);
+    expect(TEMPLATES.slice(16, 18).map((t) => [t.shop, t.icon, t.main, 'growth' in t ? t.growth : null, 'guest' in t ? t.guest : null])).toEqual([
       ['bakery', 17, 'picture', { id: 'chalkboard', at: 1 }, 'cook'],
       ['bakery', 18, 'office', { id: 'cookbook', at: 2 }, 'lodger'],
     ]);
@@ -60,6 +61,24 @@ describe('the template table', () => {
       expect(MAIN_FILES.picture(F.menuPng, F), lang).toBe(true);
       for (const other of [F.menuPage, F.menuPdf]) expect(MAIN_FILES.picture(other, F), `${lang} ${other}`).toBe(false);
       for (const id of ['menu', 'recipe']) {
+        expect((S.ui.templates as Record<string, string>)[`${id}Hint`], `${lang} ${id}Hint`).toBeTruthy();
+        expect((S.ui.shelf.kinds as Record<string, string>)[id], `${lang} kinds.${id}`).toBeTruthy();
+      }
+    }
+  });
+
+  it('adds a greeting card and a newsletter last, both made in the post office, each with its piece and its neighbour (plan-1.6.md F2)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['card', 'newsletter']);
+    expect(TEMPLATES.slice(-2).map((t) => [t.shop, t.icon, t.main, 'growth' in t ? t.growth : null, 'guest' in t ? t.guest : null])).toEqual([
+      ['post', 19, 'picture', { id: 'cardline', at: 1 }, 'florist'],
+      ['post', 20, 'office', { id: 'newsletters', at: 2 }, 'organizer'],
+    ]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect([F.cardPage, F.cardPng, F.cardPdf, F.newsletter, F.newsletterPdf].map((n) => n.slice(n.lastIndexOf('.'))), lang).toEqual(['.html', '.png', '.pdf', '.docx', '.pdf']);
+      expect(MAIN_FILES.picture(F.cardPng, F), lang).toBe(true);
+      for (const other of [F.cardPage, F.cardPdf]) expect(MAIN_FILES.picture(other, F), `${lang} ${other}`).toBe(false);
+      for (const id of ['card', 'newsletter']) {
         expect((S.ui.templates as Record<string, string>)[`${id}Hint`], `${lang} ${id}Hint`).toBeTruthy();
         expect((S.ui.shelf.kinds as Record<string, string>)[id], `${lang} kinds.${id}`).toBeTruthy();
       }
@@ -92,6 +111,18 @@ describe('the template table', () => {
     }
   });
 
+  it('keeps every piece a kind of work brings clear of the clock on the wall, which the game draws over the room', () => {
+    // The clock's pendulum case (CafeScene addProps, at 180,14): what of its 16x32 frame is drawn.
+    const clock = { x0: 182, y0: 24, x1: 194, y1: 41 };
+    for (const t of TEMPLATES) {
+      if (!('growth' in t)) continue;
+      const png = readPng(join('assets', 'sprites', `grow-${t.growth.id}.png`));
+      const under: string[] = [];
+      for (let y = clock.y0; y < clock.y1; y++) for (let x = clock.x0; x < clock.x1; x++) if (png.at(x, y).alpha > 0) under.push(`${x},${y}`);
+      expect(under.length, t.growth.id).toBe(0);
+    }
+  });
+
   it('asks for a file of up to 20 MB to edit (text, Office or PDF), and a folder to tidy', () => {
     // C3: Word, Excel, PowerPoint and PDF too, never their kinds with macros, up to the 20 MB one handed-over file may be.
     expect(template('edit').source).toEqual({ kind: 'file', extensions: ['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf'], maxBytes: 20 * 1024 * 1024 });
@@ -119,6 +150,7 @@ describe('the template table', () => {
     expect(at('studio')).toEqual(['album', 'chart', 'poster']);
     expect(at('workshop')).toEqual(['page', 'tool']);
     expect(at('bakery')).toEqual(['menu', 'recipe']);
+    expect(at('post')).toEqual(['card', 'newsletter']);
     expect(at('home')).toEqual(['edit', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);
     for (const t of TEMPLATES) expect(SHOPS, t.id).toContain(t.shop);
     // A commission without a kind (written in the user's own words), or the demo, stays in the home shop.

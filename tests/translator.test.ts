@@ -489,7 +489,7 @@ describe('the filing cabinet and the post (C8)', () => {
 
 describe('orders sent to the shops (road-to-1.4.md D3)', () => {
   const office = (tool: string) => `mcp__nook-office__${tool}`;
-  type Shop = 'print' | 'studio' | 'workshop' | 'bakery';
+  type Shop = 'print' | 'studio' | 'workshop' | 'bakery' | 'post';
   const inShop = (room: Shop) => {
     const t = new Translator(parseRules(read(`rules/${room}.yaml`)), anims, { brief: 'x' });
     t.room = room;
@@ -504,7 +504,7 @@ describe('orders sent to the shops (road-to-1.4.md D3)', () => {
   const of = (cmds: CharacterCommand[], actor: ActorId) => cmds.find((c) => c.actor === actor);
 
   it('has Adeng come into the shop with the slip, hand it over at the counter and go home again', () => {
-    for (const [room, who] of [['print', 'aqian'], ['studio', 'xiaozhe'], ['workshop', 'xiaoding'], ['bakery', 'guiyi']] as const) {
+    for (const [room, who] of [['print', 'aqian'], ['studio', 'xiaozhe'], ['workshop', 'xiaoding'], ['bakery', 'guiyi'], ['post', 'axin']] as const) {
       const cmds = inShop(room).translate(ev({ kind: 'session_start', run: 'r1' }));
       expect(of(cmds, 'adeng'), room).toMatchObject({ moveTo: 'counter', anim: 'gift', leave: true, line: { group: 'dispatch_hand', speaker: 'adeng' } });
       expect(of(cmds, who), room).toMatchObject({ moveTo: 'counter', line: { group: 'opening' } });
@@ -575,7 +575,7 @@ describe('orders sent to the shops (road-to-1.4.md D3)', () => {
 
   it('has three lines at least for every speaker of every errand group, in both languages', () => {
     const want: Record<string, ActorId[]> = {
-      dispatch_go: ['adeng'], dispatch_hand: ['adeng'], cross_out: ['aqian', 'xiaozhe', 'xiaoding', 'guiyi'], cross_take: ['aqian', 'xiaozhe'], cross_back: ['aqian', 'xiaozhe'],
+      dispatch_go: ['adeng'], dispatch_hand: ['adeng'], cross_out: ['aqian', 'xiaozhe', 'xiaoding', 'guiyi', 'axin'], cross_take: ['aqian', 'xiaozhe'], cross_back: ['aqian', 'xiaozhe'],
     };
     for (const file of ['lines/cafe.yaml', 'lines/en/cafe.yaml']) {
       const lib = parseLines(read(file));

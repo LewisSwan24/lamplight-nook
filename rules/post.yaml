@@ -1,0 +1,388 @@
+# Post office rules (plan-1.6.md F2): the same format as rules/cafe.yaml, whose header explains it.
+# All the work goes to Axin the postman; Adeng only comes in with the order from home (D3),
+# hands it over at the counter and goes home again.
+# The cafe's spots go by other names here: counter = the post office counter, board = the sorting rack,
+# shelf = the parcel shelf, table = the packing table, corner = the postbox. Nobody goes out: helpers' errands are
+# Axin walking to a spot. The filing cabinet and the letter holder are the home shop's, so they stay out of it.
+
+- on: session_start
+  actor: axin
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: opening
+  priority: work
+  extra:
+    - { actor: adeng, state: ready, moveTo: counter, anim: gift, lines: dispatch_hand, own_lines: true, leave: true, priority: work }
+
+# Thinking it through by the sorting rack, the way he plans a morning round.
+- on: plan
+  actor: axin
+  state: working
+  moveTo: board
+  anim: write
+  bubble: note
+  lines: planning
+  priority: work
+
+- on: thinking
+  actor: axin
+  state: thinking
+  anim: spin_cup
+  bubble: dots
+  priority: work
+
+# Helpers' errands: looking it up along the parcel shelf, trying it at the packing table, setting it out by the sorting rack.
+- on: subagent_start
+  when: { agent: researcher }
+  actor: axin
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: researcher }
+  actor: axin
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: reviewer }
+  actor: axin
+  state: checking
+  moveTo: corner
+  anim: lift
+  lines: sub_go_review
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: reviewer }
+  actor: axin
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: sub_back_review
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: designer }
+  actor: axin
+  state: working
+  moveTo: board
+  anim: read
+  bubble: idea
+  lines: sub_go_design
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: designer }
+  actor: axin
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_design
+  priority: subagent
+
+# Unrecognized helpers: looked up along the parcel shelf too.
+- on: subagent_start
+  actor: axin
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  actor: axin
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: tool_start
+  when: { agent: researcher }
+  actor: axin
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+- on: tool_start
+  when: { agent: reviewer }
+  actor: axin
+  state: checking
+  anim: lift
+  priority: work
+
+- on: tool_start
+  when: { agent: designer }
+  actor: axin
+  state: working
+  anim: read
+  bubble: idea
+  priority: work
+
+- on: tool_start
+  when: { agent: unknown }
+  actor: axin
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+# The list by the sorting rack changes: Axin goes over and reads it through.
+- on: progress
+  when: { agent: main }
+  actor: axin
+  state: working
+  moveTo: board
+  anim: read
+  priority: chat
+
+# Office tools: a document is read by the parcel shelf; a finished file is laid on the post office counter.
+- on: tool_start
+  when: { agent: main, tool: mcp__nook-office__read_document }
+  actor: axin
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: [mcp__nook-office__make_docx, mcp__nook-office__make_xlsx, mcp__nook-office__make_pptx, mcp__nook-office__make_pdf, mcp__nook-office__edit_docx, mcp__nook-office__edit_xlsx, mcp__nook-office__edit_pptx, mcp__nook-office__render_png] }
+  actor: axin
+  state: working
+  moveTo: counter
+  anim: gift
+  priority: work
+
+# Connections: no letter holder here, so what comes in is read at the post office counter.
+- on: tool_start
+  when: { agent: main, tool: [mcp__nook-calendar__events, mcp__nook-folder__list, mcp__nook-folder__read] }
+  actor: axin
+  state: working
+  moveTo: counter
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-folder__save_copy }
+  actor: axin
+  state: working
+  moveTo: shelf
+  anim: gift
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-maildraft__draft }
+  actor: axin
+  state: working
+  moveTo: counter
+  anim: gift
+  lines: draft_ready
+  priority: work
+
+# Making it at the post office counter.
+- on: tool_start
+  when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
+  actor: axin
+  state: working
+  moveTo: counter
+  anim: write
+  lines: writing
+  priority: work
+
+# Running something is a walk to the postbox and back.
+- on: tool_start
+  when: { agent: main, tool: [Bash, PowerShell] }
+  actor: axin
+  state: working
+  moveTo: corner
+  anim: write
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [WebSearch, WebFetch] }
+  actor: axin
+  state: working
+  moveTo: counter
+  anim: phone
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Read, Glob, Grep] }
+  actor: axin
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_start
+  when: { agent: main }
+  actor: axin
+  state: working
+  moveTo: table
+  anim: write
+  priority: work
+
+- on: long_wait
+  actor: axin
+  state: waiting
+  moveTo: window
+  anim: drink
+  bubble: tea
+  lines: waiting
+  priority: work
+
+- on: tool_fail
+  when: { failStreak: { lt: 3 } }
+  actor: axin
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck
+  own_lines: true
+  priority: fail
+
+- on: tool_fail
+  actor: axin
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck_long
+  priority: fail
+
+- on: tool_ok
+  when: { agent: main }
+  actor: axin
+  state: working
+  priority: chat
+
+- on: ask_user
+  actor: axin
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: permission
+  when: { risk: [serious, blocked] }
+  actor: axin
+  state: serious
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: serious
+  priority: serious
+
+- on: permission
+  actor: axin
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: decision
+  when: { choice: picked }
+  actor: axin
+  state: reacting
+  anim: idle
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  when: { choice: delegated }
+  actor: axin
+  state: reacting
+  anim: idle
+  lines: react_delegated
+  priority: fail
+
+- on: decision
+  when: { choice: allowed, risk: serious }
+  actor: axin
+  state: reacting
+  lines: serious_yes
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: blocked }
+  actor: axin
+  state: working
+  lines: refused
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: serious }
+  actor: axin
+  state: reacting
+  lines: serious_no
+  priority: fail
+
+- on: decision
+  when: { choice: allowed }
+  actor: axin
+  state: reacting
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  actor: axin
+  state: reacting
+  lines: react_rejected
+  own_lines: true
+  priority: fail
+
+- on: done
+  actor: axin
+  state: wrapping
+  moveTo: counter
+  anim: idle
+  lines: done
+  priority: fail
+
+- on: failed
+  actor: axin
+  state: low
+  moveTo: counter
+  anim: idle
+  lines: failed
+  priority: fail
+
+- on: net_error
+  actor: axin
+  state: low
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: failed
+  priority: fail
+
+- on: net_retry
+  actor: axin
+  state: waiting
+  moveTo: window
+  anim: idle
+  bubble: dots
+  lines: net_retry
+  priority: fail
+
+- on: cancelled
+  actor: axin
+  state: idle
+  moveTo: counter
+  anim: idle
+  lines: cancelled
+  priority: fail

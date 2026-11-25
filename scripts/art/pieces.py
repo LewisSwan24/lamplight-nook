@@ -13,7 +13,8 @@ the highest one it touches; pieces.json lists them under `on`.
 Writes assets/sprites/<scene>-room.png, <scene>-pieces.png (one sheet, top to bottom) and pieces.json, for the cafe,
 the study and the three shops of road-to-1.4.md D2 (shops.py): print-room.png and print-pieces.png, studio-room.png
 and studio-pieces.png, workshop-room.png and workshop-pieces.png, and since plan-1.6.md F1 the bakery
-(bakery.py): bakery-room.png and bakery-pieces.png.
+(bakery.py): bakery-room.png and bakery-pieces.png, and since F2 the post office (post.py): post-room.png and
+post-pieces.png.
 Run after every other art script: python3 scripts/art/pieces.py
 """
 import importlib
@@ -29,7 +30,7 @@ import scene
 import study
 
 # The shops, by name; `print` is looked up rather than imported, so it does not hide the builtin.
-SHOPS = {name: importlib.import_module(name) for name in ('print', 'studio', 'workshop', 'bakery')}
+SHOPS = {name: importlib.import_module(name) for name in ('print', 'studio', 'workshop', 'bakery', 'post')}
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/sprites'
 W, H = scene.W, scene.H
@@ -42,7 +43,8 @@ FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'cabinet':
         'print': {'table': 14, 'press': 8, 'counter': 8, 'shelf': 16, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
         'studio': {'table': 12, 'easel': 6, 'counter': 8, 'shelf': 18, 'workbench': 6, 'lamp': 8, 'plant_l': 8, 'plant_r': 8},
         'workshop': {'table': 14, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
-        'bakery': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8}}
+        'bakery': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'post': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 8, 'lamp': 6, 'plant_l': 8, 'plant_r': 8}}
 CHAIR_FOOT = 12
 WALL = ('window', 'window2', 'window3', 'board')
 # Where the floor starts: what ends higher up hangs on the wall.

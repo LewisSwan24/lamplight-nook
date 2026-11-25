@@ -11,14 +11,17 @@ import printRules from '../../../rules/print.yaml?raw';
 import studioRules from '../../../rules/studio.yaml?raw';
 import workshopRules from '../../../rules/workshop.yaml?raw';
 import bakeryRules from '../../../rules/bakery.yaml?raw';
+import postRules from '../../../rules/post.yaml?raw';
 import zhPrint from '../../../lines/print.yaml?raw';
 import zhStudio from '../../../lines/studio.yaml?raw';
 import zhWorkshop from '../../../lines/workshop.yaml?raw';
 import zhBakery from '../../../lines/bakery.yaml?raw';
+import zhPost from '../../../lines/post.yaml?raw';
 import enPrint from '../../../lines/en/print.yaml?raw';
 import enStudio from '../../../lines/en/studio.yaml?raw';
 import enWorkshop from '../../../lines/en/workshop.yaml?raw';
 import enBakery from '../../../lines/en/bakery.yaml?raw';
+import enPost from '../../../lines/en/post.yaml?raw';
 import { locale } from '../../shared/i18n';
 import type { RoomId } from '../../shared/scenes';
 import { type Chat, type LineLibrary, chatsForScene, linesForScene, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
@@ -32,6 +35,7 @@ const OWN: Partial<Record<RoomId, { rules: string; zh: string; en: string }>> = 
   studio: { rules: studioRules, zh: zhStudio, en: enStudio },
   workshop: { rules: workshopRules, zh: zhWorkshop, en: enWorkshop },
   bakery: { rules: bakeryRules, zh: zhBakery, en: enBakery },
+  post: { rules: postRules, zh: zhPost, en: enPost },
 };
 
 function build(scene: RoomId, r: string, a: string, l: string, c: string): RuleBook {

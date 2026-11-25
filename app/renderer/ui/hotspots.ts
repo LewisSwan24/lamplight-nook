@@ -16,7 +16,8 @@ const PLACES: Partial<Record<Target, string>> = {
 const O = strings.ui.objects;
 const objectName = (id: string): string | undefined =>
   id.startsWith('grow-') ? O.grown[id.slice(5) as keyof typeof O.grown] : O.names[id as keyof typeof O.names];
-const label = (id: Target, scene: CafeScene) => (id === 'counter' ? wordsIn(scene.room).ui.access.hotspotCounter : PLACES[id]) ?? objectName(id) ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
+const wall = (id: Target, scene: CafeScene) => (id === 'cork' ? strings.ui.visit.wallEmpty : /^wall-d$/.test(id) ? scene.wallLabel(Number(id.slice(5))) : undefined);
+const label = (id: Target, scene: CafeScene) => (id === 'counter' ? wordsIn(scene.room).ui.access.hotspotCounter : PLACES[id] ?? wall(id, scene)) ?? objectName(id) ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
 
 /**
  * Invisible buttons over the counter, the doors and each character, so the shop works from the keyboard:
@@ -44,6 +45,8 @@ export function updateHotspots(scene: CafeScene, rect: DOMRect, scale: number) {
       buttons.set(h.id, b);
       box.append(b);
     }
+    // A pinned postcard's place can come to hold another friend's card.
+    if (h.id.startsWith('wall-')) b.setAttribute('aria-label', label(h.id, scene));
     Object.assign(b.style, { left: `${rect.left + h.x * scale}px`, top: `${rect.top + h.y * scale}px`, width: `${h.w * scale}px`, height: `${h.h * scale}px` });
   }
   for (const [id, b] of buttons) b.hidden = !seen.has(id);

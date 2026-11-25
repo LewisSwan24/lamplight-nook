@@ -16,33 +16,33 @@ import type { ActorId, AiEvent, AnchorId } from '../app/shared/types';
 
 // The shops along the street (road-to-1.4.md D2, plan-1.6.md F1): rooms on the cafe's floor plan, each with a person of its own.
 
-const NEW = ['print', 'studio', 'workshop', 'bakery'] as const;
-const WHO = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding', bakery: 'guiyi' } as const;
+const NEW = ['print', 'studio', 'workshop', 'bakery', 'post'] as const;
+const WHO = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding', bakery: 'guiyi', post: 'axin' } as const;
 const read = (p: string) => readFileSync(p, 'utf8');
 const cafeRules = parseRules(read('rules/cafe.yaml'));
 const anims = parseAnimTable(read('rules/anim-fallback.yaml'));
 
 describe('the rooms', () => {
   it('are the cafe, the study and the shops along the street; only the first two can be the home shop', () => {
-    expect(ROOMS).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery']);
+    expect(ROOMS).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post']);
     expect(SCENES).toEqual(['cafe', 'study']);
     for (const r of NEW) {
       expect(cleanRoom(r)).toBe(r);
       expect(cleanScene(r)).toBeUndefined();
     }
-    expect(cleanRoom('post')).toBeUndefined();
+    expect(cleanRoom('attic')).toBeUndefined();
   });
 
-  it('can be gone into from the street, the bakery too (plan-1.6.md F1); the post office stays shut', () => {
+  it('can be gone into from the street, the bakery and the post office too (plan-1.6.md F1, F2)', () => {
     for (const r of ROOMS) expect(OPEN.has(r)).toBe(true);
     expect(OPEN.has('bakery')).toBe(true);
-    expect(OPEN.has('post')).toBe(false);
+    expect(OPEN.has('post')).toBe(true);
   });
 
   it('each new shop has its own person; Adeng only comes in with an order and goes home again (D3)', () => {
     for (const r of NEW) expect(ROOM_CREW[r]).toEqual([WHO[r]]);
     for (const r of SCENES) expect(ROOM_CREW[r]).toEqual([...STAFF, 'cat']);
-    expect(ALL_STAFF).toEqual([...STAFF, 'aqian', 'xiaozhe', 'xiaoding', 'guiyi']);
+    expect(ALL_STAFF).toEqual([...STAFF, 'aqian', 'xiaozhe', 'xiaoding', 'guiyi', 'axin']);
   });
 
   it('loads a sprite sheet for everyone who stands in a room', () => {

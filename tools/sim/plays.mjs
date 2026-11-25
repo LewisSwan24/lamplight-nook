@@ -31,6 +31,13 @@ const T = {
     menuWords: { place: '小店菜单', sample: [['葱油饼', 8], ['豆浆', 3], ['肉包', 4]], missing: '[价格]', groups: ['吃的', '喝的'], drinks: /浆|奶|咖啡|汁|茶$/ },
     recipe: ['问清是哪道菜、几人份', '列用料和分量', '一步一步写做法', '请老石照着读一遍'],
     recipeDone: '食谱写好了：一份 Word 文档，用料、步骤和要注意的地方都在里面。分量是家常的量，可以照口味调。',
+    card: ['问清是什么日子、给谁', '挑颜色，写祝福', '画好，存成图片和 PDF', '请老石核对名字'],
+    cardDone: '贺卡做好了：一张明信片大小的图片，另存了一份 PDF 方便打印。名字照你给的写，没给的留在方括号里。',
+    cardWords: { greeting: '生日快乐', line: '愿你每天都有好咖啡喝。', from: '——[你的名字]' },
+    newsletter: ['把这期要讲的事理一遍', '分条写，要紧的放前头', '排成文档，另存一份 PDF', '请老石核对日子'],
+    newsletterDone: '简报做好了：一份 Word 文档，另存了一份 PDF 可以贴出去。日子和地点单列在最后，没给的留在方括号里。',
+    newsletterDoc: (w) => ({ title: w || '楼里简报', blocks: [{ p: '第 [期数] 期' }, { h: 1, text: '周六义诊' }, { p: '社区医院的医生周六上午来，量血压、看看小毛病。' }, { h: 1, text: '楼道自行车' }, { p: '请把自行车停到楼后车棚，楼道留给人走。' }, { h: 1, text: '近期安排' }, { list: ['周六 9:00 义诊，一楼活动室', '[日期] 大扫除'] }] }),
+    newsletterPage: (w) => `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:20mm}body{font-family:system-ui,sans-serif;color:#2a2233}h1{color:#34765a}</style></head><body><h1>${esc(w || '楼里简报')}</h1><p>第 [期数] 期</p><h2>周六义诊</h2><p>社区医院的医生周六上午来，量血压、看看小毛病。</p><h2>楼道自行车</h2><p>请把自行车停到楼后车棚，楼道留给人走。</p><h2>近期安排</h2><ul><li>周六 9:00 义诊，一楼活动室</li><li>[日期] 大扫除</li></ul></body></html>\n`,
     recipeDoc: (w) => ({ title: w || '食谱', blocks: [{ p: '两人份，准备 15 分钟，做 20 分钟。分量是家常的量，可以照口味调。' }, { h: 1, text: '用料' }, { list: ['面粉 200 克', '温水 120 毫升', '葱 3 根', '盐 3 克'] }, { h: 1, text: '做法' }, { list: ['1. 面粉加温水揉成团，盖上布醒 15 分钟。', '2. 擀成薄片，抹油撒葱和盐，卷起再擀开。', '3. 中火烙到两面金黄，约 6 分钟。'] }, { h: 1, text: '要注意' }, { list: ['含小麦（面筋）。', '油温太高容易外焦里生。'] }] }),
     notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
     travel: ['弄清去哪、几天', '请小橘查开放时间和票价', '按天排行程和预算', '请老石检查'],
@@ -118,6 +125,13 @@ const T = {
     menuWords: { place: 'Our menu', sample: [['Scallion pancake', 8], ['Soy milk', 3], ['Pork bun', 4]], missing: '[price]', groups: ['To eat', 'To drink'], drinks: /milk|coffee|juice|tea$/i },
     recipe: ['Ask which dish and for how many', 'List what goes in, with amounts', 'Write the steps one by one', 'Ask Flint to read it through'],
     recipeDone: 'The recipe is written: a Word document with what goes in, the steps and what to watch out for. The amounts are everyday ones; adjust to taste.',
+    card: ['Ask what the day is and who it is for', 'Pick the colours, write the wish', 'Draw it, save the picture and a PDF', 'Ask Flint to check the names'],
+    cardDone: 'The card is ready: a postcard-sized picture, and a PDF of it to print. Names are as you gave them; a missing one is left in square brackets.',
+    cardWords: { greeting: 'Happy birthday', line: 'Good coffee, every day of the year.', from: '— [your name]' },
+    newsletter: ['Go through what this issue covers', 'Write it up, the big news first', 'Lay it out as a document, save a PDF', 'Ask Flint to check the dates'],
+    newsletterDone: 'The newsletter is ready: a Word document, and a PDF to pin up. Dates and places are listed at the end; a missing one is left in square brackets.',
+    newsletterDoc: (w) => ({ title: w || 'Block newsletter', blocks: [{ p: 'Issue [number]' }, { h: 1, text: 'Saturday clinic' }, { p: 'Doctors from the community hospital come on Saturday morning to check blood pressure and small complaints.' }, { h: 1, text: 'Bikes in the hallway' }, { p: 'Please leave bikes in the shed behind the block, so the hallway stays clear.' }, { h: 1, text: 'Coming up' }, { list: ['Saturday 9:00, clinic, ground-floor room', '[date], spring cleaning'] }] }),
+    newsletterPage: (w) => `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:20mm}body{font-family:system-ui,sans-serif;color:#2a2233}h1{color:#34765a}</style></head><body><h1>${esc(w || 'Block newsletter')}</h1><p>Issue [number]</p><h2>Saturday clinic</h2><p>Doctors from the community hospital come on Saturday morning to check blood pressure and small complaints.</p><h2>Bikes in the hallway</h2><p>Please leave bikes in the shed behind the block, so the hallway stays clear.</p><h2>Coming up</h2><ul><li>Saturday 9:00, clinic, ground-floor room</li><li>[date], spring cleaning</li></ul></body></html>\n`,
     recipeDoc: (w) => ({ title: w || 'Recipe', blocks: [{ p: 'Serves two. 15 minutes of work, 20 of cooking. The amounts are everyday ones; adjust to taste.' }, { h: 1, text: 'What goes in' }, { list: ['200 g flour', '120 ml warm water', '3 scallions', '3 g salt'] }, { h: 1, text: 'Steps' }, { list: ['1. Knead the flour and water into a dough; cover and rest for 15 minutes.', '2. Roll it thin, brush with oil, scatter scallions and salt, roll up and flatten again.', '3. Fry on a medium heat until golden on both sides, about 6 minutes.'] }, { h: 1, text: 'Watch out for' }, { list: ['Contains wheat (gluten).', 'Too hot a pan burns the outside before the middle is done.'] }] }),
     notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
     travel: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out the days and the budget', 'Ask Flint to check it'],
@@ -280,6 +294,18 @@ function menuPage(t, w) {
     + `<body><h1>${esc(M.place)}</h1>${group(M.groups[0], food)}${group(M.groups[1], drink)}</body></html>\n`;
 }
 
+/** A greeting card (plan-1.6.md F2): a postcard lying down, or a square for the phone when the request says so. */
+const cardSize = (w) => (/方|手机|square|phone/i.test(w) ? { width: 1080, height: 1080 } : { width: 1748, height: 1240 });
+
+/** The card itself: the greeting big in the middle, a line under it, who it is from at the bottom, a sun and a border. */
+function cardPage(t, w) {
+  const C = t.cardWords;
+  const { width, height } = cardSize(w);
+  const big = Math.round(height / 7);
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:${width}px ${height}px;margin:0}html,body{margin:0}body{width:${width}px;height:${height}px;box-sizing:border-box;border:${Math.round(big / 3)}px solid #e8b84a;padding:${big}px;background:#fdf3e3;color:#7a2e2a;font-family:system-ui,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow:hidden}h1{font-size:${big}px;margin:0}p{font-size:${Math.round(big / 2.6)}px;margin:.6em 0}.sun{width:${big}px;height:${big}px;border-radius:50%;background:#f6ae2d;margin-bottom:${Math.round(big / 3)}px}</style></head>\n`
+    + `<body><div class="sun"></div><h1>${esc(C.greeting)}</h1><p>${esc(C.line)}</p><p>${esc(C.from)}</p></body></html>\n`;
+}
+
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
 export function pickPlay(prompt, state, system = '') {
   state.vars ??= {};
@@ -351,6 +377,18 @@ export function pickPlay(prompt, state, system = '') {
     return plays.menu;
   }
   if (/This is a recipe someone will cook from/.test(prompt)) { state.vars.out = quoted(prompt, 'make_docx tool as'); return plays.recipe; }
+  if (/This is a greeting card for one person or one occasion/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Lay it out as a single self-contained page');
+    state.vars.png = quoted(prompt, 'Then save it as');
+    state.vars.pdf = quoted(prompt, 'and as');
+    return plays.card;
+  }
+  if (/This is a short newsletter for a building/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'make_docx tool as');
+    state.vars.page = quoted(prompt, 'single self-contained page');
+    state.vars.pdf = quoted(prompt, 'and save it as');
+    return plays.newsletter;
+  }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
   if (/This is a Word document/.test(prompt)) { state.vars.out = quoted(prompt, 'make_docx tool as'); return plays.document; }
@@ -908,6 +946,20 @@ export const plays = {
     },
   }),
   recipe: simpleText('recipe', null, (t) => t.recipeDone, { make: (s, o, w) => office(s, 'make_docx', { file: s.state.vars.out, ...T[s.state.lang].recipeDoc(w) }) }),
+  card: simpleText('card', (t, w) => cardPage(t, w), (t) => t.cardDone, {
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, ...cardSize(s.state.vars.want || '') });
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  newsletter: simpleText('newsletter', null, (t) => t.newsletterDone, {
+    make: (s, o, w) => office(s, 'make_docx', { file: s.state.vars.out, ...T[s.state.lang].newsletterDoc(w) }),
+    after: async (s) => {
+      await s.write(s.state.vars.page, T[s.state.lang].newsletterPage(s.state.vars.want || ''));
+      await office(s, 'make_pdf', { page: s.state.vars.page, file: s.state.vars.pdf });
+    },
+  }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
