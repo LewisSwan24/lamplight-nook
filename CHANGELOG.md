@@ -49,6 +49,9 @@
   `docs/content.md` with what changed since the last count. It also checks that no line is missing in English, every
   picture is on an art list, the story chapters agree with each other and with the story file, and every shop has its
   own lines.
+- **Fixed:** after an upgrade from an older shop, Auntie Olive, Pip and the other neighbours who arrived in 1.6 were
+  counted as already met, so their first visit never came. The handwriting font also lacked five characters the new
+  lines use.
 
 ## Unreleased (1.5)
 
