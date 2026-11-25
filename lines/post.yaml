@@ -172,6 +172,18 @@ shop_in:
   - { id: po_in_mid_autumn, speaker: axin, when: holiday_mid_autumn, bubbles: ["中秋好，月饼盒子压了一架子。"] }
   - { id: po_in_halloween, speaker: axin, when: holiday_halloween, bubbles: ["有人寄了个南瓜，我不敢摔。"] }
   - { id: po_in_christmas, speaker: axin, when: holiday_christmas, bubbles: ["圣诞卡比平时多三倍。"] }
+  - { id: po_in_halloween_2, speaker: axin, when: holiday_halloween, bubbles: ["万圣节好，柜台上有糖。"] }
+  - { id: po_in_halloween_3, speaker: axin, when: holiday_halloween, bubbles: ["南瓜明信片卖光了。"] }
+  - { id: po_in_christmas_2, speaker: axin, when: holiday_christmas, bubbles: ["圣诞好，最后一班车下午三点。"] }
+  - { id: po_in_christmas_3, speaker: axin, when: holiday_christmas, bubbles: ["寄国外的卡，今天是最后一天。"] }
+  - { id: po_in_new_year_2, speaker: axin, when: holiday_new_year, bubbles: ["过年好，寄回老家的往这边。"] }
+  - { id: po_in_new_year_3, speaker: axin, when: holiday_new_year, bubbles: ["红包袋免费拿，一人两个。"] }
+  - { id: po_in_lantern_2, speaker: axin, when: holiday_lantern, bubbles: ["元宵好，今天我早点关门。"] }
+  - { id: po_in_lantern_3, speaker: axin, when: holiday_lantern, bubbles: ["猜中灯谜的，送一张邮票。"] }
+  - { id: po_in_dragon_boat_2, speaker: axin, when: holiday_dragon_boat, bubbles: ["粽子寄不了太远，会坏。"] }
+  - { id: po_in_dragon_boat_3, speaker: axin, when: holiday_dragon_boat, bubbles: ["端午好，门上挂了艾草。"] }
+  - { id: po_in_mid_autumn_2, speaker: axin, when: holiday_mid_autumn, bubbles: ["中秋好，月饼寄出去要包两层。"] }
+  - { id: po_in_mid_autumn_3, speaker: axin, when: holiday_mid_autumn, bubbles: ["今天的信，好几封写着团圆。"] }
 
 # 店里没活时阿信隔一会儿说一句：天气、季节、送信时的事、街坊、收工。when 同上，不写就是什么时候都行。
 shop_idle:
@@ -221,3 +233,15 @@ shop_idle:
   - { id: po_idle_autumn_02, speaker: axin, when: season_autumn, bubbles: ["开学了，录取通知书我亲手送。"] }
   - { id: po_idle_winter_01, speaker: axin, when: season_winter, bubbles: ["年底包裹多，架子快放不下。"] }
   - { id: po_idle_winter_02, speaker: axin, when: season_winter, bubbles: ["手冻僵了，邮戳都按不稳。"] }
+  - { id: po_idle_halloween_01, speaker: axin, when: holiday_halloween, bubbles: ["这个南瓜包裹，我一路抱着。"] }
+  - { id: po_idle_halloween_02, speaker: axin, when: holiday_halloween, bubbles: ["有封信画满了蝙蝠。"] }
+  - { id: po_idle_christmas_01, speaker: axin, when: holiday_christmas, bubbles: ["一张卡写了三种语言。"] }
+  - { id: po_idle_christmas_02, speaker: axin, when: holiday_christmas, bubbles: ["邮袋装不下，又拿了一个。"] }
+  - { id: po_idle_new_year_01, speaker: axin, when: holiday_new_year, bubbles: ["这摞贺年卡，一半是寄给奶奶的。"] }
+  - { id: po_idle_new_year_02, speaker: axin, when: holiday_new_year, bubbles: ["红包袋又补了一箱。"] }
+  - { id: po_idle_lantern_01, speaker: axin, when: holiday_lantern, bubbles: ["灯谜贴歪了，我再贴一遍。"] }
+  - { id: po_idle_lantern_02, speaker: axin, when: holiday_lantern, bubbles: ["这封信里夹着一张灯谜。"] }
+  - { id: po_idle_dragon_boat_01, speaker: axin, when: holiday_dragon_boat, bubbles: ["寄粽子的盒子都不够用了。"] }
+  - { id: po_idle_dragon_boat_02, speaker: axin, when: holiday_dragon_boat, bubbles: ["艾草的味儿把邮票都熏香了。"] }
+  - { id: po_idle_mid_autumn_01, speaker: axin, when: holiday_mid_autumn, bubbles: ["月饼盒子压得架子直响。"] }
+  - { id: po_idle_mid_autumn_02, speaker: axin, when: holiday_mid_autumn, bubbles: ["这封信写着：今年回不去了。"] }

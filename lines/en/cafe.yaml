@@ -228,6 +228,18 @@ app_open:
   - { id: open_lantern, speaker: adeng, when: holiday_lantern, bubbles: ["{name}, there you are.", "Lantern riddles today. Clem wrote them."] }
   - { id: open_dragon_boat, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}, there you are.", "Zongzi on the table. Sweet and savoury."] }
   - { id: open_mid_autumn, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}, there you are.", "Mid-Autumn mooncakes are cut. Take one."] }
+  - { id: open_halloween_2, speaker: adeng, when: holiday_halloween, bubbles: ["{name}, there you are.", "Flint carved the lantern by the door."] }
+  - { id: open_halloween_3, speaker: adeng, when: holiday_halloween, bubbles: ["{name}, there you are.", "Clem's dressed as Chestnut. Can you tell?"] }
+  - { id: open_christmas_2, speaker: adeng, when: holiday_christmas, bubbles: ["{name}, there you are.", "Hot tea's on the stove. Help yourself."] }
+  - { id: open_christmas_3, speaker: adeng, when: holiday_christmas, bubbles: ["{name}, merry Christmas.", "The parcel under the tree is yours."] }
+  - { id: open_new_year_2, speaker: adeng, when: holiday_new_year, bubbles: ["{name}, a good new year to you.", "Seeds and peanuts on the table. Dig in."] }
+  - { id: open_new_year_3, speaker: adeng, when: holiday_new_year, bubbles: ["{name}, a good new year to you.", "First commission of the year. Any ideas?"] }
+  - { id: open_lantern_2, speaker: adeng, when: holiday_lantern, bubbles: ["{name}, there you are.", "Sweet dumplings just out. Sesame inside."] }
+  - { id: open_lantern_3, speaker: adeng, when: holiday_lantern, bubbles: ["{name}, there you are.", "Lanterns out tonight. We'll close early."] }
+  - { id: open_dragon_boat_2, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}, there you are.", "Auntie Olive hung that mugwort on the door."] }
+  - { id: open_dragon_boat_3, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}, there you are.", "Bean's watching the boats. Back after lunch."] }
+  - { id: open_mid_autumn_2, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}, there you are.", "Moon-viewing in the garden tonight. Stay."] }
+  - { id: open_mid_autumn_3, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}, good Mid-Autumn to you.", "Iris painted a moon. It's by the window."] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}, there you are.", "How's “{lastCommission}” working out?"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["Come in. What should I call you?"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.

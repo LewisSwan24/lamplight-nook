@@ -8,9 +8,9 @@ const sheet = readPng('assets/sprites/town-decor.png');
 const of = (id: string) => DECOR.parts.filter((p) => p.id === id);
 const lot = town.lot;
 /** How many pixels a kind of piece paints on the street between two x. */
-const paint = (id: string, from: number, to: number) => {
+const paint = (id: string, from: number, to: number, inLot = false) => {
   let n = 0;
-  for (const p of of(id)) {
+  for (const p of of(id).filter((p) => !!p.lot === inLot)) {
     for (let y = 0; y < p.h; y++) for (let x = 0; x < p.w; x++) if (p.x + x >= from && p.x + x < to && sheet.at(p.sx + x, p.sy + y).alpha > 0) n++;
   }
   return n;
@@ -45,8 +45,13 @@ describe('the street through the year (road-to-1.4.md D6)', () => {
     for (const f of town.fronts) expect(paint('new_year', f.x - 8, f.x + f.w + 8), f.id).toBeGreaterThan(2 * 45);
   });
 
-  it('gives every other festival its own piece in the lot, where the cart stands', () => {
-    for (const h of HOLIDAYS.filter((h) => h !== 'new_year')) {
+  it('puts something up at every door for every festival', () => {
+    // A wreath, the smallest of them, is about thirty pixels of paint.
+    for (const h of HOLIDAYS) for (const f of town.fronts) expect(paint(h, f.x - 8, f.x + f.w + 8), `${h} at the ${f.id}`).toBeGreaterThan(24);
+  });
+
+  it('gives every festival its own piece in the lot, where the cart stands', () => {
+    for (const h of HOLIDAYS) {
       const there = of(h).filter((p) => p.lot);
       expect(there.length, h).toBeGreaterThan(0);
       for (const p of there) {
@@ -54,7 +59,6 @@ describe('the street through the year (road-to-1.4.md D6)', () => {
         expect(p.y + p.h, `${h} stays off the pavement`).toBeLessThanOrEqual(town.kerb);
       }
     }
-    expect(of('new_year').filter((p) => p.lot)).toEqual([]);
   });
 
   it('leaves puddles in the rain and snow on the ground when it snows, both on the ground layer', () => {
@@ -84,7 +88,7 @@ describe('the street through the year (road-to-1.4.md D6)', () => {
 
   it('puts the cart away while a festival stands in its place', () => {
     expect(putAway({ season: 'autumn', holiday: 'mid_autumn', sky: 'clear' })).toEqual(['stall']);
-    expect(putAway({ season: 'winter', holiday: 'new_year', sky: 'clear' })).toEqual([]);
+    expect(putAway({ season: 'winter', holiday: 'new_year', sky: 'clear' })).toEqual(['stall']);
     expect(putAway({ season: 'autumn', holiday: null, sky: 'rain' })).toEqual([]);
   });
 

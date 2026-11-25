@@ -2026,3 +2026,184 @@
     - xiaoju: 窗外走过去第十个人了。
     - adeng: 你在数？
     - xiaoju: 数到二十，活就好了。
+
+# Festivals, more of them (plan-1.7.md G1): six chats for each.
+
+- id: g1_halloween_mask
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaoju: 我做了个面具，猜猜是谁？
+    - qingdai: 耳朵这么尖，是栗子。
+    - xiaoju: 一猜就中，没意思。
+
+- id: g1_halloween_candy
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaodou: 门口来了三拨要糖的。
+    - adeng: 糖还够吗？
+    - xiaodou: 还剩半罐。
+
+- id: g1_christmas_socks
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: 袜子挂好了，一人一只。
+    - laoshi: 我那只破了个洞。
+    - xiaoju: 那礼物就漏下去了。
+
+- id: g1_christmas_cards
+  when: idle
+  holiday: christmas
+  turns:
+    - qingdai: 我给街上每家画了张卡。
+    - adeng: 邮局那张让小橘送过去。
+
+- id: g1_christmas_lights
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaodou: 彩灯四秒闪一次，我数过。
+    - laoshi: 我调的。
+
+- id: g1_new_year_dumplings
+  when: idle
+  holiday: new_year
+  turns:
+    - adeng: 晚上包饺子，都留下。
+    - xiaoju: 我要包一个放硬币的！
+    - laoshi: 别硌了牙。
+
+- id: g1_new_year_couplets
+  when: idle
+  holiday: new_year
+  turns:
+    - qingdai: 空地上那个摊子在卖春联。
+    - xiaodou: 我抄了几副，回头比比字。
+
+- id: g1_lantern_string
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: 门上那串小灯笼是我挂的。
+    - adeng: 挂得挺齐。
+
+- id: g1_lantern_count
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaodou: 汤圆我数过，一人六个。
+    - xiaoju: 那栗子呢？
+    - xiaodou: 栗子不吃汤圆。
+
+- id: g1_dragon_boat_mugwort
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - laoshi: 艾草挂在门两边，驱虫。
+    - xiaoju: 闻着像中药。
+
+- id: g1_dragon_boat_race
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaodou: 河边在赛龙舟，红的那条快。
+    - xiaoju: 我也想去划！
+    - laoshi: 你先学会游泳。
+
+- id: g1_dragon_boat_cords
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - qingdai: 我编了五彩绳，手伸过来。
+    - adeng: 绑紧一点。
+
+- id: g1_dragon_boat_sweet
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: 甜粽子还是咸粽子？
+    - laoshi: 咸的。
+    - adeng: 都要。
+
+- id: g1_mid_autumn_rabbit
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: 门口那只兔子灯，晚上会亮。
+    - qingdai: 耳朵是我画的粉色。
+
+- id: g1_mid_autumn_letter
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaodou: 我给家里写了封信。
+    - adeng: 明早让阿信带走。
+
+- id: g1_halloween_costume
+  when: idle
+  holiday: halloween
+  turns:
+    - laoshi: 我不扮。
+    - xiaoju: 你戴个帽子就行。
+    - laoshi: 不戴。
+
+- id: g1_halloween_soup
+  when: idle
+  holiday: halloween
+  turns:
+    - adeng: 南瓜汤还剩一锅底。
+    - xiaodou: 我端去给阿信。
+
+- id: g1_new_year_firecrackers
+  when: idle
+  holiday: new_year
+  turns:
+    - xiaoju: 外面在放鞭炮！
+    - xiaodou: 栗子钻床底下了。
+    - adeng: 让栗子待着。
+
+- id: g1_new_year_wish
+  when: idle
+  holiday: new_year
+  turns:
+    - qingdai: 今年想画一面墙。
+    - adeng: 后院那面给你。
+
+- id: g1_lantern_answer
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaodou: 昨天那条灯谜，谜底是“伞”。
+    - xiaoju: 我猜的是蘑菇。
+
+- id: g1_lantern_walk
+  when: idle
+  holiday: lantern
+  turns:
+    - adeng: 晚上去街上看灯，谁去？
+    - xiaoju: 我！
+    - laoshi: 我看店。
+
+- id: g1_dragon_boat_eggs
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: 桂姨给了一网兜咸鸭蛋。
+    - adeng: 晚饭就配粥。
+
+- id: g1_mid_autumn_garden
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaodou: 后院的桌子搬好了。
+    - qingdai: 月亮还没上来。
+    - adeng: 等等就有了。
+
+- id: g1_mid_autumn_slices
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: 月饼切成五份还是六份？
+    - laoshi: 六份，栗子也算。
