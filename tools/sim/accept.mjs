@@ -4940,6 +4940,55 @@ const SCENARIOS = {
    * not, and a PDF to print. Then a recipe, as a Word document. Each names her on the parcel.
    */
   /**
+   * Suggestions on the commission slip (plan-1.7.md G5): opened in winter and at Mid-Autumn, the "Try" row has three
+   * that fit the day, the festival's first; a click fills the slip, and the commission goes in with those words.
+   */
+  async hints(lang, out) {
+    const L = locale(lang);
+    const tries = L.ui.tries;
+    // An ordinary winter day, and Mid-Autumn 2027 (15 September).
+    const DAYS = [['winter', new Date(2027, 0, 20, 10), [], tries.seasons.winter], ['mid_autumn', new Date(2027, 8, 15, 10), tries.holidays.mid_autumn, tries.seasons.autumn]];
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    let installed = false;
+    try {
+      await sleep(2500);
+      for (const [name, time, festival, season] of DAYS) {
+        if (installed) await page.clock.setSystemTime(time);
+        else await page.clock.install({ time });
+        installed = true;
+        await page.reload();
+        await page.waitForSelector('.toolbar');
+        await sleep(2000);
+        await shop.hotspot(L.ui.access.hotspotCounter);
+        await page.waitForSelector('form.commission .try-row');
+        const shown = await page.locator('form.commission .try-chip').allInnerTexts();
+        check(shown.length === 3, `${name}: ${shown.length} suggestions`);
+        check(new Set(shown).size === 3, `${name}: the same suggestion twice: ${shown.join(' / ')}`);
+        const expected = festival.length ? [festival, festival, season] : [season, season, season];
+        shown.forEach((t, i) => check(expected[i].includes(t), `${name}: "${t}" is not one for the ${i < festival.length ? 'festival' : 'season'}`));
+        await shop.shot(join(out, `hints-${name}.png`));
+        await page.locator('form.commission .try-chip').nth(0).click();
+        const want = await page.locator('form.commission textarea').first().inputValue();
+        check(!(await page.locator('form.commission .template-chip.on').count()), `${name}: a sticker is still picked after the suggestion`);
+        check(want === shown[0], `${name}: the slip says "${want}", not "${shown[0]}"`);
+        await shop.shot(join(out, `hints-${name}-filled.png`));
+        if (name === 'winter') {
+          await shop.submit();
+          await page.waitForSelector('.result-card', { timeout: 120_000 });
+          const work = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1);
+          check(work?.form?.want === shown[0], `the commission went in as "${work?.form?.want}"`);
+          await page.keyboard.press('Escape');
+          await sleep(1000);
+        } else {
+          await page.keyboard.press('Escape');
+        }
+      }
+    } finally { await shop.close(); }
+  },
+
+  /**
    * More weather (plan-1.7.md G4): the shop opened on a foggy, a windy and a stormy day. Wick greets each, the street
    * shows it, and Auntie Olive has a word for it in the bakery.
    */

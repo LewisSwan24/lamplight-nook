@@ -11,6 +11,7 @@ import { expressionFor } from './expression';
 import { withPortrait } from './portraits';
 import { WARN_SHARE } from '../../main/budget';
 import { DEFAULT_TIER, MODEL_TIERS, cleanTier, type ModelTier } from '../../shared/models';
+import { suggestions } from './hints';
 
 const U = strings.ui;
 
@@ -389,6 +390,9 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         el('div.template-row', {}, ...chips),
         consultNote,
         el('label', {}, U.want, want),
+        // Something that fits the time of year, filled in with a click (plan-1.7.md G5).
+        el('div.try-row', {}, el('span.hint', {}, U.tryLabel), ...suggestions(new Date(), U.tries).map((t) =>
+          el('button.try-chip', { type: 'button', onclick: () => { want.value = t; want.dispatchEvent(new Event('input')); want.focus(); } }, t))),
         sourceRow,
         lentRow,
         materialRow,
