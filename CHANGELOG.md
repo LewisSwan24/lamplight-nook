@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased (1.6)
+
+- **A count of what the app has.** `npm run content` counts the kinds of commission, the shops, the people, the
+  stories, what grows, the festivals, the pictures and every file of lines in both languages, and writes it to
+  `docs/content.md` with what changed since the last count. It also checks that no line is missing in English, every
+  picture is on an art list, the story chapters agree with each other and with the story file, and every shop has its
+  own lines.
+
 ## Unreleased (1.5)
 
 - **The shop on your home network.** A new switch in Settings, off by default, lets a phone or another computer at

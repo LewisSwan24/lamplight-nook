@@ -1,0 +1,6 @@
+- id: sugar
+  when: idle
+  turns:
+    - xiaoju: 糖。
+    - adeng: 嗯。
+    - xiaoju: 好。

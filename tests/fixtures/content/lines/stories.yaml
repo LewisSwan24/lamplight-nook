@@ -1,0 +1,12 @@
+baker:
+  - title: 第一炉
+    left: bread
+    note: 面包师留下一个面包。
+    lines:
+      - 一。
+      - 二。
+  - title: 第二炉
+    left: oven
+    note: 烤箱。
+    lines:
+      - 三。
