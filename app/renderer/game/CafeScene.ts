@@ -90,6 +90,7 @@ import { GardenView } from './GardenView';
 import { StreetView, type Walker } from './StreetView';
 import { SKIES, WeatherLayer } from './WeatherLayer';
 import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
+import { RoomTales, preloadTales } from './RoomTales';
 import { INSET, VIEW } from './street';
 import { preloadTownDecor } from './TownDecor';
 import { preloadTownGrowth } from './TownGrowth';
@@ -286,6 +287,8 @@ export class CafeScene extends Phaser.Scene {
   boardInUse: () => boolean = () => false;
   /** What the shop has gathered, and the works shelf. */
   growth!: ShopGrowth;
+  /** What Auntie Olive's and Pip's stories left, hung in their shops (plan-1.6.md F4). */
+  tales!: RoomTales;
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
   /** The street inset opened or closed (the page moves what sits in that corner). */
@@ -332,6 +335,8 @@ export class CafeScene extends Phaser.Scene {
         if (url && !this.textures.exists(key)) this.load.image(key, url);
       }
     }
+    // What the baker's and the postman's stories leave, in their own shops only (F4).
+    preloadTales(this.load, this.room);
     // Everything else the rooms share, loaded by the first one (the home shop's) for the whole game.
     if (this.textures.exists('cat')) return;
     // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
@@ -387,6 +392,7 @@ export class CafeScene extends Phaser.Scene {
     this.addProps();
     this.growth = new ShopGrowth(this, this.room, () => {});
     this.growth.onShelfClick = () => this.activate('works');
+    this.tales = new RoomTales(this, this.room);
     this.addObjects();
     const slate = ZONES.find((z) => z.id === 'board')!;
     this.add

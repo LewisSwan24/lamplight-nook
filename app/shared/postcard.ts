@@ -2,7 +2,7 @@ import type { StreetShop } from './dispatch';
 import { FURNISH_CHOICES, FURNISH_PARTS, cleanFurnishings, type Furnishings } from './furnish';
 import { GROWTH, type GrowthId } from './growth';
 import { SCENES, type SceneId } from './scenes';
-import { CHAPTERS, TELLERS, type Teller } from './stories';
+import { CHAPTERS, STREET_TELLERS, type StreetTeller } from './stories';
 import type { TownDays } from './town';
 import { ROOM_GROWTH } from './towngrow';
 import type { ShopDays } from './types';
@@ -20,7 +20,7 @@ export type Postcard = {
   grown: GrowthId[];
   done: number;
   shops: Record<StreetShop, number>;
-  stories: Record<Teller, number>;
+  stories: Record<StreetTeller, number>;
 };
 
 /** The mark a postcard file opens with, and the only version there is. */
@@ -53,7 +53,7 @@ export function makePostcard(name: string, settings: { scene: SceneId; furnish: 
     grown: [...new Set(days.grown.map((g) => g.id))].filter((id) => GROWTH_IDS.has(id)),
     done: days.done,
     shops: Object.fromEntries(STREET_SHOPS.map((s) => [s, town?.shops[s]?.done ?? 0])) as Record<StreetShop, number>,
-    stories: Object.fromEntries(TELLERS.map((t) => [t, Math.min(town?.stories[t]?.length ?? 0, CHAPTERS[t].length)])) as Record<Teller, number>,
+    stories: Object.fromEntries(STREET_TELLERS.map((t) => [t, Math.min(town?.stories[t]?.length ?? 0, CHAPTERS[t].length)])) as Record<StreetTeller, number>,
   };
 }
 
@@ -106,10 +106,10 @@ function check(o: Record<string, unknown>): Postcard | null {
   if (exactly(shops, STREET_SHOPS_1_5)) Object.assign(shops, { bakery: 0, post: 0 });
   if (!exactly(shops, STREET_SHOPS) || !STREET_SHOPS.every((s) => count(shops[s], done))) return null;
   if (STREET_SHOPS.reduce((n, s) => n + (shops[s] as number), 0) > done) return null;
-  if (!isObject(stories) || !exactly(stories, TELLERS) || !TELLERS.every((t) => count(stories[t], CHAPTERS[t].length))) return null;
+  if (!isObject(stories) || !exactly(stories, STREET_TELLERS) || !STREET_TELLERS.every((t) => count(stories[t], CHAPTERS[t].length))) return null;
   return {
     name, home: home as SceneId, furnish: furnish as Furnishings, grown: grown as GrowthId[], done,
-    shops: shops as Record<StreetShop, number>, stories: stories as Record<Teller, number>,
+    shops: shops as Record<StreetShop, number>, stories: stories as Record<StreetTeller, number>,
   };
 }
 
@@ -121,7 +121,7 @@ export function postcardDays(card: Postcard): { done: number; grown: GrowthId[];
     town: {
       shops: Object.fromEntries(STREET_SHOPS.map((s) => [s, { done: card.shops[s], grown: [] }])),
       street: [],
-      stories: Object.fromEntries(TELLERS.map((t) => [t, Array<string>(card.stories[t]).fill('')])),
+      stories: Object.fromEntries(STREET_TELLERS.map((t) => [t, Array<string>(card.stories[t]).fill('')])),
     },
   };
 }

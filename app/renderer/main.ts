@@ -463,6 +463,7 @@ let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; 
 /** What the town has grown (road-to-1.4.md D5): the street and its inset in every room, and a shop's own pieces inside it. */
 function showTownIn(room: RoomId, at: CafeScene) {
   at.setTown(shopDays.town);
+  at.tales.show(leftBehind(tales.stories), at.reducedMotion);
   if (isStreetShop(room)) at.growth.setGrown(roomGrown(room, shopDays.town.shops[room]).map((id) => `${room}-${id}`));
 }
 /** How many works were on the shelf before this result came back (the shelf only shows from the first). */
@@ -488,12 +489,14 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
 }
 /**
  * The neighbours' stories (road-to-1.4.md D4): who has a chapter waiting, by the shop's clock, stands out on the street
- * with a bubble; what the chapters told have left stands there too. Nothing else says a chapter is waiting.
+ * with a bubble; what the chapters told have left stands there too, or for Auntie Olive and Pip hangs in their shops
+ * (plan-1.6.md F4). Nothing else says a chapter is waiting.
  */
 let tales: { stories: Stories; done: number; today: string } = { stories: {}, done: 0, today: '' };
 function tellAbout(state: { done: number; today: string; town?: { stories: Stories } }) {
   tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today };
   street.setStories(waiting(tales.stories, tales.done, tales.today), leftBehind(tales.stories));
+  for (const [, built] of rooms) built.scene.tales.show(leftBehind(tales.stories), built.scene.reducedMotion);
 }
 /** A waiting neighbour was clicked: the chapter on a card, written down as told once the card is closed. */
 function hearStory(who: Teller) {
