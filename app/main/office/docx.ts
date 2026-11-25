@@ -13,6 +13,9 @@ const HEADINGS = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: Head
  */
 export async function makeDocx(spec: DocSpec, images: (rel: string) => Buffer): Promise<Buffer> {
   const children: (Paragraph | Table)[] = [];
+  // The designer's colour and type size, when there are any (plan-1.8.md H0); otherwise Word's own look.
+  const accent = spec.accent?.replace('#', '').toUpperCase();
+  const coloured = accent ? { run: { color: accent } } : {};
   if (spec.title) children.push(new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(spec.title)] }));
   let lists = 0;
   for (const b of spec.blocks) {
@@ -31,7 +34,10 @@ export async function makeDocx(spec: DocSpec, images: (rel: string) => Buffer): 
       const width = Math.max(head.length, ...rows.map((r) => r.length));
       const row = (cells: string[], header: boolean) => new TableRow({
         tableHeader: header,
-        children: Array.from({ length: width }, (_, i) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: cells[i] ?? '', bold: header })] })] })),
+        children: Array.from({ length: width }, (_, i) => new TableCell({
+          ...(header && accent ? { shading: { fill: accent } } : {}),
+          children: [new Paragraph({ children: [new TextRun({ text: cells[i] ?? '', bold: header, ...(header && accent ? { color: 'FFFFFF' } : {}) })] })],
+        })),
       });
       children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [row(head, true), ...rows.map((r) => row(r, false))] }));
     } else if ('image' in b) {
@@ -51,6 +57,12 @@ export async function makeDocx(spec: DocSpec, images: (rel: string) => Buffer): 
         reference: 'numbered',
         levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.START, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }],
       }],
+    },
+    styles: {
+      default: {
+        ...(spec.size ? { document: { run: { size: spec.size * 2 } } } : {}),
+        title: coloured, heading1: coloured, heading2: coloured, heading3: coloured,
+      },
     },
     sections: [{ children }],
   });

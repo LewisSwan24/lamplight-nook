@@ -4,7 +4,8 @@ import { z } from 'zod';
  * What the staff hand over instead of OOXML (road-to-1.3.md C1): the structure of a document, a workbook or a deck.
  * The app turns it into the file, so a model never writes Office XML itself.
  */
-export type DocSpec = { title?: string; blocks: Block[] };
+/** `accent`: the colour of the title, headings and table headers; `size`: the body type in points (plan-1.8.md H0). */
+export type DocSpec = { title?: string; accent?: string; size?: number; blocks: Block[] };
 export type Block =
   | { h: 1 | 2 | 3; text: string }
   | { p: string } // **bold** and *italic*, nothing else
@@ -53,6 +54,8 @@ const block = z.union([
 export const docSpecShape = {
   file,
   title: line.optional(),
+  accent: z.string().regex(/^#?[0-9a-fA-F]{6}$/).optional(), // a hex colour, with or without the #
+  size: z.number().int().min(9).max(16).optional(), // points
   blocks: z.array(block).min(1).max(2_000),
 };
 
