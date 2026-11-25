@@ -222,6 +222,9 @@ app_open:
   - { id: open_01, speaker: adeng, bubbles: ["{name}，来啦。"] }
   - { id: open_rain, speaker: adeng, when: sky_rain, bubbles: ["{name}，来啦。", "外面下雨，先擦擦。"] }
   - { id: open_snow, speaker: adeng, when: sky_snow, bubbles: ["{name}，来啦。", "雪大，过来烤烤手。"] }
+  - { id: open_fog, speaker: adeng, when: sky_fog, bubbles: ["{name}，来啦。", "雾大，路上看得清吗？"] }
+  - { id: open_wind, speaker: adeng, when: sky_wind, bubbles: ["{name}，来啦。", "门我顶住了，快进来。"] }
+  - { id: open_storm, speaker: adeng, when: sky_storm, bubbles: ["{name}，来啦。", "打雷了，离窗户远点。"] }
   - { id: open_halloween, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "今天有南瓜汤。"] }
   - { id: open_christmas, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，来啦。", "栗子把彩灯扯下来两回了。"] }
   - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，新年好。", "门上的福是小橘贴的。"] }

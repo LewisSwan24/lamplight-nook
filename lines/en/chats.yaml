@@ -121,6 +121,48 @@
     - laoshi: Shut the window.
     - adeng: I'll put the kettle on.
 
+- id: fog_window
+  when: idle
+  sky: fog
+  turns:
+    - xiaoju: Can't see a thing out the window.
+    - qingdai: Like a wash that never dried.
+
+- id: fog_lamp
+  when: idle
+  sky: fog
+  turns:
+    - adeng: Fog. Put the door lamp on early.
+    - xiaoju: I'll do it.
+
+- id: wind_sign
+  when: idle
+  sky: wind
+  turns:
+    - xiaoju: The sign's swinging. Will it fall?
+    - laoshi: I screwed it on.
+
+- id: wind_door
+  when: idle
+  sky: wind
+  turns:
+    - qingdai: The wind blew the door open twice.
+    - adeng: Prop a brick against it.
+
+- id: storm_count
+  when: idle
+  sky: storm
+  turns:
+    - xiaoju: Lightning! One, two, three...
+    - laoshi: Three miles off.
+
+- id: storm_cat
+  when: idle
+  sky: storm
+  turns:
+    - qingdai: Chestnut's under the cupboard.
+    - adeng: Out again once the thunder stops.
+
 - id: leaves_door
   when: idle
   sky: leaves
@@ -2039,6 +2081,7 @@
 - id: g1_halloween_candy
   when: idle
   holiday: halloween
+  after: 10
   turns:
     - xiaodou: Three lots of trick-or-treaters so far.
     - adeng: Do we have enough sweets?
@@ -2062,6 +2105,7 @@
 - id: g1_christmas_lights
   when: idle
   holiday: christmas
+  after: 10
   turns:
     - xiaodou: The lights blink every four seconds.
     - laoshi: I set them.
@@ -2077,6 +2121,7 @@
 - id: g1_new_year_couplets
   when: idle
   holiday: new_year
+  after: 10
   turns:
     - qingdai: The stall in the lot sells couplets.
     - xiaodou: I copied a few. I'll compare the hands.
@@ -2091,6 +2136,7 @@
 - id: g1_lantern_count
   when: idle
   holiday: lantern
+  after: 10
   turns:
     - xiaodou: I counted. Six dumplings each.
     - xiaoju: What about Chestnut?
@@ -2100,12 +2146,13 @@
   when: idle
   holiday: dragon_boat
   turns:
-    - laoshi: Mugwort either side of the door keeps bugs off.
+    - laoshi: Mugwort by the door keeps the bugs off.
     - xiaoju: Smells like medicine.
 
 - id: g1_dragon_boat_race
   when: idle
   holiday: dragon_boat
+  after: 10
   turns:
     - xiaodou: The red boat's winning at the river.
     - xiaoju: I want to row!
@@ -2136,6 +2183,7 @@
 - id: g1_mid_autumn_letter
   when: idle
   holiday: mid_autumn
+  after: 10
   turns:
     - xiaodou: I wrote a letter home.
     - adeng: Pip can take it in the morning.
@@ -2151,6 +2199,7 @@
 - id: g1_halloween_soup
   when: idle
   holiday: halloween
+  after: 10
   turns:
     - adeng: There's a bit of pumpkin soup left.
     - xiaodou: I'll take it to Pip.
@@ -2158,6 +2207,7 @@
 - id: g1_new_year_firecrackers
   when: idle
   holiday: new_year
+  after: 10
   turns:
     - xiaoju: Firecrackers outside!
     - xiaodou: Chestnut's gone under the bed.
@@ -2173,6 +2223,7 @@
 - id: g1_lantern_answer
   when: idle
   holiday: lantern
+  after: 10
   turns:
     - xiaodou: Yesterday's riddle was umbrella.
     - xiaoju: I guessed mushroom.
@@ -2181,7 +2232,7 @@
   when: idle
   holiday: lantern
   turns:
-    - adeng: Lanterns on the street tonight. Who's coming?
+    - adeng: Lanterns out on the street tonight. Coming?
     - xiaoju: Me!
     - laoshi: I'll mind the shop.
 
@@ -2195,6 +2246,7 @@
 - id: g1_mid_autumn_garden
   when: idle
   holiday: mid_autumn
+  after: 10
   turns:
     - xiaodou: The garden table's out.
     - qingdai: The moon isn't up yet.

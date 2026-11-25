@@ -4940,6 +4940,61 @@ const SCENARIOS = {
    * not, and a PDF to print. Then a recipe, as a Word document. Each names her on the parcel.
    */
   /**
+   * More weather (plan-1.7.md G4): the shop opened on a foggy, a windy and a stormy day. Wick greets each, the street
+   * shows it, and Auntie Olive has a word for it in the bakery.
+   */
+  async skies(lang, out) {
+    const L = locale(lang);
+    const read = (file) => parseYaml(readFileSync(join(ROOT, lang === 'en' ? `lines/en/${file}.yaml` : `lines/${file}.yaml`), 'utf8'));
+    const cafe = read('cafe');
+    const bakery = read('bakery');
+    // Days that roll each kind (weatherOn), clear of festivals, birthdays and solar terms. Fog at dawn, when it is thickest.
+    const DAYS = { fog: [2027, 3, 13, 6], wind: [2027, 0, 8, 10], storm: [2027, 6, 3, 14] };
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const saying = (who, bubbles, timeout = 20_000) => page.waitForFunction(([who, all]) => all.find((b) => window.lamplightDebug.scene.isSaying(who, b)) ?? null, [who, bubbles], { timeout })
+      .then((h) => h.jsonValue(), () => null);
+    const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+    const goInto = async (id) => {
+      await page.evaluate((id) => window.lamplightDebug.street.onFront(id, true), id);
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== id; await sleep(300));
+      check(await room() === id, `did not go into the ${id}: ${await room()}`);
+    };
+    let installed = false;
+    try {
+      await sleep(2500);
+      for (const [sky, [y, m, d, h]] of Object.entries(DAYS)) {
+        const time = new Date(y, m, d, h);
+        if (installed) await page.clock.setSystemTime(time);
+        else await page.clock.install({ time });
+        installed = true;
+        await page.reload();
+        await page.waitForSelector('.toolbar');
+        await sleep(1500);
+        const outside = await page.evaluate(() => window.lamplightDebug.scene.outside().sky);
+        check(outside === sky, `${y}-${m + 1}-${d} is ${outside}, not ${sky}`);
+        const open = cafe.app_open.find((l) => l.when === `sky_${sky}`).bubbles;
+        check(await saying('adeng', open) !== null, `Wick did not greet the ${sky}`);
+        await shop.shot(join(out, `skies-${sky}-shop.png`));
+        await sleep(3000);
+        await streetButton();
+        await sleep(1500);
+        await shop.shot(join(out, `skies-${sky}-street.png`));
+        await goInto('bakery');
+        const greet = bakery.shop_in.find((l) => l.when === `sky_${sky}`).bubbles;
+        check(await saying('guiyi', greet) !== null, `Auntie Olive said nothing of the ${sky}`);
+        await shop.shot(join(out, `skies-${sky}-bakery.png`));
+        await sleep(2500);
+        await streetButton();
+        await sleep(900);
+        await goInto('cafe');
+      }
+    } finally { await shop.close(); }
+  },
+
+  /**
    * The days of the year (plan-1.7.md G3), the shop opened on each: Wick names the winter solstice, Clem wishes Wick a
    * happy birthday and he answers, Wick mentions Auntie Olive's and she says so in the bakery, and a year to the day
    * after the first work there is a cake on the big table and a word from each, gone the day after.

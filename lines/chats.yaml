@@ -121,6 +121,48 @@
     - laoshi: 关好窗。
     - adeng: 我去烧壶热水。
 
+- id: fog_window
+  when: idle
+  sky: fog
+  turns:
+    - xiaoju: 窗外白茫茫的。
+    - qingdai: 像没干的水彩。
+
+- id: fog_lamp
+  when: idle
+  sky: fog
+  turns:
+    - adeng: 雾天，门口的灯早点开。
+    - xiaoju: 我去开。
+
+- id: wind_sign
+  when: idle
+  sky: wind
+  turns:
+    - xiaoju: 招牌在晃，会不会掉？
+    - laoshi: 我上过螺丝。
+
+- id: wind_door
+  when: idle
+  sky: wind
+  turns:
+    - qingdai: 风把门吹开了两回。
+    - adeng: 拿块砖顶上。
+
+- id: storm_count
+  when: idle
+  sky: storm
+  turns:
+    - xiaoju: 闪了！一、二、三……
+    - laoshi: 三里地。
+
+- id: storm_cat
+  when: idle
+  sky: storm
+  turns:
+    - qingdai: 栗子钻到柜子底下了。
+    - adeng: 雷停了就出来。
+
 - id: leaves_door
   when: idle
   sky: leaves
@@ -2040,6 +2082,7 @@
 - id: g1_halloween_candy
   when: idle
   holiday: halloween
+  after: 10
   turns:
     - xiaodou: 门口来了三拨要糖的。
     - adeng: 糖还够吗？
@@ -2063,6 +2106,7 @@
 - id: g1_christmas_lights
   when: idle
   holiday: christmas
+  after: 10
   turns:
     - xiaodou: 彩灯四秒闪一次，我数过。
     - laoshi: 我调的。
@@ -2078,6 +2122,7 @@
 - id: g1_new_year_couplets
   when: idle
   holiday: new_year
+  after: 10
   turns:
     - qingdai: 空地上那个摊子在卖春联。
     - xiaodou: 我抄了几副，回头比比字。
@@ -2092,6 +2137,7 @@
 - id: g1_lantern_count
   when: idle
   holiday: lantern
+  after: 10
   turns:
     - xiaodou: 汤圆我数过，一人六个。
     - xiaoju: 那栗子呢？
@@ -2107,6 +2153,7 @@
 - id: g1_dragon_boat_race
   when: idle
   holiday: dragon_boat
+  after: 10
   turns:
     - xiaodou: 河边在赛龙舟，红的那条快。
     - xiaoju: 我也想去划！
@@ -2137,6 +2184,7 @@
 - id: g1_mid_autumn_letter
   when: idle
   holiday: mid_autumn
+  after: 10
   turns:
     - xiaodou: 我给家里写了封信。
     - adeng: 明早让阿信带走。
@@ -2152,6 +2200,7 @@
 - id: g1_halloween_soup
   when: idle
   holiday: halloween
+  after: 10
   turns:
     - adeng: 南瓜汤还剩一锅底。
     - xiaodou: 我端去给阿信。
@@ -2159,6 +2208,7 @@
 - id: g1_new_year_firecrackers
   when: idle
   holiday: new_year
+  after: 10
   turns:
     - xiaoju: 外面在放鞭炮！
     - xiaodou: 栗子钻床底下了。
@@ -2174,6 +2224,7 @@
 - id: g1_lantern_answer
   when: idle
   holiday: lantern
+  after: 10
   turns:
     - xiaodou: 昨天那条灯谜，谜底是“伞”。
     - xiaoju: 我猜的是蘑菇。
@@ -2196,6 +2247,7 @@
 - id: g1_mid_autumn_garden
   when: idle
   holiday: mid_autumn
+  after: 10
   turns:
     - xiaodou: 后院的桌子搬好了。
     - qingdai: 月亮还没上来。

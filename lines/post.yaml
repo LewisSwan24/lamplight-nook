@@ -163,6 +163,9 @@ shop_in:
   - { id: po_in_night_02, speaker: axin, when: period_night, bubbles: ["这么晚，信也睡了。"] }
   - { id: po_in_rain_01, speaker: axin, when: sky_rain, bubbles: ["下雨了，信封都得套袋子。"] }
   - { id: po_in_snow_01, speaker: axin, when: sky_snow, bubbles: ["雪这么大，你还出门？", "进来跺跺脚。"] }
+  - { id: po_in_fog_01, speaker: axin, when: sky_fog, bubbles: ["雾这么大，你找得着门？"] }
+  - { id: po_in_wind_01, speaker: axin, when: sky_wind, bubbles: ["风大，信别拿手上。", "先放柜台。"] }
+  - { id: po_in_storm_01, speaker: axin, when: sky_storm, bubbles: ["打雷了，先在这儿躲躲。"] }
   - { id: po_in_spring_01, speaker: axin, when: season_spring, bubbles: ["开春了，寄种子的人多。"] }
   - { id: po_in_summer_01, speaker: axin, when: season_summer, bubbles: ["热吧，电扇对着你吹。"] }
   - { id: po_in_autumn_01, speaker: axin, when: season_autumn, bubbles: ["秋天了，开学的包裹一大堆。"] }
@@ -224,6 +227,12 @@ shop_idle:
   - { id: po_idle_rain_02, speaker: axin, when: sky_rain, bubbles: ["雨衣挂门后，还在滴水。"] }
   - { id: po_idle_snow_01, speaker: axin, when: sky_snow, bubbles: ["雪天车骑不动，得走着送。"] }
   - { id: po_idle_snow_02, speaker: axin, when: sky_snow, bubbles: ["那条旧围巾，今天又戴上了。"] }
+  - { id: po_idle_fog_01, speaker: axin, when: sky_fog, bubbles: ["雾天送信，靠门牌号摸。"] }
+  - { id: po_idle_fog_02, speaker: axin, when: sky_fog, bubbles: ["雾天，邮车慢慢开。"] }
+  - { id: po_idle_wind_01, speaker: axin, when: sky_wind, bubbles: ["风刮跑过一封信，追了半条街。"] }
+  - { id: po_idle_wind_02, speaker: axin, when: sky_wind, bubbles: ["大风天，邮筒盖得扣紧。"] }
+  - { id: po_idle_storm_01, speaker: axin, when: sky_storm, bubbles: ["雷雨天，信都压在最底下。"] }
+  - { id: po_idle_storm_02, speaker: axin, when: sky_storm, bubbles: ["雷声大，邮秤都在抖。"] }
   - { id: po_idle_petals_01, speaker: axin, when: sky_petals, bubbles: ["信封里夹进一片花瓣，算送的。"] }
   - { id: po_idle_leaves_01, speaker: axin, when: sky_leaves, bubbles: ["叶子落进邮筒里了，我去掏。"] }
   - { id: po_idle_spring_01, speaker: axin, when: season_spring, bubbles: ["春天信少，包裹多。"] }

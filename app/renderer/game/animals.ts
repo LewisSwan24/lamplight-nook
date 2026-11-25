@@ -66,7 +66,7 @@ export type HenPlan = { do: 'stand' | 'peck' | 'roost'; to: Point; facing: Facin
 
 /** Out of the rain and the dark: Malt in the doghouse, the hens in the henhouse. */
 export function indoors(sky: Sky, period: Period): boolean {
-  return sky === 'rain' || period === 'night';
+  return sky === 'rain' || sky === 'wind' || sky === 'storm' || period === 'night';
 }
 
 const between = (rand: () => number, [lo, hi]: readonly [number, number]) => lo + rand() * (hi - lo);

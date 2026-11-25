@@ -14,7 +14,8 @@ import { addUmbrella, holdUmbrella, preloadTownDecor, TownDecor } from './TownDe
 import { preloadTownGrowth, TownGrowth } from './TownGrowth';
 import { preloadTownStories, TownStories } from './TownStories';
 import type { Teller } from '../../shared/stories';
-import { FALLING } from './weather';
+import { FALLING, FLASH_GAP_MS, flashesFor, fogFor } from './weather';
+import { periodAt } from './daytime';
 import { Crowd, PASSER_LOOKS, type Passer } from './crowd';
 import { umbrellaUp } from './streetdecor';
 import { DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, staffFrames } from './sprites';
@@ -70,6 +71,10 @@ export class StreetScene extends Phaser.Scene {
   decor?: TownDecor;
   private umbrella?: Phaser.GameObjects.Image;
   private falling?: Phaser.GameObjects.Particles.ParticleEmitter;
+  /** Fog over the whole street (plan-1.7.md G4), and the white of a lightning flash. */
+  private fog?: Phaser.GameObjects.Rectangle;
+  private flashSheet?: Phaser.GameObjects.Rectangle;
+  private flashTimer?: Phaser.Time.TimerEvent;
   /** What the street was last dressed for, so it changes only when the day does. */
   private dressed = '';
   /** The one out on an errand, copied from the inset every frame so both show her in the same place and pose. */
@@ -240,11 +245,17 @@ export class StreetScene extends Phaser.Scene {
     this.growth?.putAway(putAway(outside));
     this.falling?.destroy();
     this.falling = undefined;
-    if (outside.sky === 'clear' || calm) return;
-    // As past the shop's windows (WeatherLayer), over the whole view, which moves with nobody.
+    this.fog ??= this.add.rectangle(0, 0, CANVAS.width, CANVAS.height, 0xe8ecf0).setOrigin(0).setScrollFactor(0).setDepth(DEPTH.falling - 0.5);
+    this.fog.setAlpha(fogFor(outside.sky, periodAt(new Date().getHours())) * 0.8);
+    this.flashSheet ??= this.add.rectangle(0, 0, CANVAS.width, CANVAS.height, 0xffffff).setOrigin(0).setScrollFactor(0).setDepth(DEPTH.falling + 0.5).setAlpha(0);
+    this.flashTimer?.remove();
+    this.flashTimer = undefined;
+    if (flashesFor(outside.sky, calm)) this.flash();
     const f = FALLING[outside.sky];
+    if (!f || calm) return;
+    // As past the shop's windows (WeatherLayer), over the whole view, which moves with nobody.
     const lifespan = ((CANVAS.height + 8) / f.speed) * 1000;
-    const sway = outside.sky === 'rain' ? 0 : f.drift;
+    const sway = outside.sky === 'rain' || outside.sky === 'storm' ? 0 : f.drift / (outside.sky === 'wind' ? 4 : 1);
     this.falling = this.add.particles(0, 0, 'weather-px', {
       x: { min: -Math.abs(f.drift), max: CANVAS.width + Math.abs(f.drift) },
       y: -4,
@@ -257,6 +268,14 @@ export class StreetScene extends Phaser.Scene {
       frequency: 1000 / (f.perSecond * (CANVAS.width / 64)),
       advance: lifespan,
     }).setScrollFactor(0).setDepth(DEPTH.falling);
+  }
+
+  /** Lightning now and then in a storm: the whole street goes white for a moment. */
+  private flash() {
+    this.flashTimer = this.time.delayedCall(Phaser.Math.Between(...FLASH_GAP_MS), () => {
+      this.tweens.add({ targets: this.flashSheet, alpha: { from: 0.6, to: 0 }, duration: 350, ease: 'Quad.easeOut' });
+      this.flash();
+    });
   }
 
   /**

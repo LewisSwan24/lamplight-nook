@@ -173,7 +173,7 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
     const key = `${chat.scene ?? ''}:${chat.id}`;
     if (ids.has(key)) problems.push(fill(L.duplicateId, { id: chat.id }));
     ids.add(key);
-    const badSky = chat.sky && !['rain', 'snow', 'petals', 'leaves'].includes(chat.sky);
+    const badSky = chat.sky && !['rain', 'snow', 'petals', 'leaves', 'fog', 'wind', 'storm'].includes(chat.sky);
     const badHoliday = chat.holiday && !HOLIDAYS.includes(chat.holiday);
     // Only neighbours bring up the season; the staff talk about the weather instead.
     const badSeason = chat.season && (!SEASONS.includes(chat.season) || !chat.guest);

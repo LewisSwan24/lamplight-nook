@@ -103,7 +103,7 @@ describe('something now and then while it is quiet', () => {
 describe('the keepers\' own lines', () => {
   // The bakery and the post office since 1.6 (F5); the three older shops since 1.7 (G2).
   const KEEPER = { bakery: 'guiyi', post: 'axin', print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding' } as const;
-  const known = new Set(['period_dawn', 'period_day', 'period_dusk', 'period_night', 'sky_clear', 'sky_rain', 'sky_snow', 'sky_petals', 'sky_leaves',
+  const known = new Set(['period_dawn', 'period_day', 'period_dusk', 'period_night', 'sky_clear', 'sky_rain', 'sky_snow', 'sky_petals', 'sky_leaves', 'sky_fog', 'sky_wind', 'sky_storm',
     'season_spring', 'season_summer', 'season_autumn', 'season_winter', ...HOLIDAYS.map((h) => `holiday_${h}`)]);
   for (const [shop, keeper] of Object.entries(KEEPER)) {
     // Each keeper's own birthday (plan-1.7.md G3) is a condition in their own shop.
