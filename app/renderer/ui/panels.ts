@@ -10,6 +10,7 @@ import { el, layer } from './dom';
 import { expressionFor } from './expression';
 import { withPortrait } from './portraits';
 import { WARN_SHARE } from '../../main/budget';
+import { DEFAULT_TIER, MODEL_TIERS, cleanTier, type ModelTier } from '../../shared/models';
 
 const U = strings.ui;
 
@@ -159,8 +160,11 @@ export function refusalText(r: HandOver['refused'][number]): string {
 let openForm: { add: (paths: string[] | null) => Promise<void> } | null = null;
 export const commissionFormOpen = () => openForm;
 
-/** `month`: this month's cap and what went under it; once past eight tenths, the slip says what is left. */
-export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }, month = { capUsd: 0, spentUsd: 0 }): Promise<CommissionForm | null> {
+/**
+ * `month`: this month's cap and what went under it; once past eight tenths, the slip says what is left. `tier`: the model
+ * in settings, which "More" can change for this one commission (plan-1.6.md F6).
+ */
+export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }, month = { capUsd: 0, spentUsd: 0 }, tier: ModelTier = DEFAULT_TIER): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     // The empty-box reminder in the shop's own words (and language), not the browser's.
@@ -168,6 +172,9 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     want.addEventListener('input', () => want.setCustomValidity(''));
     const details = el('input', { type: 'text', placeholder: U.detailsPlaceholder }) as HTMLInputElement;
     const audience = el('input', { type: 'text', placeholder: U.audiencePlaceholder }) as HTMLInputElement;
+    const tiers = strings.ui.setup.modelTiers;
+    const model = el('select.slip-model', {}, el('option', { value: '' }, fill(U.slipModelDefault, { tier: tiers[tier] })),
+      ...MODEL_TIERS.map((t) => el('option', { value: t }, tiers[t]))) as HTMLSelectElement;
     let chosen: Sticker | null = STICKERS[0];
     let source: { path: string; name: string } | null = null;
     const sourceName = el('span.source-name');
@@ -388,6 +395,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         linkRow,
         el('label', {}, U.details, details),
         el('label', {}, U.audience, audience),
+        el('details.slip-more', {}, el('summary', {}, U.slipMore), el('label', {}, U.slipModel, model)),
         el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap,
           month.capUsd && month.spentUsd >= WARN_SHARE * month.capUsd ? ` ${fill(U.budgetLeft, { left: formatUsd(Math.max(0, month.capUsd - month.spentUsd)), cap: formatUsd(month.capUsd) })}` : null),
       ),
@@ -467,6 +475,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         inPlace: inPlace?.path,
         consult: talkId ?? undefined,
         connections: ticked.size ? [...ticked] : undefined,
+        model: cleanTier(model.value),
       };
       if (inPlace) askToLend(filled, inPlace.name);
       else done(filled);

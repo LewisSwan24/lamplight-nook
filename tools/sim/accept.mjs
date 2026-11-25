@@ -1065,6 +1065,64 @@ const SCENARIOS = {
     }
   },
 
+  /**
+   * Choosing the model (plan-1.6.md F6): "saver" picked in settings, a commission runs on Haiku and the ledger keeps Haiku's
+   * price; "best" picked on the slip's More runs that one commission on Opus, and settings still say "saver".
+   */
+  async model(lang, out) {
+    const S = locale(lang).ui.setup;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const ledger = () => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+    try {
+      await sleep(1500);
+      await shop.openSettings('work');
+      const rows = shop.page.locator('.model-row');
+      check(await rows.count() === 3, `${await rows.count()} model tiers in settings`);
+      check(await shop.page.locator('input[name=model-tier][value=balanced]').isChecked(), 'balanced is not the default');
+      // Nothing in the ledger yet: each price is the table's guess, and says so.
+      await shop.page.waitForFunction((t) => [...document.querySelectorAll('.model-cost')].every((c) => c.textContent.includes(t)), S.modelCostTable.split('{cost}').pop().trim().slice(-2));
+      await shop.page.locator('section.model').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'model-settings.png'));
+      await shop.page.locator('input[name=model-tier][value=saver]').check();
+      await sleep(400);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).modelTier === 'saver', 'saver was not saved');
+      await shop.page.keyboard.press('Escape');
+      await sleep(400);
+
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission on saver did not finish');
+      const first = ledger();
+      check(first.length === 1 && first[0].model === 'claude-haiku-sim', `the ledger says ${JSON.stringify(first)}`);
+      // The stand-in charges a third of its usual price on Haiku, as the table does.
+      check(first[0].usd > 0 && first[0].usd < 0.5, `a Haiku commission cost ${first[0].usd}`);
+
+      // The slip's More: this one on the best model.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.page.locator('form.commission .slip-more summary').click();
+      check((await shop.page.locator('form.commission .slip-model option').first().innerText()).includes(S.modelTiers.saver), 'the slip does not say what settings pick');
+      await shop.page.locator('form.commission .slip-model').selectOption('best');
+      await shop.shot(join(out, 'model-slip.png'));
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission on best did not finish');
+      const second = ledger().filter((e) => e.key !== first[0].key);
+      check(second.length === 1 && second[0].model === 'claude-opus-sim', `the second commission's ledger line is ${JSON.stringify(second)}`);
+      check(second[0].usd > first[0].usd * 3, `Opus (${second[0].usd}) did not cost more than Haiku (${first[0].usd})`);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).modelTier === 'saver', 'the slip changed settings');
+
+      // Now the ledger has prices of its own for two tiers.
+      await shop.openSettings('work');
+      await shop.page.waitForFunction(() => document.querySelectorAll('.model-cost')[2]?.textContent.length > 0);
+      const saverCost = await shop.page.locator('.model-row[data-tier=saver] .model-cost').innerText();
+      check(!saverCost.includes(S.modelCostTable.split('{cost}').pop().trim().slice(-2)), `the saver price does not come from the ledger: ${saverCost}`);
+      await shop.page.locator('section.model').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'model-ledger.png'));
+    } finally {
+      await shop.close();
+    }
+  },
+
   /** A shop that has made a thousand things: still opens quickly, and anything on the shelf can be found. */
   async thousand(lang, out) {
     const S = locale(lang).ui.shelf;

@@ -117,6 +117,8 @@ export type RunOptions = {
   onUnreported?: (estimate: () => number) => void;
   /** The API key (or dev subscription) to run with; null when there is none. */
   credentials: Credentials | null;
+  /** The model to run on, as Claude Code names it (plan-1.6.md F6); absent: Claude Code's own choice. */
+  model?: string;
   /** Stop once this run has spent this much (US dollars, Claude Code's estimate); absent means no cap. */
   maxBudgetUsd?: number;
   /**
@@ -157,7 +159,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook, model: asked }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   // A connection's tools go by its kind in the events, so the shop plays them whatever the connection's number (C8).
@@ -253,6 +255,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         pathToClaudeCodeExecutable: claude ?? undefined,
         env: agentEnv(credentials, process.env),
         maxBudgetUsd,
+        model: asked,
         resume,
       },
     })) {
@@ -262,6 +265,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
       if (message.type === 'system' && message.subtype === 'init') {
         onSession?.(message.session_id);
         onInit?.({ claudeCodeVersion: message.claude_code_version, model: message.model });
+        model = message.model;
       }
       if (message.type === 'assistant' && message.error) apiError = message.error;
       if (message.type === 'assistant' && message.message?.usage) {
@@ -282,15 +286,16 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
       }
     }
     const seenUrls = [...seen];
-    return ok ? { ok, recordingPath, workDir, costUsd, summary, contextTokens, seenUrls } : { ok, recordingPath, workDir, costUsd, contextTokens, seenUrls, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
+    const ran = model ? { model } : {};
+    return ok ? { ok, recordingPath, workDir, costUsd, summary, contextTokens, seenUrls, ...ran } : { ok, recordingPath, workDir, costUsd, contextTokens, seenUrls, ...ran, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {
       record({ source: 'runner', name: 'cancelled', payload: {} });
-      return { ok: false, recordingPath, workDir, costUsd, error: 'cancelled', ...unreported() };
+      return { ok: false, recordingPath, workDir, costUsd, error: 'cancelled', ...unreported(), ...(model ? { model } : {}) };
     }
     record({ source: 'runner', name: 'error', payload: { error } });
-    return { ok: false, recordingPath, workDir, costUsd, error: failureKind(apiError, `${error}\n${resultText}`, resultSubtype), detail: error.slice(0, 500), ...unreported() };
+    return { ok: false, recordingPath, workDir, costUsd, error: failureKind(apiError, `${error}\n${resultText}`, resultSubtype), detail: error.slice(0, 500), ...unreported(), ...(model ? { model } : {}) };
   } finally {
     clearInterval(ticker);
     input.close();

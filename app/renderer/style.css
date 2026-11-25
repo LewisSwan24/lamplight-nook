@@ -410,6 +410,15 @@ body.reduce-motion .tool-btn.calling { animation: none; }
 .spend-book tr { border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
 .spend-total th, .spend-total td { font-weight: bold; }
 .budget-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+/* Which model the staff use (plan-1.6.md F6): a tier a line, its price at the end. */
+.model-rows { display: flex; flex-direction: column; gap: 4px; }
+.model-row { display: flex; align-items: center; gap: 8px; }
+.model-row input[type=radio] { width: auto; flex: none; margin: 0; }
+.model-row .model-name { flex: none; white-space: nowrap; }
+.model-row .model-cost { margin-left: auto; opacity: 0.75; font-size: 0.9em; white-space: nowrap; }
+.slip-more summary { cursor: pointer; opacity: 0.8; }
+.slip-more label { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.slip-more select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
 .budget-row select, .project-cap-row select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
 .result-cost { margin-top: 2px; }
 /* A cap past eight tenths (B8): a word from Adeng, plainer than a warning about a script. */

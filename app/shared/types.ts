@@ -7,6 +7,7 @@ import type { MiniState } from './mini';
 import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId } from './templates';
 import type { Shop } from './dispatch';
+import type { ModelTier } from './models';
 
 /** Scene anchors: characters only move between these points. */
 /** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
@@ -67,7 +68,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; /** Which model the staff work on (plan-1.6.md F6). */ modelTier: ModelTier; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -99,6 +100,7 @@ export type RunResult = { /** The round's run id (B5), for trying it again. */ r
   /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
   /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[];
   /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number;
+  /** The model Claude Code said it ran on (plan-1.6.md F6). */ model?: string;
   /** The web addresses this round searched or fetched, for checking a write-up's sources (road-to-1.3.md C7). */ seenUrls?: string[] };
 
 /** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
@@ -137,6 +139,8 @@ export interface LamplightApi {
   installClaude(): Promise<boolean>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
+  /** What one commission costs on each model tier: the ledger's average, or the price table's guess (plan-1.6.md F6). */
+  modelCosts(): Promise<Record<ModelTier, { usd: number; from: 'ledger' | 'table' }>>;
   /** Every month that cost anything, newest first. */
   /** `people` only for a month someone other than the owner spent in: `who` is '' for the owner, null for a removed device. */
   spendMonths(): Promise<{ month: string; usd: number; estimated?: number; commissions: number; people?: { who: string | null; usd: number }[] }[]>;
@@ -314,6 +318,8 @@ export type CommissionTemplate = TemplateId;
  * `connections`: the connections ticked under "this one may use" (road-to-1.3.md C4); none unless the user ticks one.
  */
 export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[];
+  /** The model this one commission runs on, changed on the slip (plan-1.6.md F6); absent: the one in settings. */
+  model?: ModelTier;
   /** Handed in from a paired device on the home network (docs/plan-1.5.md E5): which one. Absent: the owner, at the desk. */
   by?: { id: string; name: string } };
 
@@ -496,6 +502,7 @@ export const IPC = {
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
   spendMonths: 'spend:months',
+  modelCosts: 'spend:model-costs',
   monthBudget: 'budget:month',
   monthCapNews: 'budget:month-cap-news',
   setProjectCap: 'budget:project-cap',
