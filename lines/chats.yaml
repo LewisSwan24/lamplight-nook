@@ -1398,6 +1398,84 @@
     - organizer: 天冷了，我挨家看暖气热不热。
     - adeng: 先坐下，喝口热的再走。
 
+# 1.8 复习卡片带来的乐乐（plan-1.8.md H1）：高三，书包里一半卷子一半卡片。
+
+- id: lele_cards
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 卡片我天天揣在兜里。
+    - adeng: 背到第几张了？
+    - pupil: 第二遍了，红笔的还没记住。
+
+- id: lele_quiz
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 那页小测我做了三遍。
+    - laoshi: 错的几道，回材料里找一找。
+    - pupil: 找了，都在第二章。
+
+- id: lele_mock
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 下礼拜模拟考。
+    - xiaoju: 考哪几门？
+    - pupil: 全部。
+
+- id: lele_desk
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 家里太吵，能在这儿坐会儿吗？
+    - adeng: 靠窗那张桌子给你留着。
+
+- id: lele_rain
+  when: idle
+  guest: pupil
+  sky: rain
+  turns:
+    - pupil: 雨太大，等小点再走。
+    - qingdai: 正好，把卡片再过一遍。
+
+- id: lele_spring
+  when: idle
+  guest: pupil
+  after: 20
+  season: spring
+  turns:
+    - pupil: 开学了，书包又沉了。
+    - xiaoju: 装的都是卷子吗？
+    - pupil: 一半卷子，一半卡片。
+
+- id: lele_summer
+  when: idle
+  guest: pupil
+  after: 20
+  season: summer
+  turns:
+    - pupil: 考完了，卡片还舍不得扔。
+    - laoshi: 留着，以后翻翻也好。
+
+- id: lele_autumn
+  when: idle
+  guest: pupil
+  after: 20
+  season: autumn
+  turns:
+    - pupil: 新学期，又发了一摞讲义。
+    - adeng: 拿来，照老样子做。
+
+- id: lele_winter
+  when: idle
+  guest: pupil
+  after: 20
+  season: winter
+  turns:
+    - pupil: 太冷了，手都不想伸出来。
+    - adeng: 先捧着这杯热的。
+
 # 1.6 的街（plan-1.6.md F5）：主店的人说起面包房、邮局和街上走过的人；桂姨和阿信来店里时说的。
 
 - id: f5_bread_smell

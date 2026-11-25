@@ -39,7 +39,8 @@
     "cook": "Old Ma",
     "lodger": "Lin",
     "florist": "Fern",
-    "organizer": "Mrs Wu"
+    "organizer": "Mrs Wu",
+    "pupil": "Lele"
   },
   "you": {
     "label": "You"
@@ -224,6 +225,9 @@
       "newsletter": "Make a newsletter",
       "newsletterFill": "Make a newsletter for ..., this issue about: ...",
       "newsletterHint": "Write what this issue covers in the request, or hand over notes and photos. Only what you give goes in; missing dates and names are left blank for you. You get a Word document and a PDF.",
+      "flashcards": "Revision cards",
+      "flashcardsFill": "Turn this ... into revision cards, for a test on: ...",
+      "flashcardsHint": "Hand over a handout, notes or a chapter, or paste it into the request. Every question and answer comes from it alone: cards to print and cut apart, and a ten-question quiz with the answers on the back.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
       "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
@@ -621,6 +625,7 @@
         "cookbook": "Recipe book",
         "cardline": "String of cards",
         "newsletters": "Newsletters",
+        "cardstack": "Revision cards",
         "chime": "These wind chimes",
         "aquarium": "This fish tank",
         "scroll": "This scroll",
@@ -719,7 +724,8 @@
         "cook": "Lunch rush is over. Any tea going?",
         "lodger": "I'll only stay a minute. Can I ask you about a dish?",
         "florist": "Just passing. The coffee smelled too good.",
-        "organizer": "Only a minute. There is a meeting downstairs."
+        "organizer": "Only a minute. There is a meeting downstairs.",
+        "pupil": "Just a minute. One more page to learn."
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {
@@ -736,7 +742,8 @@
         "chalkboard": "We made someone a menu, and a little chalkboard went up against the wall.",
         "cookbook": "After a couple of recipes, a recipe book joined the shelf.",
         "cardline": "We made someone a card, and a string of cards went up across the side window.",
-        "newsletters": "After two newsletters, a pile of them sits on the big table for anyone to take."
+        "newsletters": "After two newsletters, a pile of them sits on the big table for anyone to take.",
+        "cardstack": "After a set of revision cards, a stack of them sits on the bookcase in a rubber band."
       }
     },
     "run": {
@@ -1218,6 +1225,10 @@
       "newsletter": "newsletter.docx",
       "newsletterPage": "newsletter.html",
       "newsletterPdf": "newsletter.pdf",
+      "flashcardsPage": "flashcards.html",
+      "flashcardsPdf": "flashcards.pdf",
+      "quizPage": "quiz.html",
+      "quizPdf": "quiz.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -1430,7 +1441,8 @@
         "menu": "Menus",
         "recipe": "Recipes",
         "card": "Cards",
-        "newsletter": "Newsletters"
+        "newsletter": "Newsletters",
+        "flashcards": "Revision cards"
       }
     },
     "mini": {
@@ -1577,6 +1589,7 @@
     "cookbook": "a handwritten recipe book",
     "cardline": "a string of cards across the side window",
     "newsletters": "a pile of newsletters on the big table",
+    "cardstack": "a stack of revision cards on the bookcase",
     "chime": "some wind chimes",
     "aquarium": "a tank of goldfish",
     "scroll": "a hanging scroll",

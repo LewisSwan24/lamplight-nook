@@ -12,7 +12,7 @@ import type { Holiday, Season, Sky } from './weather';
  * the front door, stop by the counter for a few words (lines/chats.yaml, chats with `guest:`) and go
  * again; they leave at once when a commission comes in. Pure: the caller asks every few seconds.
  */
-export const GUEST_IDS: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer'];
+export const GUEST_IDS: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil'];
 /** Old friends of the shop, who come from the start. */
 const OLD_FRIENDS: GuestId[] = ['baker', 'postman'];
 
@@ -21,7 +21,8 @@ const OLD_FRIENDS: GuestId[] = ['baker', 'postman'];
  * (shared/templates.ts): Old Zhou from the garage once there has been a web page, Granny Chen with her
  * photographs once there has been an album, Xiaohe with her thesis once there has been research; and since plan-1.6.md F1
  * Old Ma from the noodle bar once the bakery has made a menu, and Lin from upstairs once it has written a recipe; since F2
- * Fern from the flower shop once the post office has made a card, and Mrs Wu once it has put together a newsletter.
+ * Fern from the flower shop once the post office has made a card, and Mrs Wu once it has put together a newsletter; since
+ * plan-1.8.md H1 Lele, a schoolgirl with exams coming, once the shop has made revision cards.
  */
 export function welcomeGuests(made: Made): GuestId[] {
   const brought: GuestId[] = TEMPLATES.flatMap((t) => ('guest' in t && made[t.id] ? [t.guest] : []));

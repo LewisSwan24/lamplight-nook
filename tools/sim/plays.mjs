@@ -37,6 +37,14 @@ const T = {
     newsletter: ['把这期要讲的事理一遍', '分条写，要紧的放前头', '排成文档，另存一份 PDF', '请老石核对日子'],
     newsletterDone: '简报做好了：一份 Word 文档，另存了一份 PDF 可以贴出去。日子和地点单列在最后，没给的留在方括号里。',
     newsletterDoc: (w) => ({ title: w || '楼里简报', blocks: [{ p: '第 [期数] 期' }, { h: 1, text: '周六义诊' }, { p: '社区医院的医生周六上午来，量血压、看看小毛病。' }, { h: 1, text: '楼道自行车' }, { p: '请把自行车停到楼后车棚，楼道留给人走。' }, { h: 1, text: '近期安排' }, { list: ['周六 9:00 义诊，一楼活动室', '[日期] 大扫除'] }] }),
+    // Revision cards (plan-1.8.md H1): every card comes from a "term: what it is" line of the material.
+    flashcards: ['读一遍你给的材料', '挑出要记的，一条一张卡', '排成能裁开的卡片，存成 PDF', '出一页十道题的小测', '请老石对照材料核一遍'],
+    flashcardsDone: '复习卡片做好了：问答卡排成了能打印裁开的 PDF，正反面对得上；另有一页十道题的小测，答案在背面。题目都出自你给的材料。',
+    cards: {
+      title: '复习卡片', quiz: '小测', answers: '答案', from: '出自材料：', name: '姓名：________',
+      ask: (term) => `${term}是什么？`, blank: (term) => `${term}：________`,
+      sample: [['光合作用', '植物用光把二氧化碳和水变成糖和氧气。'], ['叶绿体', '植物细胞里做光合作用的地方。'], ['气孔', '叶子背面进出气体的小孔。']],
+    },
     newsletterPage: (w) => `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:20mm}body{font-family:system-ui,sans-serif;color:#2a2233}h1{color:#34765a}</style></head><body><h1>${esc(w || '楼里简报')}</h1><p>第 [期数] 期</p><h2>周六义诊</h2><p>社区医院的医生周六上午来，量血压、看看小毛病。</p><h2>楼道自行车</h2><p>请把自行车停到楼后车棚，楼道留给人走。</p><h2>近期安排</h2><ul><li>周六 9:00 义诊，一楼活动室</li><li>[日期] 大扫除</li></ul></body></html>\n`,
     recipeDoc: (w) => ({ title: w || '食谱', blocks: [{ p: '两人份，准备 15 分钟，做 20 分钟。分量是家常的量，可以照口味调。' }, { h: 1, text: '用料' }, { list: ['面粉 200 克', '温水 120 毫升', '葱 3 根', '盐 3 克'] }, { h: 1, text: '做法' }, { list: ['1. 面粉加温水揉成团，盖上布醒 15 分钟。', '2. 擀成薄片，抹油撒葱和盐，卷起再擀开。', '3. 中火烙到两面金黄，约 6 分钟。'] }, { h: 1, text: '要注意' }, { list: ['含小麦（面筋）。', '油温太高容易外焦里生。'] }] }),
     notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
@@ -131,6 +139,13 @@ const T = {
     newsletter: ['Go through what this issue covers', 'Write it up, the big news first', 'Lay it out as a document, save a PDF', 'Ask Flint to check the dates'],
     newsletterDone: 'The newsletter is ready: a Word document, and a PDF to pin up. Dates and places are listed at the end; a missing one is left in square brackets.',
     newsletterDoc: (w) => ({ title: w || 'Block newsletter', blocks: [{ p: 'Issue [number]' }, { h: 1, text: 'Saturday clinic' }, { p: 'Doctors from the community hospital come on Saturday morning to check blood pressure and small complaints.' }, { h: 1, text: 'Bikes in the hallway' }, { p: 'Please leave bikes in the shed behind the block, so the hallway stays clear.' }, { h: 1, text: 'Coming up' }, { list: ['Saturday 9:00, clinic, ground-floor room', '[date], spring cleaning'] }] }),
+    flashcards: ['Read the material you handed over', 'Pick what to remember, one card each', 'Lay out cards to cut apart, save a PDF', 'Write a ten-question quiz', 'Ask Flint to check them against the material'],
+    flashcardsDone: 'The revision cards are ready: a PDF of cards to print and cut apart, each answer on the back of its question, and a ten-question quiz with the answers on the back. Every question comes from your material.',
+    cards: {
+      title: 'Revision cards', quiz: 'Quiz', answers: 'Answers', from: 'From the material: ', name: 'Name: ________',
+      ask: (term) => `What is ${term}?`, blank: (term) => `${term}: ________`,
+      sample: [['Photosynthesis', 'Plants use light to turn carbon dioxide and water into sugar and oxygen.'], ['Chloroplast', 'The part of a plant cell where photosynthesis happens.'], ['Stoma', 'A tiny opening under a leaf that lets gases in and out.']],
+    },
     newsletterPage: (w) => `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:20mm}body{font-family:system-ui,sans-serif;color:#2a2233}h1{color:#34765a}</style></head><body><h1>${esc(w || 'Block newsletter')}</h1><p>Issue [number]</p><h2>Saturday clinic</h2><p>Doctors from the community hospital come on Saturday morning to check blood pressure and small complaints.</p><h2>Bikes in the hallway</h2><p>Please leave bikes in the shed behind the block, so the hallway stays clear.</p><h2>Coming up</h2><ul><li>Saturday 9:00, clinic, ground-floor room</li><li>[date], spring cleaning</li></ul></body></html>\n`,
     recipeDoc: (w) => ({ title: w || 'Recipe', blocks: [{ p: 'Serves two. 15 minutes of work, 20 of cooking. The amounts are everyday ones; adjust to taste.' }, { h: 1, text: 'What goes in' }, { list: ['200 g flour', '120 ml warm water', '3 scallions', '3 g salt'] }, { h: 1, text: 'Steps' }, { list: ['1. Knead the flour and water into a dough; cover and rest for 15 minutes.', '2. Roll it thin, brush with oil, scatter scallions and salt, roll up and flatten again.', '3. Fry on a medium heat until golden on both sides, about 6 minutes.'] }, { h: 1, text: 'Watch out for' }, { list: ['Contains wheat (gluten).', 'Too hot a pan burns the outside before the middle is done.'] }] }),
     notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
@@ -306,6 +321,45 @@ function cardPage(t, w) {
     + `<body><div class="sun"></div><h1>${esc(C.greeting)}</h1><p>${esc(C.line)}</p><p>${esc(C.from)}</p></body></html>\n`;
 }
 
+/**
+ * The cards a revision-cards commission makes (plan-1.8.md H1): one for every "term: what it is" line of the text files
+ * handed over, or of the request itself; three sample cards only when there is nothing of the kind.
+ */
+function cardsFrom(s) {
+  const C = T[s.state.lang].cards;
+  const dir = s.state.vars.materialsDir;
+  const texts = dir && existsSync(join(s.cwd, dir)) ? readdirSync(join(s.cwd, dir)).filter((f) => /\.(txt|md)$/i.test(f)).map((f) => readFileSync(join(s.cwd, dir, f), 'utf8')) : [];
+  const pairs = [...texts, s.state.vars.want || ''].join('\n').split(/\r?\n/)
+    .map((l) => /^\s*(?:[-*•]\s*)?([^:：]{1,30}?)\s*[:：]\s*(\S.+)$/.exec(l)).filter(Boolean).map((m) => [m[1].trim(), m[2].trim()]);
+  return (pairs.length ? pairs : C.sample).map(([term, a]) => ({ term, q: C.ask(term), a }));
+}
+
+const SHEET_STYLE = '@page{size:A4;margin:10mm}html,body{margin:0}body{font-family:system-ui,sans-serif;color:#2a2233}section{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);height:276mm;break-after:page}.c{border:1px dashed #9a9a9a;padding:8mm;position:relative;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15pt;break-inside:avoid}.c b{position:absolute;top:3mm;left:4mm;font-size:9pt;color:#8a8a8a}.a{background:#fdf6e3;font-size:12pt}';
+
+/** Eight cards to a sheet; behind each sheet of questions, their answers with each row's two cards swapped. */
+function cardsPage(t, cards) {
+  const cell = (n, text, kind) => `<div class="c ${kind}"><b>${n}</b><p>${esc(text)}</p></div>`;
+  const blank = '<div class="c"></div>';
+  let body = '';
+  for (let k = 0; k < cards.length; k += 8) {
+    const sheet = cards.slice(k, k + 8);
+    const front = sheet.map((c, j) => cell(k + j + 1, c.q, 'q')).join('') + blank.repeat(8 - sheet.length);
+    const back = [0, 1, 2, 3].flatMap((r) => [r * 2 + 1, r * 2]).map((j) => (sheet[j] ? cell(k + j + 1, sheet[j].a, 'a') : blank)).join('');
+    body += `<section>${front}</section><section>${back}</section>`;
+  }
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><title>${esc(t.cards.title)}</title><style>${SHEET_STYLE}</style></head><body>${body}</body></html>\n`;
+}
+
+/** Ten questions on the first page, short answers and blanks to fill in turn; the answers, with where they come from, on the second. */
+function quizPage(t, cards) {
+  const C = t.cards;
+  const ten = Array.from({ length: 10 }, (_, i) => ({ ...cards[i % cards.length], blank: i % 2 === 1 }));
+  const qs = ten.map((c) => `<li>${esc(c.blank ? C.blank(c.term) : c.q)}<div class="room"></div></li>`).join('');
+  const as = ten.map((c) => `<li>${esc(c.a)}<small>${esc(C.from + c.term)}</small></li>`).join('');
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><title>${esc(C.quiz)}</title><style>@page{size:A4;margin:18mm}body{font-family:system-ui,sans-serif;color:#2a2233;font-size:12pt}section{break-after:page}li{margin:0 0 4mm}.room{height:10mm;border-bottom:1px solid #ccc}small{display:block;color:#777}</style></head>`
+    + `<body><section><h1>${esc(C.quiz)}</h1><p>${esc(C.name)}</p><ol>${qs}</ol></section><section><h1>${esc(C.answers)}</h1><ol>${as}</ol></section></body></html>\n`;
+}
+
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
 export function pickPlay(prompt, state, system = '') {
   state.vars ??= {};
@@ -388,6 +442,12 @@ export function pickPlay(prompt, state, system = '') {
     state.vars.page = quoted(prompt, 'single self-contained page');
     state.vars.pdf = quoted(prompt, 'and save it as');
     return plays.newsletter;
+  }
+  if (/These are revision cards and a short quiz/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Lay the cards out as a single self-contained page');
+    state.vars.quiz = quoted(prompt, 'as a page');
+    [state.vars.pdf, state.vars.quizPdf] = [...prompt.matchAll(/Save it as "([^"]+)"/g)].map((m) => m[1]);
+    return plays.flashcards;
   }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
@@ -958,6 +1018,15 @@ export const plays = {
     after: async (s) => {
       await s.write(s.state.vars.page, T[s.state.lang].newsletterPage(s.state.vars.want || ''));
       await office(s, 'make_pdf', { page: s.state.vars.page, file: s.state.vars.pdf });
+    },
+  }),
+  flashcards: simpleText('flashcards', null, (t) => t.flashcardsDone, {
+    make: (s) => s.write(s.state.vars.out, cardsPage(T[s.state.lang], cardsFrom(s))),
+    after: async (s) => {
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.write(s.state.vars.quiz, quizPage(T[s.state.lang], cardsFrom(s)));
+      await office(s, 'make_pdf', { page: s.state.vars.quiz, file: s.state.vars.quizPdf });
+      await s.read(s.state.vars.pdf);
     },
   }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),

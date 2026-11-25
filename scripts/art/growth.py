@@ -59,6 +59,8 @@ DRAWN = {
     # tied with red string, left on the big table for anyone to take.
     'cardline': ['x.......................x', '.lllllllllllllllllllllll.', '.xxxxx.xxxxx.xxxxx.xxxxx.', '.xwwwx.xyyyx.xpppx.xaaax.', '.xwrwx.xygyx.xprpx.xawax.', '.xwwwx.xyyyx.xpppx.xaaax.', '.xxxxx.xxxxx.xxxxx.xxxxx.'],
     'newsletters': ['.xxxxxxxxxx.', '.xwlllwwllx.', '.xwwwwwwwwx.', 'xxxxxxxxxxxx', 'xwwwwwwwwwwx', 'xxxxxrrxxxxx'],
+    # Revision cards (plan-1.8.md H1): a stack of white index cards in a red rubber band, the top one a little askew.
+    'cardstack': ['..xxxxxxxx', '.xwwwwrwwx', 'xwwwwwrwwx', 'xlllllrllx', 'xxxxxxxxxx'],
     'toolbox': ['.....xxxx.....', '.....x..x.....', '..xxxxxxxxxx..', '.xrrrrrrrrrrx.', 'xxxxxxxxxxxxxx', 'xrrrrrrrrrrrrx',
                 'xrrrrrlllrrrrx', 'xrrrrrrrrrrrrx', 'xrrrrrrrrrrrrx', 'xxxxxxxxxxxxxx'],
     # Past fifty (road-to-1.1.md A9). c glass, a water, f goldfish, h brass shadow, m plum, t straw shadow; the rest as COLORS.
@@ -183,6 +185,9 @@ def pieces_by_id():
         'cookbook': [(drawn('cookbook'), (65, 89))],  # a recipe book lying on the filing cabinet
         'cardline': [(drawn('cardline'), (199, 15))],  # greeting cards on a string across the top of the side window (F2)
         'newsletters': [(drawn('newsletters'), (62, 31))],  # newsletters on the second window's sill, for anyone to take
+        # A stack of revision cards lying at the front of the bookcase top, in front of the books (plan-1.8.md H1). The
+        # study's bookcase top is a little higher than the cafe's; both reach the stack's bottom row.
+        'cardstack': [(drawn('cardstack'), (15, 112))],
         # Past fifty (road-to-1.1.md A9): hung on what wall there is left, on the counter, and in two corners nobody walks
         # through (tests/routes.test.ts). Each sits the same in the cafe and the study.
         'chime': [(drawn('chime'), (44, 17))],  # wind chimes between the two windows
@@ -201,7 +206,8 @@ def pieces_by_id():
 # resume (a sheet with a photo), notes (an open book with a bookmark), travel (a suitcase), tool (a wrench),
 # document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars),
 # menu (a card with a red band and prices, plan-1.6.md F1), recipe (a mixing bowl with a spoon in it),
-# card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text).
+# card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text),
+# flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -219,6 +225,7 @@ ICONS = {
     'recipe': ['........', '....l...', '....l...', 'uuuuluuu', 'uwwwwwwu', '.uwwwwu.', '..uuuu..', '........'],
     'card': ['........', '.yyyyyy.', '.yryyry.', '.yrrrry.', '.yyrryy.', '.yyyyyy.', '.yyyyyy.', '........'],
     'newsletter': ['.dddddd.', '.dwwwwd.', '.dggggd.', '.dwwwwd.', '.dlwlld.', '.dwwwwd.', '.dlllwd.', '.dddddd.'],
+    'flashcards': ['...ddddd', '...dyyyd', 'ddddddyd', 'dwwwwddd', 'drrrrd..', 'dwwwwd..', 'dllwwd..', 'dddddd..'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -233,7 +240,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
@@ -247,7 +254,7 @@ ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 
 #   post (plan-1.6.md F2): grow-post-stamp.png, grow-post-ivy.png, grow-post-horn.png, grow-post-map.png
 # The bakery's two kinds of work bring pieces to the home shop too, among the overlays below: grow-chalkboard.png for a
 # menu and grow-cookbook.png for a recipe; and the post office's (plan-1.6.md F2) grow-cardline.png for a greeting card
-# and grow-newsletters.png for a newsletter.
+# and grow-newsletters.png for a newsletter. Revision cards (plan-1.8.md H1) bring grow-cardstack.png.
 ROOM_DRAWN = {
     'ivy': ['....x....', '....x....', '..xxxxx..', '.xoooooox'[:9], '.xoooooox'[:9], '..xxxxx..', '.gg.g.gg.', 'g.g.g.g.g',
             '.g..g..g.', '.g.gg..g.', 'g...g.g..', '....g....', '...g.....'],

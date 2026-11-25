@@ -129,6 +129,14 @@ GUESTS = {
                    'Outfits/16x16/Outfit_24_01.png', 'Hairstyles/16x16/Hairstyle_02_05.png'],
         'recolor': {'Outfits/16x16/Outfit_24_01.png': [((180, 260), '#8A4A5A')]},
     },
+    # Revision cards bring Lele (plan-1.8.md H1), a schoolgirl with exams coming: a school jacket dyed navy, her hair in a
+    # bob, a green satchel of handouts. Written as pupil.png.
+    'pupil': {
+        'layers': ['Bodies/16x16/Body_04.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_18_01.png', 'Hairstyles/16x16/Hairstyle_16_03.png',
+                   'Accessories/16x16/Accessory_03_Backpack_03.png'],
+        'recolor': {'Outfits/16x16/Outfit_18_01.png': [((5, 50), '#3A4A78')]},
+    },
 }
 
 # The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as

@@ -329,6 +329,7 @@ grow:
   - { id: grow_cardline, speaker: xiaoju, when: grow_cardline, bubbles: ["Cards on a string across the window!", "Fern says cards look better hung up."] }
   - { id: grow_newsletters, speaker: laoshi, when: grow_newsletters, bubbles: ["A pile of newsletters on the sill.", "Mrs Wu asked us to hand them out."], reply: { speaker: adeng, bubbles: ["Take one with your coffee."] } }
   - { id: grow_cookbook, speaker: laoshi, when: grow_cookbook, bubbles: ["Auntie Olive gave us a recipe book.", "Copied out by hand, every word."], reply: { speaker: xiaoju, bubbles: ["Page one is scallion pancakes!"] } }
+  - { id: grow_cardstack, speaker: xiaoju, when: grow_cardstack, bubbles: ["A stack of cards on the bookcase!", "Rubber band and all."], reply: { speaker: laoshi, bubbles: ["We printed one set too many."] } }
   - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["Wind chimes by the window.", "They ring when the breeze comes in."] }
   - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["Sixty jobs, so we got goldfish!", "One's called Wick Junior."], reply: { speaker: laoshi, bubbles: ["I'll change the water."] } }
   - { id: grow_scroll, speaker: adeng, when: grow_scroll, bubbles: ["A scroll on the wall.", "Flint wrote it. Took him all night."] }

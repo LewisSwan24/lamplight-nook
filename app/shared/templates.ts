@@ -31,7 +31,7 @@ export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes
 
 /**
  * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
- * a poster, a menu or a greeting card drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
+ * a poster, a menu or a greeting card drawn as a picture (before the page it was drawn from), revision cards, any page, a Word, Excel or PowerPoint file or a
  * PDF (never the kinds with macros), a write-up in Markdown, an email draft (C5, which opens in the mail program), then
  * a table or a letter.
  */
@@ -39,6 +39,8 @@ export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
   picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng,
+  /** Revision cards (plan-1.8.md H1): their PDF, before the pages they were printed from and before the quiz. */
+  cards: (name: string, files: Files) => name === files.flashcardsPdf,
   page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
@@ -321,6 +323,25 @@ export const TEMPLATES = [
       'Write only what the user gave. Never make up an event, a date, a time, a place, a name or a number. Where one is missing, leave a clear blank in square brackets.',
       `Then lay the same issue out as a single self-contained page "${files.newsletterPage}" for A4, CSS inline, no web fonts, nothing the page loads from outside this folder, and save it as "${files.newsletterPdf}" with the mcp__nook-office__make_pdf tool, for the notice board.`,
       `In your final reply, say in ${language}, in one line, which issue it is and how many pieces of news are in it.`,
+    ],
+  },
+  // Revision cards (plan-1.8.md H1): a set of cards to print and cut apart, and a one-page quiz with its answers on the
+  // back, both made from what the user is studying and from nothing else.
+  {
+    id: 'flashcards', shop: 'home', icon: 21, revise: true, main: 'cards', growth: { id: 'cardstack', at: 1 }, guest: 'pupil',
+    steps: ({ language, files }) => [
+      'These are revision cards and a short quiz for someone getting ready for a test, made to be printed.',
+      `Read the material first: what the user handed over in "${files.materials}" (handouts, notes, a chapter; the Read tool reads text, pictures and PDFs, and mcp__nook-office__read_document reads Word, Excel and PowerPoint files), or the text in the request. If there is nothing to work from, ask for it in your reply instead of making cards from memory.`,
+      'Every question and every answer must come from that material. Never add a fact it does not hold, and never correct it from memory; if something in it looks wrong, keep it as it is and say so in your reply.',
+      'Pick what is worth remembering: terms and what they mean, names, dates, causes and what they led to, steps in order. One card for each, from 12 to 40 cards, fewer for a short text. A question asks one thing; its answer is a few words or one short sentence.',
+      'Write them in the language of the material, unless the request asks for another.',
+      `Lay the cards out as a single self-contained page "${files.flashcardsPage}" for A4: CSS inline, no web fonts, nothing the page loads from outside this folder. Eight cards to a sheet, two across and four down, each the same size with a dashed border to cut along and its number in a corner.`,
+      'Follow each sheet of questions with a sheet of their answers, the two columns swapped, so that printed on both sides and flipped on the long edge every answer lands on the back of its question. Never let a card break across two pages.',
+      `Save it as "${files.flashcardsPdf}" with the mcp__nook-office__make_pdf tool.`,
+      `Then the quiz: ten questions on what matters most in the material, mixing a few kinds (one of four, true or false, fill in the blank, a short answer), as a page "${files.quizPage}" for A4 with the same rules. The first page holds the ten questions with room to write; the second holds the answers, numbered, each with one line on where in the material it comes from, so it prints on the back.`,
+      `Save it as "${files.quizPdf}" with the mcp__nook-office__make_pdf tool.`,
+      'When both are saved, look at them with the Read tool: check no card is cut off, every answer sits behind its question and the quiz fits on two pages, and fix the pages and save them again if not.',
+      `In your final reply, say in ${language}, in one line, how many cards there are and what the quiz covers.`,
     ],
   },
 ] as const satisfies readonly TemplateSpec[];
