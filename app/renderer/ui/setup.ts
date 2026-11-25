@@ -3,6 +3,7 @@ import { monthName } from '../../shared/localday';
 import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
 import { MODEL_TIERS, type ModelTier } from '../../shared/models';
+import { PRESETS, presetById, type Provider } from '../../shared/providers';
 import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type LanRole, type LanState, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closeButton, closePanel, nameCard, replaceOpen } from './panels';
@@ -284,6 +285,101 @@ function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings
   return el('div.access-rows', {}, ...rows.map(([key, text]) => toggle(key, text)));
 }
 
+/** The kinds offered in settings: the four Claude Code can be pointed at, and one that only explains a gateway. */
+type ProviderChoice = Provider['kind'] | 'openai';
+const P = S.provider;
+
+/**
+ * Where the work goes (plan-1.6.md F7): Anthropic as before, a compatible service (a preset or by hand, with its prices),
+ * Bedrock, Vertex, or how to put a gateway in front of a service that only speaks the OpenAI format. Saving checks it and
+ * keeps the key apart for each provider; the key box stays empty, showing only the end of a key already kept.
+ */
+function providerSection(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  let current: Provider = settings.provider;
+  const kind = el('select.provider-kind', { 'aria-label': P.label },
+    ...(['anthropic', 'compatible', 'bedrock', 'vertex', 'openai'] as const).map((k) => el('option', { value: k, selected: k === current.kind }, P.kinds[k]))) as HTMLSelectElement;
+  const body = el('div.provider-body');
+  const said = el('div.hint.provider-said', { role: 'status' });
+  const field = (label: string, input: HTMLElement) => el('label.provider-field', {}, el('span', {}, label), input);
+  const text = (name: string, value = '', type = 'text') => el('input', { type, name, value, spellcheck: false, autocomplete: 'off' }) as HTMLInputElement;
+  const save = async (p: Provider, key: string) => {
+    said.textContent = P.saving;
+    said.classList.remove('warn');
+    const r = await api.saveProvider(p, key);
+    said.textContent = r.ok ? (r.verified ? P.saved : P.unverified) : P.reasons[r.reason];
+    said.classList.toggle('warn', !r.ok);
+    if (r.ok) {
+      current = r.provider;
+      changed(await api.getSettings());
+      draw();
+    }
+  };
+  const keyBox = async (p: Provider) => {
+    const box = text('key', '', 'password');
+    const kept = await api.providerKey(p);
+    if (kept) box.placeholder = fill(P.keyKept, { hint: kept });
+    return box;
+  };
+  const draw = async () => {
+    const choice = kind.value as ProviderChoice;
+    const was = current.kind === choice ? current : undefined;
+    if (choice === 'anthropic') {
+      body.replaceChildren(el('div.hint', {}, P.anthropicHint),
+        ...(current.kind === 'anthropic' ? [] : [el('button.provider-save', { type: 'button', onclick: () => void save({ kind: 'anthropic' }, '') }, P.useAnthropic)]));
+      return;
+    }
+    if (choice === 'openai') {
+      body.replaceChildren(el('div.hint.provider-openai', {}, P.openaiText));
+      return;
+    }
+    if (choice === 'compatible') {
+      const preset = el('select.provider-preset', { 'aria-label': P.preset }, el('option', { value: '' }, P.presetCustom),
+        ...PRESETS.map((p) => el('option', { value: p.id, selected: p.id === was?.preset }, p.name))) as HTMLSelectElement;
+      const baseUrl = text('baseUrl', was?.baseUrl);
+      const model = text('model', was?.model);
+      const fast = text('fastModel', was?.fastModel);
+      const input = text('priceInput', was?.prices ? String(was.prices.input) : '', 'number');
+      const output = text('priceOutput', was?.prices ? String(was.prices.output) : '', 'number');
+      for (const n of [input, output]) { n.min = '0'; n.step = 'any'; }
+      const docs = el('div.hint.provider-docs');
+      const fromPreset = () => {
+        const p = presetById(preset.value);
+        docs.textContent = p ? fill(P.presetDocs, { name: p.name }) : '';
+        // By hand: the address and model stay to be changed, but a preset's faster model belongs to that preset alone.
+        if (!p) { fast.value = ''; return; }
+        baseUrl.value = p.baseUrl;
+        model.value = p.model;
+        fast.value = p.fastModel ?? '';
+      };
+      preset.addEventListener('change', async () => { fromPreset(); key.replaceWith(key = await keyBox(drafted())); });
+      const drafted = (): Provider => ({ kind: 'compatible', preset: preset.value || undefined, baseUrl: baseUrl.value.trim(), model: model.value.trim(), fastModel: fast.value.trim() || undefined,
+        prices: input.value && output.value ? { input: Number(input.value), output: Number(output.value) } : undefined });
+      let key = await keyBox(was ?? drafted());
+      if (!was) fromPreset();
+      body.replaceChildren(
+        field(P.preset, preset), docs, field(P.baseUrl, baseUrl), field(P.model, model), field(P.fastModel, fast), field(P.key, key),
+        field(P.priceInput, input), field(P.priceOutput, output), el('div.hint', {}, P.priceHint),
+        el('div.hint.provider-trial', {}, P.trial),
+        el('button.provider-save', { type: 'button', onclick: () => void save(drafted(), key.value) }, P.save));
+      return;
+    }
+    const region = text('region', was?.region);
+    if (choice === 'bedrock') {
+      const key = await keyBox({ kind: 'bedrock' });
+      body.replaceChildren(field(P.region, region), field(P.bedrockKey, key),
+        el('button.provider-save', { type: 'button', onclick: () => void save({ kind: 'bedrock', region: region.value.trim() || undefined }, key.value) }, P.save));
+      return;
+    }
+    const project = text('project', was?.project);
+    const file = text('credentialsFile', was?.credentialsFile);
+    body.replaceChildren(field(P.region, region), field(P.project, project), field(P.credentialsFile, file), el('div.hint', {}, P.vertexHint),
+      el('button.provider-save', { type: 'button', onclick: () => void save({ kind: 'vertex', region: region.value.trim() || undefined, project: project.value.trim() || undefined, credentialsFile: file.value.trim() || undefined }, '') }, P.save));
+  };
+  kind.addEventListener('change', () => { said.textContent = ''; void draw(); });
+  void draw();
+  return el('section.provider', {}, el('h4', {}, P.label), kind, body, said);
+}
+
 /** The model names beside the tiers: the same in every language. */
 const MODEL_NAME: Record<ModelTier, string> = { best: 'Opus', balanced: 'Sonnet', saver: 'Haiku' };
 
@@ -549,7 +645,9 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     work: [
       el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
       el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
-      el('section.model', {}, el('h4', {}, S.modelLabel), modelRows(api, settings, onChange)),
+      el('section.model', {}, el('h4', {}, S.modelLabel), settings.provider.kind === 'compatible'
+        ? el('div.hint.model-set', {}, fill(S.provider.modelSet, { model: settings.provider.model ?? '' })) : modelRows(api, settings, onChange)),
+      providerSection(api, settings, onChange),
       el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
       el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
         // The Store build can't open itself at login this way (road-to-1.2.md B6), so it has no such switch.

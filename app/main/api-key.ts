@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { KeySaveResult, KeySource } from '../shared/types';
+import type { Provider } from '../shared/providers';
+import { providerEnv } from './providers';
 
 /** What the OS offers to encrypt the key at rest (Electron's safeStorage: DPAPI on Windows, Keychain on macOS). */
 export type KeyCrypto = {
@@ -68,7 +70,8 @@ export class KeyStore {
   }
 }
 
-export type Credentials = { source: Exclude<KeySource, null>; apiKey?: string };
+/** `provider`: another provider than Anthropic (plan-1.6.md F7), whose key `apiKey` then is. */
+export type Credentials = { source: Exclude<KeySource, null>; apiKey?: string; provider?: Provider };
 
 /**
  * Which credentials a run uses: the key saved in the app, else ANTHROPIC_API_KEY from the environment.
@@ -82,15 +85,20 @@ export function pickCredentials(stored: string | null, env: NodeJS.ProcessEnv, p
   return null;
 }
 
-/** Variables from a surrounding Claude session (login, organization, host, endpoint) that would override the key. */
-const HOST_SESSION_VAR = /^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$)/;
+/**
+ * Variables from a surrounding Claude session (login, organization, host, endpoint) that would override the key, and the
+ * machine's own Bedrock and Vertex setups, which would otherwise decide where the work goes (plan-1.6.md F7).
+ */
+export const HOST_VARS = /^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$|AWS_|GOOGLE_APPLICATION_CREDENTIALS$|CLOUD_ML_REGION$|VERTEX_REGION_|GCLOUD_PROJECT$|GOOGLE_CLOUD_PROJECT$)/;
 
 /**
  * The environment Claude Code runs with. With an API key, every other Anthropic or Claude Code setting is removed,
  * so a user's own Claude login, or the session that launched the app, can never be picked up by a shipped build.
  */
 export function agentEnv(creds: Credentials, env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const out: NodeJS.ProcessEnv = creds.apiKey ? Object.fromEntries(Object.entries(env).filter(([name]) => !HOST_SESSION_VAR.test(name))) : { ...env };
+  // Another provider: only what it needs (F7).
+  if (creds.provider && creds.provider.kind !== 'anthropic') return providerEnv(creds.provider, creds.apiKey, env);
+  const out: NodeJS.ProcessEnv = creds.apiKey ? Object.fromEntries(Object.entries(env).filter(([name]) => !HOST_VARS.test(name))) : { ...env };
   if (creds.apiKey) out.ANTHROPIC_API_KEY = creds.apiKey;
   // Helpers and commands run while the staff wait for them: one commission, one result at the end.
   // Newer Claude Code may otherwise send a helper off in the background and report "done" before it is back.

@@ -417,6 +417,14 @@ body.reduce-motion .tool-btn.calling { animation: none; }
 .model-row .model-name { flex: none; white-space: nowrap; }
 .model-row .model-cost { margin-left: auto; opacity: 0.75; font-size: 0.9em; white-space: nowrap; }
 .slip-more summary { cursor: pointer; opacity: 0.8; }
+/* Where the work goes (plan-1.6.md F7): one field a line, the label above its box. */
+.provider select, .provider input { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
+.provider-body { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.provider-field { display: flex; flex-direction: column; gap: 2px; }
+.provider-field input { width: 100%; box-sizing: border-box; }
+.provider-trial { color: #9a5b2e; }
+.provider-save { align-self: flex-end; }
+.provider-said.warn { color: #b0442c; }
 .slip-more label { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .slip-more select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
 .budget-row select, .project-cap-row select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }

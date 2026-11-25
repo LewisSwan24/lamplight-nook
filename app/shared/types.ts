@@ -8,6 +8,7 @@ import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId } from './templates';
 import type { Shop } from './dispatch';
 import type { ModelTier } from './models';
+import type { Provider } from './providers';
 
 /** Scene anchors: characters only move between these points. */
 /** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
@@ -61,6 +62,9 @@ export type UpdateOffer = { version: string; notes: string[] };
 export type MoveOffer = { works: number; spentUsd: number };
 
 /** Saving a pasted key:`verified` is false when Anthropic could not be reached to check it. */
+export type ProviderSaveResult =
+  | { ok: true; verified: boolean; provider: Provider; hint?: string }
+  | { ok: false; reason: 'missing' | 'shape' | 'scheme' | 'secret' | 'address' | 'key' | 'model' | 'storage' | 'file' };
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
 /**
@@ -68,7 +72,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; /** Which model the staff work on (plan-1.6.md F6). */ modelTier: ModelTier; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; /** Which model the staff work on (plan-1.6.md F6). */ modelTier: ModelTier; /** Where the work is sent (plan-1.6.md F7); never a key. */ provider: Provider; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -126,6 +130,10 @@ export interface LamplightApi {
   saveApiKey(key: string): Promise<KeySaveResult>;
   /** Forget the saved API key. */
   clearApiKey(): Promise<void>;
+  /** Choose where the work goes, with the key typed for it (plan-1.6.md F7): checked, then kept. */
+  saveProvider(provider: Provider, key: string): Promise<ProviderSaveResult>;
+  /** The kept key of a provider, by its last four characters; null when it has none. */
+  providerKey(provider: Provider): Promise<string | null>;
   /** Save a diagnostics zip where the user chooses; resolves with its path, or null if cancelled. */
   exportDiagnostics(): Promise<string | null>;
   /**
@@ -503,6 +511,8 @@ export const IPC = {
   spendThisMonth: 'spend:month',
   spendMonths: 'spend:months',
   modelCosts: 'spend:model-costs',
+  saveProvider: 'provider:save',
+  providerKey: 'provider:key',
   monthBudget: 'budget:month',
   monthCapNews: 'budget:month-cap-news',
   setProjectCap: 'budget:project-cap',

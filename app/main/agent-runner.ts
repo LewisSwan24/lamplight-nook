@@ -21,6 +21,8 @@ import { locateClaude } from './claude-locator';
 import { InputQueue } from './input-queue';
 import { agentEnv, type Credentials } from './api-key';
 import { estimateUsd, type Usage } from './prices';
+import { pricedUsd } from './providers';
+import type { Prices } from '../shared/providers';
 import type { RoundActions } from './action-log';
 import { kindToolNames, mcpServersOf, toolsByName, type NookServer } from './nook-tools';
 import { urlsSeen } from './citations';
@@ -119,6 +121,11 @@ export type RunOptions = {
   credentials: Credentials | null;
   /** The model to run on, as Claude Code names it (plan-1.6.md F6); absent: Claude Code's own choice. */
   model?: string;
+  /**
+   * The prices the user filled in for a compatible service (plan-1.6.md F7). Claude Code's own figure for a model it does
+   * not know means nothing, so the run then counts its cost from the tokens, and keeps the cap itself.
+   */
+  pricing?: Prices;
   /** Stop once this run has spent this much (US dollars, Claude Code's estimate); absent means no cap. */
   maxBudgetUsd?: number;
   /**
@@ -159,7 +166,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook, model: asked }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook, model: asked, pricing }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   // A connection's tools go by its kind in the events, so the shop plays them whatever the connection's number (C8).
@@ -223,8 +230,12 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   // The calls since the last result, by message: if the run stops before another result, nobody reports what they cost (B7).
   const since = new Map<string, Usage>();
   let model: string | undefined;
-  const unreported = () => (since.size ? { estimatedUsd: estimateUsd([...since.values()], model) } : {});
-  onUnreported?.(() => unreported().estimatedUsd ?? 0);
+  // Every call of this run, for a run priced at the user's own prices: what it cost is all of them, reported or not (F7).
+  const all = new Map<string, Usage>();
+  const priced = () => (pricing ? pricedUsd([...all.values()], pricing) : 0);
+  let overBudget = false;
+  const unreported = () => (!pricing && since.size ? { estimatedUsd: estimateUsd([...since.values()], model) } : {});
+  onUnreported?.(() => (pricing ? priced() : unreported().estimatedUsd ?? 0));
   const ticker = setInterval(() => sendAi(normalizer.tick(Date.now())), 1000);
   // Streaming input, so a meeting can add to the commission while it runs.
   const input = new InputQueue();
@@ -254,7 +265,8 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
         canUseTool,
         pathToClaudeCodeExecutable: claude ?? undefined,
         env: agentEnv(credentials, process.env),
-        maxBudgetUsd,
+        // Priced by the shop, the cap is the shop's to keep (F7).
+        maxBudgetUsd: pricing ? undefined : maxBudgetUsd,
         model: asked,
         resume,
       },
@@ -270,14 +282,20 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
       if (message.type === 'assistant' && message.error) apiError = message.error;
       if (message.type === 'assistant' && message.message?.usage) {
         since.set(message.message.id, message.message.usage);
+        all.set(message.message.id, message.message.usage);
         model = message.message.model;
+        if (pricing && maxBudgetUsd !== undefined && priced() > maxBudgetUsd) {
+          overBudget = true;
+          break;
+        }
       }
       if (message.type === 'result') {
         since.clear();
         ok = message.subtype === 'success' && !message.is_error;
         resultSubtype = message.subtype;
         // A running total for the session; crash results may carry zeros, so keep the larger.
-        if (typeof message.total_cost_usd === 'number') costUsd = Math.max(costUsd ?? 0, message.total_cost_usd);
+        if (pricing) costUsd = priced();
+        else if (typeof message.total_cost_usd === 'number') costUsd = Math.max(costUsd ?? 0, message.total_cost_usd);
         // How much the staff read to get there, whether fresh or from the cache: a long session reads more every round (B3).
         const u = message.usage;
         contextTokens = u.input_tokens + (u.cache_creation_input_tokens ?? 0) +(u.cache_read_input_tokens ?? 0);
@@ -287,8 +305,14 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     }
     const seenUrls = [...seen];
     const ran = model ? { model } : {};
+    if (pricing) costUsd = priced();
+    if (overBudget) {
+      record({ source: 'runner', name: 'budget', payload: { usd: costUsd } });
+      return { ok: false, recordingPath, workDir, costUsd, contextTokens, seenUrls, ...ran, error: 'budget', detail: 'priced cap' };
+    }
     return ok ? { ok, recordingPath, workDir, costUsd, summary, contextTokens, seenUrls, ...ran } : { ok, recordingPath, workDir, costUsd, contextTokens, seenUrls, ...ran, error: failureKind(apiError, resultText, resultSubtype), detail: `${resultSubtype ?? ''} ${apiError ?? ''}`.trim() };
   } catch (err) {
+    if (pricing) costUsd = priced();
     const error = err instanceof Error ? err.message : String(err);
     if (abort?.signal.aborted) {
       record({ source: 'runner', name: 'cancelled', payload: {} });

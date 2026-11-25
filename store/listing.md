@@ -35,14 +35,14 @@ Text for Partner Center (Store listings, one per language). Keep both languages 
 ### 使用前需要
 
 - 电脑上装好 Claude Code（小灯屋会一步步带你装）。
-- 一把你自己的 Anthropic API Key，在应用里粘贴即可，加密保存在这台电脑上。费用按你自己的 Key 计费，小灯屋不另外收费。
+- 一把你自己的 Anthropic API Key，在应用里粘贴即可，加密保存在这台电脑上。费用按你自己的 Key 计费，小灯屋不另外收费。也可以接兼容 Anthropic 接口的服务、Amazon Bedrock 或 Google Vertex AI。
 - 订阅了 Claude Max、Ultra 或 Team 的话，方案每月附带的 Claude API 赠送额度也可以用在小灯屋。做法是在 claude.ai 的账单设置里把额度关联到一个 Claude Console 组织，再用这个组织创建的 API Key。
 
 ### 隐私
 
 小灯屋不收集你的任何数据，没有统计、没有广告，也没有我们的服务器。你的设置、Key 和作品都只在你的电脑上。
 
-委托的内容会通过 Claude Code、用你自己的 Key 发给 Anthropic 处理。委托单上勾了连接的话，店员从网盘文件夹和日历里读到的内容也会一起发过去。连了日历，这台电脑会按你给的订阅地址去取日程。
+委托的内容会通过 Claude Code、用你自己的 Key 发给 Anthropic 处理。设置里换成了别家的接口，就发给你选的那一家，适用那一家的条款。委托单上勾了连接的话，店员从网盘文件夹和日历里读到的内容也会一起发过去。连了日历，这台电脑会按你给的订阅地址去取日程。
 
 分享作品和寄明信片，都是存成一个文件，由你自己发给别人。分享的文件只带作品本身，文件夹路径和像 Key 的字符串都会抹掉。明信片只带小店的样子和你的称呼。
 
@@ -92,14 +92,14 @@ undone, such as deleting files, always waits for you, and the default is "not no
 ### What you need
 
 - Claude Code installed on the computer (the shop walks you through it).
-- Your own Anthropic API key, pasted in the app and stored encrypted on this computer. Usage is billed to your key; Lamplight Nook charges nothing extra.
+- Your own Anthropic API key, pasted in the app and stored encrypted on this computer. Usage is billed to your key; Lamplight Nook charges nothing extra. A service with an Anthropic-compatible API, Amazon Bedrock or Google Vertex AI works too.
 - On Claude Max, Ultra or Team? The monthly Claude API credits that come with your plan work in Lamplight Nook too: link them to a Claude Console organization in your claude.ai billing settings, then use an API key from that organization.
 
 ### Privacy
 
 Lamplight Nook collects none of your data: no analytics, no ads, and no servers of ours. Your settings, key and work stay on your computer.
 
-Commissions are sent to Anthropic through Claude Code with your own key. If you tick a connection on a commission slip, what the staff read in the synced folder and the calendar goes with it. A connected calendar is fetched from this computer at the address you gave.
+Commissions are sent to Anthropic through Claude Code with your own key, or to the provider you chose in settings, under its own terms. If you tick a connection on a commission slip, what the staff read in the synced folder and the calendar goes with it. A connected calendar is fetched from this computer at the address you gave.
 
 Sharing a work or sending a postcard saves a file that you pass on yourself. A shared work carries the work alone, with folder paths and anything like a key wiped. A postcard carries only how your shop looks and the name you go by.
 

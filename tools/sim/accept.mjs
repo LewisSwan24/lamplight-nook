@@ -19,6 +19,7 @@ import { mainCards } from './cards.mjs';
 import { pdfSays, readPdf } from './pdftext.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
 import { OFFICE_FILES, OFFICE_READ_FILE } from './plays.mjs';
+import { startCompatible } from './compatible.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : def; };
@@ -1120,6 +1121,91 @@ const SCENARIOS = {
       await shop.shot(join(out, 'model-ledger.png'));
     } finally {
       await shop.close();
+    }
+  },
+
+  /**
+   * Another provider (plan-1.6.md F7): a compatible service on this computer, chosen in settings. A wrong key is refused on
+   * the spot; without prices no work starts; with them, the stand-in Claude gets that service's variables and nothing else,
+   * reaches it with the key, and the ledger counts at the prices filled in.
+   */
+  async provider(lang, out) {
+    const P = locale(lang).ui.setup.provider;
+    const R = locale(lang).ui.run;
+    const KEY = 'sk-sim-compatible-0001';
+    const service = await startCompatible({ key: KEY, model: 'sim-model' });
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_TOKENS: '1' } });
+    const page = shop.page;
+    const fillIn = async (name, value) => page.locator(`.provider input[name=${name}]`).fill(value);
+    try {
+      await sleep(1500);
+      await shop.openSettings('work');
+      await page.locator('.provider-kind').selectOption('compatible');
+      await page.waitForSelector('.provider input[name=baseUrl]');
+      // A preset fills in the address and the model from the provider's own guide.
+      await page.locator('.provider-preset').selectOption('deepseek');
+      check(await page.locator('.provider input[name=baseUrl]').inputValue() === 'https://api.deepseek.com/anthropic', 'the preset did not fill in the address');
+      check((await page.locator('.provider-trial').innerText()).includes(P.trial.slice(0, 6)), 'no trial note');
+      await page.locator('.provider-preset').selectOption('');
+      await fillIn('baseUrl', 'http://192.168.1.9:4000');
+      await fillIn('model', 'sim-model');
+      await fillIn('key', KEY);
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.reasons.scheme);
+      await fillIn('baseUrl', service.url);
+      await fillIn('key', 'sk-sim-wrong');
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.reasons.key);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).provider?.kind !== 'compatible', 'a refused provider was kept');
+      await fillIn('key', KEY);
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.saved);
+      check(!readFileSync(join(home.data, 'settings.json'), 'utf8').includes(KEY), 'the key is in settings.json');
+      check(service.requests.filter((r) => r.authorization === `Bearer ${KEY}`).length === 1, `the check reached the service ${service.requests.length} times`);
+      await page.locator('section.provider').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'provider-settings.png'));
+      await page.keyboard.press('Escape');
+      await sleep(400);
+
+      // No prices: nothing starts, and the card says where to fill them in.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      await page.waitForFunction((t) => [...document.querySelectorAll('.card.serious')].some((c) => c.textContent.includes(t)), R.providerTitle, { timeout: 15_000 });
+      await shop.shot(join(out, 'provider-noprice.png'));
+      check(!existsSync(join(home.home, '.sim', 'env.json')), 'the stand-in ran without prices');
+      await page.keyboard.press('Escape');
+      await sleep(400);
+
+      await shop.openSettings('work');
+      await page.waitForSelector('.provider input[name=priceInput]');
+      check(await page.locator('.provider input[name=key]').getAttribute('placeholder') === P.keyKept.replace('{hint}', '...0001'), 'the kept key is not shown by its end');
+      await fillIn('priceInput', '1');
+      await fillIn('priceOutput', '10');
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.saved);
+      await page.keyboard.press('Escape');
+      await sleep(400);
+
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission on the compatible service did not finish');
+      const env = JSON.parse(readFileSync(join(home.home, '.sim', 'env.json'), 'utf8'));
+      check(env.ANTHROPIC_BASE_URL === service.url && env.ANTHROPIC_AUTH_TOKEN === KEY && env.ANTHROPIC_API_KEY === '', `the stand-in was pointed at ${JSON.stringify({ ...env, ANTHROPIC_AUTH_TOKEN: env.ANTHROPIC_AUTH_TOKEN === KEY ? '(the key)' : '(not the key)' })}`);
+      check(['ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL', 'CLAUDE_CODE_SUBAGENT_MODEL'].every((n) => env[n] === 'sim-model'), `models: ${JSON.stringify(env)}`);
+      check(!env.CLAUDE_CODE_USE_BEDROCK && !env.CLAUDE_CODE_USE_VERTEX && !env.AWS_PROFILE, 'another provider\'s variables reached the stand-in');
+      check(service.requests.some((r) => r.authorization === `Bearer ${KEY}` && r.model === 'sim-model' && r.url === '/v1/messages'), 'the stand-in never reached the service');
+      const lines = JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+      check(lines.length === 1 && lines[0].priced === true, `the ledger says ${JSON.stringify(lines)}`);
+      // Each stand-in call reads 2,000 + 8,000 tokens and writes 150: $0.0115 at $1 and $10 a million.
+      const calls = lines[0].usd / 0.0115;
+      check(calls >= 1 && Math.abs(calls - Math.round(calls)) < 0.001, `the ledger's ${lines[0].usd} is not counted at the prices filled in`);
+      check(!readFileSync(join(home.data, 'spend.json'), 'utf8').includes(KEY), 'the key is in the ledger');
+      const logs = readdirSync(join(home.data, 'logs')).map((f) => readFileSync(join(home.data, 'logs', f), 'utf8')).join('\n');
+      check(!logs.includes(KEY), 'the key is in the log');
+    } finally {
+      await shop.close();
+      await service.close();
     }
   },
 

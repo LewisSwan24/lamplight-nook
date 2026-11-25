@@ -2,6 +2,13 @@
 
 ## Unreleased (1.6)
 
+- **Other providers.** Settings > Work has a new "Provider": Anthropic as before, a service with an Anthropic-compatible
+  API (presets for DeepSeek, Kimi, Zhipu GLM, Z.ai, Alibaba Cloud Model Studio and OpenRouter, checked against each one's
+  own guide, or any address by hand, including a gateway such as LiteLLM on this computer), Amazon Bedrock or Google Vertex
+  AI. Saving checks the address, key and model, and says which is wrong. Each provider's key is stored encrypted on its
+  own, so switching loses none, and never reaches the log, the diagnostics or the ledger. A compatible service needs its
+  prices per million tokens filled in before work starts: the shop counts the cost and keeps the caps with them. Its
+  models are marked as a trial. The privacy note says where commissions go.
 - **Choose the model.** Settings > Work has a new choice, "Which model the staff use": Best (Opus), Balanced (Sonnet,
   the default) or Saver (Haiku), each with what a commission costs on it, from your own ledger once there is one. The
   slip's new "More" changes it for one commission. A scheduled commission keeps the model it was made with. Talking a
