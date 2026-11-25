@@ -415,3 +415,10 @@ cross_back:
   - { id: cross_back_xz_01, speaker: xiaozhe, bubbles: ["画好了。", "颜色你看看。"] }
   - { id: cross_back_xz_02, speaker: xiaozhe, bubbles: ["图给你，", "干了，不会蹭。"] }
   - { id: cross_back_xz_03, speaker: xiaozhe, bubbles: ["从{shop}拿来的，", "你收好。"] }
+
+# 换上应季的颜色时，或换季时店里正用着那个季节的颜色，有人提一句（plan-1.7.md G2，shared/furnish.ts）。
+furnish_in_season:
+  - { id: fis_spring, speaker: qingdai, when: season_spring, bubbles: ["桃花粉配春天，正合时令。"] }
+  - { id: fis_summer, speaker: xiaoju, when: season_summer, bubbles: ["竹青色，看着就凉快！"] }
+  - { id: fis_autumn, speaker: adeng, when: season_autumn, bubbles: ["这颜色，和外头的叶子一个样。"] }
+  - { id: fis_winter, speaker: laoshi, when: season_winter, bubbles: ["下雪天配这个颜色，屋里显得暖。"] }

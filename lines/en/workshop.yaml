@@ -142,3 +142,82 @@ cancelled:
   - { id: ws_cancelled_01, speaker: xiaoding, bubbles: ["OK, we'll put it aside."] }
   - { id: ws_cancelled_02, speaker: xiaoding, bubbles: ["Fine. What's built stays built."] }
   - { id: ws_cancelled_03, speaker: xiaoding, bubbles: ["OK, stopping.", "Tools back on the wall."] }
+
+# What Tack says as you walk into the workshop (plan-1.7.md G2, app/renderer/stage/shoptalk.ts): the holiday's
+# line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/workshop.yaml.
+shop_in:
+  - { id: ws_in_01, speaker: xiaoding, bubbles: ["Hey! Watch the screws on the floor."] }
+  - { id: ws_in_02, speaker: xiaoding, bubbles: ["Come in. Shove the parts off the stool."] }
+  - { id: ws_in_03, speaker: xiaoding, bubbles: ["One sec. Finishing this joint."] }
+  - { id: ws_in_04, speaker: xiaoding, bubbles: ["Good timing. I need a spare hand."] }
+  - { id: ws_in_05, speaker: xiaoding, bubbles: ["Look around. Not the smoking one."] }
+  - { id: ws_in_06, speaker: xiaoding, bubbles: ["That box is broken stuff. This one's fixed."] }
+  - { id: ws_in_dawn_01, speaker: xiaoding, when: period_dawn, bubbles: ["This early?", "Up all night. The radio works now."] }
+  - { id: ws_in_dawn_02, speaker: xiaoding, when: period_dawn, bubbles: ["Morning! Iron's just heating up."] }
+  - { id: ws_in_day_01, speaker: xiaoding, when: period_day, bubbles: ["Lunchtime. I'm taking apart an alarm clock."] }
+  - { id: ws_in_dusk_01, speaker: xiaoding, when: period_dusk, bubbles: ["Evening. Time to return what's fixed."] }
+  - { id: ws_in_dusk_02, speaker: xiaoding, when: period_dusk, bubbles: ["Getting dark. Let me turn the lamp up."] }
+  - { id: ws_in_night_01, speaker: xiaoding, when: period_night, bubbles: ["This late?", "The old computer's running something."] }
+  - { id: ws_in_night_02, speaker: xiaoding, when: period_night, bubbles: ["Quiet nights are for tiny soldering."] }
+  - { id: ws_in_rain_01, speaker: xiaoding, when: sky_rain, bubbles: ["Rain. I've shut every parts drawer."] }
+  - { id: ws_in_snow_01, speaker: xiaoding, when: sky_snow, bubbles: ["Quick, in! I just fixed the heater."] }
+  - { id: ws_in_spring_01, speaker: xiaoding, when: season_spring, bubbles: ["Spring. Every broken kite ends up here."] }
+  - { id: ws_in_summer_01, speaker: xiaoding, when: season_summer, bubbles: ["Hot? I just fixed this fan. Sit by it."] }
+  - { id: ws_in_autumn_01, speaker: xiaoding, when: season_autumn, bubbles: ["Autumn's dry. Metal gives you a shock."] }
+  - { id: ws_in_winter_01, speaker: xiaoding, when: season_winter, bubbles: ["Winter. All my repairs are hand warmers."] }
+  - { id: ws_in_new_year, speaker: xiaoding, when: holiday_new_year, bubbles: ["New Year!", "No firecrackers. I built electric ones."] }
+  - { id: ws_in_lantern, speaker: xiaoding, when: holiday_lantern, bubbles: ["Lantern Festival!", "The spinning lantern stuck. New bearing."] }
+  - { id: ws_in_dragon_boat, speaker: xiaoding, when: holiday_dragon_boat, bubbles: ["Dragon Boat Day!", "Fixed the drumstick for the boat crew."] }
+  - { id: ws_in_mid_autumn, speaker: xiaoding, when: holiday_mid_autumn, bubbles: ["Mid-Autumn!", "Rabbit lantern lost a wheel. On it."] }
+  - { id: ws_in_halloween, speaker: xiaoding, when: holiday_halloween, bubbles: ["I put a flickering bulb in the pumpkin."] }
+  - { id: ws_in_christmas, speaker: xiaoding, when: holiday_christmas, bubbles: ["Christmas!", "One dead bulb and the whole string's out."] }
+
+# Tack now and then, while it's quiet: tools, parts, the old computer, the neighbours' repairs, closing up.
+shop_idle:
+  - { id: ws_idle_01, speaker: xiaoding, bubbles: ["This screw's stripped."] }
+  - { id: ws_idle_02, speaker: xiaoding, bubbles: ["Running low on solder."] }
+  - { id: ws_idle_03, speaker: xiaoding, bubbles: ["A pair of pliers is missing...", "In my pocket."] }
+  - { id: ws_idle_04, speaker: xiaoding, bubbles: ["The old computer froze. A thump fixed it."] }
+  - { id: ws_idle_05, speaker: xiaoding, bubbles: ["Photo before you take it apart. Trust me."] }
+  - { id: ws_idle_06, speaker: xiaoding, bubbles: ["This radio's older than me."] }
+  - { id: ws_idle_07, speaker: xiaoding, bubbles: ["Drawer three: parts I can't identify."] }
+  - { id: ws_idle_08, speaker: xiaoding, bubbles: ["Two screws left over. It still works."] }
+  - { id: ws_idle_09, speaker: xiaoding, bubbles: ["The iron's tip is crusty. Needs a clean."] }
+  - { id: ws_idle_10, speaker: xiaoding, bubbles: ["Multimeter battery's flat again."] }
+  - { id: ws_idle_11, speaker: xiaoding, bubbles: ["Traded Old Zhou for some gears."] }
+  - { id: ws_idle_12, speaker: xiaoding, bubbles: ["Granny Chen's radio's fixed. She'll come."] }
+  - { id: ws_idle_13, speaker: xiaoding, bubbles: ["Pip's bike bell was dead. Fixed."] }
+  - { id: ws_idle_14, speaker: xiaoding, bubbles: ["Auntie Olive's mixer rattles. I'll look."] }
+  - { id: ws_idle_15, speaker: xiaoding, bubbles: ["Third time I've fixed Lin's desk lamp."] }
+  - { id: ws_idle_16, speaker: xiaoding, bubbles: ["Wick brought an order. Said no rush.", "Already started."] }
+  - { id: ws_idle_17, speaker: xiaoding, bubbles: ["Flint says my bench is a mess."] }
+  - { id: ws_idle_18, speaker: xiaoding, bubbles: ["Someone left a stopped watch. No name."] }
+  - { id: ws_idle_19, speaker: xiaoding, bubbles: ["I set the wall clock once a week."] }
+  - { id: ws_idle_20, speaker: xiaoding, bubbles: ["The spring drawer. Springs everywhere."] }
+  - { id: ws_idle_dawn_01, speaker: xiaoding, when: period_dawn, bubbles: ["Clear head in the morning. Drawings first."] }
+  - { id: ws_idle_dawn_02, speaker: xiaoding, when: period_dawn, bubbles: ["The milk van's brakes squeal. I know why."] }
+  - { id: ws_idle_day_01, speaker: xiaoding, when: period_day, bubbles: ["Lunch next to the circuit board. Careful."] }
+  - { id: ws_idle_dusk_01, speaker: xiaoding, when: period_dusk, bubbles: ["Evening. Name tags on what's fixed."] }
+  - { id: ws_idle_dusk_02, speaker: xiaoding, when: period_dusk, bubbles: ["Streetlights on. That's my clock."] }
+  - { id: ws_idle_night_01, speaker: xiaoding, when: period_night, bubbles: ["Iron's unplugged. Checked it twice."] }
+  - { id: ws_idle_night_02, speaker: xiaoding, when: period_night, bubbles: ["At night the old computer's fan snores."] }
+  - { id: ws_idle_rain_01, speaker: xiaoding, when: sky_rain, bubbles: ["Damp day. Screws rust overnight."] }
+  - { id: ws_idle_rain_02, speaker: xiaoding, when: sky_rain, bubbles: ["Roof's dripping. A tin's catching it."] }
+  - { id: ws_idle_snow_01, speaker: xiaoding, when: sky_snow, bubbles: ["Snow. The tools are ice cold."] }
+  - { id: ws_idle_snow_02, speaker: xiaoding, when: sky_snow, bubbles: ["Snowed in. Good day to sort the parts."] }
+  - { id: ws_idle_petals_01, speaker: xiaoding, when: sky_petals, bubbles: ["Petals in the fan. Whirling round."] }
+  - { id: ws_idle_leaves_01, speaker: xiaoding, when: sky_leaves, bubbles: ["Leaves in the vent. I'll dig them out."] }
+  - { id: ws_idle_spring_01, speaker: xiaoding, when: season_spring, bubbles: ["Windy spring. The sign's come loose."] }
+  - { id: ws_idle_spring_02, speaker: xiaoding, when: season_spring, bubbles: ["Swallows on the wire outside, all in a row."] }
+  - { id: ws_idle_summer_01, speaker: xiaoding, when: season_summer, bubbles: ["Summer. Fans, fans, fans."] }
+  - { id: ws_idle_summer_02, speaker: xiaoding, when: season_summer, bubbles: ["Too hot. The old computer needs a break."] }
+  - { id: ws_idle_autumn_01, speaker: xiaoding, when: season_autumn, bubbles: ["Autumn. Last year's half-done jobs again."] }
+  - { id: ws_idle_autumn_02, speaker: xiaoding, when: season_autumn, bubbles: ["School's back. A bag full of calculators."] }
+  - { id: ws_idle_winter_01, speaker: xiaoding, when: season_winter, bubbles: ["Cold hands. Screws keep dropping."] }
+  - { id: ws_idle_winter_02, speaker: xiaoding, when: season_winter, bubbles: ["Hand warmer switches. Nine in ten fail."] }
+  - { id: ws_idle_halloween_01, speaker: xiaoding, when: holiday_halloween, bubbles: ["Fixed the voice in a cackling skeleton."] }
+  - { id: ws_idle_christmas_01, speaker: xiaoding, when: holiday_christmas, bubbles: ["Testing the bulbs one by one. Forty so far."] }
+  - { id: ws_idle_new_year_01, speaker: xiaoding, when: holiday_new_year, bubbles: ["Turned the electric firecrackers down."] }
+  - { id: ws_idle_lantern_01, speaker: xiaoding, when: holiday_lantern, bubbles: ["The spinning lantern turns again."] }
+  - { id: ws_idle_dragon_boat_01, speaker: xiaoding, when: holiday_dragon_boat, bubbles: ["The drumstick holds. Sounds right."] }
+  - { id: ws_idle_mid_autumn_01, speaker: xiaoding, when: holiday_mid_autumn, bubbles: ["New bearing on the rabbit lantern's wheel."] }

@@ -13,6 +13,7 @@ import workshopUrl from '../../../assets/sprites/workshop-room.png';
 import workshopPiecesUrl from '../../../assets/sprites/workshop-pieces.png';
 import bakeryUrl from '../../../assets/sprites/bakery-room.png';
 import bakeryPiecesUrl from '../../../assets/sprites/bakery-pieces.png';
+import bakeryBoardUrl from '../../../assets/sprites/bakery-board.png';
 import postUrl from '../../../assets/sprites/post-room.png';
 import postPiecesUrl from '../../../assets/sprites/post-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
@@ -100,6 +101,7 @@ import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT, POST_SPOT } from './guests';
 import { PASSER_FEET, WINDOW_PANES, passBy } from './passers';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky, holidayOn, seasonOf, skyOn, withWeather } from './weather';
+import { MENU_BOARD, menuFrame } from '../../shared/menu';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -289,6 +291,10 @@ export class CafeScene extends Phaser.Scene {
   growth!: ShopGrowth;
   /** What Auntie Olive's and Pip's stories left, hung in their shops (plan-1.6.md F4). */
   tales!: RoomTales;
+  /** The season has turned while the shop was open (plan-1.7.md G2: a word if the room wears its colour). */
+  onSeasonTurn?: (season: Season) => void;
+  /** The bakery's menu for the season, over the bare blackboard (plan-1.7.md G2). */
+  menu?: Phaser.GameObjects.Image;
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
   /** The street inset opened or closed (the page moves what sits in that corner). */
@@ -337,6 +343,9 @@ export class CafeScene extends Phaser.Scene {
     }
     // What the baker's and the postman's stories leave, in their own shops only (F4).
     preloadTales(this.load, this.room);
+    if (this.room === MENU_BOARD.room && !this.textures.exists('bakery-board')) {
+      this.load.spritesheet('bakery-board', bakeryBoardUrl, { frameWidth: MENU_BOARD.w, frameHeight: MENU_BOARD.h });
+    }
     // Everything else the rooms share, loaded by the first one (the home shop's) for the whole game.
     if (this.textures.exists('cat')) return;
     // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
@@ -393,6 +402,8 @@ export class CafeScene extends Phaser.Scene {
     this.growth = new ShopGrowth(this, this.room, () => {});
     this.growth.onShelfClick = () => this.activate('works');
     this.tales = new RoomTales(this, this.room);
+    // On the wall behind everyone, like what the stories leave.
+    if (this.room === MENU_BOARD.room) this.menu = this.add.image(MENU_BOARD.x, MENU_BOARD.y, 'bakery-board', 0).setOrigin(0).setDepth(1.4);
     this.addObjects();
     const slate = ZONES.find((z) => z.id === 'board')!;
     this.add
@@ -781,10 +792,10 @@ export class CafeScene extends Phaser.Scene {
     this.weather.setReducedMotion(this.reducedMotion);
     // The hour first, so today's weather (and the animals) start out right for it.
     this.period = periodAt(new Date().getHours());
-    this.followCalendar(new Date());
+    this.followCalendar(new Date(), false);
     this.setPeriod(periodAt(new Date().getHours()), true);
     const tick = () => this.time.delayedCall(msToNextHour(new Date()) + 1000, () => {
-      this.followCalendar(new Date());
+      this.followCalendar(new Date(), true);
       this.setPeriod(periodAt(new Date().getHours()));
       tick();
     });
@@ -792,10 +803,14 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** A new day may bring new weather, a new season or put the decorations up (checked every hour with the light). */
-  private followCalendar(date: Date) {
+  private followCalendar(date: Date, open: boolean) {
     const sky = skyOn(date);
     const holiday = holidayOn(date);
-    if (seasonOf(date) !== this.weather.season) this.setSeason(seasonOf(date));
+    if (seasonOf(date) !== this.weather.season) {
+      this.setSeason(seasonOf(date));
+      // Only a season turning while the shop is open, not the one it opens in.
+      if (open) this.onSeasonTurn?.(seasonOf(date));
+    }
     if (sky !== this.weather.sky || holiday !== this.weather.holiday) this.setWeather(sky, holiday, false);
   }
 
@@ -807,6 +822,7 @@ export class CafeScene extends Phaser.Scene {
   /** The season's piece in the shop and what grows in the garden (also for screenshots: lamplightDebug.scene.setSeason). */
   setSeason(season: Season) {
     this.weather.setSeason(season);
+    this.menu?.setFrame(menuFrame(season));
     this.garden.setSeason(season);
     this.street?.setOutside(this.outside());
   }

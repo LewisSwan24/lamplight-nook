@@ -247,19 +247,25 @@
           "default": "As it was",
           "sage": "Sage",
           "rose": "Dusty rose",
-          "sky": "Mist blue"
+          "sky": "Mist blue",
+          "peach": "Peach blossom",
+          "snow": "Snow"
         },
         "curtain": {
           "default": "Linen",
           "blue": "Indigo",
           "rose": "Rose",
-          "green": "Meadow"
+          "green": "Meadow",
+          "bamboo": "Bamboo",
+          "orange": "Warm orange"
         },
         "rug": {
           "default": "Brick red",
           "blue": "Sea blue",
           "green": "Pine",
-          "plum": "Plum"
+          "plum": "Plum",
+          "wheat": "Wheat",
+          "crimson": "Crimson"
         }
       }
     },

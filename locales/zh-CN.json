@@ -247,19 +247,25 @@
           "default": "原样",
           "sage": "鼠尾草绿",
           "rose": "灰粉",
-          "sky": "雾蓝"
+          "sky": "雾蓝",
+          "peach": "桃花粉",
+          "snow": "雪白"
         },
         "curtain": {
           "default": "亚麻",
           "blue": "靛蓝",
           "rose": "玫瑰",
-          "green": "青草"
+          "green": "青草",
+          "bamboo": "竹青",
+          "orange": "暖橙"
         },
         "rug": {
           "default": "砖红",
           "blue": "海蓝",
           "green": "松绿",
-          "plum": "梅子"
+          "plum": "梅子",
+          "wheat": "麦黄",
+          "crimson": "深红"
         }
       }
     },

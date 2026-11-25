@@ -6,6 +6,11 @@ Parts are found by colour inside a box: the wall in each scene, the curtains (po
 study, where the wall behind them is a different colour), and the rug under the big table.
 Recolouring keeps each pixel's brightness and shading and moves its hue (shared/furnish.ts lists the ids).
 Writes assets/sprites/furnish-<scene>-<part>-<choice>.png.
+The colours of a season, added in 1.7 (plan-1.7.md G2, docs/art-1.7.md):
+    furnish-cafe-wall-peach.png, furnish-cafe-wall-snow.png, furnish-cafe-curtain-bamboo.png,
+    furnish-cafe-curtain-orange.png, furnish-cafe-rug-wheat.png, furnish-cafe-rug-crimson.png,
+    furnish-study-wall-peach.png, furnish-study-wall-snow.png, furnish-study-curtain-bamboo.png,
+    furnish-study-curtain-orange.png, furnish-study-rug-wheat.png, furnish-study-rug-crimson.png.
 Run: python3 scripts/art/furnish.py
 """
 import colorsys
@@ -35,16 +40,23 @@ CHOICES = {
         'sage': {'main': (100, 0.7, 1.0), 'low': (95, 0.9, 1.0)},
         'rose': {'main': (350, 0.9, 1.02), 'low': (345, 0.8, 1.05)},
         'sky': {'main': (205, 0.85, 1.02), 'low': (210, 0.9, 1.0)},
+        # The colours of a season since 1.7 (plan-1.7.md G2, shared/furnish.ts SEASON_COLOURS).
+        'peach': {'main': (8, 0.95, 1.06), 'low': (4, 0.85, 1.05)},
+        'snow': {'main': (215, 0.12, 1.2), 'low': (215, 0.18, 1.25)},
     },
     'curtain': {
         'blue': {'all': (212, 1.5, 0.95)},
         'rose': {'all': (350, 1.4, 1.0)},
         'green': {'all': (120, 1.2, 0.95)},
+        'bamboo': {'all': (158, 1.25, 0.9)},
+        'orange': {'all': (24, 2.6, 1.08)},
     },
     'rug': {
         'blue': {'main': (215, 0.9, 1.0), 'edge': (40, 0.9, 1.05)},
         'green': {'main': (150, 0.75, 1.0), 'edge': (45, 0.8, 1.05)},
         'plum': {'main': (305, 0.6, 1.0), 'edge': (30, 0.6, 1.05)},
+        'wheat': {'main': (40, 0.75, 1.25), 'edge': (28, 0.7, 0.95)},
+        'crimson': {'main': (350, 1.2, 0.8), 'edge': (42, 0.9, 1.05)},
     },
 }
 
