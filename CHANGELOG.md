@@ -1,5 +1,100 @@
 # Changelog
 
+## Unreleased (1.6)
+
+- **The keepers talk.** Walk into the bakery or the post office and Auntie Olive or Pip says something that fits the
+  hour, the weather, the season or the holiday. While the shop is quiet they talk now and then, about the work, the
+  street and the neighbours who came by. At night they are closing up. Back home, the staff have new things to talk
+  about: the bakery, the post office, the people going by outside, and the stories the two have told.
+- **Auntie Olive and Pip tell their stories.** The baker and the postman now have five chapters each, coming with the
+  work done and the days gone by like the other neighbours'. They wait at their own doors with a bubble. Auntie Olive
+  tells how she came to open a bakery on this street; Pip tells what twenty years of letters have left him with. Each
+  chapter leaves something on the wall of their own shop, and the two stories meet at the end.
+- **People on the street.** Strangers now walk along the street outside, more of them in the morning and the early
+  evening, nobody late at night. In the rain there are fewer and they hurry, each under an umbrella. Some stop at a
+  door for a moment to look in. Click one and they look round at you. They never go in or say anything, and they stand
+  still while the street is out of sight.
+- **The post office opens.** Pip's post office along the street can be gone into now: a green counter with a parcel
+  scale, a sorting rack of pigeonholes where he works, a parcel shelf, a packing table and a green postbox. Two new kinds
+  of commission are made there. A **card** is drawn as a picture, postcard-sized unless you ask for one for the phone,
+  with a PDF to print; your words go on it as you wrote them. A **newsletter** is a Word document with a PDF to pin up,
+  the news under short headings and the dates listed at the end; anything missing is left blank. A card brings a string
+  of cards to the home shop's side window and Fern from the flower shop; two newsletters bring a pile of them on the
+  window sill and Mrs Wu from the residents' committee. The post office grows its own four pieces and has its own
+  festival envelope. Pip still brings the post to the home shop.
+- **Postcards on the wall.** Every postcard you open is kept on the cork board in the post office, newest first, six at
+  most. Point at one to see who sent it; click it to look round their shop again. Only what the postcard itself carries
+  is kept, no dates.
+- The menu board a menu brings no longer hides behind the clock: it stands against the left wall.
+- **The bakery opens.** Auntie Olive's bakery along the street can be gone into now, like the print shop, the studio and
+  the workshop: ovens, racks of bread, a kneading table and a glass bread counter, with her at work in it. Two new kinds
+  of commission are made there. A **menu** is drawn as a picture (A4 unless you ask for a square or a wide one) with a
+  PDF to print; every dish and price is copied from yours and a missing price is left blank. A **recipe** is a Word
+  document with what goes in, the steps with heat and time, and what to watch out for. A menu brings a chalkboard to the
+  home shop and Old Ma from the noodle bar; two recipes bring a recipe book and Lin from upstairs. The bakery grows its
+  own four pieces and has its own festival biscuit. Auntie Olive still drops in at the home shop.
+- **Other providers.** Settings > Work has a new "Provider": Anthropic as before, a service with an Anthropic-compatible
+  API (presets for DeepSeek, Kimi, Zhipu GLM, Z.ai, Alibaba Cloud Model Studio and OpenRouter, checked against each one's
+  own guide, or any address by hand, including a gateway such as LiteLLM on this computer), Amazon Bedrock or Google Vertex
+  AI. Saving checks the address, key and model, and says which is wrong. Each provider's key is stored encrypted on its
+  own, so switching loses none, and never reaches the log, the diagnostics or the ledger. A compatible service needs its
+  prices per million tokens filled in before work starts: the shop counts the cost and keeps the caps with them. Its
+  models are marked as a trial. The privacy note says where commissions go.
+- **Choose the model.** Settings > Work has a new choice, "Which model the staff use": Best (Opus), Balanced (Sonnet,
+  the default) or Saver (Haiku), each with what a commission costs on it, from your own ledger once there is one. The
+  slip's new "More" changes it for one commission. A scheduled commission keeps the model it was made with. Talking a
+  commission over with Wick follows the setting but never uses Best. The ledger now notes the model each commission ran on.
+- **A count of what the app has.** `npm run content` counts the kinds of commission, the shops, the people, the
+  stories, what grows, the festivals, the pictures and every file of lines in both languages, and writes it to
+  `docs/content.md` with what changed since the last count. It also checks that no line is missing in English, every
+  picture is on an art list, the story chapters agree with each other and with the story file, and every shop has its
+  own lines.
+- **Fixed:** after an upgrade from an older shop, Auntie Olive, Pip and the other neighbours who arrived in 1.6 were
+  counted as already met, so their first visit never came. The handwriting font also lacked five characters the new
+  lines use.
+
+## Unreleased (1.5)
+
+- **The shop on your home network.** A new switch in Settings, off by default, lets a phone or another computer at
+  home follow what the shop is doing. Switch it on, pair a device by scanning the QR code, and its browser shows what
+  goes on in the shop as it happens. Only addresses on your home network are listened on, each device has a key of its
+  own that encrypts every message, and removing a device in Settings shuts it out at once.
+- **Share a work.** "Take it away" on the works shelf is now "Share", and offers the format that suits the work
+  first: a page as a PDF or as one page file with its pictures and styles inside, a document or picture as it is,
+  anything else as a zip; a small tool always goes whole. With a cloud folder connected, the file can go straight into
+  it, for you to share from there. What goes out is the work alone: the folder it was made in, your home folder and
+  anything like a key are wiped from the text in it.
+- **Answer from your phone.** The paired page now shows what the shop is waiting for you to decide, with a button
+  for each choice. Answer there and the card on the computer goes away, noted in the caption log; whichever side
+  answers first counts. A serious step only says to answer it at the computer. While the page is open, its tab title
+  changes and the phone buzzes once when something is asked. Commands and folder paths never reach the phone.
+- **Shop postcards.** The notebook can send a postcard: a small `.nook` file with your shop as it looks now, its
+  furnishing, what has grown in it and along the street, and how far the neighbours' stories have got. It holds no
+  works, commissions, spending or dates. A friend picks "Look at a postcard" in their own notebook, sees the card first,
+  then walks round your shop and your street in a window of its own. Nobody there is working, and nothing clicked in it
+  can change their own shop; Escape or "Go home" closes it. A file that is not a postcard, is too big, or holds anything
+  the shop does not know is not opened.
+- **What goes out, written down.** A work shared as a zip no longer carries what the shop put in its folder to work
+  from: the list of your folder made for a tidying commission, and the files the staff read in from a connected cloud
+  folder. What you handed over yourself still goes with it. The privacy note in the app and the Store listing now say
+  what a shared work and a postcard carry, and that the home-network page is off until you switch it on.
+- **One shop, several people.** Each paired device now has a role, set in Settings: watch only, answer requests, or
+  hand in commissions too. A device that may hand in commissions shows a short slip on its page: what you would like
+  made and which kind, for the kinds that need no file. It queues like one started at the desk, and its result card
+  shows on the computer. You can give each such device a monthly limit of its own, under the shop's. The monthly
+  ledger in Settings shows who spent what: the computer itself, each device by name, and "a removed device".
+- **The home-network page, reviewed.** A pairing QR code now works once and only within ten minutes: as a device
+  pairs, the shop gives it a fresh key of its own, so a photo of the code or a copied address opens nothing later, and
+  the code is put away in Settings. Removing a device also calls off what it handed in that is still waiting in the
+  queue. A request that keeps trickling in is cut off after ten seconds, and the page can no longer be framed by
+  another page or talk to anything but the shop. The privacy note now says plainly that the page itself reaches the
+  phone over plain HTTP, so someone else on the same network could change it, and that the switch is best used on a
+  network you trust.
+- **Checked before release.** The packaged app is now checked with the home-network switch on: a phone-sized
+  browser pairs from the QR code's address and the page loads. Pairing, watching, answering, handing in from a second
+  browser and removing were walked through with an Android emulator standing in for a phone. The installer is about
+  45 KiB larger than 1.4's.
+
 ## Unreleased (1.4)
 
 - **Out to the street.** A new toolbar button takes you out of the shop onto the town's street, without reloading:
@@ -14,18 +109,47 @@
   books, past the bakery on the way back from far off. A click on her out there works as in the window.
 - **Three new shops.** The print shop, the studio and the workshop open onto the street, each with someone of its
   own: Pica the old typesetter, Umber the quiet painter and Tack, who hums at the bench. Go in at a front and take a
-  commission there; Wick minds the counter, the rest of your crew stays at home, and your home shop does not change.
-  The app still opens at home. Going in and out happens on the same page, without a reload; while a shop is at work,
-  the door to another one stays shut.
+  commission there; your crew stays at home, and your home shop does not change. The app still opens at home. Going
+  in and out happens on the same page, without a reload.
+- **Orders go to their shop.** Each kind of work has its shop: Word, slides, spreadsheets and résumés at the print
+  shop, charts, posters and albums at the studio, small tools and web pages at the workshop, the rest at home. You
+  still order at your home counter; Wick takes the slip over, hands it in and walks back, and the view goes along to
+  watch, unless you have wandered off meanwhile. A step that belongs to another shop, such as the picture in a
+  report, is done there: Pica carries it over, Umber paints it and brings it back. Shops keep working while you are
+  elsewhere, two orders can run in two shops at once, and a shop out of sight with a question lights up on the
+  toolbar until you answer or go in.
 - **Catching up.** When work comes faster than someone can act it out, they now skip the moves that newer ones have
   overtaken and catch up, instead of playing the backlog out long after the work is done. Trouble and questions are
   never skipped.
 - **Slides the shop made open with a click.** Every deck the shop made carried an empty folder that the safety check
   took for an embedded object, so the card only showed the deck in its folder. An empty folder no longer counts;
   anything inside one still does.
+- **Save power.** A new switch in Settings, under accessibility, draws fewer frames a second: 20 while anything goes on
+  and 10 at rest, instead of 30 and 15, for a slow computer or a laptop on battery. A shop out of sight no longer moves
+  its shadows and what people carry each frame; its work goes on as before.
 - **Only the shop's own mail drafts open with a click.** A mail opens in your mail program from the card only when it is
   a draft the shop's draft tool wrote, unchanged since; the shop keeps a fingerprint of each one, never the mail. A mail
   written any other way, or changed after, is shown in its folder, and the card says why.
+- **The town grows with the work.** The street now has an empty lot between the workshop and the bakery. With
+  everything done together, lamps and a bench come to the pavement, then tubs of flowers, and the lot gets a market
+  cart, a little park and at seventy a fountain. Each front grows with its own shop's work: a pot by the door, a new
+  sign, a string of flags. The print shop, the studio and the workshop each count their own and hang four pieces of
+  their own inside. A shop from before 1.4 opens onto a street that has already grown with what it did, and someone in
+  the shop says a word when something new comes. The home shop still counts every commission, as before.
+- **The street through the year.** The street follows the seasons: blossom on the trees in spring with petals on the
+  pavement, shade under them in summer, red leaves in autumn, snow on the roofs and treetops in winter. Every festival
+  reaches it: red lanterns at every door for the New Year, wreaths and a tree in the lot at Christmas, a pumpkin
+  lantern at each door and a pile in the lot at Halloween, lantern riddles, a zongzi stall and a mooncake stall; the
+  market cart steps aside meanwhile. Rain and snow fall on the street too, leave puddles or snow on the ground, and
+  whoever is out on an errand walks under an umbrella. The print shop, the studio and the workshop now have their own
+  decorations for each festival instead of the cafe's, hung clear of their furniture, each with a piece of its own: a
+  printed poster, a little painting, a sign cut from wood.
+- **The neighbours' stories.** Old Zhou, Granny Chen and Xiaohe each have a story in five chapters, which come with
+  the work done together and the days gone by. When one has a chapter, they wait out on the street at their own place,
+  Old Zhou at the workshop, Granny Chen on the bench, Xiaohe outside the study, with a small bubble overhead; nothing
+  else reminds you. Click them to hear it. Each chapter leaves something on the street, from the bell of the old bike
+  Old Zhou is mending to the little lending shelf by the study, and at the end the mended bicycle stands by the cafe
+  door. Forgetting everything starts the stories over.
 
 - **Where the town's pictures will come from.** `docs/art-1.4.md` lists every picture 1.4 adds, the pack it is composed
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.

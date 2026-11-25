@@ -35,9 +35,10 @@ export const BOARD_SLATE = { x: 94, y: 18, w: 24, h: 13 } as const;
 export const MAILSLOT = { x: 309, y: 31, w: 10, h: 12 } as const;
 export const OUTBOX = { cafe: { x: 262, y: 79, w: 8, h: 5 }, study: { x: 256, y: 80, w: 8, h: 5 },
   // The shops along the street have no basket (D2): a draft lies on the counter.
-  print: { x: 248, y: 80, w: 8, h: 5 }, studio: { x: 258, y: 80, w: 8, h: 5 }, workshop: { x: 258, y: 78, w: 8, h: 5 } } as const;
+  print: { x: 248, y: 80, w: 8, h: 5 }, studio: { x: 258, y: 80, w: 8, h: 5 }, workshop: { x: 258, y: 78, w: 8, h: 5 },
+  bakery: { x: 258, y: 80, w: 8, h: 5 }, post: { x: 258, y: 80, w: 8, h: 5 } } as const;
 /** Where the cup stands on the counter in each room (its picture's top left). */
-export const CUP_AT = { cafe: { x: 256, y: 64 }, study: { x: 232, y: 62 }, print: { x: 236, y: 64 }, studio: { x: 236, y: 60 }, workshop: { x: 244, y: 60 } } as const;
+export const CUP_AT = { cafe: { x: 256, y: 64 }, study: { x: 232, y: 62 }, print: { x: 236, y: 64 }, studio: { x: 236, y: 60 }, workshop: { x: 244, y: 60 }, bakery: { x: 240, y: 62 }, post: { x: 244, y: 62 } } as const;
 
 /** Anchors: where characters stand (feet position) and which way they face there. */
 export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }> = {
@@ -56,7 +57,7 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
 // The shops' own people stand beside Adeng, the only one with them (D2).
-const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, xiaodou: -2, aqian: 1, xiaozhe: 1, xiaoding: 1, cat: 0 };
+const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, xiaodou: -2, aqian: 1, xiaozhe: 1, xiaoding: 1, guiyi: 1, axin: 1, cat: 0 };
 const SLOT_GAP = 12;
 
 /** `chair`: there is a chair here, so the character can sit. */
@@ -161,7 +162,10 @@ const STUDY_SEATS: typeof SEATS = {
   },
 };
 
-/** In the shops along the street (D2), the press, the easel and the tool wall stand right of the blackboard: their person works there. */
+/**
+ * In the shops along the street (D2), the press, the easel, the tool wall, the ovens and the sorting rack stand right of the
+ * blackboard: their person works there.
+ */
 const AT_WORK: Spot = { x: 138, y: 60, facing: 'up' };
 /** At the counter's right end, turned to Adeng: the workbench is too tall to stand behind. */
 const AT_COUNTER: Spot = { x: 284, y: 84, facing: 'left' };
@@ -170,6 +174,8 @@ const ROOM_SEATS: Partial<Record<RoomId, typeof SEATS>> = {
   print: { board: { aqian: AT_WORK }, counter: { aqian: AT_COUNTER } },
   studio: { board: { xiaozhe: AT_WORK }, counter: { xiaozhe: AT_COUNTER } },
   workshop: { board: { xiaoding: AT_WORK }, counter: { xiaoding: AT_COUNTER } },
+  bakery: { board: { guiyi: AT_WORK }, counter: { guiyi: AT_COUNTER } },
+  post: { board: { axin: AT_WORK }, counter: { axin: AT_COUNTER } },
 };
 
 /** Every fixed place in a room, its own over the shared ones. */
@@ -230,9 +236,11 @@ export const ACTORS: { id: ActorId; name: string; home: AnchorId; height: number
   { id: 'laoshi', name: A.laoshi, home: 'corner', height: 30 },
   { id: 'qingdai', name: A.qingdai, home: 'board', height: 30 },
   { id: 'xiaodou', name: A.xiaodou, home: 'counter', height: 30 },
-  // Each in a shop of their own along the street (D2): at the press, the easel and the tool wall.
+  // Each in a shop of their own along the street (D2): at the press, the easel, the tool wall, the ovens (plan-1.6.md F1) and the sorting rack (F2).
   { id: 'aqian', name: A.aqian, home: 'board', height: 30 },
   { id: 'xiaozhe', name: A.xiaozhe, home: 'board', height: 30 },
   { id: 'xiaoding', name: A.xiaoding, home: 'board', height: 30 },
+  { id: 'guiyi', name: A.guiyi, home: 'board', height: 30 },
+  { id: 'axin', name: A.axin, home: 'board', height: 30 },
   { id: 'cat', name: A.cat, home: 'window', height: 12 },
 ];

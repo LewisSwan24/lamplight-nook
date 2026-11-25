@@ -70,9 +70,13 @@ describe('small talk', () => {
     for (const id of ['rain_umbrella', 'snow_sill', 'halloween_pumpkin']) expect(quiet).not.toContain(id);
     const c = new Chatter(chats, [], 0, seeded(3));
     const rainy = { sky: 'rain' as const, holiday: 'halloween' as const };
-    const first = [1, 2, 3].map((i) => c.next('idle', i * CHAT_GAP_MS, 'day', rainy)?.id);
-    expect(new Set(first)).toEqual(new Set(['rain_umbrella', 'rain_fix', 'halloween_pumpkin']));
+    // Every chat for the rain or for Halloween that a new shop can hear in the day, before anything else.
+    const special = chats.filter((x) => !x.guest && x.when === 'idle' && (x.sky === 'rain' || x.holiday === 'halloween') && (!x.period || x.period === 'day')
+      && x.after === undefined && !x.made && !x.once).map((x) => x.id);
+    expect(special).toEqual(expect.arrayContaining(['rain_umbrella', 'rain_fix', 'halloween_pumpkin']));
+    const first = special.map((_, i) => c.next('idle', (i + 1) * CHAT_GAP_MS, 'day', rainy)?.id);
+    expect(new Set(first)).toEqual(new Set(special));
     // Then the everyday chats carry on as before.
-    expect(['rain_umbrella', 'rain_fix', 'halloween_pumpkin']).not.toContain(c.next('idle', 4 * CHAT_GAP_MS, 'day', rainy)?.id);
+    expect(special).not.toContain(c.next('idle', (special.length + 1) * CHAT_GAP_MS, 'day', rainy)?.id);
   });
 });

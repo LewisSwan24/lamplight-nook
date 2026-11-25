@@ -137,6 +137,25 @@ export function onNotebookForget(fn: () => void) {
 }
 
 /**
+ * Postcards (docs/plan-1.5.md E3): the shop as it looks now, saved to a file for a friend; and a friend's, looked at in a
+ * window of its own that can change nothing here.
+ */
+function postcards(api: LamplightApi): HTMLElement {
+  const said = el('div.notebook-postcard-said', { role: 'status' });
+  const why = { big: N.postcardBig, notPostcard: N.postcardNotPostcard, broken: N.postcardBroken } as const;
+  return el('section.notebook-postcard', {}, el('h4', {}, N.postcardTitle), el('div', {}, N.postcardText),
+    el('div.notebook-postcard-actions', {},
+      el('button.sticker.postcard-send', { type: 'button', onclick: async () => {
+        said.textContent = (await api.sendPostcard()) ? N.postcardSent : '';
+      } }, N.postcardSend),
+      el('button.sticker.postcard-open', { type: 'button', onclick: async () => {
+        const r = await api.openPostcard();
+        said.textContent = r && r !== 'open' ? why[r] : '';
+      } }, N.postcardOpen)),
+    said);
+}
+
+/**
  * Adeng's notebook: everything the shop remembers, and a way to forget it all (asked twice). Its connections page
  * (road-to-1.3.md C4) comes first when there is anything on it; `at` opens it there.
  */
@@ -145,7 +164,7 @@ export async function showNotebook(api: LamplightApi, at?: 'connections') {
   const links = connectionsPage(api, linked, () => showNotebook(api, 'connections'), done);
   // What was done through them (C6) follows the connections.
   const outside = actionsPage(api, done, linked);
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), ...pages(api, memory, spent, talks, reviseOld));
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), postcards(api), ...pages(api, memory, spent, talks, reviseOld));
   const actions = el('div.actions');
   const ask = () => {
     actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));

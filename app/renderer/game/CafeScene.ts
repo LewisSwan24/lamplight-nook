@@ -11,6 +11,10 @@ import studioUrl from '../../../assets/sprites/studio-room.png';
 import studioPiecesUrl from '../../../assets/sprites/studio-pieces.png';
 import workshopUrl from '../../../assets/sprites/workshop-room.png';
 import workshopPiecesUrl from '../../../assets/sprites/workshop-pieces.png';
+import bakeryUrl from '../../../assets/sprites/bakery-room.png';
+import bakeryPiecesUrl from '../../../assets/sprites/bakery-pieces.png';
+import postUrl from '../../../assets/sprites/post-room.png';
+import postPiecesUrl from '../../../assets/sprites/post-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
 import gardenCropsUrl from '../../../assets/sprites/garden-crops.png';
 import dogUrl from '../../../assets/sprites/dog.png';
@@ -19,6 +23,10 @@ import hensUrl from '../../../assets/sprites/hens.png';
 import bakerUrl from '../../../assets/sprites/baker.png';
 import postmanUrl from '../../../assets/sprites/postman.png';
 import mechanicUrl from '../../../assets/sprites/mechanic.png';
+import cookUrl from '../../../assets/sprites/cook.png';
+import lodgerUrl from '../../../assets/sprites/lodger.png';
+import floristUrl from '../../../assets/sprites/florist.png';
+import organizerUrl from '../../../assets/sprites/organizer.png';
 import grannyUrl from '../../../assets/sprites/granny.png';
 import studentUrl from '../../../assets/sprites/student.png';
 import catUrl from '../../../assets/sprites/cat.png';
@@ -32,6 +40,7 @@ import townFrontsUrl from '../../../assets/sprites/town-fronts.png';
 import townPropsUrl from '../../../assets/sprites/town-props.png';
 import townSignsUrl from '../../../assets/sprites/town-signs.png';
 import townStreetUrl from '../../../assets/sprites/town-street.png';
+import shopsDecorUrl from '../../../assets/sprites/shops-decor.png';
 import christmasUrl from '../../../assets/sprites/decor-christmas.png';
 import halloweenUrl from '../../../assets/sprites/decor-halloween.png';
 import newYearUrl from '../../../assets/sprites/decor-new_year.png';
@@ -50,6 +59,8 @@ import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
 import aqianUrl from '../../../assets/sprites/aqian.png';
 import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
 import xiaodingUrl from '../../../assets/sprites/xiaoding.png';
+import guiyiUrl from '../../../assets/sprites/guiyi.png';
+import axinUrl from '../../../assets/sprites/axin.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import you1Url from '../../../assets/sprites/you-1.png';
 import you2Url from '../../../assets/sprites/you-2.png';
@@ -68,6 +79,8 @@ import catWalkUrl from '../../../assets/sprites/cat-walk.png';
 import { counterTop, pieceData } from './pieces';
 import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
+import { CORK, WALL_CARD, stampColour, wallIndex, wallSpots } from './postwall';
+import type { SceneId } from '../../shared/scenes';
 import type { GrowthId } from '../../shared/growth';
 import { walkBetween } from './layout';
 import { ACTORS, CUP_AT, MAILSLOT, OUTBOX, ZONES, pathBetween, standPoint, type Facing } from './layout';
@@ -77,7 +90,11 @@ import { GardenView } from './GardenView';
 import { StreetView, type Walker } from './StreetView';
 import { SKIES, WeatherLayer } from './WeatherLayer';
 import { SHELF, ShopGrowth, preloadGrowth } from './ShopGrowth';
+import { RoomTales, preloadTales } from './RoomTales';
 import { INSET, VIEW } from './street';
+import { preloadTownDecor } from './TownDecor';
+import { preloadTownGrowth } from './TownGrowth';
+import type { TownCounts } from '../../shared/towngrow';
 import { BACK_DOOR, BACK_DOOR_SPOT, GARDEN_DOOR, GARDEN_X, type GardenSpot, type SpotId, pathToBackDoor } from './garden';
 import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT, POST_SPOT } from './guests';
@@ -91,7 +108,7 @@ const DECOR_URLS: Record<Holiday, string> = {
 };
 const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerUrl, autumn: autumnUrl, winter: winterUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
@@ -125,7 +142,8 @@ const INK = 0x3b2a1e;
 /** Each room's picture without its furniture, and the furniture (scripts/art/pieces.py). */
 const ROOM_ART = {
   cafe: [cafeUrl, cafePiecesUrl], study: [studyUrl, studyPiecesUrl], print: [printUrl, printPiecesUrl],
-  studio: [studioUrl, studioPiecesUrl], workshop: [workshopUrl, workshopPiecesUrl],
+  studio: [studioUrl, studioPiecesUrl], workshop: [workshopUrl, workshopPiecesUrl], bakery: [bakeryUrl, bakeryPiecesUrl],
+  post: [postUrl, postPiecesUrl],
 } as const;
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FLOOR_LAMP = 0.2;
@@ -137,7 +155,7 @@ const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
 export type HintSpot = 'counter' | 'bell' | 'board';
-export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you';
+export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you' | 'cork' | `wall-${number}`;
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -208,6 +226,10 @@ export class CafeScene extends Phaser.Scene {
   private lampLevel = 1;
   onObjectClick: (id: ObjectId) => void = () => {};
   onYouClick: () => void = () => {};
+  /** A postcard on the post office's cork board was clicked (plan-1.6.md F2), by its place; null for the bare board. */
+  onWallCard: (i: number | null) => void = () => {};
+  /** The postcards pinned on the cork board, in the post office only. */
+  private wallCards: { name: string; x: number; y: number; img: Phaser.GameObjects.Graphics; zone: Phaser.GameObjects.Zone }[] = [];
   private bell!: Phaser.GameObjects.Graphics;
   private bellZone!: Phaser.GameObjects.Zone;
   private glow?: { sprite: Phaser.GameObjects.Sprite; fx: Phaser.FX.Glow };
@@ -229,6 +251,12 @@ export class CafeScene extends Phaser.Scene {
   get tint(): number { return this.tintColor; }
   /** Who is out on an errand and where on the town's street, as the inset shows her. */
   streetWalker(): Walker | null { return this.street?.walkerState() ?? null; }
+  /** What the town has grown, in the inset (D5); kept for when the inset is built. */
+  setTown(counts: TownCounts) {
+    this.town = counts;
+    this.street?.setTown(counts);
+  }
+  private town?: TownCounts;
   /** Out on the street: the room is not drawn and takes no clicks, but the work in it goes on. */
   setOutside(out: boolean) {
     this.sys.setVisible(!out);
@@ -259,6 +287,8 @@ export class CafeScene extends Phaser.Scene {
   boardInUse: () => boolean = () => false;
   /** What the shop has gathered, and the works shelf. */
   growth!: ShopGrowth;
+  /** What Auntie Olive's and Pip's stories left, hung in their shops (plan-1.6.md F4). */
+  tales!: RoomTales;
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
   /** The street inset opened or closed (the page moves what sits in that corner). */
@@ -305,6 +335,8 @@ export class CafeScene extends Phaser.Scene {
         if (url && !this.textures.exists(key)) this.load.image(key, url);
       }
     }
+    // What the baker's and the postman's stories leave, in their own shops only (F4).
+    preloadTales(this.load, this.room);
     // Everything else the rooms share, loaded by the first one (the home shop's) for the whole game.
     if (this.textures.exists('cat')) return;
     // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
@@ -312,6 +344,9 @@ export class CafeScene extends Phaser.Scene {
     this.load.image('town-fronts', townFrontsUrl);
     this.load.image('town-props', townPropsUrl);
     this.load.image('town-signs', townSignsUrl);
+    preloadTownGrowth(this.load);
+    preloadTownDecor(this.load);
+    this.load.image('shops-decor', shopsDecorUrl);
     this.load.image('garden', gardenUrl);
     this.load.spritesheet('garden-crops', gardenCropsUrl, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('dog', dogUrl, { frameWidth: DOG_FRAME.width, frameHeight: DOG_FRAME.height });
@@ -357,6 +392,7 @@ export class CafeScene extends Phaser.Scene {
     this.addProps();
     this.growth = new ShopGrowth(this, this.room, () => {});
     this.growth.onShelfClick = () => this.activate('works');
+    this.tales = new RoomTales(this, this.room);
     this.addObjects();
     const slate = ZONES.find((z) => z.id === 'board')!;
     this.add
@@ -403,6 +439,7 @@ export class CafeScene extends Phaser.Scene {
     this.setApprentice(false, false);
     this.addLight();
     this.street = new StreetView(this);
+    if (this.town) this.street.setTown(this.town);
     this.street.onClick = (id) => this.onActorClick(id);
     this.garden = new GardenView(this);
     this.garden.onDoorClick = () => this.activate('shopdoor');
@@ -455,6 +492,12 @@ export class CafeScene extends Phaser.Scene {
   }
 
   update() {
+    // Out of sight (road-to-1.4.md D8) nothing in the room is drawn: the work goes on, but shadows, props and flags wait
+    // until it is looked at again. The street keeps up, for whoever is out on an errand there.
+    if (!this.sys.settings.visible) {
+      this.street.update();
+      return;
+    }
     if (this.you) this.you.shadow.setPosition(this.you.sprite.x, this.you.sprite.y - 1).setDepth(this.you.sprite.depth - 0.5).setAlpha(0.28 * this.you.sprite.alpha);
     if (this.guest) this.guest.shadow.setPosition(this.guest.sprite.x, this.guest.sprite.y - 1).setDepth(this.guest.sprite.depth - 0.5).setAlpha(0.28 * this.guest.sprite.alpha);
     this.street.update();
@@ -765,12 +808,14 @@ export class CafeScene extends Phaser.Scene {
   setSeason(season: Season) {
     this.weather.setSeason(season);
     this.garden.setSeason(season);
+    this.street?.setOutside(this.outside());
   }
 
   /** Show a kind of weather and a holiday's decorations (also for screenshots: lamplightDebug.scene.setWeather). */
   setWeather(sky: Sky, holiday: Holiday | null = null, now = true) {
     const before = withWeather(LOOKS[this.period], this.weather.sky);
     this.weather.set(sky, holiday);
+    this.street?.setOutside(this.outside());
     this.setPeriod(this.period, now, before);
   }
 
@@ -886,6 +931,9 @@ export class CafeScene extends Phaser.Scene {
     if (target === 'board') return this.boardInUse() ? this.onBoardClick() : this.onObjectClick('board');
     if (target === 'guest') return this.guestHello();
     if (target === 'you') return this.onYouClick();
+    if (target === 'cork') return this.onWallCard(null);
+    const card = wallIndex(target);
+    if (card !== null) return this.onWallCard(card);
     const object = this.objects.find((b) => b.id === target);
     if (object) return this.shows(object) ? this.onObjectClick(object.id) : undefined;
     if (target === 'backdoor') return this.showGarden();
@@ -925,7 +973,52 @@ export class CafeScene extends Phaser.Scene {
     const you = this.you ? [{ id: 'you' as const, x: this.you.sprite.x - 8, y: this.you.sprite.y - 32, w: 16, h: 32 }] : [];
     const slate = ZONES.find((z) => z.id === 'board')!;
     const board = [{ id: 'board' as const, x: slate.x, y: slate.y, w: slate.w, h: slate.h }];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...people, ...out];
+    const cork = this.room !== 'post' ? [] : this.wallCards.length
+      ? this.wallCards.map((c, i) => ({ id: `wall-${i}` as const, x: c.x, y: c.y, w: WALL_CARD.w, h: WALL_CARD.h }))
+      : [{ id: 'cork' as const, ...CORK }];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...cork, ...people, ...out];
+  }
+
+  /**
+   * Pin the postcards the post office keeps on its cork board (plan-1.6.md F2), newest top left: a cream card with a
+   * stamp in the colour of where the friend's shop is and two pencilled lines, each a target of its own. Other rooms have
+   * no board. With none kept, the bare board says so when pointed at.
+   */
+  setPostcards(cards: { name: string; home: SceneId }[]) {
+    if (this.room !== 'post') return;
+    for (const c of this.wallCards) {
+      c.img.destroy();
+      c.zone.destroy();
+    }
+    this.corkZone ??= this.add.zone(CORK.x, CORK.y, CORK.w, CORK.h).setOrigin(0).setDepth(0.55)
+      .on('pointerdown', () => this.activate('cork'))
+      .on('pointerover', () => this.highlight('cork'))
+      .on('pointerout', () => this.hovered === 'cork' && this.highlight(null));
+    if (cards.length) this.corkZone.disableInteractive();
+    else this.corkZone.setInteractive({ useHandCursor: true });
+    this.wallCards = wallSpots(cards.length).map((at, i) => {
+      const id = `wall-${i}` as const;
+      const img = this.add.graphics({ x: at.x, y: at.y }).setDepth(0.6);
+      img.fillStyle(0x2a2233, 0.35).fillRect(1, 1, WALL_CARD.w, WALL_CARD.h);
+      img.fillStyle(0xfaf6ec, 1).fillRect(0, 0, WALL_CARD.w, WALL_CARD.h);
+      img.fillStyle(stampColour(cards[i].home), 1).fillRect(WALL_CARD.w - 3, 1, 2, 2);
+      img.fillStyle(0xc9b79f, 1).fillRect(1, 3, 4, 1).fillRect(1, 4, 3, 1);
+      img.fillStyle(0xc8483c, 1).fillRect(Math.floor(WALL_CARD.w / 2), 0, 1, 1);
+      const zone = this.add.zone(at.x, at.y, WALL_CARD.w, WALL_CARD.h).setOrigin(0).setDepth(0.65)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.activate(id))
+        .on('pointerover', () => this.highlight(id))
+        .on('pointerout', () => this.hovered === id && this.highlight(null));
+      return { name: cards[i].name, ...at, img, zone };
+    });
+    if (this.hovered && (this.hovered === 'cork' || wallIndex(this.hovered) !== null)) this.highlight(null);
+  }
+
+  private corkZone?: Phaser.GameObjects.Zone;
+
+  /** What a pinned postcard is called, on hover and to a screen reader. */
+  wallLabel(i: number): string {
+    return `${fill(strings.ui.visit.wallTitle, { name: this.wallCards[i]?.name ?? '' })} · ${strings.ui.visit.wallOpen}`;
   }
 
   /** A neighbour says hello when clicked. */
@@ -1501,6 +1594,9 @@ export class CafeScene extends Phaser.Scene {
       const name = object.id.startsWith('grow-') ? O.grown[object.id.slice(5) as GrowthId] : O.names[object.id as keyof typeof O.names];
       zones.push({ key: `z-${object.id}`, text: name, x: object.x + object.w / 2, y: object.y - 2, kind: 'zone' as const });
     }
+    const card = this.hovered ? wallIndex(this.hovered) : null;
+    if (card !== null && this.wallCards[card]) zones.push({ key: `z-wall-${card}`, text: this.wallLabel(card), x: this.wallCards[card].x + WALL_CARD.w / 2, y: this.wallCards[card].y - 2, kind: 'zone' as const });
+    if (this.hovered === 'cork') zones.push({ key: 'z-cork', text: strings.ui.visit.wallEmpty, x: CORK.x + CORK.w / 2, y: CORK.y - 2, kind: 'zone' as const });
     if (this.hovered === 'bell') zones.push({ key: 'z-bell', text: strings.zones.bell, x: BELL_POS.x + 3, y: BELL_POS.y - 2, kind: 'zone' as const });
     if (this.hovered === 'backdoor') zones.push({ key: 'z-garden', text: strings.zones.garden, x: BACK_DOOR.x + 8, y: BACK_DOOR.y - 2, kind: 'zone' as const });
     const actors = ACTORS.filter((a) => a.id === this.hovered).map((a) => {

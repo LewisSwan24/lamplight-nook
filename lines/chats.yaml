@@ -1039,3 +1039,990 @@
   turns:
     - student: 元宵前就要回学校了。
     - adeng: 汤圆吃了再走。
+
+# The bakery's two neighbours (plan-1.6.md F1): Old Ma from the noodle bar comes once the bakery has made a menu,
+# Lin from upstairs once it has written a recipe. Each has something for the season past the twentieth, like the rest.
+- id: ma_menu
+  when: idle
+  guest: cook
+  turns:
+    - cook: 菜单挂上了，客人点菜快多了。
+    - adeng: 价钱都对得上吧？
+    - cook: 一分不差。
+
+- id: ma_tea
+  when: idle
+  guest: cook
+  turns:
+    - cook: 中午那一阵忙完，腰都直不起来。
+    - adeng: 茶刚泡好，坐。
+    - cook: 还是你这儿清净。
+
+- id: ma_noodles
+  when: idle
+  guest: cook
+  turns:
+    - cook: 今天的面多扯了几把。
+    - xiaoju: 给我留一碗！
+    - cook: 早留着了，多放葱。
+
+- id: ma_knife
+  when: idle
+  guest: cook
+  turns:
+    - cook: 这把刀跟了我十几年了。
+    - laoshi: 磨得真亮。
+    - cook: 每天收摊磨一遍。
+
+- id: ma_rain
+  when: idle
+  guest: cook
+  sky: rain
+  turns:
+    - cook: 下雨天，来吃面的人反倒多。
+    - adeng: 热汤面谁不想吃。
+
+- id: ma_spring
+  when: idle
+  guest: cook
+  after: 20
+  season: spring
+  turns:
+    - cook: 春笋下来了，这礼拜加个笋丝面。
+    - xiaoju: 菜单上要改吗？
+    - cook: 改，回头还得找你们。
+
+- id: ma_summer
+  when: idle
+  guest: cook
+  after: 20
+  season: summer
+  turns:
+    - cook: 天热，凉面卖得比汤面好。
+    - qingdai: 凉面上那点红是什么？
+    - cook: 辣油，我自己炸的。
+
+- id: ma_autumn
+  when: idle
+  guest: cook
+  after: 20
+  season: autumn
+  turns:
+    - cook: 秋天了，羊肉汤又能上了。
+    - laoshi: 给我记一碗。
+
+- id: ma_winter
+  when: idle
+  guest: cook
+  after: 20
+  season: winter
+  turns:
+    - cook: 冬天灶台边最暖和。
+    - adeng: 你那儿热气一冒，整条街都看得见。
+
+- id: lin_recipe
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 照你们写的食谱做了一回。
+    - xiaoju: 成了吗？
+    - lodger: 成了，就是盐放少了。
+
+- id: lin_move
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 我刚搬来，就住楼上。
+    - adeng: 有什么不知道的，下来问。
+    - lodger: 那我可常来了。
+
+- id: lin_soup
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 番茄蛋汤，蛋要先炒还是后放？
+    - laoshi: 看你要嫩的还是香的。
+    - lodger: 都要。
+
+- id: lin_market
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 早市的菜比超市便宜一半。
+    - qingdai: 颜色也好看。
+    - lodger: 你是看颜色买菜的？
+
+- id: lin_rain
+  when: idle
+  guest: lodger
+  sky: rain
+  turns:
+    - lodger: 下雨了，在家炖了锅汤。
+    - adeng: 闻着都香。
+
+- id: lin_spring
+  when: idle
+  guest: lodger
+  after: 20
+  season: spring
+  turns:
+    - lodger: 阳台上种的葱冒芽了。
+    - xiaoju: 以后葱都不用买了！
+    - lodger: 还早，才三根。
+
+- id: lin_summer
+  when: idle
+  guest: lodger
+  after: 20
+  season: summer
+  turns:
+    - lodger: 太热了，不想开火。
+    - adeng: 拌个黄瓜就行。
+    - lodger: 这个我会！
+
+- id: lin_autumn
+  when: idle
+  guest: lodger
+  after: 20
+  season: autumn
+  turns:
+    - lodger: 学着腌了一坛萝卜。
+    - laoshi: 腌菜要等，急不得。
+
+- id: lin_winter
+  when: idle
+  guest: lodger
+  after: 20
+  season: winter
+  turns:
+    - lodger: 第一次自己包饺子。
+    - xiaoju: 包了几种馅？
+    - lodger: 一种，还破了一半。
+
+# The post office's two neighbours (plan-1.6.md F2): Fern from the flower shop on the corner comes once the post office
+# has made a card, Mrs Wu from the residents' committee once it has put a newsletter together.
+- id: fern_card
+  when: idle
+  guest: florist
+  turns:
+    - florist: 你们做的贺卡，我配着花一起送了。
+    - adeng: 收的人怎么说？
+    - florist: 先看的卡，后看的花。
+
+- id: fern_bucket
+  when: idle
+  guest: florist
+  turns:
+    - florist: 早上进了一桶芍药，开得正好。
+    - qingdai: 粉的还是白的？
+    - florist: 都有，给你留一枝。
+
+- id: fern_hands
+  when: idle
+  guest: florist
+  turns:
+    - florist: 剪了一上午的花枝，手都是绿的。
+    - adeng: 洗洗手，咖啡给你倒上。
+
+- id: fern_names
+  when: idle
+  guest: florist
+  turns:
+    - florist: 每朵花我都知道叫什么。
+    - xiaoju: 那这个呢？
+    - florist: 那是你们窗台上的绿萝。
+
+- id: fern_rain
+  when: idle
+  guest: florist
+  sky: rain
+  turns:
+    - florist: 下雨天花不好卖，我把桶都搬进屋了。
+    - laoshi: 花倒是喝饱了。
+
+- id: fern_spring
+  when: idle
+  guest: florist
+  after: 20
+  season: spring
+  turns:
+    - florist: 春天最忙，一条街的人都来买花。
+    - xiaoju: 我也要一束！
+    - florist: 给你挑最小的那束。
+
+- id: fern_summer
+  when: idle
+  guest: florist
+  after: 20
+  season: summer
+  turns:
+    - florist: 天热，花一天就蔫，得勤换水。
+    - adeng: 跟人一样。
+
+- id: fern_autumn
+  when: idle
+  guest: florist
+  after: 20
+  season: autumn
+  turns:
+    - florist: 桂花开了，我在门口摆了两盆。
+    - laoshi: 难怪一路都是香的。
+
+- id: fern_winter
+  when: idle
+  guest: florist
+  after: 20
+  season: winter
+  turns:
+    - florist: 冬天就剩腊梅和水仙了。
+    - qingdai: 水仙我想画一张。
+    - florist: 那我挑一盆开得好的。
+
+- id: wu_newsletter
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 那期简报贴出去，楼里都在看。
+    - adeng: 有人照着去了吗？
+    - organizer: 周六的义诊来了四十多个。
+
+- id: wu_meeting
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 下午还有个会，就喝一口。
+    - laoshi: 开什么会？
+    - organizer: 楼道里的自行车该放哪儿。
+
+- id: wu_list
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 谁家老人一个人住，我都记在本子上。
+    - xiaoju: 记那么多，记得住吗？
+    - organizer: 记不住才写下来。
+
+- id: wu_garden
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 楼后那块空地，想种点菜。
+    - qingdai: 种什么？
+    - organizer: 先问问大家，下期简报登出来。
+
+- id: wu_rain
+  when: idle
+  guest: organizer
+  sky: rain
+  turns:
+    - organizer: 下雨了，我得去看看三楼那家漏不漏。
+    - adeng: 伞拿着，回头再还。
+
+- id: wu_spring
+  when: idle
+  guest: organizer
+  after: 20
+  season: spring
+  turns:
+    - organizer: 开春了，楼里要大扫除。
+    - xiaoju: 我们能帮忙吗？
+    - organizer: 你们帮着写个通知就行。
+
+- id: wu_summer
+  when: idle
+  guest: organizer
+  after: 20
+  season: summer
+  turns:
+    - organizer: 暑假孩子多，想办个看书的角。
+    - laoshi: 我这儿的旧书可以搬过去。
+
+- id: wu_autumn
+  when: idle
+  guest: organizer
+  after: 20
+  season: autumn
+  turns:
+    - organizer: 中秋想在院子里摆几张桌子。
+    - adeng: 月饼算我们的。
+    - organizer: 那我在简报上写上你们。
+
+- id: wu_winter
+  when: idle
+  guest: organizer
+  after: 20
+  season: winter
+  turns:
+    - organizer: 天冷了，我挨家看暖气热不热。
+    - adeng: 先坐下，喝口热的再走。
+
+# 1.6 的街（plan-1.6.md F5）：主店的人说起面包房、邮局和街上走过的人；桂姨和阿信来店里时说的。
+
+- id: f5_bread_smell
+  when: idle
+  turns:
+    - xiaoju: 你们闻到没有？
+    - adeng: 面包房开炉了。
+    - xiaoju: 我去买两个，马上回来。
+
+- id: f5_bread_queue
+  when: idle
+  period: dawn
+  turns:
+    - qingdai: 面包房门口排了一溜人。
+    - adeng: 桂姨这会儿最忙。
+    - qingdai: 那块招牌的面包画得真像。
+
+- id: f5_bread_price
+  when: idle
+  turns:
+    - xiaoju: 桂姨的吐司又涨了五毛。
+    - laoshi: 面粉涨了。
+    - xiaoju: 老石你怎么什么都知道。
+    - laoshi: 我买面粉。
+
+- id: f5_bread_board
+  when: idle
+  turns:
+    - qingdai: 面包房的黑板是谁写的？
+    - adeng: 桂姨自己。
+    - qingdai: 字比我写得还好看。
+    - adeng: 她写了二十年了。
+
+- id: f5_bread_oven
+  when: idle
+  turns:
+    - laoshi: 桂姨的炉门，响了三天。
+    - adeng: 你去看看？
+    - laoshi: 老周去了。
+    - laoshi: 他修不好，我再去。
+
+- id: f5_bread_menu
+  when: idle
+  after: 6
+  turns:
+    - xiaoju: 老马那张菜单，贴出来了。
+    - adeng: 贴哪儿了？
+    - xiaoju: 面馆门口，好多人在看。
+
+- id: f5_bread_starter
+  when: idle
+  turns:
+    - xiaoju: 桂姨说她那罐老面比我岁数大。
+    - adeng: 那你得叫它一声姐。
+    - xiaoju: ……我不叫。
+
+- id: f5_bread_crumbs
+  when: idle
+  turns:
+    - adeng: 栗子嘴边全是面包渣。
+    - xiaoju: 它又去面包房了。
+    - adeng: 下回给桂姨赔一个面包。
+
+- id: f5_bread_tin
+  when: idle
+  turns:
+    - qingdai: 面包房墙上挂了个旧模子。
+    - adeng: 她爸留下的。
+    - qingdai: 那个颜色，我想画下来。
+
+- id: f5_bread_rain
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: 下雨了，面包房门口没人排队。
+    - adeng: 正好，你去买。
+    - xiaoju: 我没带伞。
+    - adeng: 门后有。
+
+- id: f5_bread_snow
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: 下雪天，面包房的窗都是雾。
+    - qingdai: 里头黄黄的灯，像一幅画。
+    - adeng: 想画就去画。
+
+- id: f5_bread_night
+  when: idle
+  period: night
+  turns:
+    - adeng: 面包房的灯还亮着。
+    - laoshi: 她在和明天的面。
+    - adeng: 比我们睡得还晚。
+
+- id: f5_post_bell
+  when: idle
+  turns:
+    - xiaoju: 邮局的门铃一推就叫。
+    - adeng: 阿信说该换弹簧了。
+    - laoshi: 我那儿有。
+
+- id: f5_post_cork
+  when: idle
+  turns:
+    - qingdai: 邮局那块软木板，钉的都是明信片。
+    - adeng: 别家寄来的。
+    - qingdai: 有几张画得真好。
+
+- id: f5_post_green
+  when: idle
+  turns:
+    - qingdai: 邮局的邮筒是绿的。
+    - xiaoju: 不都是绿的吗？
+    - qingdai: 包里画的是红的，我改的。
+    - adeng: 改得好。
+
+- id: f5_post_scale
+  when: idle
+  turns:
+    - laoshi: 邮局的秤，差二两。
+    - adeng: 你称过？
+    - laoshi: 称了我的锤子。
+
+- id: f5_post_letters
+  when: idle
+  turns:
+    - xiaoju: 阿信今天背了两个邮包。
+    - adeng: 月底了，账单多。
+    - xiaoju: 怪不得他走路歪着。
+
+- id: f5_post_card
+  when: idle
+  after: 6
+  turns:
+    - xiaoju: 芳姐那张贺卡，她寄出去了。
+    - adeng: 寄给谁的？
+    - xiaoju: 她不说，脸红了。
+
+- id: f5_post_newsletter
+  when: idle
+  after: 6
+  turns:
+    - adeng: 吴阿姨的简报，楼下贴了一张。
+    - qingdai: 排得挺清楚。
+    - adeng: 开会那天，来的人多了一半。
+
+- id: f5_post_route
+  when: idle
+  turns:
+    - xiaoju: 阿信说这条街他闭着眼都能送。
+    - laoshi: 那他别闭眼。
+    - adeng: ……老石说得对。
+
+- id: f5_post_rain
+  when: idle
+  sky: rain
+  turns:
+    - adeng: 下雨了，阿信又穿那件黄雨衣。
+    - xiaoju: 远远一看就知道是他。
+    - adeng: 信都套了袋子。
+
+- id: f5_post_snow
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: 雪这么大，阿信还在送。
+    - adeng: 他推着车走。
+    - xiaoju: 我给他留碗热茶。
+
+- id: f5_post_dusk
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: 邮局门口停着晚班车。
+    - adeng: 今天的信要走了。
+    - qingdai: 我那张明信片赶上了吗？
+    - adeng: 赶上了。
+
+- id: f5_post_night
+  when: idle
+  period: night
+  turns:
+    - xiaoju: 邮局关门了。
+    - adeng: 邮筒还开着，明早取。
+    - xiaoju: 那我现在去寄。
+
+- id: f5_street_people
+  when: idle
+  turns:
+    - xiaoju: 街上的人比以前多了。
+    - adeng: 店多了，人就多。
+    - xiaoju: 有个人在我们窗前看了半天。
+
+- id: f5_street_stop
+  when: idle
+  turns:
+    - qingdai: 刚才有人在门口停了一下。
+    - adeng: 没进来？
+    - qingdai: 看了看灯，就走了。
+    - adeng: 看灯也好。
+
+- id: f5_street_dawn
+  when: idle
+  period: dawn
+  turns:
+    - adeng: 一大早，街上就有人跑步。
+    - xiaoju: 我也想跑。
+    - adeng: 想了好几年了。
+
+- id: f5_street_evening
+  when: idle
+  period: dusk
+  turns:
+    - xiaoju: 下班的人都往面包房走。
+    - adeng: 买明天的早饭。
+    - xiaoju: 我也去。
+
+- id: f5_street_night
+  when: idle
+  period: night
+  turns:
+    - laoshi: 街上没人了。
+    - adeng: 都回家了。
+    - laoshi: 我们也该回。
+
+- id: f5_street_umbrella
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: 街上全是伞。
+    - qingdai: 从上面看，像一盘糖豆。
+    - adeng: 你从哪儿上面看？
+    - qingdai: 想的。
+
+- id: f5_street_hurry
+  when: idle
+  sky: rain
+  turns:
+    - adeng: 下雨天走路的人都快。
+    - laoshi: 怕湿。
+    - adeng: 也有慢的。
+    - laoshi: 那是有伞的。
+
+- id: f5_street_snow
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: 街上一个脚印都没有。
+    - adeng: 等阿信一过就有了。
+
+- id: f5_street_glance
+  when: idle
+  turns:
+    - xiaoju: 我冲窗外那人招了招手。
+    - adeng: 他呢？
+    - xiaoju: 他回头看了我一眼，走了。
+    - adeng: 也算打了招呼。
+
+- id: f5_street_kid
+  when: idle
+  turns:
+    - qingdai: 有个小孩趴在面包房玻璃上。
+    - xiaoju: 鼻子都压扁了。
+    - adeng: 桂姨会给他一块饼干的。
+
+- id: f5_street_count
+  when: idle
+  turns:
+    - xiaoju: 一下午，街上走过四十多个人。
+    - adeng: 你数了？
+    - xiaoju: 没活的时候数的。
+
+- id: f5_guests_cook
+  when: idle
+  after: 6
+  turns:
+    - adeng: 老马说菜单印出来，生意好了。
+    - xiaoju: 他请我们吃面吗？
+    - adeng: 他说随时来。
+
+- id: f5_guests_lodger
+  when: idle
+  after: 6
+  turns:
+    - xiaoju: 小林照着食谱，做糊了一锅。
+    - adeng: 食谱没写错吧？
+    - xiaoju: 他火开大了。
+
+- id: f5_guests_fern
+  when: idle
+  after: 6
+  turns:
+    - qingdai: 芳姐的花店门口，换了一排新花。
+    - xiaoju: 是不是贺卡上画的那种？
+    - qingdai: 就是那种。
+
+- id: f5_guests_wu
+  when: idle
+  after: 6
+  turns:
+    - adeng: 吴阿姨又要做一期简报。
+    - xiaoju: 这回写什么？
+    - adeng: 楼道里不许放鞋。
+
+# 桂姨和阿信来店里（game/guests.ts）：客人先开口。
+
+- id: baker_shop_open
+  when: idle
+  guest: baker
+  turns:
+    - baker: 我那面包房，你们还没进来坐过。
+    - adeng: 改天去。
+    - baker: 别改天，今天就来。
+
+- id: baker_oven_door
+  when: idle
+  guest: baker
+  turns:
+    - baker: 老石，我那炉门又响了。
+    - laoshi: 哪种响？
+    - baker: 一开门就叫。
+    - laoshi: 上油。明天去。
+
+- id: baker_pip
+  when: idle
+  guest: baker
+  turns:
+    - baker: 阿信今天来晚了。
+    - adeng: 他信多。
+    - baker: 面包我给他留着呢。
+
+- id: baker_window
+  when: idle
+  guest: baker
+  turns:
+    - baker: 我那橱窗，你帮我摆摆？
+    - qingdai: 面包按颜色排。
+    - baker: 浅的放前头？
+    - qingdai: 深的放前头，看着香。
+
+- id: baker_menu_thanks
+  when: idle
+  guest: baker
+  after: 6
+  turns:
+    - baker: 老马说你们做的菜单好用。
+    - adeng: 是他的菜好。
+    - baker: 他让我也做一张。
+
+- id: baker_father
+  when: idle
+  guest: baker
+  turns:
+    - baker: 我爸那会儿，一天只烤三炉。
+    - adeng: 您现在呢？
+    - baker: 五炉，还不够卖。
+
+- id: baker_starter
+  when: idle
+  guest: baker
+  turns:
+    - baker: 老面我给你们分了一小罐。
+    - xiaoju: 要喂吗？
+    - baker: 天天喂，跟养猫一样。
+    - xiaoju: 那我会。
+
+- id: baker_rain_bread
+  when: idle
+  guest: baker
+  sky: rain
+  turns:
+    - baker: 下雨没人来买，给你们送几个。
+    - adeng: 怎么好意思。
+    - baker: 放到明天就不好吃了。
+
+- id: baker_snow_tea
+  when: idle
+  guest: baker
+  sky: snow
+  turns:
+    - baker: 雪大，我来讨杯热茶。
+    - adeng: 刚泡的。
+    - baker: 换你一个热面包。
+
+- id: baker_night_dough
+  when: idle
+  guest: baker
+  period: night
+  turns:
+    - baker: 面盖上了，出来透口气。
+    - adeng: 坐会儿吧。
+    - baker: 坐一会儿就回，面在等我。
+
+- id: postman_round
+  when: idle
+  guest: postman
+  turns:
+    - postman: 你们的信，还有一张单子。
+    - adeng: 辛苦了。
+    - postman: 不辛苦，你们最后一家。
+
+- id: postman_board
+  when: idle
+  guest: postman
+  turns:
+    - postman: 邮局的软木板快钉满了。
+    - qingdai: 我给你画块新的。
+    - postman: 画的能钉吗？
+    - qingdai: 我画在木头上。
+
+- id: postman_bell
+  when: idle
+  guest: postman
+  turns:
+    - postman: 老石，门铃的弹簧你有吗？
+    - laoshi: 有。
+    - postman: 多少钱？
+    - laoshi: 一个面包。
+
+- id: postman_granny
+  when: idle
+  guest: postman
+  turns:
+    - postman: 陈婆婆的信今天到了。
+    - xiaoju: 她在长椅上吗？
+    - postman: 在，拆开就念给麻雀听。
+
+- id: postman_bread
+  when: idle
+  guest: postman
+  turns:
+    - postman: 桂姨塞给我两个面包。
+    - adeng: 你吃得完？
+    - postman: 一个给你们。
+
+- id: postman_scarf
+  when: idle
+  guest: postman
+  sky: snow
+  turns:
+    - postman: 这条围巾，戴了好些年了。
+    - xiaoju: 都起球了。
+    - postman: 陈婆婆织的，不换。
+
+- id: postman_rain_coat
+  when: idle
+  guest: postman
+  sky: rain
+  turns:
+    - postman: 雨衣在门口滴水，别踩。
+    - adeng: 进来擦擦。
+    - postman: 信是干的，我护着呢。
+
+- id: postman_dawn
+  when: idle
+  guest: postman
+  period: dawn
+  turns:
+    - postman: 早班车的信，你们排第一。
+    - adeng: 这么早就送？
+    - postman: 面包房的灯亮了，我就出门。
+
+- id: postman_card_made
+  when: idle
+  guest: postman
+  after: 6
+  turns:
+    - postman: 芳姐那张贺卡，是我送的。
+    - xiaoju: 收信的人怎么样？
+    - postman: 拿着看了半天才进门。
+
+- id: postman_twenty
+  when: idle
+  guest: postman
+  turns:
+    - postman: 这条街我送了快二十年了。
+    - adeng: 比我们开店早。
+    - postman: 你们开张那天的信，也是我送的。
+
+- id: f5_holiday_bread_xmas
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: 桂姨烤了个姜饼屋，摆在橱窗里。
+    - qingdai: 屋顶的糖霜歪了。
+    - adeng: 歪了才像真的。
+
+- id: f5_holiday_post_xmas
+  when: idle
+  holiday: christmas
+  turns:
+    - adeng: 阿信这礼拜送的卡，比平时多三倍。
+    - xiaoju: 有我们的吗？
+    - adeng: 有一张，没写名字。
+
+- id: f5_holiday_new_year
+  when: idle
+  holiday: new_year
+  turns:
+    - xiaoju: 面包房门上也贴了福字。
+    - qingdai: 倒着贴的。
+    - adeng: 桂姨故意的。
+
+- id: f5_holiday_mid_autumn
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - adeng: 桂姨送了一盒月饼来。
+    - xiaoju: 什么馅的？
+    - adeng: 豆沙，还有一个是咸蛋黄。
+    - xiaoju: 咸蛋黄归我。
+
+- id: f5_holiday_halloween
+  when: idle
+  holiday: halloween
+  turns:
+    - qingdai: 有人给邮局寄了个南瓜。
+    - xiaoju: 能寄南瓜？
+    - qingdai: 阿信抱着它走了一条街。
+
+- id: f5_holiday_lantern
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: 邮局柜台边贴了灯谜。
+    - adeng: 你猜着几个？
+    - xiaoju: 一个，还是阿信告诉我的。
+
+- id: f5_tales_bakery
+  when: idle
+  turns:
+    - xiaoju: 桂姨说她是坐错车来的这条街。
+    - adeng: 坐错了也好。
+    - xiaoju: 不然我们吃不上她的面包。
+
+- id: f5_tales_post
+  when: idle
+  turns:
+    - adeng: 阿信说，有封信只写了亮着灯的店。
+    - xiaoju: 那不就是我们？
+    - adeng: 他就送来了。
+
+- id: f5_tales_first_letter
+  when: idle
+  turns:
+    - qingdai: 桂姨开张那天的信，是阿信送的。
+    - xiaoju: 两个人认识二十年了？
+    - qingdai: 比我们都久。
+
+- id: f5_tales_ring
+  when: idle
+  turns:
+    - xiaoju: 桂姨编了个面包环，挂在墙上。
+    - laoshi: 不能吃？
+    - xiaoju: 能吃，舍不得。
+    - laoshi: 那就看着。
+
+- id: f5_cat_bakery
+  when: idle
+  turns:
+    - adeng: 栗子蹲在面包房门口不走。
+    - xiaoju: 等桂姨扔面包边。
+    - adeng: 它比我们还准时。
+
+- id: f5_cat_post
+  when: idle
+  turns:
+    - xiaoju: 栗子睡在邮局的包裹架上。
+    - adeng: 阿信没赶它？
+    - xiaoju: 他说它压着包裹，不会飞。
+
+- id: f5_cat_passers
+  when: idle
+  turns:
+    - qingdai: 栗子在窗台上，看街上的人。
+    - adeng: 看了一下午了。
+    - qingdai: 跟小橘一样。
+    - xiaoju: 我听见了。
+
+- id: f5_errand_bread
+  when: idle
+  turns:
+    - adeng: 谁去买明天的早饭？
+    - xiaoju: 我去！
+    - laoshi: 她要买两个。
+    - xiaoju: 一个路上吃。
+
+- id: f5_errand_post
+  when: idle
+  turns:
+    - qingdai: 我要寄一张明信片。
+    - adeng: 邮局就在街那头。
+    - qingdai: 阿信会不会笑我的字？
+    - adeng: 他天天看比这丑的。
+
+- id: f5_errand_stamp
+  when: idle
+  turns:
+    - xiaoju: 邮票是不是又涨了？
+    - laoshi: 涨了一毛。
+    - xiaoju: 老石你也寄信？
+    - laoshi: 寄给我哥。
+
+- id: f5_street_lamp
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: 街灯一盏一盏亮了。
+    - adeng: 从邮局那头开始。
+    - qingdai: 亮到我们这儿最后一盏。
+
+- id: f5_street_quiet
+  when: idle
+  period: day
+  turns:
+    - adeng: 下午街上最安静。
+    - xiaoju: 只有面包房的门铃在响。
+    - adeng: 还有邮局的。
+
+- id: f5_street_bench
+  when: idle
+  turns:
+    - xiaoju: 长椅上坐着个不认识的人。
+    - adeng: 陈婆婆的位子？
+    - xiaoju: 婆婆来了，他就让开了。
+
+- id: f5_street_ask
+  when: idle
+  turns:
+    - qingdai: 刚有人问我邮局在哪儿。
+    - adeng: 你指了？
+    - qingdai: 我说跟着面包味走，过了就是。
+
+- id: f5_street_petals
+  when: idle
+  sky: petals
+  turns:
+    - xiaoju: 花瓣落了一街。
+    - qingdai: 面包房的玻璃上也粘了几片。
+    - adeng: 桂姨该擦窗了。
+
+- id: f5_street_leaves
+  when: idle
+  sky: leaves
+  turns:
+    - adeng: 街上的叶子，阿信踩得沙沙响。
+    - xiaoju: 隔着窗都听得见。
+    - laoshi: 扫一扫。
+
+- id: f5_waiting_bread
+  when: waiting
+  turns:
+    - xiaoju: 等的时候，我去买个面包？
+    - adeng: 去吧，带个回来。
+    - xiaoju: 带三个。
+
+- id: f5_waiting_post
+  when: waiting
+  turns:
+    - qingdai: 等着也是等着，我写张明信片。
+    - adeng: 写给谁？
+    - qingdai: 写给这家店。
+
+- id: f5_waiting_window
+  when: waiting
+  turns:
+    - xiaoju: 窗外走过去第十个人了。
+    - adeng: 你在数？
+    - xiaoju: 数到二十，活就好了。

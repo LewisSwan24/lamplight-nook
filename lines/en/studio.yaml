@@ -11,7 +11,7 @@ opening:
   - { id: st_mem_02, speaker: xiaozhe, when: has_stuck_note, bubbles: ["\"{brief}\".", "Last time, {stuckNote} got stuck.", "I'll look there first."] }
   - { id: st_mem_01, speaker: xiaozhe, when: has_memory, bubbles: ["\"{brief}\".", "Last time you chose {lastChoice}.", "I'll start from that colour."] }
   - { id: st_tpl_album_01, speaker: xiaozhe, when: tpl_album, bubbles: ["The photos. Thanks.", "Warm ones, cool ones. Sorting first."] }
-  - { id: st_handed_01, speaker: xiaozhe, when: handed, bubbles: ["Got them.", "\"{brief}\"."], reply: { speaker: adeng, bubbles: ["They're on the long table."] } }
+  - { id: st_handed_01, speaker: xiaozhe, when: handed, bubbles: ["Got them.", "\"{brief}\"."] }
   - { id: st_opening_01, speaker: xiaozhe, bubbles: ["\"{brief}\"...", "Mm. That one's a grey-blue."] }
   - { id: st_opening_02, speaker: xiaozhe, bubbles: ["\"{brief}\".", "I'll rinse my brushes."] }
   - { id: st_opening_03, speaker: xiaozhe, bubbles: ["All right.", "\"{brief}\". Ground colour first."] }
@@ -51,7 +51,7 @@ sub_go_review:
 sub_back_review:
   - { id: st_back_rv_issue, speaker: xiaozhe, when: has_issues, bubbles: ["{issueCount} muddy spots.", "Circled in charcoal."] }
   - { id: st_back_rv_ok, speaker: xiaozhe, when: no_issues, bubbles: ["Near or far, it's clean."] }
-  - { id: st_back_rv_ok2, speaker: xiaozhe, when: no_issues, bubbles: ["Mm. Leave it."], reply: { speaker: adeng, bubbles: ["Good."] } }
+  - { id: st_back_rv_ok2, speaker: xiaozhe, when: no_issues, bubbles: ["Mm. Leave it."] }
 
 sub_go_design:
   - { id: st_go_ds_rain, speaker: xiaozhe, when: sky_rain, bubbles: ["Rainy day. Quieter colours.", "To the easel."] }
@@ -125,7 +125,7 @@ done:
   - { id: st_done_day, speaker: xiaozhe, when: daytime, bubbles: ["Done. It's on the easel.", "Look while the light's good."] }
   - { id: st_done_dusk, speaker: xiaozhe, when: dusk, bubbles: ["Done.", "The light's orange now. Good for looking."] }
   - { id: st_done_night, speaker: xiaozhe, when: night, bubbles: ["Done.", "Lamplight yellows it. Look again at dawn."] }
-  - { id: st_done_01, speaker: xiaozhe, bubbles: ["Dry. You can take it."], reply: { speaker: adeng, bubbles: ["I'll find it a frame."] } }
+  - { id: st_done_01, speaker: xiaozhe, bubbles: ["Dry. You can take it."] }
   - { id: st_done_02, speaker: xiaozhe, bubbles: ["Done.", "The last stroke was a dot of white."] }
 
 failed:

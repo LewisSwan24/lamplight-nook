@@ -2,11 +2,20 @@ import type { RoomId } from '../../shared/scenes';
 import Phaser from 'phaser';
 import worksUrl from '../../../assets/sprites/works.png';
 import { overlayDepth } from './pieces';
-import { GROWTH, SHELF_SLOTS, WORK_ICONS, type GrowthId, type WorkIcon } from '../../shared/growth';
+import { GROWTH, SHELF_SLOTS, WORK_ICONS, type WorkIcon } from '../../shared/growth';
+import { isStreetShop, ROOM_GROWTH } from '../../shared/towngrow';
 
 /** One overlay per piece, named after it: a kind of work that brings a new piece only adds the picture. */
 const URLS = import.meta.glob<string>('../../../assets/sprites/grow-*.png', { eager: true, import: 'default' });
-const url = (id: GrowthId) => URLS[`../../../assets/sprites/grow-${id}.png`];
+const url = (id: string) => URLS[`../../../assets/sprites/grow-${id}.png`];
+
+/**
+ * What a room can gather: the home shop's pieces in the cafe and the study, and in a shop along the street its own four
+ * (road-to-1.4.md D5), named `<shop>-<piece>` like their pictures.
+ */
+export const roomPieces = (room: RoomId): string[] =>
+  isStreetShop(room) ? ROOM_GROWTH[room].map((g) => `${room}-${g.id}`) : GROWTH.map((g) => g.id);
+const ALL_PIECES = [...GROWTH.map((g) => g.id), ...Object.entries(ROOM_GROWTH).flatMap(([shop, list]) => list.map((g) => `${shop}-${g.id}`))];
 
 /** On the wall behind everyone, like the holiday decorations, and under them. */
 const DEPTH = 1.4;
@@ -16,7 +25,7 @@ const ICON = 8;
 const ICON_GAP = 2;
 
 export function preloadGrowth(load: Phaser.Loader.LoaderPlugin) {
-  for (const g of GROWTH) load.image(`grow-${g.id}`, url(g.id));
+  for (const id of ALL_PIECES) load.image(`grow-${id}`, url(id));
   load.spritesheet('works', worksUrl, { frameWidth: ICON, frameHeight: ICON });
 }
 
@@ -25,14 +34,14 @@ export function preloadGrowth(load: Phaser.Loader.LoaderPlugin) {
  * told; the counting lives in the main process (memory.ts).
  */
 export class ShopGrowth {
-  private pieces = new Map<GrowthId, Phaser.GameObjects.Image>();
+  private pieces = new Map<string, Phaser.GameObjects.Image>();
   private plank: Phaser.GameObjects.Graphics;
   private icons: Phaser.GameObjects.Image[] = [];
   private zone: Phaser.GameObjects.Zone;
   onShelfClick: () => void = () => {};
 
   constructor(private scene: Phaser.Scene, room: RoomId, onHover: (on: boolean) => void) {
-    for (const g of GROWTH) this.pieces.set(g.id, scene.add.image(0, 0, `grow-${g.id}`).setOrigin(0).setDepth(overlayDepth(room, `grow-${g.id}`, DEPTH)).setVisible(false));
+    for (const id of roomPieces(room)) this.pieces.set(id, scene.add.image(0, 0, `grow-${id}`).setOrigin(0).setDepth(overlayDepth(room, `grow-${id}`, DEPTH)).setVisible(false));
     // A thin wooden plank with a darker edge and two little brackets; hidden until there is a work to put on it.
     this.plank = scene.add.graphics({ x: SHELF.x, y: SHELF.y + SHELF.h - 2 }).setDepth(DEPTH).setVisible(false);
     this.plank.fillStyle(0xa0703f, 1).fillRect(0, 0, SHELF.w, 1);
@@ -44,12 +53,12 @@ export class ShopGrowth {
   }
 
   /** Whether a piece is out in the shop. */
-  shows(id: GrowthId): boolean {
+  shows(id: string): boolean {
     return this.pieces.get(id)!.visible;
   }
 
   /** Show what the shop has; a piece that just arrived fades in instead of popping up. */
-  setGrown(ids: GrowthId[], fresh: GrowthId[] = []) {
+  setGrown(ids: string[], fresh: string[] = []) {
     for (const [id, img] of this.pieces) {
       const on = ids.includes(id);
       if (on && fresh.includes(id) && !img.visible) {

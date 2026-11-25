@@ -2,7 +2,7 @@ import { localDay } from '../shared/localday';
 import { copyFileSync, existsSync, lstatSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { strings } from '../shared/i18n';
-import { MAIN_FILES, template } from '../shared/templates';
+import { MAIN_FILES, shopOf, template, type TemplateId } from '../shared/templates';
 import type { CommissionForm, ScriptCheck, ScriptRisk } from '../shared/types';
 import { materialsSteps } from './materials';
 import { officeSafe } from './office/safe';
@@ -317,12 +317,16 @@ export function snapshot(dir: string): Set<string> {
  * else an edited document, else any page, else a Markdown write-up (a research summary, a tidy plan or a plan),
  * else a table or a letter (MAIN_FILES in shared/templates.ts).
  */
-export function collectOutputs(workDir: string, before: Set<string>): { files: string[]; main?: string; scripts?: ScriptCheck[] } {
+export function collectOutputs(workDir: string, before: Set<string>, kind?: TemplateId): { files: string[]; main?: string; scripts?: ScriptCheck[] } {
   const all = [...snapshot(workDir)];
   const files = all.filter((f) => !before.has(f));
   // Every script in the folder, not only new ones: a later round may have rewritten one that was fine.
   const scripts = scriptChecks(all);
-  return scripts.length ? { files, main: mainOf(files), scripts } : { files, main: mainOf(files) };
+  // Done in a street shop (road-to-1.4.md D3), its own kind of result comes first: a picture or a PDF another shop made
+  // for it is part of the work, not the work. The home shop's kinds keep the usual order (a draft before its letter, C5).
+  const own = kind && shopOf(kind) !== 'home' ? files.find((f) => MAIN_FILES[template(kind).main](basename(f), F)) : undefined;
+  const main = own ?? mainOf(files);
+  return scripts.length ? { files, main, scripts } : { files, main };
 }
 
 /** The main output among these files, in the order MAIN_FILES gives. */

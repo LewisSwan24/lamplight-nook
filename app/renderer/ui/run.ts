@@ -117,8 +117,12 @@ const FAILURES: Record<string, Failure> = {
   failed: { title: R.failedTitle, text: R.failedText, retry: true, plain: false },
   budget: { title: R.budgetTitle, text: R.budgetText, retry: true, plain: true, retryLabel: R.budgetRetry },
   // A month or project cap (B8): carrying on is offered only for work already under way, and stops again until the cap allows it.
+  // A compatible service without its prices (plan-1.6.md F7): nothing started, settings say what is missing.
+  provider: { title: R.providerTitle, text: R.providerText, retry: false, plain: true, go: 'settings' },
   monthCap: { title: R.monthCapTitle, text: R.monthCapText, retry: true, plain: true, retryLabel: R.budgetRetry, go: 'settings' },
   projectCap: { title: R.projectCapTitle, text: R.projectCapText, retry: true, plain: true, retryLabel: R.budgetRetry, go: 'notebook' },
+  // One paired device's own cap (plan-1.5.md E5), set in the device list in settings.
+  personCap: { title: R.personCapTitle, text: R.personCapText, retry: true, plain: true, retryLabel: R.budgetRetry, go: 'settings' },
 };
 
 /** Returns false when the failure needs no card: a commission that was called off. */

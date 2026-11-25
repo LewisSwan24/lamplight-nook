@@ -235,6 +235,63 @@ try {
   check(files.some((f) => f.endsWith('.docx')), `nook-office made a Word file (${files.join(', ')})`);
   check(files.some((f) => f.endsWith('.eml')), 'the drafts connection wrote a draft');
   await shop.shot(join(out, 'connection.png'));
+
+  // The town (road-to-1.4.md D10): out onto the street, with everything that stands on it, then into each new shop.
+  // The last result's card is put away first, so the pictures show the town.
+  await page.keyboard.press('Escape');
+  await sleep(400);
+  await page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.toolbar.street}"]`).click();
+  await sleep(1500);
+  const street = await page.evaluate(() => {
+    const g = window.lamplightDebug.street;
+    return { out: g.sys.isActive() && g.sys.isVisible(), pictures: ['town-street', 'town-fronts', 'town-props', 'town-signs', 'town-grow', 'town-decor', 'town-story'].filter((k) => !g.textures.exists(k)) };
+  });
+  check(street.out, 'the street shows');
+  check(street.pictures.length === 0, `the street's pictures loaded (missing: ${street.pictures.join(', ')})`);
+  await shop.shot(join(out, 'street.png'));
+  for (const room of ['print', 'studio', 'workshop', 'bakery']) {
+    await page.evaluate((r) => window.lamplightDebug.street.lookAt(r), room);
+    await sleep(300);
+    await page.keyboard.press('Enter');
+    await sleep(2500);
+    const inside = await page.evaluate((r) => ({ here: window.lamplightDebug.scene.room, room: window.lamplightDebug.scene.textures.exists(`room-${r}`) }), room);
+    check(inside.here === room && inside.room, `the ${room} opens with its room (${JSON.stringify(inside)})`);
+    await shop.shot(join(out, `${room}.png`));
+    await page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.toolbar.street}"]`).click();
+    await sleep(1200);
+  }
+  await page.keyboard.press('Escape');
+  await sleep(800);
+
+  // The home network in a packaged shop (docs/plan-1.5.md E8): the switch on, a phone-sized Chrome pairs from the QR
+  // code's address, the page loads with its headers and says it is connected, then the device is removed and the switch
+  // goes off again. Needs this computer on a home network (10.x, 172.16-31.x or 192.168.x).
+  await shop.openSettings('work');
+  await page.locator('label.toggle', { hasText: shop.L.ui.lan.toggle }).click();
+  await sleep(1500);
+  await page.locator('.settings .lan-pair').click();
+  await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+  const lanUrl = await page.locator('.settings .lan-qr').getAttribute('data-url');
+  const browser = await chromium.launch({ channel: 'chrome' });
+  try {
+    const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
+    const served = await phone.goto(lanUrl);
+    check(/frame-ancestors 'none'/.test(served.headers()['content-security-policy'] ?? ''), `the phone page comes from ${new URL(lanUrl).host} with its security policy`);
+    const connected = await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, shop.L.ui.lan.page.connected, { timeout: 10_000 }).then(() => true, () => false);
+    check(connected, 'the phone page pairs and says it is connected');
+    await phone.screenshot({ path: join(out, 'phone.png') });
+    await sleep(2500);
+    check(await page.locator('.settings .lan-qr').isHidden(), 'the QR code is put away once its device has paired');
+    await page.locator('.settings .lan-devices li button.link').click();
+    await sleep(500);
+    check(await page.locator('.settings .lan-devices li').count() === 0, 'the device is removed');
+  } finally {
+    await browser.close();
+  }
+  await page.locator('label.toggle', { hasText: shop.L.ui.lan.toggle }).click();
+  await sleep(500);
+  await page.keyboard.press('Escape');
+  await sleep(500);
   check(await stop(run), 'it closes by itself');
   // It looked for a new version on opening, for real. Offline or not, that is only ever a line in the log.
   const logs = join(home.data, 'logs');

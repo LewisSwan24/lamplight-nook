@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import type { ActorId } from '../../shared/types';
+import { streetGrown, type TownCounts } from '../../shared/towngrow';
 import { animKey } from './sprites';
+import { type Outside, putAway } from './streetdecor';
+import { addUmbrella, holdUmbrella, TownDecor } from './TownDecor';
+import { TownGrowth } from './TownGrowth';
 import { INSET, PAVEMENT_Y, STOPS, STRIP_TOP, type StopId, VIEW, panFor, routeHome, stopForTool, walkMs } from './street';
 
 /** The town's street pictures, drawn in this order (scripts/art/town.py); CafeScene loads them. */
@@ -25,6 +29,11 @@ export class StreetView {
   private frame: Phaser.GameObjects.Graphics;
   private strip: Phaser.GameObjects.Container;
   private images: Phaser.GameObjects.Image[];
+  /** What the town has grown (D5), in the inset as on the street. */
+  private growth: TownGrowth;
+  /** The street's season, festival and weather (D6), in the inset as on the street. */
+  private decor: TownDecor;
+  private umbrella: Phaser.GameObjects.Image;
   private walker?: Phaser.GameObjects.Sprite;
   private zone: Phaser.GameObjects.Zone;
   /** Clips the strip to the inset; weather falling in the street uses it too. */
@@ -47,7 +56,11 @@ export class StreetView {
     this.frame.fillRect(INSET.x, INSET.y, INSET.border, INSET.h).fillRect(INSET.x + INSET.w - INSET.border, INSET.y, INSET.border, INSET.h);
     this.frame.fillStyle(WOOD_LIGHT, 1).fillRect(INSET.x + 1, INSET.y + 1, INSET.w - 2, 1);
     // The town's street, its lower part: the strip's top is the town's STRIP_TOP.
-    this.images = TOWN_LAYERS.map((key) => scene.add.image(0, -STRIP_TOP, key).setOrigin(0));
+    this.growth = new TownGrowth(scene, STRIP_TOP);
+    this.decor = new TownDecor(scene, STRIP_TOP);
+    const [ground, ...fronts] = TOWN_LAYERS.map((key) => scene.add.image(0, -STRIP_TOP, key).setOrigin(0));
+    this.images = [ground, ...this.decor.ground, ...fronts, ...this.growth.images, ...this.decor.up];
+    this.umbrella = addUmbrella(scene);
     this.strip = scene.add.container(VIEW.x, VIEW.y, this.images).setDepth(DEPTH).setVisible(false);
     const mask = scene.make.graphics({}, false).fillStyle(0xffffff).fillRect(VIEW.x, VIEW.y, VIEW.w, VIEW.h);
     this.mask = mask.createGeometryMask();
@@ -65,14 +78,28 @@ export class StreetView {
 
   /** The room's light colour, laid over the street too. */
   setTint(color: number) {
-    for (const image of this.images) image.setTint(color);
+    for (const image of [...this.images, this.umbrella]) image.setTint(color);
     this.walker?.setTint(color);
   }
 
-  /** Keep the strip scrolled to the walker. */
+  /** What the town has done, so the inset shows what has grown along the street. */
+  setTown(counts: TownCounts) {
+    this.growth.show(counts);
+    this.decor.setGrown(streetGrown(counts.total));
+  }
+
+  /** Today's season, festival and weather on the street (D6). */
+  setOutside(outside: Outside) {
+    this.decor.setOutside(outside);
+    this.growth.putAway(putAway(outside));
+  }
+
+  /** Keep the strip scrolled to the walker, and her umbrella over her. */
   update() {
     if (!this.open || !this.walker) return;
     this.strip.x = VIEW.x - panFor(this.walker.x);
+    this.umbrella.setVisible(this.decor.umbrella).setAlpha(this.walker.alpha);
+    holdUmbrella(this.umbrella, this.walker.x, this.walker.y);
   }
 
   /** Where the walker's head is on the canvas, for her mood bubble; null when the inset is closed. */
@@ -95,7 +122,8 @@ export class StreetView {
     this.stop = 'nook';
     this.walker?.destroy();
     this.walker = this.scene.add.sprite(STOPS.nook, PAVEMENT_Y - 6, actor).setOrigin(0.5, 1).setAlpha(0).setTint(tint);
-    this.strip.add(this.walker);
+    this.strip.add([this.walker, this.umbrella]);
+    this.strip.bringToTop(this.umbrella);
     this.show();
     this.route = this.route.then(async () => {
       this.walker?.play(animKey(actor, 'walk', 'down'), true);

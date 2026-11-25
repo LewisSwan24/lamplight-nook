@@ -310,6 +310,10 @@ grow:
   - { id: grow_readinglamp, speaker: xiaoju, when: grow_readinglamp, bubbles: ["A reading lamp on the table!", "Easier on the eyes at night."] }
   - { id: grow_postcards, speaker: qingdai, when: grow_postcards, bubbles: ["Postcards pinned on the wall.", "All places we haven't been yet."] }
   - { id: grow_toolbox, speaker: laoshi, when: grow_toolbox, bubbles: ["Toolbox goes here.", "Help yourself."] }
+  - { id: grow_chalkboard, speaker: xiaoju, when: grow_chalkboard, bubbles: ["A little chalkboard against the wall!", "Old Ma has the same one in his shop."] }
+  - { id: grow_cardline, speaker: xiaoju, when: grow_cardline, bubbles: ["Cards on a string across the window!", "Fern says cards look better hung up."] }
+  - { id: grow_newsletters, speaker: laoshi, when: grow_newsletters, bubbles: ["A pile of newsletters on the sill.", "Mrs Wu asked us to hand them out."], reply: { speaker: adeng, bubbles: ["Take one with your coffee."] } }
+  - { id: grow_cookbook, speaker: laoshi, when: grow_cookbook, bubbles: ["Auntie Olive gave us a recipe book.", "Copied out by hand, every word."], reply: { speaker: xiaoju, bubbles: ["Page one is scallion pancakes!"] } }
   - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["Wind chimes by the window.", "They ring when the breeze comes in."] }
   - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["Sixty jobs, so we got goldfish!", "One's called Wick Junior."], reply: { speaker: laoshi, bubbles: ["I'll change the water."] } }
   - { id: grow_scroll, speaker: adeng, when: grow_scroll, bubbles: ["A scroll on the wall.", "Flint wrote it. Took him all night."] }
@@ -318,7 +322,81 @@ grow:
   - { id: grow_cushion, speaker: xiaoju, when: grow_cushion, bubbles: ["Sewed Chestnut a cushion!", "Chestnut hasn't deigned to try it yet."] }
   - { id: grow_hat, speaker: qingdai, when: grow_hat, bubbles: ["A straw hat by the door.", "For painting outside in summer."] }
   - { id: grow_plaque, speaker: adeng, when: grow_plaque, bubbles: ["A hundred commissions.", "The neighbours chipped in for a sign."], reply: { speaker: laoshi, bubbles: ["It's straight."] } }
+  # The town grows too (road-to-1.4.md D5, shared/towngrow.ts): the street, a shop's front ({shop}), inside the shops along the street.
+  - { id: grow_street_lamps, speaker: xiaoju, when: grow_street_lamps, bubbles: ["Two new lamps on the street!", "No more coming home in the dark."] }
+  - { id: grow_street_bench, speaker: laoshi, when: grow_street_bench, bubbles: ["There's a bench out on the street.", "For tired feet."] }
+  - { id: grow_street_flowers, speaker: qingdai, when: grow_street_flowers, bubbles: ["Big tubs of flowers along the street.", "Red, yellow and pink, all out."] }
+  - { id: grow_street_stall, speaker: xiaoju, when: grow_street_stall, bubbles: ["A cart of flowers and greens in the lot!", "I'll go see if they have oranges."] }
+  - { id: grow_street_park, speaker: adeng, when: grow_street_park, bubbles: ["They planted trees in the lot.", "The neighbours want a little park there."] }
+  - { id: grow_street_fountain, speaker: qingdai, when: grow_street_fountain, bubbles: ["A fountain in the lot now.", "Seventy jobs. The street feels lively."], reply: { speaker: laoshi, bubbles: ["Nice sound, the water."] } }
+  - { id: grow_front_pot, speaker: adeng, when: grow_front_pot, bubbles: ["A pot of flowers by the door at {shop}."] }
+  - { id: grow_front_sign, speaker: xiaoju, when: grow_front_sign, bubbles: ["New sign over at {shop}!", "You can see it from the corner."] }
+  - { id: grow_front_bunting, speaker: qingdai, when: grow_front_bunting, bubbles: ["Flags over the door at {shop}.", "They've been busy over there."] }
+  - { id: grow_print_proof, speaker: adeng, when: grow_print_proof, bubbles: ["The print shop framed its first proof."] }
+  - { id: grow_print_ivy, speaker: xiaoju, when: grow_print_ivy, bubbles: ["There's ivy hanging in the print shop."] }
+  - { id: grow_print_typecase, speaker: laoshi, when: grow_print_typecase, bubbles: ["Pica hung up a case of type.", "A letter to each box."] }
+  - { id: grow_print_ribbon, speaker: adeng, when: grow_print_ribbon, bubbles: ["The print shop got a certificate.", "Twenty jobs. Pica wants it framed."] }
+  - { id: grow_studio_sketch, speaker: qingdai, when: grow_studio_sketch, bubbles: ["The studio hung its first sketch."] }
+  - { id: grow_studio_ivy, speaker: xiaoju, when: grow_studio_ivy, bubbles: ["The studio has ivy too!"] }
+  - { id: grow_studio_palette, speaker: qingdai, when: grow_studio_palette, bubbles: ["Umber hung an old palette on the wall.", "The paint has dried in lumps."] }
+  - { id: grow_studio_gallery, speaker: qingdai, when: grow_studio_gallery, bubbles: ["The studio wall is full of little paintings.", "Twenty jobs, one each."] }
+  - { id: grow_workshop_gear, speaker: laoshi, when: grow_workshop_gear, bubbles: ["The workshop framed its first gear."] }
+  - { id: grow_workshop_ivy, speaker: xiaoju, when: grow_workshop_ivy, bubbles: ["Ivy in the workshop. It smells less of oil."] }
+  - { id: grow_workshop_clock, speaker: laoshi, when: grow_workshop_clock, bubbles: ["Tack made a wall clock.", "Keeps good time."] }
+  - { id: grow_workshop_blueprint, speaker: adeng, when: grow_workshop_blueprint, bubbles: ["A blueprint pinned up in the workshop.", "Twenty jobs. Tack wants to build big."] }
+  - { id: grow_bakery_wheat, speaker: adeng, when: grow_bakery_wheat, bubbles: ["A sheaf of wheat up in the bakery.", "For a good harvest, Auntie Olive says."] }
+  - { id: grow_bakery_ivy, speaker: xiaoju, when: grow_bakery_ivy, bubbles: ["Ivy in the bakery too.", "It likes it by the ovens."] }
+  - { id: grow_bakery_pin, speaker: laoshi, when: grow_bakery_pin, bubbles: ["Her old rolling pin is on the wall now.", "Twenty years of use. She won't part with it."] }
+  - { id: grow_bakery_garland, speaker: adeng, when: grow_bakery_garland, bubbles: ["A string of little buns in the bakery.", "Twenty jobs. Auntie Olive is celebrating."] }
+  - { id: grow_post_stamp, speaker: adeng, when: grow_post_stamp, bubbles: ["The post office framed its first stamp.", "Pip says his hands shook that day."] }
+  - { id: grow_post_ivy, speaker: xiaoju, when: grow_post_ivy, bubbles: ["The post office has an ivy pot too.", "By the sorting rack. It keeps the sun off."] }
+  - { id: grow_post_horn, speaker: laoshi, when: grow_post_horn, bubbles: ["Pip hung a brass post horn up.", "Riders blew those, back in the day."] }
+  - { id: grow_post_map, speaker: adeng, when: grow_post_map, bubbles: ["A map of the rounds in the post office.", "Twenty jobs. Pip says every door has a pin."] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["A teapot on the desk.", "A cup for anyone who comes in."] }
   - { id: grow_fruit, scene: study, speaker: xiaoju, when: grow_fruit, bubbles: ["Fruit on the reading table!", "The tangerines are mine."] }
+
+# Orders sent to the shops along the street (road-to-1.4.md D3); see lines/cafe.yaml. {shop} is "the print shop" and so on.
+dispatch_go:
+  - { id: dispatch_go_01, speaker: adeng, bubbles: ["This one's for {shop}.", "I'll take the slip over."] }
+  - { id: dispatch_go_02, speaker: adeng, bubbles: ["Nobody does this like {shop}.", "Back in a bit."] }
+  - { id: dispatch_go_03, speaker: adeng, bubbles: ["Slip in hand,", "off to {shop}."] }
+
+dispatch_hand:
+  - { id: dispatch_hand_01, speaker: adeng, bubbles: ["{brief}. All yours.", "I'll mind the shop."] }
+  - { id: dispatch_hand_02, speaker: adeng, bubbles: ["One for you: {brief}.", "Give me a shout when it's done."] }
+  - { id: dispatch_hand_03, speaker: adeng, bubbles: ["Slip's on the desk.", "I'm heading back."] }
+
+cross_out:
+  - { id: cross_out_aq_01, speaker: aqian, bubbles: ["This step wants {shop}.", "Back shortly."] }
+  - { id: cross_out_aq_02, speaker: aqian, bubbles: ["They know this at {shop}.", "I'll take it over."] }
+  - { id: cross_out_aq_03, speaker: aqian, bubbles: ["Can't set this in type.", "Off to {shop}."] }
+  - { id: cross_out_xz_01, speaker: xiaozhe, bubbles: ["That's one for {shop}."] }
+  - { id: cross_out_xz_02, speaker: xiaozhe, bubbles: ["Going over to {shop}."] }
+  - { id: cross_out_xz_03, speaker: xiaozhe, bubbles: ["{shop} should do this.", "I'll carry it."] }
+  - { id: cross_out_xd_01, speaker: xiaoding, bubbles: ["{shop} has the right gear.", "Borrowing a hand!"] }
+  - { id: cross_out_xd_02, speaker: xiaoding, bubbles: ["That's {shop}'s job.", "Back in a jiffy!"] }
+  - { id: cross_out_xd_03, speaker: xiaoding, bubbles: ["Over to {shop},", "humming all the way."] }
+  - { id: cross_out_gy_01, speaker: guiyi, bubbles: ["This needs {shop}'s help.", "I'll turn the oven down."] }
+  - { id: cross_out_gy_02, speaker: guiyi, bubbles: ["{shop} is good at this.", "I'll take them a couple of rolls."] }
+  - { id: cross_out_gy_03, speaker: guiyi, bubbles: ["Popping over to {shop}.", "The dough can rest meanwhile."] }
+  - { id: cross_out_ax_01, speaker: axin, bubbles: ["This goes on to {shop}.", "It's on my way."] }
+  - { id: cross_out_ax_02, speaker: axin, bubbles: ["{shop} is good at this.", "I'll run it over."] }
+  - { id: cross_out_ax_03, speaker: axin, bubbles: ["Forwarding it to {shop}.", "I'll bring back a receipt."] }
+
+cross_take:
+  - { id: cross_take_aq_01, speaker: aqian, bubbles: ["A print for {shop}.", "Setting it now."] }
+  - { id: cross_take_aq_02, speaker: aqian, bubbles: ["Work from {shop}.", "Every letter checked."] }
+  - { id: cross_take_aq_03, speaker: aqian, bubbles: ["{shop}'s job.", "Leave it with me."] }
+  - { id: cross_take_xz_01, speaker: xiaozhe, bubbles: ["{shop} wants a picture.", "I'll paint it."] }
+  - { id: cross_take_xz_02, speaker: xiaozhe, bubbles: ["For {shop}...", "colours first."] }
+  - { id: cross_take_xz_03, speaker: xiaozhe, bubbles: ["One for {shop}.", "Umber underneath."] }
+
+cross_back:
+  - { id: cross_back_aq_01, speaker: aqian, bubbles: ["Printed. The ink's still fresh."] }
+  - { id: cross_back_aq_02, speaker: aqian, bubbles: ["Done at {shop}.", "Have a look."] }
+  - { id: cross_back_aq_03, speaker: aqian, bubbles: ["Set and printed,", "not a letter wrong."] }
+  - { id: cross_back_xz_01, speaker: xiaozhe, bubbles: ["Painted.", "See if the colours suit."] }
+  - { id: cross_back_xz_02, speaker: xiaozhe, bubbles: ["Here's the picture.", "It's dry."] }
+  - { id: cross_back_xz_03, speaker: xiaozhe, bubbles: ["From {shop},", "for you."] }

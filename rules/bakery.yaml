@@ -1,0 +1,388 @@
+# Bakery rules (plan-1.6.md F1): the same format as rules/cafe.yaml, whose header explains it.
+# All the work goes to Auntie Gui the baker; Adeng only comes in with the order from home (D3),
+# hands it over at the counter and goes home again.
+# The cafe's spots go by other names here: counter = the bread counter, board = the ovens,
+# shelf = the bread racks, table = the kneading table, corner = the dough mixer. Nobody goes out: helpers' errands are
+# Auntie Gui walking to a spot. The filing cabinet and the letter holder are the home shop's, so they stay out of it.
+
+- on: session_start
+  actor: guiyi
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: opening
+  priority: work
+  extra:
+    - { actor: adeng, state: ready, moveTo: counter, anim: gift, lines: dispatch_hand, own_lines: true, leave: true, priority: work }
+
+# Thinking it through by the ovens, the way she plans a morning's baking.
+- on: plan
+  actor: guiyi
+  state: working
+  moveTo: board
+  anim: write
+  bubble: note
+  lines: planning
+  priority: work
+
+- on: thinking
+  actor: guiyi
+  state: thinking
+  anim: spin_cup
+  bubble: dots
+  priority: work
+
+# Helpers' errands: looking it up along the bread racks, trying it at the kneading table, setting it out by the ovens.
+- on: subagent_start
+  when: { agent: researcher }
+  actor: guiyi
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: researcher }
+  actor: guiyi
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: reviewer }
+  actor: guiyi
+  state: checking
+  moveTo: corner
+  anim: push
+  lines: sub_go_review
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: reviewer }
+  actor: guiyi
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: sub_back_review
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: designer }
+  actor: guiyi
+  state: working
+  moveTo: board
+  anim: read
+  bubble: idea
+  lines: sub_go_design
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: designer }
+  actor: guiyi
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_design
+  priority: subagent
+
+# Unrecognized helpers: looked up along the racks too.
+- on: subagent_start
+  actor: guiyi
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  actor: guiyi
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: tool_start
+  when: { agent: researcher }
+  actor: guiyi
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+- on: tool_start
+  when: { agent: reviewer }
+  actor: guiyi
+  state: checking
+  anim: push
+  priority: work
+
+- on: tool_start
+  when: { agent: designer }
+  actor: guiyi
+  state: working
+  anim: read
+  bubble: idea
+  priority: work
+
+- on: tool_start
+  when: { agent: unknown }
+  actor: guiyi
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+# The list by the ovens changes: Auntie Gui goes over and reads it through.
+- on: progress
+  when: { agent: main }
+  actor: guiyi
+  state: working
+  moveTo: board
+  anim: read
+  priority: chat
+
+# Office tools: a document is read by the bread racks; a finished file is laid on the bread counter.
+- on: tool_start
+  when: { agent: main, tool: mcp__nook-office__read_document }
+  actor: guiyi
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: [mcp__nook-office__make_docx, mcp__nook-office__make_xlsx, mcp__nook-office__make_pptx, mcp__nook-office__make_pdf, mcp__nook-office__edit_docx, mcp__nook-office__edit_xlsx, mcp__nook-office__edit_pptx, mcp__nook-office__render_png] }
+  actor: guiyi
+  state: working
+  moveTo: counter
+  anim: gift
+  priority: work
+
+# Connections: no letter holder here, so what comes in is read at the bread counter.
+- on: tool_start
+  when: { agent: main, tool: [mcp__nook-calendar__events, mcp__nook-folder__list, mcp__nook-folder__read] }
+  actor: guiyi
+  state: working
+  moveTo: counter
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-folder__save_copy }
+  actor: guiyi
+  state: working
+  moveTo: shelf
+  anim: gift
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-maildraft__draft }
+  actor: guiyi
+  state: working
+  moveTo: counter
+  anim: gift
+  lines: draft_ready
+  priority: work
+
+# Making it at the bread counter.
+- on: tool_start
+  when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
+  actor: guiyi
+  state: working
+  moveTo: counter
+  anim: write
+  lines: writing
+  priority: work
+
+# Running something is minding the dough mixer.
+- on: tool_start
+  when: { agent: main, tool: [Bash, PowerShell] }
+  actor: guiyi
+  state: working
+  moveTo: corner
+  anim: write
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [WebSearch, WebFetch] }
+  actor: guiyi
+  state: working
+  moveTo: counter
+  anim: phone
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Read, Glob, Grep] }
+  actor: guiyi
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_start
+  when: { agent: main }
+  actor: guiyi
+  state: working
+  moveTo: table
+  anim: write
+  priority: work
+
+- on: long_wait
+  actor: guiyi
+  state: waiting
+  moveTo: window
+  anim: drink
+  bubble: tea
+  lines: waiting
+  priority: work
+
+- on: tool_fail
+  when: { failStreak: { lt: 3 } }
+  actor: guiyi
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck
+  own_lines: true
+  priority: fail
+
+- on: tool_fail
+  actor: guiyi
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck_long
+  priority: fail
+
+- on: tool_ok
+  when: { agent: main }
+  actor: guiyi
+  state: working
+  priority: chat
+
+- on: ask_user
+  actor: guiyi
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: permission
+  when: { risk: [serious, blocked] }
+  actor: guiyi
+  state: serious
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: serious
+  priority: serious
+
+- on: permission
+  actor: guiyi
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: decision
+  when: { choice: picked }
+  actor: guiyi
+  state: reacting
+  anim: idle
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  when: { choice: delegated }
+  actor: guiyi
+  state: reacting
+  anim: idle
+  lines: react_delegated
+  priority: fail
+
+- on: decision
+  when: { choice: allowed, risk: serious }
+  actor: guiyi
+  state: reacting
+  lines: serious_yes
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: blocked }
+  actor: guiyi
+  state: working
+  lines: refused
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: serious }
+  actor: guiyi
+  state: reacting
+  lines: serious_no
+  priority: fail
+
+- on: decision
+  when: { choice: allowed }
+  actor: guiyi
+  state: reacting
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  actor: guiyi
+  state: reacting
+  lines: react_rejected
+  own_lines: true
+  priority: fail
+
+- on: done
+  actor: guiyi
+  state: wrapping
+  moveTo: counter
+  anim: idle
+  lines: done
+  priority: fail
+
+- on: failed
+  actor: guiyi
+  state: low
+  moveTo: counter
+  anim: idle
+  lines: failed
+  priority: fail
+
+- on: net_error
+  actor: guiyi
+  state: low
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: failed
+  priority: fail
+
+- on: net_retry
+  actor: guiyi
+  state: waiting
+  moveTo: window
+  anim: idle
+  bubble: dots
+  lines: net_retry
+  priority: fail
+
+- on: cancelled
+  actor: guiyi
+  state: idle
+  moveTo: counter
+  anim: idle
+  lines: cancelled
+  priority: fail

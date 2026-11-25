@@ -22,13 +22,20 @@ export const OPEN: ReadonlySet<ShopId> = new Set(ROOMS);
 
 /**
  * What a click on a front does (D2): back into the room you came out of, into another room (the home shop is one, from
- * the others), or a word on the street. Another room waits while work goes on: only one room works at a time until D3.
+ * the others), or a word on the street. Every room keeps working while you are elsewhere (D3), so any can be gone into.
  */
-export function entering(id: ShopId, at: { here: RoomId; busy: boolean }): 'back' | 'visit' | 'busy' | 'closed' {
+export function entering(id: ShopId, at: { here: RoomId }): 'back' | 'visit' | 'closed' {
   if (id === at.here) return 'back';
-  if (!OPEN.has(id)) return 'closed';
-  return at.busy ? 'busy' : 'visit';
+  return OPEN.has(id) ? 'visit' : 'closed';
 }
+
+export { roomFor } from '../../shared/dispatch';
+
+/**
+ * Whether the view goes to the shop of a round that just started (D3): only one the user placed, and only if they have
+ * not gone into another room or out on the street since. Once they walk off, nothing pulls them back.
+ */
+export const followsOrder = (at: { placedAt?: number; movedAt: number }): boolean => at.placedAt !== undefined && at.movedAt <= at.placedAt;
 
 /** How much of the street the canvas shows at once. */
 export const CAMERA_W = CANVAS.width;
@@ -36,9 +43,13 @@ export const CAMERA_W = CANVAS.width;
 /** Where feet stand at a door: on the pavement, just in front of it. */
 export const doorOf = (id: ShopId): Point => ({ x: FRONTS.find((f) => f.id === id)!.door, y: TOWN.kerb + 4 });
 
-/** The pavement, with what stands on it. */
+/**
+ * The pavement, with what stands on it: what is there from the start, and what grows there (D5), grown or not, so a
+ * walk stays the same as the town grows.
+ */
 export function streetArea(): Area {
-  const obstacles: Box[] = data.props.map((p) => ({ left: p.left - 1, right: p.right + 1, top: p.top - 1, bottom: p.bottom + 1 }));
+  const feet = [...data.props, ...data.grow.flatMap((p) => ('foot' in p && p.foot ? [p.foot] : []))];
+  const obstacles: Box[] = feet.map((p) => ({ left: p.left - 1, right: p.right + 1, top: p.top - 1, bottom: p.bottom + 1 }));
   return { left: 4, right: TOWN.width - 4, top: TOWN.kerb + 4, bottom: TOWN.road - 4, obstacles };
 }
 

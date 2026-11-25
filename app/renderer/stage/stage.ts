@@ -77,6 +77,13 @@ export class Stage {
   speed = 1;
   /** Called with every event, live or replayed (the detail strip listens here). */
   onEvent: (e: AiEvent) => void = () => {};
+  /** A command for another room (road-to-1.4.md D3): the shop doing an errand for this one. The page hands it over. */
+  onElsewhere: (cmd: CharacterCommand) => void = () => {};
+  /**
+   * Whether this room is the one on screen (D3). Rooms out of sight go on acting, hidden; only the one on screen chalks
+   * the blackboard and puts parcels on the counter, which are the page's and shared by every room.
+   */
+  private shown = true;
 
   /** Stops listening for rule file changes, when the room is left (D2). */
   readonly dispose: () => void;
@@ -85,6 +92,7 @@ export class Stage {
     const book = ruleBook(scene.room);
     this.translator = new Translator(book.rules, book.anims, { brief: opts.brief });
     this.translator.crew = ROOM_CREW[scene.room];
+    this.translator.room = scene.room;
     this.director = new Director(toLineBook(book.lines));
     const off = onRuleBookChange(() => {
       const b = ruleBook(scene.room);
@@ -119,6 +127,33 @@ export class Stage {
     for (const cmd of this.director.letGo()) void this.perform(cmd);
   }
 
+  /** On screen or out of sight (D3): coming on screen, the blackboard shows this room's plan. */
+  set onScreen(on: boolean) {
+    this.shown = on;
+    // A room with nothing under way shows a clean blackboard rather than the last room's chalk.
+    if (on && this.translator.running.length) this.drawBoard();
+    else if (on) renderBoard([]);
+  }
+  get onScreen() { return this.shown; }
+
+  /** A command from another room's round, or one the page makes itself (D3): played here like this room's own. */
+  take(cmds: CharacterCommand[]) {
+    for (const cmd of cmds) {
+      const now = this.director.submit(cmd);
+      if (now) void this.perform(now);
+    }
+  }
+
+  /** An order for a street shop (D3): Adeng carries the slip out of the home shop's door. */
+  dispatch(run: string, shop: Parameters<Translator['dispatch']>[1]) {
+    this.take(this.translator.dispatch(run, shop));
+  }
+
+  /** Adeng is back from carrying an order over. */
+  homeAgain() {
+    this.take(this.translator.homeAgain());
+  }
+
   /** The rounds under way, from the main process (B9): their projects' names and colours. */
   setRuns(list: { run: string; title: string; color: string }[]) {
     this.projects = new Map(list.map((r) => [r.run, { title: r.title, color: r.color }]));
@@ -135,10 +170,10 @@ export class Stage {
 
   /** Flags over the heads of whoever works for a round, while two are under way; and which crew's places each takes. */
   redress() {
-    for (const actor of STAFF) {
+    for (const actor of ROOM_CREW[this.scene.room].filter((a) => a !== 'cat')) {
       const run = this.crewOf(actor);
       const color = this.together && run !== undefined ? this.projects.get(run)?.color ?? null : null;
-      this.scene.setCrew(actor, color, run !== undefined && this.leadOf(run) === 'qingdai');
+      this.scene.setCrew(actor, color, run !== undefined && this.translator.second(run));
     }
   }
 
@@ -154,6 +189,7 @@ export class Stage {
 
   /** The blackboard: the lead round's plan; with two under way, a column for each, Adeng's crew on the left (B9). */
   private drawBoard() {
+    if (!this.shown) return;
     const both = this.translator.running.filter((r) => this.projects.has(r) && this.plans.has(r));
     if (this.together && both.length > 1) {
       both.sort((a, b) => Number(this.leadOf(a) !== 'adeng') - Number(this.leadOf(b) !== 'adeng'));
@@ -209,6 +245,11 @@ export class Stage {
     // The user answered: release the freeze before the reactions are queued.
     if (e.kind === 'decision') for (const cmd of this.director.unfreeze()) void this.perform(cmd);
     for (const cmd of this.translator.translate(e)) {
+      // Another shop's part in an errand (D3) is played over there.
+      if (cmd.room && cmd.room !== this.scene.room) {
+        this.onElsewhere(cmd);
+        continue;
+      }
       const now = this.director.submit(cmd);
       if (now) void this.perform(now);
     }
@@ -218,7 +259,7 @@ export class Stage {
       this.redress();
     }
     // What a helper brought back waits on the counter, from whoever brought it.
-    if (e.kind === 'subagent_stop' && e.target) showParcel(this.translator.returned, e.target);
+    if (e.kind === 'subagent_stop' && e.target && this.shown) showParcel(this.translator.returned, e.target);
     if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') this.ended(run);
   }
 
@@ -344,8 +385,15 @@ export class Stage {
       if (last) this.hide(actor, last);
       await this.scene.walkTo(actor, 'door');
     }
+    // Handed over what they came with (D3): out of the door again, once the line has been read.
+    if (cmd.leave && !goingOut) {
+      await this.wait(turns.length ? SPEAK_MS : ACTION_MS);
+      if (replaced()) return;
+      if (last) this.hide(actor, last);
+      await this.scene.walkTo(actor, 'door');
+    }
     if (replaced()) return;
-    this.timers.set(actor, setTimeout(() => this.done(actor), (turns.length && !goingOut ? SPEAK_MS : ACTION_MS) / this.speed));
+    this.timers.set(actor, setTimeout(() => this.done(actor), (turns.length && !goingOut && !cmd.leave ? SPEAK_MS : ACTION_MS) / this.speed));
   }
 
   /**
@@ -355,7 +403,7 @@ export class Stage {
   private skip(cmd: CharacterCommand, info: ActorInfo) {
     const { actor } = cmd;
     for (const [who, owner] of [...this.owner]) if (owner === actor) this.hide(actor, who);
-    if (cmd.moveTo) this.scene.place(actor, cmd.moveTo);
+    if (cmd.moveTo) this.scene.place(actor, cmd.leave ? 'door' : cmd.moveTo);
     if (cmd.post === 'outbox') this.scene.outbox(true);
     this.scene.play(actor, cmd.anim);
     const vars = cmd.line?.vars ?? {};
@@ -375,7 +423,8 @@ export class Stage {
   private voices(cmd: CharacterCommand): [ActorId, ActorId | undefined] {
     const vars = cmd.line?.vars ?? {};
     const lead = this.leadOf(cmd.run);
-    const as = (who: ActorId) => (who === 'adeng' ? lead : who);
+    // Only at home does someone else speak Adeng's part; in a street shop he speaks for himself, bringing the slip (D3).
+    const as = (who: ActorId) => (who === 'adeng' && lead === 'qingdai' ? lead : who);
     const speaker = as((vars._speaker as ActorId) || cmd.actor);
     const replyBy = vars._replyBy ? as(vars._replyBy as ActorId) : undefined;
     return [speaker, replyBy === speaker ? undefined : replyBy];

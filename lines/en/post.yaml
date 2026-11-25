@@ -1,0 +1,224 @@
+# Dialogue for the post office (plan-1.6.md F2), in English. Laid over lines/en/cafe.yaml; same groups as lines/post.yaml.
+# Pip the postman does all the work; Wick only brings the order over and answers now and then.
+# Spots: the post office counter (counter), the sorting rack (board), the parcel shelf (shelf), the packing table (table),
+# the postbox (corner). Each bubble is at most 44 characters; at most one "!" per bubble.
+
+opening:
+  - { id: po_revise_again_01, speaker: axin, when: revise_again, bubbles: ["Last time it was \"{lastAsk}\".", "This time, \"{brief}\". Got it."] }
+  - { id: po_revise_01, speaker: axin, when: revise, bubbles: ["\"{brief}\"? All right.", "The envelope's not sealed yet. Easy."] }
+  - { id: po_revise_02, speaker: axin, when: revise, bubbles: ["Things come back for changes. It happens.", "\"{brief}\". On it."] }
+  - { id: po_revise_03, speaker: axin, when: revise, bubbles: ["I kept a copy of the old one.", "\"{brief}\". I'll shout when it's done."] }
+  - { id: po_mem_02, speaker: axin, when: has_stuck_note, bubbles: ["\"{brief}\". Got it.", "Last time {stuckNote} held us up.", "I'll go round that bit first."] }
+  - { id: po_mem_01, speaker: axin, when: has_memory, bubbles: ["\"{brief}\". Got it.", "Last time you picked {lastChoice}.", "Same again, then."] }
+  - { id: po_tpl_card_01, speaker: axin, when: tpl_card, bubbles: ["A card? I handle those every day.", "Names exactly as you gave them."] }
+  - { id: po_tpl_card_02, speaker: axin, when: tpl_card, bubbles: ["A card should make them smile on sight.", "Few words, and the right ones."] }
+  - { id: po_tpl_newsletter_01, speaker: axin, when: tpl_newsletter, bubbles: ["A newsletter? I've delivered plenty.", "The big news goes first."] }
+  - { id: po_tpl_newsletter_02, speaker: axin, when: tpl_newsletter, bubbles: ["Dates and places get a list of their own.", "Pinned up, it reads at a glance."] }
+  - { id: po_handed_01, speaker: axin, when: handed, bubbles: ["Got your things. Let me open them up.", "\"{brief}\". Got it."] }
+  - { id: po_opening_01, speaker: axin, bubbles: ["\"{brief}\"?", "Right, let me put the mail bag down."] }
+  - { id: po_opening_02, speaker: axin, bubbles: ["\"{brief}\"...", "The early post's sorted. Good timing."] }
+  - { id: po_opening_03, speaker: axin, bubbles: ["Work's in.", "\"{brief}\". I'll log it first."] }
+
+planning:
+  - { id: po_plan_01, speaker: axin, bubbles: ["Plan the round first. Same as the post."] }
+  - { id: po_plan_02, speaker: axin, bubbles: ["Which door comes first..."] }
+  - { id: po_plan_03, speaker: axin, bubbles: ["Three stops. One at a time."] }
+
+draft_ready:
+  - { id: po_draft_ready_01, speaker: axin, bubbles: ["The letter's written. It's on the counter.", "No stamp on it. You send it yourself."] }
+  - { id: po_draft_ready_02, speaker: axin, bubbles: ["The draft's ready.", "Sending it is up to you."] }
+  - { id: po_draft_ready_03, speaker: axin, bubbles: ["Not posted. It's under the date stamp."] }
+
+writing:
+  - { id: po_write_01, speaker: axin, bubbles: ["Off we go."] }
+  - { id: po_write_02, speaker: axin, bubbles: ["That one's sorted. Next."] }
+  - { id: po_write_03, speaker: axin, bubbles: ["Hmm...", "Nice clear address on this."] }
+  - { id: po_write_04, speaker: axin, bubbles: ["Into the envelope. Stamps can wait."] }
+
+sub_go_research:
+  - { id: po_go_rs_rain, speaker: axin, when: sky_rain, bubbles: ["Raining. Keep the parcels dry.", "I'll look for {topic} on the shelf."] }
+  - { id: po_go_rs_01, speaker: axin, bubbles: ["{topic}? I'll dig through the parcels."] }
+  - { id: po_go_rs_02, speaker: axin, bubbles: ["I logged it in one of these books..."] }
+  - { id: po_go_rs_03, speaker: axin, bubbles: ["The old records are bundled at the back."] }
+
+sub_back_research:
+  - { id: po_back_rs_01, speaker: axin, bubbles: ["Found it.", "{count} of them we can use."] }
+  - { id: po_back_rs_02, speaker: axin, bubbles: ["This checks out.", "Same as the neighbours say."] }
+  - { id: po_back_rs_03, speaker: axin, bubbles: ["All here, in house-number order."] }
+
+sub_go_review:
+  - { id: po_go_rv_01, speaker: axin, bubbles: ["I'll go over it at the packing table."] }
+  - { id: po_go_rv_02, speaker: axin, bubbles: ["Every address checked, one by one."] }
+  - { id: po_go_rv_03, speaker: axin, bubbles: ["Letter by letter."] }
+
+sub_back_review:
+  - { id: po_back_rv_issue, speaker: axin, when: has_issues, bubbles: ["{issueCount} things don't match.", "I tucked a slip in at each."] }
+  - { id: po_back_rv_ok, speaker: axin, when: no_issues, bubbles: ["Checked end to end. Nothing misdelivered."] }
+  - { id: po_back_rv_ok2, speaker: axin, when: no_issues, bubbles: ["Checked. Every address is right."] }
+
+sub_go_design:
+  - { id: po_go_ds_rain, speaker: axin, when: sky_rain, bubbles: ["Rainy day. Nobody's posting anything.", "I'll sketch it out by the sorting rack."] }
+  - { id: po_go_ds_01, speaker: axin, bubbles: ["I'll try a few by the sorting rack."] }
+  - { id: po_go_ds_02, speaker: axin, bubbles: ["How should it look..."] }
+  - { id: po_go_ds_03, speaker: axin, bubbles: ["I'll cut a shape from an old envelope."] }
+
+sub_back_design:
+  - { id: po_back_ds_01, speaker: axin, bubbles: ["That's the look.", "Like a good postcard."] }
+  - { id: po_back_ds_02, speaker: axin, bubbles: ["Cut out. Have a look."] }
+  - { id: po_back_ds_03, speaker: axin, bubbles: ["Three of them. I like the middle one."] }
+
+stuck:
+  - { id: po_stuck_01, speaker: axin, bubbles: ["Huh. Nobody at that address.", "I'll try another way."] }
+  - { id: po_stuck_02, speaker: axin, bubbles: ["That's not right. {whatsWrong}."] }
+  - { id: po_stuck_03, speaker: axin, bubbles: ["The postmark's gone crooked..."] }
+  - { id: po_stuck_04, speaker: axin, bubbles: ["Wrong pigeonhole.", "Sorting it again."] }
+
+stuck_long:
+  - { id: po_stuck_long_01, speaker: axin, bubbles: ["This one takes some doing.", "I'll make a few more runs. Carry on."] }
+  - { id: po_stuck_long_02, speaker: axin, bubbles: ["Still at it. Not giving up."] }
+  - { id: po_stuck_long_03, speaker: axin, bubbles: ["Bear with me. Long way round."] }
+
+waiting:
+  - { id: po_wait_01, speaker: axin, bubbles: ["It's on its way. Hang on."] }
+  - { id: po_wait_02, speaker: axin, bubbles: ["No reply yet. Give it a moment."] }
+  - { id: po_wait_03, speaker: axin, bubbles: ["It'll come when the van comes."] }
+
+ask:
+  - { id: po_ask_color, speaker: axin, when: demo_color, bubbles: ["Cream or pale mint. A card in each.", "Which one?"] }
+  - { id: po_ask_01, speaker: axin, bubbles: ["Can I ask you something?", "{question}"] }
+  - { id: po_ask_02, speaker: axin, bubbles: ["There are two roads from here.", "Pick one?"] }
+
+react_adopted:
+  - { id: po_react_ad_01, speaker: axin, bubbles: ["Good. That's how it goes out."] }
+  - { id: po_react_ad_02, speaker: axin, bubbles: ["Noted. It's on the board."] }
+  - { id: po_react_ad_03, speaker: axin, bubbles: ["I'd have picked that one too."] }
+
+react_rejected:
+  - { id: po_react_rj_01, speaker: axin, bubbles: ["Fine. Your call."] }
+  - { id: po_react_rj_02, speaker: axin, bubbles: ["I'll keep that one for another time."] }
+  - { id: po_react_rj_03, speaker: axin, bubbles: ["Right. A different one."] }
+
+react_delegated:
+  - { id: po_react_dl_00, speaker: axin, bubbles: ["All right, I'll decide.", "I'll tell you once I have."] }
+  - { id: po_react_dl_01, speaker: axin, bubbles: ["{choice}, then, because {reason}.", "Say if it doesn't suit."] }
+  - { id: po_react_dl_02, speaker: axin, bubbles: ["I'll try {choice} first.", "We can swap it later."] }
+  - { id: po_react_dl_03, speaker: axin, bubbles: ["{choice}.", "The why is on the board."] }
+
+serious:
+  - { id: po_serious_01, speaker: axin, bubbles: ["This step means {action}.", "Once it's done, {consequence}.", "Have a look before you decide."] }
+  - { id: po_serious_02, speaker: axin, bubbles: ["I won't touch this on my own.", "{action}: {consequence}."] }
+  - { id: po_serious_03, speaker: axin, bubbles: ["Once it's in the postbox, it's gone.", "Look closely before you click."] }
+
+refused:
+  - { id: po_refused_01, speaker: axin, bubbles: ["Can't touch that.", "Another way."] }
+  - { id: po_refused_02, speaker: axin, bubbles: ["That's not ours to do."] }
+  - { id: po_refused_03, speaker: axin, bubbles: ["Someone else's letter. I don't open it."] }
+
+serious_yes:
+  - { id: po_serious_yes_01, speaker: axin, bubbles: ["Right, I'll do it."] }
+  - { id: po_serious_yes_02, speaker: axin, bubbles: ["Understood. Going ahead."] }
+  - { id: po_serious_yes_03, speaker: axin, bubbles: ["Done deal."] }
+
+serious_no:
+  - { id: po_serious_no_01, speaker: axin, bubbles: ["Fine, I'll leave it.", "I'll find a way that doesn't need it."] }
+  - { id: po_serious_no_02, speaker: axin, bubbles: ["Fine, I'll hold it back."] }
+  - { id: po_serious_no_03, speaker: axin, bubbles: ["Leaving it. I'll go round."] }
+
+done:
+  - { id: po_done_day, speaker: axin, when: daytime, bubbles: ["Done. It's on the counter.", "Have a look while it's light."] }
+  - { id: po_done_dusk, speaker: axin, when: dusk, bubbles: ["Done.", "Getting dark. End of my round."] }
+  - { id: po_done_night, speaker: axin, when: night, bubbles: ["Done.", "It's late. Read it, then get some sleep."] }
+  - { id: po_done_01, speaker: axin, bubbles: ["Delivered. Not a letter lost."] }
+  - { id: po_done_02, speaker: axin, bubbles: ["Done. Ready to use.", "I checked it twice from the top."] }
+
+failed:
+  - { id: po_failed_01, speaker: axin, bubbles: ["Couldn't get it there this time. Sorry.", "It stuck at {stuckAt}.", "I've put it on the board.", "Another road next time."] }
+  - { id: po_failed_02, speaker: axin, bubbles: ["Didn't make it.", "Stuck at {stuckAt}. Noted."] }
+  - { id: po_failed_03, speaker: axin, bubbles: ["That's it for today.", "What went wrong is on the board."] }
+
+net_retry:
+  - { id: po_net_retry_01, speaker: axin, bubbles: ["The line's gone dead. I'll try again."] }
+  - { id: po_net_retry_02, speaker: axin, bubbles: ["Nobody's answering. I'll knock again."] }
+  - { id: po_net_retry_03, speaker: axin, bubbles: ["The van's not here yet. I'll ask later."] }
+
+cancelled:
+  - { id: po_cancelled_01, speaker: axin, bubbles: ["All right, it can wait."] }
+  - { id: po_cancelled_02, speaker: axin, bubbles: ["Fine. I'll keep what's done."] }
+  - { id: po_cancelled_03, speaker: axin, bubbles: ["Right, not sending it.", "It goes in the drawer for tomorrow."] }
+
+# What Pip says as you walk into the post office (plan-1.6.md F5, app/renderer/stage/shoptalk.ts): the holiday's line
+# first, then the weather's, else one for the hour, the season or any time. Same ids as lines/post.yaml.
+shop_in:
+  - { id: po_in_01, speaker: axin, bubbles: ["Hello. Sending or collecting?"] }
+  - { id: po_in_02, speaker: axin, bubbles: ["Come in. Leave the scale alone, mind."] }
+  - { id: po_in_03, speaker: axin, bubbles: ["Hang on, let me finish this slot."] }
+  - { id: po_in_04, speaker: axin, bubbles: ["That door bell needs a new spring."] }
+  - { id: po_in_05, speaker: axin, bubbles: ["Good timing. Fresh ink on the stamp."] }
+  - { id: po_in_dawn_01, speaker: axin, when: period_dawn, bubbles: ["This early?", "The first van's not in yet."] }
+  - { id: po_in_dawn_02, speaker: axin, when: period_dawn, bubbles: ["Bag's on. I was just heading out."] }
+  - { id: po_in_day_01, speaker: axin, when: period_day, bubbles: ["Just back from a round. Legs still warm."] }
+  - { id: po_in_dusk_01, speaker: axin, when: period_dusk, bubbles: ["An hour till the evening van."] }
+  - { id: po_in_dusk_02, speaker: axin, when: period_dusk, bubbles: ["Round's done for today. Take a seat."] }
+  - { id: po_in_night_01, speaker: axin, when: period_night, bubbles: ["We're shut, but come in anyway."] }
+  - { id: po_in_night_02, speaker: axin, when: period_night, bubbles: ["This late, even the letters are asleep."] }
+  - { id: po_in_rain_01, speaker: axin, when: sky_rain, bubbles: ["Rain. Every envelope gets a bag."] }
+  - { id: po_in_snow_01, speaker: axin, when: sky_snow, bubbles: ["Out in this snow?", "Stamp your feet, come in."] }
+  - { id: po_in_spring_01, speaker: axin, when: season_spring, bubbles: ["Spring. Everyone's posting seeds."] }
+  - { id: po_in_summer_01, speaker: axin, when: season_summer, bubbles: ["Warm, isn't it. Stand by the fan."] }
+  - { id: po_in_autumn_01, speaker: axin, when: season_autumn, bubbles: ["Autumn. Parcels for the new term."] }
+  - { id: po_in_winter_01, speaker: axin, when: season_winter, bubbles: ["Winter. The holiday parcels are coming."] }
+  - { id: po_in_new_year, speaker: axin, when: holiday_new_year, bubbles: ["New Year at last.", "Cards by the stack in here."] }
+  - { id: po_in_lantern, speaker: axin, when: holiday_lantern, bubbles: ["Lantern riddles are by the counter."] }
+  - { id: po_in_dragon_boat, speaker: axin, when: holiday_dragon_boat, bubbles: ["Queue's all people posting zongzi."] }
+  - { id: po_in_mid_autumn, speaker: axin, when: holiday_mid_autumn, bubbles: ["Mooncake boxes fill a whole shelf."] }
+  - { id: po_in_halloween, speaker: axin, when: holiday_halloween, bubbles: ["Someone posted a pumpkin. Handle gently."] }
+  - { id: po_in_christmas, speaker: axin, when: holiday_christmas, bubbles: ["Three times the cards this week."] }
+
+# Pip now and then, while it's quiet: the weather, the season, the round, the neighbours, knocking off.
+shop_idle:
+  - { id: po_idle_01, speaker: axin, bubbles: ["Number three's slot is full again."] }
+  - { id: po_idle_02, speaker: axin, bubbles: ["Stamp it straight. Crooked looks bad."] }
+  - { id: po_idle_03, speaker: axin, bubbles: ["Scale's out by a bit. Needs setting."] }
+  - { id: po_idle_04, speaker: axin, bubbles: ["This one's in a child's handwriting."] }
+  - { id: po_idle_05, speaker: axin, bubbles: ["Stamp's upside down. Still goes."] }
+  - { id: po_idle_06, speaker: axin, bubbles: ["Light parcels go on the top shelf."] }
+  - { id: po_idle_07, speaker: axin, bubbles: ["Tyre's soft. Old Zhou's pump, then."] }
+  - { id: po_idle_08, speaker: axin, bubbles: ["I could do this street with my eyes shut."] }
+  - { id: po_idle_09, speaker: axin, bubbles: ["Returned letters all get logged."] }
+  - { id: po_idle_10, speaker: axin, bubbles: ["That's a roll of tape gone."] }
+  - { id: po_idle_11, speaker: axin, bubbles: ["More cards on the cork board every week."] }
+  - { id: po_idle_12, speaker: axin, bubbles: ["A letter took three years to get here.", "Nobody at that address by then."] }
+  - { id: po_idle_13, speaker: axin, bubbles: ["Nothing for Granny Chen today.", "There will be tomorrow."] }
+  - { id: po_idle_14, speaker: axin, bubbles: ["Auntie Olive kept me a loaf. Still warm."] }
+  - { id: po_idle_15, speaker: axin, bubbles: ["Xiaohe's fee slip came. Very thin."] }
+  - { id: po_idle_16, speaker: axin, bubbles: ["More parts for Old Zhou, from out of town."] }
+  - { id: po_idle_17, speaker: axin, bubbles: ["Fern posted flower seeds. Three wrappings."] }
+  - { id: po_idle_18, speaker: axin, bubbles: ["I put Mrs Wu's newsletter up downstairs."] }
+  - { id: po_idle_19, speaker: axin, bubbles: ["Your shop's letters go on top of the pile."] }
+  - { id: po_idle_20, speaker: axin, bubbles: ["Someone peered in a while. Asked the way."] }
+  - { id: po_idle_21, speaker: axin, bubbles: ["Someone posted an empty envelope. Reply."] }
+  - { id: po_idle_22, speaker: axin, bubbles: ["The buckle on the bag's gone loose."] }
+  - { id: po_idle_23, speaker: axin, bubbles: ["Old Ma sent a crate of chilli sauce home."] }
+  - { id: po_idle_24, speaker: axin, bubbles: ["Lin asks every day if there's mail for him."] }
+  - { id: po_idle_dawn_01, speaker: axin, when: period_dawn, bubbles: ["Early van's in. Sort first, then out."] }
+  - { id: po_idle_dawn_02, speaker: axin, when: period_dawn, bubbles: ["Bakery light's on. My cue to go."] }
+  - { id: po_idle_day_01, speaker: axin, when: period_day, bubbles: ["One more run this afternoon, the far end."] }
+  - { id: po_idle_dusk_01, speaker: axin, when: period_dusk, bubbles: ["Evening van. I'll go and meet it."] }
+  - { id: po_idle_dusk_02, speaker: axin, when: period_dusk, bubbles: ["Square the book, then home."] }
+  - { id: po_idle_night_01, speaker: axin, when: period_night, bubbles: ["Postbox locked. Opens first thing."] }
+  - { id: po_idle_night_02, speaker: axin, when: period_night, bubbles: ["Done for the day. Bag back on its hook."] }
+  - { id: po_idle_night_03, speaker: axin, when: period_night, bubbles: ["Planning tomorrow's round tonight."] }
+  - { id: po_idle_rain_01, speaker: axin, when: sky_rain, bubbles: ["Wet letters. The ink runs."] }
+  - { id: po_idle_rain_02, speaker: axin, when: sky_rain, bubbles: ["Raincoat's on the door, still dripping."] }
+  - { id: po_idle_snow_01, speaker: axin, when: sky_snow, bubbles: ["No bike in this snow. On foot, then."] }
+  - { id: po_idle_snow_02, speaker: axin, when: sky_snow, bubbles: ["The old scarf's back on today."] }
+  - { id: po_idle_petals_01, speaker: axin, when: sky_petals, bubbles: ["A petal got in an envelope. No charge."] }
+  - { id: po_idle_leaves_01, speaker: axin, when: sky_leaves, bubbles: ["Leaves in the postbox. I'll fish them out."] }
+  - { id: po_idle_spring_01, speaker: axin, when: season_spring, bubbles: ["Spring. Fewer letters, more parcels."] }
+  - { id: po_idle_spring_02, speaker: axin, when: season_spring, bubbles: ["Swallows are nesting over the door again."] }
+  - { id: po_idle_summer_01, speaker: axin, when: season_summer, bubbles: ["Summer postcards are all the sea."] }
+  - { id: po_idle_summer_02, speaker: axin, when: season_summer, bubbles: ["Too hot at noon. I'll go out later."] }
+  - { id: po_idle_autumn_01, speaker: axin, when: season_autumn, bubbles: ["Autumn letters smell of osmanthus."] }
+  - { id: po_idle_autumn_02, speaker: axin, when: season_autumn, bubbles: ["Offer letters. I take those by hand."] }
+  - { id: po_idle_winter_01, speaker: axin, when: season_winter, bubbles: ["Year-end parcels. The shelf's full."] }
+  - { id: po_idle_winter_02, speaker: axin, when: season_winter, bubbles: ["Hands so cold the stamp won't sit."] }

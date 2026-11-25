@@ -15,8 +15,8 @@ export type TownDays = {
   shops: Partial<Record<ShopId, { done: number; grown: Gathered[] }>>;
   /** What stands on the street (D5). */
   street: Gathered[];
-  /** How far each neighbour's story has got, in chapters told (D6). */
-  stories: Partial<Record<GuestId, number>>;
+  /** How far each neighbour's story has got: the day each chapter was told (D4, shared/stories.ts). */
+  stories: Partial<Record<GuestId, string[]>>;
 };
 
 export const emptyTown = (): TownDays => ({ shops: {}, street: [], stories: {} });

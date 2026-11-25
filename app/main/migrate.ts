@@ -59,7 +59,9 @@ const STEPS: Record<number, Step> = {
     const file = join(dir, 'memory.json');
     const memory = readJson<Memory>(file);
     if (!memory?.shop || memory.shop.met) return [];
-    const neighbours = Object.keys(Object.values(LOCALES)[0].guests) as GuestId[];
+    // The neighbours there were when data version 3 came in. Whoever arrived later (the bakery's and the post office's
+    // guests in 1.6) is still met for the first time.
+    const neighbours: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student'];
     memory.shop.met = neighbours.map((id) => ({ id, date: '' }));
     writeJson(file, memory);
     return ['neighbours counted as known'];

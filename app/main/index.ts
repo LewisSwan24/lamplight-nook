@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, powerMonitor, powerSaveBlocker, safeStorage, session, shell } from 'electron';
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
+import { FROM_AFAR, shopOf, template } from '../shared/templates';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type ShareFormat, type ShareOptions, type ShareResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -33,19 +33,28 @@ import { SettingsStore, defaultWorkRoot, loginItem } from './settings';
 import { ScheduleStore, due, nextTime, wakeIn } from './schedule';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
-import { type Caps, type CapKind, type Grant, type Refusal, type Spent, Reservations, startingMonthCap, warnings } from './budget';
+import { modelCosts } from './prices';
+import { ProviderKeys, providerCredentials, providerHint, saveProvider, type ProviderSaveResult } from './providers';
+import { missingForWork, secretSlot, type Provider } from '../shared/providers';
+import { TIER_MODEL, consultTier, modelFor, withModel, type ModelTier } from '../shared/models';
+import { type Caps, type CapKind, type Grant, type Refusal, type Spent, personCapUsd, Reservations, startingMonthCap, warnings } from './budget';
 import { RunQueue, runId, type Ticket } from './runs';
 import { now, setClock } from './clock';
 import { localMonth } from '../shared/localday';
 import { RoundTally } from './tally';
 import { zip } from './zip';
-import { exportName, workEntries } from './export';
+import { workEntries } from './export';
+import { saveBytes } from './folder-link';
+import { shareBytes, shareFormats } from './share';
 import { imageThumb, pageThumb, pageToPdf, pageToPng, pictureToPng } from './print';
 import { officeServer, prunePreviews, thumbSource } from './office/tools';
 import { howToOpen } from './open-rule';
 import { DraftRecord } from './drafts';
 import { ShopTray } from './tray';
 import { MiniWindow } from './mini';
+import { VisitWindow } from './visit';
+import { PostcardWall, readPostcardFile } from './postcard';
+import { makePostcard, postcardText, wallCards } from '../shared/postcard';
 import { copyMaterials, sortHandOver } from './materials';
 import { stepCount } from '../shared/board';
 import { boardRow, projectFolders, projectSettled, timelineRows } from './projects';
@@ -58,6 +67,10 @@ import { ActionLog, ConnectionReads, RoundActions } from './action-log';
 import { calendarKind, type FetchText, folderKind, type KindDef, maildraftKind, offerOf, testKind } from './connection-kinds';
 import { type NookServer, connectionServers } from './nook-tools';
 import { randomUUID } from 'node:crypto';
+import { networkInterfaces } from 'node:os';
+import qrcode from 'qrcode-generator';
+import { homeAddresses, LAN_ROLES, LanServer, type LanRole, toLanAsk } from './lan';
+import { lanPage } from './lan-page';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -69,11 +82,27 @@ process.on('unhandledRejection', (reason) => log?.error('unhandled rejection', r
 let win: BrowserWindow | null = null;
 
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
+/** After any answer: the tray and the small window calm down once nothing waits, and the rounds list is current. */
+function afterAnswer() {
+  if (!broker.waiting) {
+    tray.calm();
+    mini.feed({ type: 'answered' });
+  }
+  sendRuns();
+}
 const broker = new DecisionBroker((req) => {
   send(IPC.decision, req);
+  lan?.asksChanged();
   mini.feed({ type: 'ask', serious: req.kind === 'serious', run: req.run, project: many() ? req.project?.title : undefined });
   if (tray.attention(req, settings.get().notify)) log?.info('notice', { kind: 'ask', run: req.run });
   sendRuns();
+}, (req, _choice, by) => {
+  lan?.asksChanged();
+  // Answered on the phone first: the card on the desk is put away (E4).
+  if (by === 'phone') {
+    send(IPC.decisionSettled, { id: req.id });
+    afterAnswer();
+  }
 });
 const iconDir = () => join(app.getAppPath(), 'assets', 'ui');
 /** The lamp in the tray. Quitting from its menu closes for real, even with "close to tray" on. */
@@ -102,6 +131,11 @@ const mini = new MiniWindow(join(here, '../preload/index.cjs'), (w) => {
   if (process.env.ELECTRON_RENDERER_URL) w.loadURL(`${process.env.ELECTRON_RENDERER_URL}/mini.html`);
   else w.loadFile(join(here, '../renderer/mini.html'));
 });
+/** Someone else's shop, from a postcard (docs/plan-1.5.md E3), in a window of its own over this one. */
+const visit = new VisitWindow(join(here, '../preload/visit.cjs'), (w) => {
+  if (process.env.ELECTRON_RENDERER_URL) w.loadURL(`${process.env.ELECTRON_RENDERER_URL}/visit.html`);
+  else w.loadFile(join(here, '../renderer/visit.html'));
+});
 /** Show the corner window exactly when the shop is out of sight and the user wants it. */
 function updateMini() {
   const away = Boolean(win && !win.isDestroyed() && (!win.isVisible() || win.isMinimized()));
@@ -113,10 +147,13 @@ let pending: PendingStore;
 /** The scheduled commissions (road-to-1.2.md B6). */
 let schedules: ScheduleStore;
 let memory: MemoryStore;
+let postcards: PostcardWall;
 let versions: VersionStore;
 /** Every round's version of every project (B2), in the same folder as the lent folders' originals. */
 let projectVersions: ProjectVersions;
 let keys: KeyStore;
+/** Every provider's key, each on its own (plan-1.6.md F7); the Anthropic one is the same file as `keys`. */
+let providerKeys: ProviderKeys;
 /** The user's connections (road-to-1.3.md C4). */
 let connections: ConnectionStore;
 /** The record of outside actions (road-to-1.3.md C6), actions.jsonl in the data folder. */
@@ -233,6 +270,7 @@ function emittersFor(run: string, project: RunProject) {
     emit: emitters.emit,
     emitAi: (event: AiEvent) => {
       send(IPC.aiEvent, { ...event, raw: undefined, run, project });
+      lan?.push({ t: event.t, kind: event.kind, agent: event.agent, plain: event.plain });
       mini.feed({ type: 'ai', run, project: many() ? project.title : undefined, event: { kind: event.kind, agent: event.agent, plain: event.plain, todos: event.todos } });
       if (lead()?.id !== run) return;
       if (event.agent === 'main' && event.todos) tray.setStep(stepCount(event.todos));
@@ -255,7 +293,26 @@ const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1
 // The simulations move the shop to another day (clock.ts); a packaged build always keeps the computer's.
 if (!app.isPackaged && process.env.LAMPLIGHT_CLOCK) setClock(process.env.LAMPLIGHT_CLOCK);
 /** The key saved in the app wins over ANTHROPIC_API_KEY; a dev subscription only counts unpackaged. */
-const credentials = () => pickCredentials(keys.get(), process.env, app.isPackaged);
+const credentials = () => {
+  const p = settings.get().provider;
+  // Another provider than Anthropic: its own key, and nothing from the environment (F7).
+  return p.kind === 'anthropic' ? pickCredentials(keys.get(), process.env, app.isPackaged) : providerCredentials(p, (slot) => providerKeys.get(slot));
+};
+/** The model a commission runs on: a compatible service's own, else the tier (F6, F7). */
+const runModel = (form: CommissionForm) => {
+  const p = settings.get().provider;
+  return p.kind === 'compatible' ? p.model : modelFor(form, settings.get().modelTier);
+};
+/** A talk with Adeng: a compatible service's faster model when it has one, else the tier's (F6, F7). */
+const talkModel = () => {
+  const p = settings.get().provider;
+  return p.kind === 'compatible' ? p.fastModel ?? p.model : TIER_MODEL[consultTier(settings.get().modelTier)];
+};
+/** The prices to count a run's cost with: only a compatible service's, which Claude Code cannot price (F7). */
+const runPrices = () => {
+  const p = settings.get().provider;
+  return p.kind === 'compatible' ? p.prices : undefined;
+};
 ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
   const creds = credentials();
   const claude = locateClaude();
@@ -273,7 +330,7 @@ ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
     store: storeBuild(),
     debug: debugEnabled(),
     keySource: creds?.source ?? null,
-    keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
+    keyHint: creds?.apiKey ? (creds.provider ? providerHint(creds.apiKey) : keyHint(creds.apiKey)) : undefined,
     installCommand: installCommand(process.platform),
     platform: process.platform,
   };
@@ -341,8 +398,25 @@ ipcMain.handle(IPC.installClaude, (): Promise<boolean> => {
 ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
+// Another provider (F7): checked and kept with its key; settings then hold it, never the key.
+ipcMain.handle(IPC.saveProvider, async (_e, provider: unknown, key: unknown): Promise<ProviderSaveResult> => {
+  const r = await saveProvider(provider as Provider, typeof key === 'string' ? key : '', providerKeys, (url, init) => net.fetch(url, init));
+  if (r.ok) settings.update({ provider: r.provider });
+  log?.info('provider saved', { kind: (provider as Provider)?.kind, ok: r.ok, ...(r.ok ? { verified: r.verified } : { reason: r.reason }) });
+  return r;
+});
+// Whether a provider has a key kept, by its last four characters.
+ipcMain.handle(IPC.providerKey, (_e, provider: unknown): string | null => {
+  const key = providerKeys.get(secretSlot(provider as Provider));
+  return key ? providerHint(key) : null;
+});
 ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth(now()));
-ipcMain.handle(IPC.spendMonths, () => spend.months());
+// What one commission costs on each model tier, for settings (plan-1.6.md F6).
+ipcMain.handle(IPC.modelCosts, () => modelCosts(spend.averageByTier()));
+// Who spent it, by name: the owner at the computer, a paired device, or one since removed (E5).
+ipcMain.handle(IPC.spendMonths, () => spend.months().map(({ people, ...m }) => people
+  ? { ...m, people: Object.entries(people).map(([who, usd]) => ({ who: who ? (personOf(who)?.name ?? null) : '', usd })) }
+  : m));
 ipcMain.handle(IPC.monthBudget, () => ({ capUsd: settings.get().monthCapUsd, spentUsd: spend.thisMonth(now()) }));
 ipcMain.handle(IPC.monthCapNews, (): number | null => {
   const raised = settings.raisedMonthCap ? settings.get().monthCapUsd : null;
@@ -464,10 +538,10 @@ function talkGrant(t: Talk): number | null {
 async function talkTurn(t: Talk, prompt: string, usd: number, finish: boolean) {
   const cwd = join(app.getPath('userData'), 'consult');
   mkdirSync(cwd, { recursive: true });
-  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined }));
+  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: talkModel() }));
   reservations.settle('consult');
   t.sessionId = turn.sessionId ?? t.sessionId;
-  spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now());
+  spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now(), undefined, talkModel());
   log?.info('consult turn', { ok: turn.ok, budget: turn.budget, costUsd: turn.costUsd, finish });
   return turn;
 }
@@ -506,6 +580,7 @@ ipcMain.handle(IPC.saveSettings, (_e, patch: Partial<Settings>): Settings => {
   const saved = settings.update(rest);
   // Switched back on: look now rather than in up to six hours.
   if (saved.updates && !before.updates) void updates?.check();
+  if (saved.lan !== before.lan) void applyLan(saved);
   if (saved.openAtLogin !== before.openAtLogin) {
     app.setLoginItemSettings(loginItem(saved.openAtLogin));
     log?.info('open at login', { on: saved.openAtLogin });
@@ -570,29 +645,35 @@ function projectOf(job: Job, again: boolean): Project | undefined {
     : again ? notebook.commissions.find((c) => c.folder === job.workDir && c.result === 'failed')?.project : undefined;
   return notebook.projects.find((p) => p.id === id);
 }
-const capsFor = (project?: Project): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd });
-/** What the ledger has this month and on the project: every folder its commissions worked in, all sessions. */
-function spentOn(project?: Project): Spent {
+/** A paired device's person, for their own cap (docs/plan-1.5.md E5); a removed device has none. */
+const personOf = (id?: string) => (id ? lan?.devices().find((d) => d.id === id) : undefined);
+// A device removed since it handed something in: that is not spent on (E5, E7).
+const capsFor = (project?: Project, person?: string): Caps => ({ roundUsd: settings.get().budgetUsd, monthUsd: settings.get().monthCapUsd, projectUsd: project?.capUsd, personUsd: person ? personCapUsd(personOf(person)) : undefined });
+/** What the ledger has this month, on the project (every folder its commissions worked in, all sessions) and by the person. */
+function spentOn(project?: Project, person?: string): Spent {
   const folders = project ? projectFolders(project, memory.get().commissions) : [];
-  return { month: spend.thisMonth(now()), project: folders.reduce((sum, f) => sum + spend.forCommission(f), 0) };
+  return { month: spend.thisMonth(now()), project: folders.reduce((sum, f) => sum + spend.forCommission(f), 0), ...(person ? { person: spend.thisMonthBy(person, now()) } : {}) };
 }
 /** Where a cap stands once a round is settled. */
 function noteOn(cap: CapKind, caps: Caps, spent: Spent): Refusal {
-  const capUsd = cap === 'month' ? caps.monthUsd : caps.projectUsd!;
-  const spentUsd = cap === 'month' ? spent.month : spent.project;
+  const capUsd = cap === 'month' ? caps.monthUsd : cap === 'project' ? caps.projectUsd! : caps.personUsd!;
+  const spentUsd = cap === 'month' ? spent.month : cap === 'project' ? spent.project : spent.person ?? 0;
   return { cap, capUsd, spentUsd, leftUsd: Math.max(0, capUsd - spentUsd) };
 }
 /** A round a month or project cap stopped, or would not let start: the card says which and where it stands. */
-const capStop = (r: Refusal, project?: Project): { error: string; cap: BudgetNote } =>
-  ({ error: r.cap === 'month' ? 'monthCap' : 'projectCap', cap: { ...r, ...(r.cap === 'project' ? { project: project!.title } : {}) } });
+const capStop = (r: Refusal, project?: Project, person?: string): { error: string; cap: BudgetNote } =>
+  ({ error: `${r.cap}Cap`, cap: { ...r, ...(r.cap === 'project' ? { project: project!.title } : {}), ...(r.cap === 'person' ? { person: personOf(person)?.name ?? '' } : {}) } });
 /**
  * Whether a new round may start at all, asked before anything is made or kept for it (a new folder, the previous version).
  * Only the ledger counts here: what the rounds under way hold is theirs only until they end, so a round short of money
  * because of them waits in the queue instead (B5 rule 5).
  */
-function refused(project: Project | undefined, workDir: string): RunResult | null {
-  const grant = new Reservations().reserve('asking', project?.id, capsFor(project), spentOn(project));
-  return 'refused' in grant ? { ok: false, recordingPath: '', workDir, ...capStop(grant.refused, project) } : null;
+function refused(project: Project | undefined, workDir: string, person?: string): RunResult | null {
+  // A compatible service with no prices filled in cannot be kept under a cap, so no work starts on it (Q-F9).
+  const missing = missingForWork(settings.get().provider);
+  if (missing) return { ok: false, recordingPath: '', workDir, error: 'provider', detail: missing };
+  const grant = new Reservations().reserve('asking', project?.id, capsFor(project, person), spentOn(project, person), person);
+  return 'refused' in grant ? { ok: false, recordingPath: '', workDir, ...capStop(grant.refused, project, person) } : null;
 }
 
 /**
@@ -600,10 +681,10 @@ function refused(project: Project | undefined, workDir: string): RunResult | nul
  * it may spend already held; once it ends that is let go and the queue moves on. Called off while it waits, its caller
  * hears so and nothing was spent.
  */
-function queued(folder: string | undefined, project: Project | undefined, title: string, start: (run: string, grant: Grant) => Promise<RunResult>, by: Ticket['by'] = 'user', id = runId(Date.now())): Promise<RunResult> {
+function queued(folder: string | undefined, project: Project | undefined, title: string, start: (run: string, grant: Grant) => Promise<RunResult>, by: Ticket['by'] = 'user', id = runId(Date.now()), person?: string): Promise<RunResult> {
   return new Promise((resolve) => {
     queue.add({
-      id, folder, project: project?.id, by, title,
+      id, folder, project: project?.id, by, title, ...(person ? { person } : {}),
       go: (grant) => void start(id, grant).then((r) => {
         reservations.settle(id);
         // One that failed for the network around a sleep holds no place while it waits to be carried on (B5 rule 4).
@@ -626,7 +707,7 @@ function pump() {
   const projects = memory.get().projects;
   const starting = queue.take(active, overlaps, (t) => {
     const p = projects.find((x) => x.id === t.project);
-    const grant = reservations.reserve(t.id, p?.id, capsFor(p), spentOn(p));
+    const grant = reservations.reserve(t.id, p?.id, capsFor(p, t.person), spentOn(p, t.person), t.person);
     if ('refused' in grant) return false;
     t.grant = grant;
     return true;
@@ -642,7 +723,11 @@ function runInfos(): RunInfo[] {
   const fresh = [...under.filter((r) => !r.project.id).map((r) => r.id), ...queue.queued.filter((t) => !t.project).map((t) => t.id)];
   const color = (run: string, project?: string) => (project ? projects.findIndex((p) => p.id === project) : projects.length + fresh.indexOf(run));
   return [
-    ...under.map((r): RunInfo => ({ run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id) })),
+    ...under.map((r): RunInfo => {
+      // Where it is played (D3): the shop its kind of work belongs to; the home shop's rounds say nothing.
+      const shop = shopOf(r.job.form.template);
+      return { run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id), ...(shop === 'home' ? {} : { shop }) };
+    }),
     ...queue.queued.map((t): RunInfo => {
       const waits = t.waits ?? 'slot';
       const behind = waits === 'money' ? [] : under.filter((r) => waits === 'slot' || (t.folder && overlaps(r.job.workDir, t.folder))).map((r) => r.project.title);
@@ -663,14 +748,14 @@ function sendRuns() {
 function carryOn(job: Job): Promise<RunResult> {
   const project = projectOf(job, true);
   const id = runId(Date.now());
-  const stop = refused(project, job.workDir);
+  const stop = refused(project, job.workDir, job.form.by?.id);
   if (stop) {
     // It stays the one to carry on, once the cap allows.
     pending.save({ ...job, run: id, state: 'failed', why: stop.error, at: Date.now() });
     return Promise.resolve({ ...stop, run: id, carryOn: true });
   }
   pending.save({ ...job, run: id, state: 'queued', at: Date.now() });
-  const done = queued(job.workDir, project, project?.title ?? commissionTitle(job.form), (run, grant) => runJob(run, grant, job, true, project), 'user', id);
+  const done = queued(job.workDir, project, project?.title ?? commissionTitle(job.form), (run, grant) => runJob(run, grant, job, true, project), 'user', id, job.form.by?.id);
   // A scheduled round carried on is that schedule's round, not a missed one (B7).
   return job.schedule ? done.then((r) => { scheduleRan(job.schedule!, r); return r; }) : done;
 }
@@ -700,7 +785,7 @@ async function afterWake(r: RunResult): Promise<RunResult> {
 function countUnreported(r: Run, usd = r.unreported?.() ?? 0): number {
   if (r.counted) return 0;
   r.counted = true;
-  return spend.estimate(r.job.workDir, r.job.sessionId, usd, now());
+  return spend.estimate(r.job.workDir, r.job.sessionId, usd, now(), r.job.form.by?.id);
 }
 
 /** Keep the computer awake exactly while a round runs (B7). */
@@ -803,6 +888,9 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker: broker.forRun(run, who),
       credentials: credentials(),
+      // The slip's tier for this one commission, else the one in settings (F6).
+      model: runModel(job.form),
+      pricing: runPrices(),
       maxBudgetUsd: grant.usd,
       preexisting: before,
       keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
@@ -817,13 +905,14 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     log?.info('run end', { run, ok: result.ok, error: result.error, detail: result.detail, costUsd: result.costUsd, seconds: Math.round((Date.now() - started) / 1000) });
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
     // What it spent since Claude Code last said is estimated from its tokens, on a line of its own (B7).
-    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now()) + countUnreported(me, result.estimatedUsd ?? 0);
+    const person = job.form.by?.id;
+    const spentThisRun = (runPrices() ? spend.addPriced(job.workDir, job.sessionId, result.costUsd ?? 0, now(), person, result.model) : spend.record(job.workDir, job.sessionId, result.costUsd, now(), person, result.model)) + countUnreported(me, result.estimatedUsd ?? 0);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     // Settled: the ledger has what the round cost. A month or project cap that set this round's limit and stopped it is
     // that cap's stop, not the per-round one. Caps it took past eight tenths are said once; a cap stop says it already.
-    const spent = spentOn(project);
-    const stoppedBy = result.error === 'budget' && (grant.by === 'month' || grant.by === 'project') ? grant.by : null;
-    const stop = stoppedBy ? capStop(noteOn(stoppedBy, capsFor(project), spent), project) : undefined;
+    const spent = spentOn(project, person);
+    const stoppedBy = result.error === 'budget' && (grant.by === 'month' || grant.by === 'project' || grant.by === 'person') ? grant.by : null;
+    const stop = stoppedBy ? capStop(noteOn(stoppedBy, capsFor(project, person), spent), project, person) : undefined;
     const error = stop?.error ?? result.error;
     const near = warnings(capsFor(project), spent, memory.get().budgetSaid ?? [], localMonth(now()), project?.id);
     if (near.length) memory.budgetSaid(near.map((w) => w.key));
@@ -835,7 +924,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
       const changes = lent ? versions.lentChanges(job.workDir) : undefined;
-      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before);
+      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before, job.form.template);
       // The main file may sit in a subfolder of a lent one.
       const main = outputs.main ? relative(job.workDir, outputs.main) : undefined;
       const round = { ...tally.result(Date.now(), result.ok, result.error), ...(result.contextTokens ? { contextTokens: result.contextTokens } : {}) };
@@ -847,7 +936,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
         : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched, usd: spentThisRun }, stuckHere);
       if (entry) keepRound(entry);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
-      const grew = result.ok && !r ? memory.finished() : [];
+      const grew = result.ok && !r ? memory.finished(new Date(), shopOf(job.form.template)) : [];
       // A research write-up is checked against its sources and against what this round searched or fetched (C7).
       const F = strings.ui.files;
       const citations = job.form.template === 'research' ? citationsIn(job.workDir, { summary: F.summary, sources: F.sources }, result.seenUrls ?? []) : undefined;
@@ -956,7 +1045,7 @@ ipcMain.handle(IPC.startCommission, async (_e, form: CommissionForm): Promise<Ru
 
 /** A new commission in a new folder, asked of the caps first, then queued; `by` a schedule goes after the user's own (B5 rule 2). */
 function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: string): Promise<RunResult> {
-  const stop = refused(undefined, '');
+  const stop = refused(undefined, '', form.by?.id);
   if (stop) return Promise.resolve(stop);
   const f = form.demo ? { ...form, materials: undefined } : form;
   // Its folder is made when its turn comes, so one called off in the queue leaves nothing behind.
@@ -967,7 +1056,7 @@ function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: st
     prepareSource(workDir, f);
     try { await copyMaterials(workDir, f.materials ?? [], pictureToPng); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
     return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now(), ...(schedule ? { schedule } : {}) }, false);
-  }, by);
+  }, by, runId(Date.now()), f.by?.id);
 }
 
 /**
@@ -995,7 +1084,7 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   return reviseRound(memo, ask);
 });
 /** Another round on a commission's project, from the result card or a schedule (B6), queued behind its project's other rounds. */
-async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] = 'user', schedule?: string): Promise<RunResult> {
+async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] = 'user', schedule?: string, model?: ModelTier): Promise<RunResult> {
   if (!memo.folder || !existsSync(memo.folder)) return { ok: false, recordingPath: '', workDir: memo.folder ?? '', error: 'gone' };
   // In a folder the user lent, their files are counted again (they may have added some), and a round that could not
   // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
@@ -1012,7 +1101,9 @@ async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] =
     const restored = restoredSince.has(memo.id);
     restoredSince.delete(memo.id);
     keepLatest(latest);
-    const form = latest.form ?? { want: latest.title };
+    // Changes asked for at the desk are the owner's, whoever handed the work in (E5).
+    // A tier changed on the first slip was for that round alone; a schedule's round runs on the tier the schedule keeps (F6).
+    const form = { ...(latest.form ?? { want: latest.title }), by: undefined, model };
     // A session grown long, or left for over a week, is not picked up: the project background and the folder carry the work
     // over (B3), and a fresh session reads far less each round.
     const fromSession = newSession(latest.rounds?.at(-1) ?? { date: latest.date }, localDay(now())) ? undefined : latest.sessionId;
@@ -1063,7 +1154,7 @@ function lookAtSchedules() {
 function runScheduled(s: Schedule) {
   const project = memory.get().projects.find((p) => p.id === s.project);
   const title = project?.title ?? commissionTitle(s.form);
-  const start = project ? reviseRound(memory.find(project.commissions.at(-1)!)!, s.form.want, 'schedule', s.id) : startNew(s.form, 'schedule', s.id);
+  const start = project ? reviseRound(memory.find(project.commissions.at(-1)!)!, s.form.want, 'schedule', s.id, s.form.model) : startNew(s.form, 'schedule', s.id);
   void start.then((r) => {
     if (r.error === 'cancelled') return;
     if (r.cap && !r.run) {
@@ -1076,6 +1167,18 @@ function runScheduled(s: Schedule) {
     send(IPC.scheduled, { ...r, title });
   });
 }
+/**
+ * A commission handed in from a paired device that may do so (plan-1.5.md E5). Turned away at once when its person's
+ * limit (or the shop's) is spent; otherwise it queues like one started at the desk, and its card shows here as a scheduled
+ * one's does, since nobody pressed anything on this computer.
+ */
+function fromAfar(who: { id: string; name: string }, form: { want: string; template: CommissionTemplate }): Promise<{ ok: true } | { ok: false; why: 'cap' }> {
+  if (refused(undefined, '', who.id)) return Promise.resolve({ ok: false, why: 'cap' });
+  const f: CommissionForm = { want: form.want, template: form.template, by: who };
+  void startNew(f).then((r) => { if (r.error !== 'cancelled') send(IPC.scheduled, { ...r, title: commissionTitle(f) }); });
+  return Promise.resolve({ ok: true });
+}
+
 /** How a schedule's round went, for the project board; called off (the shop closing, the computer shutting down) is no outcome. */
 function scheduleRan(id: string, r: RunResult) {
   if (r.error === 'cancelled' || !schedules.list().some((s) => s.id === id)) return;
@@ -1096,7 +1199,7 @@ ipcMain.handle(IPC.saveSchedule, (_e, project: unknown, want: unknown, every: un
   const when = cleanEvery(every);
   const next = when && nextTime(when, now());
   if (!p || !ask || !when || !next) return null;
-  const s: Schedule = { id: `s${Date.now()}`, project: p.id, form: { want: ask }, every: when, next: next.toISOString(), enabled: true };
+  const s: Schedule = { id: `s${Date.now()}`, project: p.id, form: withModel({ want: ask }, settings.get().modelTier), every: when, next: next.toISOString(), enabled: true };
   schedules.add(s);
   log?.info('schedule saved', { every: when.kind });
   lookAtSchedules();
@@ -1108,7 +1211,91 @@ ipcMain.handle(IPC.removeSchedule, (_e, id: unknown): boolean => {
   lookAtSchedules();
   return true;
 });
-ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState());
+ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState(now()));
+// The stories go by the shop's clock, which the simulations can move on (D4); memory.ts refuses a chapter not waiting.
+/**
+ * The shop on the home network (docs/plan-1.5.md E1): listening only while the switch is on, on a port picked the first
+ * time from 47800 up and kept after that.
+ */
+let lan: LanServer | null = null;
+async function applyLan(s: Settings) {
+  if (!lan) return;
+  if (!s.lan) return void (await lan.stop());
+  for (let port = s.lanPort || 47800; port < (s.lanPort || 47800) + 100; port++) {
+    try {
+      await lan.start(port);
+      if (s.lanPort !== port) settings.update({ lanPort: port });
+      log?.info('lan on', { port, addresses: lan.listeningOn().length });
+      return;
+    } catch (err) {
+      await lan.stop();
+      if (s.lanPort) return void log?.warn('lan could not listen', { port, error: String(err) });
+    }
+  }
+}
+const lanState = () => ({ on: !!lan?.listening, addresses: lan?.listeningOn() ?? [], devices: lan?.devices() ?? [] });
+ipcMain.handle(IPC.lanState, () => lanState());
+ipcMain.handle(IPC.lanPair, () => {
+  if (!lan?.listening) return null;
+  const { url } = lan.pair(fill(strings.ui.lan.deviceName, { n: lan.devices().length + 1 }));
+  const qr = qrcode(0, 'M');
+  qr.addData(url);
+  qr.make();
+  return { url, svg: qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }) };
+});
+ipcMain.handle(IPC.lanSetRole, (_e, id: unknown, role: unknown) => {
+  if (typeof id === 'string' && LAN_ROLES.includes(role as LanRole)) lan?.setRole(id, role as LanRole);
+  return lanState();
+});
+ipcMain.handle(IPC.lanSetCap, (_e, id: unknown, usd: unknown) => {
+  if (typeof id === 'string' && typeof usd === 'number') lan?.setCap(id, usd);
+  return lanState();
+});
+ipcMain.handle(IPC.lanRemove, (_e, id: unknown) => {
+  if (typeof id !== 'string') return lanState();
+  lan?.remove(id);
+  // What it handed in and still waits in the queue is called off too (E7); a round already under way carries on.
+  const gone = queue.cancelFrom(id);
+  if (gone.length) log?.info('runs called off with their device', { runs: gone.length });
+  for (const t of gone) t.drop();
+  pump();
+  return lanState();
+});
+// A postcard of the shop (docs/plan-1.5.md E3): only what makes it look the way it does, to a file the user picks.
+const POSTCARD_FILTER = () => [{ name: strings.ui.notebook.postcardKind, extensions: ['nook'] }];
+ipcMain.handle(IPC.sendPostcard, async (): Promise<boolean> => {
+  if (!win) return false;
+  const s = settings.get();
+  const card = makePostcard(s.name.trim() || strings.ui.visit.someone, s, memory.shopState(now()));
+  const name = fill(strings.ui.notebook.postcardFile, { name: card.name }).replace(/[\\/:*?"<>|\p{Cc}]/gu, '_').replace(/[. ]+$/, '');
+  const r = await dialog.showSaveDialog(win, { defaultPath: join(app.getPath('documents'), `${name}.nook`), filters: POSTCARD_FILTER() });
+  if (r.canceled || !r.filePath) return false;
+  writeFileSync(r.filePath, postcardText(card));
+  return true;
+});
+// Someone else's postcard: read as data only, and looked at in a window that can change nothing here.
+ipcMain.handle(IPC.openPostcard, async (): Promise<'open' | 'big' | 'notPostcard' | 'broken' | null> => {
+  if (!win) return null;
+  const r = await dialog.showOpenDialog(win, { defaultPath: app.getPath('documents'), properties: ['openFile'], filters: POSTCARD_FILTER() });
+  if (r.canceled || !r.filePaths[0]) return null;
+  const read = readPostcardFile(r.filePaths[0]);
+  if (!read.ok) {
+    log?.info('postcard not opened', { reason: read.reason });
+    return read.reason;
+  }
+  postcards.keep(read.card);
+  visit.show(read.card, win);
+  return 'open';
+});
+// The post office's wall (plan-1.6.md F2): the postcards opened before, and one of them looked at again.
+ipcMain.handle(IPC.keptPostcards, () => wallCards(postcards.cards()));
+ipcMain.handle(IPC.openKeptPostcard, (_e, i: number): boolean => {
+  const card = postcards.card(i);
+  if (!win || !card) return false;
+  visit.show(card, win);
+  return true;
+});
+ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
 ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
 // From the works shelf: the main thing a commission made, or its folder; only what the notebook recorded.
@@ -1315,31 +1502,36 @@ ipcMain.handle(IPC.undoWork, (_e, id: string): string[] | null => {
   log?.info('undo lent work', { done: skipped !== null, skipped: skipped?.length });
   return skipped;
 });
-// "Take it away" from the works shelf (road-to-1.1.md A8): the work becomes a file saved where the user picks, for
-// them to pass on however they like. Nothing is uploaded or sent from here.
-ipcMain.handle(IPC.exportWork, async (_e, id: string, as: 'zip' | 'pdf'): Promise<ExportResult> => {
+// Sharing from the works shelf (road-to-1.1.md A8, docs/plan-1.5.md E2): the work becomes one file, saved where the
+// user picks or into a connected cloud folder, for them to pass on however they like. Nothing is uploaded or sent from here.
+const cloudFolders = () => connections.list().filter((c) => c.kind === 'folder' && !c.paused);
+ipcMain.handle(IPC.shareOptions, (_e, id: string): ShareOptions | null => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  if (!memo?.folder) return null;
+  return { formats: shareFormats(memo.main, memo.form?.template), clouds: cloudFolders().map((c) => ({ id: c.id, label: c.label })) };
+});
+ipcMain.handle(IPC.shareWork, async (_e, id: string, as: ShareFormat, cloud?: string): Promise<ShareResult> => {
   const memo = typeof id === 'string' ? memory.find(id) : undefined;
   const folder = memo?.folder;
-  if (!memo || !folder || !existsSync(folder)) return 'gone';
-  return as === 'pdf' ? exportPdf(memo, folder) : exportZip(memo, folder);
-});
-async function exportZip(memo: CommissionMemo, folder: string): Promise<ExportResult> {
+  if (!memo || !folder || !existsSync(folder) || !shareFormats(memo.main, memo.form?.template).includes(as)) return 'gone';
+  const main = memo.main && join(folder, memo.main);
+  if (as !== 'zip' && (!main || !existsSync(main) || !insideForReal(folder, main))) return 'gone';
   // In a folder the user lent, only what this commission touched: the rest is theirs and stays where it is.
-  const entries = workEntries(folder, memo.form?.inPlace ? memo.touched ?? [] : undefined);
-  if (!entries.length) return 'empty';
-  const to = await saveAs(exportName(memo.title, 'zip'), 'Zip', 'zip');
+  const out = await shareBytes({ folder, main: memo.main, title: memo.title, as, touched: memo.form?.inPlace ? memo.touched ?? [] : undefined, pdf: (at, file) => pageToPdf(at, join(at, file)) });
+  if (!out.data.length) return 'empty';
+  if (typeof cloud === 'string') {
+    const c = cloudFolders().find((x) => x.id === cloud);
+    if (!c) return 'gone';
+    saveBytes(String(c.config.path), String(c.config.saveTo), out.name, out.data);
+    log?.info('work shared', { as, into: 'cloud' });
+    return 'cloud';
+  }
+  const ext = extname(out.name).slice(1);
+  const to = await saveAs(out.name, ext.toUpperCase(), ext);
   if (!to) return 'cancelled';
-  writeFileSync(to, zip(entries));
+  writeFileSync(to, out.data);
   return saved(to);
-}
-async function exportPdf(memo: CommissionMemo, folder: string): Promise<ExportResult> {
-  const page = memo.main && join(folder, memo.main);
-  if (!page || !existsSync(page) || !insideForReal(folder, page)) return 'gone';
-  const to = await saveAs(exportName(memo.title, 'pdf'), 'PDF', 'pdf');
-  if (!to) return 'cancelled';
-  writeFileSync(to, await pageToPdf(folder, page));
-  return saved(to);
-}
+});
 /** Where the user wants the file (the desktop is offered first, as for the diagnostics); null if they cancel. */
 async function saveAs(name: string, kind: string, ext: string): Promise<string | null> {
   const r = await dialog.showSaveDialog(win!, { defaultPath: join(app.getPath('desktop'), name), filters: [{ name: kind, extensions: [ext] }] });
@@ -1416,11 +1608,7 @@ ipcMain.handle(IPC.dropPending, (_e, run: unknown) => {
 
 ipcMain.handle(IPC.answer, (_e, answer: DecisionAnswer) => {
   const ok = broker.answer(answer);
-  if (!broker.waiting) {
-    tray.calm();
-    mini.feed({ type: 'answered' });
-  }
-  sendRuns();
+  afterAnswer();
   return ok;
 });
 ipcMain.handle(IPC.recallForCommission, (_e, form: CommissionForm): Recall => memory.recallForCommission(commissionTitle(form)));
@@ -1450,6 +1638,7 @@ function openData() {
   pending = new PendingStore(join(dir, 'pending'), join(dir, 'pending.json'));
   schedules = new ScheduleStore(join(dir, 'schedules.json'));
   memory = new MemoryStore(join(dir, 'memory.json'));
+  postcards = new PostcardWall(dir);
   versions = new VersionStore(join(dir, 'versions'));
   projectVersions = new ProjectVersions(join(dir, 'versions'));
   if (memory.damage || settings.damaged || spend.damaged) log?.warn('data files could not be read', { notebook: memory.damage, settings: settings.damaged, ledger: spend.damaged });
@@ -1556,7 +1745,10 @@ app.whenReady().then(() => {
   moveOffer = moveInOffer(oldInstallerData, app.getPath('userData'));
   openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
+  providerKeys = new ProviderKeys(app.getPath('userData'), join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   connections = new ConnectionStore(app.getPath('userData'), safeStorage);
+  lan = new LanServer({ file: join(app.getPath('userData'), 'devices.json'), addresses: () => homeAddresses(networkInterfaces()), page: () => lanPage({ ...strings.ui.lan.page, kinds: Object.fromEntries(FROM_AFAR.map((id) => [id, strings.ui.templates[id]])) }), asks: () => broker.open().map(toLanAsk), answer: (id, choice) => broker.answer({ id, choice }, 'phone'), commission: fromAfar });
+  void applyLan(settings.get());
   pruneRecordings(join(app.getPath('userData'), 'recordings'));
   prunePreviews(previewsDir());
   createWindow();

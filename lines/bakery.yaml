@@ -1,0 +1,223 @@
+# Dialogue for the bakery (plan-1.6.md F1), laid over lines/cafe.yaml: same format, same rules.
+# Auntie Gui the baker does all the work; Adeng only brings the order over and answers now and then.
+# Spots: 面包柜台 (counter), 烤炉 (board), 面包架 (shelf), 揉面桌 (table), 和面机 (corner).
+
+opening:
+  - { id: bk_revise_again_01, speaker: guiyi, when: revise_again, bubbles: ["上回改的是{lastAsk}。", "这回{brief}，好说。"] }
+  - { id: bk_revise_01, speaker: guiyi, when: revise, bubbles: ["{brief}？行。", "面是现成的，揉一揉就好。"] }
+  - { id: bk_revise_02, speaker: guiyi, when: revise, bubbles: ["吃过了才知道哪儿不对。", "{brief}，我来调。"] }
+  - { id: bk_revise_03, speaker: guiyi, when: revise, bubbles: ["旧的那份我留着。", "{brief}，改好了叫你尝。"] }
+  - { id: bk_mem_02, speaker: guiyi, when: has_stuck_note, bubbles: ["{brief}，好嘞。", "上回在{stuckNote}卡过。", "这回我先看着那儿。"] }
+  - { id: bk_mem_01, speaker: guiyi, when: has_memory, bubbles: ["{brief}，好嘞。", "上回你挑的{lastChoice}。", "还照那个口味来。"] }
+  - { id: bk_tpl_menu_01, speaker: guiyi, when: tpl_menu, bubbles: ["做菜单啊，我熟。", "菜名和价钱照你给的写，一个字不改。"] }
+  - { id: bk_tpl_menu_02, speaker: guiyi, when: tpl_menu, bubbles: ["菜单要一眼看得清。", "价钱我一行行对齐。"] }
+  - { id: bk_tpl_recipe_01, speaker: guiyi, when: tpl_recipe, bubbles: ["写食谱？这个我拿手。", "分量、火候、几分钟，都写上。"] }
+  - { id: bk_tpl_recipe_02, speaker: guiyi, when: tpl_recipe, bubbles: ["照着能做出来，才叫食谱。", "我一步一步写。"] }
+  - { id: bk_handed_01, speaker: guiyi, when: handed, bubbles: ["东西收到了，我先看看。", "{brief}，好嘞。"] }
+  - { id: bk_opening_01, speaker: guiyi, bubbles: ["{brief}？", "好，我系上围裙。"] }
+  - { id: bk_opening_02, speaker: guiyi, bubbles: ["{brief}……", "炉子刚热，来得正好。"] }
+  - { id: bk_opening_03, speaker: guiyi, bubbles: ["来活了。", "{brief}，我先和面。"] }
+
+planning:
+  - { id: bk_plan_01, speaker: guiyi, bubbles: ["先排排顺序，跟烤面包一个理。"] }
+  - { id: bk_plan_02, speaker: guiyi, bubbles: ["哪样先进炉呢……"] }
+  - { id: bk_plan_03, speaker: guiyi, bubbles: ["三步，跟发面一样急不得。"] }
+
+draft_ready:
+  - { id: bk_draft_ready_01, speaker: guiyi, bubbles: ["信写好了，在柜台上。", "你看完自己寄。"] }
+  - { id: bk_draft_ready_02, speaker: guiyi, bubbles: ["草稿好了。", "寄不寄你说了算。"] }
+  - { id: bk_draft_ready_03, speaker: guiyi, bubbles: ["信没寄，我拿面包篮压着呢。"] }
+
+writing:
+  - { id: bk_write_01, speaker: guiyi, bubbles: ["开工。"] }
+  - { id: bk_write_02, speaker: guiyi, bubbles: ["这块揉好了，下一块。"] }
+  - { id: bk_write_03, speaker: guiyi, bubbles: ["嗯……", "面团软硬正好。"] }
+  - { id: bk_write_04, speaker: guiyi, bubbles: ["先成个形，花样后面再说。"] }
+
+sub_go_research:
+  - { id: bk_go_rs_rain, speaker: guiyi, when: sky_rain, bubbles: ["下雨了，面粉别受潮。", "我去架子上找{topic}。"] }
+  - { id: bk_go_rs_01, speaker: guiyi, bubbles: ["{topic}？我去面包架那儿看看。"] }
+  - { id: bk_go_rs_02, speaker: guiyi, bubbles: ["我记得写在哪本本子上……"] }
+  - { id: bk_go_rs_03, speaker: guiyi, bubbles: ["老方子都夹在架子后头。"] }
+
+sub_back_research:
+  - { id: bk_back_rs_01, speaker: guiyi, bubbles: ["找着了。", "用得上的有{count}样。"] }
+  - { id: bk_back_rs_02, speaker: guiyi, bubbles: ["这个说得对。", "跟我外婆讲的一样。"] }
+  - { id: bk_back_rs_03, speaker: guiyi, bubbles: ["都在这儿，按先后排好了。"] }
+
+sub_go_review:
+  - { id: bk_go_rv_01, speaker: guiyi, bubbles: ["我在揉面桌上试一遍。"] }
+  - { id: bk_go_rv_02, speaker: guiyi, bubbles: ["做出来尝一口才知道。"] }
+  - { id: bk_go_rv_03, speaker: guiyi, bubbles: ["一样一样对过去。"] }
+
+sub_back_review:
+  - { id: bk_back_rv_issue, speaker: guiyi, when: has_issues, bubbles: ["有{issueCount}处不对味。", "我都插了根牙签做记号。"] }
+  - { id: bk_back_rv_ok, speaker: guiyi, when: no_issues, bubbles: ["从头到尾对过了，没毛病。"] }
+  - { id: bk_back_rv_ok2, speaker: guiyi, when: no_issues, bubbles: ["尝过了，正好。"] }
+
+sub_go_design:
+  - { id: bk_go_ds_rain, speaker: guiyi, when: sky_rain, bubbles: ["下雨天，店里清静。", "我在炉子边上画画样子。"] }
+  - { id: bk_go_ds_01, speaker: guiyi, bubbles: ["我在烤炉边上比划比划。"] }
+  - { id: bk_go_ds_02, speaker: guiyi, bubbles: ["摆成什么样好看呢……"] }
+  - { id: bk_go_ds_03, speaker: guiyi, bubbles: ["先拿面团捏个样子。"] }
+
+sub_back_design:
+  - { id: bk_back_ds_01, speaker: guiyi, bubbles: ["样子定了。", "看着就有胃口。"] }
+  - { id: bk_back_ds_02, speaker: guiyi, bubbles: ["捏好了，你瞧瞧。"] }
+  - { id: bk_back_ds_03, speaker: guiyi, bubbles: ["摆了三种，我看中间那个好。"] }
+
+stuck:
+  - { id: bk_stuck_01, speaker: guiyi, bubbles: ["哎？没发起来。", "换个法子试试。"] }
+  - { id: bk_stuck_02, speaker: guiyi, bubbles: ["不对。{whatsWrong}。"] }
+  - { id: bk_stuck_03, speaker: guiyi, bubbles: ["火大了，边上有点焦……"] }
+  - { id: bk_stuck_04, speaker: guiyi, bubbles: ["面揉过头了。", "重新来。"] }
+
+stuck_long:
+  - { id: bk_stuck_long_01, speaker: guiyi, bubbles: ["这个费工夫。", "我多试几回，你先忙。"] }
+  - { id: bk_stuck_long_02, speaker: guiyi, bubbles: ["还在弄，没撂下。"] }
+  - { id: bk_stuck_long_03, speaker: guiyi, bubbles: ["再等等，面还在醒。"] }
+
+waiting:
+  - { id: bk_wait_01, speaker: guiyi, bubbles: ["在烤着呢，等等。"] }
+  - { id: bk_wait_02, speaker: guiyi, bubbles: ["和面机转着，还没好。"] }
+  - { id: bk_wait_03, speaker: guiyi, bubbles: ["急不得，火候到了自然好。"] }
+
+ask:
+  - { id: bk_ask_color, speaker: guiyi, when: demo_color, bubbles: ["奶油白和浅薄荷，我各抹了一块。", "你要哪个？"] }
+  - { id: bk_ask_01, speaker: guiyi, bubbles: ["问你个事儿。", "{question}"] }
+  - { id: bk_ask_02, speaker: guiyi, bubbles: ["这儿有两种做法。", "你挑一个？"] }
+
+react_adopted:
+  - { id: bk_react_ad_01, speaker: guiyi, bubbles: ["好，就这么做。"] }
+  - { id: bk_react_ad_02, speaker: guiyi, bubbles: ["记下了，写在黑板上。"] }
+  - { id: bk_react_ad_03, speaker: guiyi, bubbles: ["我也爱这个口味。"] }
+
+react_rejected:
+  - { id: bk_react_rj_01, speaker: guiyi, bubbles: ["行，听你的。"] }
+  - { id: bk_react_rj_02, speaker: guiyi, bubbles: ["那这块面我留着做别的。"] }
+  - { id: bk_react_rj_03, speaker: guiyi, bubbles: ["好，换一样。"] }
+
+react_delegated:
+  - { id: bk_react_dl_00, speaker: guiyi, bubbles: ["好，我来定。", "定了跟你说。"] }
+  - { id: bk_react_dl_01, speaker: guiyi, bubbles: ["那就{choice}，因为{reason}。", "不合口味随时说。"] }
+  - { id: bk_react_dl_02, speaker: guiyi, bubbles: ["先做{choice}试试。", "不好再换。"] }
+  - { id: bk_react_dl_03, speaker: guiyi, bubbles: ["就{choice}。", "为什么，我写在黑板上了。"] }
+
+serious:
+  - { id: bk_serious_01, speaker: guiyi, bubbles: ["这一步要{action}。", "做了就{consequence}。", "你看一眼再定。"] }
+  - { id: bk_serious_02, speaker: guiyi, bubbles: ["这儿我不敢乱动。", "{action}，{consequence}。"] }
+  - { id: bk_serious_03, speaker: guiyi, bubbles: ["这个烤了就回不去了。", "你看清楚再点。"] }
+
+refused:
+  - { id: bk_refused_01, speaker: guiyi, bubbles: ["这个不能碰。", "换条路。"] }
+  - { id: bk_refused_02, speaker: guiyi, bubbles: ["这不归我们动手。"] }
+  - { id: bk_refused_03, speaker: guiyi, bubbles: ["那是你的私事，我不翻。"] }
+
+serious_yes:
+  - { id: bk_serious_yes_01, speaker: guiyi, bubbles: ["好，我来。"] }
+  - { id: bk_serious_yes_02, speaker: guiyi, bubbles: ["知道了，这就动手。"] }
+  - { id: bk_serious_yes_03, speaker: guiyi, bubbles: ["好嘞。"] }
+
+serious_no:
+  - { id: bk_serious_no_01, speaker: guiyi, bubbles: ["好，不碰它。", "我换个不用这样的法子。"] }
+  - { id: bk_serious_no_02, speaker: guiyi, bubbles: ["好，先放着。"] }
+  - { id: bk_serious_no_03, speaker: guiyi, bubbles: ["不弄了，我绕过去。"] }
+
+done:
+  - { id: bk_done_day, speaker: guiyi, when: daytime, bubbles: ["好了，在柜台上。", "趁热看。"] }
+  - { id: bk_done_dusk, speaker: guiyi, when: dusk, bubbles: ["好了。", "天快黑了，正好收炉子。"] }
+  - { id: bk_done_night, speaker: guiyi, when: night, bubbles: ["好了。", "这么晚了，看完早点睡。"] }
+  - { id: bk_done_01, speaker: guiyi, bubbles: ["出炉了，一点没糊。"] }
+  - { id: bk_done_02, speaker: guiyi, bubbles: ["好了，拿去就能用。", "我从头对了两遍。"] }
+
+failed:
+  - { id: bk_failed_01, speaker: guiyi, bubbles: ["这回没做成，对不住。", "卡在{stuckAt}。", "我记在黑板上了。", "下回换个法子。"] }
+  - { id: bk_failed_02, speaker: guiyi, bubbles: ["没做成。", "卡在{stuckAt}，记下了。"] }
+  - { id: bk_failed_03, speaker: guiyi, bubbles: ["今天先到这儿。", "毛病我写在黑板上了。"] }
+
+net_retry:
+  - { id: bk_net_retry_01, speaker: guiyi, bubbles: ["好像断电了，我等等再试。"] }
+  - { id: bk_net_retry_02, speaker: guiyi, bubbles: ["外头没人应，我再喊一声。"] }
+  - { id: bk_net_retry_03, speaker: guiyi, bubbles: ["送货的还没来，过会儿再问。"] }
+
+cancelled:
+  - { id: bk_cancelled_01, speaker: guiyi, bubbles: ["好，那先放着。"] }
+  - { id: bk_cancelled_02, speaker: guiyi, bubbles: ["行，做好的都留着。"] }
+  - { id: bk_cancelled_03, speaker: guiyi, bubbles: ["好，不做了。", "面我盖上布，明天还能用。"] }
+
+# 走进面包房时桂姨说的一句（plan-1.6.md F5，app/renderer/stage/shoptalk.ts）。有节日先说节日的，再看天气，
+# 都没有就在时辰、季节和平常的里面挑。when：period_dawn/day/dusk/night、sky_rain 等、holiday_*、season_*。
+shop_in:
+  - { id: bk_in_01, speaker: guiyi, bubbles: ["来啦，炉子正热着。"] }
+  - { id: bk_in_02, speaker: guiyi, bubbles: ["进来坐，地上有面粉，当心滑。"] }
+  - { id: bk_in_03, speaker: guiyi, bubbles: ["来得巧，刚出了一炉。"] }
+  - { id: bk_in_04, speaker: guiyi, bubbles: ["门口那块垫子，踩一踩再进。"] }
+  - { id: bk_in_05, speaker: guiyi, bubbles: ["随便看，看饿了再说。"] }
+  - { id: bk_in_dawn_01, speaker: guiyi, when: period_dawn, bubbles: ["这么早？", "头一炉还没好，你先闻着。"] }
+  - { id: bk_in_dawn_02, speaker: guiyi, when: period_dawn, bubbles: ["我四点就起了，面得先醒着。"] }
+  - { id: bk_in_day_01, speaker: guiyi, when: period_day, bubbles: ["中午人多，柜台那边先别挤。"] }
+  - { id: bk_in_dusk_01, speaker: guiyi, when: period_dusk, bubbles: ["傍晚了，剩的面包打八折。"] }
+  - { id: bk_in_dusk_02, speaker: guiyi, when: period_dusk, bubbles: ["这会儿来，赶上最后一炉。"] }
+  - { id: bk_in_night_01, speaker: guiyi, when: period_night, bubbles: ["快关门了。", "明天的面我正在和。"] }
+  - { id: bk_in_night_02, speaker: guiyi, when: period_night, bubbles: ["炉子刚熄，屋里还暖和。"] }
+  - { id: bk_in_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["下雨天面发得慢。", "伞放门边就行。"] }
+  - { id: bk_in_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["快进来，炉子边上暖和。"] }
+  - { id: bk_in_spring_01, speaker: guiyi, when: season_spring, bubbles: ["开春了，我做了点青团。"] }
+  - { id: bk_in_summer_01, speaker: guiyi, when: season_summer, bubbles: ["天热，炉子边别站太久。"] }
+  - { id: bk_in_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["新麦下来了，面香不一样。"] }
+  - { id: bk_in_winter_01, speaker: guiyi, when: season_winter, bubbles: ["冬天了，热面包最好卖。"] }
+  - { id: bk_in_new_year, speaker: guiyi, when: holiday_new_year, bubbles: ["过年好。", "年糕我蒸了一笼。"] }
+  - { id: bk_in_lantern, speaker: guiyi, when: holiday_lantern, bubbles: ["元宵好，汤圆在锅里。"] }
+  - { id: bk_in_dragon_boat, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["粽子不归我管，面包管够。"] }
+  - { id: bk_in_mid_autumn, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["月饼是我自己烤的，拿一个。"] }
+  - { id: bk_in_halloween, speaker: guiyi, when: holiday_halloween, bubbles: ["南瓜面包，今天就这一样。"] }
+  - { id: bk_in_christmas, speaker: guiyi, when: holiday_christmas, bubbles: ["我也学着烤了个姜饼屋。"] }
+
+# 店里没活时桂姨隔一会儿说一句：天气、季节、客人来过、收摊。when 同上，不写就是什么时候都行。
+shop_idle:
+  - { id: bk_idle_01, speaker: guiyi, bubbles: ["面要揉到能拉出一层膜。"] }
+  - { id: bk_idle_02, speaker: guiyi, bubbles: ["这炉火候正好。"] }
+  - { id: bk_idle_03, speaker: guiyi, bubbles: ["老面该喂了。"] }
+  - { id: bk_idle_04, speaker: guiyi, bubbles: ["烘焙架上还空着一层。"] }
+  - { id: bk_idle_05, speaker: guiyi, bubbles: ["和面机今天有点响。"] }
+  - { id: bk_idle_06, speaker: guiyi, bubbles: ["黑板上的价钱，该擦了重写。"] }
+  - { id: bk_idle_07, speaker: guiyi, bubbles: ["面粉还剩半袋，明天去进。"] }
+  - { id: bk_idle_08, speaker: guiyi, bubbles: ["羊角包要叠好多层。", "少一层都不酥。"] }
+  - { id: bk_idle_09, speaker: guiyi, bubbles: ["烤盘得趁热刷。"] }
+  - { id: bk_idle_10, speaker: guiyi, bubbles: ["这个模子，比我年纪还大。"] }
+  - { id: bk_idle_11, speaker: guiyi, bubbles: ["面在醒，人也歇一歇。"] }
+  - { id: bk_idle_12, speaker: guiyi, bubbles: ["收银机的纸快没了。"] }
+  - { id: bk_idle_13, speaker: guiyi, bubbles: ["老马早上来拿了两个大馒头。"] }
+  - { id: bk_idle_14, speaker: guiyi, bubbles: ["陈婆婆要的软面包，我留了一个。"] }
+  - { id: bk_idle_15, speaker: guiyi, bubbles: ["阿信说今天信多，晚点来。"] }
+  - { id: bk_idle_16, speaker: guiyi, bubbles: ["小禾又来买了个最便宜的。", "我多塞了一块饼干。"] }
+  - { id: bk_idle_17, speaker: guiyi, bubbles: ["老周说我的炉门该上油了。"] }
+  - { id: bk_idle_18, speaker: guiyi, bubbles: ["小林来问食谱，我叫他去小灯屋。"] }
+  - { id: bk_idle_19, speaker: guiyi, bubbles: ["门口那人站了半天，又走了。"] }
+  - { id: bk_idle_20, speaker: guiyi, bubbles: ["有人隔着玻璃看面包。", "我冲他点了点头。"] }
+  - { id: bk_idle_21, speaker: guiyi, bubbles: ["芳姐拿花换了两个面包。"] }
+  - { id: bk_idle_22, speaker: guiyi, bubbles: ["吴阿姨订了二十个小面包，楼里开会用。"] }
+  - { id: bk_idle_23, speaker: guiyi, bubbles: ["阿灯早上来过，拿了一袋吐司。"] }
+  - { id: bk_idle_24, speaker: guiyi, bubbles: ["面包刀该磨了。"] }
+  - { id: bk_idle_dawn_01, speaker: guiyi, when: period_dawn, bubbles: ["第一炉出来，街上才有人。"] }
+  - { id: bk_idle_dawn_02, speaker: guiyi, when: period_dawn, bubbles: ["送奶的车刚过去。"] }
+  - { id: bk_idle_day_01, speaker: guiyi, when: period_day, bubbles: ["中午这一阵，忙完就好了。"] }
+  - { id: bk_idle_dusk_01, speaker: guiyi, when: period_dusk, bubbles: ["剩下这几个，明早做面包干。"] }
+  - { id: bk_idle_dusk_02, speaker: guiyi, when: period_dusk, bubbles: ["下班的人多，门口热闹。"] }
+  - { id: bk_idle_night_01, speaker: guiyi, when: period_night, bubbles: ["炉子熄了，该收摊了。"] }
+  - { id: bk_idle_night_02, speaker: guiyi, when: period_night, bubbles: ["明天的面盖好了，就等它发。"] }
+  - { id: bk_idle_night_03, speaker: guiyi, when: period_night, bubbles: ["灯我留一盏，好看清面发没发。"] }
+  - { id: bk_idle_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["下雨了，买面包的少了。"] }
+  - { id: bk_idle_rain_02, speaker: guiyi, when: sky_rain, bubbles: ["潮天，面粉得收严实。"] }
+  - { id: bk_idle_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["下雪天，烤炉就是暖气。"] }
+  - { id: bk_idle_snow_02, speaker: guiyi, when: sky_snow, bubbles: ["门口的雪，我等会儿扫。"] }
+  - { id: bk_idle_petals_01, speaker: guiyi, when: sky_petals, bubbles: ["花瓣飘进来了，可别落进面里。"] }
+  - { id: bk_idle_leaves_01, speaker: guiyi, when: sky_leaves, bubbles: ["叶子刮进门了，回头扫一扫。"] }
+  - { id: bk_idle_spring_01, speaker: guiyi, when: season_spring, bubbles: ["春天面发得快，得看紧点。"] }
+  - { id: bk_idle_spring_02, speaker: guiyi, when: season_spring, bubbles: ["想做个艾草面包，还没试。"] }
+  - { id: bk_idle_summer_01, speaker: guiyi, when: season_summer, bubbles: ["夏天少烤点，放不住。"] }
+  - { id: bk_idle_summer_02, speaker: guiyi, when: season_summer, bubbles: ["冰柜里冻着绿豆糕。"] }
+  - { id: bk_idle_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["秋天做南瓜面包，颜色好看。"] }
+  - { id: bk_idle_autumn_02, speaker: guiyi, when: season_autumn, bubbles: ["栗子下来了，该做栗子蛋糕。"] }
+  - { id: bk_idle_winter_01, speaker: guiyi, when: season_winter, bubbles: ["冬天面要醒久一点。"] }
+  - { id: bk_idle_winter_02, speaker: guiyi, when: season_winter, bubbles: ["手冷，先在炉子边烘一烘。"] }

@@ -1,0 +1,210 @@
+# The neighbours' stories, in English (lines/stories.yaml is the Chinese set; road-to-1.4.md D4).
+# When a chapter comes and what it leaves: app/shared/stories.ts. `left` must match that table.
+# Each line is one bubble, same writing rules as lines/en/cafe.yaml. `note` says what was left behind.
+
+mechanic:
+  - title: The scrapyard bike
+    left: bell
+    note: Old Zhou hung the old bell by the workshop window.
+    lines:
+      - Found an old bike at the scrapyard.
+      - Same model I rode when I was young.
+      - Paid twenty for it and wheeled it home.
+      - The bell still rings. I'll hang it here.
+  - title: Taking it apart
+    left: toolbox
+    note: Old Zhou's toolbox now sits by the workshop door.
+    lines:
+      - All rust, and the chain's snapped.
+      - Brought my toolbox. I'll fix it out here.
+      - My place is cramped. The street has room.
+  - title: The pump
+    left: pump
+    note: An old pump leans by the workshop door.
+    lines:
+      - New tyres came, but they won't take air.
+      - The valve's worn. A new one will do it.
+      - The pump stays here. Anyone flat can use it.
+  - title: The old plate
+    left: plate
+    note: An old bicycle plate is nailed to the workshop wall.
+    lines:
+      - A tin plate fell out from under the saddle.
+      - Bikes had number plates once.
+      - I checked my old notebook. Same number.
+      - This is the very bike I rode back then.
+  - title: For the shop
+    left: bicycle
+    note: The mended bicycle leans by the café door.
+    lines:
+      - All fixed. Rode it round the block.
+      - My legs aren't what they were. Can't go far.
+      - Keep it at your door. Handy for errands.
+      - Just one rule. Ring the bell often.
+
+granny:
+  - title: The sunny bench
+    left: cushion
+    note: A flowered cushion now sits on the bench.
+    lines:
+      - This bench gets the afternoon sun.
+      - I can see the post office from here.
+      - My granddaughter's away at university.
+      - She promised to write every month.
+  - title: Sparrows
+    left: millet
+    note: A little dish of millet sits by the bench.
+    lines:
+      - No letter yet, but the sparrows come daily.
+      - I bring a handful of millet. They know me.
+      - The one with no tail is the boldest.
+  - title: Roses
+    left: rose
+    note: A pot of roses stands by the bench.
+    lines:
+      - A letter came. Winters there are long.
+      - As a girl she loved roses best.
+      - They'll be in flower when she's home.
+  - title: The birdhouse
+    left: birdhouse
+    note: A wooden birdhouse hangs on the wall by the bench.
+    lines:
+      - Old Zhou nailed up a birdhouse for me.
+      - The sparrows have settled in. Three chicks.
+      - She wants photos. I've taken a dozen.
+  - title: Home
+    left: stool
+    note: A small stool now stands by the bench.
+    lines:
+      - She came home yesterday, for the new year.
+      - She sat out here with me this morning.
+      - The bench won't seat two. Hence the stool.
+      - She says the street has grown.
+
+student:
+  - title: A new topic
+    left: books
+    note: A pile of Xiaohe's books sits by the study door.
+    lines:
+      - New thesis topic. It's this street.
+      - A street, a few old shops, how they began.
+      - I brought my books. I'll write out here.
+  - title: The notice
+    left: notice
+    note: A notice asking for a chat is pinned by the study door.
+    lines:
+      - I put up a notice asking neighbours to talk.
+      - Auntie Gui's bakery is twenty years old.
+      - Old Zhou says his place is older.
+      - They argued about it all afternoon.
+  - title: The cactus
+    left: cactus
+    note: A cactus now sits on the study's windowsill.
+    lines:
+      - Granny Chen gave me a cactus.
+      - She says it won't mind if I forget it.
+      - A lot like me, really.
+  - title: The book corner
+    left: bookshelf
+    note: A little lending shelf stands outside the study.
+    lines:
+      - Three notebooks of interviews so far.
+      - I put up a little shelf. Take what you like.
+      - Bring it back when you're done. No sign-out.
+  - title: Graduation
+    left: cap
+    note: A mortarboard sits on top of the little shelf.
+    lines:
+      - My thesis passed. The print shop bound it.
+      - A copy's on the shelf. It's about you all.
+      - The cap stays. I start a job next month.
+      - When I'm back, I'll write out here again.
+
+# Auntie Olive and Pip (plan-1.6.md F4): they wait at their own doors, and what they leave hangs on their own shop's wall
+# (scripts/art/tales.py). The two meet in chapter 5: the first letter the bakery ever got, Pip brought.
+baker:
+  - title: The bread tin
+    left: tin
+    note: An old bread tin hangs on the bakery wall.
+    lines:
+      - My dad ran a bakery back home.
+      - Thirty years. The whole town ate his bread.
+      - When he shut, all I asked for was this tin.
+      - The street's first loaf came out of it.
+  - title: The starter
+    left: starter
+    note: A jar of starter sits on a little shelf over the ovens.
+    lines:
+      - This starter's older than most shops here.
+      - Dad began it. It wants feeding every day.
+      - I held it on my lap the whole night coach.
+      - Half of a good loaf is down to this jar.
+  - title: The wrong bus
+    left: ticket
+    note: An old bus ticket is pinned to the bakery wall.
+    lines:
+      - I took the wrong bus, got off at the corner.
+      - Walked it end to end. Not a whiff of bread.
+      - I stood right here. This street needs one.
+      - Kept the ticket. It's how I got here.
+  - title: The slate book
+    left: ledger
+    note: Auntie Olive's first-year slate book hangs by the window.
+    lines:
+      - Hardly anyone came in that first year.
+      - The oven broke. Old Zhou fixed it for free.
+      - If folk were short, I wrote it in the book.
+      - Every line in it got paid back, bit by bit.
+  - title: Twenty years
+    left: plait
+    note: A big plaited loaf, shaped in a ring, hangs on the wall.
+    lines:
+      - Pip's done this round as long as I've baked.
+      - Twenty years. I plaited him a ring loaf.
+      - He says my first letter here came from him.
+      - I'd forgotten. He hadn't.
+
+postman:
+  - title: The old satchel
+    left: satchel
+    note: Pip's satchel of twenty years hangs on the post office wall.
+    lines:
+      - I've carried this bag for twenty years.
+      - The strap broke on my very first day.
+      - Tied it with a bootlace, finished the round.
+      - New bag now. The old one lives here.
+  - title: The red string
+    left: bundle
+    note: A little bundle of letters tied with red string is pinned up.
+    lines:
+      - Granny Chen's granddaughter writes monthly.
+      - Once a letter came three days late.
+      - I went by her bench each day and said soon.
+      - She gave me red string to keep letters tied.
+  - title: No number
+    left: envelope
+    note: A small frame on the wall holds an envelope with no number on it.
+    lines:
+      - One letter said only: the shop with the lamp.
+      - No number, no name. Send it back, they said.
+      - I thought it over and brought it to you.
+      - Inside was a card, a thank-you for the lamp.
+      - I asked for the envelope back and framed it.
+  - title: The snow year
+    left: scarf
+    note: An old knitted scarf hangs on a hook by the satchel.
+    lines:
+      - One year the snow came up to my knees.
+      - No bike. I walked it door to door till dark.
+      - Granny Chen wound her scarf round my neck.
+      - Auntie Olive put a hot loaf in my hands.
+      - The scarf hangs here. It comes out for snow.
+  - title: Twenty years
+    left: badge
+    note: A twenty-year badge is pinned to the post office wall.
+    lines:
+      - Twenty years on this round today.
+      - Auntie Olive forgot her first letter here.
+      - It came from home. She opened it by me.
+      - Read it, said nothing, went to knead dough.
+      - The office sent a badge. It hangs here.

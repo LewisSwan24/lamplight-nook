@@ -2,7 +2,9 @@ import { fill, locale, strings } from '../../shared/i18n';
 import { monthName } from '../../shared/localday';
 import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
-import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type Settings } from '../../shared/types';
+import { MODEL_TIERS, type ModelTier } from '../../shared/models';
+import { PRESETS, presetById, type Provider } from '../../shared/providers';
+import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type LanRole, type LanState, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closeButton, closePanel, nameCard, replaceOpen } from './panels';
 import { el, layer } from './dom';
@@ -270,7 +272,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused';
+type Switch = 'captions' | 'reducedMotion' | 'powerSaving' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused' | 'lan';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -281,6 +283,120 @@ function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings
     return el('label.toggle', {}, box, text);
   };
   return el('div.access-rows', {}, ...rows.map(([key, text]) => toggle(key, text)));
+}
+
+/** The kinds offered in settings: the four Claude Code can be pointed at, and one that only explains a gateway. */
+type ProviderChoice = Provider['kind'] | 'openai';
+const P = S.provider;
+
+/**
+ * Where the work goes (plan-1.6.md F7): Anthropic as before, a compatible service (a preset or by hand, with its prices),
+ * Bedrock, Vertex, or how to put a gateway in front of a service that only speaks the OpenAI format. Saving checks it and
+ * keeps the key apart for each provider; the key box stays empty, showing only the end of a key already kept.
+ */
+function providerSection(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  let current: Provider = settings.provider;
+  const kind = el('select.provider-kind', { 'aria-label': P.label },
+    ...(['anthropic', 'compatible', 'bedrock', 'vertex', 'openai'] as const).map((k) => el('option', { value: k, selected: k === current.kind }, P.kinds[k]))) as HTMLSelectElement;
+  const body = el('div.provider-body');
+  const said = el('div.hint.provider-said', { role: 'status' });
+  const field = (label: string, input: HTMLElement) => el('label.provider-field', {}, el('span', {}, label), input);
+  const text = (name: string, value = '', type = 'text') => el('input', { type, name, value, spellcheck: false, autocomplete: 'off' }) as HTMLInputElement;
+  const save = async (p: Provider, key: string) => {
+    said.textContent = P.saving;
+    said.classList.remove('warn');
+    const r = await api.saveProvider(p, key);
+    said.textContent = r.ok ? (r.verified ? P.saved : P.unverified) : P.reasons[r.reason];
+    said.classList.toggle('warn', !r.ok);
+    if (r.ok) {
+      current = r.provider;
+      changed(await api.getSettings());
+      draw();
+    }
+  };
+  const keyBox = async (p: Provider) => {
+    const box = text('key', '', 'password');
+    const kept = await api.providerKey(p);
+    if (kept) box.placeholder = fill(P.keyKept, { hint: kept });
+    return box;
+  };
+  const draw = async () => {
+    const choice = kind.value as ProviderChoice;
+    const was = current.kind === choice ? current : undefined;
+    if (choice === 'anthropic') {
+      body.replaceChildren(el('div.hint', {}, P.anthropicHint),
+        ...(current.kind === 'anthropic' ? [] : [el('button.provider-save', { type: 'button', onclick: () => void save({ kind: 'anthropic' }, '') }, P.useAnthropic)]));
+      return;
+    }
+    if (choice === 'openai') {
+      body.replaceChildren(el('div.hint.provider-openai', {}, P.openaiText));
+      return;
+    }
+    if (choice === 'compatible') {
+      const preset = el('select.provider-preset', { 'aria-label': P.preset }, el('option', { value: '' }, P.presetCustom),
+        ...PRESETS.map((p) => el('option', { value: p.id, selected: p.id === was?.preset }, p.name))) as HTMLSelectElement;
+      const baseUrl = text('baseUrl', was?.baseUrl);
+      const model = text('model', was?.model);
+      const fast = text('fastModel', was?.fastModel);
+      const input = text('priceInput', was?.prices ? String(was.prices.input) : '', 'number');
+      const output = text('priceOutput', was?.prices ? String(was.prices.output) : '', 'number');
+      for (const n of [input, output]) { n.min = '0'; n.step = 'any'; }
+      const docs = el('div.hint.provider-docs');
+      const fromPreset = () => {
+        const p = presetById(preset.value);
+        docs.textContent = p ? fill(P.presetDocs, { name: p.name }) : '';
+        // By hand: the address and model stay to be changed, but a preset's faster model belongs to that preset alone.
+        if (!p) { fast.value = ''; return; }
+        baseUrl.value = p.baseUrl;
+        model.value = p.model;
+        fast.value = p.fastModel ?? '';
+      };
+      preset.addEventListener('change', async () => { fromPreset(); key.replaceWith(key = await keyBox(drafted())); });
+      const drafted = (): Provider => ({ kind: 'compatible', preset: preset.value || undefined, baseUrl: baseUrl.value.trim(), model: model.value.trim(), fastModel: fast.value.trim() || undefined,
+        prices: input.value && output.value ? { input: Number(input.value), output: Number(output.value) } : undefined });
+      let key = await keyBox(was ?? drafted());
+      if (!was) fromPreset();
+      body.replaceChildren(
+        field(P.preset, preset), docs, field(P.baseUrl, baseUrl), field(P.model, model), field(P.fastModel, fast), field(P.key, key),
+        field(P.priceInput, input), field(P.priceOutput, output), el('div.hint', {}, P.priceHint),
+        el('div.hint.provider-trial', {}, P.trial),
+        el('button.provider-save', { type: 'button', onclick: () => void save(drafted(), key.value) }, P.save));
+      return;
+    }
+    const region = text('region', was?.region);
+    if (choice === 'bedrock') {
+      const key = await keyBox({ kind: 'bedrock' });
+      body.replaceChildren(field(P.region, region), field(P.bedrockKey, key),
+        el('button.provider-save', { type: 'button', onclick: () => void save({ kind: 'bedrock', region: region.value.trim() || undefined }, key.value) }, P.save));
+      return;
+    }
+    const project = text('project', was?.project);
+    const file = text('credentialsFile', was?.credentialsFile);
+    body.replaceChildren(field(P.region, region), field(P.project, project), field(P.credentialsFile, file), el('div.hint', {}, P.vertexHint),
+      el('button.provider-save', { type: 'button', onclick: () => void save({ kind: 'vertex', region: region.value.trim() || undefined, project: project.value.trim() || undefined, credentialsFile: file.value.trim() || undefined }, '') }, P.save));
+  };
+  kind.addEventListener('change', () => { said.textContent = ''; void draw(); });
+  void draw();
+  return el('section.provider', {}, el('h4', {}, P.label), kind, body, said);
+}
+
+/** The model names beside the tiers: the same in every language. */
+const MODEL_NAME: Record<ModelTier, string> = { best: 'Opus', balanced: 'Sonnet', saver: 'Haiku' };
+
+/** Which model the staff work on (plan-1.6.md F6): three tiers, each with what a commission costs on it. */
+function modelRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  const costs = new Map<ModelTier, HTMLElement>();
+  const rows = MODEL_TIERS.map((tier) => {
+    const box = el('input', { type: 'radio', name: 'model-tier', value: tier, checked: tier === settings.modelTier }) as HTMLInputElement;
+    box.addEventListener('change', async () => { if (box.checked) changed(await api.saveSettings({ modelTier: tier })); });
+    const cost = el('span.model-cost');
+    costs.set(tier, cost);
+    return el('label.model-row', { 'data-tier': tier }, box, el('span.model-name', {}, `${S.modelTiers[tier]} · ${MODEL_NAME[tier]}`), cost);
+  });
+  void api.modelCosts().then((all) => {
+    for (const tier of MODEL_TIERS) costs.get(tier)!.textContent = fill(all[tier].from === 'ledger' ? S.modelCostLedger : S.modelCostTable, { cost: formatUsd(all[tier].usd) });
+  });
+  return el('div.model-rows', { role: 'radiogroup', 'aria-label': S.modelLabel }, ...rows, el('div.hint', {}, S.modelHint));
 }
 
 /** What this month cost so far, and the most one run may spend. */
@@ -296,10 +412,13 @@ function spendRows(api: LamplightApi, settings: Settings, month: number, changed
     if (!months.open) return;
     const list = await api.spendMonths();
     const total = list.reduce((sum, m) => sum + m.usd, 0);
-    book.replaceChildren(...list.map((m) => el('tr', {},
+    book.replaceChildren(...list.flatMap((m) => [el('tr', {},
       el('th', { scope: 'row' }, monthName(m.month, locale())),
       el('td', {}, m.commissions === 1 ? S.spendBookOne : fill(S.spendBookCount, { n: String(m.commissions) })),
-      el('td', {}, m.estimated ? fill(S.spendBookEstimated, { cost: formatUsd(m.usd), estimated: formatUsd(m.estimated) }) : formatUsd(m.usd)))),
+      el('td', {}, m.estimated ? fill(S.spendBookEstimated, { cost: formatUsd(m.usd), estimated: formatUsd(m.estimated) }) : formatUsd(m.usd))),
+      // Who spent it, when someone other than the owner did (E5).
+      ...(m.people ?? []).map((p) => el('tr.spend-person', { 'data-who': p.who ?? '' },
+        el('td', {}), el('th', { scope: 'row' }, p.who === '' ? S.spendBookOwner : p.who ?? S.spendBookRemoved), el('td', {}, formatUsd(p.usd))))]),
     el('tr.spend-total', {}, el('th', { scope: 'row', colspan: 2 }, S.spendBookTotal), el('td', {}, formatUsd(total))));
     if (!list.length) book.replaceChildren(el('tr', {}, el('th', {}, S.spendBookEmpty)));
   } }, el('summary', {}, S.spendBook), book) as HTMLDetailsElement;
@@ -445,6 +564,64 @@ function furnishRows(api: LamplightApi, settings: Settings, changed: (s: Setting
 
 /** Settings, in the five tabs of docs/information-structure.md: who you are, the shop, sight and sound, working, and about. */
 /** `tab`: open on that tab rather than the one last looked at. */
+/**
+ * Phones and other computers on the home network (docs/plan-1.5.md E1): the switch, where the shop listens, a QR code for
+ * pairing a new device and the paired ones, each with a button to remove it. Refreshed every two seconds while shown,
+ * so a device that has just scanned the code shows as paired.
+ */
+/**
+ * What a paired device may do, and for one that may hand in commissions, what its person may spend in a month
+ * (docs/plan-1.5.md E5). The server holds the device to both; this is only where the owner sets them.
+ */
+function deviceChoices(api: LamplightApi, d: LanState['devices'][number], changed: () => void): HTMLElement {
+  const L = strings.ui.lan;
+  const role = el('select.lan-role', { 'aria-label': `${L.roleLabel} \u00B7 ${d.name}` }, ...(['watch', 'approve', 'commission'] as const).map((r) =>
+    el('option', { value: r, selected: r === d.role }, L.roles[r]))) as HTMLSelectElement;
+  role.addEventListener('change', async () => { await api.lanSetRole(d.id, role.value as LanRole); changed(); });
+  if (d.role !== 'commission') return el('span.lan-choices', {}, role);
+  const cap = el('select.lan-cap', { 'aria-label': `${L.capLabel} \u00B7 ${d.name}` }, ...[0, 1, 2, 5, 10].map((usd) =>
+    el('option', { value: usd, selected: usd === d.capUsd }, usd ? fill(L.capEach, { cap: formatUsd(usd) }) : L.capNone))) as HTMLSelectElement;
+  cap.addEventListener('change', async () => { await api.lanSetCap(d.id, Number(cap.value)); changed(); });
+  return el('span.lan-choices', {}, role, ' ', cap);
+}
+
+function lanSection(api: LamplightApi, settings: Settings, onChange: (s: Settings) => void): HTMLElement {
+  const L = strings.ui.lan;
+  const body = el('div.lan-body');
+  const qr = el('div.lan-qr', { hidden: true });
+  const render = async () => {
+    const st = await api.lanState();
+    // The code pairs once (E7): when its device has paired there is nothing left to scan.
+    const showing = /#d=([^&]+)/.exec(qr.dataset.url ?? '')?.[1];
+    if (!st.on || st.devices.some((d) => d.id === showing && d.paired)) qr.hidden = true;
+    body.replaceChildren(
+      st.on ? el('div.lan-address', {}, fill(L.address, { address: st.addresses.join(', ') })) : el('div.hint', {}, L.off),
+      st.on ? el('button.lan-pair', { type: 'button', onclick: async () => {
+        const got = await api.lanPair();
+        if (!got) return;
+        // The SVG is drawn by the main process from the address alone (qrcode-generator), never from anything typed.
+        qr.innerHTML = got.svg;
+        qr.dataset.url = got.url;
+        qr.append(el('div.hint', {}, L.scan));
+        qr.hidden = false;
+        void render();
+      } }, L.pair) : '',
+      el('div.lan-devices-label', {}, L.devices),
+      st.devices.length
+        ? el('ul.lan-devices', {}, ...st.devices.map((d) => el('li', { 'data-device': d.id, 'data-paired': String(d.paired), 'data-role': d.role }, `${d.name} · ${d.paired ? L.paired : L.waiting} `,
+          deviceChoices(api, d, () => void render()),
+          el('button.link', { type: 'button', onclick: async () => { await api.lanRemove(d.id); void render(); } }, L.remove))))
+        : el('div.hint', {}, L.none),
+    );
+  };
+  // Not while the user is choosing in the list: drawing it again would close the open choice.
+  const timer = window.setInterval(() => { if (!body.isConnected) window.clearInterval(timer); else if (!body.contains(document.activeElement)) void render(); }, 2000);
+  void render();
+  // The server starts or stops after the switch is saved.
+  const changed = (s: Settings) => { onChange(s); window.setTimeout(() => void render(), 500); };
+  return el('section.lan', {}, el('h4', {}, L.title), switchRows(api, settings, changed, [['lan', L.toggle]]), el('div.hint', {}, L.intro), body, qr);
+}
+
 export async function showSettings(api: LamplightApi, onChange: (s: Settings) => void, tab?: SettingsTab) {
   const [settings, env, version, month] = await Promise.all([api.getSettings(), api.envStatus(), api.appVersion(), api.spendThisMonth()]);
   const name = el('input', { type: 'text', maxlength: 10, value: settings.name, 'aria-label': S.nameLabel }) as HTMLInputElement;
@@ -463,11 +640,14 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     sight: [
       el('section', {}, el('h4', {}, S.volumeLabel), volumeRow(api, settings, onChange)),
       el('section', {}, el('h4', {}, strings.ui.access.sectionLabel),
-        switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion], ['detailed', strings.ui.access.detailedToggle]])),
+        switchRows(api, settings, onChange, [['captions', strings.ui.access.captionsToggle], ['reducedMotion', strings.ui.access.reduceMotion], ['powerSaving', strings.ui.access.powerSaving], ['detailed', strings.ui.access.detailedToggle]])),
     ],
     work: [
       el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
       el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
+      el('section.model', {}, el('h4', {}, S.modelLabel), settings.provider.kind === 'compatible'
+        ? el('div.hint.model-set', {}, fill(S.provider.modelSet, { model: settings.provider.model ?? '' })) : modelRows(api, settings, onChange)),
+      providerSection(api, settings, onChange),
       el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
       el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
         // The Store build can't open itself at login this way (road-to-1.2.md B6), so it has no such switch.
@@ -477,6 +657,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
       el('section.connections-pause', {}, el('h4', {}, strings.ui.connections.settingsLabel),
         switchRows(api, settings, onChange, [['connectionsPaused', strings.ui.connections.pauseAll]]),
         el('div.hint', {}, strings.ui.connections.pauseAllHint)),
+      lanSection(api, settings, onChange),
     ],
     about: [
       el('section', {}, el('h4', {}, S.legalLabel),

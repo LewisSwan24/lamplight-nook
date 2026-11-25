@@ -49,6 +49,16 @@ DRAWN = {
                     '...xxx...', '.xxGGGxx.', '.xGGGGGx.', '.xxxxxxx.'],
     'postcards': ['xxxxrxxxx....', 'xuuuuuuux....', 'xuuuuuGux....', 'xgguuuggx....', 'xgggxxxxxrxxx', 'xgggxyyyyyssx',
                   'xxxxxyllllssx', '....xyyyyyyyx', '....xylllllyx', '....xxxxxxxxx'],
+    # The bakery's two kinds (plan-1.6.md F1): a small menu board on a stand, chalk on green-black in a wooden frame, and
+    # a fat recipe book, its spine cracked, slips of paper sticking out of it.
+    'chalkboard': ['xxxxxxxxxx', 'xkkkkkkkkx', 'xkvvvvvvkx', 'xkvwwvGvkx', 'xkvvvvvvkx', 'xkvwwwvvkx', 'xkvvvvGvkx',
+                   'xkvwwvvvkx', 'xkkkkkkkkx', 'xxxxxxxxxx', '.xk....kx.', '.xk....kx.', 'xk......kx'],
+    'cookbook': ['....w..w....', 'xxxxwxxwxxxx', 'xrrrrrrrrrrx', 'xryyyyyyyyrx', 'xryrrrrrryrx', 'xryyyyyyyyrx',
+                 'xrrrrrrrrrrx', 'xwlwlwlwlwlx', 'xxxxxxxxxxxx'],
+    # The post office's two (plan-1.6.md F2): a string of greeting cards across the side window, and a pile of newsletters
+    # tied with red string, left on the big table for anyone to take.
+    'cardline': ['x.......................x', '.lllllllllllllllllllllll.', '.xxxxx.xxxxx.xxxxx.xxxxx.', '.xwwwx.xyyyx.xpppx.xaaax.', '.xwrwx.xygyx.xprpx.xawax.', '.xwwwx.xyyyx.xpppx.xaaax.', '.xxxxx.xxxxx.xxxxx.xxxxx.'],
+    'newsletters': ['.xxxxxxxxxx.', '.xwlllwwllx.', '.xwwwwwwwwx.', 'xxxxxxxxxxxx', 'xwwwwwwwwwwx', 'xxxxxrrxxxxx'],
     'toolbox': ['.....xxxx.....', '.....x..x.....', '..xxxxxxxxxx..', '.xrrrrrrrrrrx.', 'xxxxxxxxxxxxxx', 'xrrrrrrrrrrrrx',
                 'xrrrrrlllrrrrx', 'xrrrrrrrrrrrrx', 'xrrrrrrrrrrrrx', 'xxxxxxxxxxxxxx'],
     # Past fifty (road-to-1.1.md A9). c glass, a water, f goldfish, h brass shadow, m plum, t straw shadow; the rest as COLORS.
@@ -167,6 +177,12 @@ def pieces_by_id():
         'readinglamp': [(drawn('readinglamp'), (125, 81))],  # a reading lamp at the left end of the big table, beside the album
         'postcards': [(drawn('postcards'), (2, 22))],  # postcards pinned on the wall left of the windows
         'toolbox': [(drawn('toolbox'), (36, 159))],  # a toolbox on the floor at the foot of the bookcase
+        # A menu board on its stand against the left wall, under the briefcase (plan-1.6.md F1); the wall right of the gold
+        # star has the clock, which the game draws over the room (tests/templates-registry.test.ts).
+        'chalkboard': [(drawn('chalkboard'), (3, 89))],
+        'cookbook': [(drawn('cookbook'), (65, 89))],  # a recipe book lying on the filing cabinet
+        'cardline': [(drawn('cardline'), (199, 15))],  # greeting cards on a string across the top of the side window (F2)
+        'newsletters': [(drawn('newsletters'), (62, 31))],  # newsletters on the second window's sill, for anyone to take
         # Past fifty (road-to-1.1.md A9): hung on what wall there is left, on the counter, and in two corners nobody walks
         # through (tests/routes.test.ts). Each sits the same in the cafe and the study.
         'chime': [(drawn('chime'), (44, 17))],  # wind chimes between the two windows
@@ -183,7 +199,9 @@ def pieces_by_id():
 # page (a framed picture), research (a blue book), edit (a letter), tidy (a wooden box), demo (a green ledger),
 # letter (a sealed envelope), sheet (a ruled table), plan (a calendar page), album (an instant photo),
 # resume (a sheet with a photo), notes (an open book with a bookmark), travel (a suitcase), tool (a wrench),
-# document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars).
+# document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars),
+# menu (a card with a red band and prices, plan-1.6.md F1), recipe (a mixing bowl with a spoon in it),
+# card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -197,6 +215,10 @@ ICONS = {
     'resume': ['.dddddd.', '.dwwwwd.', '.duuwld.', '.duuwwd.', '.dwwwwd.', '.dlllld.', '.dwwwwd.', '.dddddd.'],
     'notes': ['........', 'uwwddwwu', 'ullddllu', 'uwwddwwu', 'ullddlru', 'uwwddwru', 'uuuuuuru', '......r.'],
     'travel': ['..kkkk..', '..k..k..', 'kkkkkkkk', 'kokookok', 'kokoskok', 'kokookok', 'kkkkkkkk', '.k....k.'],
+    'menu': ['.wwwwww.', '.wrrrrw.', '.wwwwww.', '.wllwgw.', '.wwwwww.', '.wllwgw.', '.wwwwww.', '........'],
+    'recipe': ['........', '....l...', '....l...', 'uuuuluuu', 'uwwwwwwu', '.uwwwwu.', '..uuuu..', '........'],
+    'card': ['........', '.yyyyyy.', '.yryyry.', '.yrrrry.', '.yyrryy.', '.yyyyyy.', '.yyyyyy.', '........'],
+    'newsletter': ['.dddddd.', '.dwwwwd.', '.dggggd.', '.dwwwwd.', '.dlwlld.', '.dwwwwd.', '.dlllwd.', '.dddddd.'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -209,9 +231,82 @@ COLORS = {
     'k': (120, 80, 48, 255), 'o': (176, 128, 80, 255), 'l': (150, 150, 150, 255), 'p': (214, 150, 150, 255),
     'x': (42, 34, 51, 255), 'G': (232, 184, 74, 255),
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
-    'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255),
+    'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter']
+
+
+# What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
+# on the walls, so nobody walks round them: the right wall past the window (three slots) and the corner left of the
+# first window. The rooms share one skeleton (shops.py), so the slots are the same in each.
+# Writes assets/sprites/grow-<shop>-<id>.png, in the repository since nothing in them comes from a pack:
+#   print: grow-print-proof.png, grow-print-ivy.png, grow-print-typecase.png, grow-print-ribbon.png
+#   studio: grow-studio-sketch.png, grow-studio-ivy.png, grow-studio-palette.png, grow-studio-gallery.png
+#   workshop: grow-workshop-gear.png, grow-workshop-ivy.png, grow-workshop-clock.png, grow-workshop-blueprint.png
+#   bakery (plan-1.6.md F1): grow-bakery-wheat.png, grow-bakery-ivy.png, grow-bakery-pin.png, grow-bakery-garland.png
+#   post (plan-1.6.md F2): grow-post-stamp.png, grow-post-ivy.png, grow-post-horn.png, grow-post-map.png
+# The bakery's two kinds of work bring pieces to the home shop too, among the overlays below: grow-chalkboard.png for a
+# menu and grow-cookbook.png for a recipe; and the post office's (plan-1.6.md F2) grow-cardline.png for a greeting card
+# and grow-newsletters.png for a newsletter.
+ROOM_DRAWN = {
+    'ivy': ['....x....', '....x....', '..xxxxx..', '.xoooooox'[:9], '.xoooooox'[:9], '..xxxxx..', '.gg.g.gg.', 'g.g.g.g.g',
+            '.g..g..g.', '.g.gg..g.', 'g...g.g..', '....g....', '...g.....'],
+    'proof': ['xxxxxxxxxxxx', 'xkkkkkkkkkkx', 'xkwwwwwwwwkx', 'xkwxxxxxwwkx', 'xkwwwwwwwwkx', 'xkwxxxxxxwkx', 'xkwxxxxwwwkx',
+              'xkwwwwwwwwkx', 'xkwxxxxxxwkx', 'xkwwwwwwrwkx', 'xkkkkkkkkkkx', 'xxxxxxxxxxxx'],
+    'typecase': ['xxxxxxxxxxxxxx', 'xkkkkkkkkkkkkx', 'xkGkGkGkGkGkkx', 'xkkkkkkkkkkkkx', 'xkGkGkhkGkGkkx', 'xkkkkkkkkkkkkx',
+                 'xkhkGkGkGkhkkx', 'xkkkkkkkkkkkkx', 'xkGkGkGkhkGkkx', 'xkkkkkkkkkkkkx', 'xxxxxxxxxxxxxx'],
+    'ribbon': ['xxxxxxxxxxxx', 'xyyyyyyyyyyx', 'xyllllllllyx', 'xyyyyyyyyyyx', 'xyllllllyyyx', 'xyyyyyyyyyyx', 'xylllllyyyyx',
+               'xyyyyyyyrryx', 'xyyyyyyrGGrx', 'xxxxxxxxrrxx', '........r.r.', '.......r...r'],
+    'sketch': ['xxxxxxxxxxxx', 'xbbbbbbbbbbx', 'xbwwwwwwwwbx', 'xbwwwllwwwbx', 'xbwwlwwlwwbx', 'xbwwlwwlwwbx', 'xbwwwllwwwbx',
+               'xbwwwlwwwwbx', 'xbwwllllwwbx', 'xbwwwwwwwwbx', 'xbbbbbbbbbbx', 'xxxxxxxxxxxx'],
+    'palette': ['...xxxxxxx....', '.xxoooooooxx..', 'xooroooaoooox.', 'xoooooooooooox', 'xogoooofooxxx.', 'xoooooooox....',
+                'xoouoooox.....', '.xooooooxx....', '..xxxxxxxx....'],
+    'gallery': ['xxxxxx..xxxxxx', 'xbbbbx..xbbbbx', 'xbaagx..xbffbx', 'xbgggx..xbsfbx', 'xbbbbx..xbbbbx', 'xxxxxx..xxxxxx',
+                '..............', '...xxxxxxxx...', '...xbbbbbbx...', '...xbuuuubx...', '...xbugGubx...', '...xbbbbbbx...',
+                '...xxxxxxxx...'],
+    'gear': ['xxxxxxxxxxxx', 'xkkkkkkkkkkx', 'xkuuuhhuuukx', 'xkuhhGGhhukx', 'xkuhGuuGhukx', 'xkhGuuuuGhkx', 'xkhGuuuuGhkx',
+             'xkuhGuuGhukx', 'xkuhhGGhhukx', 'xkuuuhhuuukx', 'xkkkkkkkkkkx', 'xxxxxxxxxxxx'],
+    'clock': ['...xxxxxx...', '..xkkkkkkx..', '.xkwwwwwwkx.', 'xkwwwxwwwwkx', 'xkwwwxwwwwkx', 'xkwwwxwwwwkx', 'xkwwwxxxwwkx',
+              'xkwwwwwwwwkx', '.xkwwwwwwkx.', '..xkkkkkkx..', '...xxxxxx...', '.....GG.....', '.....GG.....'],
+    # The bakery's: a sheaf of wheat tied with red, a rolling pin on its peg, a ribbon of little buns.
+    'wheat': ['..G.G.G..', '.GhGhGhG.', '..GhGhG..', '.GhGhGhG.', '..GGGGG..', '...hGh...', '....h....', '...rrr...',
+              '..r.h.r..', '....h....', '...h.h...', '..h...h..', '.h.....h.'],
+    'pin': ['.......x........', '......x.x.......', '..xxxxxxxxxxxx..', 'xxooooooooooooxx', 'kkooooooooooookk',
+            'xxooooooooooooxx', '..xxxxxxxxxxxx..'],
+    'garland': ['rrrrrrrrrrrrrrrr', '.k...k....k...k.', 'kok.kok..kok.kok', 'kok.kok..kok.kok', '.k...k....k...k.'],
+    # The post office's: the first stamp it sold, framed; a brass post horn on its cord; a map of the rounds, pins in it.
+    'stamp': ['xxxxxxxxxxxx', 'xkkkkkkkkkkx', 'xkwwwwwwwwkx', 'xkwuuuuuuwkx', 'xkwuuGuuuwkx', 'xkwuggguuwkx', 'xkwgggggrwkx',
+              'xkwwwwwwwwkx', 'xkwrrwwwwwkx', 'xkwwwwwwwwkx', 'xkkkkkkkkkkx', 'xxxxxxxxxxxx'],
+    'horn': ['......x.x.......', '.....x...x......', '...hGGGGGGGh....', '..G.........G...', '..G..hGGh...GGGh',
+             '..G.........GGGG', '...hGGGGGGGh..Gh'],
+    'map': ['xxxxxxxxxxxxxx', 'xyyyyyyyyyyyyx', 'xyggyyyyuuyyyx', 'xygggylllluyyx', 'xyyggyyyyuuyyx', 'xyrlllllllyryx',
+            'xyyyyylyyyyyyx', 'xyuuyylyyggyyx', 'xyuuyrlllgggyx', 'xyyyyyyyyyyyyx', 'xxxxxxxxxxxxxx'],
+    'blueprint': ['..r........r..', 'xxxxxxxxxxxxxx', 'xuuuuuuuuuuuux', 'xuwwwwwuuwuuux', 'xuwuuuwuuwuuux', 'xuwuuuwwwwwuux',
+                  'xuwwwwwuuuwuux', 'xuuuuwuuuuwuux', 'xuuuuwwwwwwuux', 'xuuuuuuuuuuuux', 'xxxxxxxxxxxxxx'],
+}
+ROOM_SLOTS = {'first': (234, 20), 'ivy': (7, 17), 'eighth': (252, 18), 'twentieth': (270, 18)}
+# Shop -> (piece, slot), in the order they come (shared/growth.ts ROOM_GROWTH).
+ROOM_PIECES = {
+    'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],
+    'studio': [('sketch', 'first'), ('ivy', 'ivy'), ('palette', 'eighth'), ('gallery', 'twentieth')],
+    'workshop': [('gear', 'first'), ('ivy', 'ivy'), ('clock', 'eighth'), ('blueprint', 'twentieth')],
+    'bakery': [('wheat', 'first'), ('ivy', 'ivy'), ('pin', 'eighth'), ('garland', 'twentieth')],
+    'post': [('stamp', 'first'), ('ivy', 'ivy'), ('horn', 'eighth'), ('map', 'twentieth')],
+}
+
+
+def room_overlays():
+    """Each street shop's pieces, one 320x180 overlay apiece, named grow-<shop>-<piece>.png."""
+    for shop, pieces in ROOM_PIECES.items():
+        for piece, slot in pieces:
+            rows = ROOM_DRAWN[piece]
+            img = Image.new('RGBA', (len(rows[0]), len(rows)), (0, 0, 0, 0))
+            for y, row in enumerate(rows):
+                assert len(row) == len(rows[0]), (piece, row)
+                for x, c in enumerate(row):
+                    if c != '.':
+                        img.putpixel((x, y), COLORS[c])
+            overlay([(img, ROOM_SLOTS[slot])]).save(OUT / f'grow-{shop}-{piece}.png', optimize=True)
 
 
 def overlay(pieces):
@@ -236,6 +331,10 @@ if __name__ == '__main__':
     if '--icons' in sys.argv:  # only the works-shelf icons, which need no vendor art
         icons().save(OUT / 'works.png', optimize=True)
         sys.exit(print('wrote works.png'))
+    if '--rooms' in sys.argv:  # only the street shops' pieces, which need no vendor art either
+        room_overlays()
+        sys.exit(print('wrote the street shops\' growth overlays'))
+    room_overlays()
     PIECES = pieces_by_id()
     for gid, pieces in PIECES.items():
         overlay(pieces).save(OUT / f'grow-{gid}.png', optimize=True)

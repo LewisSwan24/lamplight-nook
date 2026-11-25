@@ -1,10 +1,44 @@
 # Lamplight Nook
 
-A cozy pixel-art desktop app that turns a long-running AI task into the daily life of a small cafe crew.
-The main agent and its subagents are played by characters who walk, work, get stuck, ask for help and wrap up
-according to real events from the Claude Agent SDK.
+A cozy pixel-art desktop app for Windows that plays out long AI tasks from Claude as a day in a small shop.
+You write what you want at the counter (a web page, a letter, a table, a plan, a photo album, a Word or Excel file,
+a chart...) and the staff get to work. Wick, behind the counter, plays the main agent; helpers play its subagents.
+Everyone walks, works, gets stuck, asks and wraps up according to the real events of the Claude Agent SDK, and the
+blackboard shows Claude's real plan. Anything that cannot be undone waits for you, and the default is "not now".
 
-The app speaks Simplified Chinese and English, following the system language (switchable in settings). All user-facing text lives in `locales/` (`zh-CN.json`, `en.json`) and `lines/` (Chinese at the top level, English in `lines/en/`).
+It needs [Claude Code](https://docs.anthropic.com/en/docs/claude-code) on the computer and your own Anthropic API key.
+Usage is billed to your key; the app collects nothing and has no servers of its own.
+
+The app speaks Simplified Chinese and English, following the system language (switchable in settings). All
+user-facing text lives in `locales/` (`zh-CN.json`, `en.json`) and `lines/` (Chinese at the top level, English in
+`lines/en/`). How to use it is in the [wiki](https://github.com/LewisSwan24/lamplight-nook/wiki).
+
+## What it does
+
+- **Commissions with real progress.** Every move the staff make comes from Claude's events, not a canned animation.
+  One card shows how long a round has taken, its spending limit, every step of the plan and who is doing what.
+- **Work you keep.** Finished pieces go on the works shelf. Each work is a project that can go another round, with a
+  board, a timeline of versions, schedules, and a way back to any earlier version.
+- **Files and connections.** Hand files over on the counter: the staff work on copies. Word, Excel, PowerPoint, PDF,
+  charts and posters, and edits to the files you hand over. A synced folder, a read-only calendar and email drafts
+  can be connected; anything that changes something outside asks first and is written down.
+- **Spending you can see.** A limit per round, per month and per project; the notebook keeps a ledger by month.
+- **A shop that grows.** What you make shows up in the shop and along the town's street; neighbours drop in with
+  their own stories, and the seasons and festivals come round.
+- **With other people** (1.5). Pair a phone or another computer on your home network to follow the shop and answer
+  from there, or let a person hand in commissions under a monthly limit of their own. Share a finished work as a
+  file, or send a postcard of your shop for a friend to walk round.
+
+## Versions
+
+| Line | State | Where |
+|---|---|---|
+| 1.0.0 | Released 5 Nov 2026 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases), `main` |
+| 1.1 to 1.3 | Finished, not released yet | `main` |
+| 1.4 and 1.5 | Finished, not released yet; the app calls itself 1.5.0 | `release-1.5` (1.4 is folded into it); plans in `docs/road-to-1.4.md` and `docs/plan-1.5.md` |
+| 1.6 to 2.0 | Planned, mostly new content: shops, stories, festivals, kinds of work | `docs/road-to-2.0.md` |
+
+What changed in each is in `CHANGELOG.md`.
 
 ## Run on Windows (development)
 

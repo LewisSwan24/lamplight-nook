@@ -7,16 +7,30 @@
 // Each scenario prints PASS or FAIL with the reason, and leaves screenshots in <out>/<lang>/.
 
 import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import { closeSync, copyFileSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
+import { parse as parseYaml } from 'yaml';
 import { mainCards } from './cards.mjs';
 import { pdfSays, readPdf } from './pdftext.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
+
+/**
+ * The keeper of a shop along the street says one of their `shop_in` lines as you walk in (plan-1.6.md F5). Returns the
+ * bubble seen, or null after a few seconds of nothing.
+ */
+async function greeted(page, lang, shopId, keeper) {
+  const lines = parseYaml(readFileSync(join(ROOT, lang === 'en' ? `lines/en/${shopId}.yaml` : `lines/${shopId}.yaml`), 'utf8')).shop_in;
+  const bubbles = lines.flatMap((l) => l.bubbles);
+  return page.waitForFunction(([who, all]) => all.find((b) => window.lamplightDebug.scene.isSaying(who, b)) ?? null, [keeper, bubbles], { timeout: 6000 })
+    .then((h) => h.jsonValue(), () => null);
+}
 import { OFFICE_FILES, OFFICE_READ_FILE } from './plays.mjs';
+import { startCompatible } from './compatible.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : def; };
@@ -41,6 +55,10 @@ const W = {
     slides: '帮我做一份介绍春季新菜单的 PPT。',
     chart: '帮我把这些数字画成图表：一月 120，二月 180，三月 90，四月 150。',
     poster: '帮我做一张周末读书会的海报。',
+    menu: '帮我给巷口的早点铺做一份菜单：葱油饼 8，肉包 4，豆浆 3，茶叶蛋。',
+    recipe: '帮我把葱油饼写成一份食谱，两人份。',
+    card: '帮我给楼下的芳姐做一张生日贺卡，想写：生日快乐，花一直开。',
+    newsletter: '帮我给我们楼做一份简报，这期讲：周六上午义诊，楼道别停自行车。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -63,6 +81,10 @@ const W = {
     slides: 'Make me slides about the new spring menu.',
     chart: 'Draw a chart of tea sales from these numbers: January 120, February 180, March 90, April 150.',
     poster: 'Make a poster for the weekend book club.',
+    menu: 'Make a menu for the breakfast stall on the corner: Scallion pancake 8, Pork bun 4, Soy milk 3, Tea egg.',
+    recipe: 'Write up scallion pancakes as a recipe, for two.',
+    card: 'Make a birthday card for Fern downstairs, saying: Happy birthday, may the flowers keep coming.',
+    newsletter: 'Make a newsletter for our block, this issue about: a clinic on Saturday morning, and no bikes in the hallway.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -253,7 +275,10 @@ function restoreHome(snap) {
  * both languages, and its "installer" (a few made-up bytes, never run). `config` is the app-update.yml pointing at it;
  * `asked` lists every file the app asked for.
  */
-async function updateFeed(home, version = '1.1.1') {
+/** One patch above the dev build's own version (package.json), so the feed always has something newer to offer. */
+const NEXT = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version.replace(/\d+$/, (n) => String(Number(n) + 1));
+
+async function updateFeed(home, version = NEXT) {
   const dir = join(home.home, 'feed');
   mkdirSync(dir, { recursive: true });
   const exe = `Lamplight-Nook-Setup-${version}.exe`;
@@ -339,8 +364,10 @@ async function checkBubbles(shop) {
  * Another commission while one is under way (road-to-1.2.md B5): the counter shows the running card, and "take another
  * commission" there opens the slip.
  */
-async function another(shop, { template, want }, counter = shop.L.ui.access.hotspotCounter) {
-  await shop.hotspot(counter);
+async function another(shop, { template, want }, counter) {
+  // The counter of whichever room is on screen: the view follows the last order to its shop (road-to-1.4.md D3).
+  const room = await shop.page.evaluate(() => window.lamplightDebug.scene.room);
+  await shop.hotspot(counter ?? shop.L.sceneText[room]?.ui.access.hotspotCounter ?? shop.L.ui.access.hotspotCounter);
   await shop.page.locator('.running-card .progress-another').click();
   await shop.page.waitForSelector('form.commission');
   const chip = shop.page.locator('form.commission .template-chip', { hasText: shop.L.ui.templates[template] });
@@ -399,6 +426,104 @@ const COUNTED_PIECES = [
   ['painting', 1], ['plant', 2], ['lights', 3], ['fruit', 5], ['guitar', 8], ['bonsai', 12], ['easel', 16], ['trophy', 20], ['portrait', 25],
   ['sunset', 35], ['star', 50], ['chime', 55], ['aquarium', 60], ['scroll', 65], ['teapot', 70], ['gramophone', 75], ['cushion', 80], ['hat', 90], ['plaque', 100],
 ];
+
+/**
+ * The street through the year (road-to-1.4.md D6), out of a shop past a hundred works: each season and each festival
+ * once, rain and snow with Xiaoju out under an umbrella, and each festival in the three shops along the street.
+ */
+async function seasonsOnTheStreet(shop, out) {
+  const { page, L } = shop;
+  const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+  const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+  const set = (sky, holiday, season) => page.evaluate(([sky, holiday, season]) => {
+    const { scene } = window.lamplightDebug;
+    scene.setWeather(sky, holiday, false);
+    if (season) scene.setSeason(season);
+    scene.setPeriod('day', true);
+  }, [sky, holiday, season]);
+  const street = () => page.evaluate(() => {
+    const s = window.lamplightDebug.street;
+    const ids = ['spring', 'summer', 'autumn', 'winter', 'halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn', 'rain', 'snow'];
+    return { decor: ids.filter((id) => s.decor.shows(id)), cart: s.growth.shows('stall'), umbrella: !!s.umbrella?.visible };
+  });
+  const scrollTo = (x) => page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, x);
+
+  await set('clear', null, 'spring');
+  await streetButton();
+  await sleep(800);
+  for (const season of ['spring', 'summer', 'autumn', 'winter']) {
+    await set('clear', null, season);
+    await sleep(300);
+    const v = await street();
+    check(JSON.stringify(v.decor) === JSON.stringify([season]), `in ${season} the street shows ${v.decor}`);
+    // The tree by the workshop and the two in the lot.
+    await scrollTo(500);
+    await sleep(200);
+    await shop.shot(join(out, `seasons-street-${season}.png`));
+  }
+  for (const holiday of ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']) {
+    const season = { halloween: 'autumn', christmas: 'winter', new_year: 'winter', lantern: 'spring', dragon_boat: 'summer', mid_autumn: 'autumn' }[holiday];
+    await set('clear', holiday, season);
+    await sleep(300);
+    const v = await street();
+    check(v.decor.includes(holiday) && v.decor.includes(season), `at ${holiday} the street shows ${v.decor}`);
+    // The New Year has no stall: the cart stays out. The others stand where it does.
+    check(v.cart === (holiday === 'new_year'), `at ${holiday} the cart is ${v.cart ? 'out' : 'away'}`);
+    await scrollTo(holiday === 'new_year' ? 0 : town.lot.x + town.lot.w / 2 - 200);
+    await sleep(200);
+    await shop.shot(join(out, `seasons-street-${holiday}.png`));
+  }
+  for (const sky of ['rain', 'snow']) {
+    await set(sky, null, sky === 'snow' ? 'winter' : 'summer');
+    await sleep(600);
+    const v = await street();
+    check(v.decor.includes(sky), `on a ${sky} day the street shows ${v.decor}`);
+    await scrollTo(0);
+    await sleep(200);
+    await shop.shot(join(out, `seasons-street-${sky}.png`));
+  }
+
+  // Xiaoju goes out on an errand in the snow: an umbrella over her, in the inset and on the street.
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  await page.evaluate(() => { void window.lamplightDebug.scene.walkTo('xiaoju', 'door'); });
+  let w = null;
+  for (let i = 0; i < 60 && !(w && w.alpha === 1); i++) {
+    await sleep(500);
+    w = await page.evaluate(() => window.lamplightDebug.scene.streetWalker());
+  }
+  check(w && w.actor === 'xiaoju', `Xiaoju did not go out: ${JSON.stringify(w)}`);
+  const inset = await page.evaluate(() => !!window.lamplightDebug.scene.street.umbrella?.visible);
+  check(inset, 'no umbrella over Xiaoju in the inset on a snowy day');
+  await shop.shot(join(out, 'seasons-street-umbrella-inset.png'));
+  await streetButton();
+  await sleep(800);
+  check((await street()).umbrella, 'no umbrella over Xiaoju on the street on a snowy day');
+  await shop.shot(join(out, 'seasons-street-umbrella.png'));
+
+  // Each festival in each shop along the street: its own frame of shops-decor.png.
+  for (const room of ['print', 'studio', 'workshop']) {
+    await page.evaluate((room) => window.lamplightDebug.street.lookAt(room), room);
+    await page.keyboard.press('Enter');
+    await sleep(1500);
+    check(await page.evaluate(() => window.lamplightDebug.scene.room) === room, `Enter in front of the ${room} did not go in`);
+    for (const holiday of ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']) {
+      await set('clear', holiday);
+      await sleep(300);
+      const frame = await page.evaluate(() => {
+        const d = window.lamplightDebug.scene.weather.decor;
+        return d.visible ? `${d.texture.key}:${d.frame.name}` : null;
+      });
+      check(frame === `shops-decor:${room}-${holiday}`, `the ${room} at ${holiday} shows ${frame}`);
+      await shop.shot(join(out, `seasons-${room}-${holiday}.png`));
+    }
+    await set('clear', null);
+    await streetButton();
+    await sleep(800);
+  }
+  await page.keyboard.press('Escape');
+  await sleep(500);
+}
 
 const SCENARIOS = {
   /** Data files that cannot be read: nothing is written over, the shop says so, and work goes on. */
@@ -957,6 +1082,149 @@ const SCENARIOS = {
       check(await empty.page.locator('.spend-book tr').count() === 1, 'an empty ledger has rows');
     } finally {
       await empty.close();
+    }
+  },
+
+  /**
+   * Choosing the model (plan-1.6.md F6): "saver" picked in settings, a commission runs on Haiku and the ledger keeps Haiku's
+   * price; "best" picked on the slip's More runs that one commission on Opus, and settings still say "saver".
+   */
+  async model(lang, out) {
+    const S = locale(lang).ui.setup;
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const ledger = () => JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+    try {
+      await sleep(1500);
+      await shop.openSettings('work');
+      const rows = shop.page.locator('.model-row');
+      check(await rows.count() === 3, `${await rows.count()} model tiers in settings`);
+      check(await shop.page.locator('input[name=model-tier][value=balanced]').isChecked(), 'balanced is not the default');
+      // Nothing in the ledger yet: each price is the table's guess, and says so.
+      await shop.page.waitForFunction((t) => [...document.querySelectorAll('.model-cost')].every((c) => c.textContent.includes(t)), S.modelCostTable.split('{cost}').pop().trim().slice(-2));
+      await shop.page.locator('section.model').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'model-settings.png'));
+      await shop.page.locator('input[name=model-tier][value=saver]').check();
+      await sleep(400);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).modelTier === 'saver', 'saver was not saved');
+      await shop.page.keyboard.press('Escape');
+      await sleep(400);
+
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission on saver did not finish');
+      const first = ledger();
+      check(first.length === 1 && first[0].model === 'claude-haiku-sim', `the ledger says ${JSON.stringify(first)}`);
+      // The stand-in charges a third of its usual price on Haiku, as the table does.
+      check(first[0].usd > 0 && first[0].usd < 0.5, `a Haiku commission cost ${first[0].usd}`);
+
+      // The slip's More: this one on the best model.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.page.locator('form.commission .slip-more summary').click();
+      check((await shop.page.locator('form.commission .slip-model option').first().innerText()).includes(S.modelTiers.saver), 'the slip does not say what settings pick');
+      await shop.page.locator('form.commission .slip-model').selectOption('best');
+      await shop.shot(join(out, 'model-slip.png'));
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission on best did not finish');
+      const second = ledger().filter((e) => e.key !== first[0].key);
+      check(second.length === 1 && second[0].model === 'claude-opus-sim', `the second commission's ledger line is ${JSON.stringify(second)}`);
+      check(second[0].usd > first[0].usd * 3, `Opus (${second[0].usd}) did not cost more than Haiku (${first[0].usd})`);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).modelTier === 'saver', 'the slip changed settings');
+
+      // Now the ledger has prices of its own for two tiers.
+      await shop.openSettings('work');
+      await shop.page.waitForFunction(() => document.querySelectorAll('.model-cost')[2]?.textContent.length > 0);
+      const saverCost = await shop.page.locator('.model-row[data-tier=saver] .model-cost').innerText();
+      check(!saverCost.includes(S.modelCostTable.split('{cost}').pop().trim().slice(-2)), `the saver price does not come from the ledger: ${saverCost}`);
+      await shop.page.locator('section.model').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'model-ledger.png'));
+    } finally {
+      await shop.close();
+    }
+  },
+
+  /**
+   * Another provider (plan-1.6.md F7): a compatible service on this computer, chosen in settings. A wrong key is refused on
+   * the spot; without prices no work starts; with them, the stand-in Claude gets that service's variables and nothing else,
+   * reaches it with the key, and the ledger counts at the prices filled in.
+   */
+  async provider(lang, out) {
+    const P = locale(lang).ui.setup.provider;
+    const R = locale(lang).ui.run;
+    const KEY = 'sk-sim-compatible-0001';
+    const service = await startCompatible({ key: KEY, model: 'sim-model' });
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, simEnv: { SIM_TOKENS: '1' } });
+    const page = shop.page;
+    const fillIn = async (name, value) => page.locator(`.provider input[name=${name}]`).fill(value);
+    try {
+      await sleep(1500);
+      await shop.openSettings('work');
+      await page.locator('.provider-kind').selectOption('compatible');
+      await page.waitForSelector('.provider input[name=baseUrl]');
+      // A preset fills in the address and the model from the provider's own guide.
+      await page.locator('.provider-preset').selectOption('deepseek');
+      check(await page.locator('.provider input[name=baseUrl]').inputValue() === 'https://api.deepseek.com/anthropic', 'the preset did not fill in the address');
+      check((await page.locator('.provider-trial').innerText()).includes(P.trial.slice(0, 6)), 'no trial note');
+      await page.locator('.provider-preset').selectOption('');
+      await fillIn('baseUrl', 'http://192.168.1.9:4000');
+      await fillIn('model', 'sim-model');
+      await fillIn('key', KEY);
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.reasons.scheme);
+      await fillIn('baseUrl', service.url);
+      await fillIn('key', 'sk-sim-wrong');
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.reasons.key);
+      check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).provider?.kind !== 'compatible', 'a refused provider was kept');
+      await fillIn('key', KEY);
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.saved);
+      check(!readFileSync(join(home.data, 'settings.json'), 'utf8').includes(KEY), 'the key is in settings.json');
+      check(service.requests.filter((r) => r.authorization === `Bearer ${KEY}`).length === 1, `the check reached the service ${service.requests.length} times`);
+      await page.locator('section.provider').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'provider-settings.png'));
+      await page.keyboard.press('Escape');
+      await sleep(400);
+
+      // No prices: nothing starts, and the card says where to fill them in.
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      await page.waitForFunction((t) => [...document.querySelectorAll('.card.serious')].some((c) => c.textContent.includes(t)), R.providerTitle, { timeout: 15_000 });
+      await shop.shot(join(out, 'provider-noprice.png'));
+      check(!existsSync(join(home.home, '.sim', 'env.json')), 'the stand-in ran without prices');
+      await page.keyboard.press('Escape');
+      await sleep(400);
+
+      await shop.openSettings('work');
+      await page.waitForSelector('.provider input[name=priceInput]');
+      check(await page.locator('.provider input[name=key]').getAttribute('placeholder') === P.keyKept.replace('{hint}', '...0001'), 'the kept key is not shown by its end');
+      await fillIn('priceInput', '1');
+      await fillIn('priceOutput', '10');
+      await page.locator('.provider-save').click();
+      await page.waitForFunction((t) => document.querySelector('.provider-said')?.textContent === t, P.saved);
+      await page.keyboard.press('Escape');
+      await sleep(400);
+
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission on the compatible service did not finish');
+      const env = JSON.parse(readFileSync(join(home.home, '.sim', 'env.json'), 'utf8'));
+      check(env.ANTHROPIC_BASE_URL === service.url && env.ANTHROPIC_AUTH_TOKEN === KEY && env.ANTHROPIC_API_KEY === '', `the stand-in was pointed at ${JSON.stringify({ ...env, ANTHROPIC_AUTH_TOKEN: env.ANTHROPIC_AUTH_TOKEN === KEY ? '(the key)' : '(not the key)' })}`);
+      check(['ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL', 'CLAUDE_CODE_SUBAGENT_MODEL'].every((n) => env[n] === 'sim-model'), `models: ${JSON.stringify(env)}`);
+      check(!env.CLAUDE_CODE_USE_BEDROCK && !env.CLAUDE_CODE_USE_VERTEX && !env.AWS_PROFILE, 'another provider\'s variables reached the stand-in');
+      check(service.requests.some((r) => r.authorization === `Bearer ${KEY}` && r.model === 'sim-model' && r.url === '/v1/messages'), 'the stand-in never reached the service');
+      const lines = JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+      check(lines.length === 1 && lines[0].priced === true, `the ledger says ${JSON.stringify(lines)}`);
+      // Each stand-in call reads 2,000 + 8,000 tokens and writes 150: $0.0115 at $1 and $10 a million.
+      const calls = lines[0].usd / 0.0115;
+      check(calls >= 1 && Math.abs(calls - Math.round(calls)) < 0.001, `the ledger's ${lines[0].usd} is not counted at the prices filled in`);
+      check(!readFileSync(join(home.data, 'spend.json'), 'utf8').includes(KEY), 'the key is in the ledger');
+      const logs = readdirSync(join(home.data, 'logs')).map((f) => readFileSync(join(home.data, 'logs', f), 'utf8')).join('\n');
+      check(!logs.includes(KEY), 'the key is in the log');
+    } finally {
+      await shop.close();
+      await service.close();
     }
   },
 
@@ -1792,7 +2060,8 @@ const SCENARIOS = {
   },
 
   /**
-   * Every season and every festival in a shop past a hundred works (road-to-1.1.md A9): the season's vase on the big
+   * Every season and every festival in a shop past a hundred works (road-to-1.1.md A9; the street and the shops along it,
+   * road-to-1.4.md D6, in seasonsOnTheStreet): the season's vase on the big
    * table and the beds out back, each festival's decorations, and what the baker brings up for each of them.
    */
   async seasons(lang, out) {
@@ -1837,6 +2106,7 @@ const SCENARIOS = {
           await sleep(400);
           await shop.shot(join(out, `seasons-${scene}-${holiday}.png`));
         }
+        if (scene === 'cafe') await seasonsOnTheStreet(shop, out);
       } finally {
         await shop.close();
       }
@@ -3058,7 +3328,8 @@ const SCENARIOS = {
       dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return path ? { canceled: false, filePath: path } : { canceled: true }; };
     }, path);
     const openShelf = async () => {
-      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
       await shop.page.waitForSelector('.shelf-card li.work');
       return shop.page.locator('.shelf-card li.work').first();
     };
@@ -3151,6 +3422,245 @@ const SCENARIOS = {
       check(JSON.stringify(filesIn(lentOut)) === JSON.stringify(touched), `the lent work's zip holds ${filesIn(lentOut).join(', ')}`);
       check(touched.every((f) => readFileSync(join(lentOut, f)).equals(readFileSync(join(site, f)))), 'the lent work\'s files are not the same bytes');
       await shop.shot(join(out, 'export-lent.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Sharing from the works shelf (docs/plan-1.5.md E2): a page goes out as one page file with nothing from outside and no
+   * folder path, and as a PDF into a connected cloud folder; a small tool only as a zip; a Word document as it is.
+   */
+  async share(lang, out) {
+    const S = locale(lang).ui.shelf;
+    const cloud = join(tmpdir(), `lamplight-cloud-${process.pid}-${lang}`);
+    rmSync(cloud, { recursive: true, force: true });
+    mkdirSync(cloud);
+    const folderLink = { id: 'k1763800000000', kind: 'folder', label: 'Cloud', added: '2026-11-22', config: { path: cloud, saveTo: 'Lamplight' } };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'connections.json': JSON.stringify({ connections: [folderLink] }) });
+    const takeTo = join(home.home, 'shared');
+    mkdirSync(takeTo);
+    const harness = (shop) => ({
+      saveAt: (path) => shop.app.evaluate(({ dialog, shell }, path) => {
+        shell.showItemInFolder = () => {};
+        dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return path ? { canceled: false, filePath: path } : { canceled: true }; };
+      }, path),
+      row: async () => {
+        // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+        await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
+        await shop.page.waitForSelector('.shelf-card li.work');
+        return shop.page.locator('.shelf-card li.work').first();
+      },
+      said: (text) => shop.page.waitForFunction((t) => document.querySelector('.shelf-card li.work .work-note')?.textContent === t, text, { timeout: 20_000 }),
+    });
+    let shop = await launch({ lang, home, speed: SPEED });
+    try {
+      const h = harness(shop);
+      await shop.order({ template: 'page', want: W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the page did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      const work = latestCommission(home);
+      // The page names its own folder and loads a picture from the network: neither may go out.
+      writeFileSync(join(work, 'index.html'), readFileSync(join(work, 'index.html'), 'utf8').replace('<main>', `<main><p>${work}</p><img src="https://far.example/x.png" alt="">`));
+      let row = await h.row();
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-pdf').waitFor();
+      const offered = await row.locator('.work-note button').evaluateAll((bs) => bs.map((b) => b.className));
+      check(JSON.stringify(offered.map((c) => c.split(' ').find((x) => x.startsWith('take-')))) === '["take-pdf","take-page","take-zip"]', `a page offers ${offered}`);
+      await shop.shot(join(out, 'share-formats.png'));
+      await row.locator('.work-note .take-page').click();
+      await row.locator('.work-note .share-cloud').waitFor();
+      check((await row.locator('.work-note .share-cloud').innerText()).includes('Cloud'), 'the cloud folder is not offered');
+      await shop.shot(join(out, 'share-where.png'));
+      await h.saveAt(join(takeTo, 'page.html'));
+      await row.locator('.work-note .share-here').click();
+      await h.said(S.taken);
+      const page = readFileSync(join(takeTo, 'page.html'), 'utf8');
+      check(!page.includes(work) && !page.includes(work.replaceAll('\\', '/')), 'the shared page names its folder');
+      check(!/<(img|script|link)\b[^>]*(https?:|\/\/|file:)/i.test(page.replace(/data:[^"')\s]+/g, '')), 'the shared page still loads from outside');
+      check(page.includes('<h1>'), 'the shared page lost its words');
+
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-pdf').click();
+      await row.locator('.work-note .share-cloud').click();
+      await h.said(S.inCloud.replace('{name}', 'Cloud'));
+      const inCloud = readdirSync(join(cloud, 'Lamplight'));
+      check(inCloud.length === 1 && inCloud[0].endsWith('.pdf') && readFileSync(join(cloud, 'Lamplight', inCloud[0])).subarray(0, 5).toString() === '%PDF-', `the cloud folder holds ${inCloud}`);
+      await shop.shot(join(out, 'share-cloud.png'));
+      await shop.page.keyboard.press('Escape');
+      await sleep(500);
+
+      // A small tool has only one way out: straight to where it goes.
+      await shop.order({ template: 'tool', want: W[lang].tool ?? W[lang].page });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the tool did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      row = await h.row();
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .share-here').waitFor();
+      check(await row.locator('.work-note [class*="take-"]').count() === 0, 'a tool offers a choice of format');
+      await h.saveAt(join(takeTo, 'tool.zip'));
+      await row.locator('.work-note .share-here').click();
+      await h.said(S.taken);
+      check(readFileSync(join(takeTo, 'tool.zip')).subarray(0, 2).toString() === 'PK', 'the tool did not go out as a zip');
+    } finally { await shop.close(); }
+
+    // A Word document goes as it is, here with no cloud folder: the save dialog asks at once.
+    const home2 = freshHome({ 'settings.json': onboarded(lang) });
+    shop = await launch({ lang, home: home2, speed: SPEED, simEnv: { SIM_PLAY: 'office' } });
+    try {
+      const h = harness(shop);
+      await shop.order({ template: 'document', want: W[lang].document });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the document did not finish');
+      await shop.page.keyboard.press('Escape');
+      await sleep(1500);
+      const row = await h.row();
+      await row.locator('.work-take').click();
+      await row.locator('.work-note .take-file').waitFor();
+      check(await row.locator('.work-note button').first().evaluate((b) => b.classList.contains('take-file')), 'a document does not offer itself as it is first');
+      await h.saveAt(join(takeTo, 'document.docx'));
+      await row.locator('.work-note .take-file').click();
+      await h.said(S.taken);
+      const offeredName = await shop.app.evaluate(() => globalThis.offered);
+      // The office play makes a Word file, a workbook and a deck; whichever is its main file goes as it is.
+      check(/\.(docx|xlsx|pptx)$/.test(offeredName), `the document is offered as ${offeredName}`);
+      check(readFileSync(join(takeTo, 'document.docx')).subarray(0, 2).toString() === 'PK', 'the document is not an Office file');
+      await shop.shot(join(out, 'share-document.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A postcard (docs/plan-1.5.md E3): one shop sends one, another looks at it. Two data folders: the sender's study, grown
+   * and furnished, and the looker's own little cafe. A file that is not a postcard does not open; the postcard does, in a
+   * window of its own, shows their shop and their street, and closing it is home again, with nothing of one's own changed.
+   */
+  async postcard(lang, out) {
+    const L = locale(lang);
+    const N = L.ui.notebook, V = L.ui.visit;
+    const mail = join(tmpdir(), `lamplight-postcard-${process.pid}-${lang}`);
+    rmSync(mail, { recursive: true, force: true });
+    mkdirSync(mail);
+    const card = join(mail, 'shop.nook');
+    const sender = lang === 'en' ? 'Mira' : '阿梅';
+    const memoryOf = (done, grown, shops, stories) => JSON.stringify({
+      commissions: [], stuckNotes: [], projects: [], greeted: 'c1',
+      shop: { done, told: ['town-move'], grown: grown.map((id) => ({ id, date: '2026-10-01' })), met: [],
+        town: { shops: Object.fromEntries(Object.entries(shops).map(([s, n]) => [s, { done: n, grown: [] }])), street: [], stories } },
+    });
+    const notebook = async (shop) => {
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.notebook.title}"]`).click();
+      await shop.page.waitForSelector('.notebook .notebook-postcard');
+      await shop.page.locator('.notebook .notebook-postcard').scrollIntoViewIfNeeded();
+    };
+    const said = (shop, text) => shop.page.waitForFunction((t) => document.querySelector('.notebook-postcard-said')?.textContent === t, text, { timeout: 10_000 });
+
+    // The sender: the study, furnished, thirty works done, three shops along the street busy, two chapters heard.
+    const GROWN = ['painting', 'plant', 'lights', 'fruit', 'guitar', 'bonsai', 'easel', 'trophy'];
+    const from = freshHome({
+      'settings.json': onboarded(lang, { name: sender, scene: 'study', furnish: { cafe: { wall: 'default', curtain: 'default', rug: 'default' }, study: { wall: 'sage', curtain: 'rose', rug: 'plum' } } }),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': memoryOf(30, GROWN, { print: 20, studio: 3, workshop: 2 }, { mechanic: ['2026-10-02', '2026-10-09'] }),
+    });
+    let shop = await launch({ lang, home: from, speed: SPEED });
+    try {
+      await sleep(2000);
+      await notebook(shop);
+      await shop.shot(join(out, 'postcard-notebook.png'));
+      await shop.app.evaluate(({ dialog }, path) => {
+        dialog.showSaveDialog = async (_win, opts) => { globalThis.offered = opts.defaultPath; return { canceled: false, filePath: path }; };
+      }, card);
+      await shop.page.locator('.notebook .postcard-send').click();
+      await said(shop, N.postcardSent);
+      const offered = await shop.app.evaluate(() => globalThis.offered);
+      check(offered.endsWith('.nook') && offered.includes(sender), `the dialog offers ${offered}`);
+      await shop.shot(join(out, 'postcard-sent.png'));
+    } finally { await shop.close(); }
+    const text = readFileSync(card, 'utf8');
+    check(!/\d{4}-\d{2}-\d{2}/.test(text) && !text.includes(from.home) && !text.includes('workRoot'), `the postcard carries more than it should: ${text}`);
+
+    // The looker: their own cafe, three works done, nothing furnished.
+    const to = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': memoryOf(3, ['painting', 'plant', 'lights'], {}, {}),
+    });
+    const mine = () => ['memory.json', 'settings.json'].map((f) => readFileSync(join(to.data, f), 'utf8')).join('\n');
+    shop = await launch({ lang, home: to, speed: SPEED, debug: true });
+    try {
+      await sleep(2500);
+      const before = mine();
+      const pick = (path) => shop.app.evaluate(({ dialog }, path) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] }); }, path);
+      await notebook(shop);
+      // Not a postcard, and a postcard someone has tampered with: neither opens, and no window comes up.
+      const zip = join(mail, 'other.nook');
+      writeFileSync(zip, Buffer.from('504b0304140000000800', 'hex'));
+      await pick(zip);
+      await shop.page.locator('.notebook .postcard-open').click();
+      await said(shop, N.postcardNotPostcard);
+      const tampered = join(mail, 'tampered.nook');
+      writeFileSync(tampered, text.replace('"done": 30', '"done": 30, "spend": 99'));
+      await pick(tampered);
+      await shop.page.locator('.notebook .postcard-open').click();
+      await said(shop, N.postcardBroken);
+      await shop.shot(join(out, 'postcard-broken.png'));
+      check(shop.app.windows().length === 1, 'a window came up for a file that did not open');
+
+      await pick(card);
+      const opened = shop.app.waitForEvent('window');
+      await shop.page.locator('.notebook .postcard-open').click();
+      const visit = await opened;
+      await visit.waitForSelector('.postcard .postcard-enter');
+      await sleep(1500);
+      check((await visit.locator('.postcard-from').innerText()).includes(sender), 'the postcard does not say who sent it');
+      check((await visit.evaluate(() => typeof window.lamplight)) === 'undefined', 'the postcard window can reach the shop');
+      await visit.screenshot({ path: join(out, 'postcard-card.png') });
+
+      await visit.locator('.postcard .postcard-enter').click();
+      await visit.waitForSelector('.visit-bar');
+      await sleep(1500);
+      check((await visit.locator('.visit-where').innerText()).includes(sender), 'the bar does not say whose shop this is');
+      const inside = await visit.evaluate((grown) => {
+        const { room } = window.visitDebug;
+        return { room: room.room, furnish: room.furnishing, shown: grown.filter((id) => room.growth.shows(id)) };
+      }, GROWN);
+      check(inside.room === 'study', `the visit is in the ${inside.room}`);
+      check(JSON.stringify(inside.furnish) === JSON.stringify({ wall: 'sage', curtain: 'rose', rug: 'plum' }), `furnished as ${JSON.stringify(inside.furnish)}`);
+      check(inside.shown.length === GROWN.length, `only ${inside.shown} of what grew there shows`);
+      // Clicking round their shop changes nothing at home: the staff, the counter, the shelf, the board.
+      const box = await visit.locator('#game canvas').boundingBox();
+      for (const [x, y] of [[0.5, 0.6], [0.2, 0.5], [0.8, 0.4], [0.35, 0.25], [0.6, 0.75]]) {
+        await visit.mouse.click(box.x + box.width * x, box.y + box.height * y);
+        await sleep(300);
+      }
+      await sleep(1000);
+      await visit.screenshot({ path: join(out, 'postcard-inside.png') });
+
+      await visit.evaluate(() => { window.visitDebug.room.setWeather('clear', null, false); window.visitDebug.room.setPeriod('day', true); });
+      await visit.locator('.visit-street').click();
+      await sleep(1500);
+      const street = await visit.evaluate(() => {
+        const g = window.visitDebug.street.growth;
+        return { street: ['lamps', 'bench', 'flowers', 'stall', 'park', 'fountain'].filter((id) => g.shows(id)), print: ['pot', 'sign', 'bunting'].filter((id) => g.shows(id, 'print')) };
+      });
+      check(JSON.stringify(street.street) === '["lamps","bench","flowers","stall"]', `their street shows ${street.street}`);
+      check(JSON.stringify(street.print) === '["pot","sign","bunting"]', `their print shop's front shows ${street.print}`);
+      await visit.screenshot({ path: join(out, 'postcard-street.png') });
+      check((await visit.locator('.visit-street').innerText()) === V.inside, 'the bar does not offer the way back in');
+
+      const closed = visit.waitForEvent('close');
+      // The window goes with the key, so the press itself never hears back.
+      await visit.keyboard.press('Escape').catch(() => {});
+      await closed;
+      await sleep(1000);
+      check(shop.app.windows().length === 1, 'the postcard window is still there');
+      const home = await shop.page.evaluate(() => ({ room: window.lamplightDebug.scene.room, outside: document.body.classList.contains('outside') }));
+      check(home.room === 'cafe' && !home.outside, `home is ${JSON.stringify(home)}`);
+      await shop.page.keyboard.press('Escape');
+      await sleep(800);
+      await shop.shot(join(out, 'postcard-home.png'));
+      check(mine() === before, 'something of the looker\'s own changed');
     } finally { await shop.close(); }
   },
 
@@ -3649,19 +4159,30 @@ const SCENARIOS = {
     // The stand-in's page asks its colour question in this play (plays.mjs), so a question comes while both are at work.
     const shop = await launch({ lang, home, speed: Math.max(SPEED, 700), scenario: 'projectmemo' });
     try {
+      // Two orders in two shops (road-to-1.4.md D3): the page in the workshop, the research at home. The view follows each.
+      const where = () => shop.page.evaluate(() => ({ room: window.lamplightDebug.scene.room, rooms: [...window.lamplightDebug.rooms.keys()] }));
       await shop.order({ template: 'page', want: W[lang].page });
       await shop.submit();
       check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
+      await sleep(3500);
+      check((await where()).room === 'workshop', `the view did not follow the page to the workshop: ${JSON.stringify(await where())}`);
       await another(shop, { template: 'research', want: W[lang].research });
       check(await waitForLog(home, 'run start', 2, 10_000), 'the second commission did not start beside the first');
       check(logged(home, 'run end').length === 0, 'the first had ended before the second started');
       await sleep(1500);
+      const both = await where();
+      check(both.room === 'cafe' && both.rooms.includes('workshop'), `the two are not each in their shop: ${JSON.stringify(both)}`);
       await shop.shot(join(out, 'parallel-two.png'));
+      // A question from the workshop, out of sight, lights its front on the toolbar (D3).
+      const workshopName = L.ui.town.shops.workshop;
+      const lit = () => shop.page.evaluate(() => { const b = document.querySelector('.tool-btn.calling'); return b && !b.hidden ? b.textContent : null; });
+      const calls = [];
       // The page's colour question, asked while both are at work, names its project before the question.
       const asked = await shop.maybe('.backdrop .question', 30_000);
       check(asked && logged(home, 'run end').length === 0, 'no question came while both were at work');
       const q = await asked.innerText();
       check(q.includes(' · '), `a question while two are at work does not name its project: ${q}`);
+      calls.push(await lit());
       await shop.shot(join(out, 'parallel-ask.png'));
       await shop.page.keyboard.press('1');
       await sleep(600);
@@ -3670,8 +4191,12 @@ const SCENARIOS = {
       check(next, 'no question came from the other round');
       const q2 = await next.innerText();
       check(q2 !== q && q2.includes(' · '), `the second question reads ${q2}`);
+      calls.push(await lit());
+      if (calls[1]) await shop.shot(join(out, 'parallel-calling.png'));
+      check(calls.filter(Boolean).length === 1 && calls.find(Boolean) === workshopName, `the workshop's front lit for ${JSON.stringify(calls)}`);
       await shop.page.keyboard.press('2');
       await sleep(600);
+      check(await lit() === null, 'the front stayed lit after the answer');
       await another(shop, { template: 'letter', want: W[lang].letter });
       check(await waitForLog(home, 'run queued', 1, 10_000), 'the third commission did not wait in the queue');
       check(logged(home, 'run start').length === 2, 'a third round started beside two');
@@ -3715,6 +4240,90 @@ const SCENARIOS = {
       const picked = (question) => Object.values(memos.find((c) => question.includes(c.title))?.choices ?? {});
       check(JSON.stringify([picked(q), picked(q2)]) === JSON.stringify([[colours[0]], [colours[1]]]), `the answers went to ${JSON.stringify(memos.map((c) => [c.title, c.choices]))}`);
     } finally { await shop.close(); }
+  },
+
+  /**
+   * An order carried to its shop (road-to-1.4.md D3): a notice, done in the print shop, with a picture in it. Adeng takes
+   * the slip out of the home shop and the view follows him into the print shop, where he hands it over and goes home again.
+   * For the picture Aqian sets off for the studio, where Umber paints it, and Umber walks into the print shop with it and
+   * goes back. Done, the studio is taken down, the print shop stays on screen and Adeng is at the home counter again. Also
+   * at the smallest window.
+   */
+  async dispatch(lang, out) {
+    for (const size of [undefined, [640, 360]]) {
+      const small = size ? '-640' : '';
+      const home = freshHome({ 'settings.json': onboarded(lang) });
+      const shop = await launch({ lang, home, speed: 900, scenario: 'dispatch', ...(size ? { size } : {}) });
+      const { page } = shop;
+      const state = () => page.evaluate(() => {
+        const d = window.lamplightDebug;
+        const at = (room, who) => d.rooms.get(room)?.scene.anchorOf(who) ?? null;
+        return {
+          room: d.scene.room,
+          rooms: [...d.rooms.keys()],
+          home: at('cafe', 'adeng'),
+          print: { adeng: at('print', 'adeng'), aqian: at('print', 'aqian'), xiaozhe: at('print', 'xiaozhe') },
+          studio: at('studio', 'xiaozhe'),
+          // Who is still walking in the print shop: an anchor is set as a walk starts, so a moment waits for them to arrive.
+          walking: ['adeng', 'aqian', 'xiaozhe'].filter((a) => d.rooms.get('print')?.scene.actors.get(a)?.tween?.isPlaying()),
+          says: [...d.scene.speech].map(([id, s]) => [id, s.text]),
+        };
+      });
+      const seen = new Map();
+      // What was seen at each look, kept beside the screenshots: a moment never seen is worked out from it.
+      const trace = [];
+      const watch = async (moment, ok) => {
+        if (seen.has(moment)) return;
+        const s = await state();
+        trace.push({ at: Date.now(), moment, room: s.room, rooms: s.rooms, home: s.home, print: s.print, studio: s.studio, walking: s.walking });
+        if (!ok(s)) return;
+        seen.set(moment, s);
+        await sleep(400);
+        await checkBubbles(shop);
+        await shop.shot(join(out, `dispatch-${moment}${small}.png`));
+      };
+      // The moments, each looked at once: Adeng carrying the slip out of the home shop; handing it over in the print shop;
+      // Aqian gone to the studio while Umber paints; Umber in the print shop with the picture.
+      const moments = async () => {
+        await watch('slip', (s) => s.room === 'cafe' && s.home === 'door');
+        await watch('handover', (s) => s.room === 'print' && s.print.adeng === 'counter' && !s.walking.includes('adeng'));
+        // Aqian says where she is going first, then heads out: on her way to the door counts.
+        await watch('studio', (s) => s.room === 'print' && (s.print.aqian === null || s.print.aqian === 'door') && s.studio === 'board');
+        await watch('back', (s) => s.room === 'print' && s.print.xiaozhe === 'counter' && !s.walking.includes('xiaozhe'));
+      };
+      try {
+        await sleep(2500);
+        await shop.order({ template: 'document', want: W[lang].document });
+        await shop.submit();
+        check(await waitForLog(home, 'run start', 1, 10_000), 'the commission did not start');
+        for (const end = Date.now() + 8000; Date.now() < end && !seen.has('handover'); await sleep(150)) await moments();
+        const r = await shop.workUntilDone({ onTick: moments });
+        // The picture may come back as the round ends: Umber is still on his way in. A few more looks.
+        for (const end = Date.now() + 10_000; Date.now() < end && !seen.has('back'); await sleep(200)) await moments();
+        writeFileSync(join(out, `dispatch-trace${small}.json`), JSON.stringify(trace, null, 1));
+        check(r.ok, `the commission did not finish: ${JSON.stringify(r.stopped ?? r).slice(0, 300)}`);
+        for (const m of ['handover', 'studio', 'back']) check(seen.has(m), `never saw "${m}": ${JSON.stringify([...seen.keys()])}`);
+        // Umber says his line at the counter, then goes back to the studio.
+        let after = await state();
+        for (const end = Date.now() + 15_000; Date.now() < end && (after.print.xiaozhe !== null || after.print.adeng !== null); await sleep(300)) after = await state();
+        check(after.room === 'print', `the view left the print shop: ${after.room}`);
+        check(!after.rooms.includes('studio'), `the studio is still up with nothing to do: ${after.rooms}`);
+        check(after.print.xiaozhe === null && after.print.adeng === null, `someone from another shop stayed: ${JSON.stringify(after.print)}`);
+        // The picture was really made, beside the notice.
+        const folder = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1)?.folder;
+        check(folder && existsSync(join(folder, 'figure.png')), `no picture in ${folder}`);
+        await shop.page.keyboard.press('Escape');
+        let homeAgain = null;
+        for (const end = Date.now() + 20_000; Date.now() < end && homeAgain !== 'counter'; await sleep(500)) homeAgain = (await state()).home;
+        check(homeAgain === 'counter', `Adeng is not back at the home counter: ${homeAgain}`);
+        // Back home: the print shop has nothing left to do and is taken down.
+        await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+        await sleep(2500);
+        const last = await state();
+        check(last.room === 'cafe' && !last.rooms.includes('print'), `going home left ${JSON.stringify(last.rooms)}`);
+        await shop.shot(join(out, `dispatch-home${small}.png`));
+      } finally { await shop.close(); }
+    }
   },
 
   /**
@@ -3806,7 +4415,8 @@ const SCENARIOS = {
       try {
         // The light settles first: a change of light still under way would take back the night set for a picture.
         await sleep(4500);
-        await shop.order({ template: 'page', want: W[lang].page });
+        // Two home kinds of work, so both crews are in the home shop (road-to-1.4.md D3: a page goes to the workshop).
+        await shop.order({ template: 'letter', want: W[lang].letter });
         await shop.submit();
         check(await waitForLog(home, 'run start', 1, 10_000), 'the first commission did not start');
         await another(shop, { template: 'research', want: W[lang].research }, room === 'study' ? locale(lang).sceneText.study.ui.access.hotspotCounter : undefined);
@@ -4137,6 +4747,8 @@ const SCENARIOS = {
    */
   async shops(lang, out) {
     const WHO = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding' };
+    // A kind of work each shop does itself (road-to-1.4.md D3), so the order is played in the shop it is placed in.
+    const KIND = { print: 'document', studio: 'chart', workshop: 'page' };
     const HOME_CREW = ['xiaoju', 'laoshi', 'qingdai', 'xiaodou', 'cat'];
     const room = (page) => page.evaluate(() => window.lamplightDebug.scene.room);
     const visit = async (page, id) => {
@@ -4152,7 +4764,9 @@ const SCENARIOS = {
     for (const size of [undefined, [640, 360]]) {
       const small = size ? '-640' : '';
       const home = freshHome({ 'settings.json': onboarded(lang) });
-      const shop = await launch({ lang, home, speed: SPEED, ...(size ? { size } : {}) });
+      // Each round is held halfway until the scenario has been home and back: a quick round would otherwise be over first.
+      const hold = join(home.home, 'hold');
+      const shop = await launch({ lang, home, speed: SPEED, scenario: 'hold', simEnv: { SIM_HOLD: hold }, ...(size ? { size } : {}) });
       const { page } = shop;
       try {
         await sleep(2500);
@@ -4163,7 +4777,8 @@ const SCENARIOS = {
           check(JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).scene === 'cafe', `${id}: going in moved the home shop`);
           const who = () => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ['adeng', person, ...HOME_CREW]);
           const first = await who();
-          check(first[person] !== null && first.adeng === 'counter', `${id}: ${person} or Adeng is not there: ${JSON.stringify(first)}`);
+          // Adeng only comes in with an order (D3).
+          check(first[person] !== null && first.adeng === null, `${id}: ${person} is not there, or Adeng is: ${JSON.stringify(first)}`);
           check(HOME_CREW.every((a) => first[a] === null), `${id}: someone from home is here: ${JSON.stringify(first)}`);
           check(await page.evaluate((a) => window.lamplightDebug.scene.textures.exists(a), person), `${id}: ${person} has no picture`);
           if (size) {
@@ -4178,12 +4793,24 @@ const SCENARIOS = {
           await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
           const places = new Set();
           let homeSeen = '';
-          await shop.order({ template: 'page', want: W[lang].page });
+          const starts = logged(home, 'run start').length;
+          writeFileSync(hold, '');
+          await shop.order({ template: KIND[id], want: W[lang][KIND[id]] });
           await shop.submit();
-          // While this room works, the door to another stays shut, and says why.
-          await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
-          check(await room(page) === id, `${id}: went home while the work went on`);
-          check((await page.locator('.street-note').innerText()).includes(locale(lang).ui.town.busy), `${id}: no word on why the door is shut`);
+          check(await waitForLog(home, 'run start', starts + 1, 10_000), `${id}: the commission did not start`);
+          // Where the person goes over the whole round, looked at in the page: the scenario steps out for part of it.
+          await page.evaluate((a) => {
+            window.workRoom = window.lamplightDebug.scene;
+            window.places = new Set();
+            window.placeTimer = setInterval(() => { const at = window.workRoom.anchorOf(a); if (at) window.places.add(at); }, 100);
+          }, person);
+          // While this room works, home is a door away (D3); back again, it is the same room, still at work.
+          await visit(page, 'cafe');
+          check(await room(page) === 'cafe', `${id}: could not go home while the work went on`);
+          check(await page.evaluate((r) => Boolean(window.lamplightDebug.rooms.get(r)), id), `${id}: the room was taken down while it worked`);
+          await visit(page, id);
+          check(await page.evaluate(() => window.lamplightDebug.scene === window.workRoom), `${id}: the room was built again`);
+          rmSync(hold, { force: true });
           const done = await shop.workUntilDone({
             onTick: async () => {
               const now = await who();
@@ -4193,6 +4820,7 @@ const SCENARIOS = {
             },
           });
           check(done.ok, `${id}: the commission did not finish: ${JSON.stringify(done).slice(0, 300)}`);
+          for (const at of await page.evaluate(() => { clearInterval(window.placeTimer); return [...window.places]; })) places.add(at);
           check(places.size >= 2, `${id}: ${person} only went to ${[...places]}`);
           check(!homeSeen, `${id}: ${homeSeen} turned up from home`);
           await shop.shot(join(out, `shops-${id}-done.png`));
@@ -4307,6 +4935,592 @@ const SCENARIOS = {
   },
 
   /**
+   * The bakery opens (plan-1.6.md F1): gone into from the street like the other shops, Auntie Gui is there and nobody from
+   * home. A menu handed in there is made there: an A4 picture with every dish and price as given and a blank where one was
+   * not, and a PDF to print. Then a recipe, as a Word document. Each names her on the parcel.
+   */
+  async bakery(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const here = () => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ['adeng', 'guiyi', 'xiaoju', 'laoshi']);
+    try {
+      await sleep(2500);
+      await page.evaluate(() => window.lamplightDebug.street.onFront('bakery', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'bakery'; await sleep(300));
+      // The keeper says a word as you walk in (plan-1.6.md F5).
+      const hello = await greeted(page, lang, 'bakery', 'guiyi');
+      check(hello !== null, 'guiyi said nothing from shop_in walking into the bakery');
+      await shop.shot(join(out, 'bakery-hello.png'));
+      await sleep(2500);
+      check(await room() === 'bakery', `did not go into the bakery: ${await room()}`);
+      const first = await here();
+      check(first.guiyi !== null && first.adeng === null && first.xiaoju === null && first.laoshi === null, `who is in the bakery: ${JSON.stringify(first)}`);
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('guiyi')), 'Auntie Gui has no picture');
+      await shop.shot(join(out, 'bakery-in.png'));
+
+      await shop.order({ template: 'menu', want: W[lang].menu });
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the menu did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      check(await room() === 'bakery', `the menu was not made in the bakery: ${await room()}`);
+      const dir = latestCommission(home);
+      check(JSON.stringify(pngSize(join(dir, F.menuPng))) === JSON.stringify([794, 1123]), `${F.menuPng} is ${JSON.stringify(pngSize(join(dir, F.menuPng)))}, not A4`);
+      check(readFileSync(join(dir, F.menuPdf)).subarray(0, 5).toString() === '%PDF-', 'the menu has no PDF beside it');
+      const html = readFileSync(join(dir, F.menuPage), 'utf8');
+      const dish = lang === 'zh-CN' ? ['葱油饼', '8'] : ['Scallion pancake', '8'];
+      check(html.includes(`<span>${dish[0]}</span><b>${dish[1]}</b>`), `a dish or its price is not on the menu as given: ${html.slice(-600)}`);
+      check(html.includes(lang === 'zh-CN' ? '[价格]' : '[price]'), 'the dish without a price has no blank');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const parcels = await page.locator('.parcel .card-title').allInnerTexts();
+      check(parcels.length > 0 && parcels.every((t) => t.includes(L.actors.guiyi)), `the parcel does not name Auntie Gui: ${parcels}`);
+      await sleep(400);
+      await shop.shot(join(out, 'bakery-menu-done.png'));
+      copyFileSync(join(dir, F.menuPng), join(out, 'bakery-menu-made.png'));
+      await page.keyboard.press('Escape');
+      await sleep(500);
+
+      await shop.order({ template: 'recipe', want: W[lang].recipe });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the recipe did not finish');
+      const recipe = join(latestCommission(home), F.recipe);
+      check(existsSync(recipe) && readFileSync(recipe).subarray(0, 2).toString() === 'PK', `${F.recipe} is not a Word document`);
+      await sleep(400);
+      await shop.shot(join(out, 'bakery-recipe-done.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The post office opens (plan-1.6.md F2): gone into from the street, Axin is there and nobody from home, and the
+   * postcards the shop opened before hang on the cork board, newest first; a click on one opens its visit again. A card
+   * handed in there is made there: a postcard-sized picture with the words as given and a PDF to print. Then a newsletter,
+   * as a Word document with a PDF beside it. Each names him on the parcel.
+   */
+  async post(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const card = (name, home, done) => ({
+      postcard: 'lamplight-nook', version: 1, name, home,
+      furnish: { cafe: { wall: 'default', curtain: 'default', rug: 'default' }, study: { wall: 'default', curtain: 'default', rug: 'default' } },
+      grown: ['painting', 'plant'], done,
+      shops: { print: 0, studio: 0, workshop: 0, bakery: 0, post: 0 },
+      stories: { mechanic: 0, granny: 0, student: 0 },
+    });
+    const friends = lang === 'en' ? ['Mira', 'Bo'] : ['阿梅', '小波'];
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'postcards.json': JSON.stringify({ version: 1, cards: [card(friends[0], 'study', 24), card(friends[1], 'cafe', 6)] }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const here = () => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ['adeng', 'axin', 'xiaoju', 'laoshi']);
+    const pinned = () => page.evaluate(() => window.lamplightDebug.scene.hotspots().filter((h) => /^wall-/.test(h.id)).map((h) => h.id));
+    try {
+      await sleep(2500);
+      await page.evaluate(() => window.lamplightDebug.street.onFront('post', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'post'; await sleep(300));
+      // The keeper says a word as you walk in (plan-1.6.md F5).
+      const hello = await greeted(page, lang, 'post', 'axin');
+      check(hello !== null, 'axin said nothing from shop_in walking into the post office');
+      await shop.shot(join(out, 'post-hello.png'));
+      await sleep(2500);
+      check(await room() === 'post', `did not go into the post office: ${await room()}`);
+      const first = await here();
+      check(first.axin !== null && first.adeng === null && first.xiaoju === null && first.laoshi === null, `who is in the post office: ${JSON.stringify(first)}`);
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('axin')), 'Axin has no picture');
+      check(JSON.stringify(await pinned()) === JSON.stringify(['wall-0', 'wall-1']), `the cork board holds ${JSON.stringify(await pinned())}`);
+      await page.evaluate(() => window.lamplightDebug.scene.highlight('wall-0'));
+      await sleep(300);
+      const label = await page.locator('#labels .label.zone').allInnerTexts();
+      check(label.some((t) => t.includes(friends[0])), `pointing at the newest card does not name ${friends[0]}: ${label}`);
+      await shop.shot(join(out, 'post-in.png'));
+      await page.evaluate(() => window.lamplightDebug.scene.highlight(null));
+
+      const opened = shop.app.waitForEvent('window');
+      await page.evaluate(() => window.lamplightDebug.scene.activate('wall-0'));
+      const visit = await opened;
+      await visit.waitForSelector('.postcard .postcard-enter');
+      check((await visit.locator('.postcard-from').innerText()).includes(friends[0]), 'the kept postcard does not open the friend who sent it');
+      await sleep(800);
+      await visit.screenshot({ path: join(out, 'post-wall-visit.png') });
+      await visit.close();
+      await sleep(500);
+
+      await shop.order({ template: 'card', want: W[lang].card });
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the card did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      check(await room() === 'post', `the card was not made in the post office: ${await room()}`);
+      const dir = latestCommission(home);
+      check(JSON.stringify(pngSize(join(dir, F.cardPng))) === JSON.stringify([1748, 1240]), `${F.cardPng} is ${JSON.stringify(pngSize(join(dir, F.cardPng)))}, not a postcard`);
+      check(readFileSync(join(dir, F.cardPdf)).subarray(0, 5).toString() === '%PDF-', 'the card has no PDF beside it');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const parcels = await page.locator('.parcel .card-title').allInnerTexts();
+      check(parcels.length > 0 && parcels.every((t) => t.includes(L.actors.axin)), `the parcel does not name Axin: ${parcels}`);
+      await sleep(400);
+      await shop.shot(join(out, 'post-card-done.png'));
+      copyFileSync(join(dir, F.cardPng), join(out, 'post-card-made.png'));
+      await page.keyboard.press('Escape');
+      await sleep(500);
+
+      await shop.order({ template: 'newsletter', want: W[lang].newsletter });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the newsletter did not finish');
+      const issue = latestCommission(home);
+      check(readFileSync(join(issue, F.newsletter)).subarray(0, 2).toString() === 'PK', `${F.newsletter} is not a Word document`);
+      check(readFileSync(join(issue, F.newsletterPdf)).subarray(0, 5).toString() === '%PDF-', 'the newsletter has no PDF beside it');
+      await sleep(400);
+      await shop.shot(join(out, 'post-newsletter-done.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The town grows with the work (road-to-1.4.md D5): a shop with 0, 10, 30 and 100 commissions done, split between the
+   * home shop and the shops along the street, opens onto a street with that much grown on it, each front by its own
+   * count; inside the print shop its own pieces hang. Then a commission brings the lamps, and someone says so.
+   */
+  async towngrow(lang, out) {
+    const L = locale(lang);
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const STREET = [['lamps', 3], ['bench', 6], ['flowers', 10], ['stall', 20], ['park', 40], ['fountain', 70]];
+    const FRONT = [['pot', 2], ['sign', 8], ['bunting', 20]];
+    const due = (list, n) => list.filter(([, at]) => n >= at).map(([id]) => id);
+    // How many of the total each shop along the street did; the home shop did the rest.
+    const SPLITS = { 0: {}, 10: { print: 8 }, 30: { print: 20, studio: 3, workshop: 2 }, 100: { print: 30, studio: 25, workshop: 20 } };
+    const seed = (done, split) => freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [], stuckNotes: [], greeted: 'c1',
+        shop: { done, told: ['town-move'], grown: [], met: [], town: { shops: Object.fromEntries(Object.entries(split).map(([s, n]) => [s, { done: n, grown: [] }])), street: [], stories: {} } },
+      }),
+    });
+    const goOut = async (page) => {
+      // A plain day: a festival would put the cart away (D6).
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(800);
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(300);
+    };
+    const shown = (page) => page.evaluate(() => {
+      const g = window.lamplightDebug.street.growth;
+      const ids = ['lamps', 'bench', 'flowers', 'stall', 'park', 'fountain'];
+      const fronts = Object.fromEntries(['cafe', 'study', 'print', 'studio', 'workshop'].map((s) => [s, ['pot', 'sign', 'bunting'].filter((id) => g.shows(id, s))]));
+      return { street: ids.filter((id) => g.shows(id)), fronts };
+    });
+    const scrollTo = (page, x) => page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, x);
+
+    for (const [done, split] of Object.entries(SPLITS).map(([d, s]) => [Number(d), s])) {
+      const shop = await launch({ lang, home: seed(done, split), speed: SPEED });
+      const { page } = shop;
+      try {
+        await sleep(2500);
+        await goOut(page);
+        const v = await shown(page);
+        check(JSON.stringify(v.street) === JSON.stringify(due(STREET, done)), `${done} done: the street shows ${v.street}`);
+        const own = { cafe: done - Object.values(split).reduce((a, b) => a + b, 0), study: 0, print: 0, studio: 0, workshop: 0, ...split };
+        for (const [s, n] of Object.entries(own)) check(JSON.stringify(v.fronts[s]) === JSON.stringify(due(FRONT, n)), `${done} done: the ${s} front shows ${v.fronts[s]} for ${n} of its own`);
+        await scrollTo(page, 0);
+        await sleep(300);
+        await shop.shot(join(out, `towngrow-${done}-home.png`));
+        await scrollTo(page, town.lot.x + town.lot.w / 2 - 160);
+        await sleep(300);
+        await shop.shot(join(out, `towngrow-${done}-lot.png`));
+        if (done === 100) {
+          await page.evaluate(() => window.lamplightDebug.street.lookAt('print'));
+          await sleep(300);
+          await shop.shot(join(out, 'towngrow-100-print-front.png'));
+          await page.keyboard.press('Enter');
+          await sleep(1500);
+          const inside = await page.evaluate(() => {
+            const room = window.lamplightDebug.rooms.get('print')?.scene;
+            return { here: window.lamplightDebug.scene.room, pieces: ['print-proof', 'print-ivy', 'print-typecase', 'print-ribbon'].filter((id) => room?.growth.shows(id)) };
+          });
+          check(inside.here === 'print', `Enter in front of the print shop went to ${inside.here}`);
+          check(inside.pieces.length === 4, `the print shop with thirty of its own shows ${inside.pieces}`);
+          await shop.shot(join(out, 'towngrow-100-print-inside.png'));
+        }
+      } finally { await shop.close(); }
+    }
+
+    // A commission done that brings the lamps: they are on the street, and someone says so in the shop.
+    const lamps = lang === 'en' ? 'Two new lamps on the street!' : '街上多了两盏路灯。';
+    const home = seed(2, {});
+    const shop = await launch({ lang, home, debug: true, speed: 100 });
+    try {
+      await sleep(2000);
+      await shop.page.evaluate(() => {
+        window.heard = [];
+        setInterval(() => {
+          const now = document.getElementById('labels').innerText;
+          if (window.heard.at(-1) !== now) window.heard.push(now);
+        }, 200);
+      });
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the commission did not finish');
+      await sleep(1500);
+      await shop.page.keyboard.press('Escape');
+      let said = false;
+      for (const start = Date.now(); !said && Date.now() - start < 40_000; await sleep(500)) {
+        said = await shop.page.evaluate((w) => window.heard.some((h) => h.includes(w)), lamps);
+      }
+      check(said, 'nobody said the street has new lamps');
+      await shop.shot(join(out, 'towngrow-lamps-line.png'));
+      const saved = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8'));
+      check(saved.shop.town.street.map((g) => g.id).join() === 'lamps', `the day the lamps came was not written down: ${JSON.stringify(saved.shop.town.street)}`);
+      await goOut(shop.page);
+      check((await shown(shop.page)).street.join() === 'lamps', 'the new lamps are not on the street');
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The neighbours' stories (road-to-1.4.md D4): a shop that has done 50, opened on the days the chapters come, 30 days in
+   * all. Each time Old Zhou, Granny Chen and Xiaohe wait at their places with a bubble; a click opens the chapter, closing
+   * it writes it down and leaves its thing on the street. A day too early nobody waits; at the end all fifteen things are
+   * there and nobody waits any more. Then Auntie Olive and Pip (plan-1.6.md F4), who have waited at their own doors all
+   * along, each tell their first chapter, and what it leaves hangs in their shop.
+   */
+  async stories(lang, out) {
+    const L = locale(lang);
+    const book = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/stories.yaml' : 'lines/stories.yaml'), 'utf8'));
+    const art = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town-story.json'), 'utf8'));
+    const TELLERS = ['mechanic', 'granny', 'student'];
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [], stuckNotes: [], greeted: 'c1',
+        shop: { done: 50, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } },
+      }),
+    });
+    const goOut = async (page) => {
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(1000);
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(300);
+    };
+    const seen = (page) => page.evaluate((ids) => {
+      const s = window.lamplightDebug.street.stories;
+      return { waiting: s.waiting(), left: ids.filter((id) => s.shows(id)) };
+    }, art.parts.map((p) => p.id));
+    const scrollTo = async (page, x) => {
+      await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = Math.round(Math.max(0, Math.min(x - 160, 1128 - 320))); }, x);
+      await sleep(300);
+    };
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.stories;
+    // The days the chapters come (0, 3, 4, 5 and 7 days apart) and the day before the second, when nobody waits.
+    const DAYS = [['2026-11-20', 1], ['2026-11-22', 0], ['2026-11-23', 2], ['2026-11-27', 3], ['2026-12-02', 4], ['2026-12-09', 5], ['2026-12-20', 0]];
+    for (const [day, chapter] of DAYS) {
+      const shop = await launch({ lang, home, speed: SPEED, clock: `${day}T10:00` });
+      const { page } = shop;
+      try {
+        await sleep(2500);
+        await goOut(page);
+        let v = await seen(page);
+        // The baker and the postman wait at their doors all month; they are heard at the end.
+        v.waiting = v.waiting.filter((w) => TELLERS.includes(w));
+        const told = chapter ? chapter - 1 : Math.min(5, DAYS.filter(([d, c]) => c && d < day).length);
+        check(v.left.length === told * 3, `${day}: ${v.left.length} things on the street after ${told} chapters each`);
+        if (!chapter) {
+          check(v.waiting.length === 0, `${day}: ${v.waiting} waiting on a day with no chapter`);
+          if (told === 5) {
+            for (const [name, x] of [['cafe', 80], ['study', 260], ['workshop', 615]]) {
+              await scrollTo(page, x);
+              await shop.shot(join(out, `stories-all-${name}.png`));
+            }
+          }
+          continue;
+        }
+        check(JSON.stringify(v.waiting) === JSON.stringify(TELLERS), `${day}: waiting ${v.waiting}, not all three`);
+        if (chapter === 1) {
+          await scrollTo(page, 260);
+          await shop.shot(join(out, 'stories-waiting-study.png'));
+        }
+        for (const who of TELLERS) {
+          const at = art.waits[who];
+          await scrollTo(page, at.x);
+          const spot = await page.evaluate((w) => window.lamplightDebug.street.stories.spot(w), who);
+          const scroll = await page.evaluate(() => window.lamplightDebug.street.cameras.main.scrollX);
+          const box = await page.locator('#game canvas').boundingBox();
+          const k = box.width / 320;
+          await page.mouse.click(box.x + (spot.x - scroll) * k, box.y + spot.y * k);
+          await sleep(600);
+          const card = page.locator(`.story-card[data-teller="${who}"][data-chapter="${chapter}"]`);
+          check(await card.count() === 1, `${day}: clicking ${who} opened no card for chapter ${chapter}`);
+          const c = book[who][chapter - 1];
+          const text = await card.innerText();
+          check(text.includes(L.guests[who]) && text.includes(c.title) && text.includes(c.lines[0]) && text.includes(c.note), `${day}: ${who}'s card does not tell chapter ${chapter}: ${text}`);
+          if (chapter === 1 || chapter === 5) await shop.shot(join(out, `stories-${who}-${chapter}-card.png`));
+          await card.locator('button.primary').click();
+          await sleep(800);
+          v = await seen(page);
+          v.waiting = v.waiting.filter((w) => TELLERS.includes(w));
+          check(!v.waiting.includes(who), `${day}: ${who} still waits after telling chapter ${chapter}`);
+          check(v.left.includes(c.left), `${day}: ${c.left} is not on the street after ${who}'s chapter ${chapter}`);
+          check((saved()[who] ?? []).length === chapter && saved()[who].at(-1) === day, `${day}: ${who}'s chapters were not written down: ${JSON.stringify(saved())}`);
+          // Nobody waits where they stood now: a click there is a click on the front behind (D1).
+          check(await page.evaluate((p) => window.lamplightDebug.street.stories.at(p.x, p.y), spot) === null, `${day}: ${who} still answers a click after chapter ${chapter}`);
+        }
+        if (chapter === 5) {
+          await scrollTo(page, 615);
+          await shop.shot(join(out, 'stories-5-workshop.png'));
+        }
+      } finally { await shop.close(); }
+    }
+
+    // Auntie Olive and Pip: waiting at their own doors with a bubble; a click opens their first chapter, and what it
+    // leaves hangs on their shop's wall, not on the street.
+    const day = '2026-12-21';
+    const shop = await launch({ lang, home, speed: SPEED, clock: `${day}T10:00` });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    try {
+      await sleep(2500);
+      await goOut(page);
+      const v = await seen(page);
+      check(JSON.stringify(v.waiting) === JSON.stringify(['baker', 'postman']), `${day}: waiting ${v.waiting}, not Auntie Olive and Pip`);
+      for (const [who, shopId, first, next] of [['baker', 'bakery', 'tin', 'starter'], ['postman', 'post', 'satchel', 'bundle']]) {
+        const at = art.waits[who];
+        await scrollTo(page, at.x);
+        if (who === 'baker') await shop.shot(join(out, 'stories-waiting-bakery.png'));
+        const spot = await page.evaluate((w) => window.lamplightDebug.street.stories.spot(w), who);
+        const scroll = await page.evaluate(() => window.lamplightDebug.street.cameras.main.scrollX);
+        const box = await page.locator('#game canvas').boundingBox();
+        const k = box.width / 320;
+        await page.mouse.click(box.x + (spot.x - scroll) * k, box.y + spot.y * k);
+        await sleep(600);
+        const card = page.locator(`.story-card[data-teller="${who}"][data-chapter="1"]`);
+        check(await card.count() === 1, `${day}: clicking ${who} opened no card for chapter 1`);
+        const c = book[who][0];
+        const text = await card.innerText();
+        check(text.includes(L.guests[who]) && text.includes(c.title) && text.includes(c.lines[0]) && text.includes(c.note), `${day}: ${who}'s card does not tell chapter 1: ${text}`);
+        await shop.shot(join(out, `stories-${who}-1-card.png`));
+        await card.locator('button.primary').click();
+        await sleep(800);
+        const after = await seen(page);
+        check(!after.waiting.includes(who), `${day}: ${who} still waits after telling chapter 1`);
+        check(!art.parts.some((p) => p.id === c.left), `${day}: ${who}'s ${c.left} is drawn on the street`);
+        check((saved()[who] ?? []).length === 1 && saved()[who][0] === day, `${day}: ${who}'s chapter was not written down: ${JSON.stringify(saved())}`);
+        await page.evaluate((id) => window.lamplightDebug.street.onFront(id, true), shopId);
+        for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== shopId; await sleep(300));
+        await sleep(2500);
+        check(await room() === shopId, `did not go into the ${shopId}: ${await room()}`);
+        const hung = await page.evaluate(([a, b]) => [window.lamplightDebug.scene.tales.shows(a), window.lamplightDebug.scene.tales.shows(b)], [first, next]);
+        check(hung[0] && !hung[1], `${day}: in the ${shopId} ${first} hangs ${hung[0]}, ${next} hangs ${hung[1]}`);
+        await shop.shot(join(out, `stories-${shopId}-${first}.png`));
+        await goOut(page);
+      }
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The phone page (docs/plan-1.5.md E4): a paired phone sees what waits for an answer while a commission runs, answers
+   * it there, and the card on the desk is put away; the commission goes on to the end.
+   */
+  async phone(lang, out) {
+    const L = locale(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { chromium } = createRequire(import.meta.url)('playwright');
+    const browser = await chromium.launch({ channel: 'chrome' });
+    const { page } = shop;
+    try {
+      await sleep(2000);
+      await shop.openSettings('work');
+      await page.locator('label.toggle', { hasText: L.ui.lan.toggle }).click();
+      await sleep(1500);
+      await page.locator('.settings .lan-pair').click();
+      await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+      const url = await page.locator('.settings .lan-qr').getAttribute('data-url');
+      const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
+      await phone.goto(url);
+      await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.connected, { timeout: 10_000 });
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      // The first thing the shop asks shows on both: a card on the desk, buttons on the phone.
+      const ask = phone.locator('#asks li:not([data-kind="serious"])').first();
+      await ask.waitFor({ timeout: 60_000 });
+      await page.waitForSelector('.backdrop', { timeout: 10_000 });
+      check((await phone.title()).startsWith(L.ui.lan.page.waiting), `the phone's title does not say something is asked: ${await phone.title()}`);
+      await phone.screenshot({ path: join(out, 'phone-ask.png') });
+      await shop.shot(join(out, 'phone-desk-before.png'));
+      await ask.locator('button').first().click();
+      await page.waitForFunction(() => !document.querySelector('.backdrop'), null, { timeout: 5000 }).catch(() => {});
+      check(await page.locator('.backdrop').count() === 0, 'the card on the desk stayed after the phone answered');
+      await phone.waitForFunction(() => document.querySelectorAll('#asks li').length === 0 || document.getElementById('asking').hidden, null, { timeout: 5000 }).catch(() => {});
+      await shop.shot(join(out, 'phone-desk-after.png'));
+      await phone.screenshot({ path: join(out, 'phone-answered.png') });
+      check((await shop.workUntilDone()).ok, 'the commission did not finish after the phone answered');
+    } finally {
+      await browser.close();
+      await shop.close();
+    }
+  },
+
+  /**
+   * The shop on the home network (docs/plan-1.5.md E1): off at first; switched on in settings it shows where it listens,
+   * a QR code pairs a phone (a real Chrome at phone size), the phone sees what goes on during a commission, and once the
+   * desktop removes it the phone is refused at once.
+   */
+  async lan(lang, out) {
+    const L = locale(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { chromium } = createRequire(import.meta.url)('playwright');
+    const browser = await chromium.launch({ channel: 'chrome' });
+    const { page } = shop;
+    try {
+      await sleep(2000);
+      await shop.openSettings('work');
+      check(await page.locator('.settings .lan').count() === 1, 'no home-network section in settings');
+      check(await page.locator('.settings .lan-address').count() === 0, 'the home-network connection is on before it was switched on');
+      await page.locator('label.toggle', { hasText: L.ui.lan.toggle }).click();
+      await sleep(1500);
+      const address = await page.locator('.settings .lan-address').innerText();
+      check(/(^|\D)(10|172\.(1[6-9]|2\d|3[01])|192\.168)\.\d+\.\d+:\d+/.test(address), `it does not listen on a home-network address: ${address}`);
+      const port = JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8')).lanPort;
+      check(port >= 47800 && address.includes(`:${port}`), `the port was not picked and kept: ${port}`);
+      await page.locator('.settings .lan-pair').click();
+      await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+      const url = await page.locator('.settings .lan-qr').getAttribute('data-url');
+      await page.locator('.settings .lan-qr').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'lan-settings-qr.png'));
+
+      const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
+      await phone.goto(url);
+      await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.connected, { timeout: 10_000 });
+      check(!(await phone.evaluate(() => location.hash)), 'the key stayed in the address bar on the phone');
+      await sleep(2500);
+      check(await page.locator('.settings .lan-devices li[data-paired="true"]').count() === 1, 'the desktop does not show the phone as paired');
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      await phone.waitForFunction(() => document.querySelectorAll('#events li').length > 0, null, { timeout: 30_000 });
+      await phone.screenshot({ path: join(out, 'lan-phone-events.png') });
+      check((await shop.workUntilDone()).ok, 'the commission did not finish');
+
+      await shop.openSettings('work');
+      await page.locator('.settings .lan-devices li button.link').first().click();
+      await phone.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.refused, { timeout: 10_000 });
+      await phone.screenshot({ path: join(out, 'lan-phone-removed.png') });
+      check(await page.locator('.settings .lan-devices li').count() === 0, 'the removed phone is still listed');
+    } finally {
+      await browser.close();
+      await shop.close();
+    }
+  },
+
+  /**
+   * One shop, several people (docs/plan-1.5.md E5): a phone set to watch only sees what is asked but has nothing to press,
+   * a computer's browser set to hand in commissions sends one, the owner answers at the desk, the work is made, and the
+   * settings ledger shows who spent what. A monthly limit for the browser's person turns the next one away at once.
+   */
+  async team(lang, out) {
+    const L = locale(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    // A play that asks a question, so the phone has something it cannot answer.
+    let shop = await launch({ lang, home, speed: SPEED, scenario: 'projectmemo' });
+    const { chromium } = createRequire(import.meta.url)('playwright');
+    const browser = await chromium.launch({ channel: 'chrome' });
+    let { page } = shop;
+    const pair = async (context) => {
+      await page.locator('.settings .lan-pair').click();
+      await page.waitForSelector('.settings .lan-qr svg', { timeout: 5000 });
+      const url = await page.locator('.settings .lan-qr').getAttribute('data-url');
+      const p = await context.newPage();
+      await p.goto(url);
+      await p.waitForFunction((w) => document.getElementById('state')?.textContent === w, L.ui.lan.page.connected, { timeout: 10_000 });
+      return p;
+    };
+    try {
+      await sleep(2000);
+      await shop.openSettings('work');
+      await page.locator('label.toggle', { hasText: L.ui.lan.toggle }).click();
+      await sleep(1500);
+      const phone = await pair(await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true }));
+      const desk = await pair(await browser.newContext({ viewport: { width: 1024, height: 720 } }));
+      await sleep(2500);
+      const rows = page.locator('.settings .lan-devices li');
+      check(await rows.count() === 2, `${await rows.count()} devices listed`);
+      check(await page.locator('.settings .lan-devices li[data-role="approve"]').count() === 2, 'a new device does not start as one that may answer');
+      await rows.nth(0).locator('select.lan-role').selectOption('watch');
+      await sleep(500);
+      await rows.nth(1).locator('select.lan-role').selectOption('commission');
+      await sleep(500);
+      await rows.nth(1).locator('select.lan-cap').selectOption('2');
+      await sleep(500);
+      await page.locator('.settings .lan-devices').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'team-settings.png'));
+      const devices = JSON.parse(readFileSync(join(home.data, 'devices.json'), 'utf8'));
+      check(devices.map((d) => d.role).join() === 'watch,commission' && devices[1].capUsd === 2, `devices kept as ${JSON.stringify(devices.map((d) => [d.role, d.capUsd]))}`);
+      const deskName = devices[1].name;
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      // The phone learns it only watches; the browser gets the slip.
+      await phone.waitForFunction(() => document.body.dataset.role === 'watch', null, { timeout: 10_000 });
+      check(await phone.locator('#hand-in').isHidden(), 'a phone that only watches can hand in commissions');
+      await desk.waitForFunction(() => document.body.dataset.role === 'commission', null, { timeout: 10_000 });
+      await desk.locator('#want').fill(lang === 'zh-CN' ? '做一个记每天喝了几杯水的小网页' : 'A small page to count the glasses of water I drink each day');
+      await desk.locator('#kind').selectOption('page');
+      await desk.screenshot({ path: join(out, 'team-browser-slip.png') });
+      await desk.locator('#send').click();
+      await desk.waitForFunction((w) => document.getElementById('said')?.textContent === w, L.ui.lan.page.sent, { timeout: 10_000 });
+      await desk.screenshot({ path: join(out, 'team-browser-sent.png') });
+
+      // What the shop asks shows on the phone with nothing to press; the owner answers at the desk.
+      const ask = phone.locator('#asks li').first();
+      await ask.waitFor({ timeout: 60_000 });
+      check(await ask.locator('button').count() === 0, 'a phone that only watches has buttons to answer with');
+      await phone.screenshot({ path: join(out, 'team-phone-watching.png') });
+      check((await shop.workUntilDone()).ok, 'the commission handed in from the browser did not finish');
+      await shop.shot(join(out, 'team-result.png'));
+
+      const spend = JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+      check(spend.some((e) => e.who === devices[1].id), `the round was not put to the browser's person: ${JSON.stringify(spend)}`);
+      await page.keyboard.press('Escape');
+      await sleep(300);
+      await shop.openSettings('work');
+      await page.locator('.spend-months summary').click();
+      await page.waitForSelector('.spend-book tr.spend-person', { timeout: 5000 });
+      const people = await page.locator('.spend-book tr.spend-person').allInnerTexts();
+      check(people.some((r) => r.includes(deskName)), `the ledger does not name the browser's person: ${people.join(' | ')}`);
+      await page.locator('.spend-months').scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'team-ledger.png'));
+      await page.keyboard.press('Escape');
+      await sleep(300);
+
+      // Past its person's limit, the next one is turned away at the door and nothing starts. The ledger is read as the
+      // shop opens, so the extra spending goes in while it is closed; the browser finds the shop again by itself.
+      await shop.close();
+      const kept = JSON.parse(readFileSync(join(home.data, 'spend.json'), 'utf8'));
+      writeFileSync(join(home.data, 'spend.json'), JSON.stringify([...kept, { key: 'C:/w/far|s', usd: 2.5, month: kept[0].month, who: devices[1].id }]));
+      shop = await launch({ lang, home, speed: SPEED });
+      page = shop.page;
+      await sleep(3000);
+      await desk.locator('#want').fill('one more');
+      await desk.locator('#send').click();
+      await desk.waitForFunction((w) => document.getElementById('said')?.textContent === w, L.ui.lan.page.cap, { timeout: 10_000 });
+      await desk.screenshot({ path: join(out, 'team-browser-cap.png') });
+    } finally {
+      await browser.close();
+      await shop.close();
+    }
+  },
+
+  /**
    * The town's street (road-to-1.4.md D1): out of the door from the toolbar and back in on the same page, along the
    * street with the arrow keys, a front not open yet saying so, back in through the shop's own front and with Escape.
    * By day, by night and in a small window.
@@ -4346,16 +5560,48 @@ const SCENARIOS = {
           await sleep(300);
           await shop.shot(join(out, `street-${period}${small}.png`));
         }
+        if (!size) {
+          // People passing (plan-1.6.md F3): a few by day, and one clicked looks round; nobody deep in the night; in the
+          // rain fewer, each under an umbrella.
+          const passers = () => page.evaluate(() => {
+            const g = window.lamplightDebug.street;
+            const left = g.cameras.main.scrollX;
+            return g.crowd.passers.filter((p) => p.x >= left && p.x <= left + 320).map((p) => ({ id: p.id, x: p.x - left, y: p.y, pose: p.pose, speed: p.speed }));
+          });
+          const umbrellas = () => page.evaluate(() => [...window.lamplightDebug.street.drawnPassers.values()].filter((d) => d.umbrella.visible).length);
+          await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+          await sleep(1500);
+          const day = await passers();
+          check(day.length >= 1 && day.length <= 5, `by day the street has ${day.length} people in view`);
+          const box = await page.locator('#game canvas').boundingBox();
+          const k = box.width / 320;
+          const one = day[0];
+          await page.mouse.click(box.x + one.x * k, box.y + (one.y - 12) * k);
+          await sleep(150);
+          const looked = await page.evaluate((id) => window.lamplightDebug.street.crowd.passers.find((p) => p.id === id)?.pose, one.id);
+          check(looked === 'glance', `a clicked passer does not look round: ${looked}`);
+          await shop.shot(join(out, 'street-crowd-day.png'));
+          await page.evaluate(() => window.lamplightDebug.scene.setPeriod('night', true));
+          let night = await passers();
+          for (let i = 0; i < 40 && night.length; i++) { await sleep(500); night = await passers(); }
+          check(night.length === 0, `deep in the night ${night.length} people are still out`);
+          await shop.shot(join(out, 'street-crowd-night.png'));
+          await page.evaluate(() => { window.lamplightDebug.scene.setPeriod('day', true); window.lamplightDebug.scene.setWeather('rain', null, false); });
+          let wet = await passers();
+          for (let i = 0; i < 30 && !wet.length; i++) { await sleep(500); wet = await passers(); }
+          await sleep(1500);
+          wet = await passers();
+          check(wet.length >= 1 && wet.length <= 2, `in the rain the street has ${wet.length} people in view`);
+          check(wet.every((p) => p.pose !== 'walk' || p.speed === 45), `in the rain they do not hurry: ${JSON.stringify(wet)}`);
+          check(await umbrellas() === (await page.evaluate(() => window.lamplightDebug.street.crowd.passers.length)), 'not everyone out in the rain has an umbrella');
+          await shop.shot(join(out, 'street-crowd-rain.png'));
+          await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        }
         await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
         for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
         await sleep(200);
         const along = await look();
         check(along.x > v.x, 'the arrow keys do not move along the street');
-        await clickFront('bakery');
-        check((await page.locator('.street-note').innerText()) === L.ui.town.notes.bakery, 'the bakery does not say it is the neighbours');
-        await shop.shot(join(out, `street-closed${small}.png`));
-        v = await look();
-        check(v.out, 'a front not open yet took me somewhere');
         await clickFront('cafe');
         v = await look();
         check(!v.out && v.room && v.same, `going in at the cafe did not bring the room back on the same page: ${JSON.stringify(v)} ${await page.evaluate(() => document.elementFromPoint(innerWidth * 0.25, innerHeight * 0.33)?.className)}`);
@@ -4380,7 +5626,8 @@ const SCENARIOS = {
           await sleep(600);
           const seen = await page.evaluate(() => {
             const g = window.lamplightDebug.street;
-            const s = g.children.list.find((o) => o.type === 'Sprite');
+            // The one out on an errand, not a neighbour waiting with a story (D4).
+            const s = g.seen;
             return s ? { visible: s.visible, x: s.x, y: s.y, cam: g.cameras.main.scrollX, inset: window.lamplightDebug.scene.streetWalker() } : null;
           });
           await shop.shot(join(out, 'street-errand.png'));
@@ -4496,7 +5743,7 @@ const SCENARIOS = {
    * the shop's language, nothing downloads until "update", a commission after that runs to the end untouched, and the
    * version goes in only as the shop closes, after a copy of the data. Closing with "stop and close" mid-commission keeps
    * its promise to carry on, and installs after. The Store build and a shop with the switch off never look.
-   * The dev build calls itself 1.0.0 (package.json), so the feed offers 1.1.1; the installer is never run, the log says when.
+   * The feed offers one patch above the dev build's own version (NEXT); the installer is never run, the log says when.
    */
   async update(lang, out) {
     const U = locale(lang).ui.update;
@@ -4528,7 +5775,7 @@ const SCENARIOS = {
       const card = await shop.maybe('.update-letter', 60_000);
       check(card, 'the postman brought no letter');
       const text = await card.innerText();
-      check(text.includes('1.1.1') && text.includes(UPDATE_NOTES[lang]), `the letter does not say the version and what is new: ${text}`);
+      check(text.includes(NEXT) && text.includes(UPDATE_NOTES[lang]), `the letter does not say the version and what is new: ${text}`);
       check(!text.includes(UPDATE_NOTES[other]), 'the letter has the notes in the other language too');
       if (shot) await shop.shot(join(out, shot));
       check(fetched() === before, `the new version was downloaded before anyone said so: ${feed.asked.join(', ')}`);
@@ -4562,7 +5809,7 @@ const SCENARIOS = {
       const went = logged(home, install);
       check(went.length === 1 && went[0].slice(0, 24) >= closing, `the update did not go in as the shop closed: ${went.join(' | ')}`);
       check(logged(home, 'update installer not run (simulated)').length === 1, 'the stand-in for the installer was not reached');
-      const backup = join(home.data, 'backup', readdirSync(join(home.data, 'backup')).find((d) => d.endsWith('-before-1.1.1')) ?? '-');
+      const backup = join(home.data, 'backup', readdirSync(join(home.data, 'backup')).find((d) => d.endsWith(`-before-${NEXT}`)) ?? '-');
       check(existsSync(join(backup, 'memory.json')), 'no copy of the data before the update');
       check(readFileSync(join(backup, 'memory.json'), 'utf8') === readFileSync(join(home.data, 'memory.json'), 'utf8'), 'the copy is not the data as it was');
       check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.length === 1, 'the work done before the update is gone');
@@ -4910,7 +6157,8 @@ const SCENARIOS = {
       try {
         await sleep(3000);
         await shop.page.keyboard.press('Escape');
-        await shop.hotspot(shop.L.ui.access.hotspotWorks);
+        // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+        await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
         await shop.page.waitForSelector('.shelf-card li.work');
         const titles = await shop.page.locator('.shelf-card li.work .work-text b').allInnerTexts();
         if (shot) await shop.shot(join(out, shot));
@@ -4992,13 +6240,15 @@ const SCENARIOS = {
     const { page, L } = shop;
     check(await shop.app.evaluate(({ Menu }) => Menu.getApplicationMenu() === null), "the window shows Electron's File, Edit and View menus");
     const S = L.ui.setup;
-    const buttons = page.locator('.toolbar button.tool-btn');
+    // The calling button (road-to-1.4.md D3) stands apart: hidden until a shop out of sight has a question.
+    const buttons = page.locator('.toolbar button.tool-btn:not(.calling)');
     const tip = (i) => buttons.nth(i).getAttribute('data-tip');
     const tipShown = (i) => buttons.nth(i).evaluate((b) => getComputedStyle(b, '::after').opacity === '1');
     const settingsFile = () => JSON.parse(readFileSync(join(home.data, 'settings.json'), 'utf8'));
     try {
       const want = [L.ui.toolbar.order, L.ui.projects.button, L.ui.shelf.title, L.ui.notebook.title, L.ui.access.captionsButton, L.ui.toolbar.mute, L.ui.toolbar.street, L.ui.toolbar.settings];
       check(await buttons.count() === 8, `the toolbar has ${await buttons.count()} buttons`);
+      check(await page.locator('.toolbar button.tool-btn.calling').isHidden(), 'the calling button shows with nobody calling');
       for (const [i, label] of want.entries()) {
         check(await tip(i) === label, `button ${i} says ${await tip(i)}, not ${label}`);
         check(await buttons.nth(i).getAttribute('aria-label') === label, `button ${i} has no spoken name`);
@@ -5085,6 +6335,16 @@ const SCENARIOS = {
       await has('input[type=range]', 'sight: volume');
       check((await body()).includes(L.ui.access.captionsToggle), 'sight: captions');
       check((await body()).includes(L.ui.access.reduceMotion), 'sight: less motion');
+      // Saving power (road-to-1.4.md D8): the switch is here, and turning it on draws fewer frames at once.
+      check((await body()).includes(L.ui.access.powerSaving), 'sight: save power');
+      const limit = () => page.evaluate(() => window.lamplightDebug.scene.game.loop.fpsLimit);
+      const before = await limit();
+      await page.locator('label.toggle', { hasText: L.ui.access.powerSaving }).click();
+      for (const end = Date.now() + 3000; Date.now() < end && await limit() === before; await sleep(100));
+      check(before === 30 && await limit() === 20, `saving power did not lower the frames: ${before} -> ${await limit()}`);
+      await page.locator('label.toggle', { hasText: L.ui.access.powerSaving }).click();
+      for (const end = Date.now() + 3000; Date.now() < end && await limit() !== 30; await sleep(100));
+      check(await limit() === 30, `saving power off did not bring the frames back: ${await limit()}`);
       check((await body()).includes(L.ui.access.detailedToggle), 'sight: what the staff are doing');
       check(!(await body()).includes(L.ui.tray.notifyToggle), 'sight: notifications still here');
       await shop.shot(join(out, 'menus-settings-sight.png'));
@@ -5464,7 +6724,8 @@ const SCENARIOS = {
       await card.$('button.default').then((b) => b.click());
       await sleep(2500);
       check(await shop.page.locator('.welcome').count() === 0, 'the welcome came up after moving in');
-      await shop.hotspot(shop.L.ui.access.hotspotWorks);
+      // From the toolbar: a page is made in the workshop, where the view has followed it, and the shelf is at home (D3).
+      await shop.page.locator(`.toolbar button.tool-btn[aria-label="${shop.L.ui.shelf.title}"]`).click();
       await shop.page.waitForSelector('.shelf-card li.work');
       check(await shop.page.locator('.shelf-card li.work').count() === 3, `the shelf shows ${await shop.page.locator('.shelf-card li.work').count()} of 3 works`);
       const shelf = await shop.page.locator('.shelf-card').innerText();

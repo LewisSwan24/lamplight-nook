@@ -22,6 +22,8 @@
     "aqian": "阿铅",
     "xiaozhe": "小赭",
     "xiaoding": "小钉",
+    "guiyi": "桂姨",
+    "axin": "阿信",
     "cat": "栗子"
   },
   "animals": {
@@ -33,7 +35,11 @@
     "postman": "阿信",
     "mechanic": "老周",
     "granny": "陈婆婆",
-    "student": "小禾"
+    "student": "小禾",
+    "cook": "老马",
+    "lodger": "小林",
+    "florist": "芳姐",
+    "organizer": "吴阿姨"
   },
   "you": {
     "label": "你"
@@ -142,6 +148,7 @@
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
     "emotionWord": "{id}: names an emotion directly \"{text}\"",
     "badChat": "{id}: a chat needs at least two turns and `when` of idle or waiting",
+    "badStory": "{id}: a neighbour needs five chapters, each with a title, a note, 2 to 5 bubbles and the thing it leaves",
     "maxBubble": 20
   },
   "defaults": {
@@ -205,6 +212,18 @@
       "posterFill": "帮我做一张……的海报，时间……，地点……。",
       "chartHint": "把数字写在要求里，或者递一份表格（Excel 或 CSV）。图上的每个数字都照抄你的。交回一张图片，还有画它用的网页。",
       "posterHint": "说清楚用在哪儿：打印（A4）、发朋友圈（方图）还是投屏（宽图）。想放照片就递过来。缺的日期和地点会留空给你填。",
+      "menu": "做份菜单",
+      "menuFill": "帮我给……做一份菜单，有这些菜：……",
+      "menuHint": "把菜名和价钱写在要求里，或者递一张旧菜单、一份表格。菜和价钱照抄你的，缺的留空给你填。说清楚用在哪儿：打印（A4）、发朋友圈（方图）还是挂在店里的屏幕上（宽图）。",
+      "recipe": "写份食谱",
+      "recipeFill": "帮我把……写成一份食谱，……人份。",
+      "recipeHint": "写下这道菜和你平时的做法，手写的方子拍张照递过来也行。没给分量的，按家常的量写，会注明可以照口味调。",
+      "card": "做张贺卡",
+      "cardFill": "帮我做一张给……的……贺卡，想写：……",
+      "cardHint": "说清楚是什么日子、给谁，想写的话写在要求里。想放照片就递过来。交回一张图片，另存一份 PDF，可以拿去印。",
+      "newsletter": "做份简报",
+      "newsletterFill": "帮我给……做一份简报，这期讲：……",
+      "newsletterHint": "把这期要讲的事写在要求里，或者递几份材料、照片过来。只写你给的事，缺的日期和名字留空给你填。交回一份 Word 文档和一份 PDF。",
       "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
       "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
       "toolHint": "能在浏览器里做的，就做成一个网页。要动电脑上的文件才写脚本，脚本先只列出要做的事，加上 -Apply 才动手。",
@@ -287,6 +306,9 @@
     "audiencePlaceholder": "比如：我爸妈",
     "budgetCap": "这一轮最多花 {cap}，到了会先停下问你。上限可以在设置里改。",
     "budgetNoCap": "这一轮没设花费上限，可以在设置里设一个。",
+    "slipMore": "更多",
+    "slipModel": "这一单用的模型",
+    "slipModelDefault": "照设置（{tier}）",
     "budgetLeft": "这个月还剩 {left}，每月上限是 {cap}。",
     "submit": "交给阿灯",
     "consult": {
@@ -423,7 +445,60 @@
       "spendBookCount": "{n} 单",
       "spendBookOne": "1 单",
       "spendBookTotal": "合计",
+      "spendBookOwner": "在电脑上",
+      "spendBookRemoved": "已取消的设备",
       "spendBookEmpty": "还没有花过钱。",
+      "modelLabel": "店员用哪个模型",
+      "modelTiers": { "best": "最好", "balanced": "均衡", "saver": "省钱" },
+      "modelCostLedger": "平均每单约 {cost}",
+      "modelCostTable": "每单约 {cost}，估的",
+      "modelHint": "委托单的“更多”里能为一单另选。和阿灯商量最多用“均衡”。",
+      "provider": {
+        "label": "接口",
+        "kinds": {
+          "anthropic": "Anthropic",
+          "compatible": "兼容 Anthropic 接口的服务",
+          "bedrock": "Amazon Bedrock",
+          "vertex": "Google Vertex AI",
+          "openai": "只说 OpenAI 格式的服务"
+        },
+        "anthropicHint": "店员用 Anthropic 的 Claude，Key 在上面的开工条件里填。",
+        "useAnthropic": "改用 Anthropic",
+        "preset": "预设",
+        "presetCustom": "自己填",
+        "presetDocs": "照 {name} 的官方说明填好了地址和模型名。",
+        "baseUrl": "接口地址",
+        "model": "模型名",
+        "fastModel": "快一点的模型（可以不填）",
+        "key": "Key",
+        "keyKept": "已存 {hint}，不换就空着",
+        "priceInput": "输入，每百万词元（美元）",
+        "priceOutput": "输出，每百万词元（美元）",
+        "priceHint": "小灯屋不知道别家的价格。填了单价，上限和账本才算得出钱；不填就不能开工。",
+        "trial": "试用：别家的模型用工具的本事参差不齐，店员可能做不完复杂的委托。",
+        "region": "区域",
+        "bedrockKey": "Bedrock API Key，或者“访问密钥 ID:私密访问密钥”",
+        "project": "项目 ID",
+        "credentialsFile": "服务账号密钥文件的路径",
+        "vertexHint": "密钥文件留在原处，小灯屋只记它的路径。",
+        "openaiText": "Claude Code 只会说 Anthropic 的格式。只说 OpenAI 格式的服务，要先在这台电脑上架一个转换网关，比如 LiteLLM。网关跑起来以后，选“兼容 Anthropic 接口的服务”，地址填网关的，比如 http://localhost:4000。",
+        "save": "保存并检查",
+        "saving": "正在核对……",
+        "saved": "能用了。",
+        "unverified": "存下了，还没核对。第一次干活时就知道能不能用。",
+        "reasons": {
+          "missing": "还有该填的没填。",
+          "shape": "接口地址不像一个网址。",
+          "scheme": "接口地址要用 https://，只有这台电脑上的网关才能用 http://。",
+          "secret": "接口地址里不要带用户名、密码或问号后面的参数，Key 填在下面。",
+          "address": "这个地址连不上，或者不是接口地址。",
+          "key": "那边说这把 Key 用不了。",
+          "model": "那边不认这个模型名。",
+          "storage": "这台电脑没法加密保存 Key，所以没有存。",
+          "file": "找不到这个密钥文件。"
+        },
+        "modelSet": "店员用 {model}。换模型在下面的“接口”里改。"
+      },
       "budgetLabel": "每一轮最多花",
       "budgetNone": "不设上限",
       "budgetHint": "到了上限，店员们会先停下，等你说接着做。",
@@ -519,6 +594,10 @@
         "readinglamp": "读书灯",
         "postcards": "明信片",
         "toolbox": "工具箱",
+        "chalkboard": "小黑板",
+        "cookbook": "食谱本",
+        "cardline": "一串贺卡",
+        "newsletters": "一摞简报",
         "chime": "这串风铃",
         "aquarium": "这缸金鱼",
         "scroll": "这幅字",
@@ -607,7 +686,11 @@
         "postman": "今天的信不多，你的那封在最上面。",
         "mechanic": "手洗过了，放心。",
         "granny": "慢慢来，我不急。",
-        "student": "我就坐一会儿，不打扰。"
+        "student": "我就坐一会儿，不打扰。",
+        "cook": "面馆刚忙完，来讨口热茶。",
+        "lodger": "我就坐一会儿，顺便请教个菜。",
+        "florist": "路过，进来闻闻咖啡香。",
+        "organizer": "我坐一下就走，楼下还等着我开会。"
       },
       "you": "你的委托在做了，先坐会儿吧。",
       "grownMade": {
@@ -620,7 +703,11 @@
         "briefcase": "帮人写过简历，这只公文包就放在这儿了。",
         "readinglamp": "做过读书笔记，桌上就添了盏读书灯。",
         "postcards": "做过旅行攻略，墙上就钉了几张明信片。",
-        "toolbox": "做过小工具，老石的工具箱就搬过来了。"
+        "toolbox": "做过小工具，老石的工具箱就搬过来了。",
+        "chalkboard": "帮人做过菜单，墙边就立起了一块小黑板。",
+        "cookbook": "写过几份食谱，书架上就多了本食谱。",
+        "cardline": "帮人做过贺卡，侧窗上就挂起了一串贺卡。",
+        "newsletters": "做过两期简报，大桌上就多了一摞，谁来都能拿一份。"
       }
     },
     "run": {
@@ -655,11 +742,16 @@
       "authTitle": "API Key 用不了",
       "authText": "这把 API Key 无效或者过期了。到设置的“开工条件”里换一把新的。",
       "authHow": "去换一把",
+      "providerTitle": "接口还没设好",
+      "providerText": "选了兼容接口，但还缺东西没填，多半是单价。到设置的“开工”里，把“接口”填好再开工。",
+      "providerHow": "去设置",
       "budgetTitle": "这一轮花到上限了",
       "budgetText": "这一轮已经花了约 {cost}，到了你在设置里定的每轮上限。接着做会再给同样多的额度；也可以先去设置里调高。",
       "budgetRetry": "接着做",
       "monthCapTitle": "这个月的钱花到上限了",
       "monthCapText": "这个月已经花了约 {spent}，每月上限是 {cap}，剩下的不够再做一轮。可以去设置里调高上限，或者等到下个月。",
+      "personCapTitle": "这个人的上限到了",
+      "personCapText": "{person} 递来的委托这个月花了约 {spent}，你给的上限是 {cap}，剩下的不够再做一轮。可以在设置里那台设备旁边调高上限，或者等到下个月。",
       "projectCapTitle": "这个项目花到上限了",
       "projectCapText": "「{project}」已经花了约 {spent}，项目上限是 {cap}，剩下的不够再做一轮。可以在笔记本里调高这个项目的上限。",
       "capSettings": "去设置",
@@ -698,10 +790,55 @@
       "street": "去街上",
       "back": "回店里"
     },
+    "lan": {
+      "title": "手机和别的电脑",
+      "toggle": "家里网络里配对过的手机和电脑可以连进来看店",
+      "intro": "只在同一个 Wi-Fi 里能用。第一次打开时，Windows 防火墙可能会问一次，选“允许”。",
+      "address": "地址：{address}",
+      "pair": "配对一台新设备",
+      "scan": "十分钟内用手机扫这个码，只能配对一台，用一次。用之前码里有这台设备的钥匙，别给别人看。",
+      "devices": "配对过的设备",
+      "none": "还没有配对过的设备。",
+      "waiting": "等它扫码",
+      "paired": "已配对",
+      "remove": "取消",
+      "deviceName": "设备 {n}",
+      "roleLabel": "能做什么",
+      "roles": { "watch": "只能看", "approve": "能批准", "commission": "能递委托" },
+      "capLabel": "这个人每月的上限",
+      "capEach": "每月最多 {cap}",
+      "capNone": "不单独设上限",
+      "off": "没有打开。",
+      "answeredOnPhone": "（在手机上答了）",
+      "page": {
+        "title": "小灯屋",
+        "connected": "连上店里了。",
+        "pairing": "正在配对……",
+        "refused": "店里不认这台设备了。到电脑上重新配对。",
+        "noKey": "请用电脑上的二维码打开这一页。",
+        "asks": "等你答的",
+        "serious": "这一步要回到电脑前答。",
+        "remind": "网页开着时，来了请求会提醒你。关了网页就收不到。",
+        "waiting": "有事问你",
+        "watching": "这台设备只能看。请求由店主在电脑上答。",
+        "handIn": "递一份委托",
+        "want": "想做点什么？",
+        "kind": "做哪一种",
+        "send": "递进去",
+        "sent": "递进去了。它在店里排队，做好了店主在电脑上看。",
+        "cap": "你这个月的上限用完了，店里接不了。",
+        "form": "写一句想做什么。"
+      }
+    },
+    "stories": {
+      "title": "{who} · 第{n}章 · {title}",
+      "heard": "听完了"
+    },
     "town": {
       "moving": "店搬到街上来了。点一下就跳过。",
       "moved": "{name}，东西都搬过来了，摆得和原来一样。",
-      "busy": "店里有活在做，做完再过去。",
+      "shops": { "cafe": "咖啡馆", "study": "书房", "print": "印刷铺", "studio": "画室", "workshop": "工坊", "bakery": "面包房", "post": "邮局" },
+      "calling": "{shop}有事要问你，点这里过去",
       "notes": {
         "cafe": "咖啡馆。",
         "study": "书房。",
@@ -712,6 +849,21 @@
         "post": "阿信的邮局。要寄什么，跟店里说一声就行。"
       }
     },
+    "visit": {
+      "title": "{name}的小店",
+      "someone": "朋友",
+      "from": "来自 {name} 的明信片",
+      "enter": "进去看看",
+      "banner": "你在 {name} 的小店",
+      "home": "回家",
+      "street": "到街上去",
+      "inside": "回店里",
+      "onlyHere": "今天只来看 {name} 的这一间。",
+      "stamp": "小灯屋",
+      "wallTitle": "{name}寄来的明信片",
+      "wallOpen": "再去看看",
+      "wallEmpty": "还没有收到过明信片。"
+    },
     "access": {
       "captionsButton": "字幕记录",
       "captionsTitle": "字幕记录",
@@ -719,6 +871,7 @@
       "sectionLabel": "看和听",
       "captionsToggle": "在画面下方一直显示刚说的话",
       "reduceMotion": "减少动画（不跳、不闪，灯光直接变）",
+      "powerSaving": "省电模式（每秒画得少一些，适合慢电脑或用电池时）",
       "detailedToggle": "在画面下方显示店员在做什么",
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",
@@ -909,6 +1062,16 @@
       "ledgerCleared": "记录清掉了，做过的委托都还在。",
       "ledgerMinutes": "{m} 分 {s} 秒",
       "ledgerSeconds": "{s} 秒",
+      "postcardTitle": "明信片",
+      "postcardText": "把小店现在的样子寄给朋友。只有摆设、长出来的东西和街上的样子，不带作品、委托和花费。",
+      "postcardSend": "寄一张明信片",
+      "postcardOpen": "看一张明信片",
+      "postcardSent": "存好了。把这个文件发给朋友，他们在自己的小灯屋里打开。",
+      "postcardFile": "{name}的小店",
+      "postcardKind": "小灯屋明信片",
+      "postcardBig": "这个文件太大了，不是明信片，没有打开。",
+      "postcardNotPostcard": "这不是小灯屋的明信片，没有打开。",
+      "postcardBroken": "这张明信片坏了，打不开。",
       "ledgerJoin": "、",
       "ledgerKind": {
         "net": "断网 {n} 次",
@@ -1016,6 +1179,16 @@
       "posterPng": "海报.png",
       "fromFolder": "网盘文件夹",
       "posterPdf": "海报.pdf",
+      "menuPage": "菜单.html",
+      "menuPng": "菜单.png",
+      "menuPdf": "菜单.pdf",
+      "recipe": "食谱.docx",
+      "cardPage": "贺卡.html",
+      "cardPng": "贺卡.png",
+      "cardPdf": "贺卡.pdf",
+      "newsletter": "简报.docx",
+      "newsletterPage": "简报.html",
+      "newsletterPdf": "简报.pdf",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",
       "toolSamples": "样例",
@@ -1186,11 +1359,17 @@
       "relinkBroad": "那个文件夹里放的东西太多了。给这件作品单独建一个文件夹，再指给我。",
       "relinkTaken": "那里已经放着另一件作品。给这件作品单独建一个文件夹，再指给我。",
       "relinked": "找到了，以后就从那里打开。",
-      "take": "带走",
-      "takeAs": "带走成：",
+      "take": "分享",
+      "takeAs": "分享成：",
       "takeZip": "压缩包",
       "takePdf": "PDF",
       "taken": "存好了，已经在文件夹里给你选中。",
+      "takePage": "单个网页",
+      "takeFile": "原样",
+      "shareWhere": "存到哪：",
+      "shareHere": "自己选位置",
+      "shareInto": "存进「{name}」",
+      "inCloud": "存进「{name}」了。到网盘里点分享，把链接发给别人。",
       "takeEmpty": "文件夹里已经没有这件作品的东西可带走了。",
       "empty": "架子还空着。做好第一件，就摆在这儿。",
       "search": "找一件：名字、当时说的话或月份",
@@ -1216,7 +1395,11 @@
         "document": "文档",
         "slides": "幻灯片",
         "chart": "图表",
-        "poster": "海报"
+        "poster": "海报",
+        "menu": "菜单",
+        "recipe": "食谱",
+        "card": "贺卡",
+        "newsletter": "简报"
       }
     },
     "mini": {
@@ -1296,16 +1479,21 @@
   "legal": {
     "privacy": [
       "# 隐私说明",
-      "最后更新：2026 年 11 月 20 日",
+      "最后更新：2026 年 11 月 23 日",
       "小灯屋不收集你的任何数据：没有统计、没有广告、不在后台上报。我们自己没有服务器，也看不到你在店里做了什么。",
       "# 留在你电脑上的",
       "称呼和设置；加密保存的 API Key（用系统自带的加密，只有这台电脑上的你能解开）；阿灯的小本子（做过的委托、你做的选择、卡住过的地方）；每个月的花费估算；最近 50 次委托的运行记录；最近 7 天的运行日志；崩溃记录。你连上的连接和外部动作的记录也在这里，日历的订阅地址和 Key 一样加密保存。",
       "这些都在应用的数据文件夹里（Windows 上是 %APPDATA%\\Lamplight Nook；商店版存在应用自己的存储区，卸载时 Windows 会一并删除）。小本子上可以把店里记得的东西全部忘掉；Claude Code 自己也会记录每一单，放在用户目录的 .claude 文件夹里，那些归 Claude Code 管，不会跟着清掉；用安装包装的，卸载后删掉这个文件夹，就什么都不剩。",
       "店员做好的东西放在你选的委托文件夹里，归你所有。邮件草稿也放在这里，小灯屋不会替你发出去。",
-      "# 会发给 Anthropic 的",
+      "# 会发给 Anthropic 或你选的那一家的",
       "店员靠你电脑上的 Claude Code 干活。你递的委托、补充的话、店员在委托文件夹里读到的文件内容、上网查资料的请求，会通过 Claude Code、用你自己的 API Key 发给 Anthropic 处理。委托单上勾了连接的话，店员从网盘文件夹里读到的文件、从日历里读到的日程，也这样发给 Anthropic。这部分适用 Anthropic 的隐私政策和商业条款，费用记在你自己的 Anthropic 账户上。",
       "存 API Key 时，小灯屋会向 Anthropic 发一次不收费的请求，确认这把 Key 能用。",
+      "设置的“接口”里选了别家（兼容 Anthropic 接口的服务、Amazon Bedrock 或 Google Vertex AI），上面这些内容就改发给那一家，适用那一家的条款和隐私规定。每一家的 Key 分开加密存在这台电脑上，不进日志、诊断包和账本。存兼容接口的 Key 时，小灯屋会向那一家发一条最短的消息，确认地址、Key 和模型名都对，这一条可能按那一家的价格收一点点钱。",
       "连了日历的话，小灯屋会用日历的订阅地址，从这台电脑直接去取日程。除此之外，小灯屋不连任何服务器。店员查资料时会访问它们找到的网页。",
+      "# 分享、明信片和家里的网络",
+      "分享作品和寄明信片，都是存成一个文件，由你自己发给别人，小灯屋不替你上传。分享的文件只带作品本身：文件夹路径、用户目录和像 Key 的字符串都会抹掉，委托单、店员的笔记和录制不在里面。明信片只带小店的样子和你的称呼，不带作品、委托、花费和日期。",
+      "家里网络的开关默认关着。打开以后，小灯屋在这台电脑上开一个只听家里网络的小网页，只有配对过的手机和电脑能连进来，每条消息都用配对时的钥匙加密。手机上看得到店里在做什么和等你答的请求，看不到 Key、文件夹路径和花费。这些都不经过我们的服务器。",
+      "已知的限制：网页本身是用明文 HTTP 送到手机上的，家里网络里没有别的送法。同一个网络里的别人可以在半路上改这个网页，改过的网页看得到那部手机看得到的东西，也做得了那台设备能做的事。只在信得过的网络里打开这个开关，用完就关上。",
       "# 诊断包",
       "只有你在设置里点“导出诊断包”、并且自己发给我们时，它才会离开这台电脑。里面只有运行日志和电脑、设置的概况，不含 API Key，也不含委托内容。",
       "# 联系我们",
@@ -1354,6 +1542,10 @@
     "readinglamp": "一盏读书灯",
     "postcards": "几张明信片",
     "toolbox": "一个工具箱",
+    "chalkboard": "一块写菜单的小黑板",
+    "cookbook": "一本手抄的食谱",
+    "cardline": "一串挂在侧窗上的贺卡",
+    "newsletters": "一摞放在大桌上的简报",
     "chime": "一串风铃",
     "aquarium": "一缸金鱼",
     "scroll": "一幅字",
@@ -1424,6 +1616,34 @@
       "ui": {
         "access": {
           "hotspotCounter": "工作台：递一张委托"
+        }
+      }
+    },
+    "bakery": {
+      "zones": {
+        "counter": "面包柜台",
+        "board": "烤炉",
+        "shelf": "面包架",
+        "table": "揉面桌",
+        "corner": "和面机"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "面包柜台：递一张委托"
+        }
+      }
+    },
+    "post": {
+      "zones": {
+        "counter": "邮局柜台",
+        "board": "分信格",
+        "shelf": "包裹架",
+        "table": "打包桌",
+        "corner": "邮筒"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "邮局柜台：递一张委托"
         }
       }
     }

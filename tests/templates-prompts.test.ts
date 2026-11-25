@@ -9,7 +9,7 @@ import type { CommissionForm, CommissionTemplate } from '../app/shared/types';
  * into one table (road-to-1.1.md A7) can be shown to change nothing. commission.ts reads the language once
  * when it loads, so each language gets its own fresh copy of the modules.
  */
-const IDS: CommissionTemplate[] = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster'];
+const IDS: CommissionTemplate[] = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter'];
 
 async function inLanguage(lang: 'zh-CN' | 'en') {
   vi.resetModules();

@@ -3,7 +3,10 @@ import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
 import { MAIN_FILES } from '../shared/templates';
-import { emptyTown, TOWN_MOVE } from '../shared/town';
+import type { Shop } from '../shared/dispatch';
+import { emptyTown, type Gathered, TOWN_MOVE } from '../shared/town';
+import { nextChapter, told } from '../shared/stories';
+import { roomGrown, streetGrown } from '../shared/towngrow';
 import { forgetAside, putAside } from './aside';
 import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
 import { afterRound, briefOf, editedBrief } from './project-brief';
@@ -205,9 +208,12 @@ export class MemoryStore {
 
   /**
    * A new commission finished together: the shop counts it, and gathers whatever that count brings
-   * (shared/growth.ts). Returns what is new in the shop, usually nothing.
+   * (shared/growth.ts). Returns what is new in the home shop, usually nothing.
+   * Since 1.4 the town grows too (road-to-1.4.md D5): a shop along the street counts its own work as well, and the day
+   * each street piece and each piece in that shop came is written down. Pieces already due before this one, as in a
+   * shop from before 1.4, are written down on this day too. A shop whose upgrade has not gone through has no town yet.
    */
-  finished(now = new Date()): GrowthId[] {
+  finished(now = new Date(), at: Shop = 'home'): GrowthId[] {
     const shop = this.shop();
     shop.done++;
     const date = localDay(now);
@@ -215,6 +221,16 @@ export class MemoryStore {
     const works = this.data.commissions.filter((c) => c.result === 'done').map((c) => ({ icon: workIcon(c.form) }));
     const fresh = grownBy(shop.done, madeOf(works)).filter((id) => !have.has(id));
     shop.grown.push(...fresh.map((id) => ({ id, date })));
+    const town = shop.town;
+    if (town) {
+      const gather = (list: Gathered[], ids: string[]) => list.push(...ids.filter((id) => !list.some((g) => g.id === id)).map((id) => ({ id, date })));
+      gather(town.street, streetGrown(shop.done));
+      if (at !== 'home') {
+        const own = (town.shops[at] ??= { done: 0, grown: [] });
+        own.done++;
+        gather(own.grown, roomGrown(at, own.done));
+      }
+    }
     this.data.shop = shop;
     this.save();
     return fresh;
@@ -238,13 +254,29 @@ export class MemoryStore {
     this.save();
   }
 
-  /** The shop's days and the works shelf: finished commissions, latest first. */
-  shopState(): ShopState {
+  /**
+   * A neighbour has told the chapter they had waiting (road-to-1.4.md D4): the day is written down. Returns the chapter,
+   * or null when they had none today, so a chapter is never told twice and none is skipped.
+   */
+  tellStory(who: GuestId, now = new Date()): number | null {
+    const shop = this.shop();
+    if (!shop.town) return null;
+    const today = localDay(now);
+    const chapter = nextChapter(who, shop.town.stories, shop.done, today);
+    if (chapter === null) return null;
+    shop.town.stories = told(shop.town.stories, who, shop.done, today);
+    this.data.shop = shop;
+    this.save();
+    return chapter;
+  }
+
+  /** The shop's days and the works shelf: finished commissions, latest first. `today` by the shop's clock, for the stories. */
+  shopState(now = new Date()): ShopState {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
       id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
       page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
     }));
-    return { ...structuredClone(this.shop()), works };
+    return { ...structuredClone(this.shop()), works, today: localDay(now) };
   }
 
   /** A shop opened since 1.4 starts in the town, with no move to show (road-to-1.4.md D7). */

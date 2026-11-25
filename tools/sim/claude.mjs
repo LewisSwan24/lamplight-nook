@@ -50,6 +50,13 @@ if (argv.includes('--version')) {
 }
 const budget = argOf('--max-budget-usd') ? Number(argOf('--max-budget-usd')) : undefined;
 const resumeId = argOf('--resume');
+/**
+ * The model it was asked for (plan-1.6.md F6), named the way real Claude Code names it, and what a step costs on it:
+ * Haiku a third of Sonnet, Opus five thirds, as the price table has them. Without one it is the plain stand-in.
+ */
+const ASKED = argOf('--model');
+const MODEL = ASKED ? `claude-${ASKED}-sim` : 'sim';
+const PRICE_SCALE = { opus: 5 / 3, sonnet: 1, haiku: 1 / 3 }[ASKED] ?? 1;
 
 const log = (dir, o) => { if (env.SIM_LOG) appendFileSync(env.SIM_LOG, `${dir} ${JSON.stringify(o)}\n`); };
 const out = (o) => { log('>', o); process.stdout.write(`${JSON.stringify(o)}\n`); };
@@ -135,7 +142,7 @@ function makeStage(state) {
   };
   const assistant = (content, parent = null) => out({
     type: 'assistant', parent_tool_use_id: parent, session_id: session, uuid: nextId('u'),
-    message: { id: nextId('msg_sim_'), type: 'message', role: 'assistant', model: 'sim', content, stop_reason: null, usage: USAGE },
+    message: { id: nextId('msg_sim_'), type: 'message', role: 'assistant', model: MODEL, content, stop_reason: null, usage: USAGE },
   });
   const userResult = (toolUseId, content, isError, parent = null) => out({
     type: 'user', parent_tool_use_id: parent, session_id: session, uuid: nextId('u'),
@@ -148,7 +155,7 @@ function makeStage(state) {
 
   /** Charge for a call; stop with the budget result once the cap is passed (the SDK's own --max-budget-usd). */
   const charge = (times = 1) => {
-    spent += COST * times * (SCENARIO === 'budget' ? 12 : 1);
+    spent += COST * PRICE_SCALE * times * (SCENARIO === 'budget' ? 12 : 1);
     if (budget !== undefined && spent >= budget) {
       // The cap counts this process only, while the reported total carries over a --resume.
       result('error_max_budget_usd', { is_error: true, errors: [`Reached maximum budget ($${budget})`] });
@@ -345,7 +352,25 @@ function makeStage(state) {
 
 // ---- the run ----------------------------------------------------------------------------------
 
+/**
+ * Pointed at another provider (plan-1.6.md F7): write down which of the variables that decide where the work goes it was
+ * given, for the scenario to read, and send the provider one small request with them, as real Claude Code would.
+ */
+const WHERE = ['ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL', 'CLAUDE_CODE_SUBAGENT_MODEL', 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'AWS_REGION', 'AWS_PROFILE', 'CLOUD_ML_REGION'];
+async function reportWhere() {
+  if (!env.ANTHROPIC_BASE_URL) return;
+  mkdirSync(STATE_DIR, { recursive: true });
+  writeFileSync(join(STATE_DIR, 'env.json'), JSON.stringify(Object.fromEntries(WHERE.filter((n) => n in env).map((n) => [n, env[n]]))));
+  await fetch(`${env.ANTHROPIC_BASE_URL}/v1/messages`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.ANTHROPIC_AUTH_TOKEN ?? ''}`, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: env.ANTHROPIC_MODEL, max_tokens: 1, messages: [{ role: 'user', content: 'work' }] }),
+  }).catch(() => {});
+}
+
 async function run(prompt) {
+  await reportWhere();
   const old = resumeId ? loadState(resumeId) : null;
   const state = old ?? { session: `sim-${Date.now().toString(36)}-${process.pid.toString(36)}`, play: null, done: 0, notes: [], lang: null };
   if (old) state.done = old.done; // carry on after the last finished step
@@ -353,7 +378,7 @@ async function run(prompt) {
   state.play = play.name;
   saveState(state);
   out({
-    type: 'system', subtype: 'init', session_id: state.session, cwd: process.cwd(), model: 'sim', permissionMode: 'default', claude_code_version: VERSION,
+    type: 'system', subtype: 'init', session_id: state.session, cwd: process.cwd(), model: MODEL, permissionMode: 'default', claude_code_version: VERSION,
     // As a real init lists them: the Agent tool under its old name Task, and the to-do tools of this version.
     tools: ['Task', 'AskUserQuestion', 'Bash', 'Edit', 'Glob', 'Grep', 'Read', 'WebFetch', 'WebSearch', 'Write',
       ...(TODOS === 'todowrite' ? ['TodoWrite'] : ['TaskCreate', 'TaskGet', 'TaskList', 'TaskUpdate'])], uuid: nextId('u'),

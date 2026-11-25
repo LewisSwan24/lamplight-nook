@@ -1,6 +1,9 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { LOOKS } from '../app/renderer/game/daytime';
-import { dayRoll, holidayOn, multiply, outsideFlags, seasonOf, skyOn, weatherOn, withWeather } from '../app/renderer/game/weather';
+import { dayRoll, HOLIDAYS, holidayOn, multiply, outsideFlags, SEASONS, seasonOf, skyOn, weatherOn, withWeather } from '../app/renderer/game/weather';
+import { readPng } from './png';
+import { DECOR_SHOPS } from '../app/renderer/game/streetdecor';
 
 const day = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h);
 
@@ -131,6 +134,21 @@ describe('the look of a grey day', () => {
   it('multiplies colours channel by channel', () => {
     expect(multiply(0xffffff, 0x123456)).toBe(0x123456);
     expect(multiply(0x808080, 0xff0000)).toBe(0x800000);
+  });
+});
+
+describe('the street\'s decorations (road-to-1.4.md D6)', () => {
+  it('has the pictures for the street and for every shop along it', () => {
+    for (const name of ['town-decor.png', 'town-decor.json', 'shops-decor.png']) expect(existsSync(`assets/sprites/${name}`), name).toBe(true);
+    // A row for each shop along the street (print, studio, workshop, and since 1.6 the bakery and the post office) of
+    // six festivals, each a whole room.
+    const shops = readPng('assets/sprites/shops-decor.png');
+    expect([shops.width, shops.height]).toEqual([320 * HOLIDAYS.length, 180 * DECOR_SHOPS.length]);
+  });
+
+  it('has pieces on the street for every season and festival, and for rain and snow', () => {
+    const ids = new Set((JSON.parse(readFileSync('assets/sprites/town-decor.json', 'utf8')).parts as { id: string }[]).map((p) => p.id));
+    for (const id of [...SEASONS, ...HOLIDAYS, 'rain', 'snow']) expect(ids.has(id), id).toBe(true);
   });
 });
 

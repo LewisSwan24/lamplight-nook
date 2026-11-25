@@ -157,7 +157,13 @@ body.debug #debug { display: block; }
 .dialog > * { flex-shrink: 0; }
 /* Only the inside scrolls, so the paper always covers the whole card. */
 .dialog > .options, .card-scroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
-.actor-card, .notice-card, .notebook-trouble { display: flex; flex-direction: column; }
+.actor-card, .notice-card, .notebook-trouble, .story-card { display: flex; flex-direction: column; }
+/* A neighbour's chapter on the street (road-to-1.4.md D4): what they say in the hand, then what they left. */
+.story-card .story-line { font-family: var(--hand); font-size: 18px; line-height: 1.4; margin: 2px 0; }
+.story-card .story-left { font-size: 13px; opacity: 0.8; margin: 10px 0 4px; }
+.lan .lan-qr svg { width: 168px; height: 168px; background: #fff; display: block; margin: 6px 0; }
+.lan .lan-devices { margin: 4px 0; padding-left: 18px; }
+.story-card .story-buttons { display: flex; justify-content: flex-end; margin-top: 6px; }
 .card-scroll { padding-right: 6px; }
 .dialog .who { font-family: var(--hand); font-size: 17px; color: var(--accent); }
 .dialog .question { font-family: var(--hand); font-size: 22px; line-height: 1.35; margin: 4px 0; }
@@ -313,6 +319,13 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .tool-btn:hover, .tool-btn:focus-visible { background: #fffdf7; border-color: var(--accent); }
 .tool-btn:focus-visible { outline: 2px dashed var(--accent); outline-offset: 2px; }
 .tool-btn[aria-pressed="true"], .tool-btn.working { background: #fff3e2; border-color: var(--accent); }
+/* A shop out of sight with a question (road-to-1.4.md D3): its name beside the street sign, lit. */
+.tool-btn.calling { width: auto; display: inline-flex; align-items: center; gap: 4px; padding-right: 8px; background: #ffe9b8; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 196, 92, 0.75); animation: calling 1.6s ease-in-out infinite; }
+.tool-btn.calling .tool-icon { flex: none; width: calc(16px * var(--tool-px, 2)); height: calc(16px * var(--tool-px, 2)); }
+.tool-btn.calling .calling-name { font-family: var(--hand); font-size: calc(15px * var(--ui, 1)); color: #3b2a1e; white-space: nowrap; }
+.tool-btn.calling[hidden] { display: none; }
+@keyframes calling { 50% { box-shadow: 0 0 0 4px rgba(255, 196, 92, 0.35); } }
+body.reduce-motion .tool-btn.calling { animation: none; }
 .tool-icon { display: block; width: 100%; height: 100%; image-rendering: pixelated; background-repeat: no-repeat; background-size: calc(16px * var(--tool-px, 2) * var(--cells)) 100%; background-position: calc(-16px * var(--tool-px, 2) * var(--cell)) 0; }
 /* The label shows at once, on hover and on keyboard focus; the native tooltip takes a second or two. */
 .tool-btn::after { content: attr(data-tip); position: absolute; left: -1px; top: calc(100% + 7px); padding: 2px 9px; white-space: nowrap; border-radius: 6px; background: rgba(43, 33, 24, 0.94); color: #fbf4e6; font-family: var(--hand); font-size: calc(16px * var(--ui, 1)); line-height: 1.4; opacity: 0; pointer-events: none; }
@@ -371,6 +384,8 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .notebook-pages:focus-visible { outline: 2px dashed var(--accent); outline-offset: 2px; }
 .notebook-pages ul { margin: 0; padding-left: 18px; }
 .notebook-pages h4 { margin: 6px 0 2px; }
+.notebook-postcard-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 2px; }
+.notebook-postcard-said:empty { display: none; }
 .notebook-date { color: #6b5c4a; font-size: 12px; }
 .notebook-open, .notebook-revise { margin-left: 10px; }
 .notebook-choice { color: #6b5a48; font-size: 14px; padding-left: 4px; }
@@ -395,6 +410,23 @@ button.link { border: none; background: none; padding: 0; font: inherit; color: 
 .spend-book tr { border-bottom: 1px dashed rgba(122, 82, 54, 0.3); }
 .spend-total th, .spend-total td { font-weight: bold; }
 .budget-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+/* Which model the staff use (plan-1.6.md F6): a tier a line, its price at the end. */
+.model-rows { display: flex; flex-direction: column; gap: 4px; }
+.model-row { display: flex; align-items: center; gap: 8px; }
+.model-row input[type=radio] { width: auto; flex: none; margin: 0; }
+.model-row .model-name { flex: none; white-space: nowrap; }
+.model-row .model-cost { margin-left: auto; opacity: 0.75; font-size: 0.9em; white-space: nowrap; }
+.slip-more summary { cursor: pointer; opacity: 0.8; }
+/* Where the work goes (plan-1.6.md F7): one field a line, the label above its box. */
+.provider select, .provider input { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
+.provider-body { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.provider-field { display: flex; flex-direction: column; gap: 2px; }
+.provider-field input { width: 100%; box-sizing: border-box; }
+.provider-trial { color: #9a5b2e; }
+.provider-save { align-self: flex-end; }
+.provider-said.warn { color: #b0442c; }
+.slip-more label { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.slip-more select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
 .budget-row select, .project-cap-row select { font: inherit; padding: 2px 6px; background: rgba(255, 253, 248, 0.8); border: 1px solid rgba(122, 82, 54, 0.45); border-radius: 6px; color: var(--ink); }
 .result-cost { margin-top: 2px; }
 /* A cap past eight tenths (B8): a word from Adeng, plainer than a warning about a script. */
@@ -551,3 +583,6 @@ body.outside #labels { visibility: hidden; }
 /* The rounds a shutdown interrupted (B7): one line each, the list scrolls when there are many. */
 .interrupted-list { max-height: 7.5em; overflow-y: auto; margin: 8px 0 0; padding-left: 4px; list-style-position: inside; }
 .interrupted-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spend-book tr.spend-person { border-bottom: none; color: #6a5440; }
+.spend-book tr.spend-person th { padding-left: 12px; }
+.lan-choices { margin-right: 8px; }

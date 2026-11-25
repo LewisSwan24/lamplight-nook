@@ -1,5 +1,6 @@
 import toolsUrl from '../../../assets/sprites/tools.png';
-import { strings } from '../../shared/i18n';
+import { fill, strings } from '../../shared/i18n';
+import type { RoomId } from '../../shared/scenes';
 import type { ActorId, AiEvent, LamplightApi, Settings } from '../../shared/types';
 import { showCaptionLog } from './captions';
 import { el, layer } from './dom';
@@ -20,8 +21,11 @@ let working = false;
 let outside = false;
 let paint = () => {};
 
-/** What the shop itself opens from the toolbar. */
-export type ToolbarActions = { order: () => void; projects: () => void; shelf: () => void; street: () => void };
+/** A shop out of sight with a question (road-to-1.4.md D3): its front is lit on the toolbar until answered or gone into. */
+let calling: RoomId | null = null;
+
+/** What the shop itself opens from the toolbar; `calling` goes into the shop whose front is lit. */
+export type ToolbarActions = { order: () => void; projects: () => void; shelf: () => void; street: () => void; calling: (room: RoomId) => void };
 
 /** A button's picture and its label, which shows at once on hover and keyboard focus (style.css). */
 function look(button: HTMLElement, icon: ToolIcon, label: string) {
@@ -44,6 +48,10 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
   const order = button('order', T.order, act.order);
   const sound = button('sound', T.mute, async () => onChange(await api.saveSettings({ muted: !view.muted })));
   const street = button('street', T.street, act.street);
+  const name = el('span.calling-name', {});
+  const call = button('street', '', () => { if (calling) act.calling(calling); });
+  call.classList.add('calling');
+  call.append(name);
   const bar = el('div.toolbar', { role: 'toolbar', 'aria-label': T.label },
     order,
     button('projects', strings.ui.projects.button, act.projects),
@@ -52,6 +60,7 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
     button('captions', strings.ui.access.captionsButton, showCaptionLog),
     sound,
     street,
+    call,
     button('gear', T.settings, () => void showSettings(api, onChange)));
   const strip = el('div.detail-strip', { 'aria-live': 'polite' });
   paint = () => {
@@ -60,6 +69,12 @@ export function mountToolbar(api: LamplightApi, onChange: (s: Settings) => void,
     look(sound, view.muted ? 'mute' : 'sound', view.muted ? T.unmute : T.mute);
     sound.setAttribute('aria-pressed', String(view.muted));
     look(street, 'street', outside ? T.back : T.street);
+    call.hidden = calling === null;
+    if (calling) {
+      const shop = strings.ui.town.shops[calling];
+      look(call, 'street', fill(strings.ui.town.calling, { shop }));
+      name.textContent = shop;
+    }
     strip.hidden = !view.detailed;
   };
   layer().append(bar, strip);
@@ -76,6 +91,16 @@ export function syncToolbar(s: Settings) {
 /** Out on the street or back in. */
 export function setOutsideButton(on: boolean) {
   outside = on;
+  paint();
+}
+
+/**
+ * Light a shop's front on the toolbar (D3), or put it out: `only` puts it out only if that shop is the one lit, so an
+ * answer from one shop leaves another's question showing.
+ */
+export function setCalling(room: RoomId | null, only?: RoomId) {
+  if (room === null && only !== undefined && calling !== only) return;
+  calling = room;
   paint();
 }
 

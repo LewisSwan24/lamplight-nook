@@ -22,6 +22,8 @@
     "aqian": "Pica",
     "xiaozhe": "Umber",
     "xiaoding": "Tack",
+    "guiyi": "Auntie Olive",
+    "axin": "Pip",
     "cat": "Chestnut"
   },
   "animals": {
@@ -33,7 +35,11 @@
     "postman": "Pip",
     "mechanic": "Old Zhou",
     "granny": "Granny Chen",
-    "student": "Xiaohe"
+    "student": "Xiaohe",
+    "cook": "Old Ma",
+    "lodger": "Lin",
+    "florist": "Fern",
+    "organizer": "Mrs Wu"
   },
   "you": {
     "label": "You"
@@ -142,6 +148,7 @@
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
     "emotionWord": "{id}: names an emotion directly \"{text}\"",
     "badChat": "{id}: a chat needs at least two turns and `when` of idle or waiting",
+    "badStory": "{id}: a neighbour needs five chapters, each with a title, a note, 2 to 5 bubbles and the thing it leaves",
     "maxBubble": 44
   },
   "defaults": {
@@ -205,6 +212,18 @@
       "posterFill": "Make a poster for ..., on ... at ...",
       "chartHint": "Write the numbers in the request, or hand over the table (Excel or CSV). Every number on the chart is copied from yours; you get a picture and the page it was drawn from.",
       "posterHint": "Say what it is for: printing (A4), a social post (square) or a screen (wide). Hand over photos to put on it if you like. Missing dates or places are left blank for you.",
+      "menu": "Make a menu",
+      "menuFill": "Make a menu for ..., with these dishes: ...",
+      "menuHint": "Write the dishes and prices in the request, or hand over an old menu or a table. Dishes and prices are copied exactly; anything missing is left blank for you. Say what it is for: printing (A4), a social post (square) or a screen in the shop (wide).",
+      "recipe": "Write a recipe",
+      "recipeFill": "Write up ... as a recipe, for ... people.",
+      "recipeHint": "Write down the dish and how you usually make it, or hand over a photo of a handwritten card. Where you give no amounts, everyday ones are used, marked as a starting point to adjust.",
+      "card": "Make a card",
+      "cardFill": "Make a ... card for ..., saying: ...",
+      "cardHint": "Say what the day is and who it is for, and write what you want it to say in the request. Hand over a photo to put on it if you like. You get a picture, and a PDF to print.",
+      "newsletter": "Make a newsletter",
+      "newsletterFill": "Make a newsletter for ..., this issue about: ...",
+      "newsletterHint": "Write what this issue covers in the request, or hand over notes and photos. Only what you give goes in; missing dates and names are left blank for you. You get a Word document and a PDF.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
       "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
@@ -287,6 +306,9 @@
     "audiencePlaceholder": "e.g. my parents",
     "budgetCap": "This round spends at most {cap}; the staff stop and ask before going over. Change it in Settings.",
     "budgetNoCap": "This round has no spending cap. You can set one in Settings.",
+    "slipMore": "More",
+    "slipModel": "Model for this commission",
+    "slipModelDefault": "As in Settings ({tier})",
     "budgetLeft": "{left} left this month, of the {cap} monthly limit.",
     "submit": "Hand it to Wick",
     "consult": {
@@ -423,7 +445,60 @@
       "spendBookCount": "{n} commissions",
       "spendBookOne": "1 commission",
       "spendBookTotal": "All together",
+      "spendBookOwner": "At the computer",
+      "spendBookRemoved": "A removed device",
       "spendBookEmpty": "Nothing spent yet.",
+      "modelLabel": "Which model the staff use",
+      "modelTiers": { "best": "Best", "balanced": "Balanced", "saver": "Saver" },
+      "modelCostLedger": "about {cost} a commission so far",
+      "modelCostTable": "about {cost} a commission, estimated",
+      "modelHint": "The slip's More can pick another for one commission. Talking it over with Wick uses Balanced at most.",
+      "provider": {
+        "label": "Provider",
+        "kinds": {
+          "anthropic": "Anthropic",
+          "compatible": "A service with an Anthropic-compatible API",
+          "bedrock": "Amazon Bedrock",
+          "vertex": "Google Vertex AI",
+          "openai": "A service that only speaks the OpenAI format"
+        },
+        "anthropicHint": "The staff use Anthropic's Claude. The key goes in the checks above.",
+        "useAnthropic": "Use Anthropic",
+        "preset": "Preset",
+        "presetCustom": "Fill in by hand",
+        "presetDocs": "Address and model filled in from {name}'s own setup guide.",
+        "baseUrl": "API address",
+        "model": "Model",
+        "fastModel": "A faster model (optional)",
+        "key": "Key",
+        "keyKept": "{hint} is kept; leave empty to keep it",
+        "priceInput": "Input, per million tokens (USD)",
+        "priceOutput": "Output, per million tokens (USD)",
+        "priceHint": "The shop cannot know another provider's prices. With them filled in, the caps and the ledger can count; without them, no work starts.",
+        "trial": "Trial: other makers' models vary in how well they use tools, and the staff may not finish harder commissions.",
+        "region": "Region",
+        "bedrockKey": "Bedrock API key, or \"access key ID:secret access key\"",
+        "project": "Project ID",
+        "credentialsFile": "Path of the service account key file",
+        "vertexHint": "The key file stays where it is; the shop keeps only its path.",
+        "openaiText": "Claude Code only speaks Anthropic's format. For a service that only speaks OpenAI's, run a gateway such as LiteLLM on this computer first. Once it runs, choose \"A service with an Anthropic-compatible API\" and give the gateway's address, such as http://localhost:4000.",
+        "save": "Save and check",
+        "saving": "Checking…",
+        "saved": "It works.",
+        "unverified": "Saved, not checked yet. The first commission will tell.",
+        "reasons": {
+          "missing": "Something that is needed is still empty.",
+          "shape": "The API address is not a web address.",
+          "scheme": "The API address must start with https://. Only a gateway on this computer may use http://.",
+          "secret": "Keep user names, passwords and anything after a ? out of the address. The key goes below.",
+          "address": "Nothing answers at that address, or it is not an API address.",
+          "key": "The service says the key does not work.",
+          "model": "The service does not know that model.",
+          "storage": "This computer cannot encrypt the key, so it was not kept.",
+          "file": "That key file is not there."
+        },
+        "modelSet": "The staff use {model}. Change it under Provider below."
+      },
       "budgetLabel": "Most to spend per round",
       "budgetNone": "No limit",
       "budgetHint": "At the limit the staff stop and wait for you to say carry on.",
@@ -519,6 +594,10 @@
         "readinglamp": "Reading lamp",
         "postcards": "Postcards",
         "toolbox": "Toolbox",
+        "chalkboard": "Menu board",
+        "cookbook": "Recipe book",
+        "cardline": "String of cards",
+        "newsletters": "Newsletters",
         "chime": "These wind chimes",
         "aquarium": "This fish tank",
         "scroll": "This scroll",
@@ -607,7 +686,11 @@
         "postman": "Not many letters today. Yours is on top.",
         "mechanic": "Hands are clean, don't worry.",
         "granny": "Take your time, dear. I'm in no hurry.",
-        "student": "I'll only sit a while. Don't mind me."
+        "student": "I'll only sit a while. Don't mind me.",
+        "cook": "Lunch rush is over. Any tea going?",
+        "lodger": "I'll only stay a minute. Can I ask you about a dish?",
+        "florist": "Just passing. The coffee smelled too good.",
+        "organizer": "Only a minute. There is a meeting downstairs."
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {
@@ -620,7 +703,11 @@
         "briefcase": "We wrote someone a résumé, and this briefcase stayed.",
         "readinglamp": "We made some reading notes, and a reading lamp went on the table.",
         "postcards": "We made a travel guide, and postcards went up on the wall.",
-        "toolbox": "We made a small tool, and Flint brought his toolbox over."
+        "toolbox": "We made a small tool, and Flint brought his toolbox over.",
+        "chalkboard": "We made someone a menu, and a little chalkboard went up against the wall.",
+        "cookbook": "After a couple of recipes, a recipe book joined the shelf.",
+        "cardline": "We made someone a card, and a string of cards went up across the side window.",
+        "newsletters": "After two newsletters, a pile of them sits on the big table for anyone to take."
       }
     },
     "run": {
@@ -655,11 +742,16 @@
       "authTitle": "The API key doesn't work",
       "authText": "This API key is invalid or expired. Put in a new one under \"Ready to work?\" in Settings.",
       "authHow": "Replace it",
+      "providerTitle": "The provider is not set up",
+      "providerText": "A compatible service is chosen, but something is missing, most likely its prices. Fill in Provider under Settings > Work, then start again.",
+      "providerHow": "Open settings",
       "budgetTitle": "This round hit the limit",
       "budgetText": "This round has spent about {cost}, the per-round limit you set. Carrying on allows the same again; or raise the limit in Settings first.",
       "budgetRetry": "Carry on",
       "monthCapTitle": "This month's limit is reached",
       "monthCapText": "About {spent} has gone this month, of the {cap} monthly limit. What is left is not enough for another round. Raise the limit in Settings, or wait for next month.",
+      "personCapTitle": "This person's limit is reached",
+      "personCapText": "Commissions from {person} have cost about {spent} this month, of the {cap} limit you gave them. What is left is not enough for another round. Raise their limit in Settings, beside the device, or wait for next month.",
       "projectCapTitle": "This project's limit is reached",
       "projectCapText": "\"{project}\" has cost about {spent}, of its {cap} limit. What is left is not enough for another round. You can raise the project's limit in the notebook.",
       "capSettings": "Open Settings",
@@ -698,10 +790,55 @@
       "street": "Go out to the street",
       "back": "Back inside"
     },
+    "lan": {
+      "title": "Phones and other computers",
+      "toggle": "Paired phones and computers on your home network can connect to watch the shop",
+      "intro": "Only on the same Wi-Fi. The first time, Windows Firewall may ask once: choose Allow.",
+      "address": "Address: {address}",
+      "pair": "Pair a new device",
+      "scan": "Scan this with the phone within ten minutes; it pairs one device, once. Until then it holds that device's key, so keep it to yourself.",
+      "devices": "Paired devices",
+      "none": "No devices paired yet.",
+      "waiting": "waiting to be scanned",
+      "paired": "paired",
+      "remove": "Remove",
+      "deviceName": "Device {n}",
+      "roleLabel": "What it may do",
+      "roles": { "watch": "Watch only", "approve": "Can answer", "commission": "Can commission" },
+      "capLabel": "Monthly limit for this person",
+      "capEach": "up to {cap} a month",
+      "capNone": "no limit of its own",
+      "off": "Switched off.",
+      "answeredOnPhone": "(answered on the phone)",
+      "page": {
+        "title": "Lamplight Nook",
+        "connected": "Connected to the shop.",
+        "pairing": "Pairing…",
+        "refused": "The shop does not know this device any more. Pair it again on the computer.",
+        "noKey": "Open this page from the QR code on the computer.",
+        "asks": "Waiting for you",
+        "serious": "Answer this one at the computer.",
+        "remind": "While this page is open, it tells you when something is asked. Closed, it cannot.",
+        "waiting": "A question for you",
+        "watching": "This device only watches. The owner answers at the computer.",
+        "handIn": "Hand in a commission",
+        "want": "What would you like made?",
+        "kind": "What kind of work",
+        "send": "Hand it in",
+        "sent": "Handed in. It waits its turn in the shop, and the owner sees the result on the computer.",
+        "cap": "Your limit for this month is reached, so the shop cannot take it.",
+        "form": "Say what you would like made."
+      }
+    },
+    "stories": {
+      "title": "{who} · Chapter {n} · {title}",
+      "heard": "Thank you"
+    },
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
       "moved": "All moved in, {name}. Everything is where it was.",
-      "busy": "There is work under way in here. Go over once it is done.",
+      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop", "bakery": "the bakery", "post": "the post office" },
+      "calling": "A question from {shop}. Click to go over",
       "notes": {
         "cafe": "The cafe.",
         "study": "The study.",
@@ -712,6 +849,21 @@
         "post": "Pip's post office. Anything to send, just tell the shop."
       }
     },
+    "visit": {
+      "title": "{name}'s shop",
+      "someone": "A friend",
+      "from": "A postcard from {name}",
+      "enter": "Go in",
+      "banner": "You're in {name}'s shop",
+      "home": "Go home",
+      "street": "Out to the street",
+      "inside": "Back inside",
+      "onlyHere": "Just {name}'s shop today.",
+      "stamp": "Lamplight Nook",
+      "wallTitle": "A postcard from {name}",
+      "wallOpen": "Visit again",
+      "wallEmpty": "No postcards have come yet."
+    },
     "access": {
       "captionsButton": "Captions",
       "captionsTitle": "Captions",
@@ -719,6 +871,7 @@
       "sectionLabel": "Seeing and hearing",
       "captionsToggle": "Always show the latest line at the bottom",
       "reduceMotion": "Less motion (no hops or flashes, lights change at once)",
+      "powerSaving": "Save power (fewer frames a second, for a slow computer or on battery)",
       "detailedToggle": "Show what the staff are doing at the bottom of the window",
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",
@@ -909,6 +1062,16 @@
       "ledgerCleared": "Cleared. Every commission is still here.",
       "ledgerMinutes": "{m} min {s} s",
       "ledgerSeconds": "{s} s",
+      "postcardTitle": "Postcards",
+      "postcardText": "Send a friend the shop as it looks now. Only the furnishing, what has grown and the street; no works, commissions or spending.",
+      "postcardSend": "Send a postcard",
+      "postcardOpen": "Look at a postcard",
+      "postcardSent": "Saved. Send the file to a friend and they can open it in their own Lamplight Nook.",
+      "postcardFile": "{name}'s shop",
+      "postcardKind": "Lamplight Nook postcard",
+      "postcardBig": "That file is too big to be a postcard. It wasn't opened.",
+      "postcardNotPostcard": "That isn't a Lamplight Nook postcard. It wasn't opened.",
+      "postcardBroken": "This postcard is damaged and can't be opened.",
       "ledgerJoin": ", ",
       "ledgerKind": {
         "net": "connection lost {n}×",
@@ -1016,6 +1179,16 @@
       "posterPng": "poster.png",
       "fromFolder": "from-synced-folder",
       "posterPdf": "poster.pdf",
+      "menuPage": "menu.html",
+      "menuPng": "menu.png",
+      "menuPdf": "menu.pdf",
+      "recipe": "recipe.docx",
+      "cardPage": "card.html",
+      "cardPng": "card.png",
+      "cardPdf": "card.pdf",
+      "newsletter": "newsletter.docx",
+      "newsletterPage": "newsletter.html",
+      "newsletterPdf": "newsletter.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -1186,11 +1359,17 @@
       "relinkBroad": "That folder holds a lot more than this work. Give it a folder of its own and show me that one.",
       "relinkTaken": "Another work is already there. Give this one a folder of its own and show me that one.",
       "relinked": "Found it. It opens from there now.",
-      "take": "Take it away",
-      "takeAs": "Take it as:",
+      "take": "Share",
+      "takeAs": "Share as:",
       "takeZip": "a zip of its files",
       "takePdf": "a PDF of the page",
       "taken": "Saved. It's picked out for you in its folder.",
+      "takePage": "One page",
+      "takeFile": "As it is",
+      "shareWhere": "Save it:",
+      "shareHere": "Choose where",
+      "shareInto": "Into {name}",
+      "inCloud": "It is in {name} now. Share it from there, the way your cloud drive does.",
       "takeEmpty": "Nothing of this work is left in the folder to take.",
       "empty": "The shelf is still empty. The first thing we finish goes right here.",
       "search": "Find one: a name, what you asked, a month",
@@ -1216,7 +1395,11 @@
         "document": "Documents",
         "slides": "Slides",
         "chart": "Charts",
-        "poster": "Posters"
+        "poster": "Posters",
+        "menu": "Menus",
+        "recipe": "Recipes",
+        "card": "Cards",
+        "newsletter": "Newsletters"
       }
     },
     "mini": {
@@ -1296,16 +1479,21 @@
   "legal": {
     "privacy": [
       "# Privacy",
-      "Last updated: November 20, 2026",
+      "Last updated: November 23, 2026",
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
       "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records; your connections and the record of outside actions (a calendar's address is encrypted like the key).",
       "All of this is in the app's data folder (on Windows, %APPDATA%\\Lamplight Nook; the Microsoft Store version keeps it in the app's own storage, which Windows removes when you uninstall). You can clear everything the shop remembers from Wick's notebook. Claude Code also keeps its own record of each job, in the .claude folder in your home folder; those belong to Claude Code and stay when you do. If you installed from the setup file, delete that folder after uninstalling to remove everything.",
       "What the staff make goes in the commission folder you chose, and it is yours. Email drafts stay there too: Lamplight Nook never sends them.",
-      "# What is sent to Anthropic",
+      "# What is sent to Anthropic, or to the provider you chose",
       "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. If you tick a connection on a commission slip, the files the staff read in the synced folder and the events they read in the calendar are sent to Anthropic the same way. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",
       "When you save an API key, Lamplight Nook makes one free request to Anthropic to check that it works.",
+      "If you choose another provider under Provider in settings (a service with an Anthropic-compatible API, Amazon Bedrock or Google Vertex AI), all of the above goes to that provider instead, under its own terms and privacy rules. Each provider's key is stored encrypted on this computer, on its own, and never goes into the log, the diagnostics or the ledger. When you save a compatible service's key, Lamplight Nook sends it the shortest message there is to check the address, key and model, which that provider may charge a tiny amount for.",
       "If you connect a calendar, the calendar's address you gave is used to fetch it straight from this computer. Other than that, Lamplight Nook connects to no servers. When the staff look things up they visit the web pages they find.",
+      "# Sharing, postcards and your home network",
+      "Sharing a work or sending a postcard saves a file that you pass on yourself; Lamplight Nook uploads nothing for you. A shared work carries the work alone: folder paths, your home folder and anything like a key are wiped from it, and the slip, the staff's notes and the recordings are not in it. A postcard carries only how your shop looks and the name you go by, with no works, commissions, spending or dates.",
+      "The home network switch is off by default. When it is on, Lamplight Nook serves a small page on this computer to your home network only, just phones and computers you have paired can connect, and every message is encrypted with the key made when pairing. A paired phone sees what the shop is doing and what it is waiting for you to answer, never your key, folder paths or spending. None of it goes through a server of ours.",
+      "One known limit: the page itself reaches the phone over plain HTTP, because a home network has no other way to serve it. Someone else on the same network could change the page on its way, and a changed page could see what that phone sees and do what that device is allowed to do. Turn the switch on only on a network you trust, and off again when you are done.",
       "# Diagnostics",
       "A diagnostics file leaves your computer only when you export it in Settings and send it to us yourself. It holds the app's log and an outline of your computer and settings, with no API key and nothing from your commissions.",
       "# Contact",
@@ -1354,6 +1542,10 @@
     "readinglamp": "a reading lamp",
     "postcards": "a few postcards",
     "toolbox": "a toolbox",
+    "chalkboard": "a little menu board",
+    "cookbook": "a handwritten recipe book",
+    "cardline": "a string of cards across the side window",
+    "newsletters": "a pile of newsletters on the big table",
     "chime": "some wind chimes",
     "aquarium": "a tank of goldfish",
     "scroll": "a hanging scroll",
@@ -1424,6 +1616,34 @@
       "ui": {
         "access": {
           "hotspotCounter": "Workbench: hand in a commission"
+        }
+      }
+    },
+    "bakery": {
+      "zones": {
+        "counter": "the bread counter",
+        "board": "the oven",
+        "shelf": "the bread rack",
+        "table": "the kneading table",
+        "corner": "the dough mixer"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Bread counter: hand in a commission"
+        }
+      }
+    },
+    "post": {
+      "zones": {
+        "counter": "the post office counter",
+        "board": "the sorting rack",
+        "shelf": "the parcel shelf",
+        "table": "the packing table",
+        "corner": "the postbox"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Post office counter: hand in a commission"
         }
       }
     }

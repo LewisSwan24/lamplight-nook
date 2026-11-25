@@ -24,9 +24,16 @@ assets/sprites/*.png
 !assets/sprites/decor-lantern.png
 !assets/sprites/decor-mid_autumn.png
 !assets/sprites/decor-new_year.png
+!assets/sprites/grow-print-*.png
+!assets/sprites/grow-studio-*.png
+!assets/sprites/grow-workshop-*.png
+!assets/sprites/grow-bakery-*.png
+!assets/sprites/grow-post-*.png
 !assets/sprites/season-*.png
+!assets/sprites/tale-*.png
 !assets/sprites/tools.png
 !assets/sprites/town-signs.png
+!assets/sprites/town-story.png
 !assets/sprites/weather-*.png
 !assets/sprites/works.png
 assets/ui/emotes.png

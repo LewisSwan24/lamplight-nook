@@ -8,7 +8,7 @@ export type Wait = 'slot' | 'project' | 'money';
  * A round waiting for its turn. `folder` is where it will work (absent for a new commission, whose folder is made when it
  * starts, so it is never the same work as anything); `by` says who asked for it, the user or a schedule (B6).
  */
-export type Ticket = { id: string; folder?: string; project?: string; by: 'user' | 'schedule'; waits?: Wait };
+export type Ticket = { id: string; folder?: string; project?: string; by: 'user' | 'schedule'; waits?: Wait; /** The paired device it was handed in from (plan-1.5.md E5). */ person?: string };
 
 /** A round under way. One stopped by its budget or the network holds no place (rule 4); one waiting for an answer does. */
 export type Active = { id: string; folder: string; project?: string; stopped?: boolean };
@@ -43,6 +43,13 @@ export class RunQueue<T extends Ticket = Ticket> {
   cancel(id: string): T | undefined {
     const i = this.line.findIndex((t) => t.id === id);
     return i < 0 ? undefined : this.line.splice(i, 1)[0];
+  }
+
+  /** Everything a paired device left waiting, called off when the device is removed (plan-1.5.md E7). */
+  cancelFrom(person: string): T[] {
+    const gone = this.line.filter((t) => t.person === person);
+    this.line = this.line.filter((t) => t.person !== person);
+    return gone;
   }
 
   /**

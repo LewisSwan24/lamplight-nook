@@ -1,6 +1,6 @@
 import { strings } from '../../shared/i18n';
 import { escapeChoice } from '../../shared/decision';
-import type { DecisionRequest } from '../../shared/types';
+import type { ActorId, DecisionRequest } from '../../shared/types';
 import { setSerious, sfx } from '../audio/sound';
 import { el, layer } from './dom';
 import { withPortrait } from './portraits';
@@ -8,17 +8,35 @@ import { withPortrait } from './portraits';
 const D = strings.decision;
 /** The confirm button on the serious card can't be clicked for this long, to prevent accidental clicks. */
 export const CONFIRM_DELAY_MS = 1000;
+/** The card on screen for each request, to put away when the phone answered first (docs/plan-1.5.md E4). */
+const showing = new Map<string, () => void>();
+
+/** Put away a request's card without answering it: it was answered elsewhere. False if it was not on screen. */
+export function dismissDecision(id: string): boolean {
+  const put = showing.get(id);
+  put?.();
+  return Boolean(put);
+}
+
+/** Who asks, in the dialog and in the caption log. */
+export function askerOf(req: DecisionRequest, asker?: ActorId): ActorId {
+  return asker ?? (req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng');
+}
 
 /**
  * Show a decision. Questions and ordinary permissions use the watercolor dialog; serious steps use the
  * plain confirmation card. Resolves with the chosen option id.
  */
-/** `named`: two rounds are under way (B5), so the card says which project asks, before the question. */
-export function showDecision(req: DecisionRequest, named = false): Promise<string> {
+/**
+ * `named`: two rounds are under way (B5), so the card says which project asks, before the question. `asker`: who asks, when
+ * the round is played in a shop along the street (road-to-1.4.md D3), where its own person does the asking.
+ */
+export function showDecision(req: DecisionRequest, named = false, asker?: ActorId): Promise<string> {
   return new Promise((resolve) => {
     const backdrop = el('div.backdrop');
     const serious = req.kind === 'serious';
     const close = (choice: string) => {
+      showing.delete(req.id);
       document.removeEventListener('keydown', onKey, true);
       backdrop.remove();
       if (serious) setSerious(false);
@@ -39,8 +57,10 @@ export function showDecision(req: DecisionRequest, named = false): Promise<strin
       }
     };
     document.addEventListener('keydown', onKey, true);
+    // Answered elsewhere: the card goes, with no choice of its own.
+    showing.set(req.id, () => close(''));
     const title = named && req.project ? `${req.project.title} \u00B7 ${req.title}` : req.title;
-    backdrop.append(req.kind === 'serious' ? seriousCard({ ...req, title }, close) : dialog({ ...req, title }, close));
+    backdrop.append(req.kind === 'serious' ? seriousCard({ ...req, title }, close) : dialog({ ...req, title }, close, asker));
     layer().append(backdrop);
     // Serious mode: the music stops and a single alert is the only sound.
     if (serious) setSerious(true);
@@ -49,8 +69,8 @@ export function showDecision(req: DecisionRequest, named = false): Promise<strin
   });
 }
 
-function dialog(req: DecisionRequest, close: (id: string) => void) {
-  const actor = req.agent === 'reviewer' ? 'laoshi' : req.agent === 'researcher' ? 'xiaoju' : req.agent === 'designer' ? 'qingdai' : 'adeng';
+function dialog(req: DecisionRequest, close: (id: string) => void, asker?: ActorId) {
+  const actor = askerOf(req, asker);
   return el('div.dialog.paper', { role: 'dialog', 'aria-modal': 'true', 'aria-label': req.title },
     withPortrait(actor, 'unsure',
       el('div.who', {}, strings.actors[actor]),

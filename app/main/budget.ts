@@ -11,11 +11,16 @@ export const MIN_START_USD = 0.5;
 /** Past this share of a cap, Adeng says so once. */
 export const WARN_SHARE = 0.8;
 
-export type CapKind = 'month' | 'project';
+/** `person`: what the owner lets one paired device's person spend in a month (docs/plan-1.5.md E5). */
+export type CapKind = 'month' | 'project' | 'person';
 /** The caps on a round, in US dollars; 0 or absent is no cap. */
-export type Caps = { roundUsd: number; monthUsd: number; projectUsd?: number };
-/** What the ledger says was spent this month and on the project. */
-export type Spent = { month: number; project: number };
+export type Caps = { roundUsd: number; monthUsd: number; projectUsd?: number; personUsd?: number };
+/** Next to nothing, so a cap of it lets nothing start: what a device removed from the shop may still spend (E5, E7). */
+export const GONE_USD = 0.000001;
+/** A person's own cap from their paired device: 0 leaves them to the shop's caps; a device since removed fails closed. */
+export const personCapUsd = (device?: { capUsd: number }): number => (device ? device.capUsd : GONE_USD);
+/** What the ledger says was spent this month, on the project, and by the person who handed the round in. */
+export type Spent = { month: number; project: number; person?: number };
 /** A round that may not start: the cap it ran into, what was spent under it and what is left (never below nothing). */
 export type Refusal = { cap: CapKind; capUsd: number; spentUsd: number; leftUsd: number };
 /** The most a round may spend (undefined: no limit), and which cap set it. */
@@ -31,20 +36,29 @@ const cents = (usd: number) => Math.floor(usd * 100 + 1e-6) / 100;
  * ends its cost is in the ledger and the hold goes. Keyed by run, so two rounds at once (B5) each hold their own.
  */
 export class Reservations {
-  private holds = new Map<string, { project?: string; usd: number }>();
+  private holds = new Map<string, { project?: string; person?: string; usd: number }>();
 
-  /** Hold what a round may spend, or say which cap stops it starting. */
-  reserve(run: string, project: string | undefined, caps: Caps, spent: Spent): Grant | { refused: Refusal } {
+  /** Hold what a round may spend, or say which cap stops it starting. `person`: the device it was handed in from (E5). */
+  reserve(run: string, project: string | undefined, caps: Caps, spent: Spent, person?: string): Grant | { refused: Refusal } {
     const month = caps.monthUsd ? caps.monthUsd - spent.month - this.held() : Infinity;
     const mine = project && caps.projectUsd ? caps.projectUsd - spent.project - this.held(project) : Infinity;
-    if (Math.min(month, mine) < MIN_START_USD) {
-      const cap: CapKind = month <= mine ? 'month' : 'project';
-      return { refused: { cap, capUsd: cap === 'month' ? caps.monthUsd : caps.projectUsd!, spentUsd: cap === 'month' ? spent.month : spent.project, leftUsd: Math.max(0, Math.min(month, mine)) } };
+    const theirs = person && caps.personUsd ? caps.personUsd - (spent.person ?? 0) - this.heldBy(person) : Infinity;
+    const left = Math.min(month, mine, theirs);
+    if (left < MIN_START_USD) {
+      const cap: CapKind = left === month ? 'month' : left === mine ? 'project' : 'person';
+      const capUsd = { month: caps.monthUsd, project: caps.projectUsd ?? 0, person: caps.personUsd ?? 0 }[cap];
+      const spentUsd = { month: spent.month, project: spent.project, person: spent.person ?? 0 }[cap];
+      return { refused: { cap, capUsd, spentUsd, leftUsd: Math.max(0, left) } };
     }
-    const limit = Math.min(caps.roundUsd || Infinity, month, mine);
-    this.holds.set(run, { project, usd: limit });
+    const limit = Math.min(caps.roundUsd || Infinity, left);
+    this.holds.set(run, { project, person, usd: limit });
     if (limit === Infinity) return { usd: undefined, by: null };
-    return { usd: cents(limit), by: limit === month ? 'month' : limit === mine ? 'project' : 'round' };
+    return { usd: cents(limit), by: limit === month ? 'month' : limit === mine ? 'project' : limit === theirs ? 'person' : 'round' };
+  }
+
+  /** What one person's rounds under way hold. */
+  heldBy(person: string): number {
+    return [...this.holds.values()].filter((h) => h.person === person).reduce((sum, h) => sum + h.usd, 0);
   }
 
   /** The round ended and the ledger has what it cost: what it held is free again. */

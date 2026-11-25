@@ -12,7 +12,9 @@ the highest one it touches; pieces.json lists them under `on`.
 
 Writes assets/sprites/<scene>-room.png, <scene>-pieces.png (one sheet, top to bottom) and pieces.json, for the cafe,
 the study and the three shops of road-to-1.4.md D2 (shops.py): print-room.png and print-pieces.png, studio-room.png
-and studio-pieces.png, workshop-room.png and workshop-pieces.png.
+and studio-pieces.png, workshop-room.png and workshop-pieces.png, and since plan-1.6.md F1 the bakery
+(bakery.py): bakery-room.png and bakery-pieces.png, and since F2 the post office (post.py): post-room.png and
+post-pieces.png.
 Run after every other art script: python3 scripts/art/pieces.py
 """
 import importlib
@@ -28,7 +30,7 @@ import scene
 import study
 
 # The shops, by name; `print` is looked up rather than imported, so it does not hide the builtin.
-SHOPS = {name: importlib.import_module(name) for name in ('print', 'studio', 'workshop')}
+SHOPS = {name: importlib.import_module(name) for name in ('print', 'studio', 'workshop', 'bakery', 'post')}
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/sprites'
 W, H = scene.W, scene.H
@@ -40,7 +42,9 @@ FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'cabinet':
         'study': {'table': 12, 'sofa': 20, 'counter': 8, 'shelf': 16, 'cabinet': 8, 'workbench': 14, 'lamp': 8, 'plant_l': 8, 'plant_r': 8},
         'print': {'table': 14, 'press': 8, 'counter': 8, 'shelf': 16, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
         'studio': {'table': 12, 'easel': 6, 'counter': 8, 'shelf': 18, 'workbench': 6, 'lamp': 8, 'plant_l': 8, 'plant_r': 8},
-        'workshop': {'table': 14, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8}}
+        'workshop': {'table': 14, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'bakery': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'post': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 8, 'lamp': 6, 'plant_l': 8, 'plant_r': 8}}
 CHAIR_FOOT = 12
 WALL = ('window', 'window2', 'window3', 'board')
 # Where the floor starts: what ends higher up hangs on the wall.
@@ -175,6 +179,19 @@ def split(name, room, boxes, chairs):
     return pieces
 
 
+# The festivals in order of their columns in shops-decor.png (decor.py), where the shops along the street have their own.
+HOLIDAYS = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']
+
+
+def overlay_of(path, name):
+    """The overlay as this room shows it: a shop along the street has its own festival decorations (road-to-1.4.md D6)."""
+    holiday = path.stem[len('decor-'):]
+    if name in SHOPS and path.name.startswith('decor-') and holiday in HOLIDAYS:
+        col, row = HOLIDAYS.index(holiday), list(SHOPS).index(name)
+        return Image.open(OUT / 'shops-decor.png').convert('RGBA').crop((col * 320, row * 180, col * 320 + 320, row * 180 + 180))
+    return Image.open(path).convert('RGBA')
+
+
 def overlays_on(pieces, name):
     """Overlay image -> the depth just above the highest piece it touches."""
     sheet = Image.open(OUT / f'{name}-pieces.png').convert('RGBA')
@@ -182,7 +199,7 @@ def overlays_on(pieces, name):
     for path in sorted(OUT.glob('*.png')):
         if not re.match(r'(grow|decor|weather|season)-', path.name):
             continue
-        overlay = Image.open(path).convert('RGBA')
+        overlay = overlay_of(path, name)
         touched = [p['base'] for p in pieces if any(
             overlay.getpixel((x, y))[3] > 0 and sheet.getpixel((x - p['x'], p['sy'] + y - p['y']))[3] > 0
             for y in range(p['y'], p['y'] + p['h']) for x in range(p['x'], p['x'] + p['w']))]

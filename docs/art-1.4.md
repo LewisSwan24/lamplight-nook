@@ -44,10 +44,24 @@
 | `aqian.png` | D2 印刷铺的店员阿铅 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
 | `xiaozhe.png` | D2 画室的店员小赭 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
 | `xiaoding.png` | D2 工坊的店员小钉 | Modern Interiors：`2_Characters` 的人物生成器 | `scripts/art/characters.py` |
-| `town-grow.png` | D5 集市摊、喷泉、花坛、小公园 | Modern Exteriors：`9_Shopping_Center_and_Markets` 的摊子，`17_Garden` 的喷泉和花 | `scripts/art/town.py` |
-| `town-decor.png` | D6 四季和六个节日 | Modern Exteriors：`19_Graveyard` 的南瓜；Modern Interiors：`15_Christmas`；手画的雪、灯笼和节日小摊 | `scripts/art/decor.py` |
-| `shops-decor.png` | D6 三间新店里的节日装饰 | Modern Interiors：`15_Christmas`、`11_Halloween`；手画的灯笼 | `scripts/art/decor.py` |
-| `town-story.png` | D4 故事留下的东西 | 手画：旧自行车；Modern Interiors：`1_Generic` 的小书架 | `scripts/art/town.py` |
+| `town-grow.png` | D5 街上长出来的路灯、长椅、大花盆、推车、小公园、喷泉；门口的花盆、新招牌和小旗 | Modern Exteriors：`3_City_Props` 的路灯、长椅、树、花丛、喷泉和花盆，`17_Garden` 的推车和大花盆；手画的招牌和小旗 | `scripts/art/town.py` |
+| `grow-print-proof.png` | D5 印刷铺墙上长出来的第一张印样 | 手画 | `scripts/art/growth.py` |
+| `grow-print-ivy.png` | D5 印刷铺墙上长出来的吊着的绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-print-typecase.png` | D5 印刷铺墙上长出来的铅字盘 | 手画 | `scripts/art/growth.py` |
+| `grow-print-ribbon.png` | D5 印刷铺墙上长出来的奖状 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-sketch.png` | D5 画室墙上长出来的第一张画稿 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-ivy.png` | D5 画室墙上长出来的吊着的绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-palette.png` | D5 画室墙上长出来的调色板 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-gallery.png` | D5 画室墙上长出来的一墙小画 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-gear.png` | D5 工坊墙上长出来的框起来的齿轮 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-ivy.png` | D5 工坊墙上长出来的吊着的绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-clock.png` | D5 工坊墙上长出来的挂钟 | 手画 | `scripts/art/growth.py` |
+| `grow-workshop-blueprint.png` | D5 工坊墙上长出来的图纸 | 手画 | `scripts/art/growth.py` |
+| `town-decor.png` | D6 街上的四季、六个节日、水洼和积雪，跑腿的人撑的伞 | Modern Exteriors：`19_Graveyard` 的南瓜灯；Modern Interiors：`15_Christmas` 的圣诞树，`11_Halloween` 的南瓜堆；手画的雪、落叶、花、树荫、水洼、灯笼、花环、灯谜、粽子摊、月饼摊和伞 | `scripts/art/decor.py` |
+| `town-decor.json` | D6 街上每一块装饰的位置，游戏和测试都读它 | Modern Exteriors 和 Modern Interiors，跟 `town-decor.png` 一起算出来 | `scripts/art/decor.py` |
+| `shops-decor.png` | D6 三间新店里的节日装饰 | Modern Interiors：`15_Christmas`、`11_Halloween`；手画的灯笼、蝙蝠、海报、小画和木牌 | `scripts/art/decor.py` |
+| `town-story.png` | D4 街坊的故事留在街上的十五样东西，等着讲故事的人头上的小气泡 | 手画：车铃、工具箱、打气筒、车牌、旧自行车、坐垫、小米、月季、鸟窝、小板凳、书、告示、仙人掌、小书架、学士帽 | `scripts/art/story.py` |
+| `town-story.json` | D4 每样东西摆在哪，三个街坊站在哪，游戏和测试都读它 | 手画，跟 `town-story.png` 一起算出来 | `scripts/art/story.py` |
 
 ## 给 LimeZu 的问题
 

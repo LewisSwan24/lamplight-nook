@@ -6,14 +6,22 @@ import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId } from './templates';
+import type { Shop } from './dispatch';
+import type { ModelTier } from './models';
+import type { Provider } from './providers';
 
 /** Scene anchors: characters only move between these points. */
 /** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner' | 'cabinet' | 'mailslot';
 
-export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'cat';
-/** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
-export type GuestId = 'baker' | 'postman' | 'mechanic' | 'granny' | 'student';
+export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'guiyi' | 'axin' | 'cat';
+/**
+ * Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts):
+ * since plan-1.6.md F1 also Old Ma from the noodle bar (`cook`) and Lin who lives upstairs (`lodger`), and since F2 Fern
+ * from the flower shop (`florist`) and Mrs Wu from the residents' committee (`organizer`).
+ */
+export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer'] as const;
+export type GuestId = (typeof GUESTS)[number];
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;
 
@@ -58,6 +66,9 @@ export type UpdateOffer = { version: string; notes: string[] };
 export type MoveOffer = { works: number; spentUsd: number };
 
 /** Saving a pasted key:`verified` is false when Anthropic could not be reached to check it. */
+export type ProviderSaveResult =
+  | { ok: true; verified: boolean; provider: Provider; hint?: string }
+  | { ok: false; reason: 'missing' | 'shape' | 'scheme' | 'secret' | 'address' | 'key' | 'model' | 'storage' | 'file' };
 export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok: false; reason: 'format' | 'invalid' | 'storage' };
 
 /**
@@ -65,7 +76,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; /** Which model the staff work on (plan-1.6.md F6). */ modelTier: ModelTier; /** Where the work is sent (plan-1.6.md F7); never a key. */ provider: Provider; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -97,10 +108,11 @@ export type RunResult = { /** The round's run id (B5), for trying it again. */ r
   /** carryOn: stopped with work under way, so trying again carries it on once the cap allows. */ carryOn?: boolean;
   /** Caps this round took past eight tenths, said once each. */ budget?: BudgetNote[];
   /** What the stretch since Claude Code last reported cost, estimated from its tokens: it stopped before saying (B7). */ estimatedUsd?: number;
+  /** The model Claude Code said it ran on (plan-1.6.md F6). */ model?: string;
   /** The web addresses this round searched or fetched, for checking a write-up's sources (road-to-1.3.md C7). */ seenUrls?: string[] };
 
 /** Where a month's or a project's cap stands (road-to-1.2.md B8), with the project's title for a project cap. */
-export type BudgetNote = { cap: 'month' | 'project'; capUsd: number; spentUsd: number; leftUsd: number; project?: string };
+export type BudgetNote = { cap: 'month' | 'project' | 'person'; capUsd: number; spentUsd: number; leftUsd: number; project?: string; /** A person's own cap (E5): the device's name. */ person?: string };
 
 /** Whitelisted API exposed to the renderer by the preload script. */
 export type DataDamage = { notebook: 'restored' | 'lost' | 'missing' | null; settings: boolean; ledger: boolean };
@@ -122,6 +134,10 @@ export interface LamplightApi {
   saveApiKey(key: string): Promise<KeySaveResult>;
   /** Forget the saved API key. */
   clearApiKey(): Promise<void>;
+  /** Choose where the work goes, with the key typed for it (plan-1.6.md F7): checked, then kept. */
+  saveProvider(provider: Provider, key: string): Promise<ProviderSaveResult>;
+  /** The kept key of a provider, by its last four characters; null when it has none. */
+  providerKey(provider: Provider): Promise<string | null>;
   /** Save a diagnostics zip where the user chooses; resolves with its path, or null if cancelled. */
   exportDiagnostics(): Promise<string | null>;
   /**
@@ -135,8 +151,11 @@ export interface LamplightApi {
   installClaude(): Promise<boolean>;
   /** Estimated spend on commissions this calendar month, in US dollars. */
   spendThisMonth(): Promise<number>;
+  /** What one commission costs on each model tier: the ledger's average, or the price table's guess (plan-1.6.md F6). */
+  modelCosts(): Promise<Record<ModelTier, { usd: number; from: 'ledger' | 'table' }>>;
   /** Every month that cost anything, newest first. */
-  spendMonths(): Promise<{ month: string; usd: number; estimated?: number; commissions: number }[]>;
+  /** `people` only for a month someone other than the owner spent in: `who` is '' for the owner, null for a removed device. */
+  spendMonths(): Promise<{ month: string; usd: number; estimated?: number; commissions: number; people?: { who: string | null; usd: number }[] }[]>;
   /** This month's cap (0: none) and what has been spent under it. */
   monthBudget(): Promise<{ capUsd: number; spentUsd: number }>;
   /** The monthly cap, when it was set above the default on upgrading from what was spent before. Asking takes it: it is said once. */
@@ -224,6 +243,24 @@ export interface LamplightApi {
   /** A one-off story has been told; it won't come up again. */
   markTold(id: string): Promise<void>;
   markMet(id: GuestId): Promise<void>;
+  /** A neighbour on the street has told the chapter they had waiting (road-to-1.4.md D4): the chapter, or null if none was. */
+  tellStory(who: GuestId): Promise<number | null>;
+  /** The home-network connection (docs/plan-1.5.md E1): where it listens and the paired devices. */
+  lanState(): Promise<LanState>;
+  /** A new device to pair: the address with its key, and a QR code of it (SVG). */
+  lanPair(): Promise<{ url: string; svg: string } | null>;
+  lanRemove(id: string): Promise<LanState>;
+  /** What a device may do, and what its person may spend in a month (E5). */
+  lanSetRole(id: string, role: LanRole): Promise<LanState>;
+  lanSetCap(id: string, usd: number): Promise<LanState>;
+  /** A postcard of the shop (docs/plan-1.5.md E3), saved where the user picks: true once saved, false if cancelled. */
+  sendPostcard(): Promise<boolean>;
+  /** A postcard to look at, picked by the user: 'open' once its window is up, why not otherwise, null if cancelled. */
+  openPostcard(): Promise<'open' | 'big' | 'notPostcard' | 'broken' | null>;
+  /** The postcards the post office keeps on its wall (plan-1.6.md F2), newest first: who sent each and where their shop is. */
+  keptPostcards(): Promise<{ name: string; home: SceneId }[]>;
+  /** Look at a kept postcard again, by its place on the wall: false if there is none there. */
+  openKeptPostcard(i: number): Promise<boolean>;
   /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
   relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'taken' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
@@ -236,7 +273,10 @@ export interface LamplightApi {
    */
   undoWork(id: string): Promise<string[] | null>;
   /** Save a finished work as a file where the user picks: its files in a zip, or its page as a PDF. Nothing is sent anywhere. */
-  exportWork(id: string, as: 'zip' | 'pdf'): Promise<ExportResult>;
+  /** How a work on the shelf can be shared (E2): its formats, the one that suits it first, and the cloud folders it can go into. */
+  shareOptions(id: string): Promise<ShareOptions | null>;
+  /** Share a work as one file: saved where the user picks, or into a connected cloud folder (`cloud`, its id). */
+  shareWork(id: string, as: ShareFormat, cloud?: string): Promise<ShareResult>;
   /** The project board (B2): every project, latest touched first. */
   projectBoard(): Promise<ProjectRow[]>;
   /** A project's timeline, one row per round; null for a project there isn't. */
@@ -263,6 +303,8 @@ export interface LamplightApi {
   onRawEvent(cb: (e: RawAgentEvent) => void): () => void;
   onAiEvent(cb: (e: AiEvent) => void): () => void;
   onDecision(cb: (r: DecisionRequest) => void): () => void;
+  /** A request was answered on a paired phone first (docs/plan-1.5.md E4): its card is put away. */
+  onDecisionSettled(cb: (s: { id: string }) => void): () => void;
   onResult(cb: (r: CommissionResult) => void): () => void;
   /** A finished round's thumbnail, which comes a moment after its result card (road-to-1.3.md C1). */
   onResultPreview(cb: (p: { run: string; png: string }) => void): () => void;
@@ -291,7 +333,11 @@ export type CommissionTemplate = TemplateId;
  * `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in.
  * `connections`: the connections ticked under "this one may use" (road-to-1.3.md C4); none unless the user ticks one.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[] };
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[];
+  /** The model this one commission runs on, changed on the slip (plan-1.6.md F6); absent: the one in settings. */
+  model?: ModelTier;
+  /** Handed in from a paired device on the home network (docs/plan-1.5.md E5): which one. Absent: the owner, at the desk. */
+  by?: { id: string; name: string } };
 
 /**
  * What a tool of the shop's own (an in-process `nook-*` MCP server, road-to-1.3.md C4) may do, which sets how it is asked:
@@ -472,6 +518,9 @@ export const IPC = {
   clearApiKey: 'key:clear',
   spendThisMonth: 'spend:month',
   spendMonths: 'spend:months',
+  modelCosts: 'spend:model-costs',
+  saveProvider: 'provider:save',
+  providerKey: 'provider:key',
   monthBudget: 'budget:month',
   monthCapNews: 'budget:month-cap-news',
   setProjectCap: 'budget:project-cap',
@@ -495,7 +544,8 @@ export const IPC = {
   chooseSource: 'commission:choose-source',
   chooseLent: 'commission:choose-lent',
   undoWork: 'commission:undo',
-  exportWork: 'shop:export-work',
+  shareOptions: 'shop:share-options',
+  shareWork: 'shop:share-work',
   handOver: 'commission:hand-over',
   startCommission: 'commission:start',
   retryCommission: 'commission:retry',
@@ -508,6 +558,7 @@ export const IPC = {
   openOutput: 'commission:open-output',
   openSource: 'commission:open-source',
   decision: 'decision:request',
+  decisionSettled: 'decision:settled',
   answer: 'decision:answer',
   recallForCommission: 'memory:recall-commission',
   recallOnOpen: 'memory:recall-open',
@@ -524,6 +575,19 @@ export const IPC = {
   relinkWork: 'shop:relink-work',
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
+  tellStory: 'shop:tell-story',
+  lanState: 'lan:state',
+  lanPair: 'lan:pair',
+  lanRemove: 'lan:remove',
+  lanSetRole: 'lan:set-role',
+  lanSetCap: 'lan:set-cap',
+  sendPostcard: 'postcard:send',
+  openPostcard: 'postcard:open',
+  keptPostcards: 'postcard:kept',
+  openKeptPostcard: 'postcard:open-kept',
+  /** The postcard being looked at, for its own window's preload (sync), and leaving it. */
+  visitCard: 'visit:card',
+  visitHome: 'visit:home',
   restorePrevious: 'commission:restore-previous',
   projectBoard: 'project:board',
   projectTimeline: 'project:timeline',
@@ -584,9 +648,10 @@ export type AiEvent = {
 /**
  * A round under way or in the queue (road-to-1.2.md B5): at work, waiting for the user's answer, or queued, and then why
  * (no free place, its project at work, not enough money) and behind which rounds. `color` is its project's card colour, the
- * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9).
+ * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9). `shop`:
+ * where it is played (road-to-1.4.md D3), from its commission's kind; absent for the home shop.
  */
-export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[] };
+export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[]; shop?: Shop };
 
 /** The project a round works on, as the shop names it: its id once it has one (a new commission gets it as it ends), and its title. */
 export type RunProject = { id?: string; title: string };
@@ -617,6 +682,13 @@ export type CharacterCommand = {
    * goes in the outbox on the counter for the user to send (`outbox`).
    */
   post?: Post;
+  /**
+   * Played in another room (road-to-1.4.md D3): the shop that does an errand for this one. Without it, the room whose
+   * round it is.
+   */
+  room?: RoomId;
+  /** Out of the door again once done here: Adeng after handing over an order, a shop's person after bringing work back (D3). */
+  leave?: boolean;
 };
 
 export type Post = 'deliver' | 'collect' | 'outbox';
@@ -819,9 +891,19 @@ export type ProjectTimeline = {
 
 /** How taking a work away went: saved where the user chose, they cancelled, its folder is gone, or nothing is left to take. */
 export type ExportResult = 'saved' | 'cancelled' | 'gone' | 'empty';
+/** How a work goes out (docs/plan-1.5.md E2): a page as a PDF or as one page file, a document or picture as it is, or a zip. */
+export type ShareFormat = 'pdf' | 'page' | 'file' | 'zip';
+export type ShareOptions = { formats: ShareFormat[]; clouds: { id: string; label: string }[] };
+/** `cloud`: it went into a connected cloud folder, for the user to share from there. */
+export type ShareResult = ExportResult | 'cloud';
 
 /** What the shop looks like for this user: its days, and the finished works (latest first). */
-export type ShopState = ShopDays & { works: Work[] };
+/** The home-network connection as the settings show it (docs/plan-1.5.md E1). */
+/** What a paired device may do (docs/plan-1.5.md E5): watch only, answer requests too, or hand in commissions as well. */
+export type LanRole = 'watch' | 'approve' | 'commission';
+export type LanState = { on: boolean; addresses: string[]; devices: { id: string; name: string; added: string; paired: boolean; lastSeen?: string; role: LanRole; capUsd: number }[] };
+/** `today`: the day by the shop's clock (main/clock.ts), which the simulations can move on; the stories go by it (D4). */
+export type ShopState = ShopDays & { works: Work[]; today: string };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {
