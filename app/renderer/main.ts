@@ -51,6 +51,8 @@ import { TOWN_MOVE } from '../shared/town';
 import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
 import { leftBehind, nextChapter, waiting, type Stories, type Teller } from '../shared/stories';
 import { showStory } from './ui/story';
+import { ShopTalk, type Moment } from './stage/shoptalk';
+import type { Line } from './translator/lines';
 
 declare global {
   interface Window { lamplight: LamplightApi }
@@ -258,6 +260,7 @@ setInterval(() => {
   if (atHome()) tendGarden(!busy);
   bringLetter(!busy && !blocked && scene.view === 'shop');
   if (atHome()) dropIn(!busy && !blocked && scene.view === 'shop');
+  talkInShop(!busy && !blocked && scene.view === 'shop');
   if (running && !blocked) sayProgress();
 }, 5000);
 
@@ -277,6 +280,25 @@ function tendGarden(quiet: boolean) {
   }
   if (step.go) void scene.visitGarden(step.go.actor, step.go.spot);
   talkInGarden();
+}
+
+// The keeper of a shop along the street (plan-1.6.md F5): a word as you walk in that fits the hour, the weather, the
+// season or the holiday, and now and then something while the shop is quiet. The home shop has its chatter instead.
+const shopTalk = new ShopTalk(Date.now());
+const momentNow = (): Moment => ({ period: scene.period, ...scene.outside() });
+async function sayLine(line: Line) {
+  const at = stage;
+  for (const text of line.bubbles) await at.answer(line.speaker, text);
+}
+function greetIn(room: RoomId) {
+  shopTalk.enter(Date.now());
+  const line = shopTalk.greet(ruleBook(room).lines.shop_in ?? [], momentNow());
+  if (line) void sayLine(line);
+}
+function talkInShop(quiet: boolean) {
+  if (atHome() || !isStreetShop(scene.room)) return;
+  const line = shopTalk.next(Date.now(), quiet, ruleBook(scene.room).lines.shop_idle ?? [], momentNow());
+  if (line) void sayLine(line);
 }
 
 // Now and then a neighbour drops in for a word while the shop is quiet; work sends them on their way.
@@ -973,6 +995,7 @@ async function openShop() {
     if (outside) goOut(false, byUser);
     else scene.setOutside(false);
     tidyRooms();
+    if (!outside && isStreetShop(room) && !running) greetIn(room);
     // The postcards opened since last time are on the board by the time anyone looks.
     if (room === 'post') void window.lamplight.keptPostcards().then((cards) => next.scene.setPostcards(cards));
   };

@@ -1355,3 +1355,673 @@
   turns:
     - organizer: Cold out. I am checking everyone's heating.
     - adeng: Sit down first. Something hot.
+
+# The street in 1.6 (plan-1.6.md F5): the home shop on the bakery, the post office and the people going by; Auntie
+# Olive and Pip when they drop in. Same ids as lines/chats.yaml.
+
+- id: f5_bread_smell
+  when: idle
+  turns:
+    - xiaoju: Can you smell that?
+    - adeng: The bakery's oven is on.
+    - xiaoju: I'll grab two. Back in a tick.
+
+- id: f5_bread_queue
+  when: idle
+  period: dawn
+  turns:
+    - qingdai: There's a queue outside the bakery.
+    - adeng: Auntie Olive's busiest hour.
+    - qingdai: The loaf on that sign looks real.
+
+- id: f5_bread_price
+  when: idle
+  turns:
+    - xiaoju: Her toast went up again.
+    - laoshi: Flour went up.
+    - xiaoju: How do you know everything?
+    - laoshi: I buy flour.
+
+- id: f5_bread_board
+  when: idle
+  turns:
+    - qingdai: Who chalks the bakery board?
+    - adeng: Auntie Olive herself.
+    - qingdai: Her letters are nicer than mine.
+    - adeng: Twenty years of practice.
+
+- id: f5_bread_oven
+  when: idle
+  turns:
+    - laoshi: Her oven door's squeaked three days.
+    - adeng: Going to look at it?
+    - laoshi: Old Zhou's gone.
+    - laoshi: If he can't, I will.
+
+- id: f5_bread_menu
+  when: idle
+  after: 6
+  turns:
+    - xiaoju: Old Ma's menu is up.
+    - adeng: Where?
+    - xiaoju: Outside the noodle shop. People stop.
+
+- id: f5_bread_starter
+  when: idle
+  turns:
+    - xiaoju: Her starter's older than me, she says.
+    - adeng: Then call it big sister.
+    - xiaoju: I will not.
+
+- id: f5_bread_crumbs
+  when: idle
+  turns:
+    - adeng: Chestnut's whiskers are full of crumbs.
+    - xiaoju: Been to the bakery again.
+    - adeng: We owe Auntie Olive a loaf.
+
+- id: f5_bread_tin
+  when: idle
+  turns:
+    - qingdai: There's an old tin on the bakery wall.
+    - adeng: Her dad's.
+    - qingdai: I want to paint that colour.
+
+- id: f5_bread_rain
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: Rain. No queue at the bakery.
+    - adeng: Good. Off you go.
+    - xiaoju: No umbrella.
+    - adeng: Behind the door.
+
+- id: f5_bread_snow
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: The bakery windows are all fogged.
+    - qingdai: Yellow light inside. Like a painting.
+    - adeng: Go and paint it, then.
+
+- id: f5_bread_night
+  when: idle
+  period: night
+  turns:
+    - adeng: The bakery light's still on.
+    - laoshi: Tomorrow's dough.
+    - adeng: She's up later than us.
+
+- id: f5_post_bell
+  when: idle
+  turns:
+    - xiaoju: The post office bell yelps at every push.
+    - adeng: Pip says it needs a new spring.
+    - laoshi: I've got one.
+
+- id: f5_post_cork
+  when: idle
+  turns:
+    - qingdai: That cork board's all postcards.
+    - adeng: From other shops.
+    - qingdai: Some are very well drawn.
+
+- id: f5_post_green
+  when: idle
+  turns:
+    - qingdai: The postbox there is green.
+    - xiaoju: Aren't they all?
+    - qingdai: The pack had it red. I changed it.
+    - adeng: Good change.
+
+- id: f5_post_scale
+  when: idle
+  turns:
+    - laoshi: The post office scale is off.
+    - adeng: You weighed something?
+    - laoshi: My hammer.
+
+- id: f5_post_letters
+  when: idle
+  turns:
+    - xiaoju: Pip had two bags on today.
+    - adeng: Month end. Bills.
+    - xiaoju: That's why he walks lopsided.
+
+- id: f5_post_card
+  when: idle
+  after: 6
+  turns:
+    - xiaoju: Fern posted that card.
+    - adeng: Who to?
+    - xiaoju: She won't say. Went pink.
+
+- id: f5_post_newsletter
+  when: idle
+  after: 6
+  turns:
+    - adeng: Mrs Wu's newsletter is up downstairs.
+    - qingdai: Nicely laid out.
+    - adeng: Half as many again came to the meeting.
+
+- id: f5_post_route
+  when: idle
+  turns:
+    - xiaoju: Pip says he could do this street blind.
+    - laoshi: He shouldn't.
+    - adeng: ...Flint has a point.
+
+- id: f5_post_rain
+  when: idle
+  sky: rain
+  turns:
+    - adeng: Pip's in the yellow raincoat again.
+    - xiaoju: You can spot him a mile off.
+    - adeng: Every letter's in a bag.
+
+- id: f5_post_snow
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: Pip's still out in this snow.
+    - adeng: Pushing the bike.
+    - xiaoju: I'll keep him a hot tea.
+
+- id: f5_post_dusk
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: The evening van's outside the post office.
+    - adeng: Today's letters are leaving.
+    - qingdai: Did my postcard make it?
+    - adeng: It did.
+
+- id: f5_post_night
+  when: idle
+  period: night
+  turns:
+    - xiaoju: Post office is shut.
+    - adeng: The box isn't. Collected at dawn.
+    - xiaoju: I'll go and post it now, then.
+
+- id: f5_street_people
+  when: idle
+  turns:
+    - xiaoju: More people on the street lately.
+    - adeng: More shops, more people.
+    - xiaoju: One stood at our window ages.
+
+- id: f5_street_stop
+  when: idle
+  turns:
+    - qingdai: Someone stopped by the door just now.
+    - adeng: Didn't come in?
+    - qingdai: Looked at the lamp and went.
+    - adeng: That's something too.
+
+- id: f5_street_dawn
+  when: idle
+  period: dawn
+  turns:
+    - adeng: Joggers on the street already.
+    - xiaoju: I want to start running.
+    - adeng: For years now.
+
+- id: f5_street_evening
+  when: idle
+  period: dusk
+  turns:
+    - xiaoju: Everyone heading home goes to the bakery.
+    - adeng: Tomorrow's breakfast.
+    - xiaoju: Me too, then.
+
+- id: f5_street_night
+  when: idle
+  period: night
+  turns:
+    - laoshi: Street's empty.
+    - adeng: Everyone's home.
+    - laoshi: We should be.
+
+- id: f5_street_umbrella
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: The street's all umbrellas.
+    - qingdai: From above it's a bowl of sweets.
+    - adeng: Above from where?
+    - qingdai: In my head.
+
+- id: f5_street_hurry
+  when: idle
+  sky: rain
+  turns:
+    - adeng: Everyone walks fast in the rain.
+    - laoshi: Wet.
+    - adeng: Some don't.
+    - laoshi: Umbrellas.
+
+- id: f5_street_snow
+  when: idle
+  sky: snow
+  turns:
+    - xiaoju: Not one footprint out there.
+    - adeng: Wait till Pip goes by.
+
+- id: f5_street_glance
+  when: idle
+  turns:
+    - xiaoju: I waved at someone outside.
+    - adeng: And?
+    - xiaoju: He looked round at me and walked on.
+    - adeng: That counts as hello.
+
+- id: f5_street_kid
+  when: idle
+  turns:
+    - qingdai: A kid's pressed to the bakery glass.
+    - xiaoju: Nose all squashed.
+    - adeng: She'll give him a biscuit.
+
+- id: f5_street_count
+  when: idle
+  turns:
+    - xiaoju: Forty-odd people went by this afternoon.
+    - adeng: You counted?
+    - xiaoju: While there was nothing on.
+
+- id: f5_guests_cook
+  when: idle
+  after: 6
+  turns:
+    - adeng: Old Ma says trade's up since the menu.
+    - xiaoju: Is he buying us noodles?
+    - adeng: Any time, he says.
+
+- id: f5_guests_lodger
+  when: idle
+  after: 6
+  turns:
+    - xiaoju: Lin burnt a pot following the recipe.
+    - adeng: Was the recipe wrong?
+    - xiaoju: He had the heat too high.
+
+- id: f5_guests_fern
+  when: idle
+  after: 6
+  turns:
+    - qingdai: Fern's put new flowers out front.
+    - xiaoju: The kind on the card?
+    - qingdai: That kind.
+
+- id: f5_guests_wu
+  when: idle
+  after: 6
+  turns:
+    - adeng: Mrs Wu wants another newsletter.
+    - xiaoju: About what this time?
+    - adeng: No shoes in the stairwell.
+
+- id: baker_shop_open
+  when: idle
+  guest: baker
+  turns:
+    - baker: You've never sat in my bakery.
+    - adeng: One of these days.
+    - baker: Not one of these days. Today.
+
+- id: baker_oven_door
+  when: idle
+  guest: baker
+  turns:
+    - baker: Flint, my oven door's at it again.
+    - laoshi: What sort of noise?
+    - baker: Screech every time it opens.
+    - laoshi: Oil. Tomorrow.
+
+- id: baker_pip
+  when: idle
+  guest: baker
+  turns:
+    - baker: Pip was late today.
+    - adeng: Lots of post.
+    - baker: I've kept him a loaf.
+
+- id: baker_window
+  when: idle
+  guest: baker
+  turns:
+    - baker: Help me lay out my window?
+    - qingdai: Loaves in order of colour.
+    - baker: Pale ones at the front?
+    - qingdai: Dark ones. They look tastier.
+
+- id: baker_menu_thanks
+  when: idle
+  guest: baker
+  after: 6
+  turns:
+    - baker: Old Ma says your menu works a treat.
+    - adeng: His cooking does.
+    - baker: He says I should get one too.
+
+- id: baker_father
+  when: idle
+  guest: baker
+  turns:
+    - baker: My dad only baked three batches a day.
+    - adeng: And you?
+    - baker: Five, and they still sell out.
+
+- id: baker_starter
+  when: idle
+  guest: baker
+  turns:
+    - baker: I brought you a jar of my starter.
+    - xiaoju: Does it need feeding?
+    - baker: Every day. Like a cat.
+    - xiaoju: I can do that.
+
+- id: baker_rain_bread
+  when: idle
+  guest: baker
+  sky: rain
+  turns:
+    - baker: Nobody's buying in this rain. Here.
+    - adeng: We couldn't.
+    - baker: They'll be stale tomorrow.
+
+- id: baker_snow_tea
+  when: idle
+  guest: baker
+  sky: snow
+  turns:
+    - baker: Snowing. I've come begging tea.
+    - adeng: Just brewed.
+    - baker: A warm loaf for it.
+
+- id: baker_night_dough
+  when: idle
+  guest: baker
+  period: night
+  turns:
+    - baker: Dough's covered. Came out for air.
+    - adeng: Sit a while.
+    - baker: A short while. The dough's waiting.
+
+- id: postman_round
+  when: idle
+  guest: postman
+  turns:
+    - postman: Your letters, and a bill.
+    - adeng: Thanks, Pip.
+    - postman: You're my last stop. No trouble.
+
+- id: postman_board
+  when: idle
+  guest: postman
+  turns:
+    - postman: My cork board's nearly full.
+    - qingdai: I'll paint you a new one.
+    - postman: Can you pin into paint?
+    - qingdai: I'll paint it on wood.
+
+- id: postman_bell
+  when: idle
+  guest: postman
+  turns:
+    - postman: Flint, got a spring for my door bell?
+    - laoshi: Yes.
+    - postman: What do I owe you?
+    - laoshi: One loaf.
+
+- id: postman_granny
+  when: idle
+  guest: postman
+  turns:
+    - postman: Granny Chen's letter came today.
+    - xiaoju: Is she on the bench?
+    - postman: Reading it aloud to the sparrows.
+
+- id: postman_bread
+  when: idle
+  guest: postman
+  turns:
+    - postman: Auntie Olive pushed two loaves on me.
+    - adeng: Can you eat both?
+    - postman: One's for you.
+
+- id: postman_scarf
+  when: idle
+  guest: postman
+  sky: snow
+  turns:
+    - postman: I've worn this scarf a good few years.
+    - xiaoju: It's all bobbly.
+    - postman: Granny Chen knitted it. It stays.
+
+- id: postman_rain_coat
+  when: idle
+  guest: postman
+  sky: rain
+  turns:
+    - postman: Raincoat's dripping by the door. Mind.
+    - adeng: Come in and dry off.
+    - postman: Letters are dry. I saw to that.
+
+- id: postman_dawn
+  when: idle
+  guest: postman
+  period: dawn
+  turns:
+    - postman: First van's letters. You're first.
+    - adeng: This early?
+    - postman: Bakery light goes on, I go out.
+
+- id: postman_card_made
+  when: idle
+  guest: postman
+  after: 6
+  turns:
+    - postman: I delivered Fern's card.
+    - xiaoju: How did they take it?
+    - postman: Stood reading it ages before going in.
+
+- id: postman_twenty
+  when: idle
+  guest: postman
+  turns:
+    - postman: Nearly twenty years on this street.
+    - adeng: Longer than we've been open.
+    - postman: Your first-day letter was mine too.
+
+- id: f5_holiday_bread_xmas
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: Auntie Olive's gingerbread house is up.
+    - qingdai: The icing roof's crooked.
+    - adeng: Makes it look real.
+
+- id: f5_holiday_post_xmas
+  when: idle
+  holiday: christmas
+  turns:
+    - adeng: Pip's delivered three times the cards.
+    - xiaoju: Any for us?
+    - adeng: One. No name on it.
+
+- id: f5_holiday_new_year
+  when: idle
+  holiday: new_year
+  turns:
+    - xiaoju: The bakery's got a fu sign on the door.
+    - qingdai: Upside down.
+    - adeng: She did that on purpose.
+
+- id: f5_holiday_mid_autumn
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - adeng: Auntie Olive sent mooncakes.
+    - xiaoju: What filling?
+    - adeng: Red bean, and one salted yolk.
+    - xiaoju: Bagsy the yolk.
+
+- id: f5_holiday_halloween
+  when: idle
+  holiday: halloween
+  turns:
+    - qingdai: Someone posted a pumpkin.
+    - xiaoju: You can post a pumpkin?
+    - qingdai: Pip carried it the length of the street.
+
+- id: f5_holiday_lantern
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: Lantern riddles up by the post counter.
+    - adeng: Solved any?
+    - xiaoju: One. Pip told me the answer.
+
+- id: f5_tales_bakery
+  when: idle
+  turns:
+    - xiaoju: She came here on the wrong bus, she says.
+    - adeng: Lucky wrong bus.
+    - xiaoju: Or no bread for us.
+
+- id: f5_tales_post
+  when: idle
+  turns:
+    - adeng: One letter just said, the shop with a lamp.
+    - xiaoju: That's us.
+    - adeng: So Pip brought it here.
+
+- id: f5_tales_first_letter
+  when: idle
+  turns:
+    - qingdai: Pip brought the bakery's first letter.
+    - xiaoju: They've known each other twenty years?
+    - qingdai: Longer than any of us.
+
+- id: f5_tales_ring
+  when: idle
+  turns:
+    - xiaoju: She plaited a ring loaf for the wall.
+    - laoshi: Not for eating?
+    - xiaoju: It is. Nobody will.
+    - laoshi: Then look at it.
+
+- id: f5_cat_bakery
+  when: idle
+  turns:
+    - adeng: Chestnut's camped outside the bakery.
+    - xiaoju: Waiting for crusts.
+    - adeng: More punctual than us.
+
+- id: f5_cat_post
+  when: idle
+  turns:
+    - xiaoju: Chestnut's asleep on the parcel shelf.
+    - adeng: Pip didn't shoo him?
+    - xiaoju: Says he stops the parcels blowing off.
+
+- id: f5_cat_passers
+  when: idle
+  turns:
+    - qingdai: Chestnut's on the sill watching people.
+    - adeng: All afternoon.
+    - qingdai: Just like Clem.
+    - xiaoju: I heard that.
+
+- id: f5_errand_bread
+  when: idle
+  turns:
+    - adeng: Who's getting tomorrow's breakfast?
+    - xiaoju: Me!
+    - laoshi: She'll buy two.
+    - xiaoju: One's for the walk back.
+
+- id: f5_errand_post
+  when: idle
+  turns:
+    - qingdai: I've a postcard to send.
+    - adeng: Post office is down the street.
+    - qingdai: Will Pip laugh at my handwriting?
+    - adeng: He sees worse every day.
+
+- id: f5_errand_stamp
+  when: idle
+  turns:
+    - xiaoju: Have stamps gone up again?
+    - laoshi: A little.
+    - xiaoju: You write letters, Flint?
+    - laoshi: To my brother.
+
+- id: f5_street_lamp
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: The street lamps are coming on.
+    - adeng: From the post office end.
+    - qingdai: Ours is the last.
+
+- id: f5_street_quiet
+  when: idle
+  period: day
+  turns:
+    - adeng: Afternoons are quietest out there.
+    - xiaoju: Only the bakery bell.
+    - adeng: And the post office's.
+
+- id: f5_street_bench
+  when: idle
+  turns:
+    - xiaoju: A stranger's on the bench.
+    - adeng: Granny Chen's spot?
+    - xiaoju: He got up when she came.
+
+- id: f5_street_ask
+  when: idle
+  turns:
+    - qingdai: Someone asked me the way to the post.
+    - adeng: You told them?
+    - qingdai: Follow the bread smell, then keep going.
+
+- id: f5_street_petals
+  when: idle
+  sky: petals
+  turns:
+    - xiaoju: Petals all down the street.
+    - qingdai: Stuck to the bakery glass too.
+    - adeng: She'll want the window cleaned.
+
+- id: f5_street_leaves
+  when: idle
+  sky: leaves
+  turns:
+    - adeng: Pip's crunching through the leaves.
+    - xiaoju: You can hear it through the glass.
+    - laoshi: Sweep it.
+
+- id: f5_waiting_bread
+  when: waiting
+  turns:
+    - xiaoju: Shall I get bread while we wait?
+    - adeng: Go on. Bring one back.
+    - xiaoju: Bringing three.
+
+- id: f5_waiting_post
+  when: waiting
+  turns:
+    - qingdai: While we wait, I'll write a postcard.
+    - adeng: Who to?
+    - qingdai: To this shop.
+
+- id: f5_waiting_window
+  when: waiting
+  turns:
+    - xiaoju: That's the tenth person past the window.
+    - adeng: You're counting?
+    - xiaoju: At twenty the work's done.

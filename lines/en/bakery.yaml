@@ -145,3 +145,80 @@ cancelled:
   - { id: bk_cancelled_01, speaker: guiyi, bubbles: ["All right, we'll leave it."] }
   - { id: bk_cancelled_02, speaker: guiyi, bubbles: ["Fine. What's made stays."] }
   - { id: bk_cancelled_03, speaker: guiyi, bubbles: ["All right, no more.", "I'll cover the dough. It'll keep."] }
+
+# What Auntie Olive says as you walk into the bakery (plan-1.6.md F5, app/renderer/stage/shoptalk.ts): the holiday's
+# line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/bakery.yaml.
+shop_in:
+  - { id: bk_in_01, speaker: guiyi, bubbles: ["Come in. The oven's hot."] }
+  - { id: bk_in_02, speaker: guiyi, bubbles: ["Mind the flour on the floor. It's slippy."] }
+  - { id: bk_in_03, speaker: guiyi, bubbles: ["Good timing. A batch just came out."] }
+  - { id: bk_in_04, speaker: guiyi, bubbles: ["Wipe your feet on the mat, love."] }
+  - { id: bk_in_05, speaker: guiyi, bubbles: ["Have a look. Say when you're hungry."] }
+  - { id: bk_in_dawn_01, speaker: guiyi, when: period_dawn, bubbles: ["This early?", "First batch isn't done. Have a sniff."] }
+  - { id: bk_in_dawn_02, speaker: guiyi, when: period_dawn, bubbles: ["Up at four. The dough needs its rest."] }
+  - { id: bk_in_day_01, speaker: guiyi, when: period_day, bubbles: ["Lunch rush. Give the counter some room."] }
+  - { id: bk_in_dusk_01, speaker: guiyi, when: period_dusk, bubbles: ["Evening. What's left goes cheap."] }
+  - { id: bk_in_dusk_02, speaker: guiyi, when: period_dusk, bubbles: ["You've caught the last batch."] }
+  - { id: bk_in_night_01, speaker: guiyi, when: period_night, bubbles: ["Nearly closing.", "I'm mixing tomorrow's dough."] }
+  - { id: bk_in_night_02, speaker: guiyi, when: period_night, bubbles: ["Oven's off, but the room's still warm."] }
+  - { id: bk_in_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["Dough's slow on a wet day.", "Leave your brolly by the door."] }
+  - { id: bk_in_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["Quick, come by the oven. It's warm."] }
+  - { id: bk_in_spring_01, speaker: guiyi, when: season_spring, bubbles: ["Spring's here. I made green rice buns."] }
+  - { id: bk_in_summer_01, speaker: guiyi, when: season_summer, bubbles: ["Hot day. Don't stand by the oven."] }
+  - { id: bk_in_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["New wheat's in. You can smell it."] }
+  - { id: bk_in_winter_01, speaker: guiyi, when: season_winter, bubbles: ["Winter. Warm bread sells itself."] }
+  - { id: bk_in_new_year, speaker: guiyi, when: holiday_new_year, bubbles: ["New Year at last.", "I've steamed a tray of rice cake."] }
+  - { id: bk_in_lantern, speaker: guiyi, when: holiday_lantern, bubbles: ["Lantern Festival. Dumplings are on."] }
+  - { id: bk_in_dragon_boat, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["No zongzi here, but plenty of bread."] }
+  - { id: bk_in_mid_autumn, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["I baked the mooncakes myself. Take one."] }
+  - { id: bk_in_halloween, speaker: guiyi, when: holiday_halloween, bubbles: ["Pumpkin bread. That's all today."] }
+  - { id: bk_in_christmas, speaker: guiyi, when: holiday_christmas, bubbles: ["I've had a go at a gingerbread house."] }
+
+# Auntie Olive now and then, while it's quiet: the weather, the season, who came in, closing up.
+shop_idle:
+  - { id: bk_idle_01, speaker: guiyi, bubbles: ["Knead till it stretches thin as paper."] }
+  - { id: bk_idle_02, speaker: guiyi, bubbles: ["This batch is baked just right."] }
+  - { id: bk_idle_03, speaker: guiyi, bubbles: ["Starter needs feeding."] }
+  - { id: bk_idle_04, speaker: guiyi, bubbles: ["One shelf on the rack's still empty."] }
+  - { id: bk_idle_05, speaker: guiyi, bubbles: ["The mixer's noisy today."] }
+  - { id: bk_idle_06, speaker: guiyi, bubbles: ["Those prices on the board want redoing."] }
+  - { id: bk_idle_07, speaker: guiyi, bubbles: ["Half a sack of flour left. Order more."] }
+  - { id: bk_idle_08, speaker: guiyi, bubbles: ["Croissants want a lot of folding.", "Miss one and they're not flaky."] }
+  - { id: bk_idle_09, speaker: guiyi, bubbles: ["Brush the trays while they're warm."] }
+  - { id: bk_idle_10, speaker: guiyi, bubbles: ["That tin's older than I am."] }
+  - { id: bk_idle_11, speaker: guiyi, bubbles: ["Dough's resting. So am I."] }
+  - { id: bk_idle_12, speaker: guiyi, bubbles: ["Till roll's nearly out."] }
+  - { id: bk_idle_13, speaker: guiyi, bubbles: ["Old Ma had two big buns this morning."] }
+  - { id: bk_idle_14, speaker: guiyi, bubbles: ["I've kept a soft loaf for Granny Chen."] }
+  - { id: bk_idle_15, speaker: guiyi, bubbles: ["Pip says lots of post today. He'll be late."] }
+  - { id: bk_idle_16, speaker: guiyi, bubbles: ["Xiaohe bought the cheapest roll again.", "I slipped a biscuit in."] }
+  - { id: bk_idle_17, speaker: guiyi, bubbles: ["Old Zhou says my oven door wants oil."] }
+  - { id: bk_idle_18, speaker: guiyi, bubbles: ["Lin asked for a recipe. I sent him to you."] }
+  - { id: bk_idle_19, speaker: guiyi, bubbles: ["Someone stood outside a while, then left."] }
+  - { id: bk_idle_20, speaker: guiyi, bubbles: ["Someone's looking at the loaves.", "I gave them a nod."] }
+  - { id: bk_idle_21, speaker: guiyi, bubbles: ["Fern swapped some flowers for two loaves."] }
+  - { id: bk_idle_22, speaker: guiyi, bubbles: ["Mrs Wu wants twenty rolls for a meeting."] }
+  - { id: bk_idle_23, speaker: guiyi, bubbles: ["Wick came by for a bag of toast."] }
+  - { id: bk_idle_24, speaker: guiyi, bubbles: ["The bread knife wants sharpening."] }
+  - { id: bk_idle_dawn_01, speaker: guiyi, when: period_dawn, bubbles: ["First batch out, then the street wakes."] }
+  - { id: bk_idle_dawn_02, speaker: guiyi, when: period_dawn, bubbles: ["The milk van's just gone by."] }
+  - { id: bk_idle_day_01, speaker: guiyi, when: period_day, bubbles: ["Get through lunch and it's easy."] }
+  - { id: bk_idle_dusk_01, speaker: guiyi, when: period_dusk, bubbles: ["These left over make rusks tomorrow."] }
+  - { id: bk_idle_dusk_02, speaker: guiyi, when: period_dusk, bubbles: ["Home time. Busy out front."] }
+  - { id: bk_idle_night_01, speaker: guiyi, when: period_night, bubbles: ["Oven's out. Time to shut up shop."] }
+  - { id: bk_idle_night_02, speaker: guiyi, when: period_night, bubbles: ["Tomorrow's dough is covered. Now we wait."] }
+  - { id: bk_idle_night_03, speaker: guiyi, when: period_night, bubbles: ["One lamp on, to see if it's risen."] }
+  - { id: bk_idle_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["Rain. Fewer people out for bread."] }
+  - { id: bk_idle_rain_02, speaker: guiyi, when: sky_rain, bubbles: ["Damp day. Keep the flour sealed."] }
+  - { id: bk_idle_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["In the snow the oven's the heating."] }
+  - { id: bk_idle_snow_02, speaker: guiyi, when: sky_snow, bubbles: ["I'll sweep the step in a bit."] }
+  - { id: bk_idle_petals_01, speaker: guiyi, when: sky_petals, bubbles: ["Petals blowing in. Not in the dough."] }
+  - { id: bk_idle_leaves_01, speaker: guiyi, when: sky_leaves, bubbles: ["Leaves in the doorway. I'll sweep."] }
+  - { id: bk_idle_spring_01, speaker: guiyi, when: season_spring, bubbles: ["Dough rises fast in spring. Watch it."] }
+  - { id: bk_idle_spring_02, speaker: guiyi, when: season_spring, bubbles: ["I want to try a mugwort loaf."] }
+  - { id: bk_idle_summer_01, speaker: guiyi, when: season_summer, bubbles: ["Bake less in summer. It won't keep."] }
+  - { id: bk_idle_summer_02, speaker: guiyi, when: season_summer, bubbles: ["There's mung bean cake in the freezer."] }
+  - { id: bk_idle_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["Pumpkin loaves in autumn. Lovely colour."] }
+  - { id: bk_idle_autumn_02, speaker: guiyi, when: season_autumn, bubbles: ["Chestnuts are in. Chestnut cake, then."] }
+  - { id: bk_idle_winter_01, speaker: guiyi, when: season_winter, bubbles: ["Dough wants longer to rest in winter."] }
+  - { id: bk_idle_winter_02, speaker: guiyi, when: season_winter, bubbles: ["Cold hands. Warm them by the oven first."] }

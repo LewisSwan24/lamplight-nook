@@ -77,7 +77,7 @@ describe('what neighbours say', () => {
   it('picks a visit for the day, only with staff who are in', () => {
     const used = new Set<string>();
     const rain = pickVisit(chats, 'postman', { sky: 'rain', holiday: null, season: 'summer' }, 'day', everyone, used, nothing, seeded(5));
-    expect(rain?.id).toBe('postman_rain');
+    expect(rain?.sky).toBe('rain');
     const noLaoshi = (who: string) => who !== 'laoshi';
     for (let i = 0; i < 20; i++) {
       const v = pickVisit(chats, 'postman', { sky: 'clear', holiday: null, season: 'summer' }, 'day', noLaoshi, used, nothing, seeded(i));

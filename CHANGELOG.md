@@ -2,6 +2,10 @@
 
 ## Unreleased (1.6)
 
+- **The keepers talk.** Walk into the bakery or the post office and Auntie Olive or Pip says something that fits the
+  hour, the weather, the season or the holiday. While the shop is quiet they talk now and then, about the work, the
+  street and the neighbours who came by. At night they are closing up. Back home, the staff have new things to talk
+  about: the bakery, the post office, the people going by outside, and the stories the two have told.
 - **Auntie Olive and Pip tell their stories.** The baker and the postman now have five chapters each, coming with the
   work done and the days gone by like the other neighbours'. They wait at their own doors with a bubble. Auntie Olive
   tells how she came to open a bakery on this street; Pip tells what twenty years of letters have left him with. Each

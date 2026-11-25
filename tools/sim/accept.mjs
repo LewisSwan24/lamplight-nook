@@ -18,6 +18,17 @@ import { parse as parseYaml } from 'yaml';
 import { mainCards } from './cards.mjs';
 import { pdfSays, readPdf } from './pdftext.mjs';
 import { FAKE_CLAUDE, freshHome, launch, locale, onboarded, sleep, ROOT } from './shop.mjs';
+
+/**
+ * The keeper of a shop along the street says one of their `shop_in` lines as you walk in (plan-1.6.md F5). Returns the
+ * bubble seen, or null after a few seconds of nothing.
+ */
+async function greeted(page, lang, shopId, keeper) {
+  const lines = parseYaml(readFileSync(join(ROOT, lang === 'en' ? `lines/en/${shopId}.yaml` : `lines/${shopId}.yaml`), 'utf8')).shop_in;
+  const bubbles = lines.flatMap((l) => l.bubbles);
+  return page.waitForFunction(([who, all]) => all.find((b) => window.lamplightDebug.scene.isSaying(who, b)) ?? null, [keeper, bubbles], { timeout: 6000 })
+    .then((h) => h.jsonValue(), () => null);
+}
 import { OFFICE_FILES, OFFICE_READ_FILE } from './plays.mjs';
 import { startCompatible } from './compatible.mjs';
 
@@ -4940,6 +4951,10 @@ const SCENARIOS = {
       await sleep(2500);
       await page.evaluate(() => window.lamplightDebug.street.onFront('bakery', true));
       for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'bakery'; await sleep(300));
+      // The keeper says a word as you walk in (plan-1.6.md F5).
+      const hello = await greeted(page, lang, 'bakery', 'guiyi');
+      check(hello !== null, 'guiyi said nothing from shop_in walking into the bakery');
+      await shop.shot(join(out, 'bakery-hello.png'));
       await sleep(2500);
       check(await room() === 'bakery', `did not go into the bakery: ${await room()}`);
       const first = await here();
@@ -5008,6 +5023,10 @@ const SCENARIOS = {
       await sleep(2500);
       await page.evaluate(() => window.lamplightDebug.street.onFront('post', true));
       for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'post'; await sleep(300));
+      // The keeper says a word as you walk in (plan-1.6.md F5).
+      const hello = await greeted(page, lang, 'post', 'axin');
+      check(hello !== null, 'axin said nothing from shop_in walking into the post office');
+      await shop.shot(join(out, 'post-hello.png'));
       await sleep(2500);
       check(await room() === 'post', `did not go into the post office: ${await room()}`);
       const first = await here();
