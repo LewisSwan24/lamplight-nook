@@ -316,7 +316,7 @@ E0 已经定了：1.5 不做服务器，手机端是网页，不收费（`docs/e
 **发布（Lewis 说发才发）**
 
 - [ ] 1.4 已经发布，`release-1.5` 已经搬到 `main` 上。
-- [ ] 版本号改成 1.5.0，写 CHANGELOG 和 `release-notes/v1.5.0.md`。
+- [ ] 版本号改成 1.5.0，写 CHANGELOG 和 `release-notes/v1.5.0.md`。版本号 Lewis 2026-11-25 叫先改了（#VERPR）。CHANGELOG 的标题和发布说明留到发布时写。
 - [ ] 先打 rc 标签跑通 `release.yml`，再打 `v1.5.0`。
 - [ ] 商店版提交新版本，隐私问卷按 E6 改。
 

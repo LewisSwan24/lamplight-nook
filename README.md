@@ -35,7 +35,7 @@ user-facing text lives in `locales/` (`zh-CN.json`, `en.json`) and `lines/` (Chi
 |---|---|---|
 | 1.0.0 | Released 5 Nov 2026 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases), `main` |
 | 1.1 to 1.3 | Finished, not released yet | `main` |
-| 1.4 and 1.5 | In progress | `release-1.5` (1.4 is folded into it); plans in `docs/road-to-1.4.md` and `docs/plan-1.5.md` |
+| 1.4 and 1.5 | Finished, not released yet; the app calls itself 1.5.0 | `release-1.5` (1.4 is folded into it); plans in `docs/road-to-1.4.md` and `docs/plan-1.5.md` |
 
 What changed in each is in `CHANGELOG.md`.
 
