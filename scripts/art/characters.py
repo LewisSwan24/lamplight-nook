@@ -147,6 +147,24 @@ PLAYERS = [
 # Rows 0..10 of the generator sheet (gift is row 10, app/renderer/game/sprites.ts).
 PLAYER_ROWS = 11
 
+# People passing along the street (plan-1.6.md F3), saved in assets/sprites/ as passer-1.png, passer-2.png, passer-3.png,
+# passer-4.png, passer-5.png, passer-6.png, passer-7.png, passer-8.png, passer-9.png and passer-10.png: strangers, so
+# none wears what the staff, the neighbours or a player's look wears. They only stand and walk, so only the rows up to
+# the walk are kept (app/renderer/game/crowd.ts, PASSER_LOOKS).
+PASSERS = [
+    ['Bodies/16x16/Body_01.png', 'Outfits/16x16/Outfit_01_01.png', 'Hairstyles/16x16/Hairstyle_04_02.png'],
+    ['Bodies/16x16/Body_03.png', 'Outfits/16x16/Outfit_02_01.png', 'Hairstyles/16x16/Hairstyle_07_01.png'],
+    ['Bodies/16x16/Body_02.png', 'Outfits/16x16/Outfit_03_01.png', 'Hairstyles/16x16/Hairstyle_13_04.png'],
+    ['Bodies/16x16/Body_04.png', 'Outfits/16x16/Outfit_05_01.png', 'Hairstyles/16x16/Hairstyle_08_03.png'],
+    ['Bodies/16x16/Body_01.png', 'Outfits/16x16/Outfit_06_01.png', 'Hairstyles/16x16/Hairstyle_15_06.png'],
+    ['Bodies/16x16/Body_02.png', 'Outfits/16x16/Outfit_07_01.png', 'Hairstyles/16x16/Hairstyle_18_01.png'],
+    ['Bodies/16x16/Body_03.png', 'Outfits/16x16/Outfit_08_01.png', 'Hairstyles/16x16/Hairstyle_22_05.png'],
+    ['Bodies/16x16/Body_04.png', 'Outfits/16x16/Outfit_15_01.png', 'Hairstyles/16x16/Hairstyle_06_02.png'],
+    ['Bodies/16x16/Body_01.png', 'Outfits/16x16/Outfit_17_01.png', 'Hairstyles/16x16/Hairstyle_24_05.png'],
+    ['Bodies/16x16/Body_02.png', 'Outfits/16x16/Outfit_20_01.png', 'Hairstyles/16x16/Hairstyle_14_03.png'],
+]
+PASSER_ROWS = 3
+
 
 def hex_rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
@@ -290,3 +308,8 @@ if __name__ == '__main__':
         sheet = build(f'you-{n}', {'layers': layers}, write=False)
         save(sheet.crop((0, 0, SHEET_SIZE[0], PLAYER_ROWS * 32)), OUT / f'you-{n}.png', optimize=True)
         print('built', f'you-{n}')
+    for n, layers in enumerate(PASSERS, 1):
+        layers = [layers[0], 'Eyes/16x16/Eyes_01.png', *layers[1:]]
+        sheet = build(f'passer-{n}', {'layers': layers}, write=False)
+        save(sheet.crop((0, 0, SHEET_SIZE[0], PASSER_ROWS * 32)), OUT / f'passer-{n}.png', optimize=True)
+        print('built', f'passer-{n}')

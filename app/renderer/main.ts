@@ -11,6 +11,7 @@ import { CafeScene } from './game/CafeScene';
 import { StreetScene } from './game/StreetScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
 import { outsideFlags } from './game/weather';
+import { hourOf } from './game/crowd';
 import { VisitPlanner, pickVisit, welcomeGuests } from './game/guests';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, toolIconPx, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
@@ -939,6 +940,7 @@ async function openShop() {
   street.walker = () => scene.streetWalker();
   street.outside = () => scene.outside();
   street.calm = () => scene.reducedMotion;
+  street.hour = () => hourOf(scene.period, new Date().getHours());
   street.onActor = (id) => scene.onActorClick(id);
   street.onNeighbour = hearStory;
   street.onFront = (id, open) => {

@@ -5493,6 +5493,43 @@ const SCENARIOS = {
           await sleep(300);
           await shop.shot(join(out, `street-${period}${small}.png`));
         }
+        if (!size) {
+          // People passing (plan-1.6.md F3): a few by day, and one clicked looks round; nobody deep in the night; in the
+          // rain fewer, each under an umbrella.
+          const passers = () => page.evaluate(() => {
+            const g = window.lamplightDebug.street;
+            const left = g.cameras.main.scrollX;
+            return g.crowd.passers.filter((p) => p.x >= left && p.x <= left + 320).map((p) => ({ id: p.id, x: p.x - left, y: p.y, pose: p.pose, speed: p.speed }));
+          });
+          const umbrellas = () => page.evaluate(() => [...window.lamplightDebug.street.drawnPassers.values()].filter((d) => d.umbrella.visible).length);
+          await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+          await sleep(1500);
+          const day = await passers();
+          check(day.length >= 1 && day.length <= 5, `by day the street has ${day.length} people in view`);
+          const box = await page.locator('#game canvas').boundingBox();
+          const k = box.width / 320;
+          const one = day[0];
+          await page.mouse.click(box.x + one.x * k, box.y + (one.y - 12) * k);
+          await sleep(150);
+          const looked = await page.evaluate((id) => window.lamplightDebug.street.crowd.passers.find((p) => p.id === id)?.pose, one.id);
+          check(looked === 'glance', `a clicked passer does not look round: ${looked}`);
+          await shop.shot(join(out, 'street-crowd-day.png'));
+          await page.evaluate(() => window.lamplightDebug.scene.setPeriod('night', true));
+          let night = await passers();
+          for (let i = 0; i < 40 && night.length; i++) { await sleep(500); night = await passers(); }
+          check(night.length === 0, `deep in the night ${night.length} people are still out`);
+          await shop.shot(join(out, 'street-crowd-night.png'));
+          await page.evaluate(() => { window.lamplightDebug.scene.setPeriod('day', true); window.lamplightDebug.scene.setWeather('rain', null, false); });
+          let wet = await passers();
+          for (let i = 0; i < 30 && !wet.length; i++) { await sleep(500); wet = await passers(); }
+          await sleep(1500);
+          wet = await passers();
+          check(wet.length >= 1 && wet.length <= 2, `in the rain the street has ${wet.length} people in view`);
+          check(wet.every((p) => p.pose !== 'walk' || p.speed === 45), `in the rain they do not hurry: ${JSON.stringify(wet)}`);
+          check(await umbrellas() === (await page.evaluate(() => window.lamplightDebug.street.crowd.passers.length)), 'not everyone out in the rain has an umbrella');
+          await shop.shot(join(out, 'street-crowd-rain.png'));
+          await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        }
         await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
         for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
         await sleep(200);
