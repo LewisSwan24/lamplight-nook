@@ -1403,9 +1403,11 @@
       "empty": "The shelf is still empty. The first thing we finish goes right here.",
       "search": "Find one: a name, what you asked, a month",
       "kindsLabel": "By kind",
+      "shopsLabel": "By shop",
+      "shops": { "home": "Lamplight Nook", "print": "Print shop", "studio": "Studio", "workshop": "Workshop", "bakery": "Bakery", "post": "Post office" },
       "all": "All",
       "found": "{n} found",
-      "noMatch": "Nothing matches. Try other words, or another kind.",
+      "noMatch": "Nothing matches. Try other words, another kind or another shop.",
       "more": "{n} older: show more",
       "kinds": {
         "page": "Pages",

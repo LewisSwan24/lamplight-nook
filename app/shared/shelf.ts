@@ -1,9 +1,11 @@
+import { SHOPS, type Shop } from './dispatch';
 import { WORK_ICONS, type WorkIcon } from './growth';
 import { locale } from './i18n';
 import { monthWords } from './localday';
 
-type Shelved = { title: string; date: string; icon: WorkIcon; want?: string };
-export type ShelfFilter = { query: string; kind: WorkIcon | null };
+type Shelved = { title: string; date: string; icon: WorkIcon; want?: string; shop: Shop };
+/** Words, a kind and a shop (plan-1.8 H7), all at once; null is any. */
+export type ShelfFilter = { query: string; kind: WorkIcon | null; shop?: Shop | null };
 
 const plain = (text: string) => text.normalize('NFKC').toLowerCase();
 
@@ -16,10 +18,11 @@ function saidMonth(month: string): string[] {
 }
 
 /** What someone remembers about a work: words from its name or from what they asked for, the month, or the kind of thing it was. */
-export function filterWorks<T extends Shelved>(works: T[], { query, kind }: ShelfFilter): T[] {
+export function filterWorks<T extends Shelved>(works: T[], { query, kind, shop }: ShelfFilter): T[] {
   const words = plain(query).split(/\s+/).filter(Boolean);
   return works.filter((w) => {
     if (kind && w.icon !== kind) return false;
+    if (shop && w.shop !== shop) return false;
     const text = plain(`${w.title} ${w.want ?? ''} ${w.date}`);
     // From the start of the word only: 2月 is not 12月.
     const month = saidMonth(w.date.slice(0, 7));
@@ -29,6 +32,11 @@ export function filterWorks<T extends Shelved>(works: T[], { query, kind }: Shel
 
 export function kindsOf(works: Shelved[]): { kind: WorkIcon; n: number }[] {
   return WORK_ICONS.map((kind) => ({ kind, n: works.filter((w) => w.icon === kind).length })).filter((k) => k.n > 0);
+}
+
+/** The shops that made something on the shelf, in the street's order, home first. */
+export function shopsOf(works: Shelved[]): { shop: Shop; n: number }[] {
+  return SHOPS.map((shop) => ({ shop, n: works.filter((w) => w.shop === shop).length })).filter((s) => s.n > 0);
 }
 
 /** Works under their months, in the order given. */

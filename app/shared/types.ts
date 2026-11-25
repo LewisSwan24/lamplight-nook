@@ -825,6 +825,8 @@ export type Work = {
   want?: string;
   /** The project it belongs to, for going there from the shelf (B2). */
   project: string;
+  /** The shop that made it, from its template; a free-form order is home's (plan-1.8 H7). */
+  shop: Shop;
 };
 
 /** Where a project stands, on the project board (B2). Queued comes with B5. */
