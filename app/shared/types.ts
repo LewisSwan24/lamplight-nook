@@ -14,12 +14,13 @@ import type { Provider } from './providers';
 /** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner' | 'cabinet' | 'mailslot';
 
-export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'guiyi' | 'cat';
+export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'guiyi' | 'axin' | 'cat';
 /**
  * Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts):
- * since plan-1.6.md F1 also Old Ma from the noodle bar (`cook`) and Lin who lives upstairs (`lodger`).
+ * since plan-1.6.md F1 also Old Ma from the noodle bar (`cook`) and Lin who lives upstairs (`lodger`), and since F2 Fern
+ * from the flower shop (`florist`) and Mrs Wu from the residents' committee (`organizer`).
  */
-export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger'] as const;
+export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer'] as const;
 export type GuestId = (typeof GUESTS)[number];
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;
@@ -256,6 +257,10 @@ export interface LamplightApi {
   sendPostcard(): Promise<boolean>;
   /** A postcard to look at, picked by the user: 'open' once its window is up, why not otherwise, null if cancelled. */
   openPostcard(): Promise<'open' | 'big' | 'notPostcard' | 'broken' | null>;
+  /** The postcards the post office keeps on its wall (plan-1.6.md F2), newest first: who sent each and where their shop is. */
+  keptPostcards(): Promise<{ name: string; home: SceneId }[]>;
+  /** Look at a kept postcard again, by its place on the wall: false if there is none there. */
+  openKeptPostcard(i: number): Promise<boolean>;
   /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
   relinkWork(id: string): Promise<'found' | 'wrong' | 'broad' | 'taken' | 'cancelled'>;
   /** Change finished work in its own folder, continuing where the staff left off. */
@@ -578,6 +583,8 @@ export const IPC = {
   lanSetCap: 'lan:set-cap',
   sendPostcard: 'postcard:send',
   openPostcard: 'postcard:open',
+  keptPostcards: 'postcard:kept',
+  openKeptPostcard: 'postcard:open-kept',
   /** The postcard being looked at, for its own window's preload (sync), and leaving it. */
   visitCard: 'visit:card',
   visitHome: 'visit:home',

@@ -23,6 +23,7 @@
     "xiaozhe": "Umber",
     "xiaoding": "Tack",
     "guiyi": "Auntie Olive",
+    "axin": "Pip",
     "cat": "Chestnut"
   },
   "animals": {
@@ -36,7 +37,9 @@
     "granny": "Granny Chen",
     "student": "Xiaohe",
     "cook": "Old Ma",
-    "lodger": "Lin"
+    "lodger": "Lin",
+    "florist": "Fern",
+    "organizer": "Mrs Wu"
   },
   "you": {
     "label": "You"
@@ -215,6 +218,12 @@
       "recipe": "Write a recipe",
       "recipeFill": "Write up ... as a recipe, for ... people.",
       "recipeHint": "Write down the dish and how you usually make it, or hand over a photo of a handwritten card. Where you give no amounts, everyday ones are used, marked as a starting point to adjust.",
+      "card": "Make a card",
+      "cardFill": "Make a ... card for ..., saying: ...",
+      "cardHint": "Say what the day is and who it is for, and write what you want it to say in the request. Hand over a photo to put on it if you like. You get a picture, and a PDF to print.",
+      "newsletter": "Make a newsletter",
+      "newsletterFill": "Make a newsletter for ..., this issue about: ...",
+      "newsletterHint": "Write what this issue covers in the request, or hand over notes and photos. Only what you give goes in; missing dates and names are left blank for you. You get a Word document and a PDF.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
       "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
@@ -587,6 +596,8 @@
         "toolbox": "Toolbox",
         "chalkboard": "Menu board",
         "cookbook": "Recipe book",
+        "cardline": "String of cards",
+        "newsletters": "Newsletters",
         "chime": "These wind chimes",
         "aquarium": "This fish tank",
         "scroll": "This scroll",
@@ -677,7 +688,9 @@
         "granny": "Take your time, dear. I'm in no hurry.",
         "student": "I'll only sit a while. Don't mind me.",
         "cook": "Lunch rush is over. Any tea going?",
-        "lodger": "I'll only stay a minute. Can I ask you about a dish?"
+        "lodger": "I'll only stay a minute. Can I ask you about a dish?",
+        "florist": "Just passing. The coffee smelled too good.",
+        "organizer": "Only a minute. There is a meeting downstairs."
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {
@@ -691,8 +704,10 @@
         "readinglamp": "We made some reading notes, and a reading lamp went on the table.",
         "postcards": "We made a travel guide, and postcards went up on the wall.",
         "toolbox": "We made a small tool, and Flint brought his toolbox over.",
-        "chalkboard": "We made someone a menu, and a little chalkboard went up on the wall.",
-        "cookbook": "After a couple of recipes, a recipe book joined the shelf."
+        "chalkboard": "We made someone a menu, and a little chalkboard went up against the wall.",
+        "cookbook": "After a couple of recipes, a recipe book joined the shelf.",
+        "cardline": "We made someone a card, and a string of cards went up across the side window.",
+        "newsletters": "After two newsletters, a pile of them sits on the big table for anyone to take."
       }
     },
     "run": {
@@ -822,7 +837,7 @@
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
       "moved": "All moved in, {name}. Everything is where it was.",
-      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop", "bakery": "the bakery" },
+      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop", "bakery": "the bakery", "post": "the post office" },
       "calling": "A question from {shop}. Click to go over",
       "notes": {
         "cafe": "The cafe.",
@@ -844,7 +859,10 @@
       "street": "Out to the street",
       "inside": "Back inside",
       "onlyHere": "Just {name}'s shop today.",
-      "stamp": "Lamplight Nook"
+      "stamp": "Lamplight Nook",
+      "wallTitle": "A postcard from {name}",
+      "wallOpen": "Visit again",
+      "wallEmpty": "No postcards have come yet."
     },
     "access": {
       "captionsButton": "Captions",
@@ -1165,6 +1183,12 @@
       "menuPng": "menu.png",
       "menuPdf": "menu.pdf",
       "recipe": "recipe.docx",
+      "cardPage": "card.html",
+      "cardPng": "card.png",
+      "cardPdf": "card.pdf",
+      "newsletter": "newsletter.docx",
+      "newsletterPage": "newsletter.html",
+      "newsletterPdf": "newsletter.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -1373,7 +1397,9 @@
         "chart": "Charts",
         "poster": "Posters",
         "menu": "Menus",
-        "recipe": "Recipes"
+        "recipe": "Recipes",
+        "card": "Cards",
+        "newsletter": "Newsletters"
       }
     },
     "mini": {
@@ -1518,6 +1544,8 @@
     "toolbox": "a toolbox",
     "chalkboard": "a little menu board",
     "cookbook": "a handwritten recipe book",
+    "cardline": "a string of cards across the side window",
+    "newsletters": "a pile of newsletters on the big table",
     "chime": "some wind chimes",
     "aquarium": "a tank of goldfish",
     "scroll": "a hanging scroll",
@@ -1602,6 +1630,20 @@
       "ui": {
         "access": {
           "hotspotCounter": "Bread counter: hand in a commission"
+        }
+      }
+    },
+    "post": {
+      "zones": {
+        "counter": "the post office counter",
+        "board": "the sorting rack",
+        "shelf": "the parcel shelf",
+        "table": "the packing table",
+        "corner": "the postbox"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Post office counter: hand in a commission"
         }
       }
     }

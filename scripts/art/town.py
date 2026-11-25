@@ -114,8 +114,8 @@ def trimmed(path):
 
 
 # Hand-drawn: a hanging sign for each shop that does well (x outline, k wood, G gold, the rest the icon), and a string
-# of little flags. One icon per shop: a cup, a book, a printed page, a palette, a wrench, and a loaf for the bakery once it
-# opens (plan-1.6.md F1).
+# of little flags. One icon per shop: a cup, a book, a printed page, a palette, a wrench, a loaf for the bakery once it
+# opens (plan-1.6.md F1), and an envelope for the post office (F2).
 SIGN_ICONS = {
     'cafe': ['.......', '.wwwww.', '.wwwwwww', '.wwwww.w', '.wwwwww.', '..www..', '.xxxxx.'],
     'study': ['.......', 'ww...ww', 'wlwxwlw', 'wwwxwww', 'wlwxwlw', 'wwwxwww', 'uuuuuuu'],
@@ -123,6 +123,7 @@ SIGN_ICONS = {
     'studio': ['..ooo..', '.ooooo.', 'oroooro', 'oooo.oo', 'ouooo..', '.ooo...', '.......'],
     'workshop': ['.....ll', '....l.l', '...lll.', '..lll..', '.lll...', 'lll....', 'll.....'],
     'bakery': ['.......', '.kkkkk.', 'koooook', 'kokokok', 'koooook', '.kkkkk.', '.......'],
+    'post': ['.......', 'xxxxxxx', 'xwxwxwx', 'xwwxwwx', 'xwwwwwx', 'xxxxxxx', '.......'],
 }
 SIGN_COLORS = {'x': (42, 34, 51, 255), 'k': (120, 80, 48, 255), 'G': (232, 184, 74, 255), 'w': (250, 246, 236, 255),
                'u': (72, 104, 160, 255), 'o': (226, 196, 150, 255), 'r': (200, 72, 60, 255), 'l': (190, 190, 196, 255)}

@@ -81,10 +81,10 @@ describe('opening a postcard', () => {
     expect(open(unmarked)).toEqual({ ok: false, reason: 'notPostcard' });
   });
 
-  it('opens a postcard sent from 1.5, before the bakery opened, with nothing done there (plan-1.6.md F1)', () => {
-    const { bakery: _, ...older } = good().shops;
+  it('opens a postcard sent from 1.5, before the bakery and the post office opened, with nothing done there (plan-1.6.md F1, F2)', () => {
+    const { bakery: _, post: _p, ...older } = good().shops;
     const read = open({ ...good(), shops: older });
-    expect(read).toEqual({ ok: true, card: { ...card(), shops: { ...card().shops, bakery: 0 } } });
+    expect(read).toEqual({ ok: true, card: { ...card(), shops: { ...card().shops, bakery: 0, post: 0 } } });
     // Only that one shop may be missing, and only as a whole set from before: never some other gap.
     const { print: __, ...gap } = good().shops;
     expect(open({ ...good(), shops: gap }).ok).toBe(false);
@@ -97,7 +97,7 @@ describe('opening a postcard', () => {
     expect(open({ ...good(), grown: ['painting', 'dragon'] }).ok).toBe(false);
     expect(open({ ...good(), furnish: { ...furnish, cafe: { ...furnish.cafe, wall: 'gold' } } }).ok).toBe(false);
     expect(open({ ...good(), furnish: { ...furnish, attic: DEFAULT_FURNISHING } }).ok).toBe(false);
-    expect(open({ ...good(), shops: { ...good().shops, post: 1 } }).ok).toBe(false);
+    expect(open({ ...good(), shops: { ...good().shops, attic: 1 } }).ok).toBe(false);
     expect(open({ ...good(), stories: { ...good().stories, baker: 1 } }).ok).toBe(false);
     expect(open({ ...good(), name: { first: 'Lewis' } }).ok).toBe(false);
     const { grown: _, ...missing } = good();

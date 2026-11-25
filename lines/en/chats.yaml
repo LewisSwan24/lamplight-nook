@@ -1198,3 +1198,160 @@
     - lodger: My first time making dumplings.
     - xiaoju: How many fillings?
     - lodger: One. Half of them burst.
+
+# The post office's two neighbours (plan-1.6.md F2): Fern from the flower shop on the corner comes once the post office
+# has made a card, Mrs Wu from the residents' committee once it has put a newsletter together.
+- id: fern_card
+  when: idle
+  guest: florist
+  turns:
+    - florist: I sent your card along with the flowers.
+    - adeng: What did they say?
+    - florist: They read the card before the flowers.
+
+- id: fern_bucket
+  when: idle
+  guest: florist
+  turns:
+    - florist: A bucket of peonies came in. Just open.
+    - qingdai: Pink or white?
+    - florist: Both. I put one aside for you.
+
+- id: fern_hands
+  when: idle
+  guest: florist
+  turns:
+    - florist: A morning of cutting stems. Green hands.
+    - adeng: Wash up. Your coffee is poured.
+
+- id: fern_names
+  when: idle
+  guest: florist
+  turns:
+    - florist: I know the name of every flower.
+    - xiaoju: What about this one?
+    - florist: That is the ivy on your sill.
+
+- id: fern_rain
+  when: idle
+  guest: florist
+  sky: rain
+  turns:
+    - florist: Rain. I carried all the buckets in.
+    - laoshi: The flowers got a good drink, anyway.
+
+- id: fern_spring
+  when: idle
+  guest: florist
+  after: 20
+  season: spring
+  turns:
+    - florist: Spring. The whole street wants flowers.
+    - xiaoju: Me too!
+    - florist: I will pick you the smallest bunch.
+
+- id: fern_summer
+  when: idle
+  guest: florist
+  after: 20
+  season: summer
+  turns:
+    - florist: In this heat they wilt in a day. More water.
+    - adeng: Same as people.
+
+- id: fern_autumn
+  when: idle
+  guest: florist
+  after: 20
+  season: autumn
+  turns:
+    - florist: The osmanthus is out. Two pots by my door.
+    - laoshi: So that is why the street smells sweet.
+
+- id: fern_winter
+  when: idle
+  guest: florist
+  after: 20
+  season: winter
+  turns:
+    - florist: Winter is wintersweet and narcissus now.
+    - qingdai: I want to paint a narcissus.
+    - florist: I will pick one in full flower.
+
+- id: wu_newsletter
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: The whole block read that newsletter.
+    - adeng: Did anyone go?
+    - organizer: Forty people came to Saturday's clinic.
+
+- id: wu_meeting
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: Another meeting this afternoon. Just a sip.
+    - laoshi: About what?
+    - organizer: Where the bikes in the hallway should go.
+
+- id: wu_list
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: I write down every old person living alone.
+    - xiaoju: Can you keep them all in your head?
+    - organizer: No. That is why I write them down.
+
+- id: wu_garden
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: The bare patch behind the block. Vegetables?
+    - qingdai: Which ones?
+    - organizer: I will ask round and print it next issue.
+
+- id: wu_rain
+  when: idle
+  guest: organizer
+  sky: rain
+  turns:
+    - organizer: Rain. The third floor leaks. I must look.
+    - adeng: Take an umbrella. Bring it back later.
+
+- id: wu_spring
+  when: idle
+  guest: organizer
+  after: 20
+  season: spring
+  turns:
+    - organizer: Spring cleaning for the whole block.
+    - xiaoju: Can we help?
+    - organizer: Write me the notice. That is help enough.
+
+- id: wu_summer
+  when: idle
+  guest: organizer
+  after: 20
+  season: summer
+  turns:
+    - organizer: Kids are home. A reading corner, maybe.
+    - laoshi: My old books can go there.
+
+- id: wu_autumn
+  when: idle
+  guest: organizer
+  after: 20
+  season: autumn
+  turns:
+    - organizer: Tables in the yard for the moon festival.
+    - adeng: The mooncakes are on us.
+    - organizer: Then you go in the newsletter.
+
+- id: wu_winter
+  when: idle
+  guest: organizer
+  after: 20
+  season: winter
+  turns:
+    - organizer: Cold out. I am checking everyone's heating.
+    - adeng: Sit down first. Something hot.

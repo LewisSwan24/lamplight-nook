@@ -67,7 +67,7 @@ const home = new CafeScene(homeScene());
 let scene: CafeScene = home;
 /** What the page hangs on a room (clicks, sounds, lines said): set on the home shop below, copied to a room gone into. */
 const ROOM_HOOKS = ['onGuestIn', 'onView', 'onBellClick', 'onActorClick', 'onSound', 'onSay', 'onStreet', 'onObjectClick', 'onYouClick',
-  'boardInUse', 'onBoardClick', 'onWorksClick', 'onCounterClick'] as const satisfies readonly (keyof CafeScene)[];
+  'boardInUse', 'onBoardClick', 'onWorksClick', 'onCounterClick', 'onWallCard'] as const satisfies readonly (keyof CafeScene)[];
 const street = new StreetScene();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -577,6 +577,8 @@ function clickObject(id: ObjectId) {
 }
 scene.onObjectClick = (id) => (id === 'board' && projectsKept ? void showProjects(window.lamplight) : clickObject(id));
 scene.onYouClick = () => void stage.answer('adeng', strings.ui.objects.you);
+// The post office's cork board (plan-1.6.md F2): a kept postcard opens its visit again; the bare board, Pip says it is bare.
+scene.onWallCard = (i) => (i === null ? void stage.answer('axin', strings.ui.visit.wallEmpty) : void window.lamplight.openKeptPostcard(i));
 scene.boardInUse = () => running !== null || boardSteps().length > 0;
 scene.onBoardClick = () => {
   scene.setHint('board', false);
@@ -966,6 +968,8 @@ async function openShop() {
     if (outside) goOut(false, byUser);
     else scene.setOutside(false);
     tidyRooms();
+    // The postcards opened since last time are on the board by the time anyone looks.
+    if (room === 'post') void window.lamplight.keptPostcards().then((cards) => next.scene.setPostcards(cards));
   };
   showRoom = enterRoom;
   const say = (text: string) => {

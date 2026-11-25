@@ -2,9 +2,9 @@ import type { RoomId, SceneId } from './scenes';
 
 /**
  * Where each kind of work is done (road-to-1.4.md D3): the home shop, wherever it is, or one of the shops along the street,
- * the bakery since plan-1.6.md F1. Pure data: both processes read it.
+ * the bakery and the post office since plan-1.6.md F1 and F2. Pure data: both processes read it.
  */
-export const SHOPS = ['home', 'print', 'studio', 'workshop', 'bakery'] as const;
+export const SHOPS = ['home', 'print', 'studio', 'workshop', 'bakery', 'post'] as const;
 export type Shop = (typeof SHOPS)[number];
 /** The shops along the street, which work for each other. */
 export type StreetShop = Exclude<Shop, 'home'>;
@@ -25,7 +25,7 @@ export const TOOL_SHOP: Readonly<Record<string, StreetShop>> = {
   [office('make_xlsx')]: 'print',
 };
 
-const STREET: readonly RoomId[] = ['print', 'studio', 'workshop', 'bakery'];
+const STREET: readonly RoomId[] = ['print', 'studio', 'workshop', 'bakery', 'post'];
 /** The shop a tool used in this room is run at, when that is another of the street shops. */
 export function errandTo(room: RoomId, tool: string | undefined): StreetShop | undefined {
   const shop = tool ? TOOL_SHOP[tool] : undefined;

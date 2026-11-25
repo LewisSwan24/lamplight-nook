@@ -243,8 +243,9 @@ def draw_with(img, rows, x, y, colors):
 # frame a whole room. What all three have hangs on the wall right of the window (SLOT), stands on the big table
 # (TABLE_PIECE) or in the corner by the door that walkers already go round; each shop adds one thing of its own at
 # SHOP_PIECE: the print shop a poster it printed, the studio a little painting, the workshop a sign cut from wood, and
-# the bakery (plan-1.6.md F1) a big biscuit hung on a ribbon, the festival piped on it in icing.
-SHOPS = ['print', 'studio', 'workshop', 'bakery']
+# the bakery (plan-1.6.md F1) a big biscuit hung on a ribbon, the festival piped on it in icing, and the post office (F2)
+# a big airmail envelope pinned up, the festival drawn on its front.
+SHOPS = ['print', 'studio', 'workshop', 'bakery', 'post']
 HOLIDAY_ORDER = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']  # weather.ts HOLIDAYS
 SHOP_PIECE = (180, 18)  # top-left of each shop's own piece, on the wall clear of the press, the drying line, the pegboard
 # The festival's piece on the wall: the narrow strip right of the window, before what the shop grows there (D5) from x 234.
@@ -323,7 +324,24 @@ def biscuit(motif):
     return [''.join(r) for r in rows]
 
 
-OWN_PIECE = {'print': poster, 'studio': painting, 'workshop': wooden_sign, 'bakery': biscuit}
+def airmail(motif):
+    """An envelope as big as a plate, its edge striped red and blue as airmail is, a brass pin at the top, the
+    festival drawn on its pale front."""
+    size = 13
+    rows = [['.'] * size for _ in range(size + 1)]
+    rows[0][size // 2] = 'g'
+    for y in range(size):
+        for x in range(size):
+            edge = x in (0, size - 1) or y in (0, size - 1)
+            rows[1 + y][x] = ('r' if (x + y) % 4 < 2 else 'u') if edge else 'n'
+    for dy, row in enumerate(motif):
+        for dx, ch in enumerate(row):
+            if ch != '.':
+                rows[1 + 2 + dy][2 + dx] = ch
+    return [''.join(r) for r in rows]
+
+
+OWN_PIECE = {'print': poster, 'studio': painting, 'workshop': wooden_sign, 'bakery': biscuit, 'post': airmail}
 
 
 def shop_frame(shop, holiday):

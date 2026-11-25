@@ -1,0 +1,147 @@
+# Dialogue for the post office (plan-1.6.md F2), in English. Laid over lines/en/cafe.yaml; same groups as lines/post.yaml.
+# Pip the postman does all the work; Wick only brings the order over and answers now and then.
+# Spots: the post office counter (counter), the sorting rack (board), the parcel shelf (shelf), the packing table (table),
+# the postbox (corner). Each bubble is at most 44 characters; at most one "!" per bubble.
+
+opening:
+  - { id: po_revise_again_01, speaker: axin, when: revise_again, bubbles: ["Last time it was \"{lastAsk}\".", "This time, \"{brief}\". Got it."] }
+  - { id: po_revise_01, speaker: axin, when: revise, bubbles: ["\"{brief}\"? All right.", "The envelope's not sealed yet. Easy."] }
+  - { id: po_revise_02, speaker: axin, when: revise, bubbles: ["Things come back for changes. It happens.", "\"{brief}\". On it."] }
+  - { id: po_revise_03, speaker: axin, when: revise, bubbles: ["I kept a copy of the old one.", "\"{brief}\". I'll shout when it's done."] }
+  - { id: po_mem_02, speaker: axin, when: has_stuck_note, bubbles: ["\"{brief}\". Got it.", "Last time {stuckNote} held us up.", "I'll go round that bit first."] }
+  - { id: po_mem_01, speaker: axin, when: has_memory, bubbles: ["\"{brief}\". Got it.", "Last time you picked {lastChoice}.", "Same again, then."] }
+  - { id: po_tpl_card_01, speaker: axin, when: tpl_card, bubbles: ["A card? I handle those every day.", "Names exactly as you gave them."] }
+  - { id: po_tpl_card_02, speaker: axin, when: tpl_card, bubbles: ["A card should make them smile on sight.", "Few words, and the right ones."] }
+  - { id: po_tpl_newsletter_01, speaker: axin, when: tpl_newsletter, bubbles: ["A newsletter? I've delivered plenty.", "The big news goes first."] }
+  - { id: po_tpl_newsletter_02, speaker: axin, when: tpl_newsletter, bubbles: ["Dates and places get a list of their own.", "Pinned up, it reads at a glance."] }
+  - { id: po_handed_01, speaker: axin, when: handed, bubbles: ["Got your things. Let me open them up.", "\"{brief}\". Got it."] }
+  - { id: po_opening_01, speaker: axin, bubbles: ["\"{brief}\"?", "Right, let me put the mail bag down."] }
+  - { id: po_opening_02, speaker: axin, bubbles: ["\"{brief}\"...", "The early post's sorted. Good timing."] }
+  - { id: po_opening_03, speaker: axin, bubbles: ["Work's in.", "\"{brief}\". I'll log it first."] }
+
+planning:
+  - { id: po_plan_01, speaker: axin, bubbles: ["Plan the round first. Same as the post."] }
+  - { id: po_plan_02, speaker: axin, bubbles: ["Which door comes first..."] }
+  - { id: po_plan_03, speaker: axin, bubbles: ["Three stops. One at a time."] }
+
+draft_ready:
+  - { id: po_draft_ready_01, speaker: axin, bubbles: ["The letter's written. It's on the counter.", "No stamp on it. You send it yourself."] }
+  - { id: po_draft_ready_02, speaker: axin, bubbles: ["The draft's ready.", "Sending it is up to you."] }
+  - { id: po_draft_ready_03, speaker: axin, bubbles: ["Not posted. It's under the date stamp."] }
+
+writing:
+  - { id: po_write_01, speaker: axin, bubbles: ["Off we go."] }
+  - { id: po_write_02, speaker: axin, bubbles: ["That one's sorted. Next."] }
+  - { id: po_write_03, speaker: axin, bubbles: ["Hmm...", "Nice clear address on this."] }
+  - { id: po_write_04, speaker: axin, bubbles: ["Into the envelope. Stamps can wait."] }
+
+sub_go_research:
+  - { id: po_go_rs_rain, speaker: axin, when: sky_rain, bubbles: ["Raining. Keep the parcels dry.", "I'll look for {topic} on the shelf."] }
+  - { id: po_go_rs_01, speaker: axin, bubbles: ["{topic}? I'll dig through the parcels."] }
+  - { id: po_go_rs_02, speaker: axin, bubbles: ["I logged it in one of these books..."] }
+  - { id: po_go_rs_03, speaker: axin, bubbles: ["The old records are bundled at the back."] }
+
+sub_back_research:
+  - { id: po_back_rs_01, speaker: axin, bubbles: ["Found it.", "{count} of them we can use."] }
+  - { id: po_back_rs_02, speaker: axin, bubbles: ["This checks out.", "Same as the neighbours say."] }
+  - { id: po_back_rs_03, speaker: axin, bubbles: ["All here, in house-number order."] }
+
+sub_go_review:
+  - { id: po_go_rv_01, speaker: axin, bubbles: ["I'll go over it at the packing table."] }
+  - { id: po_go_rv_02, speaker: axin, bubbles: ["Every address checked, one by one."] }
+  - { id: po_go_rv_03, speaker: axin, bubbles: ["Letter by letter."] }
+
+sub_back_review:
+  - { id: po_back_rv_issue, speaker: axin, when: has_issues, bubbles: ["{issueCount} things don't match.", "I tucked a slip in at each."] }
+  - { id: po_back_rv_ok, speaker: axin, when: no_issues, bubbles: ["Checked end to end. Nothing misdelivered."] }
+  - { id: po_back_rv_ok2, speaker: axin, when: no_issues, bubbles: ["Checked. Every address is right."] }
+
+sub_go_design:
+  - { id: po_go_ds_rain, speaker: axin, when: sky_rain, bubbles: ["Rainy day. Nobody's posting anything.", "I'll sketch it out by the sorting rack."] }
+  - { id: po_go_ds_01, speaker: axin, bubbles: ["I'll try a few by the sorting rack."] }
+  - { id: po_go_ds_02, speaker: axin, bubbles: ["How should it look..."] }
+  - { id: po_go_ds_03, speaker: axin, bubbles: ["I'll cut a shape from an old envelope."] }
+
+sub_back_design:
+  - { id: po_back_ds_01, speaker: axin, bubbles: ["That's the look.", "Like a good postcard."] }
+  - { id: po_back_ds_02, speaker: axin, bubbles: ["Cut out. Have a look."] }
+  - { id: po_back_ds_03, speaker: axin, bubbles: ["Three of them. I like the middle one."] }
+
+stuck:
+  - { id: po_stuck_01, speaker: axin, bubbles: ["Huh. Nobody at that address.", "I'll try another way."] }
+  - { id: po_stuck_02, speaker: axin, bubbles: ["That's not right. {whatsWrong}."] }
+  - { id: po_stuck_03, speaker: axin, bubbles: ["The postmark's gone crooked..."] }
+  - { id: po_stuck_04, speaker: axin, bubbles: ["Wrong pigeonhole.", "Sorting it again."] }
+
+stuck_long:
+  - { id: po_stuck_long_01, speaker: axin, bubbles: ["This one takes some doing.", "I'll make a few more runs. Carry on."] }
+  - { id: po_stuck_long_02, speaker: axin, bubbles: ["Still at it. Not giving up."] }
+  - { id: po_stuck_long_03, speaker: axin, bubbles: ["Bear with me. Long way round."] }
+
+waiting:
+  - { id: po_wait_01, speaker: axin, bubbles: ["It's on its way. Hang on."] }
+  - { id: po_wait_02, speaker: axin, bubbles: ["No reply yet. Give it a moment."] }
+  - { id: po_wait_03, speaker: axin, bubbles: ["It'll come when the van comes."] }
+
+ask:
+  - { id: po_ask_color, speaker: axin, when: demo_color, bubbles: ["Cream or pale mint. A card in each.", "Which one?"] }
+  - { id: po_ask_01, speaker: axin, bubbles: ["Can I ask you something?", "{question}"] }
+  - { id: po_ask_02, speaker: axin, bubbles: ["There are two roads from here.", "Pick one?"] }
+
+react_adopted:
+  - { id: po_react_ad_01, speaker: axin, bubbles: ["Good. That's how it goes out."] }
+  - { id: po_react_ad_02, speaker: axin, bubbles: ["Noted. It's on the board."] }
+  - { id: po_react_ad_03, speaker: axin, bubbles: ["I'd have picked that one too."] }
+
+react_rejected:
+  - { id: po_react_rj_01, speaker: axin, bubbles: ["Fine. Your call."] }
+  - { id: po_react_rj_02, speaker: axin, bubbles: ["I'll keep that one for another time."] }
+  - { id: po_react_rj_03, speaker: axin, bubbles: ["Right. A different one."] }
+
+react_delegated:
+  - { id: po_react_dl_00, speaker: axin, bubbles: ["All right, I'll decide.", "I'll tell you once I have."] }
+  - { id: po_react_dl_01, speaker: axin, bubbles: ["{choice}, then, because {reason}.", "Say if it doesn't suit."] }
+  - { id: po_react_dl_02, speaker: axin, bubbles: ["I'll try {choice} first.", "We can swap it later."] }
+  - { id: po_react_dl_03, speaker: axin, bubbles: ["{choice}.", "The why is on the board."] }
+
+serious:
+  - { id: po_serious_01, speaker: axin, bubbles: ["This step means {action}.", "Once it's done, {consequence}.", "Have a look before you decide."] }
+  - { id: po_serious_02, speaker: axin, bubbles: ["I won't touch this on my own.", "{action}: {consequence}."] }
+  - { id: po_serious_03, speaker: axin, bubbles: ["Once it's in the postbox, it's gone.", "Look closely before you click."] }
+
+refused:
+  - { id: po_refused_01, speaker: axin, bubbles: ["Can't touch that.", "Another way."] }
+  - { id: po_refused_02, speaker: axin, bubbles: ["That's not ours to do."] }
+  - { id: po_refused_03, speaker: axin, bubbles: ["Someone else's letter. I don't open it."] }
+
+serious_yes:
+  - { id: po_serious_yes_01, speaker: axin, bubbles: ["Right, I'll do it."] }
+  - { id: po_serious_yes_02, speaker: axin, bubbles: ["Understood. Going ahead."] }
+  - { id: po_serious_yes_03, speaker: axin, bubbles: ["Done deal."] }
+
+serious_no:
+  - { id: po_serious_no_01, speaker: axin, bubbles: ["Fine, I'll leave it.", "I'll find a way that doesn't need it."] }
+  - { id: po_serious_no_02, speaker: axin, bubbles: ["Fine, I'll hold it back."] }
+  - { id: po_serious_no_03, speaker: axin, bubbles: ["Leaving it. I'll go round."] }
+
+done:
+  - { id: po_done_day, speaker: axin, when: daytime, bubbles: ["Done. It's on the counter.", "Have a look while it's light."] }
+  - { id: po_done_dusk, speaker: axin, when: dusk, bubbles: ["Done.", "Getting dark. End of my round."] }
+  - { id: po_done_night, speaker: axin, when: night, bubbles: ["Done.", "It's late. Read it, then get some sleep."] }
+  - { id: po_done_01, speaker: axin, bubbles: ["Delivered. Not a letter lost."] }
+  - { id: po_done_02, speaker: axin, bubbles: ["Done. Ready to use.", "I checked it twice from the top."] }
+
+failed:
+  - { id: po_failed_01, speaker: axin, bubbles: ["Couldn't get it there this time. Sorry.", "It stuck at {stuckAt}.", "I've put it on the board.", "Another road next time."] }
+  - { id: po_failed_02, speaker: axin, bubbles: ["Didn't make it.", "Stuck at {stuckAt}. Noted."] }
+  - { id: po_failed_03, speaker: axin, bubbles: ["That's it for today.", "What went wrong is on the board."] }
+
+net_retry:
+  - { id: po_net_retry_01, speaker: axin, bubbles: ["The line's gone dead. I'll try again."] }
+  - { id: po_net_retry_02, speaker: axin, bubbles: ["Nobody's answering. I'll knock again."] }
+  - { id: po_net_retry_03, speaker: axin, bubbles: ["The van's not here yet. I'll ask later."] }
+
+cancelled:
+  - { id: po_cancelled_01, speaker: axin, bubbles: ["All right, it can wait."] }
+  - { id: po_cancelled_02, speaker: axin, bubbles: ["Fine. I'll keep what's done."] }
+  - { id: po_cancelled_03, speaker: axin, bubbles: ["Right, not sending it.", "It goes in the drawer for tomorrow."] }

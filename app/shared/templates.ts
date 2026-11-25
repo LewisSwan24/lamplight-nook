@@ -31,14 +31,14 @@ export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes
 
 /**
  * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
- * a poster or a menu drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
+ * a poster, a menu or a greeting card drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
  * PDF (never the kinds with macros), a write-up in Markdown, an email draft (C5, which opens in the mail program), then
  * a table or a letter.
  */
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
-  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng,
+  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng,
   page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
@@ -292,6 +292,35 @@ export const TEMPLATES = [
       'Say plainly where meat, fish or eggs must be cooked through, and name what in it people are often allergic to (nuts, wheat, milk, eggs, shellfish and the like). Never claim it is good for health or for losing weight.',
       `If the user handed anything over in "${files.materials}" (a handwritten card as a photo, their own notes), read it first and keep their way of making it.`,
       `In your final reply, say in ${language}, in one line, how many it feeds and how long it takes.`,
+    ],
+  },
+  // The post office's two kinds (plan-1.6.md F2). A card is drawn like the menu; a newsletter is a Word document with a PDF
+  // beside it for the notice board, and every date and name in it is the user's own.
+  {
+    id: 'card', shop: 'post', icon: 19, revise: true, main: 'picture', growth: { id: 'cardline', at: 1 }, guest: 'florist',
+    steps: ({ language, files }) => [
+      'This is a greeting card for one person or one occasion, drawn as a picture.',
+      'Read the request first: what the day is (a birthday, a wedding, a new baby, a thank-you, a holiday), who it is for and who it is from, and the words the user wants on it.',
+      'Pick its size from how it will be sent: a postcard to print, 1748 by 1240 (A6 lying down); a square to send on the phone, 1080 by 1080. The postcard if the request does not say.',
+      `Lay it out as a single self-contained page "${files.cardPage}" exactly that size: CSS inline, no web fonts, nothing the page loads from outside this folder. Use a photo the user handed over in "${files.materials}" by relative path; do not copy or change it.`,
+      'Give it one clear greeting as the biggest thing on it, the user\'s own words under it, and who it is from at the bottom. Draw the decoration with CSS shapes and colours that suit the day; keep it calm and let the words breathe.',
+      'Use the words the user gave, as they gave them. Where they gave none, write one or two plain warm lines for the day, no longer than a short sentence each. Never make up a name, an age, a date or a shared memory.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.cardPng}" with the mcp__nook-office__render_png tool at that size, and as "${files.cardPdf}" with the mcp__nook-office__make_pdf tool, so it can be printed.`,
+      'When it is saved, look at it with the Read tool: check nothing is cut off, overlapping or too small to read and every name is spelled as the user gave it, and fix the page and draw it again if not.',
+    ],
+  },
+  {
+    id: 'newsletter', shop: 'post', icon: 20, revise: true, main: 'office', growth: { id: 'newsletters', at: 2 }, guest: 'organizer',
+    steps: ({ language, files }) => [
+      'This is a short newsletter for a building, a club, a class or a street: one issue, as a Word document with a PDF to pin up.',
+      `Read what this issue covers first: what the user wrote in the request, or what they handed over in "${files.materials}" (notes, a list of dates, photos; the Read tool reads pictures and PDFs, and mcp__nook-office__read_document reads Word and Excel files).`,
+      `Build it with the mcp__nook-office__make_docx tool as "${files.newsletter}" in ${language}: give the tool the structure and it makes the file. Never write Office XML or a .docx by hand.`,
+      'Open with the name of the newsletter and the issue (the month, or the number the user gave), then each piece of news under its own short heading, the most important first, a few sentences each.',
+      'Put every date, time and place in a short list of what is coming up at the end, so it can be read at a glance. Add a line on who to ask, only if the user gave one.',
+      'Write only what the user gave. Never make up an event, a date, a time, a place, a name or a number. Where one is missing, leave a clear blank in square brackets.',
+      `Then lay the same issue out as a single self-contained page "${files.newsletterPage}" for A4, CSS inline, no web fonts, nothing the page loads from outside this folder, and save it as "${files.newsletterPdf}" with the mcp__nook-office__make_pdf tool, for the notice board.`,
+      `In your final reply, say in ${language}, in one line, which issue it is and how many pieces of news are in it.`,
     ],
   },
 ] as const satisfies readonly TemplateSpec[];

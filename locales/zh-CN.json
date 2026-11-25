@@ -23,6 +23,7 @@
     "xiaozhe": "小赭",
     "xiaoding": "小钉",
     "guiyi": "桂姨",
+    "axin": "阿信",
     "cat": "栗子"
   },
   "animals": {
@@ -36,7 +37,9 @@
     "granny": "陈婆婆",
     "student": "小禾",
     "cook": "老马",
-    "lodger": "小林"
+    "lodger": "小林",
+    "florist": "芳姐",
+    "organizer": "吴阿姨"
   },
   "you": {
     "label": "你"
@@ -215,6 +218,12 @@
       "recipe": "写份食谱",
       "recipeFill": "帮我把……写成一份食谱，……人份。",
       "recipeHint": "写下这道菜和你平时的做法，手写的方子拍张照递过来也行。没给分量的，按家常的量写，会注明可以照口味调。",
+      "card": "做张贺卡",
+      "cardFill": "帮我做一张给……的……贺卡，想写：……",
+      "cardHint": "说清楚是什么日子、给谁，想写的话写在要求里。想放照片就递过来。交回一张图片，另存一份 PDF，可以拿去印。",
+      "newsletter": "做份简报",
+      "newsletterFill": "帮我给……做一份简报，这期讲：……",
+      "newsletterHint": "把这期要讲的事写在要求里，或者递几份材料、照片过来。只写你给的事，缺的日期和名字留空给你填。交回一份 Word 文档和一份 PDF。",
       "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
       "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
       "toolHint": "能在浏览器里做的，就做成一个网页。要动电脑上的文件才写脚本，脚本先只列出要做的事，加上 -Apply 才动手。",
@@ -587,6 +596,8 @@
         "toolbox": "工具箱",
         "chalkboard": "小黑板",
         "cookbook": "食谱本",
+        "cardline": "一串贺卡",
+        "newsletters": "一摞简报",
         "chime": "这串风铃",
         "aquarium": "这缸金鱼",
         "scroll": "这幅字",
@@ -677,7 +688,9 @@
         "granny": "慢慢来，我不急。",
         "student": "我就坐一会儿，不打扰。",
         "cook": "面馆刚忙完，来讨口热茶。",
-        "lodger": "我就坐一会儿，顺便请教个菜。"
+        "lodger": "我就坐一会儿，顺便请教个菜。",
+        "florist": "路过，进来闻闻咖啡香。",
+        "organizer": "我坐一下就走，楼下还等着我开会。"
       },
       "you": "你的委托在做了，先坐会儿吧。",
       "grownMade": {
@@ -691,8 +704,10 @@
         "readinglamp": "做过读书笔记，桌上就添了盏读书灯。",
         "postcards": "做过旅行攻略，墙上就钉了几张明信片。",
         "toolbox": "做过小工具，老石的工具箱就搬过来了。",
-        "chalkboard": "帮人做过菜单，墙上就挂了块小黑板。",
-        "cookbook": "写过几份食谱，书架上就多了本食谱。"
+        "chalkboard": "帮人做过菜单，墙边就立起了一块小黑板。",
+        "cookbook": "写过几份食谱，书架上就多了本食谱。",
+        "cardline": "帮人做过贺卡，侧窗上就挂起了一串贺卡。",
+        "newsletters": "做过两期简报，大桌上就多了一摞，谁来都能拿一份。"
       }
     },
     "run": {
@@ -822,7 +837,7 @@
     "town": {
       "moving": "店搬到街上来了。点一下就跳过。",
       "moved": "{name}，东西都搬过来了，摆得和原来一样。",
-      "shops": { "cafe": "咖啡馆", "study": "书房", "print": "印刷铺", "studio": "画室", "workshop": "工坊", "bakery": "面包房" },
+      "shops": { "cafe": "咖啡馆", "study": "书房", "print": "印刷铺", "studio": "画室", "workshop": "工坊", "bakery": "面包房", "post": "邮局" },
       "calling": "{shop}有事要问你，点这里过去",
       "notes": {
         "cafe": "咖啡馆。",
@@ -844,7 +859,10 @@
       "street": "到街上去",
       "inside": "回店里",
       "onlyHere": "今天只来看 {name} 的这一间。",
-      "stamp": "小灯屋"
+      "stamp": "小灯屋",
+      "wallTitle": "{name}寄来的明信片",
+      "wallOpen": "再去看看",
+      "wallEmpty": "还没有收到过明信片。"
     },
     "access": {
       "captionsButton": "字幕记录",
@@ -1165,6 +1183,12 @@
       "menuPng": "菜单.png",
       "menuPdf": "菜单.pdf",
       "recipe": "食谱.docx",
+      "cardPage": "贺卡.html",
+      "cardPng": "贺卡.png",
+      "cardPdf": "贺卡.pdf",
+      "newsletter": "简报.docx",
+      "newsletterPage": "简报.html",
+      "newsletterPdf": "简报.pdf",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",
       "toolSamples": "样例",
@@ -1373,7 +1397,9 @@
         "chart": "图表",
         "poster": "海报",
         "menu": "菜单",
-        "recipe": "食谱"
+        "recipe": "食谱",
+        "card": "贺卡",
+        "newsletter": "简报"
       }
     },
     "mini": {
@@ -1518,6 +1544,8 @@
     "toolbox": "一个工具箱",
     "chalkboard": "一块写菜单的小黑板",
     "cookbook": "一本手抄的食谱",
+    "cardline": "一串挂在侧窗上的贺卡",
+    "newsletters": "一摞放在大桌上的简报",
     "chime": "一串风铃",
     "aquarium": "一缸金鱼",
     "scroll": "一幅字",
@@ -1602,6 +1630,20 @@
       "ui": {
         "access": {
           "hotspotCounter": "面包柜台：递一张委托"
+        }
+      }
+    },
+    "post": {
+      "zones": {
+        "counter": "邮局柜台",
+        "board": "分信格",
+        "shelf": "包裹架",
+        "table": "打包桌",
+        "corner": "邮筒"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "邮局柜台：递一张委托"
         }
       }
     }

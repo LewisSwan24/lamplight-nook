@@ -46,6 +46,8 @@ const W = {
     poster: '帮我做一张周末读书会的海报。',
     menu: '帮我给巷口的早点铺做一份菜单：葱油饼 8，肉包 4，豆浆 3，茶叶蛋。',
     recipe: '帮我把葱油饼写成一份食谱，两人份。',
+    card: '帮我给楼下的芳姐做一张生日贺卡，想写：生日快乐，花一直开。',
+    newsletter: '帮我给我们楼做一份简报，这期讲：周六上午义诊，楼道别停自行车。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -70,6 +72,8 @@ const W = {
     poster: 'Make a poster for the weekend book club.',
     menu: 'Make a menu for the breakfast stall on the corner: Scallion pancake 8, Pork bun 4, Soy milk 3, Tea egg.',
     recipe: 'Write up scallion pancakes as a recipe, for two.',
+    card: 'Make a birthday card for Fern downstairs, saying: Happy birthday, may the flowers keep coming.',
+    newsletter: 'Make a newsletter for our block, this issue about: a clinic on Saturday morning, and no bikes in the hallway.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -4975,6 +4979,87 @@ const SCENARIOS = {
   },
 
   /**
+   * The post office opens (plan-1.6.md F2): gone into from the street, Axin is there and nobody from home, and the
+   * postcards the shop opened before hang on the cork board, newest first; a click on one opens its visit again. A card
+   * handed in there is made there: a postcard-sized picture with the words as given and a PDF to print. Then a newsletter,
+   * as a Word document with a PDF beside it. Each names him on the parcel.
+   */
+  async post(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const card = (name, home, done) => ({
+      postcard: 'lamplight-nook', version: 1, name, home,
+      furnish: { cafe: { wall: 'default', curtain: 'default', rug: 'default' }, study: { wall: 'default', curtain: 'default', rug: 'default' } },
+      grown: ['painting', 'plant'], done,
+      shops: { print: 0, studio: 0, workshop: 0, bakery: 0, post: 0 },
+      stories: { mechanic: 0, granny: 0, student: 0 },
+    });
+    const friends = lang === 'en' ? ['Mira', 'Bo'] : ['阿梅', '小波'];
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'postcards.json': JSON.stringify({ version: 1, cards: [card(friends[0], 'study', 24), card(friends[1], 'cafe', 6)] }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const here = () => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ['adeng', 'axin', 'xiaoju', 'laoshi']);
+    const pinned = () => page.evaluate(() => window.lamplightDebug.scene.hotspots().filter((h) => /^wall-/.test(h.id)).map((h) => h.id));
+    try {
+      await sleep(2500);
+      await page.evaluate(() => window.lamplightDebug.street.onFront('post', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'post'; await sleep(300));
+      await sleep(2500);
+      check(await room() === 'post', `did not go into the post office: ${await room()}`);
+      const first = await here();
+      check(first.axin !== null && first.adeng === null && first.xiaoju === null && first.laoshi === null, `who is in the post office: ${JSON.stringify(first)}`);
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('axin')), 'Axin has no picture');
+      check(JSON.stringify(await pinned()) === JSON.stringify(['wall-0', 'wall-1']), `the cork board holds ${JSON.stringify(await pinned())}`);
+      await page.evaluate(() => window.lamplightDebug.scene.highlight('wall-0'));
+      await sleep(300);
+      const label = await page.locator('#labels .label.zone').allInnerTexts();
+      check(label.some((t) => t.includes(friends[0])), `pointing at the newest card does not name ${friends[0]}: ${label}`);
+      await shop.shot(join(out, 'post-in.png'));
+      await page.evaluate(() => window.lamplightDebug.scene.highlight(null));
+
+      const opened = shop.app.waitForEvent('window');
+      await page.evaluate(() => window.lamplightDebug.scene.activate('wall-0'));
+      const visit = await opened;
+      await visit.waitForSelector('.postcard .postcard-enter');
+      check((await visit.locator('.postcard-from').innerText()).includes(friends[0]), 'the kept postcard does not open the friend who sent it');
+      await sleep(800);
+      await visit.screenshot({ path: join(out, 'post-wall-visit.png') });
+      await visit.close();
+      await sleep(500);
+
+      await shop.order({ template: 'card', want: W[lang].card });
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the card did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      check(await room() === 'post', `the card was not made in the post office: ${await room()}`);
+      const dir = latestCommission(home);
+      check(JSON.stringify(pngSize(join(dir, F.cardPng))) === JSON.stringify([1748, 1240]), `${F.cardPng} is ${JSON.stringify(pngSize(join(dir, F.cardPng)))}, not a postcard`);
+      check(readFileSync(join(dir, F.cardPdf)).subarray(0, 5).toString() === '%PDF-', 'the card has no PDF beside it');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const parcels = await page.locator('.parcel .card-title').allInnerTexts();
+      check(parcels.length > 0 && parcels.every((t) => t.includes(L.actors.axin)), `the parcel does not name Axin: ${parcels}`);
+      await sleep(400);
+      await shop.shot(join(out, 'post-card-done.png'));
+      copyFileSync(join(dir, F.cardPng), join(out, 'post-card-made.png'));
+      await page.keyboard.press('Escape');
+      await sleep(500);
+
+      await shop.order({ template: 'newsletter', want: W[lang].newsletter });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the newsletter did not finish');
+      const issue = latestCommission(home);
+      check(readFileSync(join(issue, F.newsletter)).subarray(0, 2).toString() === 'PK', `${F.newsletter} is not a Word document`);
+      check(readFileSync(join(issue, F.newsletterPdf)).subarray(0, 5).toString() === '%PDF-', 'the newsletter has no PDF beside it');
+      await sleep(400);
+      await shop.shot(join(out, 'post-newsletter-done.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
    * The town grows with the work (road-to-1.4.md D5): a shop with 0, 10, 30 and 100 commissions done, split between the
    * home shop and the shops along the street, opens onto a street with that much grown on it, each front by its own
    * count; inside the print shop its own pieces hang. Then a commission brings the lamps, and someone says so.
@@ -5413,11 +5498,6 @@ const SCENARIOS = {
         await sleep(200);
         const along = await look();
         check(along.x > v.x, 'the arrow keys do not move along the street');
-        await clickFront('bakery');
-        check((await page.locator('.street-note').innerText()) === L.ui.town.notes.bakery, 'the bakery does not say it is the neighbours');
-        await shop.shot(join(out, `street-closed${small}.png`));
-        v = await look();
-        check(v.out, 'a front not open yet took me somewhere');
         await clickFront('cafe');
         v = await look();
         check(!v.out && v.room && v.same, `going in at the cafe did not bring the room back on the same page: ${JSON.stringify(v)} ${await page.evaluate(() => document.elementFromPoint(innerWidth * 0.25, innerHeight * 0.33)?.className)}`);

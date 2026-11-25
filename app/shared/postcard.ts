@@ -33,7 +33,10 @@ export const POSTCARD_NAME_MAX = 40;
 const DONE_MAX = 100_000;
 
 const STREET_SHOPS = Object.keys(ROOM_GROWTH) as StreetShop[];
-/** The shops a postcard from 1.5 counts: the bakery opened in 1.6 (plan-1.6.md F1), so there it has done nothing. */
+/**
+ * The shops a postcard from 1.5 counts: the bakery and the post office opened in 1.6 (plan-1.6.md F1, F2), so there it has
+ * done nothing.
+ */
 const STREET_SHOPS_1_5: StreetShop[] = ['print', 'studio', 'workshop'];
 const GROWTH_IDS = new Set<string>(GROWTH.map((g) => g.id));
 const KEYS = ['postcard', 'version', 'name', 'home', 'furnish', 'grown', 'done', 'shops', 'stories'];
@@ -100,7 +103,7 @@ function check(o: Record<string, unknown>): Postcard | null {
   if (!Array.isArray(grown) || grown.some((id) => typeof id !== 'string' || !GROWTH_IDS.has(id)) || new Set(grown).size !== grown.length) return null;
   if (!count(done, DONE_MAX)) return null;
   if (!isObject(shops)) return null;
-  if (exactly(shops, STREET_SHOPS_1_5)) shops.bakery = 0;
+  if (exactly(shops, STREET_SHOPS_1_5)) Object.assign(shops, { bakery: 0, post: 0 });
   if (!exactly(shops, STREET_SHOPS) || !STREET_SHOPS.every((s) => count(shops[s], done))) return null;
   if (STREET_SHOPS.reduce((n, s) => n + (shops[s] as number), 0) > done) return null;
   if (!isObject(stories) || !exactly(stories, TELLERS) || !TELLERS.every((t) => count(stories[t], CHAPTERS[t].length))) return null;
@@ -122,3 +125,19 @@ export function postcardDays(card: Postcard): { done: number; grown: GrowthId[];
     },
   };
 }
+
+/** How many opened postcards the post office keeps on its wall (plan-1.6.md F2). */
+export const KEPT_MAX = 6;
+
+/**
+ * The wall after one more postcard is opened: it goes first, and the very same card, opened again, moves up instead of
+ * hanging twice. A later card from the same friend is a different picture of their shop, so both stay. The oldest goes
+ * when the wall is full.
+ */
+export function keepPostcard(wall: readonly Postcard[], card: Postcard): Postcard[] {
+  const text = postcardText(card);
+  return [card, ...wall.filter((c) => postcardText(c) !== text)].slice(0, KEPT_MAX);
+}
+
+/** What the wall shows of each card: who sent it and where their shop is. */
+export const wallCards = (wall: readonly Postcard[]): { name: string; home: SceneId }[] => wall.map((c) => ({ name: c.name, home: c.home }));

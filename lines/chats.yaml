@@ -1198,3 +1198,160 @@
     - lodger: 第一次自己包饺子。
     - xiaoju: 包了几种馅？
     - lodger: 一种，还破了一半。
+
+# The post office's two neighbours (plan-1.6.md F2): Fern from the flower shop on the corner comes once the post office
+# has made a card, Mrs Wu from the residents' committee once it has put a newsletter together.
+- id: fern_card
+  when: idle
+  guest: florist
+  turns:
+    - florist: 你们做的贺卡，我配着花一起送了。
+    - adeng: 收的人怎么说？
+    - florist: 先看的卡，后看的花。
+
+- id: fern_bucket
+  when: idle
+  guest: florist
+  turns:
+    - florist: 早上进了一桶芍药，开得正好。
+    - qingdai: 粉的还是白的？
+    - florist: 都有，给你留一枝。
+
+- id: fern_hands
+  when: idle
+  guest: florist
+  turns:
+    - florist: 剪了一上午的花枝，手都是绿的。
+    - adeng: 洗洗手，咖啡给你倒上。
+
+- id: fern_names
+  when: idle
+  guest: florist
+  turns:
+    - florist: 每朵花我都知道叫什么。
+    - xiaoju: 那这个呢？
+    - florist: 那是你们窗台上的绿萝。
+
+- id: fern_rain
+  when: idle
+  guest: florist
+  sky: rain
+  turns:
+    - florist: 下雨天花不好卖，我把桶都搬进屋了。
+    - laoshi: 花倒是喝饱了。
+
+- id: fern_spring
+  when: idle
+  guest: florist
+  after: 20
+  season: spring
+  turns:
+    - florist: 春天最忙，一条街的人都来买花。
+    - xiaoju: 我也要一束！
+    - florist: 给你挑最小的那束。
+
+- id: fern_summer
+  when: idle
+  guest: florist
+  after: 20
+  season: summer
+  turns:
+    - florist: 天热，花一天就蔫，得勤换水。
+    - adeng: 跟人一样。
+
+- id: fern_autumn
+  when: idle
+  guest: florist
+  after: 20
+  season: autumn
+  turns:
+    - florist: 桂花开了，我在门口摆了两盆。
+    - laoshi: 难怪一路都是香的。
+
+- id: fern_winter
+  when: idle
+  guest: florist
+  after: 20
+  season: winter
+  turns:
+    - florist: 冬天就剩腊梅和水仙了。
+    - qingdai: 水仙我想画一张。
+    - florist: 那我挑一盆开得好的。
+
+- id: wu_newsletter
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 那期简报贴出去，楼里都在看。
+    - adeng: 有人照着去了吗？
+    - organizer: 周六的义诊来了四十多个。
+
+- id: wu_meeting
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 下午还有个会，就喝一口。
+    - laoshi: 开什么会？
+    - organizer: 楼道里的自行车该放哪儿。
+
+- id: wu_list
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 谁家老人一个人住，我都记在本子上。
+    - xiaoju: 记那么多，记得住吗？
+    - organizer: 记不住才写下来。
+
+- id: wu_garden
+  when: idle
+  guest: organizer
+  turns:
+    - organizer: 楼后那块空地，想种点菜。
+    - qingdai: 种什么？
+    - organizer: 先问问大家，下期简报登出来。
+
+- id: wu_rain
+  when: idle
+  guest: organizer
+  sky: rain
+  turns:
+    - organizer: 下雨了，我得去看看三楼那家漏不漏。
+    - adeng: 伞拿着，回头再还。
+
+- id: wu_spring
+  when: idle
+  guest: organizer
+  after: 20
+  season: spring
+  turns:
+    - organizer: 开春了，楼里要大扫除。
+    - xiaoju: 我们能帮忙吗？
+    - organizer: 你们帮着写个通知就行。
+
+- id: wu_summer
+  when: idle
+  guest: organizer
+  after: 20
+  season: summer
+  turns:
+    - organizer: 暑假孩子多，想办个看书的角。
+    - laoshi: 我这儿的旧书可以搬过去。
+
+- id: wu_autumn
+  when: idle
+  guest: organizer
+  after: 20
+  season: autumn
+  turns:
+    - organizer: 中秋想在院子里摆几张桌子。
+    - adeng: 月饼算我们的。
+    - organizer: 那我在简报上写上你们。
+
+- id: wu_winter
+  when: idle
+  guest: organizer
+  after: 20
+  season: winter
+  turns:
+    - organizer: 天冷了，我挨家看暖气热不热。
+    - adeng: 先坐下，喝口热的再走。

@@ -10,9 +10,10 @@
 
 - **面包房拼得出来，面包也有。** Modern Interiors 的 `16_Grocery_store` 有工业烤箱、双层烤箱、摆满面包的烘焙架、面包托盘、羊角包、长棍面包和不锈钢台子。Modern Farm 有石头烤炉、烤好的面包、两种装面包的木盆、空篮子、麻袋和木铲。`3_Animated_objects` 有和面机。
 - **所以 Q-F10 的前提不成立。** 计划里说素材包没有面包，清点下来是有的。面包房只手画了一样东西：柜台上的玻璃面包柜。价目写在每间店都有的那块黑板上，用粉笔线手画。
+- **邮局也拼得出来。** Modern Exteriors 的 `22_Post_Office` 有邮筒、大小包裹和信件。包里的邮筒是红的，脚本把邮筒染成绿色，跟家门口的一样。手画的是柜台、分信格、墙上的软木板、包裹架和黑板上的邮资。
 - **伞还没清点，** 留给 F3。
 
-看过的：Modern Interiors 的 `12_Kitchen`、`16_Grocery_store` 两张主题图；Modern Farm 的单图按文件名查过；`3_Animated_objects` 里名字带 kitchen、oven、fridge、kneader 的几张。
+看过的：Modern Interiors 的 `12_Kitchen`、`16_Grocery_store` 两张主题图；Modern Exteriors 的 `22_Post_Office` 单图；Modern Farm 的单图按文件名查过；`3_Animated_objects` 里名字带 kitchen、oven、fridge、kneader 的几张。
 
 ## 清单
 
@@ -28,7 +29,19 @@
 | `grow-bakery-ivy.png` | F1 面包房墙上长出来的吊着的绿萝 | 手画 | `scripts/art/growth.py` |
 | `grow-bakery-pin.png` | F1 面包房墙上长出来的擀面杖 | 手画 | `scripts/art/growth.py` |
 | `grow-bakery-garland.png` | F1 面包房墙上长出来的一串小面包 | 手画 | `scripts/art/growth.py` |
-| `grow-chalkboard.png` | F1 做过菜单，主店墙上挂的小黑板 | 手画 | `scripts/art/growth.py` |
+| `grow-chalkboard.png` | F1 做过菜单，主店左墙边立着的小黑板（F2 从挂钟底下挪过来） | 手画 | `scripts/art/growth.py` |
 | `grow-cookbook.png` | F1 写过食谱，主店文件柜上的食谱本 | 手画 | `scripts/art/growth.py` |
+| `post.png` | F2 邮局内景 | Modern Interiors：`Room_Builder` 的地砖和墙，`16_Grocery_store` 的不锈钢台子；Modern Exteriors：`22_Post_Office` 的邮筒、包裹和信件；手画的柜台、分信格、软木板、包裹架和黑板上的邮资 | `scripts/art/post.py` |
+| `post-room.png` | F2 邮局，家具后面那层 | Modern Interiors 和 Modern Exteriors，同 `post.png` | `scripts/art/pieces.py` |
+| `post-pieces.png` | F2 邮局，家具前面那层 | Modern Interiors 和 Modern Exteriors，同 `post.png` | `scripts/art/pieces.py` |
+| `axin.png` | F2 阿信当店主时的行走图，和客人阿信同一套搭配 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `florist.png` | F2 花店的芳姐，贺卡带来的客人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `organizer.png` | F2 居委会的吴阿姨，简报带来的客人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `grow-post-stamp.png` | F2 邮局墙上裱起来的第一张邮票 | 手画 | `scripts/art/growth.py` |
+| `grow-post-ivy.png` | F2 邮局墙上吊着的绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-post-horn.png` | F2 邮局墙上的铜邮号 | 手画 | `scripts/art/growth.py` |
+| `grow-post-map.png` | F2 邮局墙上的送信路线图 | 手画 | `scripts/art/growth.py` |
+| `grow-cardline.png` | F2 做过贺卡，主店侧窗上挂的一串贺卡 | 手画 | `scripts/art/growth.py` |
+| `grow-newsletters.png` | F2 做过简报，主店窗台上的一摞简报 | 手画 | `scripts/art/growth.py` |
 
-`shops-decor.png` 多了一行面包房，挂的是一块大饼干，节日的图案用糖霜画在上面（`scripts/art/decor.py`）。`town.json` 里面包房门口也有了花盆、店招和彩旗，店招上画的是一个面包（`scripts/art/town.py`）。这两张图 1.4 的清单里已经有了。`assets/ui/portraits.png` 多了一行桂姨的头像（`scripts/art/portraits.py`），它不在 `assets/sprites/` 里。
+`shops-decor.png` 多了一行面包房，挂的是一块大饼干，节日的图案用糖霜画在上面。F2 又多了一行邮局，挂的是一个航空信封，节日画在信封正面（`scripts/art/decor.py`）。`town.json` 里面包房门口也有了花盆、店招和彩旗，店招上画的是一个面包；邮局的店招上是一个信封（`scripts/art/town.py`）。这两张图 1.4 的清单里已经有了。`assets/ui/portraits.png` 多了桂姨和阿信的头像（`scripts/art/portraits.py`），它不在 `assets/sprites/` 里。

@@ -60,7 +60,7 @@ function along(points: Point[]): Point[] {
 }
 
 // The shops along the street (D2): the floor under each piece, as pieces.json measures it.
-for (const room of ['print', 'studio', 'workshop', 'bakery'] as const) {
+for (const room of ['print', 'studio', 'workshop', 'bakery', 'post'] as const) {
   FURNITURE[room] = pieceData(room).pieces.map((p) => box(p.name, p.x, p.x + p.w, p.y + p.h - p.foot, p.y + p.h));
 }
 
@@ -151,7 +151,7 @@ describe('walking through the shop', () => {
 
   // The new shops' own festival decorations (D6): a frame each in shops-decor.png, row by shop, column by festival.
   const shopsDecor = sprite('shops-decor.png');
-  (['print', 'studio', 'workshop', 'bakery'] as const).forEach((room, row) => {
+  (['print', 'studio', 'workshop', 'bakery', 'post'] as const).forEach((room, row) => {
     it(`no walk crosses the festival decorations on the floor of the ${room}`, () => {
       // Which festivals paint each pixel of the floor, so the walks are gone through once.
       const painted = new Map<number, string[]>();

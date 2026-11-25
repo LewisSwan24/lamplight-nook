@@ -1,0 +1,146 @@
+# Dialogue for the post office (plan-1.6.md F2), laid over lines/cafe.yaml: same format, same rules.
+# Axin the postman does all the work; Adeng only brings the order over and answers now and then.
+# Spots: 邮局柜台 (counter), 分信格 (board), 包裹架 (shelf), 打包桌 (table), 邮筒 (corner).
+
+opening:
+  - { id: po_revise_again_01, speaker: axin, when: revise_again, bubbles: ["上回改的是{lastAsk}。", "这回{brief}，收到。"] }
+  - { id: po_revise_01, speaker: axin, when: revise, bubbles: ["{brief}？行。", "信封还没封口，好改。"] }
+  - { id: po_revise_02, speaker: axin, when: revise, bubbles: ["退回来改改，常有的事。", "{brief}，我来。"] }
+  - { id: po_revise_03, speaker: axin, when: revise, bubbles: ["旧的那份我存着底。", "{brief}，改好了喊你。"] }
+  - { id: po_mem_02, speaker: axin, when: has_stuck_note, bubbles: ["{brief}，收到。", "上回在{stuckNote}卡过。", "这回我先绕开那段路。"] }
+  - { id: po_mem_01, speaker: axin, when: has_memory, bubbles: ["{brief}，收到。", "上回你挑的{lastChoice}。", "还照那个样子来。"] }
+  - { id: po_tpl_card_01, speaker: axin, when: tpl_card, bubbles: ["做贺卡啊，我这儿天天经手。", "名字照你给的写，一笔不差。"] }
+  - { id: po_tpl_card_02, speaker: axin, when: tpl_card, bubbles: ["贺卡要一拿到手就笑。", "字少点，心意写足。"] }
+  - { id: po_tpl_newsletter_01, speaker: axin, when: tpl_newsletter, bubbles: ["出简报？我送过的简报可多了。", "要紧的放头一条。"] }
+  - { id: po_tpl_newsletter_02, speaker: axin, when: tpl_newsletter, bubbles: ["日子和地点我单列一栏。", "贴墙上一眼就看见。"] }
+  - { id: po_handed_01, speaker: axin, when: handed, bubbles: ["东西收到了，我先拆开看看。", "{brief}，收到。"] }
+  - { id: po_opening_01, speaker: axin, bubbles: ["{brief}？", "好，我把邮包放下。"] }
+  - { id: po_opening_02, speaker: axin, bubbles: ["{brief}……", "早班信刚分完，来得巧。"] }
+  - { id: po_opening_03, speaker: axin, bubbles: ["来活了。", "{brief}，我先登个记。"] }
+
+planning:
+  - { id: po_plan_01, speaker: axin, bubbles: ["先排排路线，跟送信一个理。"] }
+  - { id: po_plan_02, speaker: axin, bubbles: ["哪家先送呢……"] }
+  - { id: po_plan_03, speaker: axin, bubbles: ["三站，一站一站跑。"] }
+
+draft_ready:
+  - { id: po_draft_ready_01, speaker: axin, bubbles: ["信写好了，在柜台上。", "邮票没贴，你看完自己寄。"] }
+  - { id: po_draft_ready_02, speaker: axin, bubbles: ["草稿好了。", "寄不寄你说了算。"] }
+  - { id: po_draft_ready_03, speaker: axin, bubbles: ["信没投，我压在邮戳底下了。"] }
+
+writing:
+  - { id: po_write_01, speaker: axin, bubbles: ["开工。"] }
+  - { id: po_write_02, speaker: axin, bubbles: ["这封分好了，下一封。"] }
+  - { id: po_write_03, speaker: axin, bubbles: ["嗯……", "这个地址写得清楚。"] }
+  - { id: po_write_04, speaker: axin, bubbles: ["先装进信封，邮票后面再挑。"] }
+
+sub_go_research:
+  - { id: po_go_rs_rain, speaker: axin, when: sky_rain, bubbles: ["下雨了，包裹别淋着。", "我去架子上找{topic}。"] }
+  - { id: po_go_rs_01, speaker: axin, bubbles: ["{topic}？我去包裹架那儿翻翻。"] }
+  - { id: po_go_rs_02, speaker: axin, bubbles: ["我记得登在哪本簿子上……"] }
+  - { id: po_go_rs_03, speaker: axin, bubbles: ["老底子都捆在架子后头。"] }
+
+sub_back_research:
+  - { id: po_back_rs_01, speaker: axin, bubbles: ["找着了。", "用得上的有{count}样。"] }
+  - { id: po_back_rs_02, speaker: axin, bubbles: ["这个对得上。", "跟街坊们说的一样。"] }
+  - { id: po_back_rs_03, speaker: axin, bubbles: ["都在这儿，按门牌号排好了。"] }
+
+sub_go_review:
+  - { id: po_go_rv_01, speaker: axin, bubbles: ["我在打包桌上过一遍。"] }
+  - { id: po_go_rv_02, speaker: axin, bubbles: ["地址对没对，得一个个看。"] }
+  - { id: po_go_rv_03, speaker: axin, bubbles: ["一封一封对过去。"] }
+
+sub_back_review:
+  - { id: po_back_rv_issue, speaker: axin, when: has_issues, bubbles: ["有{issueCount}处对不上。", "我都夹了张小纸条。"] }
+  - { id: po_back_rv_ok, speaker: axin, when: no_issues, bubbles: ["从头到尾对过了，没错投的。"] }
+  - { id: po_back_rv_ok2, speaker: axin, when: no_issues, bubbles: ["核过了，地址门牌都对。"] }
+
+sub_go_design:
+  - { id: po_go_ds_rain, speaker: axin, when: sky_rain, bubbles: ["下雨天，没人来寄信。", "我在分信格边上画画样子。"] }
+  - { id: po_go_ds_01, speaker: axin, bubbles: ["我在分信格边上比划比划。"] }
+  - { id: po_go_ds_02, speaker: axin, bubbles: ["摆成什么样好看呢……"] }
+  - { id: po_go_ds_03, speaker: axin, bubbles: ["先拿旧信封剪个样子。"] }
+
+sub_back_design:
+  - { id: po_back_ds_01, speaker: axin, bubbles: ["样子定了。", "像张好看的明信片。"] }
+  - { id: po_back_ds_02, speaker: axin, bubbles: ["剪好了，你瞧瞧。"] }
+  - { id: po_back_ds_03, speaker: axin, bubbles: ["摆了三种，我看中间那个好。"] }
+
+stuck:
+  - { id: po_stuck_01, speaker: axin, bubbles: ["哎？查无此人。", "换个法子试试。"] }
+  - { id: po_stuck_02, speaker: axin, bubbles: ["不对。{whatsWrong}。"] }
+  - { id: po_stuck_03, speaker: axin, bubbles: ["邮戳盖歪了……"] }
+  - { id: po_stuck_04, speaker: axin, bubbles: ["投错格子了。", "重新分。"] }
+
+stuck_long:
+  - { id: po_stuck_long_01, speaker: axin, bubbles: ["这个费工夫。", "我多跑几趟，你先忙。"] }
+  - { id: po_stuck_long_02, speaker: axin, bubbles: ["还在弄，没撂下。"] }
+  - { id: po_stuck_long_03, speaker: axin, bubbles: ["再等等，这条路绕。"] }
+
+waiting:
+  - { id: po_wait_01, speaker: axin, bubbles: ["在路上了，等等。"] }
+  - { id: po_wait_02, speaker: axin, bubbles: ["还没回信，再等等。"] }
+  - { id: po_wait_03, speaker: axin, bubbles: ["急不得，邮车到了自然有。"] }
+
+ask:
+  - { id: po_ask_color, speaker: axin, when: demo_color, bubbles: ["奶油白和浅薄荷，我各刷了一张卡。", "你要哪个？"] }
+  - { id: po_ask_01, speaker: axin, bubbles: ["问你个事儿。", "{question}"] }
+  - { id: po_ask_02, speaker: axin, bubbles: ["这儿有两条路能走。", "你挑一条？"] }
+
+react_adopted:
+  - { id: po_react_ad_01, speaker: axin, bubbles: ["好，就这么寄。"] }
+  - { id: po_react_ad_02, speaker: axin, bubbles: ["记下了，写在黑板上。"] }
+  - { id: po_react_ad_03, speaker: axin, bubbles: ["我也挑这个。"] }
+
+react_rejected:
+  - { id: po_react_rj_01, speaker: axin, bubbles: ["行，听你的。"] }
+  - { id: po_react_rj_02, speaker: axin, bubbles: ["那这张我留着下回用。"] }
+  - { id: po_react_rj_03, speaker: axin, bubbles: ["好，换一张。"] }
+
+react_delegated:
+  - { id: po_react_dl_00, speaker: axin, bubbles: ["好，我来定。", "定了跟你说。"] }
+  - { id: po_react_dl_01, speaker: axin, bubbles: ["那就{choice}，因为{reason}。", "不合适随时说。"] }
+  - { id: po_react_dl_02, speaker: axin, bubbles: ["先寄{choice}试试。", "不好再换。"] }
+  - { id: po_react_dl_03, speaker: axin, bubbles: ["就{choice}。", "为什么，我写在黑板上了。"] }
+
+serious:
+  - { id: po_serious_01, speaker: axin, bubbles: ["这一步要{action}。", "做了就{consequence}。", "你看一眼再定。"] }
+  - { id: po_serious_02, speaker: axin, bubbles: ["这儿我不敢乱动。", "{action}，{consequence}。"] }
+  - { id: po_serious_03, speaker: axin, bubbles: ["这个投进邮筒就拿不回来了。", "你看清楚再点。"] }
+
+refused:
+  - { id: po_refused_01, speaker: axin, bubbles: ["这个不能碰。", "换条路。"] }
+  - { id: po_refused_02, speaker: axin, bubbles: ["这不归我们动手。"] }
+  - { id: po_refused_03, speaker: axin, bubbles: ["别人的信，我不拆。"] }
+
+serious_yes:
+  - { id: po_serious_yes_01, speaker: axin, bubbles: ["好，我来。"] }
+  - { id: po_serious_yes_02, speaker: axin, bubbles: ["知道了，这就动手。"] }
+  - { id: po_serious_yes_03, speaker: axin, bubbles: ["妥。"] }
+
+serious_no:
+  - { id: po_serious_no_01, speaker: axin, bubbles: ["好，不碰它。", "我换个不用这样的法子。"] }
+  - { id: po_serious_no_02, speaker: axin, bubbles: ["好，先压着。"] }
+  - { id: po_serious_no_03, speaker: axin, bubbles: ["不弄了，我绕过去。"] }
+
+done:
+  - { id: po_done_day, speaker: axin, when: daytime, bubbles: ["好了，在柜台上。", "趁亮看。"] }
+  - { id: po_done_dusk, speaker: axin, when: dusk, bubbles: ["好了。", "天快黑了，正好收班。"] }
+  - { id: po_done_night, speaker: axin, when: night, bubbles: ["好了。", "这么晚了，看完早点睡。"] }
+  - { id: po_done_01, speaker: axin, bubbles: ["送到了，一封没丢。"] }
+  - { id: po_done_02, speaker: axin, bubbles: ["好了，拿去就能用。", "我从头对了两遍。"] }
+
+failed:
+  - { id: po_failed_01, speaker: axin, bubbles: ["这回没送到，对不住。", "卡在{stuckAt}。", "我记在黑板上了。", "下回换条路。"] }
+  - { id: po_failed_02, speaker: axin, bubbles: ["没送到。", "卡在{stuckAt}，记下了。"] }
+  - { id: po_failed_03, speaker: axin, bubbles: ["今天先到这儿。", "毛病我写在黑板上了。"] }
+
+net_retry:
+  - { id: po_net_retry_01, speaker: axin, bubbles: ["线路好像断了，我等等再试。"] }
+  - { id: po_net_retry_02, speaker: axin, bubbles: ["那头没人应，我再敲敲门。"] }
+  - { id: po_net_retry_03, speaker: axin, bubbles: ["邮车还没来，过会儿再问。"] }
+
+cancelled:
+  - { id: po_cancelled_01, speaker: axin, bubbles: ["好，那先放着。"] }
+  - { id: po_cancelled_02, speaker: axin, bubbles: ["行，做好的都留着。"] }
+  - { id: po_cancelled_03, speaker: axin, bubbles: ["好，不寄了。", "信我收进抽屉，明天还能用。"] }

@@ -72,6 +72,11 @@ STAFF = {
 # The two neighbours the bakery's work brings are written as cook.png and lodger.png, with the other guests.
 STAFF['guiyi'] = {'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
                              'Outfits/16x16/Outfit_33_01.png', 'Hairstyles/16x16/Hairstyle_11_05.png']}
+# Axin keeps the post office since plan-1.6.md F2, the same way: the postman's sheet with his mail bag, written again as
+# staff (axin.png). The post office's two neighbours are written as florist.png and organizer.png, with the other guests.
+STAFF['axin'] = {'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                            'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_05_04.png',
+                            'Accessories/16x16/Accessory_03_Backpack_01.png']}
 
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and
 # Axin the postman, with his mail bag; then those the work brings: Old Zhou from the garage, in his work clothes,
@@ -111,6 +116,18 @@ GUESTS = {
         'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
                    'Outfits/16x16/Outfit_14_01.png', 'Hairstyles/16x16/Hairstyle_17_03.png'],
         'recolor': {'Outfits/16x16/Outfit_14_01.png': [((180, 300), '#C2533F')]},
+    },
+    # The post office's two (plan-1.6.md F2): Fern from the flower shop on the corner, her hair up, in a leaf-green
+    # apron; and Mrs Wu from the residents' committee, short grey hair, a sensible cardigan.
+    'florist': {
+        'layers': ['Bodies/16x16/Body_04.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_09_01.png', 'Hairstyles/16x16/Hairstyle_19_03.png'],
+        'recolor': {'Outfits/16x16/Outfit_09_01.png': [((340, 20), '#5E8C4A')]},
+    },
+    'organizer': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_24_01.png', 'Hairstyles/16x16/Hairstyle_02_05.png'],
+        'recolor': {'Outfits/16x16/Outfit_24_01.png': [((180, 260), '#8A4A5A')]},
     },
 }
 
