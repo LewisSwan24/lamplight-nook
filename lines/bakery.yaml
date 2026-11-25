@@ -144,3 +144,80 @@ cancelled:
   - { id: bk_cancelled_01, speaker: guiyi, bubbles: ["好，那先放着。"] }
   - { id: bk_cancelled_02, speaker: guiyi, bubbles: ["行，做好的都留着。"] }
   - { id: bk_cancelled_03, speaker: guiyi, bubbles: ["好，不做了。", "面我盖上布，明天还能用。"] }
+
+# 走进面包房时桂姨说的一句（plan-1.6.md F5，app/renderer/stage/shoptalk.ts）。有节日先说节日的，再看天气，
+# 都没有就在时辰、季节和平常的里面挑。when：period_dawn/day/dusk/night、sky_rain 等、holiday_*、season_*。
+shop_in:
+  - { id: bk_in_01, speaker: guiyi, bubbles: ["来啦，炉子正热着。"] }
+  - { id: bk_in_02, speaker: guiyi, bubbles: ["进来坐，地上有面粉，当心滑。"] }
+  - { id: bk_in_03, speaker: guiyi, bubbles: ["来得巧，刚出了一炉。"] }
+  - { id: bk_in_04, speaker: guiyi, bubbles: ["门口那块垫子，踩一踩再进。"] }
+  - { id: bk_in_05, speaker: guiyi, bubbles: ["随便看，看饿了再说。"] }
+  - { id: bk_in_dawn_01, speaker: guiyi, when: period_dawn, bubbles: ["这么早？", "头一炉还没好，你先闻着。"] }
+  - { id: bk_in_dawn_02, speaker: guiyi, when: period_dawn, bubbles: ["我四点就起了，面得先醒着。"] }
+  - { id: bk_in_day_01, speaker: guiyi, when: period_day, bubbles: ["中午人多，柜台那边先别挤。"] }
+  - { id: bk_in_dusk_01, speaker: guiyi, when: period_dusk, bubbles: ["傍晚了，剩的面包打八折。"] }
+  - { id: bk_in_dusk_02, speaker: guiyi, when: period_dusk, bubbles: ["这会儿来，赶上最后一炉。"] }
+  - { id: bk_in_night_01, speaker: guiyi, when: period_night, bubbles: ["快关门了。", "明天的面我正在和。"] }
+  - { id: bk_in_night_02, speaker: guiyi, when: period_night, bubbles: ["炉子刚熄，屋里还暖和。"] }
+  - { id: bk_in_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["下雨天面发得慢。", "伞放门边就行。"] }
+  - { id: bk_in_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["快进来，炉子边上暖和。"] }
+  - { id: bk_in_spring_01, speaker: guiyi, when: season_spring, bubbles: ["开春了，我做了点青团。"] }
+  - { id: bk_in_summer_01, speaker: guiyi, when: season_summer, bubbles: ["天热，炉子边别站太久。"] }
+  - { id: bk_in_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["新麦下来了，面香不一样。"] }
+  - { id: bk_in_winter_01, speaker: guiyi, when: season_winter, bubbles: ["冬天了，热面包最好卖。"] }
+  - { id: bk_in_new_year, speaker: guiyi, when: holiday_new_year, bubbles: ["过年好。", "年糕我蒸了一笼。"] }
+  - { id: bk_in_lantern, speaker: guiyi, when: holiday_lantern, bubbles: ["元宵好，汤圆在锅里。"] }
+  - { id: bk_in_dragon_boat, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["粽子不归我管，面包管够。"] }
+  - { id: bk_in_mid_autumn, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["月饼是我自己烤的，拿一个。"] }
+  - { id: bk_in_halloween, speaker: guiyi, when: holiday_halloween, bubbles: ["南瓜面包，今天就这一样。"] }
+  - { id: bk_in_christmas, speaker: guiyi, when: holiday_christmas, bubbles: ["我也学着烤了个姜饼屋。"] }
+
+# 店里没活时桂姨隔一会儿说一句：天气、季节、客人来过、收摊。when 同上，不写就是什么时候都行。
+shop_idle:
+  - { id: bk_idle_01, speaker: guiyi, bubbles: ["面要揉到能拉出一层膜。"] }
+  - { id: bk_idle_02, speaker: guiyi, bubbles: ["这炉火候正好。"] }
+  - { id: bk_idle_03, speaker: guiyi, bubbles: ["老面该喂了。"] }
+  - { id: bk_idle_04, speaker: guiyi, bubbles: ["烘焙架上还空着一层。"] }
+  - { id: bk_idle_05, speaker: guiyi, bubbles: ["和面机今天有点响。"] }
+  - { id: bk_idle_06, speaker: guiyi, bubbles: ["黑板上的价钱，该擦了重写。"] }
+  - { id: bk_idle_07, speaker: guiyi, bubbles: ["面粉还剩半袋，明天去进。"] }
+  - { id: bk_idle_08, speaker: guiyi, bubbles: ["羊角包要叠好多层。", "少一层都不酥。"] }
+  - { id: bk_idle_09, speaker: guiyi, bubbles: ["烤盘得趁热刷。"] }
+  - { id: bk_idle_10, speaker: guiyi, bubbles: ["这个模子，比我年纪还大。"] }
+  - { id: bk_idle_11, speaker: guiyi, bubbles: ["面在醒，人也歇一歇。"] }
+  - { id: bk_idle_12, speaker: guiyi, bubbles: ["收银机的纸快没了。"] }
+  - { id: bk_idle_13, speaker: guiyi, bubbles: ["老马早上来拿了两个大馒头。"] }
+  - { id: bk_idle_14, speaker: guiyi, bubbles: ["陈婆婆要的软面包，我留了一个。"] }
+  - { id: bk_idle_15, speaker: guiyi, bubbles: ["阿信说今天信多，晚点来。"] }
+  - { id: bk_idle_16, speaker: guiyi, bubbles: ["小禾又来买了个最便宜的。", "我多塞了一块饼干。"] }
+  - { id: bk_idle_17, speaker: guiyi, bubbles: ["老周说我的炉门该上油了。"] }
+  - { id: bk_idle_18, speaker: guiyi, bubbles: ["小林来问食谱，我叫他去小灯屋。"] }
+  - { id: bk_idle_19, speaker: guiyi, bubbles: ["门口那人站了半天，又走了。"] }
+  - { id: bk_idle_20, speaker: guiyi, bubbles: ["有人隔着玻璃看面包。", "我冲他点了点头。"] }
+  - { id: bk_idle_21, speaker: guiyi, bubbles: ["芳姐拿花换了两个面包。"] }
+  - { id: bk_idle_22, speaker: guiyi, bubbles: ["吴阿姨订了二十个小面包，楼里开会用。"] }
+  - { id: bk_idle_23, speaker: guiyi, bubbles: ["阿灯早上来过，拿了一袋吐司。"] }
+  - { id: bk_idle_24, speaker: guiyi, bubbles: ["面包刀该磨了。"] }
+  - { id: bk_idle_dawn_01, speaker: guiyi, when: period_dawn, bubbles: ["第一炉出来，街上才有人。"] }
+  - { id: bk_idle_dawn_02, speaker: guiyi, when: period_dawn, bubbles: ["送奶的车刚过去。"] }
+  - { id: bk_idle_day_01, speaker: guiyi, when: period_day, bubbles: ["中午这一阵，忙完就好了。"] }
+  - { id: bk_idle_dusk_01, speaker: guiyi, when: period_dusk, bubbles: ["剩下这几个，明早做面包干。"] }
+  - { id: bk_idle_dusk_02, speaker: guiyi, when: period_dusk, bubbles: ["下班的人多，门口热闹。"] }
+  - { id: bk_idle_night_01, speaker: guiyi, when: period_night, bubbles: ["炉子熄了，该收摊了。"] }
+  - { id: bk_idle_night_02, speaker: guiyi, when: period_night, bubbles: ["明天的面盖好了，就等它发。"] }
+  - { id: bk_idle_night_03, speaker: guiyi, when: period_night, bubbles: ["灯我留一盏，好看清面发没发。"] }
+  - { id: bk_idle_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["下雨了，买面包的少了。"] }
+  - { id: bk_idle_rain_02, speaker: guiyi, when: sky_rain, bubbles: ["潮天，面粉得收严实。"] }
+  - { id: bk_idle_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["下雪天，烤炉就是暖气。"] }
+  - { id: bk_idle_snow_02, speaker: guiyi, when: sky_snow, bubbles: ["门口的雪，我等会儿扫。"] }
+  - { id: bk_idle_petals_01, speaker: guiyi, when: sky_petals, bubbles: ["花瓣飘进来了，可别落进面里。"] }
+  - { id: bk_idle_leaves_01, speaker: guiyi, when: sky_leaves, bubbles: ["叶子刮进门了，回头扫一扫。"] }
+  - { id: bk_idle_spring_01, speaker: guiyi, when: season_spring, bubbles: ["春天面发得快，得看紧点。"] }
+  - { id: bk_idle_spring_02, speaker: guiyi, when: season_spring, bubbles: ["想做个艾草面包，还没试。"] }
+  - { id: bk_idle_summer_01, speaker: guiyi, when: season_summer, bubbles: ["夏天少烤点，放不住。"] }
+  - { id: bk_idle_summer_02, speaker: guiyi, when: season_summer, bubbles: ["冰柜里冻着绿豆糕。"] }
+  - { id: bk_idle_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["秋天做南瓜面包，颜色好看。"] }
+  - { id: bk_idle_autumn_02, speaker: guiyi, when: season_autumn, bubbles: ["栗子下来了，该做栗子蛋糕。"] }
+  - { id: bk_idle_winter_01, speaker: guiyi, when: season_winter, bubbles: ["冬天面要醒久一点。"] }
+  - { id: bk_idle_winter_02, speaker: guiyi, when: season_winter, bubbles: ["手冷，先在炉子边烘一烘。"] }
