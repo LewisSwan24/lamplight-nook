@@ -143,3 +143,82 @@ cancelled:
   - { id: pr_cancelled_01, speaker: aqian, bubbles: ["Very well. We'll set it aside."] }
   - { id: pr_cancelled_02, speaker: aqian, bubbles: ["Fine. The set formes stay as they are."] }
   - { id: pr_cancelled_03, speaker: aqian, bubbles: ["Right. No more printing."] }
+
+# What Pica says as you walk into the print shop (plan-1.7.md G2, app/renderer/stage/shoptalk.ts): the holiday's
+# line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/print.yaml.
+shop_in:
+  - { id: pr_in_01, speaker: aqian, bubbles: ["Come in. Watch for loose type underfoot."] }
+  - { id: pr_in_02, speaker: aqian, bubbles: ["Sit down. The ink's still on the roller."] }
+  - { id: pr_in_03, speaker: aqian, bubbles: ["Ah. Let me finish this line first."] }
+  - { id: pr_in_04, speaker: aqian, bubbles: ["Not that sheet. The ink's still wet."] }
+  - { id: pr_in_05, speaker: aqian, bubbles: ["Come in. The paper smell is strong."] }
+  - { id: pr_in_06, speaker: aqian, bubbles: ["Look around. The proofs are on the wall."] }
+  - { id: pr_in_dawn_01, speaker: aqian, when: period_dawn, bubbles: ["This early?", "I've only just laid out the cases."] }
+  - { id: pr_in_dawn_02, speaker: aqian, when: period_dawn, bubbles: ["First light. Best for setting type."] }
+  - { id: pr_in_day_01, speaker: aqian, when: period_day, bubbles: ["Good light at noon. I'm proofing."] }
+  - { id: pr_in_dusk_01, speaker: aqian, when: period_dusk, bubbles: ["Evening. Nearly done with today's run."] }
+  - { id: pr_in_dusk_02, speaker: aqian, when: period_dusk, bubbles: ["Getting dark. I've just lit the lamp."] }
+  - { id: pr_in_night_01, speaker: aqian, when: period_night, bubbles: ["This late?", "Sorting the type back, letter by letter."] }
+  - { id: pr_in_night_02, speaker: aqian, when: period_night, bubbles: ["The press is resting. The ink smell isn't."] }
+  - { id: pr_in_rain_01, speaker: aqian, when: sky_rain, bubbles: ["Rainy day. The paper goes in the cupboard.", "Leave the umbrella outside."] }
+  - { id: pr_in_snow_01, speaker: aqian, when: sky_snow, bubbles: ["Quick, shut the door. The paper flies."] }
+  - { id: pr_in_spring_01, speaker: aqian, when: season_spring, bubbles: ["Spring. A new lot of paper just came."] }
+  - { id: pr_in_summer_01, speaker: aqian, when: season_summer, bubbles: ["Hot day. Ink dries fast, so I work fast."] }
+  - { id: pr_in_autumn_01, speaker: aqian, when: season_autumn, bubbles: ["Autumn's dry. The print comes up crisp."] }
+  - { id: pr_in_winter_01, speaker: aqian, when: season_winter, bubbles: ["Cold ink goes thick. I'm warming it."] }
+  - { id: pr_in_new_year, speaker: aqian, when: holiday_new_year, bubbles: ["New Year's here.", "A hundred couplets printed. Paper's low."] }
+  - { id: pr_in_lantern, speaker: aqian, when: holiday_lantern, bubbles: ["Lantern Festival.", "I printed the riddle slips. One each."] }
+  - { id: pr_in_dragon_boat, speaker: aqian, when: holiday_dragon_boat, bubbles: ["Dragon Boat Day.", "Printing numbers for the boat crews."] }
+  - { id: pr_in_mid_autumn, speaker: aqian, when: holiday_mid_autumn, bubbles: ["Mid-Autumn.", "I printed Auntie Olive's mooncake tags."] }
+  - { id: pr_in_halloween, speaker: aqian, when: holiday_halloween, bubbles: ["Pumpkin face stencils. I printed a stack."] }
+  - { id: pr_in_christmas, speaker: aqian, when: holiday_christmas, bubbles: ["Two-colour Christmas cards. Red's on now."] }
+
+# Pica now and then, while it's quiet: type, ink, paper, the neighbours, closing up, closing up.
+shop_idle:
+  - { id: pr_idle_01, speaker: aqian, bubbles: ["This 'g' is worn smooth. Needs replacing."] }
+  - { id: pr_idle_02, speaker: aqian, bubbles: ["Short an 'e' again. Always the 'e'."] }
+  - { id: pr_idle_03, speaker: aqian, bubbles: ["Clean the roller or the print smudges."] }
+  - { id: pr_idle_04, speaker: aqian, bubbles: ["Type reads backwards. So do I, by now."] }
+  - { id: pr_idle_05, speaker: aqian, bubbles: ["Cut along the grain or it frays."] }
+  - { id: pr_idle_06, speaker: aqian, bubbles: ["The press handle's worked loose again."] }
+  - { id: pr_idle_07, speaker: aqian, bubbles: ["This ream's uneven. I'll sort through it."] }
+  - { id: pr_idle_08, speaker: aqian, bubbles: ["Spacing off by a hair, and the page leans."] }
+  - { id: pr_idle_09, speaker: aqian, bubbles: ["This old type is older than the shop."] }
+  - { id: pr_idle_10, speaker: aqian, bubbles: ["I read a proof three times. Then aloud."] }
+  - { id: pr_idle_11, speaker: aqian, bubbles: ["Typos love to hide in headlines."] }
+  - { id: pr_idle_12, speaker: aqian, bubbles: ["One letter to a box. Mix them, you're lost."] }
+  - { id: pr_idle_13, speaker: aqian, bubbles: ["Wick dropped off an order this morning."] }
+  - { id: pr_idle_14, speaker: aqian, bubbles: ["Auntie Olive wanted price cards. Done."] }
+  - { id: pr_idle_15, speaker: aqian, bubbles: ["Printed fifty postcards for Pip."] }
+  - { id: pr_idle_16, speaker: aqian, bubbles: ["Xiaohe brought a poem. Wants a booklet."] }
+  - { id: pr_idle_17, speaker: aqian, bubbles: ["Mrs Wu's newsletter comes in on the 15th."] }
+  - { id: pr_idle_18, speaker: aqian, bubbles: ["Old Ma's menu again. New prices."] }
+  - { id: pr_idle_19, speaker: aqian, bubbles: ["Someone's reading the proofs on the wall."] }
+  - { id: pr_idle_20, speaker: aqian, bubbles: ["Chestnut visited. Inky paw prints."] }
+  - { id: pr_idle_dawn_01, speaker: aqian, when: period_dawn, bubbles: ["Hands are steadiest now. Small type time."] }
+  - { id: pr_idle_dawn_02, speaker: aqian, when: period_dawn, bubbles: ["I can smell the bakery from here."] }
+  - { id: pr_idle_day_01, speaker: aqian, when: period_day, bubbles: ["Noisy street at noon. Drowns out the press."] }
+  - { id: pr_idle_dusk_01, speaker: aqian, when: period_dusk, bubbles: ["Dusk. Red ink starts to look black."] }
+  - { id: pr_idle_dusk_02, speaker: aqian, when: period_dusk, bubbles: ["Today's sheets hang up to dry overnight."] }
+  - { id: pr_idle_night_01, speaker: aqian, when: period_night, bubbles: ["Type's put away. Tomorrow's forme can wait."] }
+  - { id: pr_idle_night_02, speaker: aqian, when: period_night, bubbles: ["Quiet night. I'm washing the rollers."] }
+  - { id: pr_idle_rain_01, speaker: aqian, when: sky_rain, bubbles: ["Damp paper's limp. Feed it in slowly."] }
+  - { id: pr_idle_rain_02, speaker: aqian, when: sky_rain, bubbles: ["Window leaks. I pulled the paper rack in."] }
+  - { id: pr_idle_snow_01, speaker: aqian, when: sky_snow, bubbles: ["Snow. The stove stays lit, for the ink."] }
+  - { id: pr_idle_snow_02, speaker: aqian, when: sky_snow, bubbles: ["Snow light. The paper's almost too white."] }
+  - { id: pr_idle_petals_01, speaker: aqian, when: sky_petals, bubbles: ["A petal landed on a wet proof. It stayed."] }
+  - { id: pr_idle_leaves_01, speaker: aqian, when: sky_leaves, bubbles: ["Found a leaf in the ream. Keeping it."] }
+  - { id: pr_idle_spring_01, speaker: aqian, when: season_spring, bubbles: ["Spring damp. Each sheet gets aired."] }
+  - { id: pr_idle_spring_02, speaker: aqian, when: season_spring, bubbles: ["Spring's for wedding invitations."] }
+  - { id: pr_idle_summer_01, speaker: aqian, when: season_summer, bubbles: ["Summer. Dry your hands before the paper."] }
+  - { id: pr_idle_summer_02, speaker: aqian, when: season_summer, bubbles: ["Cicadas all afternoon. Two typos so far."] }
+  - { id: pr_idle_autumn_01, speaker: aqian, when: season_autumn, bubbles: ["Autumn paper behaves. No curl, no damp."] }
+  - { id: pr_idle_autumn_02, speaker: aqian, when: season_autumn, bubbles: ["School's back. Timetables, a whole stack."] }
+  - { id: pr_idle_winter_01, speaker: aqian, when: season_winter, bubbles: ["Cold fingers. I pick type half as fast."] }
+  - { id: pr_idle_winter_02, speaker: aqian, when: season_winter, bubbles: ["Calendar orders are queued into next month."] }
+  - { id: pr_idle_halloween_01, speaker: aqian, when: holiday_halloween, bubbles: ["Kids took half the pumpkin stencils."] }
+  - { id: pr_idle_christmas_01, speaker: aqian, when: holiday_christmas, bubbles: ["The green's a hair off the red. Again."] }
+  - { id: pr_idle_new_year_01, speaker: aqian, when: holiday_new_year, bubbles: ["Printed the fu upside down. On purpose."] }
+  - { id: pr_idle_lantern_01, speaker: aqian, when: holiday_lantern, bubbles: ["I tried one riddle myself. Got it wrong."] }
+  - { id: pr_idle_dragon_boat_01, speaker: aqian, when: holiday_dragon_boat, bubbles: ["Big numbers. They're read from the bank."] }
+  - { id: pr_idle_mid_autumn_01, speaker: aqian, when: holiday_mid_autumn, bubbles: ["Gold ink for the moon. Not cheap."] }

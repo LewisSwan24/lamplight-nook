@@ -7,6 +7,13 @@
   the New Year a stall in the lot sells couplets, where the cart stands. Each festival now has three greetings from
   Wick, six chats among the staff, and three words at the door and two while you browse from Auntie Olive and from Pip,
   in both languages. When a festival falls on a snowy or rainy day, the festival's greeting comes first.
+- **The shop through the seasons.** The bakery's blackboard has a menu for each season: green rice balls in spring,
+  mung bean cakes in summer, chestnut cake and pumpkin bread in autumn, hot toast in winter. In winter six of the beds
+  out back grow cabbages, onions and cauliflower, and two rest under straw. Furnishing has six new colours, two for
+  each part: peach blossom and snow for the walls, bamboo and warm orange for the curtains, wheat and crimson for the
+  rug. Each belongs to a season and can be chosen all year; put one up in its season, or have the season turn to it,
+  and someone in the shop says so. The keepers of the print shop, the studio and the workshop now say a word as you
+  walk in and talk now and then while the shop is quiet, for the hour, the weather, the season and every festival.
 - **The lunar festivals run to 2040.** Lunar New Year, the Lantern, Dragon Boat and Mid-Autumn festivals were known
   only until 2035. The dates now run to 2040, checked against the Hong Kong Observatory's conversion tables.
 

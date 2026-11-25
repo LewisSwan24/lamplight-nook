@@ -4940,6 +4940,77 @@ const SCENARIOS = {
    * not, and a PDF to print. Then a recipe, as a Word document. Each names her on the parcel.
    */
   /**
+   * The shop through the seasons (plan-1.7.md G2), in a shop past a hundred works: winter greens in six beds with two
+   * under straw, a colour of the season picked in its season and someone saying so, the bakery's menu for each season,
+   * and the keepers of the three older shops saying a word as you walk in.
+   */
+  async shopseasons(lang, out) {
+    const L = locale(lang);
+    const memory = { commissions: [], stuckNotes: [], greeted: 'c1', shop: { done: 100, told: [], grown: COUNTED_PIECES.map(([id]) => ({ id, date: '2026-10-20' })) } };
+    const remarks = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/cafe.yaml' : 'lines/cafe.yaml'), 'utf8')).furnish_in_season;
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify(memory) }), size: 'large', debug: true });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const season = (name) => page.evaluate((name) => {
+      const { scene } = window.lamplightDebug;
+      scene.setWeather('clear', null, false);
+      scene.setSeason(name);
+      scene.setPeriod('day', true);
+    }, name);
+    const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+    const goInto = async (id) => {
+      await page.evaluate((id) => window.lamplightDebug.street.onFront(id, true), id);
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== id; await sleep(300));
+      check(await room() === id, `did not go into the ${id}: ${await room()}`);
+    };
+    try {
+      await page.waitForFunction(() => window.lamplightDebug?.scene?.growth?.shows('plaque'));
+      await sleep(1500);
+
+      await season('winter');
+      const beds = await page.evaluate(() => window.lamplightDebug.scene.garden.beds);
+      check(beds.filter((b) => b === 'winter').length === 6 && beds.filter((b) => b === 'rest').length === 2, `the beds in winter: ${beds}`);
+      await shop.hotspot(L.ui.access.hotspotGarden);
+      await sleep(1200);
+      await shop.shot(join(out, 'shopseasons-garden-winter.png'));
+      await shop.hotspot(L.ui.access.hotspotShop);
+      await sleep(1200);
+
+      await season('spring');
+      await shop.openSettings('furnish');
+      await page.locator('.settings .swatches').nth(0).locator('button.swatch[data-choice="peach"]').click();
+      const spring = remarks.find((l) => l.when === 'season_spring');
+      const said = await page.waitForFunction(([who, text]) => window.lamplightDebug.scene.isSaying(who, text), [spring.speaker, spring.bubbles[0]], { timeout: 8000 })
+        .then(() => true, () => false);
+      check(said, 'nobody said anything about the peach wall in spring');
+      await shop.shot(join(out, 'shopseasons-peach.png'));
+      await page.keyboard.press('Escape');
+      await sleep(600);
+
+      await goInto('bakery');
+      for (const [i, name] of ['spring', 'summer', 'autumn', 'winter'].entries()) {
+        await season(name);
+        await sleep(300);
+        const frame = await page.evaluate(() => {
+          const m = window.lamplightDebug.scene.menu;
+          return m?.visible ? `${m.texture.key}:${m.frame.name}` : null;
+        });
+        check(frame === `bakery-board:${i}`, `the bakery's menu in ${name} is ${frame}`);
+        await shop.shot(join(out, `shopseasons-bakery-${name}.png`));
+      }
+
+      for (const [id, keeper] of [['print', 'aqian'], ['studio', 'xiaozhe'], ['workshop', 'xiaoding']]) {
+        await streetButton();
+        await sleep(900);
+        await goInto(id);
+        check(await greeted(page, lang, id, keeper) !== null, `${keeper} said nothing walking into the ${id}`);
+        await shop.shot(join(out, `shopseasons-${id}-hello.png`));
+        await sleep(2500);
+      }
+    } finally { await shop.close(); }
+  },
+
+  /**
    * The six festivals (plan-1.7.md G1), the shop opened on a day of each: Wick greets with the festival's words, the
    * street has something up at every door and a piece in the lot where the cart stands, and Auntie Olive has a word
    * for it as you walk into the bakery.

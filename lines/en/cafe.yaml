@@ -412,3 +412,10 @@ cross_back:
   - { id: cross_back_xz_01, speaker: xiaozhe, bubbles: ["Painted.", "See if the colours suit."] }
   - { id: cross_back_xz_02, speaker: xiaozhe, bubbles: ["Here's the picture.", "It's dry."] }
   - { id: cross_back_xz_03, speaker: xiaozhe, bubbles: ["From {shop},", "for you."] }
+
+# A word when a colour of the season goes up, or when the season turns to one already in use (plan-1.7.md G2, shared/furnish.ts).
+furnish_in_season:
+  - { id: fis_spring, speaker: qingdai, when: season_spring, bubbles: ["Peach blossom in spring. Just right."] }
+  - { id: fis_summer, speaker: xiaoju, when: season_summer, bubbles: ["Bamboo green. Feels cooler already!"] }
+  - { id: fis_autumn, speaker: adeng, when: season_autumn, bubbles: ["Same colour as the leaves outside."] }
+  - { id: fis_winter, speaker: laoshi, when: season_winter, bubbles: ["That colour on a snowy day. Warm in here."] }

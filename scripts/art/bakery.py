@@ -3,7 +3,7 @@
 Auntie Gui's shop. The counter is a glass bread case on a wooden base, trays of bread on top; right of the blackboard stand
 two steel ovens against the wall, where she works; the bookcase is a pair of bakery racks full of loaves; the reading
 table is a steel kneading table with dough rising in its bowls; the corner is the dough mixer on its own little table, a
-sack of flour beside it; the day's prices are chalked on the blackboard. Modern Interiors' 16_Grocery_store has the ovens, the racks, the trays and the steel tables,
+sack of flour beside it; the menu chalked on the blackboard changes with the season (bakery-board.png). Modern Interiors' 16_Grocery_store has the ovens, the racks, the trays and the steel tables,
 3_Animated_objects the mixer, and Modern Farm the bread bowls, the loaf, the basket and the sacks; the bread case and the
 prices are drawn here by hand. The packs do have bread after all (plan-1.6.md Q-F10): only the case is new.
 Reads the raw pack from assets/vendor/ (not in the repo) and writes assets/sprites/bakery.png.
@@ -74,16 +74,65 @@ def bread_case():
     return p.img
 
 
-def price_chalk():
-    """The day's prices chalked on the blackboard every room has (shops.wall_fixtures): a loaf drawn at the top, then
-    a line of chalk for each kind with its price in yellow. The wall right of the ovens is kept for the festivals and for
-    what the shop grows (decor.py, growth.py), so the prices go where there is a board already."""
-    p = Pen(24, 16)
-    loaf(p, 9, 0, long=True)
-    for y in (6, 9, 12):
-        p.line((0, y, 12, y), PAPER)
-        p.line((17, y, 21, y), (240, 214, 120, 255))
+# The menu chalked on the blackboard every room has (shops.wall_fixtures) changes with the season (plan-1.7.md G2,
+# app/shared/menu.ts): what is baked then drawn at the top, a line of chalk for each kind with its price in yellow.
+# The room itself keeps the board bare; the game hangs the season's frame of bakery-board.png over it.
+MENU_W, MENU_H = 24, 16
+CHALK_Y = (240, 214, 120, 255)
+QINGTUAN, QINGTUAN_L = (88, 142, 66, 255), (150, 200, 110, 255)
+MUNG, MUNG_D = (196, 220, 150, 255), (142, 176, 104, 255)
+CHESTNUT, CREAM = (122, 74, 42, 255), (238, 216, 172, 255)
+PUMPKIN, PUMPKIN_D = (228, 130, 50, 255), (176, 88, 34, 255)
+TOAST, TOAST_IN = (204, 148, 80, 255), (246, 224, 172, 255)
+
+
+def chalk_lines(p, widths):
+    """A line of chalk for each kind, as long as its name, and the price at the right."""
+    for y, w in zip((7, 10, 13), widths):
+        p.line((0, y, w, y), PAPER)
+        p.line((17, y, 21, y), CHALK_Y)
+
+
+def menu(season):
+    p = Pen(MENU_W, MENU_H)
+    if season == 'spring':  # qingtuan: three green rice balls
+        for x in (3, 9, 15):
+            p.fill(x, 1, x + 3, 4, QINGTUAN)
+            p.fill(x + 1, 0, x + 2, 0, QINGTUAN)
+            p.dot(x + 1, 1, QINGTUAN_L)
+        chalk_lines(p, (12, 9, 11))
+    elif season == 'summer':  # mung bean cakes: pale green squares with a pressed flower
+        for x in (3, 9, 15):
+            p.fill(x, 1, x + 3, 4, MUNG)
+            p.line((x, 4, x + 3, 4), MUNG_D)
+            p.dot(x + 1, 2, MUNG_D)
+            p.dot(x + 2, 2, MUNG_D)
+        chalk_lines(p, (10, 12, 8))
+    elif season == 'autumn':  # a chestnut cake and a pumpkin loaf
+        p.fill(2, 2, 9, 4, CHESTNUT)
+        p.fill(3, 1, 8, 1, CREAM)
+        p.fill(5, 0, 6, 0, CHESTNUT)
+        p.fill(12, 1, 19, 4, PUMPKIN)
+        for x in (14, 17):
+            p.line((x, 1, x, 4), PUMPKIN_D)
+        p.dot(15, 0, QINGTUAN)
+        chalk_lines(p, (13, 11, 9))
+    else:  # winter: a slice of hot toast, steam above it
+        p.fill(8, 1, 15, 5, TOAST)
+        p.fill(9, 2, 14, 4, TOAST_IN)
+        p.fill(9, 0, 14, 0, TOAST)
+        for x in (10, 13):
+            p.dot(x, 0, PAPER)
+        chalk_lines(p, (9, 12, 10))
     return p.img
+
+
+def menu_sheet():
+    """The four seasons' menus side by side, spring first (app/shared/menu.ts, menuFrame)."""
+    sheet = Image.new('RGBA', (MENU_W * 4, MENU_H), (0, 0, 0, 0))
+    for i, season in enumerate(('spring', 'summer', 'autumn', 'winter')):
+        sheet.alpha_composite(menu(season), (i * MENU_W, 0))
+    return sheet
 
 
 DOUBLE_OVEN = grocery(146, 579, 174, 608)
@@ -99,7 +148,6 @@ CORNER = shops.stack((SMALL, 0, 0), (mixer(), 6, -mixer().height + 4), (shops.fa
 
 FURNITURE = [
     *shops.wall_fixtures(),
-    (None, price_chalk(), (96, 19)),
     (None, OVENS, (124, 56 - OVENS.height)),
     ('plant_l', scene.obj(192, scene.at(26), 208, scene.at(29)), (4, 40)),
     ('table', TABLE, (122, 102 - TABLE.height)),
@@ -116,9 +164,10 @@ def shell():
 
 
 def build():
+    menu_sheet().save(shops.ROOT / 'assets/sprites/bakery-board.png')
     return shops.build('bakery', shell(), FURNITURE)
 
 
 if __name__ == '__main__':
     build()
-    print('built bakery.png')
+    print('built bakery.png and bakery-board.png')

@@ -142,3 +142,82 @@ cancelled:
   - { id: st_cancelled_01, speaker: xiaozhe, bubbles: ["OK. Put aside."] }
   - { id: st_cancelled_02, speaker: xiaozhe, bubbles: ["Fine. What's painted stays."] }
   - { id: st_cancelled_03, speaker: xiaozhe, bubbles: ["OK, stopping.", "I'll wash the brushes."] }
+
+# What Umber says as you walk into the studio (plan-1.7.md G2, app/renderer/stage/shoptalk.ts): the holiday's
+# line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/studio.yaml.
+shop_in:
+  - { id: st_in_01, speaker: xiaozhe, bubbles: ["Come in.", "Wet paint. Not the wall."] }
+  - { id: st_in_02, speaker: xiaozhe, bubbles: ["Mm. Take the stool."] }
+  - { id: st_in_03, speaker: xiaozhe, bubbles: ["Leave the door open. Turpentine."] }
+  - { id: st_in_04, speaker: xiaozhe, bubbles: ["...", "Good timing. The light's just come round."] }
+  - { id: st_in_05, speaker: xiaozhe, bubbles: ["Paint on the floor. It'll follow you home."] }
+  - { id: st_in_06, speaker: xiaozhe, bubbles: ["Look around. None of it's finished."] }
+  - { id: st_in_dawn_01, speaker: xiaozhe, when: period_dawn, bubbles: ["Morning.", "The light's cold this early."] }
+  - { id: st_in_dawn_02, speaker: xiaozhe, when: period_dawn, bubbles: ["Waiting for the sun to reach the sill."] }
+  - { id: st_in_day_01, speaker: xiaozhe, when: period_day, bubbles: ["Flat light at noon. I'm washing brushes."] }
+  - { id: st_in_dusk_01, speaker: xiaozhe, when: period_dusk, bubbles: ["Evening light doesn't last. I'm hurrying."] }
+  - { id: st_in_dusk_02, speaker: xiaozhe, when: period_dusk, bubbles: ["The shadows on the wall have gone violet."] }
+  - { id: st_in_night_01, speaker: xiaozhe, when: period_night, bubbles: ["Late.", "Colours lie by lamplight. I'm tidying."] }
+  - { id: st_in_night_02, speaker: xiaozhe, when: period_night, bubbles: ["Nights, I only draw. No colour."] }
+  - { id: st_in_rain_01, speaker: xiaozhe, when: sky_rain, bubbles: ["Rain. Grey light.", "Umbrella in the bucket by the door."] }
+  - { id: st_in_snow_01, speaker: xiaozhe, when: sky_snow, bubbles: ["Come in. The snow lights up the room."] }
+  - { id: st_in_spring_01, speaker: xiaozhe, when: season_spring, bubbles: ["Spring. Too many greens out there to mix."] }
+  - { id: st_in_summer_01, speaker: xiaozhe, when: season_summer, bubbles: ["Hot. The paint dries faster than I work."] }
+  - { id: st_in_autumn_01, speaker: xiaozhe, when: season_autumn, bubbles: ["Autumn. I go through ochre fastest."] }
+  - { id: st_in_winter_01, speaker: xiaozhe, when: season_winter, bubbles: ["Cold in here. Warm your hands first."] }
+  - { id: st_in_new_year, speaker: xiaozhe, when: holiday_new_year, bubbles: ["New Year.", "I painted the door gods. They don't match."] }
+  - { id: st_in_lantern, speaker: xiaozhe, when: holiday_lantern, bubbles: ["Lantern Festival.", "Painting lotus on a lantern."] }
+  - { id: st_in_dragon_boat, speaker: xiaozhe, when: holiday_dragon_boat, bubbles: ["Dragon Boat Day.", "I painted the eyes on the dragon boat."] }
+  - { id: st_in_mid_autumn, speaker: xiaozhe, when: holiday_mid_autumn, bubbles: ["Mid-Autumn.", "Painted the moon three times. Too round."] }
+  - { id: st_in_halloween, speaker: xiaozhe, when: holiday_halloween, bubbles: ["I painted a pumpkin. Didn't carve it."] }
+  - { id: st_in_christmas, speaker: xiaozhe, when: holiday_christmas, bubbles: ["Christmas.", "Snow on the window glass. It washes off."] }
+
+# Umber now and then, while it's quiet: brushes, paint, the light at the window, the neighbours, closing up.
+shop_idle:
+  - { id: st_idle_01, speaker: xiaozhe, bubbles: ["...", "This blue wants more grey."] }
+  - { id: st_idle_02, speaker: xiaozhe, bubbles: ["The brush water needs changing."] }
+  - { id: st_idle_03, speaker: xiaozhe, bubbles: ["This brush is shedding."] }
+  - { id: st_idle_04, speaker: xiaozhe, bubbles: ["White always runs out first."] }
+  - { id: st_idle_05, speaker: xiaozhe, bubbles: ["Stretched tight. Taps like a drum."] }
+  - { id: st_idle_06, speaker: xiaozhe, bubbles: ["That lump on the palette's gone to stone."] }
+  - { id: st_idle_07, speaker: xiaozhe, bubbles: ["Upside down, you see what's wrong."] }
+  - { id: st_idle_08, speaker: xiaozhe, bubbles: ["Three steps back. Then look."] }
+  - { id: st_idle_09, speaker: xiaozhe, bubbles: ["Shadows aren't black."] }
+  - { id: st_idle_10, speaker: xiaozhe, bubbles: ["That apple gets eaten once it's painted."] }
+  - { id: st_idle_11, speaker: xiaozhe, bubbles: ["Peel the tape. Clean edge."] }
+  - { id: st_idle_12, speaker: xiaozhe, bubbles: ["Still wet. Next layer tomorrow."] }
+  - { id: st_idle_13, speaker: xiaozhe, bubbles: ["Iris came by. Borrowed a tube of blue."] }
+  - { id: st_idle_14, speaker: xiaozhe, bubbles: ["Wick brought an order. Stayed to look."] }
+  - { id: st_idle_15, speaker: xiaozhe, bubbles: ["Painted Fern's flowers for two days.", "They wilted first."] }
+  - { id: st_idle_16, speaker: xiaozhe, bubbles: ["Sketching the old street for Granny Chen."] }
+  - { id: st_idle_17, speaker: xiaozhe, bubbles: ["Auntie Olive swapped a loaf for a sketch."] }
+  - { id: st_idle_18, speaker: xiaozhe, bubbles: ["A kid at the door watched me paint a while."] }
+  - { id: st_idle_19, speaker: xiaozhe, bubbles: ["One more on the wall."] }
+  - { id: st_idle_20, speaker: xiaozhe, bubbles: ["Nearly out of turpentine."] }
+  - { id: st_idle_dawn_01, speaker: xiaozhe, when: period_dawn, bubbles: ["First light. The colours aren't awake yet."] }
+  - { id: st_idle_dawn_02, speaker: xiaozhe, when: period_dawn, bubbles: ["Morning light lasts half an hour."] }
+  - { id: st_idle_day_01, speaker: xiaozhe, when: period_day, bubbles: ["Noon. No shadows. I rest."] }
+  - { id: st_idle_dusk_01, speaker: xiaozhe, when: period_dusk, bubbles: ["The light's gone orange. I'll stop."] }
+  - { id: st_idle_dusk_02, speaker: xiaozhe, when: period_dusk, bubbles: ["The window looks better than the canvas."] }
+  - { id: st_idle_night_01, speaker: xiaozhe, when: period_night, bubbles: ["No mixing at night. Just the brushes."] }
+  - { id: st_idle_night_02, speaker: xiaozhe, when: period_night, bubbles: ["Pencil by lamplight. Scratch, scratch."] }
+  - { id: st_idle_rain_01, speaker: xiaozhe, when: sky_rain, bubbles: ["Wet day. Nothing dries."] }
+  - { id: st_idle_rain_02, speaker: xiaozhe, when: sky_rain, bubbles: ["I traced a raindrop's track on the glass."] }
+  - { id: st_idle_snow_01, speaker: xiaozhe, when: sky_snow, bubbles: ["Shadows on snow are blue."] }
+  - { id: st_idle_snow_02, speaker: xiaozhe, when: sky_snow, bubbles: ["Snow days, I use three colours."] }
+  - { id: st_idle_petals_01, speaker: xiaozhe, when: sky_petals, bubbles: ["A petal on the palette. Pink."] }
+  - { id: st_idle_leaves_01, speaker: xiaozhe, when: sky_leaves, bubbles: ["A leaf on the glass. Looks painted on."] }
+  - { id: st_idle_spring_01, speaker: xiaozhe, when: season_spring, bubbles: ["Spring light is yellow-green."] }
+  - { id: st_idle_spring_02, speaker: xiaozhe, when: season_spring, bubbles: ["Willow fluff in the wet paint. Again."] }
+  - { id: st_idle_summer_01, speaker: xiaozhe, when: season_summer, bubbles: ["Summer shadows. Short and hard."] }
+  - { id: st_idle_summer_02, speaker: xiaozhe, when: season_summer, bubbles: ["The fan can't point at the canvas."] }
+  - { id: st_idle_autumn_01, speaker: xiaozhe, when: season_autumn, bubbles: ["Autumn light's low. Long shadows."] }
+  - { id: st_idle_autumn_02, speaker: xiaozhe, when: season_autumn, bubbles: ["The tree outside changes colour daily."] }
+  - { id: st_idle_winter_01, speaker: xiaozhe, when: season_winter, bubbles: ["Winter light's gone by four."] }
+  - { id: st_idle_winter_02, speaker: xiaozhe, when: season_winter, bubbles: ["The paint's gone stiff with cold."] }
+  - { id: st_idle_halloween_01, speaker: xiaozhe, when: holiday_halloween, bubbles: ["Took a few tries to mix pumpkin orange."] }
+  - { id: st_idle_christmas_01, speaker: xiaozhe, when: holiday_christmas, bubbles: ["Someone thought the window snow was real."] }
+  - { id: st_idle_new_year_01, speaker: xiaozhe, when: holiday_new_year, bubbles: ["Touched up the door gods' beards."] }
+  - { id: st_idle_lantern_01, speaker: xiaozhe, when: holiday_lantern, bubbles: ["Lantern paper glows. Mix the colours pale."] }
+  - { id: st_idle_dragon_boat_01, speaker: xiaozhe, when: holiday_dragon_boat, bubbles: ["The boat paint's still tacky. Three days."] }
+  - { id: st_idle_mid_autumn_01, speaker: xiaozhe, when: holiday_mid_autumn, bubbles: ["Under the moon, every colour's silver."] }

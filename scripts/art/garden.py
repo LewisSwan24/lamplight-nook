@@ -41,6 +41,8 @@ VEG = [(65, 178, 78, 192), (97, 178, 110, 192), (81, 83, 92, 93), (64, 84, 77, 9
 # from the growth-stage sheets (file, frame), and straw over the soil in winter.
 GROWTH_STAGES = FARM / 'Crops_Growth_16x16'
 SPRING = [('Cabbage', 3), ('Carrot', 2), ('Radish', 3), ('Strawberry', 3), ('Cauliflower', 3), ('Wheat', 2), ('Radish', 2), ('Strawberry', 2)]
+# Winter greens in six beds since 1.7 (plan-1.7.md G2); the last two rest under straw.
+WINTER = [('Cabbage', 5), ('Onion', 5), ('Cauliflower', 5), ('Cauliflower', 4), ('Onion', 4), ('Cabbage', 4)]
 AUTUMN = [('Pumpkin', 6), ('Wheat', 6), ('Carrot', 6), ('Cabbage', 6), ('Pepper', 6), ('Wheat', 5), ('Cauliflower', 6), ('Pumpkin', 5)]
 # Straw: pale and dark stalks lying every which way over a low mound.
 STRAW_LIGHT, STRAW_DARK = (222, 190, 112, 255), (176, 136, 72, 255)
@@ -115,14 +117,14 @@ def stage(name, frame):
 
 def crop_sheet(crops):
     """What grows in the beds (app/shared/growth.ts, BEDS and bedFrame): the eight summer plants, a sprout, eight young
-    spring plants, eight autumn crops and straw, each with its feet at the bottom left of a 16x16 cell."""
-    sheet = Image.new('RGBA', (16 * 26, 16), (0, 0, 0, 0))
+    spring plants, eight autumn crops, straw and six winter greens, each with its feet at the bottom left of a 16x16 cell."""
+    sheet = Image.new('RGBA', (16 * (26 + len(WINTER)), 16), (0, 0, 0, 0))
     for i in range(8):
         veg = crops.crop(VEG[i % len(VEG)])
         sheet.alpha_composite(veg, (i * 16, 16 - veg.height))
     for (x, y), colour in SPROUT.items():
         sheet.putpixel((8 * 16 + x, y), colour)
-    for first, plants in ((9, SPRING), (17, AUTUMN)):
+    for first, plants in ((9, SPRING), (17, AUTUMN), (26, WINTER)):
         for i, (name, frame) in enumerate(plants):
             plant = stage(name, frame)
             sheet.alpha_composite(plant, ((first + i) * 16, 16 - plant.height))

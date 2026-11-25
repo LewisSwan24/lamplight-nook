@@ -18,6 +18,7 @@ import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { openingTurns, pickLine } from './translator/lines';
+import { inSeason, newlyInSeason } from '../shared/furnish';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar, showCaptionLog } from './ui/captions';
 import { askerOf, dismissDecision, showDecision } from './ui/decision';
@@ -457,6 +458,15 @@ scene.onSound = sfx;
 // Lines from a replay (the trial) are marked in the caption log, so they never pass for real work.
 scene.onSay = (who, text) => recordLine(who, replaying ? text + strings.ui.replayTag : text);
 scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
+// The colours of a season (plan-1.7.md G2): someone says so when one goes up in its season, or the season turns to it.
+function sayInSeason() {
+  const turns = pickLine(ruleBook(scene.room).lines.furnish_in_season ?? [], [`season_${scene.outside().season}`], {});
+  if (turns) void stage.talk(turns);
+}
+scene.onSeasonTurn = (season) => {
+  const room = scene.room;
+  if (current && isScene(room) && inSeason(current.furnish[room], season)) sayInSeason();
+};
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 // One at a time, in the order they came, so two cards never sit on top of each other.
@@ -879,6 +889,7 @@ scene.onCounterClick = () => {
 const systemCalm = matchMedia('(prefers-reduced-motion: reduce)');
 let current: Settings | null = null;
 function applySettings(s: Settings) {
+  const before = current;
   current = s;
   setMix({ volume: s.volume, muted: s.muted, period: scene.period });
   setCaptionBar(s.captions);
@@ -890,7 +901,11 @@ function applySettings(s: Settings) {
   scene.setYouLook(s.avatar);
   // Furnishing is the home shop's; the shops along the street are as they are drawn.
   const room = scene.room;
-  if (isScene(room)) scene.setFurnishing(s.furnish[room]);
+  if (isScene(room)) {
+    scene.setFurnishing(s.furnish[room]);
+    // A colour of the season just put up gets a word (plan-1.7.md G2).
+    if (before && newlyInSeason(before.furnish[room], s.furnish[room], scene.outside().season)) sayInSeason();
+  }
   scene.youName = s.name;
   syncToolbar(s);
 }

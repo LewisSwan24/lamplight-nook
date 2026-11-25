@@ -77,10 +77,15 @@ export const BEDS = [
 ] as const;
 /** Northern hemisphere seasons (game/weather.ts decides which one it is). */
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
-/** Growing up: empty, sprout, ripe. Once all are ripe the beds follow the seasons: young plants, ripe, harvest, straw. */
-export type BedStage = 'empty' | 'sprout' | 'ripe' | 'young' | 'harvest' | 'rest';
+/**
+ * Growing up: empty, sprout, ripe. Once all are ripe the beds follow the seasons: young plants, ripe, harvest, and in
+ * winter greens in six beds (since 1.7, plan-1.7.md G2) with the last two resting under straw.
+ */
+export type BedStage = 'empty' | 'sprout' | 'ripe' | 'young' | 'harvest' | 'winter' | 'rest';
 const BED_EVERY = 3;
-const SEASON_STAGE: Record<Season, BedStage> = { spring: 'young', summer: 'ripe', autumn: 'harvest', winter: 'rest' };
+const SEASON_STAGE: Record<Season, BedStage> = { spring: 'young', summer: 'ripe', autumn: 'harvest', winter: 'winter' };
+/** How many beds rest under straw in winter: the last ones. */
+const RESTING = 2;
 
 /** How far the beds have come with this many works, whatever the season. */
 function grownStages(done: number): BedStage[] {
@@ -93,15 +98,16 @@ function grownStages(done: number): BedStage[] {
 /** The beds come up as works get finished; once they are all ripe, they turn with the seasons instead. */
 export function bedStages(done: number, season: Season): BedStage[] {
   const grown = grownStages(done);
-  return grown.every((b) => b === 'ripe') ? grown.map(() => SEASON_STAGE[season]) : grown;
+  if (!grown.every((b) => b === 'ripe')) return grown;
+  return grown.map((_, i) => (season === 'winter' && i >= BEDS.length - RESTING ? 'rest' : SEASON_STAGE[season]));
 }
 
 /**
  * Which picture in garden-crops.png (scripts/art/garden.py, crop_sheet): the eight summer crops, a sprout, eight young
- * spring plants, eight autumn crops, then straw.
+ * spring plants, eight autumn crops, straw, then six winter greens.
  */
 export function bedFrame(stage: Exclude<BedStage, 'empty'>, bed: number): number {
-  return { ripe: bed, sprout: 8, young: 9 + bed, harvest: 17 + bed, rest: 25 }[stage];
+  return { ripe: bed, sprout: 8, young: 9 + bed, harvest: 17 + bed, rest: 25, winter: 26 + (bed % (BEDS.length - RESTING)) }[stage];
 }
 
 /** What is worth a word after finishing a work: the first sprout, the first ripe plant, all of them ripe. */

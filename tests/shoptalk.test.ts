@@ -93,14 +93,15 @@ describe('something now and then while it is quiet', () => {
 });
 
 describe('the keepers\' own lines', () => {
-  const KEEPER = { bakery: 'guiyi', post: 'axin' } as const;
+  // The bakery and the post office since 1.6 (F5); the three older shops since 1.7 (G2).
+  const KEEPER = { bakery: 'guiyi', post: 'axin', print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding' } as const;
   const known = new Set(['period_dawn', 'period_day', 'period_dusk', 'period_night', 'sky_clear', 'sky_rain', 'sky_snow', 'sky_petals', 'sky_leaves',
     'season_spring', 'season_summer', 'season_autumn', 'season_winter', ...HOLIDAYS.map((h) => `holiday_${h}`)]);
   for (const [shop, keeper] of Object.entries(KEEPER)) {
     const zh = parseLines(readFileSync(`lines/${shop}.yaml`, 'utf8'));
     const en = parseLines(readFileSync(`lines/en/${shop}.yaml`, 'utf8'));
     it(`lines/${shop}.yaml: greetings and idle words from ${keeper} alone, for every hour, weather and season, in both languages`, () => {
-      expect(ROOM_CREW[shop as 'bakery' | 'post']).toEqual([keeper]);
+      expect(ROOM_CREW[shop as keyof typeof KEEPER]).toEqual([keeper]);
       for (const lib of [zh, en]) {
         expect(lib.shop_in.length).toBeGreaterThanOrEqual(15);
         expect(lib.shop_idle.length).toBeGreaterThanOrEqual(40);
@@ -111,6 +112,8 @@ describe('the keepers\' own lines', () => {
         for (const when of ['period_dawn', 'period_night', 'sky_rain', 'sky_snow', 'season_spring', 'season_summer', 'season_autumn', 'season_winter']) {
           expect(lib.shop_idle.some((l) => l.when === when), `${shop} has nothing idle for ${when}`).toBe(true);
         }
+        // A word at the door for every festival (plan-1.7.md G1).
+        for (const h of HOLIDAYS) expect(lib.shop_in.some((l) => l.when === `holiday_${h}`), `${shop} has no greeting for ${h}`).toBe(true);
       }
       expect(en.shop_in.map((l) => l.id)).toEqual(zh.shop_in.map((l) => l.id));
       expect(en.shop_idle.map((l) => l.id)).toEqual(zh.shop_idle.map((l) => l.id));

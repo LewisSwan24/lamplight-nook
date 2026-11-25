@@ -141,3 +141,82 @@ cancelled:
   - { id: st_cancelled_01, speaker: xiaozhe, bubbles: ["好，先放着。"] }
   - { id: st_cancelled_02, speaker: xiaozhe, bubbles: ["行。画了的都留着。"] }
   - { id: st_cancelled_03, speaker: xiaozhe, bubbles: ["好，不画了。", "笔我先洗了。"] }
+
+# 走进画室时小赭说的一句（plan-1.7.md G2，app/renderer/stage/shoptalk.ts）。有节日先说节日的，再看天气，
+# 都没有就在时辰、季节和平常的里面挑。when：period_dawn/day/dusk/night、sky_rain 等、holiday_*、season_*。
+shop_in:
+  - { id: st_in_01, speaker: xiaozhe, bubbles: ["进来。", "颜料没干，别靠墙。"] }
+  - { id: st_in_02, speaker: xiaozhe, bubbles: ["嗯，坐那张高凳。"] }
+  - { id: st_in_03, speaker: xiaozhe, bubbles: ["门别关，松节油味重。"] }
+  - { id: st_in_04, speaker: xiaozhe, bubbles: ["……", "来得正好，光刚转过来。"] }
+  - { id: st_in_05, speaker: xiaozhe, bubbles: ["地上有颜料，踩着就带走了。"] }
+  - { id: st_in_06, speaker: xiaozhe, bubbles: ["随便看。都没画完。"] }
+  - { id: st_in_dawn_01, speaker: xiaozhe, when: period_dawn, bubbles: ["早。", "这会儿的光，是冷的。"] }
+  - { id: st_in_dawn_02, speaker: xiaozhe, when: period_dawn, bubbles: ["我在等太阳爬到窗台。"] }
+  - { id: st_in_day_01, speaker: xiaozhe, when: period_day, bubbles: ["中午光太平，我在洗笔。"] }
+  - { id: st_in_dusk_01, speaker: xiaozhe, when: period_dusk, bubbles: ["傍晚的光最短，我得快点。"] }
+  - { id: st_in_dusk_02, speaker: xiaozhe, when: period_dusk, bubbles: ["墙上的影子，变成紫的了。"] }
+  - { id: st_in_night_01, speaker: xiaozhe, when: period_night, bubbles: ["晚了。", "灯下看颜色不准，我只收拾。"] }
+  - { id: st_in_night_02, speaker: xiaozhe, when: period_night, bubbles: ["夜里我只画素描。"] }
+  - { id: st_in_rain_01, speaker: xiaozhe, when: sky_rain, bubbles: ["下雨，光是灰的。", "伞放门口那个桶里。"] }
+  - { id: st_in_snow_01, speaker: xiaozhe, when: sky_snow, bubbles: ["进来。雪把屋里照亮了。"] }
+  - { id: st_in_spring_01, speaker: xiaozhe, when: season_spring, bubbles: ["开春了，窗外的绿太多，调不出来。"] }
+  - { id: st_in_summer_01, speaker: xiaozhe, when: season_summer, bubbles: ["热，颜料干得比我快。"] }
+  - { id: st_in_autumn_01, speaker: xiaozhe, when: season_autumn, bubbles: ["秋天了，赭石用得最快。"] }
+  - { id: st_in_winter_01, speaker: xiaozhe, when: season_winter, bubbles: ["屋里冷，先把手暖一暖。"] }
+  - { id: st_in_new_year, speaker: xiaozhe, when: holiday_new_year, bubbles: ["过年好。", "门神是我画的，左右不太一样。"] }
+  - { id: st_in_lantern, speaker: xiaozhe, when: holiday_lantern, bubbles: ["元宵。", "我在给一盏灯描荷花。"] }
+  - { id: st_in_dragon_boat, speaker: xiaozhe, when: holiday_dragon_boat, bubbles: ["端午。", "龙舟的龙眼，是我点的。"] }
+  - { id: st_in_mid_autumn, speaker: xiaozhe, when: holiday_mid_autumn, bubbles: ["中秋。", "月亮我画了三回，都太圆。"] }
+  - { id: st_in_halloween, speaker: xiaozhe, when: holiday_halloween, bubbles: ["南瓜我画了，没刻。"] }
+  - { id: st_in_christmas, speaker: xiaozhe, when: holiday_christmas, bubbles: ["圣诞。", "窗玻璃上画了点雪，洗得掉。"] }
+
+# 店里没活时小赭隔一会儿说一句：笔、颜料、窗外的光、街坊、收工。when 同上，不写就是什么时候都行。
+shop_idle:
+  - { id: st_idle_01, speaker: xiaozhe, bubbles: ["……", "这块蓝，再灰一点。"] }
+  - { id: st_idle_02, speaker: xiaozhe, bubbles: ["笔洗该换水了。"] }
+  - { id: st_idle_03, speaker: xiaozhe, bubbles: ["这支笔掉毛了。"] }
+  - { id: st_idle_04, speaker: xiaozhe, bubbles: ["白颜料用得最快。"] }
+  - { id: st_idle_05, speaker: xiaozhe, bubbles: ["画布绷紧了，敲着像鼓。"] }
+  - { id: st_idle_06, speaker: xiaozhe, bubbles: ["调色板上那块，已经干成石头了。"] }
+  - { id: st_idle_07, speaker: xiaozhe, bubbles: ["画倒过来看，才知道哪儿不对。"] }
+  - { id: st_idle_08, speaker: xiaozhe, bubbles: ["退后三步再看。"] }
+  - { id: st_idle_09, speaker: xiaozhe, bubbles: ["影子不是黑的。"] }
+  - { id: st_idle_10, speaker: xiaozhe, bubbles: ["窗台上的苹果，画完就该吃了。"] }
+  - { id: st_idle_11, speaker: xiaozhe, bubbles: ["胶带撕下来，边是齐的。"] }
+  - { id: st_idle_12, speaker: xiaozhe, bubbles: ["这层还湿，下一层等明天。"] }
+  - { id: st_idle_13, speaker: xiaozhe, bubbles: ["青黛来过，借走一管群青。"] }
+  - { id: st_idle_14, speaker: xiaozhe, bubbles: ["阿灯送单子来，站着看了半天画。"] }
+  - { id: st_idle_15, speaker: xiaozhe, bubbles: ["芳姐送的花，我画了两天。", "花先谢了。"] }
+  - { id: st_idle_16, speaker: xiaozhe, bubbles: ["陈婆婆想要张老街的画，我在打稿。"] }
+  - { id: st_idle_17, speaker: xiaozhe, bubbles: ["桂姨拿面包换了一张小画。"] }
+  - { id: st_idle_18, speaker: xiaozhe, bubbles: ["门口有个孩子，看我画了好久。"] }
+  - { id: st_idle_19, speaker: xiaozhe, bubbles: ["墙上的画，又多了一张。"] }
+  - { id: st_idle_20, speaker: xiaozhe, bubbles: ["松节油快见底了。"] }
+  - { id: st_idle_dawn_01, speaker: xiaozhe, when: period_dawn, bubbles: ["天刚亮，颜色还没醒。"] }
+  - { id: st_idle_dawn_02, speaker: xiaozhe, when: period_dawn, bubbles: ["早上的光，只有半个钟头。"] }
+  - { id: st_idle_day_01, speaker: xiaozhe, when: period_day, bubbles: ["中午光直，没有影子，我歇着。"] }
+  - { id: st_idle_dusk_01, speaker: xiaozhe, when: period_dusk, bubbles: ["光变橙了，这张先停。"] }
+  - { id: st_idle_dusk_02, speaker: xiaozhe, when: period_dusk, bubbles: ["傍晚的窗，比画好看。"] }
+  - { id: st_idle_night_01, speaker: xiaozhe, when: period_night, bubbles: ["夜里不调色，只洗笔。"] }
+  - { id: st_idle_night_02, speaker: xiaozhe, when: period_night, bubbles: ["灯下画素描，铅笔声沙沙的。"] }
+  - { id: st_idle_rain_01, speaker: xiaozhe, when: sky_rain, bubbles: ["雨天，画干得慢。"] }
+  - { id: st_idle_rain_02, speaker: xiaozhe, when: sky_rain, bubbles: ["窗上的雨痕，我描了一道。"] }
+  - { id: st_idle_snow_01, speaker: xiaozhe, when: sky_snow, bubbles: ["雪地上的影子，是蓝的。"] }
+  - { id: st_idle_snow_02, speaker: xiaozhe, when: sky_snow, bubbles: ["雪天，我只用三种颜色。"] }
+  - { id: st_idle_petals_01, speaker: xiaozhe, when: sky_petals, bubbles: ["花瓣落在调色板上，粉的。"] }
+  - { id: st_idle_leaves_01, speaker: xiaozhe, when: sky_leaves, bubbles: ["一片叶子贴在窗上，像画上去的。"] }
+  - { id: st_idle_spring_01, speaker: xiaozhe, when: season_spring, bubbles: ["春天的光是黄绿的。"] }
+  - { id: st_idle_spring_02, speaker: xiaozhe, when: season_spring, bubbles: ["柳絮粘在湿画上，挑不干净。"] }
+  - { id: st_idle_summer_01, speaker: xiaozhe, when: season_summer, bubbles: ["夏天的影子短，硬。"] }
+  - { id: st_idle_summer_02, speaker: xiaozhe, when: season_summer, bubbles: ["电扇不能对着画吹。"] }
+  - { id: st_idle_autumn_01, speaker: xiaozhe, when: season_autumn, bubbles: ["秋天光斜，影子拖得老长。"] }
+  - { id: st_idle_autumn_02, speaker: xiaozhe, when: season_autumn, bubbles: ["窗外的树，一天换一个颜色。"] }
+  - { id: st_idle_winter_01, speaker: xiaozhe, when: season_winter, bubbles: ["冬天的光，四点就走了。"] }
+  - { id: st_idle_winter_02, speaker: xiaozhe, when: season_winter, bubbles: ["颜料冻稠了，挤不出来。"] }
+  - { id: st_idle_halloween_01, speaker: xiaozhe, when: holiday_halloween, bubbles: ["南瓜的橙，我调了好几回。"] }
+  - { id: st_idle_christmas_01, speaker: xiaozhe, when: holiday_christmas, bubbles: ["窗上画的雪，有人以为是真的。"] }
+  - { id: st_idle_new_year_01, speaker: xiaozhe, when: holiday_new_year, bubbles: ["门神的胡子，又补了几笔。"] }
+  - { id: st_idle_lantern_01, speaker: xiaozhe, when: holiday_lantern, bubbles: ["灯纸透光，颜色得调浅。"] }
+  - { id: st_idle_dragon_boat_01, speaker: xiaozhe, when: holiday_dragon_boat, bubbles: ["龙舟的漆，三天没干透。"] }
+  - { id: st_idle_mid_autumn_01, speaker: xiaozhe, when: holiday_mid_autumn, bubbles: ["月光下看颜色，全是银的。"] }
