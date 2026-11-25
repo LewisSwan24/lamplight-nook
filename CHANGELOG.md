@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (1.7)
+
+- **Every festival on the whole street.** The Lantern Festival hangs a string of little lanterns over every door, the
+  Dragon Boat Festival puts mugwort either side of it, and at Mid-Autumn a rabbit lantern on wheels stands outside. At
+  the New Year a stall in the lot sells couplets, where the cart stands. Each festival now has three greetings from
+  Wick, six chats among the staff, and three words at the door and two while you browse from Auntie Olive and from Pip,
+  in both languages. When a festival falls on a snowy or rainy day, the festival's greeting comes first.
+- **The lunar festivals run to 2040.** Lunar New Year, the Lantern, Dragon Boat and Mid-Autumn festivals were known
+  only until 2035. The dates now run to 2040, checked against the Hong Kong Observatory's conversion tables.
+
 ## Unreleased (1.6)
 
 - **The keepers talk.** Walk into the bakery or the post office and Auntie Olive or Pip says something that fits the

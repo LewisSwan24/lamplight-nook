@@ -2025,3 +2025,184 @@
     - xiaoju: That's the tenth person past the window.
     - adeng: You're counting?
     - xiaoju: At twenty the work's done.
+
+# Festivals, more of them (plan-1.7.md G1): six chats for each.
+
+- id: g1_halloween_mask
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaoju: Guess who my mask is.
+    - qingdai: Pointy ears. Chestnut.
+    - xiaoju: Got it first try. No fun.
+
+- id: g1_halloween_candy
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaodou: Three lots of trick-or-treaters so far.
+    - adeng: Do we have enough sweets?
+    - xiaodou: Half a jar left.
+
+- id: g1_christmas_socks
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: Stockings are up. One each.
+    - laoshi: Mine has a hole.
+    - xiaoju: Then the presents fall through.
+
+- id: g1_christmas_cards
+  when: idle
+  holiday: christmas
+  turns:
+    - qingdai: I drew a card for every shop on the street.
+    - adeng: Clem can take the post office one over.
+
+- id: g1_christmas_lights
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaodou: The lights blink every four seconds.
+    - laoshi: I set them.
+
+- id: g1_new_year_dumplings
+  when: idle
+  holiday: new_year
+  turns:
+    - adeng: Dumplings tonight. Everyone stays.
+    - xiaoju: I'm putting a coin in one!
+    - laoshi: Mind your teeth.
+
+- id: g1_new_year_couplets
+  when: idle
+  holiday: new_year
+  turns:
+    - qingdai: The stall in the lot sells couplets.
+    - xiaodou: I copied a few. I'll compare the hands.
+
+- id: g1_lantern_string
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: I hung the little lanterns over the door.
+    - adeng: Nice and straight.
+
+- id: g1_lantern_count
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaodou: I counted. Six dumplings each.
+    - xiaoju: What about Chestnut?
+    - xiaodou: Chestnut doesn't eat dumplings.
+
+- id: g1_dragon_boat_mugwort
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - laoshi: Mugwort either side of the door keeps bugs off.
+    - xiaoju: Smells like medicine.
+
+- id: g1_dragon_boat_race
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaodou: The red boat's winning at the river.
+    - xiaoju: I want to row!
+    - laoshi: Learn to swim first.
+
+- id: g1_dragon_boat_cords
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - qingdai: Five-colour cords. Hold out your wrist.
+    - adeng: A bit tighter.
+
+- id: g1_dragon_boat_sweet
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: Sweet zongzi or savoury?
+    - laoshi: Savoury.
+    - adeng: Both.
+
+- id: g1_mid_autumn_rabbit
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: The rabbit lantern lights up at night.
+    - qingdai: I painted the ears pink.
+
+- id: g1_mid_autumn_letter
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaodou: I wrote a letter home.
+    - adeng: Pip can take it in the morning.
+
+- id: g1_halloween_costume
+  when: idle
+  holiday: halloween
+  turns:
+    - laoshi: I'm not dressing up.
+    - xiaoju: Just a hat, then.
+    - laoshi: No.
+
+- id: g1_halloween_soup
+  when: idle
+  holiday: halloween
+  turns:
+    - adeng: There's a bit of pumpkin soup left.
+    - xiaodou: I'll take it to Pip.
+
+- id: g1_new_year_firecrackers
+  when: idle
+  holiday: new_year
+  turns:
+    - xiaoju: Firecrackers outside!
+    - xiaodou: Chestnut's gone under the bed.
+    - adeng: Leave Chestnut be.
+
+- id: g1_new_year_wish
+  when: idle
+  holiday: new_year
+  turns:
+    - qingdai: This year I want to paint a whole wall.
+    - adeng: The garden wall is yours.
+
+- id: g1_lantern_answer
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaodou: Yesterday's riddle was umbrella.
+    - xiaoju: I guessed mushroom.
+
+- id: g1_lantern_walk
+  when: idle
+  holiday: lantern
+  turns:
+    - adeng: Lanterns on the street tonight. Who's coming?
+    - xiaoju: Me!
+    - laoshi: I'll mind the shop.
+
+- id: g1_dragon_boat_eggs
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: Auntie Olive sent a net of salted eggs.
+    - adeng: With rice porridge for supper, then.
+
+- id: g1_mid_autumn_garden
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaodou: The garden table's out.
+    - qingdai: The moon isn't up yet.
+    - adeng: Give it time.
+
+- id: g1_mid_autumn_slices
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: Mooncake in five or six?
+    - laoshi: Six. Chestnut counts.

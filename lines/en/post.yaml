@@ -173,6 +173,18 @@ shop_in:
   - { id: po_in_mid_autumn, speaker: axin, when: holiday_mid_autumn, bubbles: ["Mooncake boxes fill a whole shelf."] }
   - { id: po_in_halloween, speaker: axin, when: holiday_halloween, bubbles: ["Someone posted a pumpkin. Handle gently."] }
   - { id: po_in_christmas, speaker: axin, when: holiday_christmas, bubbles: ["Three times the cards this week."] }
+  - { id: po_in_halloween_2, speaker: axin, when: holiday_halloween, bubbles: ["Sweets on the counter for Halloween."] }
+  - { id: po_in_halloween_3, speaker: axin, when: holiday_halloween, bubbles: ["Pumpkin postcards are sold out."] }
+  - { id: po_in_christmas_2, speaker: axin, when: holiday_christmas, bubbles: ["Last van of the day leaves at three."] }
+  - { id: po_in_christmas_3, speaker: axin, when: holiday_christmas, bubbles: ["Last day for cards going overseas."] }
+  - { id: po_in_new_year_2, speaker: axin, when: holiday_new_year, bubbles: ["Post home for New Year goes on this side."] }
+  - { id: po_in_new_year_3, speaker: axin, when: holiday_new_year, bubbles: ["Red envelopes are free. Two each."] }
+  - { id: po_in_lantern_2, speaker: axin, when: holiday_lantern, bubbles: ["Closing early tonight for the lanterns."] }
+  - { id: po_in_lantern_3, speaker: axin, when: holiday_lantern, bubbles: ["Guess a riddle right, get a stamp."] }
+  - { id: po_in_dragon_boat_2, speaker: axin, when: holiday_dragon_boat, bubbles: ["Zongzi won't keep for a long trip."] }
+  - { id: po_in_dragon_boat_3, speaker: axin, when: holiday_dragon_boat, bubbles: ["Mugwort's up on the door for the festival."] }
+  - { id: po_in_mid_autumn_2, speaker: axin, when: holiday_mid_autumn, bubbles: ["Mooncakes go out double-wrapped."] }
+  - { id: po_in_mid_autumn_3, speaker: axin, when: holiday_mid_autumn, bubbles: ["Half today's letters say come home."] }
 
 # Pip now and then, while it's quiet: the weather, the season, the round, the neighbours, knocking off.
 shop_idle:
@@ -222,3 +234,15 @@ shop_idle:
   - { id: po_idle_autumn_02, speaker: axin, when: season_autumn, bubbles: ["Offer letters. I take those by hand."] }
   - { id: po_idle_winter_01, speaker: axin, when: season_winter, bubbles: ["Year-end parcels. The shelf's full."] }
   - { id: po_idle_winter_02, speaker: axin, when: season_winter, bubbles: ["Hands so cold the stamp won't sit."] }
+  - { id: po_idle_halloween_01, speaker: axin, when: holiday_halloween, bubbles: ["Carried this pumpkin parcel all the way."] }
+  - { id: po_idle_halloween_02, speaker: axin, when: holiday_halloween, bubbles: ["Someone drew bats all over this one."] }
+  - { id: po_idle_christmas_01, speaker: axin, when: holiday_christmas, bubbles: ["One card in three languages."] }
+  - { id: po_idle_christmas_02, speaker: axin, when: holiday_christmas, bubbles: ["Sack's full. Fetching another."] }
+  - { id: po_idle_new_year_01, speaker: axin, when: holiday_new_year, bubbles: ["Half these cards are going to grandmas."] }
+  - { id: po_idle_new_year_02, speaker: axin, when: holiday_new_year, bubbles: ["Topped up the red envelopes again."] }
+  - { id: po_idle_lantern_01, speaker: axin, when: holiday_lantern, bubbles: ["The riddle sheet's crooked. Once more."] }
+  - { id: po_idle_lantern_02, speaker: axin, when: holiday_lantern, bubbles: ["This letter has a riddle folded inside."] }
+  - { id: po_idle_dragon_boat_01, speaker: axin, when: holiday_dragon_boat, bubbles: ["Out of boxes for posting zongzi."] }
+  - { id: po_idle_dragon_boat_02, speaker: axin, when: holiday_dragon_boat, bubbles: ["Stamps smell of mugwort now."] }
+  - { id: po_idle_mid_autumn_01, speaker: axin, when: holiday_mid_autumn, bubbles: ["The shelf creaks under the mooncakes."] }
+  - { id: po_idle_mid_autumn_02, speaker: axin, when: holiday_mid_autumn, bubbles: ["This one says: can't make it home this year."] }

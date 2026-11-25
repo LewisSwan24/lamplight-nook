@@ -228,6 +228,18 @@ app_open:
   - { id: open_lantern, speaker: adeng, when: holiday_lantern, bubbles: ["{name}，元宵好。", "灯谜是小橘出的，猜猜看。"] }
   - { id: open_dragon_boat, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}，来啦。", "桌上有粽子，甜的咸的都有。"] }
   - { id: open_mid_autumn, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}，中秋好。", "月饼切好了，先拿一块。"] }
+  - { id: open_halloween_2, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "门口的南瓜灯是老石刻的。"] }
+  - { id: open_halloween_3, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "小橘扮成了栗子，你看出来没？"] }
+  - { id: open_christmas_2, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，来啦。", "热红茶在炉子上，自己倒。"] }
+  - { id: open_christmas_3, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，圣诞好。", "树下那包是给你留的。"] }
+  - { id: open_new_year_2, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，过年好。", "瓜子花生在桌上，别客气。"] }
+  - { id: open_new_year_3, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，新年好。", "今年头一单，想好做什么了吗？"] }
+  - { id: open_lantern_2, speaker: adeng, when: holiday_lantern, bubbles: ["{name}，来啦。", "汤圆刚出锅，芝麻馅的。"] }
+  - { id: open_lantern_3, speaker: adeng, when: holiday_lantern, bubbles: ["{name}，元宵好。", "晚上街上有灯，早点收工去看。"] }
+  - { id: open_dragon_boat_2, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}，端午好。", "门上的艾草是桂姨给的。"] }
+  - { id: open_dragon_boat_3, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}，来啦。", "小豆在河边看龙舟，下午才回。"] }
+  - { id: open_mid_autumn_2, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}，来啦。", "今晚后院赏月，你也留下。"] }
+  - { id: open_mid_autumn_3, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}，中秋好。", "青黛画了张月亮，挂在窗边。"] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}，来啦。", "「{lastCommission}」还好用吗？"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["来啦。怎么称呼你？"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.

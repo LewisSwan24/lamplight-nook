@@ -99,12 +99,23 @@ const L = strings.lineLint;
 /**
  * Pick a line from a group for a one-off moment (the greeting): lines whose `when` holds come first,
  * lines with a `when` that doesn't hold are skipped, and every placeholder must have a value.
- * Returns the turns to say, or null if nothing fits.
+ * When several lines share the condition that comes first (a festival has three greetings since 1.7), one of them is
+ * picked at random. Returns the turns to say, or null if nothing fits.
  */
-export function pickLine(lines: Line[], flags: string[], vars: Record<string, string>): { speaker: ActorId; text: string }[] | null {
+export function pickLine(
+  lines: Line[],
+  flags: string[],
+  vars: Record<string, string>,
+  rand: () => number = Math.random,
+): { speaker: ActorId; text: string }[] | null {
   const fits = (l: Line) => [...l.bubbles, ...(l.reply?.bubbles ?? [])].every((b) => [...b.matchAll(/\{(\w+)\}/g)].every((m) => vars[m[1]]));
-  const pick = [...lines.filter((l) => l.when && flags.includes(l.when)), ...lines.filter((l) => !l.when)].find(fits);
-  if (!pick) return null;
+  // A festival's line before the weather's: Christmas is nearly always snowy, and its greeting was seldom heard.
+  const holds = lines.filter((l) => l.when && flags.includes(l.when));
+  const festival = holds.filter((l) => l.when!.startsWith('holiday_'));
+  const first = [...festival, ...holds.filter((l) => !festival.includes(l)), ...lines.filter((l) => !l.when)].find(fits);
+  if (!first) return null;
+  const same = first.when ? lines.filter((l) => l.when === first.when && fits(l)) : [first];
+  const pick = same[Math.floor(rand() * same.length)];
   const say = (speaker: ActorId, bubbles: string[]) => bubbles.map((b) => ({ speaker, text: b.replace(/\{(\w+)\}/g, (_m, k: string) => vars[k]) }));
   return [...say(pick.speaker, pick.bubbles), ...(pick.reply ? say(pick.reply.speaker, pick.reply.bubbles) : [])];
 }
@@ -113,8 +124,14 @@ export function pickLine(lines: Line[], flags: string[], vars: Record<string, st
  * The greeting as the shop opens: the weather or holiday line, then (once) the question about the last
  * commission, without saying hello twice. The memory question is asked only once, so it is never dropped.
  */
-export function openingTurns(lines: Line[], memoryFlags: string[], outside: string[], vars: Record<string, string>) {
-  const hello = pickLine(lines, outside, vars);
+export function openingTurns(
+  lines: Line[],
+  memoryFlags: string[],
+  outside: string[],
+  vars: Record<string, string>,
+  rand: () => number = Math.random,
+) {
+  const hello = pickLine(lines, outside, vars, rand);
   const memory = memoryFlags.length ? pickLine(lines, memoryFlags, vars) : null;
   if (!memory) return hello;
   return hello ? [...hello, ...memory.slice(1)] : memory;

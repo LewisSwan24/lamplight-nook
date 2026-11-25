@@ -172,6 +172,18 @@ shop_in:
   - { id: bk_in_mid_autumn, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["月饼是我自己烤的，拿一个。"] }
   - { id: bk_in_halloween, speaker: guiyi, when: holiday_halloween, bubbles: ["南瓜面包，今天就这一样。"] }
   - { id: bk_in_christmas, speaker: guiyi, when: holiday_christmas, bubbles: ["我也学着烤了个姜饼屋。"] }
+  - { id: bk_in_halloween_2, speaker: guiyi, when: holiday_halloween, bubbles: ["小孩来要糖，我给面包。"] }
+  - { id: bk_in_halloween_3, speaker: guiyi, when: holiday_halloween, bubbles: ["南瓜是邮局阿信帮我扛的。"] }
+  - { id: bk_in_christmas_2, speaker: guiyi, when: holiday_christmas, bubbles: ["姜饼人一个一个画的脸。"] }
+  - { id: bk_in_christmas_3, speaker: guiyi, when: holiday_christmas, bubbles: ["圣诞好，炉子边上暖和。"] }
+  - { id: bk_in_new_year_2, speaker: guiyi, when: holiday_new_year, bubbles: ["红包不给，给你个枣糕。"] }
+  - { id: bk_in_new_year_3, speaker: guiyi, when: holiday_new_year, bubbles: ["初五前我都开半天。"] }
+  - { id: bk_in_lantern_2, speaker: guiyi, when: holiday_lantern, bubbles: ["汤圆有黑芝麻和花生的。"] }
+  - { id: bk_in_lantern_3, speaker: guiyi, when: holiday_lantern, bubbles: ["晚上我也去看灯，早关门。"] }
+  - { id: bk_in_dragon_boat_2, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["端午好，门上的艾草我插的。"] }
+  - { id: bk_in_dragon_boat_3, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["我包了几个碱水粽，自己吃。"] }
+  - { id: bk_in_mid_autumn_2, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["中秋好，五仁的也有人要。"] }
+  - { id: bk_in_mid_autumn_3, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["月饼模子是我妈留下的。"] }
 
 # 店里没活时桂姨隔一会儿说一句：天气、季节、客人来过、收摊。when 同上，不写就是什么时候都行。
 shop_idle:
@@ -221,3 +233,15 @@ shop_idle:
   - { id: bk_idle_autumn_02, speaker: guiyi, when: season_autumn, bubbles: ["栗子下来了，该做栗子蛋糕。"] }
   - { id: bk_idle_winter_01, speaker: guiyi, when: season_winter, bubbles: ["冬天面要醒久一点。"] }
   - { id: bk_idle_winter_02, speaker: guiyi, when: season_winter, bubbles: ["手冷，先在炉子边烘一烘。"] }
+  - { id: bk_idle_halloween_01, speaker: guiyi, when: holiday_halloween, bubbles: ["南瓜蒸烂了才好揉面。"] }
+  - { id: bk_idle_halloween_02, speaker: guiyi, when: holiday_halloween, bubbles: ["南瓜子我留着，炒了吃。"] }
+  - { id: bk_idle_christmas_01, speaker: guiyi, when: holiday_christmas, bubbles: ["姜饼屋的屋顶又塌了。"] }
+  - { id: bk_idle_christmas_02, speaker: guiyi, when: holiday_christmas, bubbles: ["糖霜要等饼凉了再抹。"] }
+  - { id: bk_idle_new_year_01, speaker: guiyi, when: holiday_new_year, bubbles: ["年糕要蒸足一个钟头。"] }
+  - { id: bk_idle_new_year_02, speaker: guiyi, when: holiday_new_year, bubbles: ["今年的福字是小橘写的。"] }
+  - { id: bk_idle_lantern_01, speaker: guiyi, when: holiday_lantern, bubbles: ["汤圆皮要揉到不粘手。"] }
+  - { id: bk_idle_lantern_02, speaker: guiyi, when: holiday_lantern, bubbles: ["这锅芝麻馅炒香了。"] }
+  - { id: bk_idle_dragon_boat_01, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["粽叶泡了一夜，软了。"] }
+  - { id: bk_idle_dragon_boat_02, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["今天面包卖得少，都去买粽子了。"] }
+  - { id: bk_idle_mid_autumn_01, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["月饼要回油两天才好吃。"] }
+  - { id: bk_idle_mid_autumn_02, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["这模子压出来的花最清楚。"] }

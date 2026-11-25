@@ -467,9 +467,9 @@ async function seasonsOnTheStreet(shop, out) {
     await sleep(300);
     const v = await street();
     check(v.decor.includes(holiday) && v.decor.includes(season), `at ${holiday} the street shows ${v.decor}`);
-    // The New Year has no stall: the cart stays out. The others stand where it does.
-    check(v.cart === (holiday === 'new_year'), `at ${holiday} the cart is ${v.cart ? 'out' : 'away'}`);
-    await scrollTo(holiday === 'new_year' ? 0 : town.lot.x + town.lot.w / 2 - 200);
+    // Every festival stands where the cart does (the New Year's couplet stall since 1.7 G1).
+    check(!v.cart, `at ${holiday} the cart is out`);
+    await scrollTo(town.lot.x + town.lot.w / 2 - 200);
     await sleep(200);
     await shop.shot(join(out, `seasons-street-${holiday}.png`));
   }
@@ -4939,6 +4939,81 @@ const SCENARIOS = {
    * home. A menu handed in there is made there: an A4 picture with every dish and price as given and a blank where one was
    * not, and a PDF to print. Then a recipe, as a Word document. Each names her on the parcel.
    */
+  /**
+   * The six festivals (plan-1.7.md G1), the shop opened on a day of each: Wick greets with the festival's words, the
+   * street has something up at every door and a piece in the lot where the cart stands, and Auntie Olive has a word
+   * for it as you walk into the bakery.
+   */
+  async holidays(lang, out) {
+    const L = locale(lang);
+    const read = (file) => parseYaml(readFileSync(join(ROOT, lang === 'en' ? `lines/en/${file}.yaml` : `lines/${file}.yaml`), 'utf8'));
+    const cafe = read('cafe').app_open;
+    const bakery = read('bakery').shop_in;
+    // Christmas Day is snowy and the Mid-Autumn week has falling leaves: the festival's words come first all the same.
+    const DAYS = { halloween: [2026, 9, 31], christmas: [2026, 11, 25], new_year: [2027, 1, 6], lantern: [2027, 1, 20], dragon_boat: [2026, 5, 19], mid_autumn: [2026, 8, 25] };
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const saying = (who, bubbles) => page.waitForFunction(([who, all]) => all.find((b) => window.lamplightDebug.scene.isSaying(who, b)) ?? null, [who, bubbles], { timeout: 12_000 })
+      .then((h) => h.jsonValue(), () => null);
+    const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    try {
+      await sleep(2500);
+      let installed = false;
+      for (const [holiday, [y, m, d]] of Object.entries(DAYS)) {
+        const time = new Date(y, m, d, 10);
+        if (installed) await page.clock.setSystemTime(time);
+        else await page.clock.install({ time });
+        installed = true;
+        await page.reload();
+        await page.waitForSelector('.toolbar');
+        // Everything said from here on, to show what was said instead if the festival's words are not.
+        await page.evaluate(() => {
+          window.__heard = [];
+          setInterval(() => {
+            for (const [who, { text }] of window.lamplightDebug.scene.speech) if (text && window.__heard.at(-1) !== `${who}: ${text}`) window.__heard.push(`${who}: ${text}`);
+          }, 100);
+        });
+        const words = cafe.filter((l) => l.when === `holiday_${holiday}`).map((l) => l.bubbles[1]);
+        check(words.length === 3, `${holiday} has ${words.length} greetings`);
+        const said = await saying('adeng', words);
+        check(said !== null, `Wick did not greet ${holiday} with its words; heard ${JSON.stringify(await page.evaluate(() => window.__heard))}`);
+        check(await page.evaluate(() => window.lamplightDebug.scene.outside().holiday) === holiday, `the shop does not know it is ${holiday}`);
+        await shop.shot(join(out, `holidays-${holiday}-open.png`));
+
+        await streetButton();
+        await sleep(900);
+        const up = await page.evaluate((h) => {
+          const s = window.lamplightDebug.street;
+          const shown = s.decor.parts.filter((p) => p.part.id === h && p.image.visible);
+          return { doors: shown.filter((p) => !p.part.lot).length, lot: shown.filter((p) => p.part.lot).length, cart: s.growth.shows('stall') };
+        }, holiday);
+        check(up.doors > 0 && up.lot > 0 && !up.cart, `the street at ${holiday}: ${JSON.stringify(up)}`);
+        await page.evaluate(() => { window.lamplightDebug.street.cameras.main.scrollX = 0; });
+        await sleep(200);
+        await shop.shot(join(out, `holidays-${holiday}-doors.png`));
+        await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, town.lot.x + town.lot.w / 2 - 200);
+        await sleep(200);
+        await shop.shot(join(out, `holidays-${holiday}-lot.png`));
+
+        await page.evaluate(() => window.lamplightDebug.street.onFront('bakery', true));
+        for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'bakery'; await sleep(300));
+        const hers = bakery.filter((l) => l.when === `holiday_${holiday}`).flatMap((l) => l.bubbles);
+        check(await saying('guiyi', hers) !== null, `Auntie Olive said nothing for ${holiday} in the bakery`);
+        await shop.shot(join(out, `holidays-${holiday}-bakery.png`));
+        await sleep(2500);
+        await streetButton();
+        await sleep(900);
+        // Enter goes into the front in the middle of the view, which at this end of the street is the study.
+        await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+        for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'cafe'; await sleep(300));
+        check(await room() === 'cafe', `did not get home after ${holiday}: ${await room()}`);
+      }
+    } finally { await shop.close(); }
+  },
+
   async bakery(lang, out) {
     const L = locale(lang);
     const F = shopFiles(lang);
