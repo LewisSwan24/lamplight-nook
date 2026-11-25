@@ -44,7 +44,8 @@ describe('sending a postcard', () => {
   it('carries no dates, no works and nothing it does not need', () => {
     const text = postcardText(card());
     expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}/);
-    expect(text).not.toMatch(/birthday|baker|town-move/);
+    // The bakery is a shop since plan-1.6.md F1, so its count is on the card; the neighbour Auntie Gui (`baker`) is not.
+    expect(text).not.toMatch(/birthday|\bbaker\b|town-move/);
     expect(Object.keys(JSON.parse(text)).sort()).toEqual(['done', 'furnish', 'grown', 'home', 'name', 'postcard', 'shops', 'stories', 'version']);
   });
 
@@ -80,6 +81,15 @@ describe('opening a postcard', () => {
     expect(open(unmarked)).toEqual({ ok: false, reason: 'notPostcard' });
   });
 
+  it('opens a postcard sent from 1.5, before the bakery opened, with nothing done there (plan-1.6.md F1)', () => {
+    const { bakery: _, ...older } = good().shops;
+    const read = open({ ...good(), shops: older });
+    expect(read).toEqual({ ok: true, card: { ...card(), shops: { ...card().shops, bakery: 0 } } });
+    // Only that one shop may be missing, and only as a whole set from before: never some other gap.
+    const { print: __, ...gap } = good().shops;
+    expect(open({ ...good(), shops: gap }).ok).toBe(false);
+  });
+
   it('does not open names it does not know', () => {
     expect(open({ ...good(), extra: 1 }).ok).toBe(false);
     expect(open({ ...good(), version: 2 }).ok).toBe(false);
@@ -87,7 +97,7 @@ describe('opening a postcard', () => {
     expect(open({ ...good(), grown: ['painting', 'dragon'] }).ok).toBe(false);
     expect(open({ ...good(), furnish: { ...furnish, cafe: { ...furnish.cafe, wall: 'gold' } } }).ok).toBe(false);
     expect(open({ ...good(), furnish: { ...furnish, attic: DEFAULT_FURNISHING } }).ok).toBe(false);
-    expect(open({ ...good(), shops: { ...good().shops, bakery: 1 } }).ok).toBe(false);
+    expect(open({ ...good(), shops: { ...good().shops, post: 1 } }).ok).toBe(false);
     expect(open({ ...good(), stories: { ...good().stories, baker: 1 } }).ok).toBe(false);
     expect(open({ ...good(), name: { first: 'Lewis' } }).ok).toBe(false);
     const { grown: _, ...missing } = good();

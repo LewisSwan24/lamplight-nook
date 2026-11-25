@@ -242,8 +242,9 @@ def draw_with(img, rows, x, y, colors):
 # The three shops along the street (road-to-1.4.md D6): shops-decor.png, a row per shop and a column per festival, each
 # frame a whole room. What all three have hangs on the wall right of the window (SLOT), stands on the big table
 # (TABLE_PIECE) or in the corner by the door that walkers already go round; each shop adds one thing of its own at
-# SHOP_PIECE: the print shop a poster it printed, the studio a little painting, the workshop a sign cut from wood.
-SHOPS = ['print', 'studio', 'workshop']
+# SHOP_PIECE: the print shop a poster it printed, the studio a little painting, the workshop a sign cut from wood, and
+# the bakery (plan-1.6.md F1) a big biscuit hung on a ribbon, the festival piped on it in icing.
+SHOPS = ['print', 'studio', 'workshop', 'bakery']
 HOLIDAY_ORDER = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']  # weather.ts HOLIDAYS
 SHOP_PIECE = (180, 18)  # top-left of each shop's own piece, on the wall clear of the press, the drying line, the pegboard
 # The festival's piece on the wall: the narrow strip right of the window, before what the shop grows there (D5) from x 234.
@@ -302,7 +303,27 @@ def wooden_sign(motif):
     return [''.join(r) for r in rows]
 
 
-OWN_PIECE = {'print': poster, 'studio': painting, 'workshop': wooden_sign}
+def biscuit(motif):
+    """A round biscuit as big as a plate, hung on a red ribbon, its middle iced white and the festival piped on that."""
+    size = 13
+    rows = [['.'] * size for _ in range(size + 3)]
+    rows[0][size // 2] = 'r'
+    rows[1][size // 2 - 1] = rows[1][size // 2 + 1] = 'r'
+    rows[2][size // 2] = 'r'
+    c = (size - 1) / 2
+    for y in range(size):
+        for x in range(size):
+            d = ((x - c) ** 2 + (y - c) ** 2) ** 0.5
+            if d <= c + 0.3:
+                rows[3 + y][x] = 'b' if d > c - 0.8 else ('e' if d > c - 2 else 'n')
+    for dy, row in enumerate(motif):
+        for dx, ch in enumerate(row):
+            if ch != '.':
+                rows[3 + 2 + dy][2 + dx] = ch
+    return [''.join(r) for r in rows]
+
+
+OWN_PIECE = {'print': poster, 'studio': painting, 'workshop': wooden_sign, 'bakery': biscuit}
 
 
 def shop_frame(shop, holiday):

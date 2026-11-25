@@ -310,6 +310,8 @@ grow:
   - { id: grow_readinglamp, speaker: xiaoju, when: grow_readinglamp, bubbles: ["桌上多了盏读书灯！", "晚上看书不费眼了。"] }
   - { id: grow_postcards, speaker: qingdai, when: grow_postcards, bubbles: ["墙上钉了几张明信片。", "都是还没去过的地方。"] }
   - { id: grow_toolbox, speaker: laoshi, when: grow_toolbox, bubbles: ["工具箱放这儿了。", "要用自己拿。"] }
+  - { id: grow_chalkboard, speaker: xiaoju, when: grow_chalkboard, bubbles: ["墙上挂了块小黑板！", "老马说他店里也有一块一样的。"] }
+  - { id: grow_cookbook, speaker: laoshi, when: grow_cookbook, bubbles: ["桂姨送了本食谱。", "字是她一笔一笔抄的。"], reply: { speaker: xiaoju, bubbles: ["第一页就是葱油饼！"] } }
   - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["窗边挂了串风铃。", "风一吹，叮叮当当。"] }
   - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["六十单了，养了缸金鱼！", "一条叫小灯，一条叫阿屋。"], reply: { speaker: laoshi, bubbles: ["水我来换。"] } }
   - { id: grow_scroll, speaker: adeng, when: grow_scroll, bubbles: ["墙上挂了幅字。", "老石写的，写了一整晚。"] }
@@ -340,6 +342,10 @@ grow:
   - { id: grow_workshop_ivy, speaker: xiaoju, when: grow_workshop_ivy, bubbles: ["工坊里吊了盆绿萝，油味淡多了。"] }
   - { id: grow_workshop_clock, speaker: laoshi, when: grow_workshop_clock, bubbles: ["小钉自己做了个挂钟。", "走得挺准。"] }
   - { id: grow_workshop_blueprint, speaker: adeng, when: grow_workshop_blueprint, bubbles: ["工坊墙上钉了张图纸。", "二十单了，小钉说要做个大的。"] }
+  - { id: grow_bakery_wheat, speaker: adeng, when: grow_bakery_wheat, bubbles: ["面包房墙上挂了一束麦穗。", "桂姨说图个好收成。"] }
+  - { id: grow_bakery_ivy, speaker: xiaoju, when: grow_bakery_ivy, bubbles: ["面包房也吊了盆绿萝。", "烤炉边上，它倒长得好。"] }
+  - { id: grow_bakery_pin, speaker: laoshi, when: grow_bakery_pin, bubbles: ["桂姨那根擀面杖挂上墙了。", "用了二十年，舍不得扔。"] }
+  - { id: grow_bakery_garland, speaker: adeng, when: grow_bakery_garland, bubbles: ["面包房挂了一串小面包。", "二十单了，桂姨说是庆祝。"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["书桌上添了把茶壶。", "来的人都能喝一杯。"] }
@@ -369,6 +375,9 @@ cross_out:
   - { id: cross_out_xd_01, speaker: xiaoding, bubbles: ["{shop}有现成的家伙。", "我去借个手！"] }
   - { id: cross_out_xd_02, speaker: xiaoding, bubbles: ["这个归{shop}管，", "马上回来！"] }
   - { id: cross_out_xd_03, speaker: xiaoding, bubbles: ["去{shop}一趟，", "顺路哼两句。"] }
+  - { id: cross_out_gy_01, speaker: guiyi, bubbles: ["这个得请{shop}帮忙。", "炉子我先关小。"] }
+  - { id: cross_out_gy_02, speaker: guiyi, bubbles: ["{shop}做这个在行，", "我捎两个面包过去。"] }
+  - { id: cross_out_gy_03, speaker: guiyi, bubbles: ["我去{shop}一趟，", "面正好醒着。"] }
 
 cross_take:
   - { id: cross_take_aq_01, speaker: aqian, bubbles: ["{shop}要印一份。", "好，照着排。"] }

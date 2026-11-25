@@ -1,0 +1,147 @@
+# Dialogue for the bakery (plan-1.6.md F1), in English. Laid over lines/en/cafe.yaml; same groups as lines/bakery.yaml.
+# Auntie Olive the baker does all the work; Wick only brings the order over and answers now and then.
+# Spots: the bread counter (counter), the ovens (board), the bread racks (shelf), the kneading table (table),
+# the dough mixer (corner). Each bubble is at most 44 characters; at most one "!" per bubble.
+
+opening:
+  - { id: bk_revise_again_01, speaker: guiyi, when: revise_again, bubbles: ["Last time it was \"{lastAsk}\".", "This time, \"{brief}\". Easy."] }
+  - { id: bk_revise_01, speaker: guiyi, when: revise, bubbles: ["\"{brief}\"? All right.", "The dough's made. It only wants a knead."] }
+  - { id: bk_revise_02, speaker: guiyi, when: revise, bubbles: ["You only know once you've tasted it.", "\"{brief}\". I'll adjust it."] }
+  - { id: bk_revise_03, speaker: guiyi, when: revise, bubbles: ["I'm keeping the old batch.", "\"{brief}\". I'll call you to taste."] }
+  - { id: bk_mem_02, speaker: guiyi, when: has_stuck_note, bubbles: ["\"{brief}\". Right you are.", "Last time {stuckNote} gave us trouble.", "I'll keep an eye on that first."] }
+  - { id: bk_mem_01, speaker: guiyi, when: has_memory, bubbles: ["\"{brief}\". Right you are.", "Last time you picked {lastChoice}.", "Same flavour again, then."] }
+  - { id: bk_tpl_menu_01, speaker: guiyi, when: tpl_menu, bubbles: ["A menu? I know menus.", "Your dishes, your prices, word for word."] }
+  - { id: bk_tpl_menu_02, speaker: guiyi, when: tpl_menu, bubbles: ["A menu should read at a glance.", "I'll line every price up."] }
+  - { id: bk_tpl_recipe_01, speaker: guiyi, when: tpl_recipe, bubbles: ["A recipe? Now you're talking.", "Amounts, heat, minutes. All of it."] }
+  - { id: bk_tpl_recipe_02, speaker: guiyi, when: tpl_recipe, bubbles: ["If you can't cook from it, it isn't one.", "I'll go step by step."] }
+  - { id: bk_handed_01, speaker: guiyi, when: handed, bubbles: ["Got your things. Let me have a look.", "\"{brief}\". Right you are."] }
+  - { id: bk_opening_01, speaker: guiyi, bubbles: ["\"{brief}\"?", "Let me tie my apron."] }
+  - { id: bk_opening_02, speaker: guiyi, bubbles: ["\"{brief}\"...", "Oven's just warm. Good timing."] }
+  - { id: bk_opening_03, speaker: guiyi, bubbles: ["Here's one.", "\"{brief}\". I'll start the dough."] }
+
+planning:
+  - { id: bk_plan_01, speaker: guiyi, bubbles: ["Order first. Same as a morning's baking."] }
+  - { id: bk_plan_02, speaker: guiyi, bubbles: ["Now, what goes in the oven first..."] }
+  - { id: bk_plan_03, speaker: guiyi, bubbles: ["Three steps. Like dough, it won't rush."] }
+
+draft_ready:
+  - { id: bk_draft_ready_01, speaker: guiyi, bubbles: ["The letter's on the counter.", "Read it, then send it yourself."] }
+  - { id: bk_draft_ready_02, speaker: guiyi, bubbles: ["The draft's ready.", "Sending it is up to you."] }
+  - { id: bk_draft_ready_03, speaker: guiyi, bubbles: ["Not sent. It's under the bread basket."] }
+
+writing:
+  - { id: bk_write_01, speaker: guiyi, bubbles: ["Here we go."] }
+  - { id: bk_write_02, speaker: guiyi, bubbles: ["That one's kneaded. Next."] }
+  - { id: bk_write_03, speaker: guiyi, bubbles: ["Mm...", "The dough feels just right."] }
+  - { id: bk_write_04, speaker: guiyi, bubbles: ["Shape first. The pretty bits after."] }
+
+sub_go_research:
+  - { id: bk_go_rs_rain, speaker: guiyi, when: sky_rain, bubbles: ["Rain. Keep the flour dry.", "I'll check the racks for {topic}."] }
+  - { id: bk_go_rs_01, speaker: guiyi, bubbles: ["{topic}? I'll look over by the racks."] }
+  - { id: bk_go_rs_02, speaker: guiyi, bubbles: ["I wrote it in one of my notebooks..."] }
+  - { id: bk_go_rs_03, speaker: guiyi, bubbles: ["The old recipes are behind the racks."] }
+
+sub_back_research:
+  - { id: bk_back_rs_01, speaker: guiyi, bubbles: ["Found it.", "{count} things worth using."] }
+  - { id: bk_back_rs_02, speaker: guiyi, bubbles: ["This one's right.", "Just how my grandmother said it."] }
+  - { id: bk_back_rs_03, speaker: guiyi, bubbles: ["All here, in order."] }
+
+sub_go_review:
+  - { id: bk_go_rv_01, speaker: guiyi, bubbles: ["I'll try it on the kneading table."] }
+  - { id: bk_go_rv_02, speaker: guiyi, bubbles: ["You only know once you taste it."] }
+  - { id: bk_go_rv_03, speaker: guiyi, bubbles: ["One thing at a time."] }
+
+sub_back_review:
+  - { id: bk_back_rv_issue, speaker: guiyi, when: has_issues, bubbles: ["{issueCount} spots taste off.", "I marked each with a toothpick."] }
+  - { id: bk_back_rv_ok, speaker: guiyi, when: no_issues, bubbles: ["Checked it top to bottom. All good."] }
+  - { id: bk_back_rv_ok2, speaker: guiyi, when: no_issues, bubbles: ["Tasted it. Just right."] }
+
+sub_go_design:
+  - { id: bk_go_ds_rain, speaker: guiyi, when: sky_rain, bubbles: ["Rainy day. The shop's quiet.", "I'll sketch it by the ovens."] }
+  - { id: bk_go_ds_01, speaker: guiyi, bubbles: ["Let me try it out by the ovens."] }
+  - { id: bk_go_ds_02, speaker: guiyi, bubbles: ["How to set it out nicely..."] }
+  - { id: bk_go_ds_03, speaker: guiyi, bubbles: ["I'll shape a sample in dough first."] }
+
+sub_back_design:
+  - { id: bk_back_ds_01, speaker: guiyi, bubbles: ["That's the look.", "Makes you hungry, doesn't it?"] }
+  - { id: bk_back_ds_02, speaker: guiyi, bubbles: ["Shaped it. Have a look."] }
+  - { id: bk_back_ds_03, speaker: guiyi, bubbles: ["Three ways. I like the middle one."] }
+
+stuck:
+  - { id: bk_stuck_01, speaker: guiyi, bubbles: ["Oh? It didn't rise.", "I'll try another way."] }
+  - { id: bk_stuck_02, speaker: guiyi, bubbles: ["That's not right. {whatsWrong}."] }
+  - { id: bk_stuck_03, speaker: guiyi, bubbles: ["Too hot. The edges caught..."] }
+  - { id: bk_stuck_04, speaker: guiyi, bubbles: ["Overworked the dough.", "Start again."] }
+
+stuck_long:
+  - { id: bk_stuck_long_01, speaker: guiyi, bubbles: ["This one takes patience.", "I'll keep at it. Carry on."] }
+  - { id: bk_stuck_long_02, speaker: guiyi, bubbles: ["Still at it. Haven't dropped it."] }
+  - { id: bk_stuck_long_03, speaker: guiyi, bubbles: ["A bit longer. The dough's resting."] }
+
+waiting:
+  - { id: bk_wait_01, speaker: guiyi, bubbles: ["It's in the oven. Wait a little."] }
+  - { id: bk_wait_02, speaker: guiyi, bubbles: ["The mixer's going. Not yet."] }
+  - { id: bk_wait_03, speaker: guiyi, bubbles: ["Can't hurry an oven."] }
+
+ask:
+  - { id: bk_ask_color, speaker: guiyi, when: demo_color, bubbles: ["Cream or pale mint. I iced one of each.", "Which do you want?"] }
+  - { id: bk_ask_01, speaker: guiyi, bubbles: ["A question for you.", "{question}"] }
+  - { id: bk_ask_02, speaker: guiyi, bubbles: ["There are two ways to make this.", "Pick one?"] }
+
+react_adopted:
+  - { id: bk_react_ad_01, speaker: guiyi, bubbles: ["Good. We'll make it that way."] }
+  - { id: bk_react_ad_02, speaker: guiyi, bubbles: ["Noted. It's on the blackboard."] }
+  - { id: bk_react_ad_03, speaker: guiyi, bubbles: ["That's my favourite flavour too."] }
+
+react_rejected:
+  - { id: bk_react_rj_01, speaker: guiyi, bubbles: ["All right. Your call."] }
+  - { id: bk_react_rj_02, speaker: guiyi, bubbles: ["I'll save that dough for something else."] }
+  - { id: bk_react_rj_03, speaker: guiyi, bubbles: ["Fine. Something else, then."] }
+
+react_delegated:
+  - { id: bk_react_dl_00, speaker: guiyi, bubbles: ["All right, I'll decide.", "I'll tell you what I pick."] }
+  - { id: bk_react_dl_01, speaker: guiyi, bubbles: ["{choice}, then, because {reason}.", "Say if it's not to your taste."] }
+  - { id: bk_react_dl_02, speaker: guiyi, bubbles: ["I'll try {choice} first.", "If it's no good, we change it."] }
+  - { id: bk_react_dl_03, speaker: guiyi, bubbles: ["{choice}.", "Why is on the blackboard."] }
+
+serious:
+  - { id: bk_serious_01, speaker: guiyi, bubbles: ["This step will {action}.", "If I do, {consequence}.", "Have a look before you decide."] }
+  - { id: bk_serious_02, speaker: guiyi, bubbles: ["I won't touch this one blind.", "{action}: {consequence}."] }
+  - { id: bk_serious_03, speaker: guiyi, bubbles: ["Once it's baked, there's no undoing it.", "Look carefully before you click."] }
+
+refused:
+  - { id: bk_refused_01, speaker: guiyi, bubbles: ["That one's not to be touched.", "Another way."] }
+  - { id: bk_refused_02, speaker: guiyi, bubbles: ["That's not ours to handle."] }
+  - { id: bk_refused_03, speaker: guiyi, bubbles: ["That's your own business. I won't look."] }
+
+serious_yes:
+  - { id: bk_serious_yes_01, speaker: guiyi, bubbles: ["All right, I'll do it."] }
+  - { id: bk_serious_yes_02, speaker: guiyi, bubbles: ["Understood. On it now."] }
+  - { id: bk_serious_yes_03, speaker: guiyi, bubbles: ["Right you are."] }
+
+serious_no:
+  - { id: bk_serious_no_01, speaker: guiyi, bubbles: ["Fine, I'll leave it.", "I'll find a way that doesn't need it."] }
+  - { id: bk_serious_no_02, speaker: guiyi, bubbles: ["All right, it can wait."] }
+  - { id: bk_serious_no_03, speaker: guiyi, bubbles: ["Leave it. I'll go round."] }
+
+done:
+  - { id: bk_done_day, speaker: guiyi, when: daytime, bubbles: ["Done. It's on the counter.", "Have a look while it's warm."] }
+  - { id: bk_done_dusk, speaker: guiyi, when: dusk, bubbles: ["Done.", "Nearly dark. Time to bank the ovens."] }
+  - { id: bk_done_night, speaker: guiyi, when: night, bubbles: ["Done.", "It's late. Look it over, then bed."] }
+  - { id: bk_done_01, speaker: guiyi, bubbles: ["Out of the oven, not a crumb burnt."] }
+  - { id: bk_done_02, speaker: guiyi, bubbles: ["Ready to use.", "I checked it through twice."] }
+
+failed:
+  - { id: bk_failed_01, speaker: guiyi, bubbles: ["It didn't come out this time. Sorry.", "It stuck at {stuckAt}.", "It's on the blackboard.", "Another way next time."] }
+  - { id: bk_failed_02, speaker: guiyi, bubbles: ["Didn't come out.", "Stuck at {stuckAt}. Noted."] }
+  - { id: bk_failed_03, speaker: guiyi, bubbles: ["That's it for today.", "What went wrong is on the blackboard."] }
+
+net_retry:
+  - { id: bk_net_retry_01, speaker: guiyi, bubbles: ["Power's gone. I'll try again shortly."] }
+  - { id: bk_net_retry_02, speaker: guiyi, bubbles: ["Nobody answering. I'll call again."] }
+  - { id: bk_net_retry_03, speaker: guiyi, bubbles: ["Delivery's late. I'll ask in a bit."] }
+
+cancelled:
+  - { id: bk_cancelled_01, speaker: guiyi, bubbles: ["All right, we'll leave it."] }
+  - { id: bk_cancelled_02, speaker: guiyi, bubbles: ["Fine. What's made stays."] }
+  - { id: bk_cancelled_03, speaker: guiyi, bubbles: ["All right, no more.", "I'll cover the dough. It'll keep."] }

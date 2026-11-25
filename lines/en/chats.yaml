@@ -1039,3 +1039,162 @@
   turns:
     - student: Back to school before the Lantern Festival.
     - adeng: Have some dumplings before you go.
+
+# The bakery's two neighbours (plan-1.6.md F1): Old Ma from the noodle bar comes once the bakery has made a menu,
+# Lin from upstairs once it has written a recipe. Each has something for the season past the twentieth, like the rest.
+- id: ma_menu
+  when: idle
+  guest: cook
+  turns:
+    - cook: The menu's up. People order twice as fast.
+    - adeng: Prices all match?
+    - cook: To the penny.
+
+- id: ma_tea
+  when: idle
+  guest: cook
+  turns:
+    - cook: After the lunch rush my back gives up.
+    - adeng: Tea's just made. Sit.
+    - cook: Always quiet in here.
+
+- id: ma_noodles
+  when: idle
+  guest: cook
+  turns:
+    - cook: Pulled a few extra noodles today.
+    - xiaoju: Save me a bowl!
+    - cook: Already did. Extra scallions.
+
+- id: ma_knife
+  when: idle
+  guest: cook
+  turns:
+    - cook: This knife's been with me a good while.
+    - laoshi: Keeps a fine edge.
+    - cook: I hone it every night.
+
+- id: ma_rain
+  when: idle
+  guest: cook
+  sky: rain
+  turns:
+    - cook: Rainy days, more people want noodles.
+    - adeng: Who doesn't want hot soup?
+
+- id: ma_spring
+  when: idle
+  guest: cook
+  after: 20
+  season: spring
+  turns:
+    - cook: Spring shoots are in. New noodle this week.
+    - xiaoju: Change the menu?
+    - cook: Yes. I'll come and see you.
+
+- id: ma_summer
+  when: idle
+  guest: cook
+  after: 20
+  season: summer
+  turns:
+    - cook: In this heat, cold noodles outsell soup.
+    - qingdai: What's the red on top?
+    - cook: Chilli oil. I make it myself.
+
+- id: ma_autumn
+  when: idle
+  guest: cook
+  after: 20
+  season: autumn
+  turns:
+    - cook: Autumn. Lamb soup's back on.
+    - laoshi: Put me down for a bowl.
+
+- id: ma_winter
+  when: idle
+  guest: cook
+  after: 20
+  season: winter
+  turns:
+    - cook: In winter the stove's the warmest spot.
+    - adeng: Your steam shows down the whole street.
+
+- id: lin_recipe
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: I cooked from your recipe.
+    - xiaoju: Did it work?
+    - lodger: It did. Needed more salt.
+
+- id: lin_move
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: I'm new here. I live upstairs.
+    - adeng: Anything you need, come down and ask.
+    - lodger: I'll be down a lot, then.
+
+- id: lin_soup
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: Tomato and egg soup. Egg first or last?
+    - laoshi: Do you want it soft or fragrant?
+    - lodger: Both.
+
+- id: lin_market
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: The morning market is half the price.
+    - qingdai: Nicer colours, too.
+    - lodger: You buy vegetables by colour?
+
+- id: lin_rain
+  when: idle
+  guest: lodger
+  sky: rain
+  turns:
+    - lodger: It's raining, so I made a pot of soup.
+    - adeng: I can smell it from here.
+
+- id: lin_spring
+  when: idle
+  guest: lodger
+  after: 20
+  season: spring
+  turns:
+    - lodger: The scallions on my balcony came up.
+    - xiaoju: No more buying scallions!
+    - lodger: Not yet. There are three.
+
+- id: lin_summer
+  when: idle
+  guest: lodger
+  after: 20
+  season: summer
+  turns:
+    - lodger: Too hot to turn the stove on.
+    - adeng: Smashed cucumber, then.
+    - lodger: That one I can do!
+
+- id: lin_autumn
+  when: idle
+  guest: lodger
+  after: 20
+  season: autumn
+  turns:
+    - lodger: I pickled a jar of radish.
+    - laoshi: Pickles want time. No hurrying.
+
+- id: lin_winter
+  when: idle
+  guest: lodger
+  after: 20
+  season: winter
+  turns:
+    - lodger: My first time making dumplings.
+    - xiaoju: How many fillings?
+    - lodger: One. Half of them burst.

@@ -22,6 +22,7 @@
     "aqian": "Pica",
     "xiaozhe": "Umber",
     "xiaoding": "Tack",
+    "guiyi": "Auntie Olive",
     "cat": "Chestnut"
   },
   "animals": {
@@ -33,7 +34,9 @@
     "postman": "Pip",
     "mechanic": "Old Zhou",
     "granny": "Granny Chen",
-    "student": "Xiaohe"
+    "student": "Xiaohe",
+    "cook": "Old Ma",
+    "lodger": "Lin"
   },
   "you": {
     "label": "You"
@@ -206,6 +209,12 @@
       "posterFill": "Make a poster for ..., on ... at ...",
       "chartHint": "Write the numbers in the request, or hand over the table (Excel or CSV). Every number on the chart is copied from yours; you get a picture and the page it was drawn from.",
       "posterHint": "Say what it is for: printing (A4), a social post (square) or a screen (wide). Hand over photos to put on it if you like. Missing dates or places are left blank for you.",
+      "menu": "Make a menu",
+      "menuFill": "Make a menu for ..., with these dishes: ...",
+      "menuHint": "Write the dishes and prices in the request, or hand over an old menu or a table. Dishes and prices are copied exactly; anything missing is left blank for you. Say what it is for: printing (A4), a social post (square) or a screen in the shop (wide).",
+      "recipe": "Write a recipe",
+      "recipeFill": "Write up ... as a recipe, for ... people.",
+      "recipeHint": "Write down the dish and how you usually make it, or hand over a photo of a handwritten card. Where you give no amounts, everyday ones are used, marked as a starting point to adjust.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
       "toolHint": "If it can work in a browser, it becomes a web page. A script only when files on your computer must change, and it only lists what it would do until you run it with -Apply.",
@@ -576,6 +585,8 @@
         "readinglamp": "Reading lamp",
         "postcards": "Postcards",
         "toolbox": "Toolbox",
+        "chalkboard": "Menu board",
+        "cookbook": "Recipe book",
         "chime": "These wind chimes",
         "aquarium": "This fish tank",
         "scroll": "This scroll",
@@ -664,7 +675,9 @@
         "postman": "Not many letters today. Yours is on top.",
         "mechanic": "Hands are clean, don't worry.",
         "granny": "Take your time, dear. I'm in no hurry.",
-        "student": "I'll only sit a while. Don't mind me."
+        "student": "I'll only sit a while. Don't mind me.",
+        "cook": "Lunch rush is over. Any tea going?",
+        "lodger": "I'll only stay a minute. Can I ask you about a dish?"
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {
@@ -677,7 +690,9 @@
         "briefcase": "We wrote someone a résumé, and this briefcase stayed.",
         "readinglamp": "We made some reading notes, and a reading lamp went on the table.",
         "postcards": "We made a travel guide, and postcards went up on the wall.",
-        "toolbox": "We made a small tool, and Flint brought his toolbox over."
+        "toolbox": "We made a small tool, and Flint brought his toolbox over.",
+        "chalkboard": "We made someone a menu, and a little chalkboard went up on the wall.",
+        "cookbook": "After a couple of recipes, a recipe book joined the shelf."
       }
     },
     "run": {
@@ -807,7 +822,7 @@
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
       "moved": "All moved in, {name}. Everything is where it was.",
-      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop" },
+      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop", "bakery": "the bakery" },
       "calling": "A question from {shop}. Click to go over",
       "notes": {
         "cafe": "The cafe.",
@@ -1146,6 +1161,10 @@
       "posterPng": "poster.png",
       "fromFolder": "from-synced-folder",
       "posterPdf": "poster.pdf",
+      "menuPage": "menu.html",
+      "menuPng": "menu.png",
+      "menuPdf": "menu.pdf",
+      "recipe": "recipe.docx",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -1352,7 +1371,9 @@
         "document": "Documents",
         "slides": "Slides",
         "chart": "Charts",
-        "poster": "Posters"
+        "poster": "Posters",
+        "menu": "Menus",
+        "recipe": "Recipes"
       }
     },
     "mini": {
@@ -1495,6 +1516,8 @@
     "readinglamp": "a reading lamp",
     "postcards": "a few postcards",
     "toolbox": "a toolbox",
+    "chalkboard": "a little menu board",
+    "cookbook": "a handwritten recipe book",
     "chime": "some wind chimes",
     "aquarium": "a tank of goldfish",
     "scroll": "a hanging scroll",
@@ -1565,6 +1588,20 @@
       "ui": {
         "access": {
           "hotspotCounter": "Workbench: hand in a commission"
+        }
+      }
+    },
+    "bakery": {
+      "zones": {
+        "counter": "the bread counter",
+        "board": "the oven",
+        "shelf": "the bread rack",
+        "table": "the kneading table",
+        "corner": "the dough mixer"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Bread counter: hand in a commission"
         }
       }
     }

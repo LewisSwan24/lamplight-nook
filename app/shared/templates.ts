@@ -31,14 +31,14 @@ export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes
 
 /**
  * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
- * or a poster drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
+ * a poster or a menu drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
  * PDF (never the kinds with macros), a write-up in Markdown, an email draft (C5, which opens in the mail program), then
  * a table or a letter.
  */
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
-  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng,
+  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng,
   page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
@@ -262,6 +262,36 @@ export const TEMPLATES = [
       `Write every word on it in ${language}.`,
       `Then save it as "${files.posterPng}" with the mcp__nook-office__render_png tool at that size. For an A4 poster, also save it as "${files.posterPdf}" with the mcp__nook-office__make_pdf tool, so it can be printed.`,
       'When it is saved, look at it with the Read tool: check nothing is cut off, overlapping or too small to read, and fix the page and draw it again if not.',
+    ],
+  },
+  // The bakery's two kinds (plan-1.6.md F1). A menu is drawn like a poster, and every dish and price on it is the user's own.
+  {
+    id: 'menu', shop: 'bakery', icon: 17, revise: true, main: 'picture', growth: { id: 'chalkboard', at: 1 }, guest: 'cook',
+    steps: ({ language, files }) => [
+      'This is a menu or a price list, drawn as a picture.',
+      `Read the dishes and prices first: what the user wrote in the request, or what they handed over in "${files.materials}" (an old menu as a photo or a PDF, which the Read tool reads; a table, which mcp__nook-office__read_document reads).`,
+      'Pick its size from what it is for: A4 to print or lay on the table, 794 by 1123; a square for a social post, 1080 by 1080; a wide one for a screen in the shop, 1920 by 1080. A4 if the request does not say.',
+      `Lay it out as a single self-contained page "${files.menuPage}" exactly that size: CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+      'Put the name of the place at the top, then the dishes in groups under short headings (what to start with, mains, sweets, drinks, or the groups the user gave), each dish on its own line with its price lined up on the right.',
+      'Copy every dish and every price exactly as the user gave them, in their currency. Never make up a dish, a price, an opening time or what is in a dish. Where a price is missing, leave a clear blank in square brackets.',
+      'If the user marks dishes as spicy, meatless or holding something people are allergic to, show it with a small mark next to the dish and say what each mark means at the bottom. Add no mark they did not give.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.menuPng}" with the mcp__nook-office__render_png tool at that size, and as "${files.menuPdf}" with the mcp__nook-office__make_pdf tool, so it can be printed.`,
+      'When it is saved, look at it with the Read tool: check nothing is cut off, overlapping or too small to read and every price matches what the user gave, and fix the page and draw it again if not.',
+    ],
+  },
+  {
+    id: 'recipe', shop: 'bakery', icon: 18, revise: true, main: 'office', growth: { id: 'cookbook', at: 2 }, guest: 'lodger',
+    steps: ({ language, files }) => [
+      'This is a recipe someone will cook from, as a Word document: do not make a web page.',
+      `Build it with the mcp__nook-office__make_docx tool as "${files.recipe}" in ${language}: give the tool the structure and it makes the file. Never write Office XML or a .docx by hand.`,
+      'Open with the name of the dish and one line on what it is, then how many it feeds and how long it takes, the work and the cooking apart.',
+      'Then what goes in, as a list, each with its amount and unit; then the steps, numbered, one thing to do in each, with the heat, the time and how to tell it is done (the colour, how it feels, how it smells).',
+      'End with a short section on what to watch out for: where it goes wrong, what can be made ahead, how long it keeps and how.',
+      'Use the amounts and the way of doing it the user gave. Where they gave no amounts, use everyday ones for a home kitchen and say near the top that they are a starting point to adjust to taste.',
+      'Say plainly where meat, fish or eggs must be cooked through, and name what in it people are often allergic to (nuts, wheat, milk, eggs, shellfish and the like). Never claim it is good for health or for losing weight.',
+      `If the user handed anything over in "${files.materials}" (a handwritten card as a photo, their own notes), read it first and keep their way of making it.`,
+      `In your final reply, say in ${language}, in one line, how many it feeds and how long it takes.`,
     ],
   },
 ] as const satisfies readonly TemplateSpec[];

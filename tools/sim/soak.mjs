@@ -106,7 +106,7 @@ async function walks({ times, every, out, lang }) {
     if (await room() !== id) throw new Error(`could not go into the ${id}`);
     await sleep(800);
   };
-  const SHOPS = ['print', 'studio', 'workshop'];
+  const SHOPS = ['print', 'studio', 'workshop', 'bakery'];
   const readings = [];
   try {
     await sleep(2500);

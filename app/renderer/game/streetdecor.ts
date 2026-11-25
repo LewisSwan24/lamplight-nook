@@ -33,7 +33,7 @@ export function putAway(outside: Outside): string[] {
 export const umbrellaUp = (sky: Sky): boolean => sky === 'rain' || sky === 'snow';
 
 /** The shops along the street, in the order of the rows of shops-decor.png; its columns follow HOLIDAYS. */
-export const DECOR_SHOPS = ['print', 'studio', 'workshop'] as const;
+export const DECOR_SHOPS = ['print', 'studio', 'workshop', 'bakery'] as const;
 
 /** Where a room's festival decorations are: the cafe and the study their own pictures, a shop along the street its frame. */
 export function roomDecor(room: RoomId, holiday: Holiday): { key: string; frame?: string } {

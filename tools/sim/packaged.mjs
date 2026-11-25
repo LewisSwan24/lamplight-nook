@@ -249,7 +249,7 @@ try {
   check(street.out, 'the street shows');
   check(street.pictures.length === 0, `the street's pictures loaded (missing: ${street.pictures.join(', ')})`);
   await shop.shot(join(out, 'street.png'));
-  for (const room of ['print', 'studio', 'workshop']) {
+  for (const room of ['print', 'studio', 'workshop', 'bakery']) {
     await page.evaluate((r) => window.lamplightDebug.street.lookAt(r), room);
     await sleep(300);
     await page.keyboard.press('Enter');

@@ -44,6 +44,8 @@ const W = {
     slides: '帮我做一份介绍春季新菜单的 PPT。',
     chart: '帮我把这些数字画成图表：一月 120，二月 180，三月 90，四月 150。',
     poster: '帮我做一张周末读书会的海报。',
+    menu: '帮我给巷口的早点铺做一份菜单：葱油饼 8，肉包 4，豆浆 3，茶叶蛋。',
+    recipe: '帮我把葱油饼写成一份食谱，两人份。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -66,6 +68,8 @@ const W = {
     slides: 'Make me slides about the new spring menu.',
     chart: 'Draw a chart of tea sales from these numbers: January 120, February 180, March 90, April 150.',
     poster: 'Make a poster for the weekend book club.',
+    menu: 'Make a menu for the breakfast stall on the corner: Scallion pancake 8, Pork bun 4, Soy milk 3, Tea egg.',
+    recipe: 'Write up scallion pancakes as a recipe, for two.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -4912,6 +4916,61 @@ const SCENARIOS = {
       check(await shop.page.locator('.backdrop').count() === 0, 'the click that cut the move short also opened something');
       check(saved(other).shop.told.includes('town-move'), 'the move cut short was not written down');
       await shop.shot(join(out, 'movetown-skipped.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The bakery opens (plan-1.6.md F1): gone into from the street like the other shops, Auntie Gui is there and nobody from
+   * home. A menu handed in there is made there: an A4 picture with every dish and price as given and a blank where one was
+   * not, and a PDF to print. Then a recipe, as a Word document. Each names her on the parcel.
+   */
+  async bakery(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const here = () => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ['adeng', 'guiyi', 'xiaoju', 'laoshi']);
+    try {
+      await sleep(2500);
+      await page.evaluate(() => window.lamplightDebug.street.onFront('bakery', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'bakery'; await sleep(300));
+      await sleep(2500);
+      check(await room() === 'bakery', `did not go into the bakery: ${await room()}`);
+      const first = await here();
+      check(first.guiyi !== null && first.adeng === null && first.xiaoju === null && first.laoshi === null, `who is in the bakery: ${JSON.stringify(first)}`);
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('guiyi')), 'Auntie Gui has no picture');
+      await shop.shot(join(out, 'bakery-in.png'));
+
+      await shop.order({ template: 'menu', want: W[lang].menu });
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the menu did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      check(await room() === 'bakery', `the menu was not made in the bakery: ${await room()}`);
+      const dir = latestCommission(home);
+      check(JSON.stringify(pngSize(join(dir, F.menuPng))) === JSON.stringify([794, 1123]), `${F.menuPng} is ${JSON.stringify(pngSize(join(dir, F.menuPng)))}, not A4`);
+      check(readFileSync(join(dir, F.menuPdf)).subarray(0, 5).toString() === '%PDF-', 'the menu has no PDF beside it');
+      const html = readFileSync(join(dir, F.menuPage), 'utf8');
+      const dish = lang === 'zh-CN' ? ['葱油饼', '8'] : ['Scallion pancake', '8'];
+      check(html.includes(`<span>${dish[0]}</span><b>${dish[1]}</b>`), `a dish or its price is not on the menu as given: ${html.slice(-600)}`);
+      check(html.includes(lang === 'zh-CN' ? '[价格]' : '[price]'), 'the dish without a price has no blank');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const parcels = await page.locator('.parcel .card-title').allInnerTexts();
+      check(parcels.length > 0 && parcels.every((t) => t.includes(L.actors.guiyi)), `the parcel does not name Auntie Gui: ${parcels}`);
+      await sleep(400);
+      await shop.shot(join(out, 'bakery-menu-done.png'));
+      copyFileSync(join(dir, F.menuPng), join(out, 'bakery-menu-made.png'));
+      await page.keyboard.press('Escape');
+      await sleep(500);
+
+      await shop.order({ template: 'recipe', want: W[lang].recipe });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the recipe did not finish');
+      const recipe = join(latestCommission(home), F.recipe);
+      check(existsSync(recipe) && readFileSync(recipe).subarray(0, 2).toString() === 'PK', `${F.recipe} is not a Word document`);
+      await sleep(400);
+      await shop.shot(join(out, 'bakery-recipe-done.png'));
     } finally { await shop.close(); }
   },
 

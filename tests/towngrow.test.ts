@@ -33,10 +33,12 @@ describe('what grows on the street', () => {
   });
 
   it('gives each shop along the street four pieces of its own, at one, three, eight and twenty', () => {
-    for (const shop of ['print', 'studio', 'workshop'] as const) expect(ROOM_GROWTH[shop].map((g) => g.at)).toEqual([1, 3, 8, 20]);
+    for (const shop of ['print', 'studio', 'workshop', 'bakery'] as const) expect(ROOM_GROWTH[shop].map((g) => g.at)).toEqual([1, 3, 8, 20]);
     expect(roomGrown('print', 0)).toEqual([]);
     expect(roomGrown('print', 3)).toEqual(['proof', 'ivy']);
     expect(roomGrown('workshop', 20)).toEqual(['gear', 'ivy', 'clock', 'blueprint']);
+    expect(roomGrown('bakery', 8)).toEqual(['wheat', 'ivy', 'pin']);
+    expect(roomGrown('bakery', 20)).toEqual(['wheat', 'ivy', 'pin', 'garland']);
   });
 });
 
@@ -50,8 +52,8 @@ describe('counting by shop', () => {
     expect(state.done).toBe(5);
     expect(state.town!.shops.print).toEqual({ done: 3, grown: [{ id: 'proof', date: '2026-11-21' }, { id: 'ivy', date: '2026-11-21' }] });
     expect(state.town!.shops.studio!.done).toBe(1);
-    expect(townCounts(state, 'cafe')).toEqual({ total: 5, shops: { cafe: 1, study: 0, print: 3, studio: 1, workshop: 0 } });
-    expect(townCounts(state, 'study').shops).toEqual({ cafe: 0, study: 1, print: 3, studio: 1, workshop: 0 });
+    expect(townCounts(state, 'cafe')).toEqual({ total: 5, shops: { cafe: 1, study: 0, print: 3, studio: 1, workshop: 0, bakery: 0 } });
+    expect(townCounts(state, 'study').shops).toEqual({ cafe: 0, study: 1, print: 3, studio: 1, workshop: 0, bakery: 0 });
   });
 
   it('still counts the home shop’s finished works the way it always has', () => {
@@ -83,8 +85,8 @@ describe('counting by shop', () => {
 });
 
 describe('what is worth a word', () => {
-  const counts = (total: number, shops: Partial<Record<'cafe' | 'study' | 'print' | 'studio' | 'workshop', number>>) =>
-    ({ total, shops: { cafe: 0, study: 0, print: 0, studio: 0, workshop: 0, ...shops } });
+  const counts = (total: number, shops: Partial<Record<'cafe' | 'study' | 'print' | 'studio' | 'workshop' | 'bakery', number>>) =>
+    ({ total, shops: { cafe: 0, study: 0, print: 0, studio: 0, workshop: 0, bakery: 0, ...shops } });
 
   it('names the new street piece, the new thing at a front and the new piece inside a shop', () => {
     expect(townNews(counts(9, { cafe: 2, print: 7 }), counts(10, { cafe: 2, print: 8 }))).toEqual([
@@ -119,7 +121,7 @@ describe('the pictures for it', () => {
 
   it('has every street piece, and a pot, a sign and flags at each room’s front', () => {
     for (const g of STREET_GROWTH) expect(town.grow.some((p) => p.id === g.id && !('shop' in p)), g.id).toBe(true);
-    for (const room of ['cafe', 'study', 'print', 'studio', 'workshop']) {
+    for (const room of ['cafe', 'study', 'print', 'studio', 'workshop', 'bakery']) {
       for (const g of FRONT_GROWTH) expect(town.grow.filter((p) => p.id === g.id && 'shop' in p && p.shop === room), `${room} ${g.id}`).toHaveLength(1);
     }
     for (const p of town.grow) {

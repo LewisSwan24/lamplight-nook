@@ -101,6 +101,7 @@ describe('festivals in the shops along the street (D6)', () => {
     expect(roomDecor('study', 'lantern')).toEqual({ key: 'decor-lantern' });
     expect(roomDecor('print', 'christmas')).toEqual({ key: 'shops-decor', frame: 'print-christmas' });
     expect(roomDecor('workshop', 'mid_autumn')).toEqual({ key: 'shops-decor', frame: 'workshop-mid_autumn' });
+    expect(roomDecor('bakery', 'lantern')).toEqual({ key: 'shops-decor', frame: 'bakery-lantern' });
   });
 
   it('draws something different in each new shop for each festival', () => {

@@ -85,8 +85,8 @@ describe('going in at a front (road-to-1.4.md D2, D3)', () => {
     expect(entering('cafe', { here: 'workshop' })).toBe('visit');
   });
 
-  it("only has a word for the neighbours' shops", () => {
-    expect(entering('bakery', { here: 'cafe' })).toBe('closed');
+  it("only has a word for the post office, which is still the neighbour's; the bakery opens (plan-1.6.md F1)", () => {
+    expect(entering('bakery', { here: 'cafe' })).toBe('visit');
     expect(entering('post', { here: 'cafe' })).toBe('closed');
   });
 });
