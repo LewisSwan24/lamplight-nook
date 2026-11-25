@@ -1398,6 +1398,84 @@
     - organizer: Cold out. I am checking everyone's heating.
     - adeng: Sit down first. Something hot.
 
+# Lele, brought by revision cards (plan-1.8.md H1): in her last year of school, exams coming.
+
+- id: lele_cards
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: I carry the cards everywhere.
+    - adeng: How far have you got?
+    - pupil: Second time round. The red ones slip.
+
+- id: lele_quiz
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: I did that quiz three times.
+    - laoshi: Look the misses up in the handout.
+    - pupil: I did. All from chapter two.
+
+- id: lele_mock
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: Mock exams next week.
+    - xiaoju: Which subjects?
+    - pupil: All of them.
+
+- id: lele_desk
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: It is loud at home. Can I sit here?
+    - adeng: The table by the window is yours.
+
+- id: lele_rain
+  when: idle
+  guest: pupil
+  sky: rain
+  turns:
+    - pupil: I will wait for the rain to ease off.
+    - qingdai: Good. Time for a few more cards.
+
+- id: lele_spring
+  when: idle
+  guest: pupil
+  after: 20
+  season: spring
+  turns:
+    - pupil: New term. My bag weighs a ton again.
+    - xiaoju: All exam papers?
+    - pupil: Half papers, half cards.
+
+- id: lele_summer
+  when: idle
+  guest: pupil
+  after: 20
+  season: summer
+  turns:
+    - pupil: Exams are over. I am keeping the cards.
+    - laoshi: Good. They are worth a look later.
+
+- id: lele_autumn
+  when: idle
+  guest: pupil
+  after: 20
+  season: autumn
+  turns:
+    - pupil: New term, a new pile of handouts.
+    - adeng: Bring them over. Same as before.
+
+- id: lele_winter
+  when: idle
+  guest: pupil
+  after: 20
+  season: winter
+  turns:
+    - pupil: Too cold to hold a pen today.
+    - adeng: Hold this cup first.
+
 # The street in 1.6 (plan-1.6.md F5): the home shop on the bakery, the post office and the people going by; Auntie
 # Olive and Pip when they drop in. Same ids as lines/chats.yaml.
 

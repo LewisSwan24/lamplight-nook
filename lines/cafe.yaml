@@ -329,6 +329,7 @@ grow:
   - { id: grow_cardline, speaker: xiaoju, when: grow_cardline, bubbles: ["侧窗上挂了一串贺卡！", "芳姐说，卡片挂着比收着好看。"] }
   - { id: grow_newsletters, speaker: laoshi, when: grow_newsletters, bubbles: ["窗台上多了一摞简报。", "吴阿姨让我们帮着发发。"], reply: { speaker: adeng, bubbles: ["来喝咖啡的，顺手拿一份。"] } }
   - { id: grow_cookbook, speaker: laoshi, when: grow_cookbook, bubbles: ["桂姨送了本食谱。", "字是她一笔一笔抄的。"], reply: { speaker: xiaoju, bubbles: ["第一页就是葱油饼！"] } }
+  - { id: grow_cardstack, speaker: xiaoju, when: grow_cardstack, bubbles: ["书架上多了一叠卡片！", "皮筋扎着，一张没丢。"], reply: { speaker: laoshi, bubbles: ["做的时候多印了一份。"] } }
   - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["窗边挂了串风铃。", "风一吹，叮叮当当。"] }
   - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["六十单了，养了缸金鱼！", "一条叫小灯，一条叫阿屋。"], reply: { speaker: laoshi, bubbles: ["水我来换。"] } }
   - { id: grow_scroll, speaker: adeng, when: grow_scroll, bubbles: ["墙上挂了幅字。", "老石写的，写了一整晚。"] }

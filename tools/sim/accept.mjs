@@ -59,6 +59,7 @@ const W = {
     recipe: '帮我把葱油饼写成一份食谱，两人份。',
     card: '帮我给楼下的芳姐做一张生日贺卡，想写：生日快乐，花一直开。',
     newsletter: '帮我给我们楼做一份简报，这期讲：周六上午义诊，楼道别停自行车。',
+    flashcards: '帮我把这份生物讲义做成复习卡片，下周考光合作用。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -85,6 +86,7 @@ const W = {
     recipe: 'Write up scallion pancakes as a recipe, for two.',
     card: 'Make a birthday card for Fern downstairs, saying: Happy birthday, may the flowers keep coming.',
     newsletter: 'Make a newsletter for our block, this issue about: a clinic on Saturday morning, and no bikes in the hallway.',
+    flashcards: 'Turn this biology handout into revision cards, for a test on photosynthesis next week.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -5415,6 +5417,88 @@ const SCENARIOS = {
       check(readFileSync(join(issue, F.newsletterPdf)).subarray(0, 5).toString() === '%PDF-', 'the newsletter has no PDF beside it');
       await sleep(400);
       await shop.shot(join(out, 'post-newsletter-done.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * Revision cards (plan-1.8.md H1): a biology handout handed over at home comes back as cards to print and cut apart
+   * and a one-page quiz, both PDFs, every card one line of the handout and each answer behind its question. The result
+   * card opens the cards. A stack of them turns up on the bookcase, someone says so, and Lele starts dropping in.
+   */
+  async flashcards(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const HANDOUT = lang === 'en'
+      ? [['Photosynthesis', 'Plants use light to turn carbon dioxide and water into sugar and oxygen.'], ['Chlorophyll', 'The green pigment in leaves that takes in light.'],
+        ['Stomata', 'Tiny pores under a leaf that let gases in and out.'], ['Glucose', 'The sugar photosynthesis makes.'],
+        ['Light reactions', 'They split water and give off oxygen.'], ['Calvin cycle', 'It fixes carbon dioxide into sugar.'],
+        ['Chloroplast', 'The part of the cell where all of it happens.'], ['Limiting factor', 'Light, carbon dioxide or warmth, whichever runs short.'],
+        ['Respiration', 'Cells break sugar down again for energy, day and night.']]
+      : [['光合作用', '植物用光把二氧化碳和水变成糖和氧气。'], ['叶绿素', '叶子里吸收光的绿色色素。'], ['气孔', '叶子背面进出气体的小孔。'],
+        ['葡萄糖', '光合作用做出来的糖。'], ['光反应', '把水分开，放出氧气。'], ['卡尔文循环', '把二氧化碳固定成糖。'],
+        ['叶绿体', '这一切发生的地方。'], ['限制因素', '光、二氧化碳、温度，哪样不够就卡在哪样。'], ['呼吸作用', '细胞把糖再分解开取能量，白天黑夜都在做。']];
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const dir0 = join(home.home, 'samples');
+    mkdirSync(dir0, { recursive: true });
+    const handout = join(dir0, lang === 'en' ? 'handout.txt' : '讲义.txt');
+    writeFileSync(handout, HANDOUT.map(([term, meaning]) => `${term}${lang === 'en' ? ': ' : '：'}${meaning}`).join('\n') + '\n', 'utf8');
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    try {
+      await sleep(1500);
+      await shop.order({ template: 'flashcards', want: W[lang].flashcards, files: [handout] });
+      check(await page.locator('form.commission .material-tag').count() === 1, 'the handout is not on the slip');
+      await shop.shot(join(out, 'flashcards-slip.png'));
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the revision cards did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      const dir = latestCommission(home);
+      for (const name of [F.flashcardsPdf, F.quizPdf]) check(existsSync(join(dir, name)) && readFileSync(join(dir, name)).subarray(0, 5).toString() === '%PDF-', `${name} is not a PDF`);
+      // Every card is a line of the handout, and nothing else: its term on the front, its meaning on the back.
+      const cards = readFileSync(join(dir, F.flashcardsPage), 'utf8');
+      const fronts = [...cards.matchAll(/class="c q"><b>\d+<\/b><p>([^<]*)</g)].map((m) => m[1]);
+      const backs = [...cards.matchAll(/class="c a"><b>\d+<\/b><p>([^<]*)</g)].map((m) => m[1]);
+      check(fronts.length === HANDOUT.length && backs.length === HANDOUT.length, `${fronts.length} fronts and ${backs.length} backs for ${HANDOUT.length} lines`);
+      for (const [term, meaning] of HANDOUT) {
+        check(fronts.some((q) => q.includes(term)), `no card asks about ${term}`);
+        check(backs.includes(meaning), `no card answers ${meaning}`);
+      }
+      // Behind card 1 (front, top left) is its answer at the back's top right: each row's two cards change places.
+      const backNumbers = [...cards.matchAll(/class="c a"><b>(\d+)<\/b>/g)].map((m) => Number(m[1]));
+      check(JSON.stringify(backNumbers.slice(0, 8)) === JSON.stringify([2, 1, 4, 3, 6, 5, 8, 7]), `the backs run ${backNumbers}`);
+      const quiz = readFileSync(join(dir, F.quizPage), 'utf8');
+      check((quiz.match(/<li>/g) ?? []).length === 20, 'the quiz is not ten questions and ten answers');
+      // The result card opens the cards, with a picture of them.
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const opens = await page.locator('.result-card').innerText();
+      check(opens.includes(F.flashcardsPdf), `the result card does not name ${F.flashcardsPdf}: ${opens.slice(0, 200)}`);
+      await sleep(400);
+      await shop.shot(join(out, 'flashcards-done.png'));
+      await page.keyboard.press('Escape');
+      await sleep(500);
+
+      const shows = () => page.evaluate(() => window.lamplightDebug.scene.growth.shows('cardstack'));
+      for (const end = Date.now() + 15_000; Date.now() < end && !(await shows()); await sleep(300));
+      check(await shows(), 'no stack of cards on the bookcase');
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await sleep(600);
+      await shop.shot(join(out, 'flashcards-stack.png'));
+      let told = false;
+      for (let i = 0; i < 6 && !told; i++) {
+        await shop.hotspot(L.ui.objects.grown.cardstack);
+        told = await page.waitForFunction(([by, line]) => window.lamplightDebug.scene.isSaying(by, line), ['adeng', L.ui.objects.grownMade.cardstack], { timeout: 2500 }).then(() => true, () => false);
+      }
+      check(told, 'the stack of cards says nothing');
+
+      await page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await page.evaluate(() => window.lamplightDebug.welcome('pupil'));
+      const came = await page.waitForFunction(() => {
+        const g = window.lamplightDebug.scene.guest;
+        return g?.id === 'pupil' && g.speech;
+      }, null, { timeout: 20_000 }).then(() => true, () => false);
+      check(came, 'Lele did not come in and say something');
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('pupil')), 'Lele has no picture');
+      await shop.shot(join(out, 'flashcards-lele.png'));
     } finally { await shop.close(); }
   },
 

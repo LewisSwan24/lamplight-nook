@@ -127,10 +127,10 @@
    "decor-dragon_boat": 106.1,
    "decor-mid_autumn": 106.1,
    "grow-album": 106.1,
+   "grow-cardstack": 152.1,
    "grow-fruit": 106.1,
    "grow-ledger": 106.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 106.1,
    "grow-plant": 94.1,
    "grow-readinglamp": 106.1,
    "grow-teapot": 94.1,
@@ -239,6 +239,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -318,8 +324,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -625,6 +631,7 @@
    "grow-aquarium": 157.1,
    "grow-bonsai": 157.1,
    "grow-books": 157.1,
+   "grow-cardstack": 157.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
@@ -738,6 +745,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -817,8 +830,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -1110,6 +1123,7 @@
    "grow-bonsai": 156.1,
    "grow-books": 156.1,
    "grow-calendar": 57.1,
+   "grow-cardstack": 156.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
@@ -1219,6 +1233,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -1298,8 +1318,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -1597,10 +1617,10 @@
    "grow-bonsai": 158.1,
    "grow-books": 158.1,
    "grow-calendar": 56.1,
+   "grow-cardstack": 158.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 94.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 94.1,
@@ -1709,6 +1729,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -1788,8 +1814,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -2075,10 +2101,10 @@
    "grow-album": 102.1,
    "grow-bonsai": 156.1,
    "grow-books": 156.1,
+   "grow-cardstack": 156.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 95.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 95.1,
@@ -2187,6 +2213,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -2266,8 +2298,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -2551,10 +2583,10 @@
    "decor-lantern": 102.1,
    "decor-mid_autumn": 102.1,
    "grow-album": 102.1,
+   "grow-cardstack": 156.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
@@ -2662,6 +2694,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -2741,8 +2779,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -3030,7 +3068,6 @@
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
@@ -3139,6 +3176,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -3218,8 +3261,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },

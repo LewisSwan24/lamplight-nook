@@ -125,6 +125,8 @@ describe('new neighbours, who come because of the work', () => {
     expect(welcomeGuests({ recipe: 1, page: 1 })).toEqual(['baker', 'postman', 'mechanic', 'lodger']);
     // The post office's (plan-1.6.md F2): Fern from the flower shop for a card, Mrs Wu from the residents' committee for a newsletter.
     expect(welcomeGuests({ card: 1, newsletter: 1 })).toEqual(['baker', 'postman', 'florist', 'organizer']);
+    // Revision cards (plan-1.8.md H1) bring Lele, with an exam coming.
+    expect(welcomeGuests({ flashcards: 1 })).toEqual(['baker', 'postman', 'pupil']);
   });
 
   it('only sends those who are welcome, and someone new soon after they are', () => {

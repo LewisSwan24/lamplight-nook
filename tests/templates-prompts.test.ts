@@ -9,7 +9,7 @@ import type { CommissionForm, CommissionTemplate } from '../app/shared/types';
  * into one table (road-to-1.1.md A7) can be shown to change nothing. commission.ts reads the language once
  * when it loads, so each language gets its own fresh copy of the modules.
  */
-const IDS: CommissionTemplate[] = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter'];
+const IDS: CommissionTemplate[] = ['page', 'research', 'edit', 'tidy', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards'];
 
 async function inLanguage(lang: 'zh-CN' | 'en') {
   vi.resetModules();
@@ -92,6 +92,9 @@ for (const lang of ['zh-CN', 'en'] as const) {
         pick(['resume.html', 'resume.pdf']),
         pick(['a.md', 'b.xlsm', 'c.pdf']),
       ]).toMatchSnapshot();
+      // Revision cards (plan-1.8.md H1): the cards' PDF, not the pages they were printed from or the quiz.
+      const F = (await import('../app/shared/i18n')).strings.ui.files;
+      expect(pick([F.quizPage, F.quizPdf, F.flashcardsPage, F.flashcardsPdf])).toBe(F.flashcardsPdf);
     });
   });
 }

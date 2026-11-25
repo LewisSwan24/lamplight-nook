@@ -7,6 +7,11 @@
   an accent colour on the title, headings and table headers, and the body size she picks.
 - **The shelf by shop.** Under the kinds on the works shelf is a row of the street's shops. Pick one to see only what
   it made; it works together with the kind and the words you type. A free-form order counts as the home shop's.
+- **Revision cards.** A new kind of order at home: hand over a handout, your notes or a chapter, and get back a set of
+  question-and-answer cards as a PDF to print on both sides and cut apart, every answer behind its question, and a
+  one-page quiz of ten questions with the answers on the back. Every question comes from what you handed over and
+  nothing else. The first set leaves a stack of cards on the bookcase, and brings Lele, a schoolgirl with exams
+  coming, who drops in now and then with a new pile of handouts.
 
 ## Unreleased (1.7)
 

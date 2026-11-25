@@ -39,7 +39,8 @@
     "cook": "老马",
     "lodger": "小林",
     "florist": "芳姐",
-    "organizer": "吴阿姨"
+    "organizer": "吴阿姨",
+    "pupil": "乐乐"
   },
   "you": {
     "label": "你"
@@ -224,6 +225,9 @@
       "newsletter": "做份简报",
       "newsletterFill": "帮我给……做一份简报，这期讲：……",
       "newsletterHint": "把这期要讲的事写在要求里，或者递几份材料、照片过来。只写你给的事，缺的日期和名字留空给你填。交回一份 Word 文档和一份 PDF。",
+      "flashcards": "复习卡片",
+      "flashcardsFill": "帮我把这份……做成复习卡片，要考的是：……",
+      "flashcardsHint": "把讲义、笔记或者一章书递过来，也可以贴在要求里。问题和答案都只从材料里出：一套能打印裁开的问答卡，再加一页十道题的小测，答案在背面。",
       "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
       "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
       "toolHint": "能在浏览器里做的，就做成一个网页。要动电脑上的文件才写脚本，脚本先只列出要做的事，加上 -Apply 才动手。",
@@ -621,6 +625,7 @@
         "cookbook": "食谱本",
         "cardline": "一串贺卡",
         "newsletters": "一摞简报",
+        "cardstack": "一叠复习卡片",
         "chime": "这串风铃",
         "aquarium": "这缸金鱼",
         "scroll": "这幅字",
@@ -719,7 +724,8 @@
         "cook": "面馆刚忙完，来讨口热茶。",
         "lodger": "我就坐一会儿，顺便请教个菜。",
         "florist": "路过，进来闻闻咖啡香。",
-        "organizer": "我坐一下就走，楼下还等着我开会。"
+        "organizer": "我坐一下就走，楼下还等着我开会。",
+        "pupil": "就坐一会儿，背完这页就走。"
       },
       "you": "你的委托在做了，先坐会儿吧。",
       "grownMade": {
@@ -736,7 +742,8 @@
         "chalkboard": "帮人做过菜单，墙边就立起了一块小黑板。",
         "cookbook": "写过几份食谱，书架上就多了本食谱。",
         "cardline": "帮人做过贺卡，侧窗上就挂起了一串贺卡。",
-        "newsletters": "做过两期简报，大桌上就多了一摞，谁来都能拿一份。"
+        "newsletters": "做过两期简报，大桌上就多了一摞，谁来都能拿一份。",
+        "cardstack": "做过一套复习卡片，书架上就多了一叠，用皮筋扎着。"
       }
     },
     "run": {
@@ -1218,6 +1225,10 @@
       "newsletter": "简报.docx",
       "newsletterPage": "简报.html",
       "newsletterPdf": "简报.pdf",
+      "flashcardsPage": "复习卡片.html",
+      "flashcardsPdf": "复习卡片.pdf",
+      "quizPage": "小测.html",
+      "quizPdf": "小测.pdf",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",
       "toolSamples": "样例",
@@ -1430,7 +1441,8 @@
         "menu": "菜单",
         "recipe": "食谱",
         "card": "贺卡",
-        "newsletter": "简报"
+        "newsletter": "简报",
+        "flashcards": "复习卡片"
       }
     },
     "mini": {
@@ -1577,6 +1589,7 @@
     "cookbook": "一本手抄的食谱",
     "cardline": "一串挂在侧窗上的贺卡",
     "newsletters": "一摞放在大桌上的简报",
+    "cardstack": "一叠放在书架上的复习卡片",
     "chime": "一串风铃",
     "aquarium": "一缸金鱼",
     "scroll": "一幅字",
