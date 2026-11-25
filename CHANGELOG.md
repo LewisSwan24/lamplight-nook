@@ -23,6 +23,9 @@
   harder rain, a darker room, and lightning now and then, which does not flash with reduced motion on. Nobody goes into
   the garden in wind or storms, and fewer people are out on the street. Wick, the staff, Auntie Olive and Pip each have
   something to say about all three.
+- **Something to try.** The commission slip now suggests three things that fit the time of year, such as a look back
+  at the year in winter or a menu for the Mid-Autumn dinner. During a festival two of the three are for the festival.
+  Click one and it goes into the slip.
 - **The lunar festivals run to 2040.** Lunar New Year, the Lantern, Dragon Boat and Mid-Autumn festivals were known
   only until 2035. The dates now run to 2040, checked against the Hong Kong Observatory's conversion tables.
 

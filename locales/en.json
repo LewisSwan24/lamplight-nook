@@ -306,6 +306,23 @@
     },
     "want": "What would you like?",
     "wantMissing": "Write a line about what you'd like first.",
+    "tryLabel": "Try:",
+    "tries": {
+      "seasons": {
+        "spring": ["A spring outing plan, three days", "What to plant on the balcony", "Sorting the wardrobe for spring", "The trip home for Qingming", "Who does what in the spring clean", "Making a kite with the children"],
+        "summer": ["A plan for the summer holidays", "A packing list for the seaside", "Dinners that need no stove", "A heat warning for the front door", "Cutting the summer power bill", "An invitation to a leaving party"],
+        "autumn": ["What to get ready for school", "Autumn walks within an hour", "A reading list for the book club", "Pickles and jam for the cupboard", "A plan for the October holiday", "Getting the house ready for winter"],
+        "winter": ["A look back at this year", "Resolutions for next year", "A shopping list for the New Year", "A card for a friend far away", "A winter soup for each day of the week", "The year's household accounts"]
+      },
+      "holidays": {
+        "halloween": ["An invitation to a Halloween party", "How to carve a pumpkin lantern", "Costume ideas for the children"],
+        "christmas": ["A Christmas present list", "The menu for Christmas dinner", "Christmas cards for the neighbours"],
+        "new_year": ["Who to visit over the New Year", "The menu for New Year's Eve dinner", "New Year wishes for the elders"],
+        "lantern": ["Lantern riddles for the children", "Fillings for sweet rice balls", "A route round the lantern fair"],
+        "dragon_boat": ["How to wrap rice dumplings", "A plan for watching the boat races", "The Dragon Boat story, for children"],
+        "mid_autumn": ["The menu for the Mid-Autumn dinner", "A Mid-Autumn card for the family", "A few moon poems to copy out"]
+      }
+    },
     "details": "Anything particular?",
     "audience": "Who is it for?",
     "detailsPlaceholder": "e.g. works on a phone too, large text",
