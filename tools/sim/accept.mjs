@@ -255,7 +255,10 @@ function restoreHome(snap) {
  * both languages, and its "installer" (a few made-up bytes, never run). `config` is the app-update.yml pointing at it;
  * `asked` lists every file the app asked for.
  */
-async function updateFeed(home, version = '1.1.1') {
+/** One patch above the dev build's own version (package.json), so the feed always has something newer to offer. */
+const NEXT = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version.replace(/\d+$/, (n) => String(Number(n) + 1));
+
+async function updateFeed(home, version = NEXT) {
   const dir = join(home.home, 'feed');
   mkdirSync(dir, { recursive: true });
   const exe = `Lamplight-Nook-Setup-${version}.exe`;
@@ -5353,7 +5356,7 @@ const SCENARIOS = {
    * the shop's language, nothing downloads until "update", a commission after that runs to the end untouched, and the
    * version goes in only as the shop closes, after a copy of the data. Closing with "stop and close" mid-commission keeps
    * its promise to carry on, and installs after. The Store build and a shop with the switch off never look.
-   * The dev build calls itself 1.0.0 (package.json), so the feed offers 1.1.1; the installer is never run, the log says when.
+   * The feed offers one patch above the dev build's own version (NEXT); the installer is never run, the log says when.
    */
   async update(lang, out) {
     const U = locale(lang).ui.update;
@@ -5385,7 +5388,7 @@ const SCENARIOS = {
       const card = await shop.maybe('.update-letter', 60_000);
       check(card, 'the postman brought no letter');
       const text = await card.innerText();
-      check(text.includes('1.1.1') && text.includes(UPDATE_NOTES[lang]), `the letter does not say the version and what is new: ${text}`);
+      check(text.includes(NEXT) && text.includes(UPDATE_NOTES[lang]), `the letter does not say the version and what is new: ${text}`);
       check(!text.includes(UPDATE_NOTES[other]), 'the letter has the notes in the other language too');
       if (shot) await shop.shot(join(out, shot));
       check(fetched() === before, `the new version was downloaded before anyone said so: ${feed.asked.join(', ')}`);
@@ -5419,7 +5422,7 @@ const SCENARIOS = {
       const went = logged(home, install);
       check(went.length === 1 && went[0].slice(0, 24) >= closing, `the update did not go in as the shop closed: ${went.join(' | ')}`);
       check(logged(home, 'update installer not run (simulated)').length === 1, 'the stand-in for the installer was not reached');
-      const backup = join(home.data, 'backup', readdirSync(join(home.data, 'backup')).find((d) => d.endsWith('-before-1.1.1')) ?? '-');
+      const backup = join(home.data, 'backup', readdirSync(join(home.data, 'backup')).find((d) => d.endsWith(`-before-${NEXT}`)) ?? '-');
       check(existsSync(join(backup, 'memory.json')), 'no copy of the data before the update');
       check(readFileSync(join(backup, 'memory.json'), 'utf8') === readFileSync(join(home.data, 'memory.json'), 'utf8'), 'the copy is not the data as it was');
       check(JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.length === 1, 'the work done before the update is gone');
