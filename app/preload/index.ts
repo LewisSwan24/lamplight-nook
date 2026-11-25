@@ -22,6 +22,7 @@ const api: LamplightApi = {
   clearApiKey: () => ipcRenderer.invoke(IPC.clearApiKey),
   spendThisMonth: () => ipcRenderer.invoke(IPC.spendThisMonth),
   spendMonths: () => ipcRenderer.invoke(IPC.spendMonths),
+  modelCosts: () => ipcRenderer.invoke(IPC.modelCosts),
   monthBudget: () => ipcRenderer.invoke(IPC.monthBudget),
   monthCapNews: () => ipcRenderer.invoke(IPC.monthCapNews),
   setProjectCap: (id: string, usd: number) => ipcRenderer.invoke(IPC.setProjectCap, id, usd),

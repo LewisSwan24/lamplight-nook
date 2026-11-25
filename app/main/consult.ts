@@ -5,9 +5,10 @@ import { REPLY_LANGUAGE } from './commission';
 
 /**
  * A talk with Adeng before a commission is written (road-to-1.2.md B4): a few lines of chat, then a slip filled in for the
- * user to look over. Only talk: no tools, no files, the cheapest model, and a small cap of its own (Q-B1).
+ * user to look over. Only talk: no tools, no files, a small cap of its own (Q-B1), and the model in settings, but never
+ * the best one (plan-1.6.md F6).
  */
-/** Claude Code's alias for the cheapest Haiku of the day, so no model id goes out of date. */
+/** Claude Code's alias for the cheapest Haiku of the day, so no model id goes out of date: what a talk ran on before 1.6. */
 export const CONSULT_MODEL = 'haiku';
 export { CONSULT_CAP_USD, CONSULT_MESSAGES };
 
@@ -40,10 +41,10 @@ export const BRIEF_SCHEMA: Record<string, unknown> = {
 };
 
 /** The options of one turn. Only the last one (`finish`) asks for the slip as JSON. */
-export function consultOptions(o: { cwd: string; maxBudgetUsd: number; env: Record<string, string | undefined>; finish: boolean; resume?: string; claude?: string }): Options {
+export function consultOptions(o: { cwd: string; maxBudgetUsd: number; env: Record<string, string | undefined>; finish: boolean; resume?: string; claude?: string; model?: string }): Options {
   return {
     cwd: o.cwd,
-    model: CONSULT_MODEL,
+    model: o.model ?? CONSULT_MODEL,
     systemPrompt: CONSULT_PROMPT,
     tools: [],
     maxTurns: 1,

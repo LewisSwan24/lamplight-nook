@@ -2,6 +2,10 @@
 
 ## Unreleased (1.6)
 
+- **Choose the model.** Settings > Work has a new choice, "Which model the staff use": Best (Opus), Balanced (Sonnet,
+  the default) or Saver (Haiku), each with what a commission costs on it, from your own ledger once there is one. The
+  slip's new "More" changes it for one commission. A scheduled commission keeps the model it was made with. Talking a
+  commission over with Wick follows the setting but never uses Best. The ledger now notes the model each commission ran on.
 - **A count of what the app has.** `npm run content` counts the kinds of commission, the shops, the people, the
   stories, what grows, the festivals, the pictures and every file of lines in both languages, and writes it to
   `docs/content.md` with what changed since the last count. It also checks that no line is missing in English, every

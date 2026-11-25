@@ -2,6 +2,7 @@ import { fill, locale, strings } from '../../shared/i18n';
 import { monthName } from '../../shared/localday';
 import { SUPPORT } from '../../shared/support';
 import { formatUsd } from '../../shared/money';
+import { MODEL_TIERS, type ModelTier } from '../../shared/models';
 import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type EnvStatus, type LamplightApi, type LanguageChoice, type LanRole, type LanState, type Settings } from '../../shared/types';
 import { setMix, sfx } from '../audio/sound';
 import { closeButton, closePanel, nameCard, replaceOpen } from './panels';
@@ -283,6 +284,25 @@ function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings
   return el('div.access-rows', {}, ...rows.map(([key, text]) => toggle(key, text)));
 }
 
+/** The model names beside the tiers: the same in every language. */
+const MODEL_NAME: Record<ModelTier, string> = { best: 'Opus', balanced: 'Sonnet', saver: 'Haiku' };
+
+/** Which model the staff work on (plan-1.6.md F6): three tiers, each with what a commission costs on it. */
+function modelRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void): HTMLElement {
+  const costs = new Map<ModelTier, HTMLElement>();
+  const rows = MODEL_TIERS.map((tier) => {
+    const box = el('input', { type: 'radio', name: 'model-tier', value: tier, checked: tier === settings.modelTier }) as HTMLInputElement;
+    box.addEventListener('change', async () => { if (box.checked) changed(await api.saveSettings({ modelTier: tier })); });
+    const cost = el('span.model-cost');
+    costs.set(tier, cost);
+    return el('label.model-row', { 'data-tier': tier }, box, el('span.model-name', {}, `${S.modelTiers[tier]} · ${MODEL_NAME[tier]}`), cost);
+  });
+  void api.modelCosts().then((all) => {
+    for (const tier of MODEL_TIERS) costs.get(tier)!.textContent = fill(all[tier].from === 'ledger' ? S.modelCostLedger : S.modelCostTable, { cost: formatUsd(all[tier].usd) });
+  });
+  return el('div.model-rows', { role: 'radiogroup', 'aria-label': S.modelLabel }, ...rows, el('div.hint', {}, S.modelHint));
+}
+
 /** What this month cost so far, and the most one run may spend. */
 function spendRows(api: LamplightApi, settings: Settings, month: number, changed: (s: Settings) => void): HTMLElement {
   const select = el('select', { 'aria-label': S.budgetLabel }, ...BUDGET_CHOICES.map((usd) =>
@@ -529,6 +549,7 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     work: [
       el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
       el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
+      el('section.model', {}, el('h4', {}, S.modelLabel), modelRows(api, settings, onChange)),
       el('section', {}, el('h4', {}, S.spendLabel), spendRows(api, settings, month, onChange)),
       el('section', {}, el('h4', {}, strings.ui.tray.sectionLabel),
         // The Store build can't open itself at login this way (road-to-1.2.md B6), so it has no such switch.

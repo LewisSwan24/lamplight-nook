@@ -1,11 +1,13 @@
 import { localMonth } from '../shared/localday';
+import { type ModelTier, tierOf } from '../shared/models';
 import { forgetAside, putAside } from './aside';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 /** What a session cost in one month, as Claude Code estimated it. A session spanning months has one entry for each. */
 type Entry = { key: string; usd: number; month: string; /** Estimated from tokens: a stretch Claude Code never reported (B7). */ estimated?: true;
-  /** The paired device whose person handed the commission in (docs/plan-1.5.md E5); absent: the owner. */ who?: string };
+  /** The paired device whose person handed the commission in (docs/plan-1.5.md E5); absent: the owner. */ who?: string;
+  /** The model the session ran on, as Claude Code named it (plan-1.6.md F6). */ model?: string };
 
 const month = localMonth;
 /** The part of a key before the session: a commission's folder, or `consult:<id>` for a talk with Adeng (B4). */
@@ -28,7 +30,7 @@ export class SpendLedger {
   }
 
   /** Keeps a run's reported total and returns what this run itself added. */
-  record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date(), who?: string): number {
+  record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date(), who?: string, model?: string): number {
     if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return 0;
     const key = `${workDir}|${sessionId ?? ''}`;
     const earlier = this.entries.filter((e) => e.key === key && !e.estimated);
@@ -39,7 +41,7 @@ export class SpendLedger {
     if (grew > 0.000001) {
       const here = earlier.find((e) => e.month === month(now));
       if (here) here.usd += grew;
-      else this.entries.push({ key, usd: grew, month: month(now), ...(who ? { who } : {}) });
+      else this.entries.push({ key, usd: grew, month: month(now), ...(who ? { who } : {}), ...(model ? { model } : {}) });
     }
     this.save();
     return Math.max(grew, 0);
@@ -50,9 +52,9 @@ export class SpendLedger {
    * estimated from its tokens (road-to-1.2.md B7). Kept on a line of its own, apart from the session's reported total, so
    * the total's growth later is still counted once; returns what it added.
    */
-  estimate(workDir: string, sessionId: string | undefined, usd: number, now = new Date(), who?: string): number {
+  estimate(workDir: string, sessionId: string | undefined, usd: number, now = new Date(), who?: string, model?: string): number {
     if (!(usd > 0.000001)) return 0;
-    this.entries.push({ key: `${workDir}|${sessionId ?? ''}`, usd, month: month(now), estimated: true, ...(who ? { who } : {}) });
+    this.entries.push({ key: `${workDir}|${sessionId ?? ''}`, usd, month: month(now), estimated: true, ...(who ? { who } : {}), ...(model ? { model } : {}) });
     this.save();
     return usd;
   }
@@ -90,6 +92,29 @@ export class SpendLedger {
   /** What one commission folder has cost across all its sessions. */
   forCommission(workDir: string): number {
     return this.entries.filter((e) => e.key.startsWith(`${workDir}|`)).reduce((sum, e) => sum + e.usd, 0);
+  }
+
+  /**
+   * What a commission has cost on each tier, on average (plan-1.6.md F6): each commission whole, all its sessions together,
+   * on the tier its last session ran on. Talks with Adeng and sessions that never said their model are left out.
+   */
+  averageByTier(): Partial<Record<ModelTier, number>> {
+    const byFolder = new Map<string, { usd: number; tier?: ModelTier }>();
+    for (const e of this.entries) {
+      if (isConsult(e.key)) continue;
+      const f = byFolder.get(folderOf(e.key)) ?? { usd: 0 };
+      f.usd += e.usd;
+      f.tier = tierOf(e.model) ?? f.tier;
+      byFolder.set(folderOf(e.key), f);
+    }
+    const sums: Partial<Record<ModelTier, { usd: number; n: number }>> = {};
+    for (const { usd, tier } of byFolder.values()) {
+      if (!tier) continue;
+      const s = (sums[tier] ??= { usd: 0, n: 0 });
+      s.usd += usd;
+      s.n += 1;
+    }
+    return Object.fromEntries(Object.entries(sums).map(([t, s]) => [t, Math.round((s!.usd / s!.n) * 10000) / 10000]));
   }
 
   /** What each person spent this month, by device id ('' is the owner): together, the whole shop's month (E5). */
@@ -136,7 +161,7 @@ export class SpendLedger {
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8'));
       if (!Array.isArray(parsed)) throw new Error('not a ledger');
-      return parsed.filter((e) => e && typeof e.key === 'string' && typeof e.usd === 'number' && typeof e.month === 'string' && (e.who === undefined || typeof e.who === 'string'));
+      return parsed.filter((e) => e && typeof e.key === 'string' && typeof e.usd === 'number' && typeof e.month === 'string' && (e.who === undefined || typeof e.who === 'string') && (e.model === undefined || typeof e.model === 'string'));
     } catch {
       putAside(this.file);
       this.damaged = true;

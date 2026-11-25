@@ -7,6 +7,7 @@ import { DEFAULT_AVATAR, cleanAvatar } from '../shared/avatars';
 import { strings } from '../shared/i18n';
 import { BUDGET_CHOICES, MONTH_CAP_CHOICES, type LanguageChoice, type Settings } from '../shared/types';
 import { MONTH_CAP_DEFAULT } from './budget';
+import { DEFAULT_TIER, cleanTier } from '../shared/models';
 
 /**
  * What Electron's setLoginItemSettings is given for "open in the tray when the computer starts" (road-to-1.2.md B6). The
@@ -40,12 +41,13 @@ export class SettingsStore {
 
   /** `firstMonthCap` decides the monthly cap for settings saved before there was one (budget.ts startingMonthCap). */
   constructor(private file: string, documentsDir: string, firstMonthCap = () => MONTH_CAP_DEFAULT) {
-    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, powerSaving: false, lan: false, lanPort: 0, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), budgetUsd: DEFAULT_BUDGET, monthCapUsd: MONTH_CAP_DEFAULT, language: 'system' };
+    const defaults: Settings = { name: '', avatar: DEFAULT_AVATAR, workRoot: defaultWorkRoot(documentsDir), onboarded: false, muted: false, detailed: false, volume: DEFAULT_VOLUME, captions: false, reducedMotion: false, powerSaving: false, lan: false, lanPort: 0, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: DEFAULT_SCENE, furnish: cleanFurnishings(undefined), modelTier: DEFAULT_TIER, budgetUsd: DEFAULT_BUDGET, monthCapUsd: MONTH_CAP_DEFAULT, language: 'system' };
     const saved = this.read();
     this.data = { ...defaults, ...saved };
     if (!this.data.workRoot) this.data.workRoot = defaults.workRoot;
     this.data.volume = cleanVolume(this.data.volume) ?? DEFAULT_VOLUME;
     this.data.budgetUsd = cleanBudget(this.data.budgetUsd) ?? DEFAULT_BUDGET;
+    this.data.modelTier = cleanTier(this.data.modelTier) ?? DEFAULT_TIER;
     if (cleanMonthCap(saved.monthCapUsd) === undefined) {
       this.data.monthCapUsd = firstMonthCap();
       this.raisedMonthCap = this.data.monthCapUsd !== MONTH_CAP_DEFAULT;
@@ -77,6 +79,8 @@ export class SettingsStore {
     if (volume !== undefined) clean.volume = volume;
     const budget = cleanBudget(patch.budgetUsd);
     if (budget !== undefined) clean.budgetUsd = budget;
+    const tier = cleanTier(patch.modelTier);
+    if (tier) clean.modelTier = tier;
     const monthCap = cleanMonthCap(patch.monthCapUsd);
     if (monthCap !== undefined) clean.monthCapUsd = monthCap;
     const scene = cleanScene(patch.scene);

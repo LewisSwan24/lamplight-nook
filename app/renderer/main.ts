@@ -778,7 +778,8 @@ async function newCommission(dropped: string[] = [], another = false) {
   const env = await window.lamplight.envStatus();
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped), () => { oldClaudeOk = true; void newCommission(dropped); });
   const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
-  const form = await showCommissionForm(window.lamplight, (await window.lamplight.getSettings()).budgetUsd, handed, await window.lamplight.monthBudget());
+  const settings = await window.lamplight.getSettings();
+  const form = await showCommissionForm(window.lamplight, settings.budgetUsd, handed, await window.lamplight.monthBudget(), settings.modelTier);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   placedAt = Date.now();

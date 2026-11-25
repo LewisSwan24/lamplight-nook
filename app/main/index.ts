@@ -33,6 +33,8 @@ import { SettingsStore, defaultWorkRoot, loginItem } from './settings';
 import { ScheduleStore, due, nextTime, wakeIn } from './schedule';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
+import { modelCosts } from './prices';
+import { TIER_MODEL, consultTier, modelFor, withModel, type ModelTier } from '../shared/models';
 import { type Caps, type CapKind, type Grant, type Refusal, type Spent, personCapUsd, Reservations, startingMonthCap, warnings } from './budget';
 import { RunQueue, runId, type Ticket } from './runs';
 import { now, setClock } from './clock';
@@ -373,6 +375,8 @@ ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
 ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth(now()));
+// What one commission costs on each model tier, for settings (plan-1.6.md F6).
+ipcMain.handle(IPC.modelCosts, () => modelCosts(spend.averageByTier()));
 // Who spent it, by name: the owner at the computer, a paired device, or one since removed (E5).
 ipcMain.handle(IPC.spendMonths, () => spend.months().map(({ people, ...m }) => people
   ? { ...m, people: Object.entries(people).map(([who, usd]) => ({ who: who ? (personOf(who)?.name ?? null) : '', usd })) }
@@ -498,10 +502,10 @@ function talkGrant(t: Talk): number | null {
 async function talkTurn(t: Talk, prompt: string, usd: number, finish: boolean) {
   const cwd = join(app.getPath('userData'), 'consult');
   mkdirSync(cwd, { recursive: true });
-  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined }));
+  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: TIER_MODEL[consultTier(settings.get().modelTier)] }));
   reservations.settle('consult');
   t.sessionId = turn.sessionId ?? t.sessionId;
-  spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now());
+  spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now(), undefined, TIER_MODEL[consultTier(settings.get().modelTier)]);
   log?.info('consult turn', { ok: turn.ok, budget: turn.budget, costUsd: turn.costUsd, finish });
   return turn;
 }
@@ -845,6 +849,8 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       recordingPath: recordingFor(job.form.demo ? 'demo' : 'commission'),
       broker: broker.forRun(run, who),
       credentials: credentials(),
+      // The slip's tier for this one commission, else the one in settings (F6).
+      model: modelFor(job.form, settings.get().modelTier),
       maxBudgetUsd: grant.usd,
       preexisting: before,
       keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
@@ -860,7 +866,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
     // What it spent since Claude Code last said is estimated from its tokens, on a line of its own (B7).
     const person = job.form.by?.id;
-    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now(), person) + countUnreported(me, result.estimatedUsd ?? 0);
+    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now(), person, result.model) + countUnreported(me, result.estimatedUsd ?? 0);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     // Settled: the ledger has what the round cost. A month or project cap that set this round's limit and stopped it is
     // that cap's stop, not the per-round one. Caps it took past eight tenths are said once; a cap stop says it already.
@@ -1038,7 +1044,7 @@ ipcMain.handle(IPC.reviseCommission, async (_e, req: ReviseRequest): Promise<Run
   return reviseRound(memo, ask);
 });
 /** Another round on a commission's project, from the result card or a schedule (B6), queued behind its project's other rounds. */
-async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] = 'user', schedule?: string): Promise<RunResult> {
+async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] = 'user', schedule?: string, model?: ModelTier): Promise<RunResult> {
   if (!memo.folder || !existsSync(memo.folder)) return { ok: false, recordingPath: '', workDir: memo.folder ?? '', error: 'gone' };
   // In a folder the user lent, their files are counted again (they may have added some), and a round that could not
   // be undone does not start. The originals kept so far are what undoing goes back to, so no previous version is kept.
@@ -1056,7 +1062,8 @@ async function reviseRound(memo: CommissionMemo, ask: string, by: Ticket['by'] =
     restoredSince.delete(memo.id);
     keepLatest(latest);
     // Changes asked for at the desk are the owner's, whoever handed the work in (E5).
-    const form = { ...(latest.form ?? { want: latest.title }), by: undefined };
+    // A tier changed on the first slip was for that round alone; a schedule's round runs on the tier the schedule keeps (F6).
+    const form = { ...(latest.form ?? { want: latest.title }), by: undefined, model };
     // A session grown long, or left for over a week, is not picked up: the project background and the folder carry the work
     // over (B3), and a fresh session reads far less each round.
     const fromSession = newSession(latest.rounds?.at(-1) ?? { date: latest.date }, localDay(now())) ? undefined : latest.sessionId;
@@ -1107,7 +1114,7 @@ function lookAtSchedules() {
 function runScheduled(s: Schedule) {
   const project = memory.get().projects.find((p) => p.id === s.project);
   const title = project?.title ?? commissionTitle(s.form);
-  const start = project ? reviseRound(memory.find(project.commissions.at(-1)!)!, s.form.want, 'schedule', s.id) : startNew(s.form, 'schedule', s.id);
+  const start = project ? reviseRound(memory.find(project.commissions.at(-1)!)!, s.form.want, 'schedule', s.id, s.form.model) : startNew(s.form, 'schedule', s.id);
   void start.then((r) => {
     if (r.error === 'cancelled') return;
     if (r.cap && !r.run) {
@@ -1152,7 +1159,7 @@ ipcMain.handle(IPC.saveSchedule, (_e, project: unknown, want: unknown, every: un
   const when = cleanEvery(every);
   const next = when && nextTime(when, now());
   if (!p || !ask || !when || !next) return null;
-  const s: Schedule = { id: `s${Date.now()}`, project: p.id, form: { want: ask }, every: when, next: next.toISOString(), enabled: true };
+  const s: Schedule = { id: `s${Date.now()}`, project: p.id, form: withModel({ want: ask }, settings.get().modelTier), every: when, next: next.toISOString(), enabled: true };
   schedules.add(s);
   log?.info('schedule saved', { every: when.kind });
   lookAtSchedules();
