@@ -148,6 +148,7 @@ cancelled:
 # 走进邮局时阿信说的一句（plan-1.6.md F5，app/renderer/stage/shoptalk.ts）。有节日先说节日的，再看天气，
 # 都没有就在时辰、季节和平常的里面挑。when：period_dawn/day/dusk/night、sky_rain 等、holiday_*、season_*。
 shop_in:
+  - { id: po_in_birthday, speaker: axin, when: birthday_axin, bubbles: ["今天我生日。", "有人寄了张卡给我，头一回。"] }
   - { id: po_in_01, speaker: axin, bubbles: ["来啦，寄东西还是取东西？"] }
   - { id: po_in_02, speaker: axin, bubbles: ["进来吧，柜台上那杆秤别碰。"] }
   - { id: po_in_03, speaker: axin, bubbles: ["稍等，这格信我分完。"] }

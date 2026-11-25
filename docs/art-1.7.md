@@ -17,6 +17,7 @@
 | 产出 | 用在 | 出处 | 脚本 |
 |---|---|---|---|
 | `bakery-board.png` | G2 面包房黑板上的菜单，四季各一格：春天青团，夏天绿豆糕，秋天栗子蛋糕和南瓜面包，冬天热吐司 | 手画 | `scripts/art/bakery.py` |
+| `cake.png` | G3 开店纪念日摆在大桌上的蛋糕，两层蛋糕夹奶油，顶上粉色的点和一根点着的蜡烛 | 手画 | `scripts/art/decor.py` |
 | `furnish-cafe-wall-peach.png` | G2 主店墙面桃花粉，春天的颜色，盖在房间上的一层 | Modern Interiors，同 `cafe.png`，换了颜色 | `scripts/art/furnish.py` |
 | `furnish-cafe-wall-snow.png` | G2 主店墙面雪白，冬天的颜色，盖在房间上的一层 | Modern Interiors，同 `cafe.png`，换了颜色 | `scripts/art/furnish.py` |
 | `furnish-cafe-curtain-bamboo.png` | G2 主店窗帘竹青，夏天的颜色，盖在房间上的一层 | Modern Interiors，同 `cafe.png`，换了颜色 | `scripts/art/furnish.py` |

@@ -21,6 +21,7 @@ lamplight-real-check-*/
 assets/sprites/*.png
 !assets/sprites/back-door.png
 !assets/sprites/bakery-board.png
+!assets/sprites/cake.png
 !assets/sprites/decor-dragon_boat.png
 !assets/sprites/decor-lantern.png
 !assets/sprites/decor-mid_autumn.png

@@ -14,6 +14,7 @@ import workshopPiecesUrl from '../../../assets/sprites/workshop-pieces.png';
 import bakeryUrl from '../../../assets/sprites/bakery-room.png';
 import bakeryPiecesUrl from '../../../assets/sprites/bakery-pieces.png';
 import bakeryBoardUrl from '../../../assets/sprites/bakery-board.png';
+import cakeUrl from '../../../assets/sprites/cake.png';
 import postUrl from '../../../assets/sprites/post-room.png';
 import postPiecesUrl from '../../../assets/sprites/post-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
@@ -77,7 +78,7 @@ import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/t
 import type { RoomId } from '../../shared/scenes';
 import { ROOM_CREW } from '../../shared/staff';
 import catWalkUrl from '../../../assets/sprites/cat-walk.png';
-import { counterTop, pieceData } from './pieces';
+import { counterTop, overlayDepth, pieceData } from './pieces';
 import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
 import { CORK, WALL_CARD, stampColour, wallIndex, wallSpots } from './postwall';
@@ -293,6 +294,10 @@ export class CafeScene extends Phaser.Scene {
   tales!: RoomTales;
   /** The season has turned while the shop was open (plan-1.7.md G2: a word if the room wears its colour). */
   onSeasonTurn?: (season: Season) => void;
+  /** The cake on the big table on the shop's anniversary (plan-1.7.md G3); only at home. */
+  private cake?: Phaser.GameObjects.Image;
+  /** Whether the cake should be out: said before the room is built, or kept while away in another room. */
+  private cakeWanted = false;
   /** The bakery's menu for the season, over the bare blackboard (plan-1.7.md G2). */
   menu?: Phaser.GameObjects.Image;
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
@@ -343,6 +348,7 @@ export class CafeScene extends Phaser.Scene {
     }
     // What the baker's and the postman's stories leave, in their own shops only (F4).
     preloadTales(this.load, this.room);
+    if ((this.room === 'cafe' || this.room === 'study') && !this.textures.exists('cake')) this.load.image('cake', cakeUrl);
     if (this.room === MENU_BOARD.room && !this.textures.exists('bakery-board')) {
       this.load.spritesheet('bakery-board', bakeryBoardUrl, { frameWidth: MENU_BOARD.w, frameHeight: MENU_BOARD.h });
     }
@@ -403,6 +409,10 @@ export class CafeScene extends Phaser.Scene {
     this.growth.onShelfClick = () => this.activate('works');
     this.tales = new RoomTales(this, this.room);
     // On the wall behind everyone, like what the stories leave.
+    // Beside the season's vase on the big table, and drawn at its depth.
+    if (this.room === 'cafe' || this.room === 'study') {
+      this.cake = this.add.image(0, 0, 'cake').setOrigin(0).setDepth(overlayDepth(this.room, 'season-spring', 1.5)).setVisible(this.cakeWanted);
+    }
     if (this.room === MENU_BOARD.room) this.menu = this.add.image(MENU_BOARD.x, MENU_BOARD.y, 'bakery-board', 0).setOrigin(0).setDepth(1.4);
     this.addObjects();
     const slate = ZONES.find((z) => z.id === 'board')!;
@@ -817,6 +827,17 @@ export class CafeScene extends Phaser.Scene {
   /** Today's weather, holiday and season, for small talk about them. */
   outside(): { sky: Sky; holiday: Holiday | null; season: Season } {
     return { sky: this.weather?.sky ?? 'clear', holiday: this.weather?.holiday ?? null, season: this.weather?.season ?? 'spring' };
+  }
+
+  /** The shop's anniversary cake on the big table, or not (also for screenshots). */
+  setCake(on: boolean) {
+    this.cakeWanted = on;
+    this.cake?.setVisible(on);
+  }
+
+  /** Whether the cake is out, for the acceptance scenarios. */
+  cakeOut(): boolean {
+    return !!this.cake?.visible;
   }
 
   /** The season's piece in the shop and what grows in the garden (also for screenshots: lamplightDebug.scene.setSeason). */

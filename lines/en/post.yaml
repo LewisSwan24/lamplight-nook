@@ -149,6 +149,7 @@ cancelled:
 # What Pip says as you walk into the post office (plan-1.6.md F5, app/renderer/stage/shoptalk.ts): the holiday's line
 # first, then the weather's, else one for the hour, the season or any time. Same ids as lines/post.yaml.
 shop_in:
+  - { id: po_in_birthday, speaker: axin, when: birthday_axin, bubbles: ["It's my birthday.", "Someone posted me a card. A first."] }
   - { id: po_in_01, speaker: axin, bubbles: ["Hello. Sending or collecting?"] }
   - { id: po_in_02, speaker: axin, bubbles: ["Come in. Leave the scale alone, mind."] }
   - { id: po_in_03, speaker: axin, bubbles: ["Hang on, let me finish this slot."] }

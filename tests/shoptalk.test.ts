@@ -41,6 +41,14 @@ describe('a word as you walk in', () => {
     expect(t.greet(lines, { ...day, sky: 'rain' })?.id).toBe('rain');
   });
 
+  it("greets with the keeper's own birthday before anything else (plan-1.7.md G3)", () => {
+    const t = new ShopTalk(0, seeded(1));
+    const withBirthday = [...lines, line('mine', 'birthday_guiyi')];
+    expect(t.greet(withBirthday, { ...day, holiday: 'christmas', birthdays: ['guiyi'] })?.id).toBe('mine');
+    expect(t.greet(withBirthday, { ...day, holiday: 'christmas' })?.id).toBe('xmas');
+    expect(fitsMoment(line('mine', 'birthday_guiyi'), { ...day, birthdays: ['axin'] })).toBe(false);
+  });
+
   it('otherwise picks among the hour, the season and the plain ones, never one that does not fit', () => {
     const seen = new Set<string>();
     for (let seed = 1; seed < 60; seed++) seen.add(new ShopTalk(0, seeded(seed)).greet(lines, { ...day, period: 'dawn' })!.id);
@@ -98,6 +106,8 @@ describe('the keepers\' own lines', () => {
   const known = new Set(['period_dawn', 'period_day', 'period_dusk', 'period_night', 'sky_clear', 'sky_rain', 'sky_snow', 'sky_petals', 'sky_leaves',
     'season_spring', 'season_summer', 'season_autumn', 'season_winter', ...HOLIDAYS.map((h) => `holiday_${h}`)]);
   for (const [shop, keeper] of Object.entries(KEEPER)) {
+    // Each keeper's own birthday (plan-1.7.md G3) is a condition in their own shop.
+    const knownHere = new Set([...known, `birthday_${keeper}`]);
     const zh = parseLines(readFileSync(`lines/${shop}.yaml`, 'utf8'));
     const en = parseLines(readFileSync(`lines/en/${shop}.yaml`, 'utf8'));
     it(`lines/${shop}.yaml: greetings and idle words from ${keeper} alone, for every hour, weather and season, in both languages`, () => {
@@ -107,7 +117,7 @@ describe('the keepers\' own lines', () => {
         expect(lib.shop_idle.length).toBeGreaterThanOrEqual(40);
         for (const l of [...lib.shop_in, ...lib.shop_idle]) {
           expect(l.speaker, l.id).toBe(keeper);
-          if (l.when) expect(known.has(l.when), `${l.id}: ${l.when}`).toBe(true);
+          if (l.when) expect(knownHere.has(l.when), `${l.id}: ${l.when}`).toBe(true);
         }
         for (const when of ['period_dawn', 'period_night', 'sky_rain', 'sky_snow', 'season_spring', 'season_summer', 'season_autumn', 'season_winter']) {
           expect(lib.shop_idle.some((l) => l.when === when), `${shop} has nothing idle for ${when}`).toBe(true);

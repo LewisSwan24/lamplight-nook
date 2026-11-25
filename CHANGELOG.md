@@ -14,6 +14,10 @@
   rug. Each belongs to a season and can be chosen all year; put one up in its season, or have the season turn to it,
   and someone in the shop says so. The keepers of the print shop, the studio and the workshop now say a word as you
   walk in and talk now and then while the shop is quiet, for the hour, the weather, the season and every festival.
+- **The days of the year.** On each of the 24 solar terms Wick adds a word as the shop opens, a different one for
+  each. Everyone at home and each keeper along the street has a birthday: one of the staff wishes the others theirs
+  and they answer, and on a keeper's Wick mentions it and the keeper says so when you walk into their shop. On the
+  shop's anniversary there is a cake on the big table all day, and everyone in has a word about it.
 - **The lunar festivals run to 2040.** Lunar New Year, the Lantern, Dragon Boat and Mid-Autumn festivals were known
   only until 2035. The dates now run to 2040, checked against the Hong Kong Observatory's conversion tables.
 

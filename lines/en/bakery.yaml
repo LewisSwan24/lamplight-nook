@@ -149,6 +149,7 @@ cancelled:
 # What Auntie Olive says as you walk into the bakery (plan-1.6.md F5, app/renderer/stage/shoptalk.ts): the holiday's
 # line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/bakery.yaml.
 shop_in:
+  - { id: bk_in_birthday, speaker: guiyi, when: birthday_guiyi, bubbles: ["It's my birthday today.", "Baked my own cake. Have a slice."] }
   - { id: bk_in_01, speaker: guiyi, bubbles: ["Come in. The oven's hot."] }
   - { id: bk_in_02, speaker: guiyi, bubbles: ["Mind the flour on the floor. It's slippy."] }
   - { id: bk_in_03, speaker: guiyi, bubbles: ["Good timing. A batch just came out."] }

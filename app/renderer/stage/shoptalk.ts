@@ -11,7 +11,8 @@ import type { Line } from '../translator/lines';
  * comes back.
  */
 
-export type Moment = { period: Period; sky: Sky; holiday: Holiday | null; season: Season };
+/** Whose birthday it is (plan-1.7.md G3, shared/calendar.ts): a keeper says so in their own shop before anything else. */
+export type Moment = { period: Period; sky: Sky; holiday: Holiday | null; season: Season; birthdays?: readonly string[] };
 
 /** How long after walking in before the first idle word, and the gap between one and the next. */
 export const ENTER_QUIET_MS = [15_000, 25_000] as const;
@@ -19,7 +20,7 @@ export const SHOP_TALK_GAP_MS = [45_000, 90_000] as const;
 
 /** What holds right now, most particular first. */
 export const momentFlags = (m: Moment): string[] =>
-  [...(m.holiday ? [`holiday_${m.holiday}`] : []), `sky_${m.sky}`, `period_${m.period}`, `season_${m.season}`];
+  [...(m.birthdays ?? []).map((b) => `birthday_${b}`), ...(m.holiday ? [`holiday_${m.holiday}`] : []), `sky_${m.sky}`, `period_${m.period}`, `season_${m.season}`];
 
 export const fitsMoment = (line: Line, m: Moment): boolean => !line.when || momentFlags(m).includes(line.when);
 
@@ -32,12 +33,12 @@ export class ShopTalk {
   }
 
   /**
-   * The word as you walk in: the holiday's if there is one, else the weather's, else one for the hour, the season or
+   * The word as you walk in: the keeper's birthday's if it is today, then the holiday's if there is one, else the weather's, else one for the hour, the season or
    * any time, picked at random among those.
    */
   greet(lines: Line[], m: Moment): Line | null {
     const fits = lines.filter((l) => fitsMoment(l, m));
-    const tiers = [fits.filter((l) => l.when?.startsWith('holiday_')), fits.filter((l) => l.when?.startsWith('sky_')), fits];
+    const tiers = [fits.filter((l) => l.when?.startsWith('birthday_')), fits.filter((l) => l.when?.startsWith('holiday_')), fits.filter((l) => l.when?.startsWith('sky_')), fits];
     const tier = tiers.find((t) => t.length);
     return tier ? this.pick(tier) : null;
   }

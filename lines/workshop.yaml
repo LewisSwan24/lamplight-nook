@@ -145,6 +145,7 @@ cancelled:
 # 走进工坊时小钉说的一句（plan-1.7.md G2，app/renderer/stage/shoptalk.ts）。有节日先说节日的，再看天气，
 # 都没有就在时辰、季节和平常的里面挑。when：period_dawn/day/dusk/night、sky_rain 等、holiday_*、season_*。
 shop_in:
+  - { id: ws_in_birthday, speaker: xiaoding, when: birthday_xiaoding, bubbles: ["今天我生日！", "修好一台老收音机，留给自己。"] }
   - { id: ws_in_01, speaker: xiaoding, bubbles: ["来啦！小心地上的螺丝。"] }
   - { id: ws_in_02, speaker: xiaoding, bubbles: ["进来进来，凳子上的零件挪开就能坐。"] }
   - { id: ws_in_03, speaker: xiaoding, bubbles: ["稍等，这根线焊完。"] }
