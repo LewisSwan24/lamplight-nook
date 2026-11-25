@@ -24,8 +24,12 @@ import { estimateUsd, type Usage } from './prices';
 import { pricedUsd } from './providers';
 import type { Prices } from '../shared/providers';
 import type { RoundActions } from './action-log';
-import { kindToolNames, mcpServersOf, toolsByName, type NookServer } from './nook-tools';
+import { kindToolNames, mcpServersOf, nookName, toolsByName, type NookServer } from './nook-tools';
 import { urlsSeen } from './citations';
+
+/** Reads a Word, Excel or PowerPoint file as text, which Read cannot (plan-1.8.md H0). Only there when the shop's office tools are. */
+const READ_OFFICE = nookName('office', 'read_document');
+const READ_OFFICE_HINT = `Read cannot open Word, Excel or PowerPoint files (.docx, .xlsx, .pptx): read those with ${READ_OFFICE} (read_document).`;
 
 /** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -36,13 +40,13 @@ export const SUBAGENTS: Record<string, AgentDefinition> = {
   },
   designer: {
     description: 'Proposes the look of a page or interface before it is built: colours, type and layout. Read-only; never modifies files.',
-    prompt: `You design. Before anything is built, propose how it should look: a small palette (four to six colours as hex codes, each with what it is for), fonts and sizes, and the layout from top to bottom in a few lines. Keep it simple, warm and readable, and fit it to what the user asked for. Read any files that already exist if they matter; do not modify files. Finish with the proposal only, under fifteen lines. ${REPLY_LANGUAGE}`,
-    tools: ['Read', 'Glob', 'Grep'],
+    prompt: `You design. Before anything is built, propose how it should look: a small palette (four to six colours as hex codes, each with what it is for), fonts and sizes, and the layout from top to bottom in a few lines. Keep it simple, warm and readable, and fit it to what the user asked for. For a Word document only two things carry over: one accent colour for the title, headings and table headers, and the body size in points; propose just those. Read any files that already exist if they matter (${READ_OFFICE_HINT}); do not modify files. Finish with the proposal only, under fifteen lines. ${REPLY_LANGUAGE}`,
+    tools: ['Read', 'Glob', 'Grep', READ_OFFICE],
   },
   reviewer: {
     description: 'Checks finished work for problems. Use for the final review. Never modifies files.',
-    prompt: `You review work. Read the output and list what is wrong; if nothing is wrong, say so plainly. Do not modify files. ${REPLY_LANGUAGE}`,
-    tools: ['Read', 'Glob', 'Grep'],
+    prompt: `You review work. Read the output and list what is wrong; if nothing is wrong, say so plainly. ${READ_OFFICE_HINT} Do not modify files. ${REPLY_LANGUAGE}`,
+    tools: ['Read', 'Glob', 'Grep', READ_OFFICE],
   },
 };
 

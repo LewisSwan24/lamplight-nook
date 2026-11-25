@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased (1.8)
+
+- **Flint reads Word files.** The final review could not open a Word, Excel or PowerPoint file, so a document
+  went out with nobody but its maker having read it. Flint now reads them. A Word document also takes Iris's design:
+  an accent colour on the title, headings and table headers, and the body size she picks.
+
 ## Unreleased (1.7)
 
 - **Every festival on the whole street.** The Lantern Festival hangs a string of little lanterns over every door, the
