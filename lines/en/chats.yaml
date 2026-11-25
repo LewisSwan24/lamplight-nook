@@ -1132,7 +1132,7 @@
   when: idle
   guest: lodger
   turns:
-    - lodger: I just moved in. Upstairs.
+    - lodger: I'm new here. I live upstairs.
     - adeng: Anything you need, come down and ask.
     - lodger: I'll be down a lot, then.
 

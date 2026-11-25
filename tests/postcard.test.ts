@@ -81,6 +81,15 @@ describe('opening a postcard', () => {
     expect(open(unmarked)).toEqual({ ok: false, reason: 'notPostcard' });
   });
 
+  it('opens a postcard sent from 1.5, before the bakery opened, with nothing done there (plan-1.6.md F1)', () => {
+    const { bakery: _, ...older } = good().shops;
+    const read = open({ ...good(), shops: older });
+    expect(read).toEqual({ ok: true, card: { ...card(), shops: { ...card().shops, bakery: 0 } } });
+    // Only that one shop may be missing, and only as a whole set from before: never some other gap.
+    const { print: __, ...gap } = good().shops;
+    expect(open({ ...good(), shops: gap }).ok).toBe(false);
+  });
+
   it('does not open names it does not know', () => {
     expect(open({ ...good(), extra: 1 }).ok).toBe(false);
     expect(open({ ...good(), version: 2 }).ok).toBe(false);

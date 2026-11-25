@@ -33,6 +33,8 @@ export const POSTCARD_NAME_MAX = 40;
 const DONE_MAX = 100_000;
 
 const STREET_SHOPS = Object.keys(ROOM_GROWTH) as StreetShop[];
+/** The shops a postcard from 1.5 counts: the bakery opened in 1.6 (plan-1.6.md F1), so there it has done nothing. */
+const STREET_SHOPS_1_5: StreetShop[] = ['print', 'studio', 'workshop'];
 const GROWTH_IDS = new Set<string>(GROWTH.map((g) => g.id));
 const KEYS = ['postcard', 'version', 'name', 'home', 'furnish', 'grown', 'done', 'shops', 'stories'];
 
@@ -97,7 +99,9 @@ function check(o: Record<string, unknown>): Postcard | null {
   }
   if (!Array.isArray(grown) || grown.some((id) => typeof id !== 'string' || !GROWTH_IDS.has(id)) || new Set(grown).size !== grown.length) return null;
   if (!count(done, DONE_MAX)) return null;
-  if (!isObject(shops) || !exactly(shops, STREET_SHOPS) || !STREET_SHOPS.every((s) => count(shops[s], done))) return null;
+  if (!isObject(shops)) return null;
+  if (exactly(shops, STREET_SHOPS_1_5)) shops.bakery = 0;
+  if (!exactly(shops, STREET_SHOPS) || !STREET_SHOPS.every((s) => count(shops[s], done))) return null;
   if (STREET_SHOPS.reduce((n, s) => n + (shops[s] as number), 0) > done) return null;
   if (!isObject(stories) || !exactly(stories, TELLERS) || !TELLERS.every((t) => count(stories[t], CHAPTERS[t].length))) return null;
   return {
