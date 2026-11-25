@@ -2,6 +2,10 @@
 
 ## Unreleased (1.6)
 
+- **Auntie Olive and Pip tell their stories.** The baker and the postman now have five chapters each, coming with the
+  work done and the days gone by like the other neighbours'. They wait at their own doors with a bubble. Auntie Olive
+  tells how she came to open a bakery on this street; Pip tells what twenty years of letters have left him with. Each
+  chapter leaves something on the wall of their own shop, and the two stories meet at the end.
 - **People on the street.** Strangers now walk along the street outside, more of them in the morning and the early
   evening, nobody late at night. In the rain there are fewer and they hurry, each under an umbrella. Some stop at a
   door for a moment to look in. Click one and they look round at you. They never go in or say anything, and they stand

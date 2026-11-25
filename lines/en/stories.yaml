@@ -119,3 +119,92 @@ student:
       - A copy's on the shelf. It's about you all.
       - The cap stays. I start a job next month.
       - When I'm back, I'll write out here again.
+
+# Auntie Olive and Pip (plan-1.6.md F4): they wait at their own doors, and what they leave hangs on their own shop's wall
+# (scripts/art/tales.py). The two meet in chapter 5: the first letter the bakery ever got, Pip brought.
+baker:
+  - title: The bread tin
+    left: tin
+    note: An old bread tin hangs on the bakery wall.
+    lines:
+      - My dad ran a bakery back home.
+      - Thirty years. The whole town ate his bread.
+      - When he shut, all I asked for was this tin.
+      - The street's first loaf came out of it.
+  - title: The starter
+    left: starter
+    note: A jar of starter sits on a little shelf over the ovens.
+    lines:
+      - This starter's older than most shops here.
+      - Dad began it. It wants feeding every day.
+      - I held it on my lap the whole night coach.
+      - Half of a good loaf is down to this jar.
+  - title: The wrong bus
+    left: ticket
+    note: An old bus ticket is pinned to the bakery wall.
+    lines:
+      - I took the wrong bus, got off at the corner.
+      - Walked it end to end. Not a whiff of bread.
+      - I stood right here. This street needs one.
+      - Kept the ticket. It's how I got here.
+  - title: The slate book
+    left: ledger
+    note: Auntie Olive's first-year slate book hangs by the window.
+    lines:
+      - Hardly anyone came in that first year.
+      - The oven broke. Old Zhou fixed it for free.
+      - If folk were short, I wrote it in the book.
+      - Every line in it got paid back, bit by bit.
+  - title: Twenty years
+    left: plait
+    note: A big plaited loaf, shaped in a ring, hangs on the wall.
+    lines:
+      - Pip's done this round as long as I've baked.
+      - Twenty years. I plaited him a ring loaf.
+      - He says my first letter here came from him.
+      - I'd forgotten. He hadn't.
+
+postman:
+  - title: The old satchel
+    left: satchel
+    note: Pip's satchel of twenty years hangs on the post office wall.
+    lines:
+      - I've carried this bag for twenty years.
+      - The strap broke on my very first day.
+      - Tied it with a bootlace, finished the round.
+      - New bag now. The old one lives here.
+  - title: The red string
+    left: bundle
+    note: A little bundle of letters tied with red string is pinned up.
+    lines:
+      - Granny Chen's granddaughter writes monthly.
+      - Once a letter came three days late.
+      - I went by her bench each day and said soon.
+      - She gave me red string to keep letters tied.
+  - title: No number
+    left: envelope
+    note: A small frame on the wall holds an envelope with no number on it.
+    lines:
+      - One letter said only: the shop with the lamp.
+      - No number, no name. Send it back, they said.
+      - I thought it over and brought it to you.
+      - Inside was a card, a thank-you for the lamp.
+      - I asked for the envelope back and framed it.
+  - title: The snow year
+    left: scarf
+    note: An old knitted scarf hangs on a hook by the satchel.
+    lines:
+      - One year the snow came up to my knees.
+      - No bike. I walked it door to door till dark.
+      - Granny Chen wound her scarf round my neck.
+      - Auntie Olive put a hot loaf in my hands.
+      - The scarf hangs here. It comes out for snow.
+  - title: Twenty years
+    left: badge
+    note: A twenty-year badge is pinned to the post office wall.
+    lines:
+      - Twenty years on this round today.
+      - Auntie Olive forgot her first letter here.
+      - It came from home. She opened it by me.
+      - Read it, said nothing, went to knead dough.
+      - The office sent a badge. It hangs here.

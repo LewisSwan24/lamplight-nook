@@ -2,7 +2,8 @@
 
 Old Zhou's bell, toolbox, pump and number plate at the workshop and his mended bicycle by the cafe; Granny Chen's
 cushion, millet, roses, birdhouse and stool round the bench; Xiaohe's books, notice, cactus, lending shelf and cap at
-the study. Plus the bubble over a neighbour who has a chapter waiting, and where each of the three waits.
+the study. Plus the bubble over a neighbour who has a chapter waiting, and where each of the five waits: Auntie Olive
+and Pip at their own doors, though what their stories leave hangs inside their shops (tales.py).
 Everything stands against the fronts, clear of the pavement people walk on and of the cart's spot (x 674..712), where
 the festivals stand (decor.py). Kept out of town.json, which town.py rewrites whole.
 Writes assets/sprites/town-story.png and town-story.json, read by app/renderer/game/TownStories.ts.
@@ -280,6 +281,9 @@ WAITS = {
     'mechanic': {'x': 625, 'y': 131, 'anim': 'idle', 'facing': 'down'},
     'granny': {'x': 283, 'y': 133, 'anim': 'sit', 'facing': 'left'},
     'student': {'x': 238, 'y': 131, 'anim': 'read', 'facing': 'down'},
+    # Auntie Olive and Pip (plan-1.6.md F4) step out of their own doors; what they leave hangs inside (tales.py).
+    'baker': {'x': 900, 'y': 131, 'anim': 'idle', 'facing': 'down'},
+    'postman': {'x': 1044, 'y': 131, 'anim': 'idle', 'facing': 'down'},
 }
 
 

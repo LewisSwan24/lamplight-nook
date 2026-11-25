@@ -160,6 +160,18 @@
    "y": 131,
    "anim": "read",
    "facing": "down"
+  },
+  "baker": {
+   "x": 900,
+   "y": 131,
+   "anim": "idle",
+   "facing": "down"
+  },
+  "postman": {
+   "x": 1044,
+   "y": 131,
+   "anim": "idle",
+   "facing": "down"
   }
  }
 }

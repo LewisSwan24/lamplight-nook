@@ -5164,7 +5164,8 @@ const SCENARIOS = {
    * The neighbours' stories (road-to-1.4.md D4): a shop that has done 50, opened on the days the chapters come, 30 days in
    * all. Each time Old Zhou, Granny Chen and Xiaohe wait at their places with a bubble; a click opens the chapter, closing
    * it writes it down and leaves its thing on the street. A day too early nobody waits; at the end all fifteen things are
-   * there and nobody waits any more.
+   * there and nobody waits any more. Then Auntie Olive and Pip (plan-1.6.md F4), who have waited at their own doors all
+   * along, each tell their first chapter, and what it leaves hangs in their shop.
    */
   async stories(lang, out) {
     const L = locale(lang);
@@ -5204,6 +5205,8 @@ const SCENARIOS = {
         await sleep(2500);
         await goOut(page);
         let v = await seen(page);
+        // The baker and the postman wait at their doors all month; they are heard at the end.
+        v.waiting = v.waiting.filter((w) => TELLERS.includes(w));
         const told = chapter ? chapter - 1 : Math.min(5, DAYS.filter(([d, c]) => c && d < day).length);
         check(v.left.length === told * 3, `${day}: ${v.left.length} things on the street after ${told} chapters each`);
         if (!chapter) {
@@ -5239,6 +5242,7 @@ const SCENARIOS = {
           await card.locator('button.primary').click();
           await sleep(800);
           v = await seen(page);
+          v.waiting = v.waiting.filter((w) => TELLERS.includes(w));
           check(!v.waiting.includes(who), `${day}: ${who} still waits after telling chapter ${chapter}`);
           check(v.left.includes(c.left), `${day}: ${c.left} is not on the street after ${who}'s chapter ${chapter}`);
           check((saved()[who] ?? []).length === chapter && saved()[who].at(-1) === day, `${day}: ${who}'s chapters were not written down: ${JSON.stringify(saved())}`);
@@ -5251,6 +5255,50 @@ const SCENARIOS = {
         }
       } finally { await shop.close(); }
     }
+
+    // Auntie Olive and Pip: waiting at their own doors with a bubble; a click opens their first chapter, and what it
+    // leaves hangs on their shop's wall, not on the street.
+    const day = '2026-12-21';
+    const shop = await launch({ lang, home, speed: SPEED, clock: `${day}T10:00` });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    try {
+      await sleep(2500);
+      await goOut(page);
+      const v = await seen(page);
+      check(JSON.stringify(v.waiting) === JSON.stringify(['baker', 'postman']), `${day}: waiting ${v.waiting}, not Auntie Olive and Pip`);
+      for (const [who, shopId, first, next] of [['baker', 'bakery', 'tin', 'starter'], ['postman', 'post', 'satchel', 'bundle']]) {
+        const at = art.waits[who];
+        await scrollTo(page, at.x);
+        if (who === 'baker') await shop.shot(join(out, 'stories-waiting-bakery.png'));
+        const spot = await page.evaluate((w) => window.lamplightDebug.street.stories.spot(w), who);
+        const scroll = await page.evaluate(() => window.lamplightDebug.street.cameras.main.scrollX);
+        const box = await page.locator('#game canvas').boundingBox();
+        const k = box.width / 320;
+        await page.mouse.click(box.x + (spot.x - scroll) * k, box.y + spot.y * k);
+        await sleep(600);
+        const card = page.locator(`.story-card[data-teller="${who}"][data-chapter="1"]`);
+        check(await card.count() === 1, `${day}: clicking ${who} opened no card for chapter 1`);
+        const c = book[who][0];
+        const text = await card.innerText();
+        check(text.includes(L.guests[who]) && text.includes(c.title) && text.includes(c.lines[0]) && text.includes(c.note), `${day}: ${who}'s card does not tell chapter 1: ${text}`);
+        await shop.shot(join(out, `stories-${who}-1-card.png`));
+        await card.locator('button.primary').click();
+        await sleep(800);
+        const after = await seen(page);
+        check(!after.waiting.includes(who), `${day}: ${who} still waits after telling chapter 1`);
+        check(!art.parts.some((p) => p.id === c.left), `${day}: ${who}'s ${c.left} is drawn on the street`);
+        check((saved()[who] ?? []).length === 1 && saved()[who][0] === day, `${day}: ${who}'s chapter was not written down: ${JSON.stringify(saved())}`);
+        await page.evaluate((id) => window.lamplightDebug.street.onFront(id, true), shopId);
+        for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== shopId; await sleep(300));
+        await sleep(2500);
+        check(await room() === shopId, `did not go into the ${shopId}: ${await room()}`);
+        const hung = await page.evaluate(([a, b]) => [window.lamplightDebug.scene.tales.shows(a), window.lamplightDebug.scene.tales.shows(b)], [first, next]);
+        check(hung[0] && !hung[1], `${day}: in the ${shopId} ${first} hangs ${hung[0]}, ${next} hangs ${hung[1]}`);
+        await shop.shot(join(out, `stories-${shopId}-${first}.png`));
+        await goOut(page);
+      }
+    } finally { await shop.close(); }
   },
 
   /**
