@@ -67,6 +67,12 @@ STAFF = {
     },
 }
 
+# Auntie Gui keeps the bakery since plan-1.6.md F1: the shopkeeper there is the neighbour who drops in here, so her sheet
+# is the same as the guest's, written again under her name as staff (guiyi.png) for the portraits and the bakery's rules.
+# The two neighbours the bakery's work brings are written as cook.png and lodger.png, with the other guests.
+STAFF['guiyi'] = {'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                             'Outfits/16x16/Outfit_33_01.png', 'Hairstyles/16x16/Hairstyle_11_05.png']}
+
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and
 # Axin the postman, with his mail bag; then those the work brings: Old Zhou from the garage, in his work clothes,
 # Granny Chen with her buns and glasses, and Xiaohe the student, with a backpack.
@@ -93,6 +99,18 @@ GUESTS = {
         'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
                    'Outfits/16x16/Outfit_12_01.png', 'Hairstyles/16x16/Hairstyle_10_02.png',
                    'Accessories/16x16/Accessory_03_Backpack_02.png'],
+    },
+    # The bakery's two (plan-1.6.md F1): Old Ma from the noodle bar, a big man with a shaved head in a cook's white,
+    # and Lin from upstairs, young, in a jumper the colour of tomato soup, her hair tied back.
+    'cook': {
+        'layers': ['Bodies/16x16/Body_03.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_27_01.png', 'Hairstyles/16x16/Hairstyle_01_07.png'],
+        'recolor': {'Outfits/16x16/Outfit_27_01.png': [((0, 360), '#ECE8DC')]},
+    },
+    'lodger': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_14_01.png', 'Hairstyles/16x16/Hairstyle_17_03.png'],
+        'recolor': {'Outfits/16x16/Outfit_14_01.png': [((180, 300), '#C2533F')]},
     },
 }
 

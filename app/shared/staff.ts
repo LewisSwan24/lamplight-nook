@@ -7,8 +7,11 @@ export const AGENT_ACTOR: Record<AiEvent['agent'], ActorId> = { main: 'adeng', r
 /** Everyone who works in the shop, in the order of the portraits; Xiaodou the apprentice last (road-to-1.1.md A5). */
 export const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodou'];
 
-/** The three who keep the new shops (road-to-1.4.md D2): Pica the typesetter, Umber the painter, Tack the tinkerer. */
-export const SHOP_STAFF: ActorId[] = ['aqian', 'xiaozhe', 'xiaoding'];
+/**
+ * Those who keep the shops along the street (road-to-1.4.md D2): Pica the typesetter, Umber the painter, Tack the tinkerer, and
+ * since plan-1.6.md F1 Auntie Gui the baker, who was a neighbour dropping in and now has her own shop open to the user.
+ */
+export const SHOP_STAFF: ActorId[] = ['aqian', 'xiaozhe', 'xiaoding', 'guiyi'];
 /** Everyone, in the order of the portraits. */
 export const ALL_STAFF: ActorId[] = [...STAFF, ...SHOP_STAFF];
 
@@ -22,6 +25,7 @@ export const ROOM_CREW: Record<RoomId, ActorId[]> = {
   print: ['aqian'],
   studio: ['xiaozhe'],
   workshop: ['xiaoding'],
+  bakery: ['guiyi'],
 };
 
 /**

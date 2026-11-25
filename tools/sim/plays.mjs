@@ -25,6 +25,13 @@ const T = {
     posterDone: '海报做好了：按用处定的尺寸存成图片，A4 的另外存了一份 PDF 方便打印。没给的时间地点留在方括号里。',
     chartWords: { sample: [['一月', 12], ['二月', 18], ['三月', 9]], source: '数据：你在要求里给的数字', unit: '数量' },
     posterWords: { when: '[日期和时间]', where: '[地点]', more: '欢迎带朋友来' },
+    // The bakery's two kinds (plan-1.6.md F1).
+    menu: ['把菜名和价钱理一遍', '按类分好，价钱对齐', '画好，存成图片和 PDF', '请老石核对价钱'],
+    menuDone: '菜单做好了：一张 A4 的图片，另存了一份 PDF 方便打印。菜名和价钱都照你给的抄，没给价钱的留在方括号里。',
+    menuWords: { place: '小店菜单', sample: [['葱油饼', 8], ['豆浆', 3], ['肉包', 4]], missing: '[价格]', groups: ['吃的', '喝的'], drinks: /浆|奶|咖啡|汁|茶$/ },
+    recipe: ['问清是哪道菜、几人份', '列用料和分量', '一步一步写做法', '请老石照着读一遍'],
+    recipeDone: '食谱写好了：一份 Word 文档，用料、步骤和要注意的地方都在里面。分量是家常的量，可以照口味调。',
+    recipeDoc: (w) => ({ title: w || '食谱', blocks: [{ p: '两人份，准备 15 分钟，做 20 分钟。分量是家常的量，可以照口味调。' }, { h: 1, text: '用料' }, { list: ['面粉 200 克', '温水 120 毫升', '葱 3 根', '盐 3 克'] }, { h: 1, text: '做法' }, { list: ['1. 面粉加温水揉成团，盖上布醒 15 分钟。', '2. 擀成薄片，抹油撒葱和盐，卷起再擀开。', '3. 中火烙到两面金黄，约 6 分钟。'] }, { h: 1, text: '要注意' }, { list: ['含小麦（面筋）。', '油温太高容易外焦里生。'] }] }),
     notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
     travel: ['弄清去哪、几天', '请小橘查开放时间和票价', '按天排行程和预算', '请老石检查'],
     tool: ['弄清要做什么', '做成一个网页工具', '用样例试一试', '请老石检查'],
@@ -106,6 +113,12 @@ const T = {
     posterDone: 'The poster is ready: a picture at the size its use calls for, and for A4 a PDF too, to print. What you did not give, the time and the place, is left in square brackets.',
     chartWords: { sample: [['January', 12], ['February', 18], ['March', 9]], source: 'Data: the numbers in your request', unit: 'Count' },
     posterWords: { when: '[date and time]', where: '[place]', more: 'Bring a friend' },
+    menu: ['Go through the dishes and prices', 'Group them and line the prices up', 'Draw it, save the picture and a PDF', 'Ask Flint to check the prices'],
+    menuDone: 'The menu is ready: an A4 picture, and a PDF of it to print. Every dish and price is copied from yours; a missing price is left in square brackets.',
+    menuWords: { place: 'Our menu', sample: [['Scallion pancake', 8], ['Soy milk', 3], ['Pork bun', 4]], missing: '[price]', groups: ['To eat', 'To drink'], drinks: /milk|coffee|juice|tea$/i },
+    recipe: ['Ask which dish and for how many', 'List what goes in, with amounts', 'Write the steps one by one', 'Ask Flint to read it through'],
+    recipeDone: 'The recipe is written: a Word document with what goes in, the steps and what to watch out for. The amounts are everyday ones; adjust to taste.',
+    recipeDoc: (w) => ({ title: w || 'Recipe', blocks: [{ p: 'Serves two. 15 minutes of work, 20 of cooking. The amounts are everyday ones; adjust to taste.' }, { h: 1, text: 'What goes in' }, { list: ['200 g flour', '120 ml warm water', '3 scallions', '3 g salt'] }, { h: 1, text: 'Steps' }, { list: ['1. Knead the flour and water into a dough; cover and rest for 15 minutes.', '2. Roll it thin, brush with oil, scatter scallions and salt, roll up and flatten again.', '3. Fry on a medium heat until golden on both sides, about 6 minutes.'] }, { h: 1, text: 'Watch out for' }, { list: ['Contains wheat (gluten).', 'Too hot a pan burns the outside before the middle is done.'] }] }),
     notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
     travel: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out the days and the budget', 'Ask Flint to check it'],
     tool: ['Work out what it should do', 'Make it a page in the browser', 'Try it on samples', 'Ask Flint to check it'],
@@ -250,6 +263,23 @@ function posterPage(t, w) {
     + `<body><div class="sun"></div><h1>${esc(w || t.poster[0])}</h1><div><p>${esc(W.when)}</p><p>${esc(W.where)}</p><p>${esc(W.more)}</p></div></body></html>\n`;
 }
 
+/**
+ * A menu on an A4 page (plan-1.6.md F1): the place at the top, the dishes the request names grouped into food and drink,
+ * each price as written and lined up on the right, a blank in square brackets where none was given.
+ */
+function menuPage(t, w) {
+  const M = t.menuWords;
+  const list = w.slice(Math.max(w.lastIndexOf(':'), w.lastIndexOf('：')) + 1);
+  const named = [...list.matchAll(/([\p{L}][\p{L} ]*?)\s*[:：]?\s*(\d+(?:\.\d+)?)?(?=[，,、；;。.]|$)/gu)].map((m) => [m[1].trim(), m[2] ? Number(m[2]) : null]).filter(([n]) => n && n.length <= 24);
+  const dishes = named.length >= 2 ? named : M.sample;
+  const row = ([name, price]) => `<li><span>${esc(name)}</span><b>${price === null ? esc(M.missing) : price}</b></li>`;
+  const group = (title, list) => (list.length ? `<h2>${esc(title)}</h2><ul>${list.map(row).join('')}</ul>` : '');
+  const drink = dishes.filter(([n]) => M.drinks.test(n));
+  const food = dishes.filter(([n]) => !M.drinks.test(n));
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:0}html,body{margin:0}body{width:${A4.width}px;height:${A4.height}px;box-sizing:border-box;padding:80px;background:#fff8ec;color:#3b2a1e;font-family:system-ui,sans-serif;overflow:hidden}h1{font-size:64px;margin:0 0 40px;text-align:center}h2{font-size:30px;border-bottom:3px solid #c8743c;margin:40px 0 16px}ul{list-style:none;margin:0;padding:0}li{display:flex;justify-content:space-between;font-size:28px;padding:10px 0}</style></head>\n`
+    + `<body><h1>${esc(M.place)}</h1>${group(M.groups[0], food)}${group(M.groups[1], drink)}</body></html>\n`;
+}
+
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
 export function pickPlay(prompt, state, system = '') {
   state.vars ??= {};
@@ -314,6 +344,13 @@ export function pickPlay(prompt, state, system = '') {
     state.vars.pdf = quoted(prompt, 'also save it as');
     return plays.poster;
   }
+  if (/This is a menu or a price list, drawn as a picture/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Lay it out as a single self-contained page');
+    state.vars.png = quoted(prompt, 'Then save it as');
+    state.vars.pdf = quoted(prompt, 'and as');
+    return plays.menu;
+  }
+  if (/This is a recipe someone will cook from/.test(prompt)) { state.vars.out = quoted(prompt, 'make_docx tool as'); return plays.recipe; }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
   if (/This is a Word document/.test(prompt)) { state.vars.out = quoted(prompt, 'make_docx tool as'); return plays.document; }
@@ -863,6 +900,14 @@ export const plays = {
       await s.read(s.state.vars.png);
     },
   }),
+  menu: simpleText('menu', (t, w) => menuPage(t, w), (t) => t.menuDone, {
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, ...A4 });
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  recipe: simpleText('recipe', null, (t) => t.recipeDone, { make: (s, o, w) => office(s, 'make_docx', { file: s.state.vars.out, ...T[s.state.lang].recipeDoc(w) }) }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),

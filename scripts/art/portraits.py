@@ -19,7 +19,7 @@ CELL = 16
 
 # Keep both orders in sync with app/renderer/ui/portraits.ts.
 # The shops' staff (road-to-1.4.md D2) come after the home shop's, so the rows above them keep their places.
-STAFF = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodou', 'aqian', 'xiaozhe', 'xiaoding']
+STAFF = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodou', 'aqian', 'xiaozhe', 'xiaoding', 'guiyi']
 EXPRESSIONS = ['calm', 'happy', 'troubled', 'unsure', 'serious']
 
 # Front-facing idle frame: row 1, direction slot 3 (down), first of 6 frames; 16x32 cells.
@@ -38,6 +38,7 @@ FACES = {
     'aqian': {'eyes': [(5, 20), (10, 20)], 'glasses': True},
     'xiaozhe': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
     'xiaoding': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
+    'guiyi': {'eyes': [(5, 20), (10, 20)], 'glasses': False},
 }
 INK = (58, 58, 80, 255)
 BROW = (72, 54, 50, 255)

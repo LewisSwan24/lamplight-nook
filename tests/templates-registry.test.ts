@@ -28,12 +28,12 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe']);
   });
 
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['chart', 'poster']);
-    expect(TEMPLATES.slice(-2).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[15, 'picture', false], [16, 'picture', false]]);
+    expect(TEMPLATES.map((t) => t.id).slice(14, 16)).toEqual(['chart', 'poster']);
+    expect(TEMPLATES.slice(14, 16).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[15, 'picture', false], [16, 'picture', false]]);
     expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'page', 'office', 'writeup', 'draft', 'table']);
     for (const [lang, S] of Object.entries(LOCALES)) {
       const F = S.ui.files;
@@ -41,6 +41,25 @@ describe('the template table', () => {
       expect(MAIN_FILES.picture(F.chartPng, F) && MAIN_FILES.picture(F.posterPng, F), lang).toBe(true);
       for (const other of ['photo.png', F.chartPage, F.posterPdf]) expect(MAIN_FILES.picture(other, F), `${lang} ${other}`).toBe(false);
       for (const id of ['chart', 'poster']) {
+        expect((S.ui.templates as Record<string, string>)[`${id}Hint`], `${lang} ${id}Hint`).toBeTruthy();
+        expect((S.ui.shelf.kinds as Record<string, string>)[id], `${lang} kinds.${id}`).toBeTruthy();
+      }
+    }
+  });
+
+  it('adds a menu and a recipe last, both made in the bakery, each with its piece and its neighbour (plan-1.6.md F1)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['menu', 'recipe']);
+    expect(TEMPLATES.slice(-2).map((t) => [t.shop, t.icon, t.main, 'growth' in t ? t.growth : null, 'guest' in t ? t.guest : null])).toEqual([
+      ['bakery', 17, 'picture', { id: 'chalkboard', at: 1 }, 'cook'],
+      ['bakery', 18, 'office', { id: 'cookbook', at: 2 }, 'lodger'],
+    ]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect([F.menuPage, F.menuPng, F.menuPdf, F.recipe].map((n) => n.slice(n.lastIndexOf('.'))), lang).toEqual(['.html', '.png', '.pdf', '.docx']);
+      // The menu's picture opens first, before the page it was drawn from or its PDF.
+      expect(MAIN_FILES.picture(F.menuPng, F), lang).toBe(true);
+      for (const other of [F.menuPage, F.menuPdf]) expect(MAIN_FILES.picture(other, F), `${lang} ${other}`).toBe(false);
+      for (const id of ['menu', 'recipe']) {
         expect((S.ui.templates as Record<string, string>)[`${id}Hint`], `${lang} ${id}Hint`).toBeTruthy();
         expect((S.ui.shelf.kinds as Record<string, string>)[id], `${lang} kinds.${id}`).toBeTruthy();
       }
@@ -99,6 +118,7 @@ describe('the template table', () => {
     expect(at('print')).toEqual(['document', 'resume', 'sheet', 'slides']);
     expect(at('studio')).toEqual(['album', 'chart', 'poster']);
     expect(at('workshop')).toEqual(['page', 'tool']);
+    expect(at('bakery')).toEqual(['menu', 'recipe']);
     expect(at('home')).toEqual(['edit', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);
     for (const t of TEMPLATES) expect(SHOPS, t.id).toContain(t.shop);
     // A commission without a kind (written in the user's own words), or the demo, stays in the home shop.

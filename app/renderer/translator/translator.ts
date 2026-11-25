@@ -3,6 +3,7 @@ import { pattern, strings } from '../../shared/i18n';
 import { AGENT_ACTOR, ROOM_CREW } from '../../shared/staff';
 import { errandTo, type StreetShop } from '../../shared/dispatch';
 import type { RoomId } from '../../shared/scenes';
+import { isStreetShop } from '../../shared/towngrow';
 import type { ActorId, AiEvent, AiEventKind, Bubble, CharacterCommand, Post } from '../../shared/types';
 import { PRIORITY } from './director';
 import { type ActorState, StateMachine } from './state-machine';
@@ -169,7 +170,7 @@ export class Translator {
 
   /** One of the street shops, where nobody from home works (D3). */
   private get shop(): boolean {
-    return this.room === 'print' || this.room === 'studio' || this.room === 'workshop';
+    return isStreetShop(this.room);
   }
 
   /** Who is working for which round just now (B9): each round's lead, and whoever is on one of its errands. */

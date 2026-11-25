@@ -14,9 +14,12 @@ import type { Provider } from './providers';
 /** `cabinet` and `mailslot`: the filing cabinet beside the bookcase and the letter holder by the front door (road-to-1.3.md C8). */
 export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shelf' | 'corner' | 'cabinet' | 'mailslot';
 
-export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'cat';
-/** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
-export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student'] as const;
+export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'guiyi' | 'cat';
+/**
+ * Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts):
+ * since plan-1.6.md F1 also Old Ma from the noodle bar (`cook`) and Lin who lives upstairs (`lodger`).
+ */
+export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger'] as const;
 export type GuestId = (typeof GUESTS)[number];
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;

@@ -11,6 +11,8 @@ import studioUrl from '../../../assets/sprites/studio-room.png';
 import studioPiecesUrl from '../../../assets/sprites/studio-pieces.png';
 import workshopUrl from '../../../assets/sprites/workshop-room.png';
 import workshopPiecesUrl from '../../../assets/sprites/workshop-pieces.png';
+import bakeryUrl from '../../../assets/sprites/bakery-room.png';
+import bakeryPiecesUrl from '../../../assets/sprites/bakery-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
 import gardenCropsUrl from '../../../assets/sprites/garden-crops.png';
 import dogUrl from '../../../assets/sprites/dog.png';
@@ -19,6 +21,8 @@ import hensUrl from '../../../assets/sprites/hens.png';
 import bakerUrl from '../../../assets/sprites/baker.png';
 import postmanUrl from '../../../assets/sprites/postman.png';
 import mechanicUrl from '../../../assets/sprites/mechanic.png';
+import cookUrl from '../../../assets/sprites/cook.png';
+import lodgerUrl from '../../../assets/sprites/lodger.png';
 import grannyUrl from '../../../assets/sprites/granny.png';
 import studentUrl from '../../../assets/sprites/student.png';
 import catUrl from '../../../assets/sprites/cat.png';
@@ -51,6 +55,7 @@ import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
 import aqianUrl from '../../../assets/sprites/aqian.png';
 import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
 import xiaodingUrl from '../../../assets/sprites/xiaoding.png';
+import guiyiUrl from '../../../assets/sprites/guiyi.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import you1Url from '../../../assets/sprites/you-1.png';
 import you2Url from '../../../assets/sprites/you-2.png';
@@ -95,7 +100,7 @@ const DECOR_URLS: Record<Holiday, string> = {
 };
 const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerUrl, autumn: autumnUrl, winter: winterUrl };
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
@@ -129,7 +134,7 @@ const INK = 0x3b2a1e;
 /** Each room's picture without its furniture, and the furniture (scripts/art/pieces.py). */
 const ROOM_ART = {
   cafe: [cafeUrl, cafePiecesUrl], study: [studyUrl, studyPiecesUrl], print: [printUrl, printPiecesUrl],
-  studio: [studioUrl, studioPiecesUrl], workshop: [workshopUrl, workshopPiecesUrl],
+  studio: [studioUrl, studioPiecesUrl], workshop: [workshopUrl, workshopPiecesUrl], bakery: [bakeryUrl, bakeryPiecesUrl],
 } as const;
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FLOOR_LAMP = 0.2;

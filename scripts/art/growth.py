@@ -49,6 +49,12 @@ DRAWN = {
                     '...xxx...', '.xxGGGxx.', '.xGGGGGx.', '.xxxxxxx.'],
     'postcards': ['xxxxrxxxx....', 'xuuuuuuux....', 'xuuuuuGux....', 'xgguuuggx....', 'xgggxxxxxrxxx', 'xgggxyyyyyssx',
                   'xxxxxyllllssx', '....xyyyyyyyx', '....xylllllyx', '....xxxxxxxxx'],
+    # The bakery's two kinds (plan-1.6.md F1): a small menu board on a stand, chalk on green-black in a wooden frame, and
+    # a fat recipe book, its spine cracked, slips of paper sticking out of it.
+    'chalkboard': ['xxxxxxxxxx', 'xkkkkkkkkx', 'xkvvvvvvkx', 'xkvwwvGvkx', 'xkvvvvvvkx', 'xkvwwwvvkx', 'xkvvvvGvkx',
+                   'xkvwwvvvkx', 'xkkkkkkkkx', 'xxxxxxxxxx', '.xk....kx.', '.xk....kx.', 'xk......kx'],
+    'cookbook': ['....w..w....', 'xxxxwxxwxxxx', 'xrrrrrrrrrrx', 'xryyyyyyyyrx', 'xryrrrrrryrx', 'xryyyyyyyyrx',
+                 'xrrrrrrrrrrx', 'xwlwlwlwlwlx', 'xxxxxxxxxxxx'],
     'toolbox': ['.....xxxx.....', '.....x..x.....', '..xxxxxxxxxx..', '.xrrrrrrrrrrx.', 'xxxxxxxxxxxxxx', 'xrrrrrrrrrrrrx',
                 'xrrrrrlllrrrrx', 'xrrrrrrrrrrrrx', 'xrrrrrrrrrrrrx', 'xxxxxxxxxxxxxx'],
     # Past fifty (road-to-1.1.md A9). c glass, a water, f goldfish, h brass shadow, m plum, t straw shadow; the rest as COLORS.
@@ -167,6 +173,8 @@ def pieces_by_id():
         'readinglamp': [(drawn('readinglamp'), (125, 81))],  # a reading lamp at the left end of the big table, beside the album
         'postcards': [(drawn('postcards'), (2, 22))],  # postcards pinned on the wall left of the windows
         'toolbox': [(drawn('toolbox'), (36, 159))],  # a toolbox on the floor at the foot of the bookcase
+        'chalkboard': [(drawn('chalkboard'), (181, 22))],  # a menu board on the wall right of the gold star (plan-1.6.md F1)
+        'cookbook': [(drawn('cookbook'), (65, 89))],  # a recipe book lying on the filing cabinet
         # Past fifty (road-to-1.1.md A9): hung on what wall there is left, on the counter, and in two corners nobody walks
         # through (tests/routes.test.ts). Each sits the same in the cafe and the study.
         'chime': [(drawn('chime'), (44, 17))],  # wind chimes between the two windows
@@ -183,7 +191,8 @@ def pieces_by_id():
 # page (a framed picture), research (a blue book), edit (a letter), tidy (a wooden box), demo (a green ledger),
 # letter (a sealed envelope), sheet (a ruled table), plan (a calendar page), album (an instant photo),
 # resume (a sheet with a photo), notes (an open book with a bookmark), travel (a suitcase), tool (a wrench),
-# document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars).
+# document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars),
+# menu (a card with a red band and prices, plan-1.6.md F1), recipe (a mixing bowl with a spoon in it).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -197,6 +206,8 @@ ICONS = {
     'resume': ['.dddddd.', '.dwwwwd.', '.duuwld.', '.duuwwd.', '.dwwwwd.', '.dlllld.', '.dwwwwd.', '.dddddd.'],
     'notes': ['........', 'uwwddwwu', 'ullddllu', 'uwwddwwu', 'ullddlru', 'uwwddwru', 'uuuuuuru', '......r.'],
     'travel': ['..kkkk..', '..k..k..', 'kkkkkkkk', 'kokookok', 'kokoskok', 'kokookok', 'kkkkkkkk', '.k....k.'],
+    'menu': ['.wwwwww.', '.wrrrrw.', '.wwwwww.', '.wllwgw.', '.wwwwww.', '.wllwgw.', '.wwwwww.', '........'],
+    'recipe': ['........', '....l...', '....l...', 'uuuuluuu', 'uwwwwwwu', '.uwwwwu.', '..uuuu..', '........'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -209,9 +220,9 @@ COLORS = {
     'k': (120, 80, 48, 255), 'o': (176, 128, 80, 255), 'l': (150, 150, 150, 255), 'p': (214, 150, 150, 255),
     'x': (42, 34, 51, 255), 'G': (232, 184, 74, 255),
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
-    'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255),
+    'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
@@ -221,6 +232,9 @@ ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 
 #   print: grow-print-proof.png, grow-print-ivy.png, grow-print-typecase.png, grow-print-ribbon.png
 #   studio: grow-studio-sketch.png, grow-studio-ivy.png, grow-studio-palette.png, grow-studio-gallery.png
 #   workshop: grow-workshop-gear.png, grow-workshop-ivy.png, grow-workshop-clock.png, grow-workshop-blueprint.png
+#   bakery (plan-1.6.md F1): grow-bakery-wheat.png, grow-bakery-ivy.png, grow-bakery-pin.png, grow-bakery-garland.png
+# The bakery's two kinds of work bring pieces to the home shop too, among the overlays below: grow-chalkboard.png for a
+# menu and grow-cookbook.png for a recipe.
 ROOM_DRAWN = {
     'ivy': ['....x....', '....x....', '..xxxxx..', '.xoooooox'[:9], '.xoooooox'[:9], '..xxxxx..', '.gg.g.gg.', 'g.g.g.g.g',
             '.g..g..g.', '.g.gg..g.', 'g...g.g..', '....g....', '...g.....'],
@@ -241,6 +255,12 @@ ROOM_DRAWN = {
              'xkuhGuuGhukx', 'xkuhhGGhhukx', 'xkuuuhhuuukx', 'xkkkkkkkkkkx', 'xxxxxxxxxxxx'],
     'clock': ['...xxxxxx...', '..xkkkkkkx..', '.xkwwwwwwkx.', 'xkwwwxwwwwkx', 'xkwwwxwwwwkx', 'xkwwwxwwwwkx', 'xkwwwxxxwwkx',
               'xkwwwwwwwwkx', '.xkwwwwwwkx.', '..xkkkkkkx..', '...xxxxxx...', '.....GG.....', '.....GG.....'],
+    # The bakery's: a sheaf of wheat tied with red, a rolling pin on its peg, a ribbon of little buns.
+    'wheat': ['..G.G.G..', '.GhGhGhG.', '..GhGhG..', '.GhGhGhG.', '..GGGGG..', '...hGh...', '....h....', '...rrr...',
+              '..r.h.r..', '....h....', '...h.h...', '..h...h..', '.h.....h.'],
+    'pin': ['.......x........', '......x.x.......', '..xxxxxxxxxxxx..', 'xxooooooooooooxx', 'kkooooooooooookk',
+            'xxooooooooooooxx', '..xxxxxxxxxxxx..'],
+    'garland': ['rrrrrrrrrrrrrrrr', '.k...k....k...k.', 'kok.kok..kok.kok', 'kok.kok..kok.kok', '.k...k....k...k.'],
     'blueprint': ['..r........r..', 'xxxxxxxxxxxxxx', 'xuuuuuuuuuuuux', 'xuwwwwwuuwuuux', 'xuwuuuwuuwuuux', 'xuwuuuwwwwwuux',
                   'xuwwwwwuuuwuux', 'xuuuuwuuuuwuux', 'xuuuuwwwwwwuux', 'xuuuuuuuuuuuux', 'xxxxxxxxxxxxxx'],
 }
@@ -250,6 +270,7 @@ ROOM_PIECES = {
     'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],
     'studio': [('sketch', 'first'), ('ivy', 'ivy'), ('palette', 'eighth'), ('gallery', 'twentieth')],
     'workshop': [('gear', 'first'), ('ivy', 'ivy'), ('clock', 'eighth'), ('blueprint', 'twentieth')],
+    'bakery': [('wheat', 'first'), ('ivy', 'ivy'), ('pin', 'eighth'), ('garland', 'twentieth')],
 }
 
 

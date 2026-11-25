@@ -2,6 +2,13 @@
 
 ## Unreleased (1.6)
 
+- **The bakery opens.** Auntie Olive's bakery along the street can be gone into now, like the print shop, the studio and
+  the workshop: ovens, racks of bread, a kneading table and a glass bread counter, with her at work in it. Two new kinds
+  of commission are made there. A **menu** is drawn as a picture (A4 unless you ask for a square or a wide one) with a
+  PDF to print; every dish and price is copied from yours and a missing price is left blank. A **recipe** is a Word
+  document with what goes in, the steps with heat and time, and what to watch out for. A menu brings a chalkboard to the
+  home shop and Old Ma from the noodle bar; two recipes bring a recipe book and Lin from upstairs. The bakery grows its
+  own four pieces and has its own festival biscuit. Auntie Olive still drops in at the home shop.
 - **Other providers.** Settings > Work has a new "Provider": Anthropic as before, a service with an Anthropic-compatible
   API (presets for DeepSeek, Kimi, Zhipu GLM, Z.ai, Alibaba Cloud Model Studio and OpenRouter, checked against each one's
   own guide, or any address by hand, including a gateway such as LiteLLM on this computer), Amazon Bedrock or Google Vertex

@@ -31,6 +31,8 @@ export const ROOM_GROWTH = {
   print: [{ id: 'proof', at: 1 }, { id: 'ivy', at: 3 }, { id: 'typecase', at: 8 }, { id: 'ribbon', at: 20 }],
   studio: [{ id: 'sketch', at: 1 }, { id: 'ivy', at: 3 }, { id: 'palette', at: 8 }, { id: 'gallery', at: 20 }],
   workshop: [{ id: 'gear', at: 1 }, { id: 'ivy', at: 3 }, { id: 'clock', at: 8 }, { id: 'blueprint', at: 20 }],
+  // The bakery (plan-1.6.md F1): a sheaf of wheat, the ivy, a rolling pin on its hook, a string of little loaves.
+  bakery: [{ id: 'wheat', at: 1 }, { id: 'ivy', at: 3 }, { id: 'pin', at: 8 }, { id: 'garland', at: 20 }],
 } as const satisfies Record<StreetShop, readonly { id: string; at: number }[]>;
 export type RoomPiece<S extends StreetShop = StreetShop> = (typeof ROOM_GROWTH)[S][number]['id'];
 

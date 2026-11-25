@@ -1039,3 +1039,162 @@
   turns:
     - student: 元宵前就要回学校了。
     - adeng: 汤圆吃了再走。
+
+# The bakery's two neighbours (plan-1.6.md F1): Old Ma from the noodle bar comes once the bakery has made a menu,
+# Lin from upstairs once it has written a recipe. Each has something for the season past the twentieth, like the rest.
+- id: ma_menu
+  when: idle
+  guest: cook
+  turns:
+    - cook: 菜单挂上了，客人点菜快多了。
+    - adeng: 价钱都对得上吧？
+    - cook: 一分不差。
+
+- id: ma_tea
+  when: idle
+  guest: cook
+  turns:
+    - cook: 中午那一阵忙完，腰都直不起来。
+    - adeng: 茶刚泡好，坐。
+    - cook: 还是你这儿清净。
+
+- id: ma_noodles
+  when: idle
+  guest: cook
+  turns:
+    - cook: 今天的面多扯了几把。
+    - xiaoju: 给我留一碗！
+    - cook: 早留着了，多放葱。
+
+- id: ma_knife
+  when: idle
+  guest: cook
+  turns:
+    - cook: 这把刀跟了我十几年了。
+    - laoshi: 磨得真亮。
+    - cook: 每天收摊磨一遍。
+
+- id: ma_rain
+  when: idle
+  guest: cook
+  sky: rain
+  turns:
+    - cook: 下雨天，来吃面的人反倒多。
+    - adeng: 热汤面谁不想吃。
+
+- id: ma_spring
+  when: idle
+  guest: cook
+  after: 20
+  season: spring
+  turns:
+    - cook: 春笋下来了，这礼拜加个笋丝面。
+    - xiaoju: 菜单上要改吗？
+    - cook: 改，回头还得找你们。
+
+- id: ma_summer
+  when: idle
+  guest: cook
+  after: 20
+  season: summer
+  turns:
+    - cook: 天热，凉面卖得比汤面好。
+    - qingdai: 凉面上那点红是什么？
+    - cook: 辣油，我自己炸的。
+
+- id: ma_autumn
+  when: idle
+  guest: cook
+  after: 20
+  season: autumn
+  turns:
+    - cook: 秋天了，羊肉汤又能上了。
+    - laoshi: 给我记一碗。
+
+- id: ma_winter
+  when: idle
+  guest: cook
+  after: 20
+  season: winter
+  turns:
+    - cook: 冬天灶台边最暖和。
+    - adeng: 你那儿热气一冒，整条街都看得见。
+
+- id: lin_recipe
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 照你们写的食谱做了一回。
+    - xiaoju: 成了吗？
+    - lodger: 成了，就是盐放少了。
+
+- id: lin_move
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 我刚搬来，就住楼上。
+    - adeng: 有什么不知道的，下来问。
+    - lodger: 那我可常来了。
+
+- id: lin_soup
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 番茄蛋汤，蛋要先炒还是后放？
+    - laoshi: 看你要嫩的还是香的。
+    - lodger: 都要。
+
+- id: lin_market
+  when: idle
+  guest: lodger
+  turns:
+    - lodger: 早市的菜比超市便宜一半。
+    - qingdai: 颜色也好看。
+    - lodger: 你是看颜色买菜的？
+
+- id: lin_rain
+  when: idle
+  guest: lodger
+  sky: rain
+  turns:
+    - lodger: 下雨了，在家炖了锅汤。
+    - adeng: 闻着都香。
+
+- id: lin_spring
+  when: idle
+  guest: lodger
+  after: 20
+  season: spring
+  turns:
+    - lodger: 阳台上种的葱冒芽了。
+    - xiaoju: 以后葱都不用买了！
+    - lodger: 还早，才三根。
+
+- id: lin_summer
+  when: idle
+  guest: lodger
+  after: 20
+  season: summer
+  turns:
+    - lodger: 太热了，不想开火。
+    - adeng: 拌个黄瓜就行。
+    - lodger: 这个我会！
+
+- id: lin_autumn
+  when: idle
+  guest: lodger
+  after: 20
+  season: autumn
+  turns:
+    - lodger: 学着腌了一坛萝卜。
+    - laoshi: 腌菜要等，急不得。
+
+- id: lin_winter
+  when: idle
+  guest: lodger
+  after: 20
+  season: winter
+  turns:
+    - lodger: 第一次自己包饺子。
+    - xiaoju: 包了几种馅？
+    - lodger: 一种，还破了一半。

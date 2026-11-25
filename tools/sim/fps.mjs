@@ -96,7 +96,7 @@ for (const rate of RATES) {
       await shop.page.evaluate(() => window.lamplightDebug.street.lookAt('print'));
       await sleep(2500);
       await measure('street');
-      for (const id of ['print', 'studio', 'workshop']) {
+      for (const id of ['print', 'studio', 'workshop', 'bakery']) {
         await visit(shop.page, id);
         await measure(id);
       }
