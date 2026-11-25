@@ -147,6 +147,7 @@ cancelled:
 # What Pica says as you walk into the print shop (plan-1.7.md G2, app/renderer/stage/shoptalk.ts): the holiday's
 # line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/print.yaml.
 shop_in:
+  - { id: pr_in_birthday, speaker: aqian, when: birthday_aqian, bubbles: ["It's my birthday.", "Printed myself a card."] }
   - { id: pr_in_01, speaker: aqian, bubbles: ["Come in. Watch for loose type underfoot."] }
   - { id: pr_in_02, speaker: aqian, bubbles: ["Sit down. The ink's still on the roller."] }
   - { id: pr_in_03, speaker: aqian, bubbles: ["Ah. Let me finish this line first."] }

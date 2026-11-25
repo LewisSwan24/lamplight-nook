@@ -4940,6 +4940,79 @@ const SCENARIOS = {
    * not, and a PDF to print. Then a recipe, as a Word document. Each names her on the parcel.
    */
   /**
+   * The days of the year (plan-1.7.md G3), the shop opened on each: Wick names the winter solstice, Clem wishes Wick a
+   * happy birthday and he answers, Wick mentions Auntie Olive's and she says so in the bakery, and a year to the day
+   * after the first work there is a cake on the big table and a word from each, gone the day after.
+   */
+  async shopdays(lang, out) {
+    const L = locale(lang);
+    const read = (file) => parseYaml(readFileSync(join(ROOT, lang === 'en' ? `lines/en/${file}.yaml` : `lines/${file}.yaml`), 'utf8'));
+    const cafe = read('cafe');
+    const bakery = read('bakery');
+    const hko = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/hko-calendar.json'), 'utf8'));
+    const made = new Date(2026, 5, 10, 12).getTime();
+    const work = { id: `c${made}`, title: 'A page', date: '2026-06-10', result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'demo' } };
+    const home = freshHome({ 'settings.json': onboarded(lang), 'memory.json': JSON.stringify({ commissions: [work], stuckNotes: [], greeted: work.id, shop: { done: 1, told: [], grown: [], met: [] } }) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const saying = (who, bubbles, timeout = 20_000) => page.waitForFunction(([who, all]) => all.find((b) => window.lamplightDebug.scene.isSaying(who, b)) ?? null, [who, bubbles], { timeout })
+      .then((h) => h.jsonValue(), () => null);
+    const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+    const goInto = async (id) => {
+      await page.evaluate((id) => window.lamplightDebug.street.onFront(id, true), id);
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== id; await sleep(300));
+      check(await room() === id, `did not go into the ${id}: ${await room()}`);
+    };
+    let installed = false;
+    const openOn = async (y, m, d) => {
+      const time = new Date(y, m, d, 10);
+      if (installed) await page.clock.setSystemTime(time);
+      else await page.clock.install({ time });
+      installed = true;
+      await page.reload();
+      await page.waitForSelector('.toolbar');
+    };
+    try {
+      await sleep(2500);
+
+      const [sm, sd] = hko.years['2026'].terms['Winter Solstice'];
+      await openOn(2026, sm, sd);
+      const solstice = cafe.solar_term.find((l) => l.when === 'term_winter_solstice').bubbles;
+      check(await saying('adeng', solstice) !== null, 'Wick said nothing about the winter solstice');
+      await shop.shot(join(out, 'days-solstice.png'));
+
+      await openOn(2027, 2, 12);
+      const wick = cafe.birthday.find((l) => l.when === 'birthday_adeng');
+      check(await saying(wick.speaker, wick.bubbles) !== null, `${wick.speaker} did not wish Wick a happy birthday`);
+      await shop.shot(join(out, 'days-birthday-adeng.png'));
+      check(await saying('adeng', wick.reply.bubbles) !== null, 'Wick did not answer');
+
+      await openOn(2027, 4, 18);
+      const olive = cafe.birthday.find((l) => l.when === 'birthday_guiyi');
+      check(await saying('adeng', olive.bubbles) !== null, "Wick did not mention Auntie Olive's birthday");
+      await sleep(4000);
+      await goInto('bakery');
+      check(await saying('guiyi', bakery.shop_in.find((l) => l.when === 'birthday_guiyi').bubbles) !== null, 'Auntie Olive said nothing of her birthday');
+      await shop.shot(join(out, 'days-birthday-guiyi.png'));
+      await sleep(2500);
+      await streetButton();
+      await sleep(900);
+      await goInto('cafe');
+
+      await openOn(2027, 5, 10);
+      await page.waitForFunction(() => window.lamplightDebug.scene.cakeOut(), null, { timeout: 10_000 });
+      const clem = cafe.anniversary.find((l) => l.speaker === 'xiaoju').bubbles;
+      check(await saying('xiaoju', clem, 60_000) !== null, 'nobody had a word about the cake');
+      await shop.shot(join(out, 'days-anniversary.png'));
+
+      await openOn(2027, 5, 11);
+      await sleep(2000);
+      check(!(await page.evaluate(() => window.lamplightDebug.scene.cakeOut())), 'the cake is still out the day after');
+    } finally { await shop.close(); }
+  },
+
+  /**
    * The shop through the seasons (plan-1.7.md G2), in a shop past a hundred works: winter greens in six beds with two
    * under straw, a colour of the season picked in its season and someone saying so, the bakery's menu for each season,
    * and the keepers of the three older shops saying a word as you walk in.

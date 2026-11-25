@@ -419,3 +419,51 @@ furnish_in_season:
   - { id: fis_summer, speaker: xiaoju, when: season_summer, bubbles: ["Bamboo green. Feels cooler already!"] }
   - { id: fis_autumn, speaker: adeng, when: season_autumn, bubbles: ["Same colour as the leaves outside."] }
   - { id: fis_winter, speaker: laoshi, when: season_winter, bubbles: ["That colour on a snowy day. Warm in here."] }
+
+# On a solar term's day Wick adds a word after the greeting as the shop opens (plan-1.7.md G3, shared/calendar.ts).
+solar_term:
+  - { id: term_minor_cold, speaker: adeng, when: term_minor_cold, bubbles: ["Minor Cold today. One more coal on the stove."] }
+  - { id: term_major_cold, speaker: adeng, when: term_major_cold, bubbles: ["Major Cold. The coldest few days of the year."] }
+  - { id: term_start_of_spring, speaker: adeng, when: term_start_of_spring, bubbles: ["Spring begins. The draught has gone softer."] }
+  - { id: term_rain_water, speaker: adeng, when: term_rain_water, bubbles: ["Rain Water. More rain from here on."] }
+  - { id: term_awakening_of_insects, speaker: adeng, when: term_awakening_of_insects, bubbles: ["Insects Waken. Time to turn the beds."] }
+  - { id: term_spring_equinox, speaker: adeng, when: term_spring_equinox, bubbles: ["Spring equinox. Day and night the same."] }
+  - { id: term_pure_brightness, speaker: adeng, when: term_pure_brightness, bubbles: ["Pure Brightness. Bean's going home for a day."] }
+  - { id: term_grain_rain, speaker: adeng, when: term_grain_rain, bubbles: ["Grain Rain. The new tea should be in."] }
+  - { id: term_start_of_summer, speaker: adeng, when: term_start_of_summer, bubbles: ["Summer begins. Bamboo blind on the door."] }
+  - { id: term_grain_buds, speaker: adeng, when: term_grain_buds, bubbles: ["Grain Buds. The wheat's nearly ripe."] }
+  - { id: term_grain_in_ear, speaker: adeng, when: term_grain_in_ear, bubbles: ["Grain in Ear. Auntie Olive wants new flour."] }
+  - { id: term_summer_solstice, speaker: adeng, when: term_summer_solstice, bubbles: ["Summer solstice. The longest light of the year."] }
+  - { id: term_minor_heat, speaker: adeng, when: term_minor_heat, bubbles: ["Minor Heat. Mung bean soup in the fridge."] }
+  - { id: term_major_heat, speaker: adeng, when: term_major_heat, bubbles: ["Major Heat. Stay put this afternoon."] }
+  - { id: term_start_of_autumn, speaker: adeng, when: term_start_of_autumn, bubbles: ["Autumn begins. Cooler at both ends of the day."] }
+  - { id: term_end_of_heat, speaker: adeng, when: term_end_of_heat, bubbles: ["End of Heat. That's the worst of it."] }
+  - { id: term_white_dew, speaker: adeng, when: term_white_dew, bubbles: ["White Dew. Dew on the sill this morning."] }
+  - { id: term_autumn_equinox, speaker: adeng, when: term_autumn_equinox, bubbles: ["Autumn equinox. Day and night even again."] }
+  - { id: term_cold_dew, speaker: adeng, when: term_cold_dew, bubbles: ["Cold Dew. Take a layer when you go out."] }
+  - { id: term_frost_descent, speaker: adeng, when: term_frost_descent, bubbles: ["Frost's Descent. Time to bring the beds in."] }
+  - { id: term_start_of_winter, speaker: adeng, when: term_start_of_winter, bubbles: ["Winter begins. Dumplings for supper."] }
+  - { id: term_minor_snow, speaker: adeng, when: term_minor_snow, bubbles: ["Minor Snow. Time to light the stove."] }
+  - { id: term_major_snow, speaker: adeng, when: term_major_snow, bubbles: ["Major Snow. Leave the umbrellas by the door."] }
+  - { id: term_winter_solstice, speaker: adeng, when: term_winter_solstice, bubbles: ["Winter solstice. The earliest dark of the year."] }
+
+# Said as the shop opens on someone's birthday (plan-1.7.md G3). One of the staff answers for themself; a keeper along the street is mentioned by Wick and says their own in their shop.
+birthday:
+  - { id: bday_adeng, speaker: xiaoju, when: birthday_adeng, bubbles: ["Wick, it's your birthday!", "The cake's in the cupboard. Don't look."], reply: { speaker: adeng, bubbles: ["...I've already seen it."] } }
+  - { id: bday_xiaoju, speaker: adeng, when: birthday_xiaoju, bubbles: ["Clem, it's your birthday.", "I'll run today's errands."], reply: { speaker: xiaoju, bubbles: ["Then I'll do the eating!"] } }
+  - { id: bday_laoshi, speaker: xiaoju, when: birthday_laoshi, bubbles: ["Flint, birthday!", "We clubbed together for a new plane."], reply: { speaker: laoshi, bubbles: ["Good plane."] } }
+  - { id: bday_qingdai, speaker: adeng, when: birthday_qingdai, bubbles: ["Iris, it's your birthday.", "No painting today. Take the day."], reply: { speaker: qingdai, bubbles: ["Then I'll paint for fun."] } }
+  - { id: bday_xiaodou, speaker: laoshi, when: birthday_xiaodou, bubbles: ["Bean, it's your birthday today."], reply: { speaker: xiaodou, bubbles: ["I've written it down."] } }
+  - { id: bday_guiyi, speaker: adeng, when: birthday_guiyi, bubbles: ["It's Auntie Olive's birthday.", "Stop by the bakery and say so."] }
+  - { id: bday_axin, speaker: adeng, when: birthday_axin, bubbles: ["It's Pip's birthday.", "Clem left those flowers at the post office."] }
+  - { id: bday_aqian, speaker: adeng, when: birthday_aqian, bubbles: ["It's Pica's birthday.", "Drop in at the print shop."] }
+  - { id: bday_xiaozhe, speaker: adeng, when: birthday_xiaozhe, bubbles: ["It's Umber's birthday.", "There's a new painting by the studio door."] }
+  - { id: bday_xiaoding, speaker: adeng, when: birthday_xiaoding, bubbles: ["It's Tack's birthday.", "Music on in the workshop, for once."] }
+
+# The shop's anniversary: a cake on the big table, and a word from each who is in (plan-1.7.md G3).
+anniversary:
+  - { id: anniv_adeng, speaker: adeng, bubbles: ["Cake's on the big table. Come and cut it."] }
+  - { id: anniv_xiaoju, speaker: xiaoju, bubbles: ["I want the piece with the candle!"] }
+  - { id: anniv_laoshi, speaker: laoshi, bubbles: ["Cut it even."] }
+  - { id: anniv_qingdai, speaker: qingdai, bubbles: ["I piped the flowers on the cream."] }
+  - { id: anniv_xiaodou, speaker: xiaodou, bubbles: ["I've written down which year it is."] }

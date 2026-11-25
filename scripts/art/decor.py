@@ -166,6 +166,31 @@ def season(name):
     return img
 
 
+# The shop's anniversary (plan-1.7.md G3): a cake on a plate beside the vase on the big table, one candle lit, pink
+# cream between the layers: cake.png, a whole-room overlay like the season's piece.
+CAKE = [
+    '.....y.....',
+    '.....o.....',
+    '.....p.....',
+    '..wwwpwww..',
+    '.wpwwwwwpw.',
+    'wwwwwwwwwww',
+    'cpcpcpcpcpc',
+    'ccccccccccc',
+    'wwwwwwwwwww',
+    'ccccccccccc',
+    '.xxxxxxxxx.',
+]
+CAKE_RIGHT_OF_VASE = 12
+
+
+def cake():
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    vx, vy = TABLE_PIECE
+    draw_at(img, CAKE, vx + CAKE_RIGHT_OF_VASE, vy)
+    return img
+
+
 # Weather touches, drawn by hand: u umbrella, h handle, w water, l leaf, o dark leaf, p petal.
 UMBRELLA = [
     '..hh.',
@@ -788,6 +813,7 @@ def build():
     mid_autumn().save(OUT / 'decor-mid_autumn.png')
     for name in SEASON_SPRIGS:
         season(name).save(OUT / f'season-{name}.png')
+    cake().save(OUT / 'cake.png')
     for sky, img in weather().items():
         img.save(OUT / f'weather-{sky}.png')
 

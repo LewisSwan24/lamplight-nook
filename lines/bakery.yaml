@@ -148,6 +148,7 @@ cancelled:
 # 走进面包房时桂姨说的一句（plan-1.6.md F5，app/renderer/stage/shoptalk.ts）。有节日先说节日的，再看天气，
 # 都没有就在时辰、季节和平常的里面挑。when：period_dawn/day/dusk/night、sky_rain 等、holiday_*、season_*。
 shop_in:
+  - { id: bk_in_birthday, speaker: guiyi, when: birthday_guiyi, bubbles: ["今天我生日。", "蛋糕自己烤的，切一块。"] }
   - { id: bk_in_01, speaker: guiyi, bubbles: ["来啦，炉子正热着。"] }
   - { id: bk_in_02, speaker: guiyi, bubbles: ["进来坐，地上有面粉，当心滑。"] }
   - { id: bk_in_03, speaker: guiyi, bubbles: ["来得巧，刚出了一炉。"] }

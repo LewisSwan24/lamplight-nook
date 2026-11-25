@@ -146,6 +146,7 @@ cancelled:
 # What Tack says as you walk into the workshop (plan-1.7.md G2, app/renderer/stage/shoptalk.ts): the holiday's
 # line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/workshop.yaml.
 shop_in:
+  - { id: ws_in_birthday, speaker: xiaoding, when: birthday_xiaoding, bubbles: ["My birthday!", "Fixed an old radio. Keeping it."] }
   - { id: ws_in_01, speaker: xiaoding, bubbles: ["Hey! Watch the screws on the floor."] }
   - { id: ws_in_02, speaker: xiaoding, bubbles: ["Come in. Shove the parts off the stool."] }
   - { id: ws_in_03, speaker: xiaoding, bubbles: ["One sec. Finishing this joint."] }

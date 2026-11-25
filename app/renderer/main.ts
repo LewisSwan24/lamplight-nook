@@ -19,6 +19,7 @@ import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { openingTurns, pickLine } from './translator/lines';
 import { inSeason, newlyInSeason } from '../shared/furnish';
+import { birthdayOn, termOn } from '../shared/calendar';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar, showCaptionLog } from './ui/captions';
 import { askerOf, dismissDecision, showDecision } from './ui/decision';
@@ -286,7 +287,7 @@ function tendGarden(quiet: boolean) {
 // The keeper of a shop along the street (plan-1.6.md F5): a word as you walk in that fits the hour, the weather, the
 // season or the holiday, and now and then something while the shop is quiet. The home shop has its chatter instead.
 const shopTalk = new ShopTalk(Date.now());
-const momentNow = (): Moment => ({ period: scene.period, ...scene.outside() });
+const momentNow = (): Moment => ({ period: scene.period, ...scene.outside(), birthdays: birthdayOn(new Date()) });
 async function sayLine(line: Line) {
   const at = stage;
   for (const text of line.bubbles) await at.answer(line.speaker, text);
@@ -560,11 +561,14 @@ let birthdayWaiting = '';
 async function noticeBirthday() {
   const { works, done, told } = await window.lamplight.shopState();
   const age = birthdayToday(works, done);
+  // The cake stays out all day (plan-1.7.md G3), however often the shop is opened.
+  scene.setCake(age > 0);
   const key = `birthday_${age}`;
   if (!age || told.includes(key) || birthdayWaiting === key) return;
   birthdayWaiting = key;
   // Counted as said only once it has been: a shop closed before then says it the next time.
   sayOnce('grow_birthday', BEDS_LINE_DELAY_MS, () => void window.lamplight.markTold(key));
+  sayRound('anniversary');
 }
 let today = localDay(new Date());
 setInterval(() => {
@@ -575,6 +579,15 @@ setInterval(() => {
 /** The lines still to be said, one at a time; forgetting everything takes them back. */
 let onceLines: Promise<unknown> = Promise.resolve();
 let forgotten = 0;
+/** A word from each one who is in, in turn, after the lines before it (the shop's anniversary, plan-1.7.md G3). */
+function sayRound(group: string) {
+  onceLines = onceLines.then(async () => {
+    const turns = (ruleBook(home.room).lines[group] ?? [])
+      .filter((l) => scene.anchorOf(l.speaker) !== null)
+      .flatMap((l) => l.bubbles.map((text) => ({ speaker: l.speaker, text })));
+    if (turns.length) await stage.talk(turns);
+  });
+}
 /** Said only once in the life of the shop, so it waits until someone is in the room to hear it, nothing lies over the shop, and the speaker is there and free. */
 function sayOnce(line: string, delay: number, said?: () => void, vars: Record<string, string> = {}) {
   const due = Date.now() + delay;
@@ -920,8 +933,16 @@ const greet = (text: string) => {
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
   const { flags, vars } = await window.lamplight.recallOnOpen();
-  const turns = openingTurns(ruleBook(scene.room).lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name });
-  if (turns) void stage.talk(turns);
+  const lines = ruleBook(scene.room).lines;
+  const turns = openingTurns(lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name }) ?? [];
+  // The days of the year (plan-1.7.md G3): Wick names a solar term, and whoever is in marks a birthday.
+  const now = new Date();
+  const term = termOn(now);
+  const days = [
+    ...(term ? [pickLine(lines.solar_term ?? [], [`term_${term}`], {})] : []),
+    ...birthdayOn(now).map((who) => pickLine(lines.birthday ?? [], [`birthday_${who}`], {})),
+  ].flatMap((t) => (t && t.every((x) => scene.anchorOf(x.speaker) !== null) ? t : []));
+  if (turns.length || days.length) void stage.talk([...turns, ...days]);
 }
 async function openShop() {
   const api = window.lamplight;

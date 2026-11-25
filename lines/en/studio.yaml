@@ -146,6 +146,7 @@ cancelled:
 # What Umber says as you walk into the studio (plan-1.7.md G2, app/renderer/stage/shoptalk.ts): the holiday's
 # line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/studio.yaml.
 shop_in:
+  - { id: st_in_birthday, speaker: xiaozhe, when: birthday_xiaozhe, bubbles: ["My birthday.", "Painted myself. Not much like me."] }
   - { id: st_in_01, speaker: xiaozhe, bubbles: ["Come in.", "Wet paint. Not the wall."] }
   - { id: st_in_02, speaker: xiaozhe, bubbles: ["Mm. Take the stool."] }
   - { id: st_in_03, speaker: xiaozhe, bubbles: ["Leave the door open. Turpentine."] }
