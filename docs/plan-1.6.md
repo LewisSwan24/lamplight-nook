@@ -20,7 +20,7 @@
 |---|---|---|---|---|---|---|
 | F0 | 内容管线：清点脚本和 `docs/content.md` | 无 | M | 否 | 否 | 完成 |
 | F6 | 选模型 | F0 | M | 否 | 约 $2 | 完成，真 Key 待跑 |
-| F7 | 接别的接口 | F6 | L | 否 | 约 $2，加 Lewis 自己的别家 Key | 未开工 |
+| F7 | 接别的接口 | F6 | L | 否 | 约 $2，加 Lewis 自己的别家 Key | 完成，真 Key 待跑 |
 | F1 | 面包房开门，新委托“菜单”和“食谱” | F0 | L | 是 | 约 $4 | 未开工 |
 | F2 | 邮局开门，新委托“贺卡”和“简报” | F1 | L | 是 | 约 $4 | 未开工 |
 | F3 | 街上的行人 | F0 | M | 是 | 否 | 未开工 |
@@ -102,6 +102,29 @@
   - Anthropic 约 $2。
   - 别家用 Lewis 自己的 Key，在应用的设置里由 Lewis 自己填，开发会话不读、不问、不打印 Key。先报预算再跑。
 
+**做法：**
+
+- 预设七家，2026-11-25 逐家读过官方的 Claude Code 接入说明（见下表），Key 都放在 `ANTHROPIC_AUTH_TOKEN` 里。设置页上的说明页面没有一家写价钱，所以单价一律由用户填。
+- 阿里百炼的说明页给了两个按量付费的地址：正文里的地址带用户自己的业务空间编号，FAQ 里是公用的 `dashscope` 地址。预设用公用的这个，用户可以自己改。Kimi 只核到国际站，国内站没放。
+- 选了别家，Claude Code 只拿到这一家要的变量。机器上原有的 `ANTHROPIC_*`、`CLAUDE_CODE_*`、`AWS_*` 和 Google Cloud 的变量一律清掉，用 Anthropic 时也一样。兼容接口把三个别名都指到填的模型上，快一点的模型只给 Haiku 那一档。
+- Bedrock 只填区域和 Key：Bedrock 的 API Key，或者写成“访问密钥 ID:私密访问密钥”。Vertex 填区域、项目和服务账号密钥文件的路径，文件留在原处，小灯屋不存它的内容。两家都照 Claude Code 文档的写法，F6 的三档在这两家照样能用。
+- 每家的 Key 加密存在数据文件夹的 `keys/` 下，一家一个文件，Anthropic 的还在原来的 `api-key.bin`。读过或存过的 Key 都交给日志的打码。接口地址不收带用户名、密码、问号或井号的写法，所以地址里不会夹着 Key。
+- 存兼容接口时发一条一个词元的消息，`Authorization` 和 `x-api-key` 都带上。回 401、403 是 Key 不对；回 400 或 404 且错误里提到模型，是模型名不对；别的 404 或连不上是地址不对。别的回答先存下，标“还没核对”。
+- Claude Code 对不认识的模型报的钱不可信，它的文档也这么说。兼容接口的一单，钱由小灯屋按词元和用户填的单价算，读缓存也按输入的价算，宁多勿少。每一轮的上限也由小灯屋管，超了就停。账本里这种行单独记，不和 Claude Code 报的总数相抵。
+- 场景 `provider` 在本机起一个假的兼容接口（`tools/sim/compatible.mjs`）。替身 Claude 收到地址时会把拿到的变量写下来，再往这个地址发一条请求。
+- 隐私说明和商店介绍都加了一段：选了别家，委托内容就发给那一家，适用那一家的条款。
+- 真 Key 还没跑：Anthropic 约 $2，别家要 Lewis 自己在应用里填 Key。
+
+| 预设 | 地址 | 模型（主 / 快） | 依据 |
+|---|---|---|---|
+| DeepSeek | `https://api.deepseek.com/anthropic` | `deepseek-flash[1m]` / `deepseek-flash` | api-docs.deepseek.com 的 Claude Code 接入页 |
+| Kimi | `https://api.moonshot.ai/anthropic` | `kimi-k3[1m]` | platform.kimi.ai 的 Claude Code 指南 |
+| 智谱 GLM | `https://open.bigmodel.cn/api/anthropic` | `glm-5.4[1m]` / `glm-5.3-flash[1m]` | docs.bigmodel.cn 的 Claude Code 页 |
+| Z.ai GLM | `https://api.z.ai/api/anthropic` | 同上 | docs.z.ai 的 Claude Code 页 |
+| 阿里百炼 | `https://dashscope.aliyuncs.com/apps/anthropic` | `qwen3.7-max` / `qwen3.6-flash` | help.aliyun.com 的 Claude Code 页（FAQ） |
+| Alibaba Cloud Model Studio | `https://dashscope-intl.aliyuncs.com/apps/anthropic` | 同上 | alibabacloud.com 的 Claude Code 页（FAQ） |
+| OpenRouter | `https://openrouter.ai/api` | `~anthropic/claude-sonnet-latest[1m]` / `~anthropic/claude-haiku-latest` | openrouter.ai 的 Claude Code 指南 |
+
 ### F1 面包房开门
 
 **现状：** 街上已经画着面包房的门面（`scripts/art/town.py`，位置在 `assets/sprites/town.json`），`ShopId` 里也有 `bakery`（`app/shared/town.ts:4`）。点它回“还没开”，因为能进的店只有 `ROOMS` 里那五间（`app/renderer/game/town.ts:20-30`）。面包师是常来的客人，店里闲着时来柜台聊几句，有委托就走（`app/renderer/game/guests.ts:8-17`）。
@@ -181,7 +204,7 @@
 | 编号 | 问题 | 建议 | 理由 |
 |---|---|---|---|
 | Q-F7 | 默认用哪个模型 | 均衡（Sonnet） | 和现在的默认差不多，钱也适中。**暂定（2026-11-25）** |
-| Q-F8 | 预设哪几家兼容接口 | DeepSeek、Kimi、智谱 GLM、阿里百炼、OpenRouter，开工时逐家核对 | 都公开提供兼容 Claude Code 的接口。核不到的不放。**暂定** |
+| Q-F8 | 预设哪几家兼容接口 | DeepSeek、Kimi、智谱 GLM、阿里百炼、OpenRouter，开工时逐家核对 | 都公开提供兼容 Claude Code 的接口。核不到的不放。F7 核过，智谱和百炼各放国内、国际两个，共七个，见 F7 做法。**暂定** |
 | Q-F9 | 别家的价格怎么算 | 用户填单价，不填不让开工 | 上限靠估价管着，不知道单价就管不住钱。**暂定** |
 | Q-F10 | 面包和伞没有素材 | 脚本手画 | 都是小件，D9 以来一直这样做。**暂定** |
 

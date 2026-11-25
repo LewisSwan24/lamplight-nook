@@ -7,7 +7,8 @@ import { basename, dirname, join } from 'node:path';
 /** What a session cost in one month, as Claude Code estimated it. A session spanning months has one entry for each. */
 type Entry = { key: string; usd: number; month: string; /** Estimated from tokens: a stretch Claude Code never reported (B7). */ estimated?: true;
   /** The paired device whose person handed the commission in (docs/plan-1.5.md E5); absent: the owner. */ who?: string;
-  /** The model the session ran on, as Claude Code named it (plan-1.6.md F6). */ model?: string };
+  /** The model the session ran on, as Claude Code named it (plan-1.6.md F6). */ model?: string;
+  /** Counted by the shop at the user's prices for a compatible service (F7): one run's cost, not a running total. */ priced?: true };
 
 const month = localMonth;
 /** The part of a key before the session: a commission's folder, or `consult:<id>` for a talk with Adeng (B4). */
@@ -33,7 +34,7 @@ export class SpendLedger {
   record(workDir: string, sessionId: string | undefined, usd: number | undefined, now = new Date(), who?: string, model?: string): number {
     if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return 0;
     const key = `${workDir}|${sessionId ?? ''}`;
-    const earlier = this.entries.filter((e) => e.key === key && !e.estimated);
+    const earlier = this.entries.filter((e) => e.key === key && !e.estimated && !e.priced);
     const reported = earlier.reduce((sum, e) => sum + e.usd, 0);
     // Running totals only grow: a lower figure never shrinks what was spent. What is new goes to this month, and what
     // a session cost last month stays last month's. Under a millionth of a dollar is only the rounding of the sum.
@@ -55,6 +56,17 @@ export class SpendLedger {
   estimate(workDir: string, sessionId: string | undefined, usd: number, now = new Date(), who?: string, model?: string): number {
     if (!(usd > 0.000001)) return 0;
     this.entries.push({ key: `${workDir}|${sessionId ?? ''}`, usd, month: month(now), estimated: true, ...(who ? { who } : {}), ...(model ? { model } : {}) });
+    this.save();
+    return usd;
+  }
+
+  /**
+   * What a run on a compatible service cost at the prices the user filled in (plan-1.6.md F7): the run's own figure, not a
+   * running total, so each is added on a line of its own and never set against Claude Code's totals; returns what it added.
+   */
+  addPriced(workDir: string, sessionId: string | undefined, usd: number, now = new Date(), who?: string, model?: string): number {
+    if (!(usd > 0.000001)) return 0;
+    this.entries.push({ key: `${workDir}|${sessionId ?? ''}`, usd, month: month(now), priced: true, ...(who ? { who } : {}), ...(model ? { model } : {}) });
     this.save();
     return usd;
   }

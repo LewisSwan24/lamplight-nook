@@ -34,6 +34,8 @@ import { ScheduleStore, due, nextTime, wakeIn } from './schedule';
 import { pruneRecordings } from './recorder';
 import { SpendLedger } from './spend';
 import { modelCosts } from './prices';
+import { ProviderKeys, providerCredentials, providerHint, saveProvider, type ProviderSaveResult } from './providers';
+import { missingForWork, secretSlot, type Provider } from '../shared/providers';
 import { TIER_MODEL, consultTier, modelFor, withModel, type ModelTier } from '../shared/models';
 import { type Caps, type CapKind, type Grant, type Refusal, type Spent, personCapUsd, Reservations, startingMonthCap, warnings } from './budget';
 import { RunQueue, runId, type Ticket } from './runs';
@@ -149,6 +151,8 @@ let versions: VersionStore;
 /** Every round's version of every project (B2), in the same folder as the lent folders' originals. */
 let projectVersions: ProjectVersions;
 let keys: KeyStore;
+/** Every provider's key, each on its own (plan-1.6.md F7); the Anthropic one is the same file as `keys`. */
+let providerKeys: ProviderKeys;
 /** The user's connections (road-to-1.3.md C4). */
 let connections: ConnectionStore;
 /** The record of outside actions (road-to-1.3.md C6), actions.jsonl in the data folder. */
@@ -288,7 +292,26 @@ const debugEnabled = () => !app.isPackaged || process.env.LAMPLIGHT_DEBUG === '1
 // The simulations move the shop to another day (clock.ts); a packaged build always keeps the computer's.
 if (!app.isPackaged && process.env.LAMPLIGHT_CLOCK) setClock(process.env.LAMPLIGHT_CLOCK);
 /** The key saved in the app wins over ANTHROPIC_API_KEY; a dev subscription only counts unpackaged. */
-const credentials = () => pickCredentials(keys.get(), process.env, app.isPackaged);
+const credentials = () => {
+  const p = settings.get().provider;
+  // Another provider than Anthropic: its own key, and nothing from the environment (F7).
+  return p.kind === 'anthropic' ? pickCredentials(keys.get(), process.env, app.isPackaged) : providerCredentials(p, (slot) => providerKeys.get(slot));
+};
+/** The model a commission runs on: a compatible service's own, else the tier (F6, F7). */
+const runModel = (form: CommissionForm) => {
+  const p = settings.get().provider;
+  return p.kind === 'compatible' ? p.model : modelFor(form, settings.get().modelTier);
+};
+/** A talk with Adeng: a compatible service's faster model when it has one, else the tier's (F6, F7). */
+const talkModel = () => {
+  const p = settings.get().provider;
+  return p.kind === 'compatible' ? p.fastModel ?? p.model : TIER_MODEL[consultTier(settings.get().modelTier)];
+};
+/** The prices to count a run's cost with: only a compatible service's, which Claude Code cannot price (F7). */
+const runPrices = () => {
+  const p = settings.get().provider;
+  return p.kind === 'compatible' ? p.prices : undefined;
+};
 ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
   const creds = credentials();
   const claude = locateClaude();
@@ -306,7 +329,7 @@ ipcMain.handle(IPC.envStatus, async (): Promise<EnvStatus> => {
     store: storeBuild(),
     debug: debugEnabled(),
     keySource: creds?.source ?? null,
-    keyHint: creds?.apiKey ? keyHint(creds.apiKey) : undefined,
+    keyHint: creds?.apiKey ? (creds.provider ? providerHint(creds.apiKey) : keyHint(creds.apiKey)) : undefined,
     installCommand: installCommand(process.platform),
     platform: process.platform,
   };
@@ -374,6 +397,18 @@ ipcMain.handle(IPC.installClaude, (): Promise<boolean> => {
 ipcMain.handle(IPC.saveApiKey, (_e, key: unknown): Promise<KeySaveResult> =>
   saveKey(typeof key === 'string' ? key : '', keys, (url, init) => net.fetch(url, init)));
 ipcMain.handle(IPC.clearApiKey, () => keys.clear());
+// Another provider (F7): checked and kept with its key; settings then hold it, never the key.
+ipcMain.handle(IPC.saveProvider, async (_e, provider: unknown, key: unknown): Promise<ProviderSaveResult> => {
+  const r = await saveProvider(provider as Provider, typeof key === 'string' ? key : '', providerKeys, (url, init) => net.fetch(url, init));
+  if (r.ok) settings.update({ provider: r.provider });
+  log?.info('provider saved', { kind: (provider as Provider)?.kind, ok: r.ok, ...(r.ok ? { verified: r.verified } : { reason: r.reason }) });
+  return r;
+});
+// Whether a provider has a key kept, by its last four characters.
+ipcMain.handle(IPC.providerKey, (_e, provider: unknown): string | null => {
+  const key = providerKeys.get(secretSlot(provider as Provider));
+  return key ? providerHint(key) : null;
+});
 ipcMain.handle(IPC.spendThisMonth, (): number => spend.thisMonth(now()));
 // What one commission costs on each model tier, for settings (plan-1.6.md F6).
 ipcMain.handle(IPC.modelCosts, () => modelCosts(spend.averageByTier()));
@@ -502,10 +537,10 @@ function talkGrant(t: Talk): number | null {
 async function talkTurn(t: Talk, prompt: string, usd: number, finish: boolean) {
   const cwd = join(app.getPath('userData'), 'consult');
   mkdirSync(cwd, { recursive: true });
-  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: TIER_MODEL[consultTier(settings.get().modelTier)] }));
+  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: talkModel() }));
   reservations.settle('consult');
   t.sessionId = turn.sessionId ?? t.sessionId;
-  spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now(), undefined, TIER_MODEL[consultTier(settings.get().modelTier)]);
+  spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now(), undefined, talkModel());
   log?.info('consult turn', { ok: turn.ok, budget: turn.budget, costUsd: turn.costUsd, finish });
   return turn;
 }
@@ -633,6 +668,9 @@ const capStop = (r: Refusal, project?: Project, person?: string): { error: strin
  * because of them waits in the queue instead (B5 rule 5).
  */
 function refused(project: Project | undefined, workDir: string, person?: string): RunResult | null {
+  // A compatible service with no prices filled in cannot be kept under a cap, so no work starts on it (Q-F9).
+  const missing = missingForWork(settings.get().provider);
+  if (missing) return { ok: false, recordingPath: '', workDir, error: 'provider', detail: missing };
   const grant = new Reservations().reserve('asking', project?.id, capsFor(project, person), spentOn(project, person), person);
   return 'refused' in grant ? { ok: false, recordingPath: '', workDir, ...capStop(grant.refused, project, person) } : null;
 }
@@ -850,7 +888,8 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       broker: broker.forRun(run, who),
       credentials: credentials(),
       // The slip's tier for this one commission, else the one in settings (F6).
-      model: modelFor(job.form, settings.get().modelTier),
+      model: runModel(job.form),
+      pricing: runPrices(),
       maxBudgetUsd: grant.usd,
       preexisting: before,
       keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
@@ -866,7 +905,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     // Money spent counts whatever the outcome. A run called off reports nothing (real Claude Code, W11), so it adds nothing.
     // What it spent since Claude Code last said is estimated from its tokens, on a line of its own (B7).
     const person = job.form.by?.id;
-    const spentThisRun = spend.record(job.workDir, job.sessionId, result.costUsd, now(), person, result.model) + countUnreported(me, result.estimatedUsd ?? 0);
+    const spentThisRun = (runPrices() ? spend.addPriced(job.workDir, job.sessionId, result.costUsd ?? 0, now(), person, result.model) : spend.record(job.workDir, job.sessionId, result.costUsd, now(), person, result.model)) + countUnreported(me, result.estimatedUsd ?? 0);
     const costUsd = spend.forCommission(job.workDir) || undefined;
     // Settled: the ledger has what the round cost. A month or project cap that set this round's limit and stopped it is
     // that cap's stop, not the per-round one. Caps it took past eight tenths are said once; a cap stop says it already.
@@ -1695,6 +1734,7 @@ app.whenReady().then(() => {
   moveOffer = moveInOffer(oldInstallerData, app.getPath('userData'));
   openData();
   keys = new KeyStore(join(app.getPath('userData'), 'api-key.bin'), safeStorage);
+  providerKeys = new ProviderKeys(app.getPath('userData'), join(app.getPath('userData'), 'api-key.bin'), safeStorage);
   connections = new ConnectionStore(app.getPath('userData'), safeStorage);
   lan = new LanServer({ file: join(app.getPath('userData'), 'devices.json'), addresses: () => homeAddresses(networkInterfaces()), page: () => lanPage({ ...strings.ui.lan.page, kinds: Object.fromEntries(FROM_AFAR.map((id) => [id, strings.ui.templates[id]])) }), asks: () => broker.open().map(toLanAsk), answer: (id, choice) => broker.answer({ id, choice }, 'phone'), commission: fromAfar });
   void applyLan(settings.get());

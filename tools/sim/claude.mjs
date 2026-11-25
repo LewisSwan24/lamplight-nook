@@ -352,7 +352,25 @@ function makeStage(state) {
 
 // ---- the run ----------------------------------------------------------------------------------
 
+/**
+ * Pointed at another provider (plan-1.6.md F7): write down which of the variables that decide where the work goes it was
+ * given, for the scenario to read, and send the provider one small request with them, as real Claude Code would.
+ */
+const WHERE = ['ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL', 'CLAUDE_CODE_SUBAGENT_MODEL', 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'AWS_REGION', 'AWS_PROFILE', 'CLOUD_ML_REGION'];
+async function reportWhere() {
+  if (!env.ANTHROPIC_BASE_URL) return;
+  mkdirSync(STATE_DIR, { recursive: true });
+  writeFileSync(join(STATE_DIR, 'env.json'), JSON.stringify(Object.fromEntries(WHERE.filter((n) => n in env).map((n) => [n, env[n]]))));
+  await fetch(`${env.ANTHROPIC_BASE_URL}/v1/messages`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.ANTHROPIC_AUTH_TOKEN ?? ''}`, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: env.ANTHROPIC_MODEL, max_tokens: 1, messages: [{ role: 'user', content: 'work' }] }),
+  }).catch(() => {});
+}
+
 async function run(prompt) {
+  await reportWhere();
   const old = resumeId ? loadState(resumeId) : null;
   const state = old ?? { session: `sim-${Date.now().toString(36)}-${process.pid.toString(36)}`, play: null, done: 0, notes: [], lang: null };
   if (old) state.done = old.done; // carry on after the last finished step
