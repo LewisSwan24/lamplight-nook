@@ -2,6 +2,10 @@
 
 ## Unreleased (1.6)
 
+- **People on the street.** Strangers now walk along the street outside, more of them in the morning and the early
+  evening, nobody late at night. In the rain there are fewer and they hurry, each under an umbrella. Some stop at a
+  door for a moment to look in. Click one and they look round at you. They never go in or say anything, and they stand
+  still while the street is out of sight.
 - **The post office opens.** Pip's post office along the street can be gone into now: a green counter with a parcel
   scale, a sorting rack of pigeonholes where he works, a parcel shelf, a packing table and a green postbox. Two new kinds
   of commission are made there. A **card** is drawn as a picture, postcard-sized unless you ask for one for the phone,

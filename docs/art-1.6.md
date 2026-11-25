@@ -11,7 +11,8 @@
 - **面包房拼得出来，面包也有。** Modern Interiors 的 `16_Grocery_store` 有工业烤箱、双层烤箱、摆满面包的烘焙架、面包托盘、羊角包、长棍面包和不锈钢台子。Modern Farm 有石头烤炉、烤好的面包、两种装面包的木盆、空篮子、麻袋和木铲。`3_Animated_objects` 有和面机。
 - **所以 Q-F10 的前提不成立。** 计划里说素材包没有面包，清点下来是有的。面包房只手画了一样东西：柜台上的玻璃面包柜。价目写在每间店都有的那块黑板上，用粉笔线手画。
 - **邮局也拼得出来。** Modern Exteriors 的 `22_Post_Office` 有邮筒、大小包裹和信件。包里的邮筒是红的，脚本把邮筒染成绿色，跟家门口的一样。手画的是柜台、分信格、墙上的软木板、包裹架和黑板上的邮资。
-- **伞还没清点，** 留给 F3。
+- **伞不用再画。** F3 清点时发现街上已经有一把手画的伞：D6 下雨天给出门跑腿的人打的那把（`scripts/art/decor.py`，在 `town-decor.png` 里）。行人用的就是这把，Q-F10 说的伞没有新画。
+- **行人用人物生成器拼。** `2_Characters` 的现成角色是 48×48 的，跟店里的人不是一个尺寸。行人照店员的办法，用 `Character_Generator` 的身体、衣服和发型拼出十个，只留站和走两行。
 
 看过的：Modern Interiors 的 `12_Kitchen`、`16_Grocery_store` 两张主题图；Modern Exteriors 的 `22_Post_Office` 单图；Modern Farm 的单图按文件名查过；`3_Animated_objects` 里名字带 kitchen、oven、fridge、kneader 的几张。
 
@@ -43,5 +44,15 @@
 | `grow-post-map.png` | F2 邮局墙上的送信路线图 | 手画 | `scripts/art/growth.py` |
 | `grow-cardline.png` | F2 做过贺卡，主店侧窗上挂的一串贺卡 | 手画 | `scripts/art/growth.py` |
 | `grow-newsletters.png` | F2 做过简报，主店窗台上的一摞简报 | 手画 | `scripts/art/growth.py` |
+| `passer-1.png` | F3 街上的行人，十个里的第一个，只有站和走 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-2.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-3.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-4.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-5.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-6.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-7.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-8.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-9.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `passer-10.png` | F3 街上的行人 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
 
 `shops-decor.png` 多了一行面包房，挂的是一块大饼干，节日的图案用糖霜画在上面。F2 又多了一行邮局，挂的是一个航空信封，节日画在信封正面（`scripts/art/decor.py`）。`town.json` 里面包房门口也有了花盆、店招和彩旗，店招上画的是一个面包；邮局的店招上是一个信封（`scripts/art/town.py`）。这两张图 1.4 的清单里已经有了。`assets/ui/portraits.png` 多了桂姨和阿信的头像（`scripts/art/portraits.py`），它不在 `assets/sprites/` 里。
