@@ -5,6 +5,8 @@
 - **Flint reads Word files.** The final review could not open a Word, Excel or PowerPoint file, so a document
   went out with nobody but its maker having read it. Flint now reads them. A Word document also takes Iris's design:
   an accent colour on the title, headings and table headers, and the body size she picks.
+- **The shelf by shop.** Under the kinds on the works shelf is a row of the street's shops. Pick one to see only what
+  it made; it works together with the kind and the words you type. A free-form order counts as the home shop's.
 
 ## Unreleased (1.7)
 

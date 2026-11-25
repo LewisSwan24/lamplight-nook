@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameS
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
-import { MAIN_FILES } from '../shared/templates';
+import { MAIN_FILES, shopOf } from '../shared/templates';
 import type { Shop } from '../shared/dispatch';
 import { emptyTown, type Gathered, TOWN_MOVE } from '../shared/town';
 import { nextChapter, told } from '../shared/stories';
@@ -275,6 +275,7 @@ export class MemoryStore {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
       id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
       page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
+      shop: shopOf(c.form?.demo ? undefined : c.form?.template),
     }));
     return { ...structuredClone(this.shop()), works, today: localDay(now) };
   }

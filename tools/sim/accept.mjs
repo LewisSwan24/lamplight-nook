@@ -1461,7 +1461,9 @@ const SCENARIOS = {
     const day = (i) => Date.UTC(2026, 0, 1 + i);
     const title = (i) => (i === 99 ? 'A very long name '.repeat(20).trim() : `work ${i + 1}`);
     const commissions = Array.from({ length: 100 }, (_, i) => ({
-      id: `c${day(i)}`, title: title(i), date: new Date(day(i)).toISOString().slice(0, 10), result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'page' },
+      id: `c${day(i)}`, title: title(i), date: new Date(day(i)).toISOString().slice(0, 10), result: 'done', choices: {}, folder: 'C:/nowhere',
+      // Every fifth a Word document from the print shop, and every fifth a free-form order kept at home (plan-1.8 H7).
+      form: i % 5 === 1 ? { want: 'x', template: 'document' } : i % 5 === 2 ? { want: 'x' } : { want: 'x', template: 'page' },
     }));
     const grown = COUNTED_PIECES.map(([id, at]) => ({ id, date: new Date(day(at - 1)).toISOString().slice(0, 10) }));
     const memory = { commissions, stuckNotes: [], greeted: 'c1', shop: { done: 100, told: [], grown, met: [{ id: 'baker', date: '2026-01-03' }] } };
@@ -1479,6 +1481,21 @@ const SCENARIOS = {
       while (await shop.page.locator('.shelf-card li.works-more button').count()) await shop.page.locator('.shelf-card li.works-more button').click();
       const shelved = await shop.page.locator('.shelf-card ul.works > li.work').count();
       check(shelved === 100, `${shelved} of 100 works on the shelf`);
+      // By the shop that made it (plan-1.8 H7): the print shop's twenty, then with a kind it never makes, none.
+      const S = locale(lang).ui.shelf;
+      const byShop = shop.page.locator('.shelf-card .by-shop button.kind-chip');
+      check(await byShop.count() === 4, `${await byShop.count()} chips in the shop row, not All, home, print and workshop`);
+      await byShop.filter({ hasText: S.shops.print }).click();
+      while (await shop.page.locator('.shelf-card li.works-more button').count()) await shop.page.locator('.shelf-card li.works-more button').click();
+      const printed = await shop.page.locator('.shelf-card ul.works > li.work').count();
+      check(printed === 20, `${printed} works from the print shop, not 20`);
+      check((await shop.page.locator('.shelf-card .works-count').innerText()) === S.found.replace('{n}', '20'), 'the count does not say 20 found');
+      await shop.shot(join(out, 'days-shelf-print.png'));
+      await shop.page.locator('.shelf-card .by-kind button.kind-chip').filter({ hasText: S.kinds.page }).click();
+      check(await shop.page.locator('.shelf-card ul.works > li.work').count() === 0, 'pages show under the print shop');
+      await shop.page.locator('.shelf-card .by-shop button.kind-chip').filter({ hasText: S.shops.home }).click();
+      const home = await shop.page.locator('.shelf-card .works-count').innerText();
+      check(home === S.found.replace('{n}', '20'), `free-form pages at home: ${home}`);
       await shop.page.keyboard.press('Escape');
       await sleep(300);
 
