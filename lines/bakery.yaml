@@ -163,6 +163,9 @@ shop_in:
   - { id: bk_in_night_02, speaker: guiyi, when: period_night, bubbles: ["炉子刚熄，屋里还暖和。"] }
   - { id: bk_in_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["下雨天面发得慢。", "伞放门边就行。"] }
   - { id: bk_in_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["快进来，炉子边上暖和。"] }
+  - { id: bk_in_fog_01, speaker: guiyi, when: sky_fog, bubbles: ["雾天，面包香飘不远。"] }
+  - { id: bk_in_wind_01, speaker: guiyi, when: sky_wind, bubbles: ["风大，门帘我卷起来了。", "进来吧。"] }
+  - { id: bk_in_storm_01, speaker: guiyi, when: sky_storm, bubbles: ["打雷了，快进来躲躲。"] }
   - { id: bk_in_spring_01, speaker: guiyi, when: season_spring, bubbles: ["开春了，我做了点青团。"] }
   - { id: bk_in_summer_01, speaker: guiyi, when: season_summer, bubbles: ["天热，炉子边别站太久。"] }
   - { id: bk_in_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["新麦下来了，面香不一样。"] }
@@ -224,6 +227,12 @@ shop_idle:
   - { id: bk_idle_rain_02, speaker: guiyi, when: sky_rain, bubbles: ["潮天，面粉得收严实。"] }
   - { id: bk_idle_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["下雪天，烤炉就是暖气。"] }
   - { id: bk_idle_snow_02, speaker: guiyi, when: sky_snow, bubbles: ["门口的雪，我等会儿扫。"] }
+  - { id: bk_idle_fog_01, speaker: guiyi, when: sky_fog, bubbles: ["雾大，送货的车晚了。"] }
+  - { id: bk_idle_fog_02, speaker: guiyi, when: sky_fog, bubbles: ["雾气重，面皮发得软。"] }
+  - { id: bk_idle_wind_01, speaker: guiyi, when: sky_wind, bubbles: ["风把面粉吹了一地。"] }
+  - { id: bk_idle_wind_02, speaker: guiyi, when: sky_wind, bubbles: ["大风天，炉火烧得旺。"] }
+  - { id: bk_idle_storm_01, speaker: guiyi, when: sky_storm, bubbles: ["雷一响，我就数面包。"] }
+  - { id: bk_idle_storm_02, speaker: guiyi, when: sky_storm, bubbles: ["停电了也不怕，炉子烧柴。"] }
   - { id: bk_idle_petals_01, speaker: guiyi, when: sky_petals, bubbles: ["花瓣飘进来了，可别落进面里。"] }
   - { id: bk_idle_leaves_01, speaker: guiyi, when: sky_leaves, bubbles: ["叶子刮进门了，回头扫一扫。"] }
   - { id: bk_idle_spring_01, speaker: guiyi, when: season_spring, bubbles: ["春天面发得快，得看紧点。"] }

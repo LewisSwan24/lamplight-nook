@@ -57,6 +57,9 @@ import leavesUrl from '../../../assets/sprites/weather-leaves.png';
 import petalsUrl from '../../../assets/sprites/weather-petals.png';
 import rainUrl from '../../../assets/sprites/weather-rain.png';
 import snowUrl from '../../../assets/sprites/weather-snow.png';
+import fogUrl from '../../../assets/sprites/weather-fog.png';
+import windUrl from '../../../assets/sprites/weather-wind.png';
+import stormUrl from '../../../assets/sprites/weather-storm.png';
 import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
 import aqianUrl from '../../../assets/sprites/aqian.png';
 import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
@@ -110,7 +113,9 @@ const DECOR_URLS: Record<Holiday, string> = {
   halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl, lantern: lanternUrl, dragon_boat: dragonBoatUrl, mid_autumn: midAutumnUrl,
 };
 const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerUrl, autumn: autumnUrl, winter: winterUrl };
-const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
+const WEATHER_URLS: Record<(typeof SKIES)[number], string> = {
+  rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl, fog: fogUrl, wind: windUrl, storm: stormUrl,
+};
 const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
@@ -864,6 +869,7 @@ export class CafeScene extends Phaser.Scene {
     const from = fromLook ?? withWeather(LOOKS[this.period], this.weather?.sky ?? 'clear');
     this.period = period;
     this.garden?.setOutdoors(this.weather?.sky ?? 'clear', period);
+    this.weather?.setPeriod(period);
     const apply = (t: number) => {
       const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
         Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 1, t);

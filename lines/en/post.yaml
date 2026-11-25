@@ -164,6 +164,9 @@ shop_in:
   - { id: po_in_night_02, speaker: axin, when: period_night, bubbles: ["This late, even the letters are asleep."] }
   - { id: po_in_rain_01, speaker: axin, when: sky_rain, bubbles: ["Rain. Every envelope gets a bag."] }
   - { id: po_in_snow_01, speaker: axin, when: sky_snow, bubbles: ["Out in this snow?", "Stamp your feet, come in."] }
+  - { id: po_in_fog_01, speaker: axin, when: sky_fog, bubbles: ["In this fog you found the door?"] }
+  - { id: po_in_wind_01, speaker: axin, when: sky_wind, bubbles: ["Windy. Keep hold of your letters.", "Put them on the counter."] }
+  - { id: po_in_storm_01, speaker: axin, when: sky_storm, bubbles: ["Thunder. Wait it out in here."] }
   - { id: po_in_spring_01, speaker: axin, when: season_spring, bubbles: ["Spring. Everyone's posting seeds."] }
   - { id: po_in_summer_01, speaker: axin, when: season_summer, bubbles: ["Warm, isn't it. Stand by the fan."] }
   - { id: po_in_autumn_01, speaker: axin, when: season_autumn, bubbles: ["Autumn. Parcels for the new term."] }
@@ -225,6 +228,12 @@ shop_idle:
   - { id: po_idle_rain_02, speaker: axin, when: sky_rain, bubbles: ["Raincoat's on the door, still dripping."] }
   - { id: po_idle_snow_01, speaker: axin, when: sky_snow, bubbles: ["No bike in this snow. On foot, then."] }
   - { id: po_idle_snow_02, speaker: axin, when: sky_snow, bubbles: ["The old scarf's back on today."] }
+  - { id: po_idle_fog_01, speaker: axin, when: sky_fog, bubbles: ["Fog. I go by the door numbers."] }
+  - { id: po_idle_fog_02, speaker: axin, when: sky_fog, bubbles: ["Fog. The mail van crawls."] }
+  - { id: po_idle_wind_01, speaker: axin, when: sky_wind, bubbles: ["Chased a letter half the street once."] }
+  - { id: po_idle_wind_02, speaker: axin, when: sky_wind, bubbles: ["Windy. The postbox lid stays shut."] }
+  - { id: po_idle_storm_01, speaker: axin, when: sky_storm, bubbles: ["Storm. Letters go at the bottom."] }
+  - { id: po_idle_storm_02, speaker: axin, when: sky_storm, bubbles: ["The thunder shakes the scale."] }
   - { id: po_idle_petals_01, speaker: axin, when: sky_petals, bubbles: ["A petal got in an envelope. No charge."] }
   - { id: po_idle_leaves_01, speaker: axin, when: sky_leaves, bubbles: ["Leaves in the postbox. I'll fish them out."] }
   - { id: po_idle_spring_01, speaker: axin, when: season_spring, bubbles: ["Spring. Fewer letters, more parcels."] }

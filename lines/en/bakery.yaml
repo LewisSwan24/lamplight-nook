@@ -164,6 +164,9 @@ shop_in:
   - { id: bk_in_night_02, speaker: guiyi, when: period_night, bubbles: ["Oven's off, but the room's still warm."] }
   - { id: bk_in_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["Dough's slow on a wet day.", "Leave your brolly by the door."] }
   - { id: bk_in_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["Quick, come by the oven. It's warm."] }
+  - { id: bk_in_fog_01, speaker: guiyi, when: sky_fog, bubbles: ["Fog. The smell of bread stays put."] }
+  - { id: bk_in_wind_01, speaker: guiyi, when: sky_wind, bubbles: ["Windy. I tied the curtain back.", "In you come."] }
+  - { id: bk_in_storm_01, speaker: guiyi, when: sky_storm, bubbles: ["Thunder. Come in out of it."] }
   - { id: bk_in_spring_01, speaker: guiyi, when: season_spring, bubbles: ["Spring's here. I made green rice buns."] }
   - { id: bk_in_summer_01, speaker: guiyi, when: season_summer, bubbles: ["Hot day. Don't stand by the oven."] }
   - { id: bk_in_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["New wheat's in. You can smell it."] }
@@ -225,6 +228,12 @@ shop_idle:
   - { id: bk_idle_rain_02, speaker: guiyi, when: sky_rain, bubbles: ["Damp day. Keep the flour sealed."] }
   - { id: bk_idle_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["In the snow the oven's the heating."] }
   - { id: bk_idle_snow_02, speaker: guiyi, when: sky_snow, bubbles: ["I'll sweep the step in a bit."] }
+  - { id: bk_idle_fog_01, speaker: guiyi, when: sky_fog, bubbles: ["Fog. The flour van is late."] }
+  - { id: bk_idle_fog_02, speaker: guiyi, when: sky_fog, bubbles: ["Damp air. The crust comes out soft."] }
+  - { id: bk_idle_wind_01, speaker: guiyi, when: sky_wind, bubbles: ["The wind blew flour everywhere."] }
+  - { id: bk_idle_wind_02, speaker: guiyi, when: sky_wind, bubbles: ["Windy day. The oven burns hot."] }
+  - { id: bk_idle_storm_01, speaker: guiyi, when: sky_storm, bubbles: ["When it thunders I count loaves."] }
+  - { id: bk_idle_storm_02, speaker: guiyi, when: sky_storm, bubbles: ["No power? The oven burns wood."] }
   - { id: bk_idle_petals_01, speaker: guiyi, when: sky_petals, bubbles: ["Petals blowing in. Not in the dough."] }
   - { id: bk_idle_leaves_01, speaker: guiyi, when: sky_leaves, bubbles: ["Leaves in the doorway. I'll sweep."] }
   - { id: bk_idle_spring_01, speaker: guiyi, when: season_spring, bubbles: ["Dough rises fast in spring. Watch it."] }

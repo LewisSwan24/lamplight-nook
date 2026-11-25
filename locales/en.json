@@ -621,7 +621,10 @@
         "rain": "raining",
         "snow": "snowing",
         "petals": "all petals",
-        "leaves": "all falling leaves"
+        "leaves": "all falling leaves",
+        "fog": "foggy",
+        "wind": "blowing a gale",
+        "storm": "thundering"
       },
       "periods": {
         "dawn": "just getting light",
@@ -634,7 +637,10 @@
         "rain": "Still raining. Umbrella's by the door.",
         "snow": "Slippery out there. Go gently.",
         "petals": "Petals all over the step. I'll sweep them later.",
-        "leaves": "Another layer of leaves on the step."
+        "leaves": "Another layer of leaves on the step.",
+        "fog": "Can't see across the street. Mind how you go.",
+        "wind": "Hold onto your hat out there.",
+        "storm": "Wait for the thunder to pass. It won't be long."
       },
       "doorErrand": "{name} is out on an errand, back soon.",
       "doorNobody": "Nobody's out right now. Everyone's busy in here.",

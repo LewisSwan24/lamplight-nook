@@ -636,7 +636,8 @@
    "season-spring": 102.1,
    "season-summer": 102.1,
    "season-winter": 102.1,
-   "weather-leaves": 97.1
+   "weather-leaves": 97.1,
+   "weather-wind": 97.1
   },
   "decor": [
    {
@@ -1116,7 +1117,8 @@
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
    "grow-trophy": 156.1,
-   "weather-leaves": 96.1
+   "weather-leaves": 96.1,
+   "weather-wind": 96.1
   },
   "decor": [
    {
@@ -2083,7 +2085,8 @@
    "season-autumn": 102.1,
    "season-spring": 102.1,
    "season-summer": 102.1,
-   "season-winter": 102.1
+   "season-winter": 102.1,
+   "weather-wind": 95.1
   },
   "decor": [
    {

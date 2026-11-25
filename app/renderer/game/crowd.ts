@@ -33,11 +33,11 @@ const HIT = { x: 6, up: 28 };
 export function crowdSize(hour: number, sky: Sky): number {
   const base = hour < 6 || hour >= 23 ? 0 : hour < 7 ? 3 : hour < 10 ? 5 : hour < 17 ? 3 : hour < 20 ? 5 : 2;
   if (!base) return 0;
-  return sky === 'rain' || sky === 'snow' ? Math.max(1, Math.floor(base / 2)) : base;
+  return sky === 'rain' || sky === 'snow' || sky === 'wind' || sky === 'storm' ? Math.max(1, Math.floor(base / 2)) : base;
 }
 
-/** Quicker in the rain, to get out of it. */
-export const passerSpeed = (sky: Sky): number => (sky === 'rain' ? STROLL * 1.5 : STROLL);
+/** Quicker in the rain and the storm, to get out of it; slower into the wind. */
+export const passerSpeed = (sky: Sky): number => (sky === 'rain' || sky === 'storm' ? STROLL * 1.5 : sky === 'wind' ? STROLL * 0.7 : STROLL);
 
 /** An hour in the middle of each part of the day, for when the shop shows one the clock does not (a test, a screenshot). */
 const MIDDLE: Record<Period, number> = { dawn: 6, day: 12, dusk: 18, night: 2 };

@@ -18,6 +18,11 @@
   each. Everyone at home and each keeper along the street has a birthday: one of the staff wishes the others theirs
   and they answer, and on a keeper's Wick mentions it and the keeper says so when you walk into their shop. On the
   shop's anniversary there is a cake on the big table all day, and everyone in has a word about it.
+- **Fog, wind and storms.** Spring and autumn mornings are sometimes foggy, with mist over the windows and the street.
+  Autumn and winter bring days of high wind, with leaves blown sideways and in at the door. Summer has thunderstorms:
+  harder rain, a darker room, and lightning now and then, which does not flash with reduced motion on. Nobody goes into
+  the garden in wind or storms, and fewer people are out on the street. Wick, the staff, Auntie Olive and Pip each have
+  something to say about all three.
 - **The lunar festivals run to 2040.** Lunar New Year, the Lantern, Dragon Boat and Mid-Autumn festivals were known
   only until 2035. The dates now run to 2040, checked against the Hong Kong Observatory's conversion tables.
 

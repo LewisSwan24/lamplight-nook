@@ -3,7 +3,8 @@
 Halloween and Christmas pieces come from LimeZu Modern Interiors (assets/vendor/, not in the repo);
 the Lunar New Year lanterns and couplets, the other lunar festivals, the seasons' pieces on the side window's sill
 and the weather touches are drawn here.
-Writes assets/sprites/decor-<holiday>.png, season-<season>.png and weather-<sky>.png.
+Writes assets/sprites/decor-<holiday>.png, season-<season>.png and weather-<sky>.png (weather-fog.png, weather-wind.png and
+weather-storm.png since 1.7).
 Run: python3 scripts/art/decor.py
 """
 from pathlib import Path
@@ -221,6 +222,11 @@ SILLS = (range(16, 84), range(197, 225))
 SILL_Y = 29
 SILL_WOOD = {(181, 117, 77), (199, 140, 89)}
 SNOW = (255, 255, 255, 255)
+# Fog (plan-1.7.md G4): beads of mist on the window panes, a little lighter than the glass.
+MIST = (236, 240, 244, 170)
+MIST_BEADS = [(20, 9), (27, 15), (35, 7), (44, 20), (51, 11), (60, 17), (69, 8), (77, 22), (23, 24), (56, 25), (201, 10), (209, 18), (218, 8), (221, 23)]
+# Wind: leaves blown in at the door and swept across the floor, further in than on a still day.
+BLOWN = [(296, 50, 'l'), (288, 56, 'o'), (270, 61, 'l'), (252, 58, 'o'), (236, 64, 'l'), (219, 60, 'o'), (204, 66, 'l'), (262, 68, 'o'), (244, 52, 'l')]
 
 
 def put(img, x, y, c, w=1):
@@ -253,7 +259,18 @@ def weather():
     petals = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     for x, y, c in PETALS:
         put(petals, x, y, c, 2)
-    return {'rain': rain, 'snow': snow, 'leaves': leaves, 'petals': petals}
+    # A storm leaves the same umbrella by the door, with a wider puddle.
+    storm = rain.copy()
+    for dx in range(-4, 10):
+        storm.putpixel((x + dx, y + len(UMBRELLA) + 2), WEATHER_COLORS['w'])
+    fog = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for bx, by in MIST_BEADS:
+        for dx, dy in ((0, 0), (1, 0), (0, 1)):
+            fog.putpixel((bx + dx, by + dy), MIST)
+    wind = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for bx, by, c in BLOWN:
+        put(wind, bx, by, c, 2)
+    return {'rain': rain, 'snow': snow, 'leaves': leaves, 'petals': petals, 'storm': storm, 'fog': fog, 'wind': wind}
 
 
 def draw_with(img, rows, x, y, colors):
