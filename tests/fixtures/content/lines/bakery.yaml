@@ -1,0 +1,3 @@
+opening:
+  - { id: bk_open_01, speaker: baker, bubbles: ["炉子热了。"] }
+  - { id: bk_open_02, speaker: baker, bubbles: ["面发好了。"] }

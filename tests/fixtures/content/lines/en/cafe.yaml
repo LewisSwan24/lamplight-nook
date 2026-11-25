@@ -1,0 +1,5 @@
+opening:
+  - { id: o1, speaker: adeng, bubbles: ["One.", "Two."] }
+  - { id: o2, speaker: adeng, bubbles: ["Three.", "Four."] }
+done:
+  - { id: d1, speaker: adeng, bubbles: ["Done."] }

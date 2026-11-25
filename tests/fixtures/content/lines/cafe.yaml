@@ -1,0 +1,5 @@
+opening:
+  - { id: o1, speaker: adeng, bubbles: ["一。", "二。"] }
+  - { id: o2, speaker: adeng, bubbles: ["三。"] }
+done:
+  - { id: d1, speaker: adeng, bubbles: ["好了。"] }

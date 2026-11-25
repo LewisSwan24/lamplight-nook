@@ -14,7 +14,8 @@ export type AnchorId = 'door' | 'counter' | 'table' | 'board' | 'window' | 'shel
 
 export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'aqian' | 'xiaozhe' | 'xiaoding' | 'cat';
 /** Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts). */
-export type GuestId = 'baker' | 'postman' | 'mechanic' | 'granny' | 'student';
+export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student'] as const;
+export type GuestId = (typeof GUESTS)[number];
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;
 

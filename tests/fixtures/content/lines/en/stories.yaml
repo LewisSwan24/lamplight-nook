@@ -1,0 +1,12 @@
+baker:
+  - title: The first batch
+    left: bread
+    note: The baker left a loaf.
+    lines:
+      - One.
+      - Two.
+  - title: The second batch
+    left: oven
+    note: The oven.
+    lines:
+      - Three.
