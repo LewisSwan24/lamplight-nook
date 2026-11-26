@@ -398,6 +398,21 @@ export const TEMPLATES = [
       `In your final reply, say in ${language}, in one line, which months it covers and which categories it starts with.`,
     ],
   },
+  // A small game (plan-1.8.md H2): one page that plays in a browser with no network, made in the workshop. Its piece, a
+  // little game machine, stands in the workshop.
+  {
+    id: 'minigame', shop: 'workshop', icon: 23, revise: true, main: 'page', roomGrowth: { id: 'arcade', at: 1 }, guest: 'dad',
+    steps: ({ language, files }) => [
+      'This is a small game to play in a browser, the size of one sitting: matching pairs, whack-a-mole, snake and the like. Do not make a tool or a page of text.',
+      `Make it as a single self-contained page "${files.minigame}": CSS and JavaScript inline, no libraries, no build step, no web fonts, nothing loaded from outside this folder. It must work when opened straight from disk with no network.`,
+      'Give it a title, one line on how to play, a start button, a score in view and a way to play again when a round ends. It plays with a mouse or a finger, and with the keyboard too if the game needs keys.',
+      'Pitch it for whoever the request says will play: for a child, big pieces, a gentle pace, nothing frightening, and no clock that punishes.',
+      'It keeps nothing and sends nothing: no network, no storage beyond the page while it is open.',
+      `When it is written, save a picture of its first screen as "${files.minigamePng}" with the mcp__nook-office__render_png tool at 800 by 600, and look at it with the Read tool: check the title, the line on how to play and the start button all show and nothing overlaps, and fix the page and draw it again if not.`,
+      'When you ask the reviewer to check the game, give them that picture of its first screen too.',
+      `In your final reply, say in ${language}, in one line, what the game is and how to play it.`,
+    ],
+  },
 ] as const satisfies readonly TemplateSpec[];
 
 export type TemplateId = (typeof TEMPLATES)[number]['id'];

@@ -41,7 +41,8 @@
     "florist": "芳姐",
     "organizer": "吴阿姨",
     "pupil": "乐乐",
-    "bookkeeper": "秦阿姨"
+    "bookkeeper": "秦阿姨",
+    "dad": "朵朵爸"
   },
   "you": {
     "label": "你"
@@ -237,6 +238,9 @@
       "flashcardsHint": "把讲义、笔记或者一章书递过来，也可以贴在要求里。问题和答案都只从材料里出：一套能打印裁开的问答卡，再加一页十道题的小测，答案在背面。",
       "ledgerbook": "家庭账本",
       "ledgerbookFill": "帮我做一本家庭账本，从……月开始记，家里的钱常花在：……",
+      "minigame": "做个小游戏",
+      "minigameFill": "帮我做一个给……玩的小游戏，玩法像……。",
+      "minigameHint": "工坊做一个在浏览器里玩的小游戏：一个文件，打开就能玩，不用联网。说清楚给谁玩、想要什么样的玩法，比如翻牌、打地鼠、贪吃蛇。",
       "ledgerbookHint": "印刷铺做一本 Excel 账本：每月一页，收入支出的分类在单独一页，随时能改。月底的小结和饼图自己会算，空着的账本拿回去就能填。",
       "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
       "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
@@ -736,7 +740,8 @@
         "florist": "路过，进来闻闻咖啡香。",
         "organizer": "我坐一下就走，楼下还等着我开会。",
         "pupil": "就坐一会儿，背完这页就走。",
-        "bookkeeper": "我坐一下，菜还在篮子里。"
+        "bookkeeper": "我坐一下，菜还在篮子里。",
+        "dad": "我坐一下，朵朵在外面玩。"
       },
       "you": "你的委托在做了，先坐会儿吧。",
       "grownMade": {
@@ -1243,6 +1248,8 @@
       "journalPage": "旅行手账.html",
       "journalPdf": "旅行手账.pdf",
       "ledgerbook": "家庭账本.xlsx",
+      "minigame": "小游戏.html",
+      "minigamePng": "小游戏.png",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",
       "toolSamples": "样例",
@@ -1457,7 +1464,8 @@
         "card": "贺卡",
         "newsletter": "简报",
         "flashcards": "复习卡片",
-        "ledgerbook": "家庭账本"
+        "ledgerbook": "家庭账本",
+        "minigame": "小游戏"
       }
     },
     "mini": {

@@ -1476,6 +1476,86 @@
     - pupil: 太冷了，手都不想伸出来。
     - adeng: 先捧着这杯热的。
 
+- id: dad_game
+  when: idle
+  guest: dad
+  turns:
+    - dad: 朵朵天天玩那个翻牌游戏。
+    - adeng: 她最快几秒翻完？
+    - dad: 四十秒，比我快。
+
+- id: dad_level
+  when: idle
+  guest: dad
+  turns:
+    - dad: 能不能再加一关难点的？
+    - xiaoju: 下回递单写上就行。
+
+- id: dad_time
+  when: idle
+  guest: dad
+  turns:
+    - dad: 我们说好一天只玩一刻钟。
+    - laoshi: 定个闹钟，响了就停。
+
+- id: dad_bus
+  when: idle
+  guest: dad
+  turns:
+    - dad: 不联网也能玩，坐车正好。
+    - adeng: 地铁上也行。
+
+- id: dad_draw
+  when: idle
+  guest: dad
+  turns:
+    - dad: 朵朵想把自己画进游戏里。
+    - qingdai: 画好拿来，我帮她配色。
+
+- id: dad_rain
+  when: idle
+  guest: dad
+  sky: rain
+  turns:
+    - dad: 下雨出不去，在家玩一局。
+    - adeng: 喝杯热的再走。
+
+- id: dad_spring
+  when: idle
+  guest: dad
+  after: 20
+  season: spring
+  turns:
+    - dad: 开春了，周末带朵朵放风筝。
+    - xiaoju: 风筝也能做成游戏。
+
+- id: dad_summer
+  when: idle
+  guest: dad
+  after: 20
+  season: summer
+  turns:
+    - dad: 放暑假，她天天想玩。
+    - laoshi: 先写作业，再玩一局。
+
+- id: dad_autumn
+  when: idle
+  guest: dad
+  after: 20
+  season: autumn
+  turns:
+    - dad: 开学了，游戏改成周末玩。
+    - qingdai: 周末那局留着当奖励。
+
+- id: dad_winter
+  when: idle
+  guest: dad
+  after: 20
+  season: winter
+  turns:
+    - dad: 天冷，朵朵在家玩得多。
+    - adeng: 再做个下雪的关卡。
+
 - id: qin_book
   when: idle
   guest: bookkeeper

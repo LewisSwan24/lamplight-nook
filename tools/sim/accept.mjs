@@ -62,6 +62,7 @@ const W = {
     flashcards: '帮我把这份生物讲义做成复习卡片，下周考光合作用。',
     ledgerbook: '帮我做一本家庭账本，从一月开始记，家里的钱常花在买菜、水电和孩子上学。',
     journal: '帮我做一份杭州三天的旅行手账，打印出来带着走。',
+    minigame: '帮我做一个给五岁女儿玩的翻牌小游戏。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -91,6 +92,7 @@ const W = {
     flashcards: 'Turn this biology handout into revision cards, for a test on photosynthesis next week.',
     ledgerbook: 'Make me a family ledger from January; our money mostly goes on groceries, bills and the children.',
     journal: 'Make me a travel journal for three days in Edinburgh, to print and take along.',
+    minigame: 'Make me a matching pairs game for my five-year-old daughter.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -5573,6 +5575,87 @@ const SCENARIOS = {
       check(came, 'Auntie Qin did not come in and say something');
       check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('bookkeeper')), 'Auntie Qin has no picture');
       await shop.shot(join(out, 'ledgerbook-qin.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A small game (plan-1.8.md H2): ordered at home, made in the workshop as one page that plays with no network, its
+   * first screen drawn as a picture. Opened in Chrome with the network cut off, it starts, and a pair turned over scores.
+   * Then a little game machine hangs on the workshop's wall, someone at home says so, and Duoduo's dad starts dropping in.
+   */
+  async minigame(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    try {
+      await sleep(1500);
+      await shop.order({ template: 'minigame', want: W[lang].minigame });
+      await shop.shot(join(out, 'minigame-slip.png'));
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the small game did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      const dir = latestCommission(home);
+      check(existsSync(join(dir, F.minigame)), `${F.minigame} is not in the commission folder`);
+      check(existsSync(join(dir, F.minigamePng)) && readFileSync(join(dir, F.minigamePng)).subarray(1, 4).toString() === 'PNG', `${F.minigamePng} is not a picture`);
+      const game = readFileSync(join(dir, F.minigame), 'utf8');
+      check(!/\b(src|href)=["']?https?:/i.test(game), 'the game loads something from the web');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const opens = await page.locator('.result-card').innerText();
+      check(opens.includes(F.minigame), `the result card does not name ${F.minigame}: ${opens.slice(0, 200)}`);
+      await sleep(400);
+      await shop.shot(join(out, 'minigame-done.png'));
+      await page.keyboard.press('Escape');
+
+      // Played in Chrome with the network cut off: it starts, and a pair turned over scores.
+      const { chromium } = createRequire(import.meta.url)('playwright');
+      const browser = await chromium.launch({ channel: 'chrome' });
+      try {
+        const context = await browser.newContext({ viewport: { width: 800, height: 700 }, offline: true });
+        const asked = [];
+        await context.route('**/*', (r) => (r.request().url().startsWith('file:') ? r.continue() : (asked.push(r.request().url()), r.abort())));
+        const tab = await context.newPage();
+        await tab.goto(pathToFileURL(join(dir, F.minigame)).href);
+        await tab.locator('#start').click();
+        const faces = await tab.locator('.card').evaluateAll((cards) => cards.map((c) => c.dataset.face));
+        check(faces.length === 8, `the game deals ${faces.length} cards`);
+        const first = faces.findIndex((f) => f === faces[0] && faces.indexOf(f) !== -1);
+        const twin = faces.findIndex((f, i) => i !== first && f === faces[first]);
+        await tab.locator('.card').nth(first).click();
+        await tab.locator('.card').nth(twin).click();
+        check((await tab.locator('#score').innerText()) === '1', 'a pair turned over did not score');
+        check(asked.length === 0, `the game asked the network for ${asked.join(', ')}`);
+        await tab.screenshot({ path: join(out, 'minigame-play.png') });
+      } finally { await browser.close(); }
+
+      // The work was done in the workshop: the game machine already hangs on its wall.
+      const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+      check(await room() === 'workshop', `the game was not made in the workshop: ${await room()}`);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(800);
+      check(await page.evaluate(() => window.lamplightDebug.rooms.get('workshop')?.scene.growth.shows('workshop-arcade')), 'no game machine on the workshop\'s wall');
+      await shop.shot(join(out, 'minigame-arcade.png'));
+
+      // Back home, Adeng says so.
+      await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'cafe'; await sleep(300));
+      check(await room() === 'cafe', `did not go home: ${await room()}`);
+      const said = parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), 'cafe.yaml'), 'utf8')).grow.find((l) => l.id === 'grow_workshop_arcade').bubbles[0];
+      const told = await page.waitForFunction((line) => window.lamplightDebug.scene.isSaying('adeng', line), said, { timeout: 40_000, polling: 200 }).then(() => true, () => false);
+      check(told, `nobody said: ${said}`);
+      await shop.shot(join(out, 'minigame-told.png'));
+
+      await page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await page.evaluate(() => window.lamplightDebug.welcome('dad'));
+      const came = await page.waitForFunction(() => {
+        const g = window.lamplightDebug.scene.guest;
+        return g?.id === 'dad' && g.speech;
+      }, null, { timeout: 20_000 }).then(() => true, () => false);
+      check(came, 'Duoduo\'s dad did not come in and say something');
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('dad')), 'Duoduo\'s dad has no picture');
+      await shop.shot(join(out, 'minigame-dad.png'));
     } finally { await shop.close(); }
   },
 

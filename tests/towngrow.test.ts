@@ -46,7 +46,7 @@ describe('what grows on the street', () => {
 
 describe('what a kind of work brings into its own shop along the street (plan-1.8.md H5)', () => {
   it('puts a family ledger on the print shop\'s counter once there has been one, whatever the shop\'s count', () => {
-    expect(ROOM_WORK).toEqual([{ shop: 'print', id: 'ledgerbook', at: 1, work: 'ledgerbook' }]);
+    expect(ROOM_WORK).toEqual([{ shop: 'print', id: 'ledgerbook', at: 1, work: 'ledgerbook' }, { shop: 'workshop', id: 'arcade', at: 1, work: 'minigame' }]);
     expect(roomGrown('print', 1)).toEqual(['proof']);
     expect(roomGrown('print', 1, { ledgerbook: 1 })).toEqual(['proof', 'ledgerbook']);
     expect(roomGrown('print', 0, { ledgerbook: 1, sheet: 4 })).toEqual(['ledgerbook']);
@@ -58,6 +58,9 @@ describe('what a kind of work brings into its own shop along the street (plan-1.
     expect(roomPieceIds('print')).toEqual(['proof', 'ivy', 'typecase', 'ribbon', 'ledgerbook']);
     expect(roomPieces('print')).toEqual(['print-proof', 'print-ivy', 'print-typecase', 'print-ribbon', 'print-ledgerbook']);
     expect(roomPieceIds('post')).toEqual(['stamp', 'ivy', 'horn', 'map']);
+    // A small game (plan-1.8.md H2) puts a little game machine in the workshop.
+    expect(roomPieceIds('workshop')).toEqual(['gear', 'ivy', 'clock', 'blueprint', 'arcade']);
+    expect(roomGrown('workshop', 0, { minigame: 1 })).toEqual(['arcade']);
   });
 
   it('writes down the day it came, and says so once', () => {

@@ -1476,6 +1476,86 @@
     - pupil: Too cold to hold a pen today.
     - adeng: Hold this cup first.
 
+- id: dad_game
+  when: idle
+  guest: dad
+  turns:
+    - dad: Duoduo plays that matching game every day.
+    - adeng: What's her best time?
+    - dad: Forty seconds. Faster than me.
+
+- id: dad_level
+  when: idle
+  guest: dad
+  turns:
+    - dad: Could you add one harder level?
+    - xiaoju: Write it on the slip next time.
+
+- id: dad_time
+  when: idle
+  guest: dad
+  turns:
+    - dad: We agreed on fifteen minutes a day.
+    - laoshi: Set an alarm and stop when it rings.
+
+- id: dad_bus
+  when: idle
+  guest: dad
+  turns:
+    - dad: It plays with no signal. Good for the bus.
+    - adeng: The underground too.
+
+- id: dad_draw
+  when: idle
+  guest: dad
+  turns:
+    - dad: Duoduo wants to draw herself into the game.
+    - qingdai: Bring the drawing. I'll pick the colours.
+
+- id: dad_rain
+  when: idle
+  guest: dad
+  sky: rain
+  turns:
+    - dad: Rain. One round at home, then.
+    - adeng: Have something hot before you go.
+
+- id: dad_spring
+  when: idle
+  guest: dad
+  after: 20
+  season: spring
+  turns:
+    - dad: Spring. Kites with Duoduo this weekend.
+    - xiaoju: A kite could be a game too.
+
+- id: dad_summer
+  when: idle
+  guest: dad
+  after: 20
+  season: summer
+  turns:
+    - dad: Summer holidays. She asks to play all day.
+    - laoshi: Homework first, then one round.
+
+- id: dad_autumn
+  when: idle
+  guest: dad
+  after: 20
+  season: autumn
+  turns:
+    - dad: School is back. Games are for weekends.
+    - qingdai: Keep the weekend round as a treat.
+
+- id: dad_winter
+  when: idle
+  guest: dad
+  after: 20
+  season: winter
+  turns:
+    - dad: Cold out. Duoduo plays indoors more.
+    - adeng: Then a snowy level next.
+
 - id: qin_book
   when: idle
   guest: bookkeeper

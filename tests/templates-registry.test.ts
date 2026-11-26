@@ -30,7 +30,7 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame']);
   });
 
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
@@ -108,7 +108,7 @@ describe('the template table', () => {
   });
 
   it('adds a family ledger last, made in the print shop, whose piece stands in that shop and not at home (plan-1.8.md H5)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['ledgerbook']);
+    expect(TEMPLATES.map((t) => t.id).slice(21, 22)).toEqual(['ledgerbook']);
     const t = template('ledgerbook');
     expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['print', 22, 'office', { id: 'ledgerbook', at: 1 }, 'bookkeeper', true, false, false, false]);
     for (const [lang, S] of Object.entries(LOCALES)) {
@@ -129,6 +129,25 @@ describe('the template table', () => {
       // Both real-key runs wrote January alone again and again before the twelve months came out in one call: the
       // later months are written like the first.
       expect(steps, lang).toMatch(/like: the first month's name/);
+    }
+  });
+
+  it('adds a small game last, made in the workshop, whose piece stands in the workshop (plan-1.8.md H2)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['minigame']);
+    const t = template('minigame');
+    expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['workshop', 23, 'page', { id: 'arcade', at: 1 }, 'dad', true, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.minigame, lang).toMatch(/\.html$/);
+      expect(F.minigamePng, lang).toMatch(/\.png$/);
+      expect(MAIN_FILES.page(F.minigame), lang).toBe(true);
+      expect((S.ui.templates as Record<string, string>).minigameHint, `${lang} minigameHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).minigame, `${lang} kinds.minigame`).toBeTruthy();
+      // One page that plays offline, its first screen drawn as a picture and looked at, and that picture for the reviewer.
+      const steps = t.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain(`"${F.minigame}"`);
+      expect(steps, lang).toContain(`"${F.minigamePng}" with the mcp__nook-office__render_png tool`);
+      for (const said of [/single self-contained page/, /no libraries/, /straight from disk/, /play again/, /reviewer/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
     }
   });
 
@@ -195,7 +214,7 @@ describe('the template table', () => {
     const at = (shop: string) => TEMPLATES.filter((t) => t.shop === shop).map((t) => t.id).sort();
     expect(at('print')).toEqual(['document', 'ledgerbook', 'resume', 'sheet', 'slides']);
     expect(at('studio')).toEqual(['album', 'chart', 'poster']);
-    expect(at('workshop')).toEqual(['page', 'tool']);
+    expect(at('workshop')).toEqual(['minigame', 'page', 'tool']);
     expect(at('bakery')).toEqual(['menu', 'recipe']);
     expect(at('post')).toEqual(['card', 'newsletter']);
     expect(at('home')).toEqual(['edit', 'flashcards', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);

@@ -21,3 +21,5 @@
 | `pupil.png` | H1 复习卡片带来的客人乐乐，一个要考试的中学生 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
 | `grow-print-ledgerbook.png` | H5 做过家庭账本，印刷铺柜台上一本摊开的账簿。跟街上铺子自己的四件一样手画，放进仓库 | 手画 | `scripts/art/growth.py` |
 | `bookkeeper.png` | H5 家庭账本带来的客人秦阿姨，社区里管家里账的阿姨 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `grow-workshop-arcade.png` | H2 做过小游戏，工坊墙上一块搁板，上面放一台蓝色的小游戏机。手画，放进仓库 | 手画 | `scripts/art/growth.py` |
+| `dad.png` | H2 小游戏带来的客人朵朵爸，想给女儿做个游戏的爸爸，戴一顶蓝色鸭舌帽 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |

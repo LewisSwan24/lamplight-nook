@@ -208,7 +208,7 @@ def pieces_by_id():
 # menu (a card with a red band and prices, plan-1.6.md F1), recipe (a mixing bowl with a spoon in it),
 # card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text),
 # flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1),
-# ledgerbook (a pie chart in cream, red and green, plan-1.8.md H5).
+# ledgerbook (a pie chart in cream, red and green, plan-1.8.md H5), minigame (a blue gamepad, plan-1.8.md H2).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -228,6 +228,7 @@ ICONS = {
     'newsletter': ['.dddddd.', '.dwwwwd.', '.dggggd.', '.dwwwwd.', '.dlwlld.', '.dwwwwd.', '.dlllwd.', '.dddddd.'],
     'flashcards': ['...ddddd', '...dyyyd', 'ddddddyd', 'dwwwwddd', 'drrrrd..', 'dwwwwd..', 'dllwwd..', 'dddddd..'],
     'ledgerbook': ['..dddd..', '.dyyrrd.', 'dyyyrrrd', 'dyyyrrrd', 'dyyyggdd', 'dyygggdd', '.dygggd.', '..dddd..'],
+    'minigame': ['........', '........', '.uuuuuu.', 'uuxuuruu', 'uxxxurru', 'uuxuuuuu', '.uu..uu.', '........'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -242,7 +243,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
@@ -302,7 +303,14 @@ ROOM_SLOTS = {'first': (234, 20), 'ivy': (7, 17), 'eighth': (252, 18), 'twentiet
 # margin line, the red cloth of its cover showing at the foot.
 ROOM_DRAWN['ledgerbook'] = ['.xxxxxxxxxxxxx.', 'xwrwwwwxwrwwwwx', 'xwrlllwxwrlllwx', 'xwrwwwwxwrwwwwx', 'xwrllwwxwrllllx', 'xwwwwwwxwwwwwwx',
                             'xnnnnnnxnnnnnnx', '.xxxxxxxxxxxxx.']
-ROOM_WORK = {'print': [('ledgerbook', (245, 74))]}
+# A small game (plan-1.8.md H2) puts a little game machine on the workshop's wall, on a shelf of its own between the
+# tool board and the right-hand window: a blue cabinet with a yellow marquee, a lit screen, a stick and two red buttons.
+# Written as grow-workshop-arcade.png.
+ROOM_DRAWN['arcade'] = ['..xxxxxxxxx..', '.xuGGGGGGGux.', '.xuuuuuuuuux.', '.xuxxxxxxxux.', '.xuxaaaaaxux.', '.xuxacaaaxux.',
+                        '.xuxaaaGaxux.', '.xuxaaaaaxux.', '.xuxxxxxxxux.', 'xuuuuuuuuuuux', 'xulllurruGuux', 'xuuuuuuuuuuux',
+                        '.xuuuuuuuuux.', '.xuuuxGxuuux.', '.xuuuuuuuuux.', '.xxxxxxxxxxx.', 'kkkkkkkkkkkkk', 'xxxxxxxxxxxxx',
+                        '.x.........x.', '..x.......x..']
+ROOM_WORK = {'print': [('ledgerbook', (245, 74))], 'workshop': [('arcade', (182, 22))]}
 # Shop -> (piece, slot), in the order they come (shared/growth.ts ROOM_GROWTH).
 ROOM_PIECES = {
     'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],

@@ -41,7 +41,8 @@
     "florist": "Fern",
     "organizer": "Mrs Wu",
     "pupil": "Lele",
-    "bookkeeper": "Auntie Qin"
+    "bookkeeper": "Auntie Qin",
+    "dad": "Duoduo's dad"
   },
   "you": {
     "label": "You"
@@ -237,6 +238,9 @@
       "flashcardsHint": "Hand over a handout, notes or a chapter, or paste it into the request. Every question and answer comes from it alone: cards to print and cut apart, and a ten-question quiz with the answers on the back.",
       "ledgerbook": "Family ledger",
       "ledgerbookFill": "Make me a family ledger, starting from ..., where our money mostly goes on: ...",
+      "minigame": "Small game",
+      "minigameFill": "Make me a small game for ... to play, something like ...",
+      "minigameHint": "The workshop makes a small game to play in a browser: one file that opens and plays with no network. Say who will play and what kind of game, such as matching pairs, whack-a-mole or snake.",
       "ledgerbookHint": "The print shop makes an Excel ledger: a sheet a month, and the categories for money in and out on a sheet of their own, to change any time. The month's summary and pie chart work themselves out, so the empty book is ready to fill in.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
@@ -736,7 +740,8 @@
         "florist": "Just passing. The coffee smelled too good.",
         "organizer": "Only a minute. There is a meeting downstairs.",
         "pupil": "Just a minute. One more page to learn.",
-        "bookkeeper": "Just a minute. The shopping is in my basket."
+        "bookkeeper": "Just a minute. The shopping is in my basket.",
+        "dad": "Just a minute. Duoduo is playing outside."
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {
@@ -1243,6 +1248,8 @@
       "journalPage": "journal.html",
       "journalPdf": "journal.pdf",
       "ledgerbook": "family-ledger.xlsx",
+      "minigame": "game.html",
+      "minigamePng": "game.png",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -1457,7 +1464,8 @@
         "card": "Cards",
         "newsletter": "Newsletters",
         "flashcards": "Revision cards",
-        "ledgerbook": "Family ledger"
+        "ledgerbook": "Family ledger",
+        "minigame": "Small game"
       }
     },
     "mini": {
