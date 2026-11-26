@@ -36,7 +36,7 @@ describe('the template table', () => {
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
     expect(TEMPLATES.map((t) => t.id).slice(14, 16)).toEqual(['chart', 'poster']);
     expect(TEMPLATES.slice(14, 16).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[15, 'picture', false], [16, 'picture', false]]);
-    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'cards', 'page', 'office', 'writeup', 'draft', 'table']);
+    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'cards', 'journal', 'page', 'office', 'writeup', 'draft', 'table']);
     for (const [lang, S] of Object.entries(LOCALES)) {
       const F = S.ui.files;
       expect([F.chartPage, F.chartPng, F.posterPage, F.posterPng, F.posterPdf].map((n) => n.slice(n.lastIndexOf('.'))), lang).toEqual(['.html', '.png', '.html', '.png', '.pdf']);
@@ -145,7 +145,7 @@ describe('the template table', () => {
   });
 
   it('tells Office files and PDFs apart as main files, after pages and before write-ups', () => {
-    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'cards', 'page', 'office', 'writeup', 'draft', 'table']);
+    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'cards', 'journal', 'page', 'office', 'writeup', 'draft', 'table']);
     for (const f of ['a.docx', 'b.XLSX', 'c.pptx', 'd.pdf']) expect(MAIN_FILES.office(f), f).toBe(true);
     for (const f of ['a.docm', 'b.xlsm', 'c.pptm', 'd.csv', 'e.html']) expect(MAIN_FILES.office(f), f).toBe(false);
   });

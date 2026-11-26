@@ -177,6 +177,12 @@
   "ui": {
     "startFail": { "title": "The shop couldn't open", "text": "The disk may be full, or the data folder may not be writable. Free up some space and try again.\n\n{reason}" },
     "commissionTitle": "Commission slip",
+    "layout": {
+      "label": "Layout:",
+      "plain": "Guide",
+      "journal": "Journal",
+      "journalHint": "One A4 page, portrait: the route, a list for each day and a small map of the route drawn on it. Saved as a PDF to print and take along."
+    },
     "templates": {
       "label": "Pick one, or just write",
       "demo": "Sample: expense tracker",
@@ -1234,6 +1240,8 @@
       "flashcardsPdf": "flashcards.pdf",
       "quizPage": "quiz.html",
       "quizPdf": "quiz.pdf",
+      "journalPage": "journal.html",
+      "journalPdf": "journal.pdf",
       "ledgerbook": "family-ledger.xlsx",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",

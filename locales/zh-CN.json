@@ -177,6 +177,12 @@
   "ui": {
     "startFail": { "title": "小灯屋打不开", "text": "可能是硬盘满了，或者数据文件夹不能写入。腾出些空间再试一次。\n\n{reason}" },
     "commissionTitle": "委托单",
+    "layout": {
+      "label": "版式：",
+      "plain": "攻略",
+      "journal": "手账",
+      "journalHint": "一页 A4 竖排的手账：路线、每天的清单，加一张画出来的路线小图。存成 PDF，打印出来带着走。"
+    },
     "templates": {
       "label": "挑一种，或者直接写",
       "demo": "示范：记账小页面",
@@ -1234,6 +1240,8 @@
       "flashcardsPdf": "复习卡片.pdf",
       "quizPage": "小测.html",
       "quizPdf": "小测.pdf",
+      "journalPage": "旅行手账.html",
+      "journalPdf": "旅行手账.pdf",
       "ledgerbook": "家庭账本.xlsx",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",

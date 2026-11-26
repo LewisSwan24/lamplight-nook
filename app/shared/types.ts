@@ -5,7 +5,7 @@ import type { RoomId, SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
-import type { TemplateId } from './templates';
+import type { TemplateId, TemplateLayout } from './templates';
 import type { Shop } from './dispatch';
 import type { ModelTier } from './models';
 import type { Provider } from './providers';
@@ -334,7 +334,9 @@ export type CommissionTemplate = TemplateId;
  * `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in.
  * `connections`: the connections ticked under "this one may use" (road-to-1.3.md C4); none unless the user ticks one.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[];
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate;
+  /** One of the template's own layouts, picked on the slip (plan-1.8.md H6); absent: the plain one. */
+  layout?: TemplateLayout; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[];
   /** The model this one commission runs on, changed on the slip (plan-1.6.md F6); absent: the one in settings. */
   model?: ModelTier;
   /** Handed in from a paired device on the home network (docs/plan-1.5.md E5): which one. Absent: the owner, at the desk. */
