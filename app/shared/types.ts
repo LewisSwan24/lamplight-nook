@@ -19,9 +19,10 @@ export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'a
  * Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts):
  * since plan-1.6.md F1 also Old Ma from the noodle bar (`cook`) and Lin who lives upstairs (`lodger`), and since F2 Fern
  * from the flower shop (`florist`) and Mrs Wu from the residents' committee (`organizer`); since plan-1.8.md H1 Lele, who
- * has exams coming (`pupil`), and since H5 Auntie Qin, who keeps her household's accounts (`bookkeeper`).
+ * has exams coming (`pupil`), since H5 Auntie Qin, who keeps her household's accounts (`bookkeeper`), and since H2
+ * Duoduo's dad, who wanted a small game for his daughter (`dad`).
  */
-export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil', 'bookkeeper'] as const;
+export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil', 'bookkeeper', 'dad'] as const;
 export type GuestId = (typeof GUESTS)[number];
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;

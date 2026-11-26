@@ -145,6 +145,13 @@ GUESTS = {
                    'Outfits/16x16/Outfit_25_01.png', 'Hairstyles/16x16/Hairstyle_07_04.png'],
         'recolor': {'Outfits/16x16/Outfit_25_01.png': [((180, 240), '#A9503C')]},
     },
+    # A small game brings Duoduo's dad (plan-1.8.md H2), who wanted one for his daughter: short black hair under a
+    # snapback, a plain everyday outfit. Written as dad.png.
+    'dad': {
+        'layers': ['Bodies/16x16/Body_03.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_26_01.png', 'Hairstyles/16x16/Hairstyle_02_01.png',
+                   'Accessories/16x16/Accessory_04_Snapback_02.png'],
+    },
 }
 
 # The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as

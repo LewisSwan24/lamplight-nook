@@ -129,6 +129,8 @@ describe('new neighbours, who come because of the work', () => {
     expect(welcomeGuests({ flashcards: 1 })).toEqual(['baker', 'postman', 'pupil']);
     // A family ledger from the print shop (plan-1.8.md H5) brings Auntie Qin, who keeps her household's accounts.
     expect(welcomeGuests({ ledgerbook: 1 })).toEqual(['baker', 'postman', 'bookkeeper']);
+    // A small game from the workshop (plan-1.8.md H2) brings Duoduo's dad, who wanted one for his daughter.
+    expect(welcomeGuests({ minigame: 1 })).toEqual(['baker', 'postman', 'dad']);
   });
 
   it('only sends those who are welcome, and someone new soon after they are', () => {

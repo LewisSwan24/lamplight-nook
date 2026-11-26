@@ -18,6 +18,13 @@
   it, and the year sheet adds the months up and draws them. The empty book is ready to use as it is. The first one
   leaves an open ledger on the print shop's counter, and brings Auntie Qin, who keeps her family's accounts and drops
   in to talk about the price of greens.
+- **Travel journal.** The travel guide on the order slip now comes in two layouts. Pick Journal for one A4 page to
+  print and take along: the route, a short list for each day, and a small map of the route drawn on the page, saved
+  as a PDF.
+- **Small game.** A new kind of order in the workshop: a small game to play in a browser, such as matching pairs,
+  whack-a-mole or snake. It is one page that opens and plays with no network, pitched for whoever will play it. The
+  first one hangs a little game machine on the workshop's wall, and brings Duoduo's dad, who wanted a game for his
+  daughter and drops in to say how she is getting on.
 - **Charts in Excel files.** Workbooks the shop makes can carry pie and column charts and drop-down lists, and the
   picture on the result card shows what a workbook's formulas come to rather than the formulas themselves.
 

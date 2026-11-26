@@ -89,6 +89,8 @@ const T = {
     planDone: '计划排好了：按周排，每一步都能在一次坐下来时做完，每周留了一天补课。',
     resumeDone: '简历做好了：一页 A4，另外存了一份 PDF，可以直接发出去。不知道的地方留在方括号里，按办公室文职的方向写的。',
     notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
+    minigame: ['弄清给谁玩、玩什么', '定好玩法和规则', '写成一个网页', '画出第一屏看一眼', '请老石试玩'],
+    minigameDone: '小游戏做好了：翻牌找朋友，点两张一样的就留下，全翻开就赢。一个网页，打开就能玩，不用联网。',
     journal: ['弄清去哪、几天', '请小橘查开放时间和票价', '排成一页手账，画路线图', '存成 PDF，再看一遍', '请老石检查'],
     journalDone: '手账做好了：一页 A4，三天的路线和清单，还有一张手画的路线图，存成了 PDF。开放时间注了出处，出发前再核对一下。',
     travelDone: '攻略做好了：按天排的行程、预算表和要带的东西。开放时间和票价都注了出处和查的日期，出发前再核对一下。',
@@ -194,6 +196,8 @@ const T = {
     planDone: 'The plan is ready: week by week, each step small enough for one sitting, with a spare day each week.',
     resumeDone: 'The résumé is ready: one A4 page, and a PDF of it to send straight away. What I did not know is left in square brackets. I shaped it for an office job.',
     notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
+    minigame: ['Who plays, and what game', 'Settle the rules', 'Write it as one page', 'Draw the first screen and look', 'Ask Flint to try it'],
+    minigameDone: 'The game is ready: find the pairs. Turn over two cards; a matching pair stays face up. One page that plays with no network.',
     journal: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out one page, draw the route', 'Save the PDF and look it over', 'Ask Flint to check it'],
     journalDone: 'The travel journal is ready: one A4 page with the three days, a list for each and a hand-drawn map of the route, saved as a PDF. Opening hours carry their source; check them again before you set off.',
     travelDone: 'The travel guide is ready: day by day, a budget table and a packing list. Opening hours and prices carry their source and the date checked; check them again before you set off.',
@@ -360,6 +364,26 @@ const JOURNAL = {
     places: [['Castle', 40, 110], ['Royal Mile', 120, 95], ['Holyrood', 200, 80], ["Arthur's Seat", 215, 165]],
   },
 };
+/**
+ * A small game (plan-1.8.md H2): matching pairs on one page, nothing loaded from anywhere. Each card keeps its face in
+ * data-face, so a scenario can find a pair without guessing.
+ */
+const GAME = {
+  zh: { title: '翻牌找朋友', how: '点两张牌，一样的就留着。全部翻开就赢了。', start: '开始', score: '找到', again: '再玩一次', won: '全找到了！' },
+  en: { title: 'Find the pairs', how: 'Turn over two cards. A matching pair stays face up. Find them all to win.', start: 'Start', score: 'Pairs', again: 'Play again', won: 'All found!' },
+};
+function gamePage(lang) {
+  const G = GAME[lang];
+  const script = "var faces=['\u{1F34E}','\u{1F34C}','\u{1F347}','\u{1F353}'],open=[],found=0;"
+    + "var grid=document.getElementById('grid'),score=document.getElementById('score'),again=document.getElementById('again'),won=document.getElementById('won');"
+    + "function deal(){found=0;open=[];score.textContent=0;again.hidden=true;won.hidden=true;grid.replaceChildren.apply(grid,faces.concat(faces).sort(function(){return Math.random()-.5}).map(function(f){var b=document.createElement('button');b.className='card';b.dataset.face=f;b.textContent='?';b.onclick=function(){turn(b)};return b}))}"
+    + "function turn(b){if(b.classList.contains('up')||open.length===2)return;b.classList.add('up');b.textContent=b.dataset.face;open.push(b);if(open.length<2)return;"
+    + "if(open[0].dataset.face===open[1].dataset.face){found++;score.textContent=found;open=[];if(found===faces.length){again.hidden=false;won.hidden=false}}"
+    + "else setTimeout(function(){open.forEach(function(x){x.classList.remove('up');x.textContent='?'});open=[]},700)}"
+    + "document.getElementById('start').onclick=function(){this.hidden=true;deal()};again.onclick=deal;";
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${G.title}</title><style>body{font-family:system-ui,sans-serif;background:#fdf6e3;color:#3a2f28;text-align:center;margin:0;padding:24px}h1{font-size:40px;margin:8px 0}p{font-size:20px}button{font-size:24px;border:0;border-radius:12px;background:#e0884a;color:#fff;padding:12px 32px;cursor:pointer}#grid{display:grid;grid-template-columns:repeat(4,110px);gap:14px;justify-content:center;margin:20px 0}.card{height:110px;padding:0;font-size:48px;background:#6a8fc0}.card.up{background:#fff;color:#3a2f28;box-shadow:0 0 0 3px #e0884a inset}.score{font-size:22px}</style></head>\n<body><h1>${G.title}</h1><p>${G.how}</p><p class="score">${G.score}：<b id="score">0</b></p><button id="start">${G.start}</button><div id="grid"></div><p id="won" hidden>${G.won}</p><button id="again" hidden>${G.again}</button><script>${script}</script></body></html>\n`;
+}
+
 function journalPage(lang) {
   const J = JOURNAL[lang];
   const dots = J.places.map(([name, x, y], i) => `<circle cx="${x}" cy="${y}" r="6"/><text x="${x + 9}" y="${y + 4}">${i + 1} ${name}</text>`).join('');
@@ -495,6 +519,11 @@ export function pickPlay(prompt, state, system = '') {
     return plays.resume;
   }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
+  if (/This is a small game to play in a browser/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    state.vars.png = quoted(prompt, 'first screen as');
+    return plays.minigame;
+  }
   if (/This is a travel journal/.test(prompt)) {
     state.vars.out = quoted(prompt, 'single self-contained page');
     state.vars.pdf = quoted(prompt, 'Save it as');
@@ -1075,6 +1104,13 @@ export const plays = {
   }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
+  minigame: simpleText('minigame', null, (t) => t.minigameDone, {
+    make: (s) => s.write(s.state.vars.out, gamePage(s.state.lang)),
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 800, height: 600 });
+      await s.read(s.state.vars.png);
+    },
+  }),
   journal: simpleText('journal', null, (t) => t.journalDone, {
     research: true,
     make: (s) => s.write(s.state.vars.out, journalPage(s.state.lang)),
