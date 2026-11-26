@@ -1,3 +1,3 @@
-import type { SheetSpec } from '../../app/main/office/specs';
+import type { SheetInput } from '../../app/main/office/specs';
 
-export function ledgerBook(lang: 'zh' | 'en'): SheetSpec;
+export function ledgerBook(lang: 'zh' | 'en'): SheetInput;

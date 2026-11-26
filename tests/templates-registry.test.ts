@@ -126,6 +126,9 @@ describe('the template table', () => {
       // saving looks at the charts and lists too, now that read_document shows them.
       expect(steps, lang).toContain(`to row ${LIST_ROWS}`);
       expect(steps, lang).toMatch(/each chart and drop-down list/);
+      // Both real-key runs wrote January alone again and again before the twelve months came out in one call: the
+      // later months are written like the first.
+      expect(steps, lang).toMatch(/like: the first month's name/);
     }
   });
 

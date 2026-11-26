@@ -2,11 +2,12 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { computeBook, formulaProblem, type Value } from '../app/main/office/formula';
 import { previewHtml } from '../app/main/office/preview';
 import { bookCells, readDocument } from '../app/main/office/read';
 import { officeSafe } from '../app/main/office/safe';
-import type { Cell, SheetSpec } from '../app/main/office/specs';
+import { fillSheets, sheetSpecShape, type Cell, type SheetSpec } from '../app/main/office/specs';
 import { readZip } from '../app/main/office/unzip';
 import { LIST_ROWS, makeXlsx, sheetCells } from '../app/main/office/xlsx';
 import { ledgerBook } from '../tools/sim/ledger.mjs';
@@ -200,10 +201,50 @@ describe('working out the formulas', () => {
   });
 });
 
+describe('a sheet made like another', () => {
+  // Twelve months alike would be twelve copies of the same long structure, and a model writing them out stops after
+  // the first. With like, the rest are a line each.
+  const jan = {
+    name: 'Jan',
+    freezeHeader: true,
+    columns: [{ header: 'Date', format: 'date' as const }, { header: 'Category', list: "'Kinds'!$A$2:$A$9" }, { header: 'Out', format: 'money' as const }],
+    rows: [[null, null, null, { f: '=SUM(C2:C500)' }]] as Cell[][],
+    charts: [{ type: 'pie' as const, title: 'Jan spending', labels: 'B2:B9', values: 'C2:C9' }],
+  };
+
+  it('copies an earlier sheet, its columns, rows, lists and charts, under its own name', () => {
+    const book = fillSheets({ sheets: [jan, { name: 'Feb', like: 'Jan' }] });
+    // A chart title that names the sheet it was copied from takes the new name.
+    expect(book.sheets[1]).toEqual({ ...jan, name: 'Feb', charts: [{ ...jan.charts[0], title: 'Feb spending' }] });
+    // A copy of its own: filling in February leaves January as it was.
+    book.sheets[1].rows[0][0] = 46054;
+    expect(book.sheets[0]).toEqual(jan);
+  });
+
+  it('keeps what the copy gives itself in place of the original\'s, and copies a copy', () => {
+    const rows = [[1, 2, 3]];
+    const [, feb, mar] = fillSheets({ sheets: [jan, { name: 'Feb', like: 'Jan', rows, charts: [] }, { name: 'Mar', like: 'Feb' }] }).sheets;
+    expect(feb).toEqual({ ...jan, name: 'Feb', rows, charts: [] });
+    expect(mar).toEqual({ ...feb, name: 'Mar' });
+  });
+
+  it('copies only a sheet given before it, and a sheet with nothing to copy needs its columns and rows', () => {
+    expect(() => fillSheets({ sheets: [{ name: 'Feb', like: 'Jan' }, jan] })).toThrow(/"Jan" .*before/);
+    expect(() => fillSheets({ sheets: [jan, { name: 'Feb', like: 'Mar' }] })).toThrow(/"Mar"/);
+    expect(() => fillSheets({ sheets: [{ name: 'Feb', rows: [] }] })).toThrow(/"Feb" .*columns/);
+  });
+
+  it('is what make_xlsx takes: a sheet may be only its name and the sheet it is like', () => {
+    const input = z.object(sheetSpecShape);
+    expect(input.safeParse({ file: 'a.xlsx', sheets: [jan, { name: 'Feb', like: 'Jan' }] }).success).toBe(true);
+    expect(input.safeParse({ file: 'a.xlsx', sheets: [jan, { name: 'Feb', like: '' }] }).success).toBe(false);
+  });
+});
+
 describe('the stand-in\'s family ledger, worked out', () => {
   for (const lang of ['zh', 'en'] as const) {
     describe(lang, () => {
-      const spec = ledgerBook(lang) as SheetSpec;
+      const spec = fillSheets(ledgerBook(lang));
       const [jan, , mar] = spec.sheets;
       const year = spec.sheets[12];
       const kinds = spec.sheets[13];
@@ -219,6 +260,9 @@ describe('the stand-in\'s family ledger, worked out', () => {
 
       it('is twelve months, the year and the categories, each month with a list of categories and a pie chart', () => {
         expect(spec.sheets).toHaveLength(14);
+        // The stand-in writes January out and each later month as a line like it, as the staff are told to.
+        const written = ledgerBook(lang).sheets;
+        expect(written.slice(1, 12).every((m) => Object.keys(m).join() === 'name,like' && m.like === written[0].name)).toBe(true);
         for (const m of spec.sheets.slice(0, 12)) {
           expect(m.columns[2].list, m.name).toBe(`'${kinds.name}'!$A$2:$A$16`);
           expect(m.charts, m.name).toEqual([expect.objectContaining({ type: 'pie', labels: 'H7:H21', values: 'I7:I21' })]);

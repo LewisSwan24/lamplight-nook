@@ -37,7 +37,7 @@ const WORDS = {
   },
 };
 
-/** The workbook make_xlsx is handed, in the language of the request. */
+/** The workbook make_xlsx is handed, in the language of the request: the first month in full, each later one like it. */
 export function ledgerBook(lang) {
   const L = WORDS[lang];
   const kinds = `'${L.categories}'`;
@@ -87,5 +87,5 @@ export function ledgerBook(lang) {
     columns: [{ header: L.kindsHead[0], width: 14 }, { header: L.kindsHead[1], width: 10, list: L.kinds }],
     rows: [...L.income.map((c) => [c, L.kinds[0]]), ...L.spending.map((c) => [c, L.kinds[1]])],
   };
-  return { sheets: [...L.months.map(month), year, categories] };
+  return { sheets: [month(L.months[0]), ...L.months.slice(1).map((name) => ({ name, like: L.months[0] })), year, categories] };
 }
