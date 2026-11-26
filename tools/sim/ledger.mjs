@@ -7,8 +7,8 @@
 // chart of it. The year sheet takes each month's three totals and draws the spending month by month.
 
 /** Rows a month has room for, from row 2. */
-const ENTRY_ROWS = 300;
-const LAST = ENTRY_ROWS + 1;
+// The entries' last row: as far down as make_xlsx's list to pick from reaches (LIST_ROWS), as the prompt asks.
+const LAST = 500;
 /** Category slots on the categories sheet (rows 2 to 16), each a line of every month's summary (rows 7 to 21). */
 const SLOTS = 15;
 

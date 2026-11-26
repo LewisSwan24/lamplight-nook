@@ -5533,7 +5533,7 @@ const SCENARIOS = {
       const part = (name) => readFileSync(join(book.dir, ...name.split('/')), 'utf8');
       const jan = part('xl/worksheets/sheet1.xml');
       check(/<dataValidation type="list"[^>]*sqref="C2:C\d+"/.test(jan), 'January has no list of categories to pick from');
-      check(/<f>IF\(H7="","",SUMIF\(\$C\$2:\$C\$301,H7,\$E\$2:\$E\$301\)\)<\/f>/.test(jan.replace(/&quot;/g, '"')), 'January\'s summary does not sum by category');
+      check(/<f>IF\(H7="","",SUMIF\(\$C\$2:\$C\$500,H7,\$E\$2:\$E\$500\)\)<\/f>/.test(jan.replace(/&quot;/g, '"')), 'January\'s summary does not sum by category');
       check(/<c r="A2"/.test(jan) === false, 'January is not empty: the empty book is the piece');
       check(part('xl/charts/chart1.xml').includes('<c:pieChart>'), 'January has no pie chart');
       check(part('xl/charts/chart13.xml').includes('<c:barChart>'), 'the year has no column chart');

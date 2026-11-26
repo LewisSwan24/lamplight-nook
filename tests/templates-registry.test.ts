@@ -5,6 +5,7 @@ import { LOCALES } from '../app/shared/i18n';
 import { WORK_ICONS } from '../app/shared/growth';
 import { EDITABLE, MAIN_FILES, MAX_EDIT_BYTES, TEMPLATES, shopOf, template } from '../app/shared/templates';
 import { SHOPS } from '../app/shared/dispatch';
+import { LIST_ROWS } from '../app/main/office/xlsx';
 import { readPng } from './png';
 
 /** The one table of templates (road-to-1.1.md A7): every record has what the rest of the app looks up by its id. */
@@ -121,6 +122,10 @@ describe('the template table', () => {
       expect(steps, lang).toContain(`"${F.ledgerbook}"`);
       expect(steps.match(/mcp__nook-office__make_xlsx/g)?.length, lang).toBe(1);
       for (const said of [/one sheet for each month/, /categories sheet/, /pie chart/, /drop-down list/, /works itself out/, /empty/i]) expect(steps, `${lang} ${said}`).toMatch(said);
+      // The sums reach the rows the list does (the real-key run summed 30 rows of a 500-row list), and the check after
+      // saving looks at the charts and lists too, now that read_document shows them.
+      expect(steps, lang).toContain(`to row ${LIST_ROWS}`);
+      expect(steps, lang).toMatch(/each chart and drop-down list/);
     }
   });
 

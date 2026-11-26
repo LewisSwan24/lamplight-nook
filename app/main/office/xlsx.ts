@@ -117,7 +117,7 @@ function sheetXml(sheet: SheetSpec['sheets'][number], first: boolean, drawing: b
 }
 
 /** How far down a column's list to pick from reaches, at least. */
-const LIST_ROWS = 500;
+export const LIST_ROWS = 500;
 
 /** A list to pick from as Excel keeps it: a range of the workbook, or the words themselves in quotes. */
 function listFormula(list: string | string[]): string {
