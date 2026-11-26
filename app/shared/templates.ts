@@ -12,6 +12,10 @@ import type { Shop } from './dispatch';
 
 type Files = Strings['ui']['files'];
 
+/** Layouts a kind may come in besides its plain one, picked on the slip (plan-1.8.md H6): the travel guide's journal. */
+export const LAYOUTS = ['journal'] as const;
+export type TemplateLayout = (typeof LAYOUTS)[number];
+
 /** What a template's prompt is built from: the shop's words for its files, and the file or folder the user picked. */
 export type PromptParts = {
   language: string;
@@ -21,6 +25,8 @@ export type PromptParts = {
   /** What the shop calls its copy of a picked file, and the edited version. */
   original: string;
   revised: string;
+  /** The layout picked on the slip, one of the template's own `layouts`; absent: the plain one. */
+  layout?: TemplateLayout;
 };
 
 /**
@@ -41,6 +47,8 @@ export const MAIN_FILES = {
   picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng,
   /** Revision cards (plan-1.8.md H1): their PDF, before the pages they were printed from and before the quiz. */
   cards: (name: string, files: Files) => name === files.flashcardsPdf,
+  /** A travel journal (plan-1.8.md H6): its PDF, before the page it was printed from. */
+  journal: (name: string, files: Files) => name === files.journalPdf,
   page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
@@ -72,6 +80,8 @@ export type TemplateSpec = {
   roomGrowth?: { id: string; at: number };
   /** A neighbour who starts dropping in once there has been one (guests.ts). */
   guest?: GuestId;
+  /** Layouts the slip offers besides the plain one (plan-1.8.md H6); `ui.templates.layout.<id>` names each. */
+  layouts?: readonly TemplateLayout[];
 };
 
 /**
@@ -80,6 +90,26 @@ export type TemplateSpec = {
  */
 export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf'];
 export const MAX_EDIT_BYTES = 20 * 1024 * 1024;
+
+/**
+ * The travel guide as a journal (plan-1.8.md H6): one A4 page to print and take along, the route, a list for each day
+ * and a map of the route drawn on the page itself. The shop has no way to take a picture of a web map, and a page that
+ * loads one would not print offline, so the map is drawn.
+ */
+function journalSteps(language: string, files: Files): string[] {
+  return [
+    'This is a travel journal: the trip on one page, to print and take along.',
+    `Make it as a single self-contained page "${files.journalPage}" for one A4 page, portrait: CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+    'Lay it out like a hand-kept journal, the parts side by side: the route at the top, a short list for each day (where to go, what to do, what to bring), and a small map of the route.',
+    'Draw the map yourself in inline SVG: the places as dots roughly where they lie to each other, joined in the order of the trip, each with its name and the day it falls on. It is a sketch, never a web map or a picture of one.',
+    'Send the researcher subagent to check what changes: opening hours, ticket prices, how to get there. Give each such fact its source and the date it was checked in small print, and remind the user to check again before setting off.',
+    'If something cannot be found, say so instead of guessing.',
+    `Write it in ${language}.`,
+    `Save it as "${files.journalPdf}" with the mcp__nook-office__make_pdf tool.`,
+    'When it is saved, look at it with the Read tool: check it is one page, nothing is cut off and nothing overlaps, and fix the page and save it again if not.',
+    `In your final reply, say in ${language}, in one line, which days and places it covers.`,
+  ];
+}
 
 /** What the edit template asks for, by the kind of file: text by hand, Office files by number with the edit tools, a PDF again as Word. */
 function editSteps({ original, revised }: PromptParts): string[] {
@@ -203,8 +233,8 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'travel', shop: 'home', icon: 11, revise: true, main: 'index', growth: { id: 'postcards', at: 1 },
-    steps: ({ language }) => [
+    id: 'travel', shop: 'home', icon: 11, revise: true, main: 'index', growth: { id: 'postcards', at: 1 }, layouts: ['journal'],
+    steps: ({ language, files, layout }) => layout === 'journal' ? journalSteps(language, files) : [
       'This is a travel guide.',
       'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
       'Lay it out day by day, then a budget table, then a packing list. For each place give a link to it on a map; do not embed maps.',

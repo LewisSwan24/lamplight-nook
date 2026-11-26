@@ -3,7 +3,7 @@ import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type Citations, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
-import { TEMPLATES, type TemplateSpec } from '../../shared/templates';
+import { TEMPLATES, type TemplateLayout, type TemplateSpec } from '../../shared/templates';
 import { isPicture } from '../../shared/pictures';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -258,6 +258,23 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       lentHint.classList.add('warn');
     };
 
+    // A kind that comes in more than one layout (plan-1.8.md H6): its plain one, or one of its own, picked here.
+    let layout: TemplateLayout | undefined;
+    const layoutChips = el('span.layout-chips');
+    const layoutHint = el('div.hint.layout-hint');
+    const layoutRow = el('div.layout-row', { hidden: true }, el('div.layout-line', {}, el('span.material-label', {}, U.layout.label), layoutChips), layoutHint);
+    const showLayouts = () => {
+      const own = chosen?.spec?.layouts ?? [];
+      if (layout && !own.includes(layout)) layout = undefined;
+      layoutRow.hidden = !own.length;
+      layoutChips.replaceChildren(...[undefined, ...own].map((l) => {
+        const chip = el('button.layout-chip', { type: 'button', 'aria-pressed': String(layout === l), onclick: () => { layout = l; showLayouts(); } }, l ? U.layout[l] : U.layout.plain);
+        chip.classList.toggle('on', layout === l);
+        return chip;
+      }));
+      layoutHint.textContent = layout ? U.layout[`${layout}Hint`] : '';
+    };
+
     const needsSource = () => Boolean(chosen?.spec?.source);
     // What to hand over: a template that needs no file or folder may say what helps (photos for the album, an old résumé).
     const materialsHint = () => (chosen && !needsSource() && hintOf(chosen.id)) || U.materials.hint;
@@ -271,6 +288,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       materialHint.textContent = materialsHint();
       materialHint.classList.remove('warn');
       showLent();
+      showLayouts();
     };
     // Picking a sticker again puts it back; text the user already wrote is only replaced if it was a template's.
     const choose = (t: Sticker) => {
@@ -388,6 +406,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         el('button.link.consult-open', { type: 'button', onclick: openTalk }, C.open),
         el('div.hint', {}, T.label),
         el('div.template-row', {}, ...chips),
+        layoutRow,
         consultNote,
         el('label', {}, U.want, want),
         // Something that fits the time of year, filled in with a click (plan-1.7.md G5).
@@ -474,6 +493,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         audience: audience.value.trim() || undefined,
         demo: chosen?.id === 'demo' && text === U.demoFill,
         template,
+        layout: template ? layout : undefined,
         source: needsSource() ? source?.path : undefined,
         materials: chosen?.id === 'demo' || inPlace ? undefined : materials.map((m) => m.path),
         inPlace: inPlace?.path,

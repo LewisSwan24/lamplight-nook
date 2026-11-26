@@ -29,6 +29,8 @@ for (const lang of ['zh-CN', 'en'] as const) {
     it('a new commission of every kind', async () => {
       const c = await inLanguage(lang);
       const out = Object.fromEntries([undefined, ...IDS].map((t) => [t ?? 'none', c.commissionPrompt(form(t), 'NOTES')]));
+      // The travel guide's journal layout (plan-1.8.md H6).
+      out.travelJournal = c.commissionPrompt({ ...form('travel'), layout: 'journal' }, 'NOTES');
       expect(out).toMatchSnapshot();
     });
 

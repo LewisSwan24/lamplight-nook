@@ -89,6 +89,8 @@ const T = {
     planDone: '计划排好了：按周排，每一步都能在一次坐下来时做完，每周留了一天补课。',
     resumeDone: '简历做好了：一页 A4，另外存了一份 PDF，可以直接发出去。不知道的地方留在方括号里，按办公室文职的方向写的。',
     notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
+    journal: ['弄清去哪、几天', '请小橘查开放时间和票价', '排成一页手账，画路线图', '存成 PDF，再看一遍', '请老石检查'],
+    journalDone: '手账做好了：一页 A4，三天的路线和清单，还有一张手画的路线图，存成了 PDF。开放时间注了出处，出发前再核对一下。',
     travelDone: '攻略做好了：按天排的行程、预算表和要带的东西。开放时间和票价都注了出处和查的日期，出发前再核对一下。',
     toolDone: '小工具做好了：1. 打开小工具.html；2. 选一个文件；3. 点「下载结果」。它只读你选的文件，不动电脑上别的东西。',
     toolScriptDone: '脚本写好了：1. 双击启动文件；2. 把文件夹拖进窗口；3. 看过要做的事再确认。',
@@ -192,6 +194,8 @@ const T = {
     planDone: 'The plan is ready: week by week, each step small enough for one sitting, with a spare day each week.',
     resumeDone: 'The résumé is ready: one A4 page, and a PDF of it to send straight away. What I did not know is left in square brackets. I shaped it for an office job.',
     notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
+    journal: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out one page, draw the route', 'Save the PDF and look it over', 'Ask Flint to check it'],
+    journalDone: 'The travel journal is ready: one A4 page with the three days, a list for each and a hand-drawn map of the route, saved as a PDF. Opening hours carry their source; check them again before you set off.',
     travelDone: 'The travel guide is ready: day by day, a budget table and a packing list. Opening hours and prices carry their source and the date checked; check them again before you set off.',
     toolDone: 'The tool is ready: 1. Open tool.html. 2. Pick a file. 3. Click "Download the result". It only reads the file you pick.',
     toolScriptDone: 'The script is ready: 1. Double-click the launcher. 2. Drop a folder on the window. 3. Look over what it will do, then confirm.',
@@ -340,6 +344,30 @@ function cardsFrom(s) {
   return (pairs.length ? pairs : C.sample).map(([term, a]) => ({ term, q: C.ask(term), a }));
 }
 
+/**
+ * A travel journal (plan-1.8.md H6): one A4 page, the route across the top, a list for each day, and the route drawn as
+ * a sketch in SVG, places as numbered dots joined in the order of the trip. Nothing on it comes from the web.
+ */
+const JOURNAL = {
+  zh: {
+    title: '杭州三日手账', route: '路线', map: '路线图', checked: '开放时间查自景区官网，2026-11-27 查的，出发前再核对一下。',
+    days: [['第一天', '西湖', ['断桥看日出', '苏堤骑车', '带：水和防晒']], ['第二天', '灵隐寺', ['早上八点前到', '飞来峰石刻', '带：现金买香']], ['第三天', '龙井村', ['喝一杯明前茶', '晚上去河坊街', '带：能走路的鞋']]],
+    places: [['西湖', 150, 120], ['灵隐寺', 50, 70], ['龙井村', 70, 175], ['河坊街', 205, 165]],
+  },
+  en: {
+    title: 'Three days in Edinburgh', route: 'Route', map: 'Map of the route', checked: 'Opening hours from the official sites, checked 2026-11-27. Check again before you set off.',
+    days: [['Day 1', 'The Castle', ['Go at opening time', 'One o\'clock gun', 'Bring: a rain jacket']], ['Day 2', 'Royal Mile', ['St Giles\' Cathedral', 'A close or two', 'Bring: cash for tea']], ['Day 3', 'Holyrood', ['The palace first', 'Up Arthur\'s Seat', 'Bring: walking shoes']]],
+    places: [['Castle', 40, 110], ['Royal Mile', 120, 95], ['Holyrood', 200, 80], ["Arthur's Seat", 215, 165]],
+  },
+};
+function journalPage(lang) {
+  const J = JOURNAL[lang];
+  const dots = J.places.map(([name, x, y], i) => `<circle cx="${x}" cy="${y}" r="6"/><text x="${x + 9}" y="${y + 4}">${i + 1} ${name}</text>`).join('');
+  const line = J.places.map(([, x, y]) => `${x},${y}`).join(' ');
+  const days = J.days.map(([day, where, items]) => `<section class="day"><h2>${day} · ${where}</h2><ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul></section>`).join('');
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${J.title}</title><style>@page{size:A4 portrait;margin:12mm}html,body{margin:0}body{font-family:system-ui,sans-serif;color:#2f2a26;height:270mm;display:grid;grid-template-rows:auto auto auto 1fr auto;gap:6mm}h1{margin:0;font-size:22pt}.route{font-size:12pt;border-bottom:1.5px dashed #b99c7a;padding-bottom:3mm}.days{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}.day{border:1.5px solid #d8c6ae;border-radius:3mm;padding:3mm 4mm;background:#fdf8ef}.day h2{font-size:13pt;margin:0 0 2mm}.day ul{margin:0;padding-left:5mm;font-size:11pt;line-height:1.6}figure{margin:0}figure svg{width:100%;height:110mm;border:1.5px solid #d8c6ae;border-radius:3mm;background:#fffdf8}figure circle{fill:#c0603a}figure polyline{fill:none;stroke:#c0603a;stroke-width:2;stroke-dasharray:6 4}figure text{font-size:9px;fill:#2f2a26}figcaption{font-size:11pt;margin-bottom:2mm}small{font-size:9pt;color:#7a6e64}</style></head>\n<body><h1>${J.title}</h1><div class="route"><b>${J.route}：</b>${J.places.map(([n]) => n).join(' → ')}</div><div class="days">${days}</div><figure><figcaption>${J.map}</figcaption><svg viewBox="0 0 260 220" role="img" aria-label="${J.map}"><polyline points="${line}"/>${dots}</svg></figure><small>${J.checked}</small></body></html>\n`;
+}
+
 const SHEET_STYLE = '@page{size:A4;margin:10mm}html,body{margin:0}body{font-family:system-ui,sans-serif;color:#2a2233}section{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);height:276mm;break-after:page}.c{border:1px dashed #9a9a9a;padding:8mm;position:relative;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15pt;break-inside:avoid}.c b{position:absolute;top:3mm;left:4mm;font-size:9pt;color:#8a8a8a}.a{background:#fdf6e3;font-size:12pt}';
 
 /** Eight cards to a sheet; behind each sheet of questions, their answers with each row's two cards swapped. */
@@ -467,6 +495,11 @@ export function pickPlay(prompt, state, system = '') {
     return plays.resume;
   }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
+  if (/This is a travel journal/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    state.vars.pdf = quoted(prompt, 'Save it as');
+    return plays.journal;
+  }
   if (/This is a travel guide/.test(prompt)) { state.vars.out = 'index.html'; return plays.travel; }
   // A small tool: a page in the browser, unless the request is to rename or delete files. Then it writes a script and
   // its launcher, careful (a preview, -Apply to act) for renaming and careless (deletes at once) for deleting, so the
@@ -1042,6 +1075,14 @@ export const plays = {
   }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
+  journal: simpleText('journal', null, (t) => t.journalDone, {
+    research: true,
+    make: (s) => s.write(s.state.vars.out, journalPage(s.state.lang)),
+    after: async (s) => {
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.pdf);
+    },
+  }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
 
   toolScript: {

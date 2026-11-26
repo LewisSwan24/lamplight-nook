@@ -151,7 +151,9 @@ export function convertedNote(form: CommissionForm, main: string | undefined): '
 function templateSteps(form: CommissionForm): string[] {
   if (!form.template) return [];
   const source = form.source ?? '';
-  return template(form.template).steps({ language: LANGUAGE, files: F, sourceName: basename(source), original: originalName(source), revised: revisedName(source) });
+  const spec = template(form.template);
+  const layout = form.layout && spec.layouts?.includes(form.layout) ? form.layout : undefined;
+  return spec.steps({ language: LANGUAGE, files: F, sourceName: basename(source), original: originalName(source), revised: revisedName(source), layout });
 }
 
 /**

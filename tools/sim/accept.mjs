@@ -61,6 +61,7 @@ const W = {
     newsletter: '帮我给我们楼做一份简报，这期讲：周六上午义诊，楼道别停自行车。',
     flashcards: '帮我把这份生物讲义做成复习卡片，下周考光合作用。',
     ledgerbook: '帮我做一本家庭账本，从一月开始记，家里的钱常花在买菜、水电和孩子上学。',
+    journal: '帮我做一份杭州三天的旅行手账，打印出来带着走。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -89,6 +90,7 @@ const W = {
     newsletter: 'Make a newsletter for our block, this issue about: a clinic on Saturday morning, and no bikes in the hallway.',
     flashcards: 'Turn this biology handout into revision cards, for a test on photosynthesis next week.',
     ledgerbook: 'Make me a family ledger from January; our money mostly goes on groceries, bills and the children.',
+    journal: 'Make me a travel journal for three days in Edinburgh, to print and take along.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -5571,6 +5573,57 @@ const SCENARIOS = {
       check(came, 'Auntie Qin did not come in and say something');
       check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('bookkeeper')), 'Auntie Qin has no picture');
       await shop.shot(join(out, 'ledgerbook-qin.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A travel journal (plan-1.8.md H6): the travel guide with its journal layout picked on the slip. The guide starts
+   * plain, another kind offers no layouts, and coming back to the guide starts plain again. The journal comes back as
+   * one A4 page, the route, a list for each day and the route drawn on it with nothing from the web, and the PDF
+   * printed from it, which the result card opens.
+   */
+  async journal(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    try {
+      await sleep(1500);
+      await shop.order({ template: 'travel', want: W[lang].journal });
+      const row = page.locator('form.commission .layout-row');
+      const chip = (label) => page.locator('form.commission .layout-chip', { hasText: label });
+      const on = async (label) => (await chip(label).getAttribute('class')).includes('on');
+      check(await row.isVisible(), 'the travel guide offers no layouts');
+      check(await on(L.ui.layout.plain), 'the plain guide is not picked to begin with');
+      await chip(L.ui.layout.journal).click();
+      check(await on(L.ui.layout.journal) && !(await on(L.ui.layout.plain)), 'the journal did not light up');
+      check((await page.locator('form.commission .layout-hint').innerText()) === L.ui.layout.journalHint, 'nothing says what the journal is');
+      await page.locator('form.commission .template-chip', { hasText: L.ui.templates.letter }).click();
+      check(await row.isHidden(), 'a letter offers layouts');
+      await page.locator('form.commission .template-chip', { hasText: L.ui.templates.travel }).click();
+      check(await on(L.ui.layout.plain), 'the guide did not start plain again');
+      await chip(L.ui.layout.journal).click();
+      await page.fill('form.commission textarea', W[lang].journal);
+      await shop.shot(join(out, 'journal-slip.png'));
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the travel journal did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      const dir = latestCommission(home);
+      check(existsSync(join(dir, F.journalPdf)) && readFileSync(join(dir, F.journalPdf)).subarray(0, 5).toString() === '%PDF-', `${F.journalPdf} is not a PDF`);
+      check(!existsSync(join(dir, 'index.html')), 'a travel guide page was made instead of the journal');
+      const pages = (readFileSync(join(dir, F.journalPdf), 'latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+      check(pages === 1, `the journal is ${pages} pages, not one`);
+      const sheet = readFileSync(join(dir, F.journalPage), 'utf8');
+      check(/@page\{size:A4 portrait/.test(sheet), 'the journal is not laid out for A4 portrait');
+      check(/<svg[\s\S]*<polyline[\s\S]*<\/svg>/.test(sheet), 'the journal has no route drawn on it');
+      check(!/\b(src|href)=["']?https?:/i.test(sheet), 'the journal loads something from the web');
+      // The result card opens the PDF, with a picture of it.
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const opens = await page.locator('.result-card').innerText();
+      check(opens.includes(F.journalPdf), `the result card does not name ${F.journalPdf}: ${opens.slice(0, 200)}`);
+      await sleep(400);
+      await shop.shot(join(out, 'journal-done.png'));
     } finally { await shop.close(); }
   },
 
