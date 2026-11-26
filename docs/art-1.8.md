@@ -24,4 +24,6 @@
 | `grow-workshop-arcade.png` | H2 做过小游戏，工坊墙上一块搁板，上面放一台蓝色的小游戏机。手画，放进仓库 | 手画 | `scripts/art/growth.py` |
 | `grow-studio-strip.png` | H3 画过四格漫画，画室墙上钉着一条竖排的四格小连环画。手画，放进仓库 | 手画 | `scripts/art/growth.py` |
 | `editor.png` | H3 四格漫画带来的客人小苏，做公众号的小编，姜黄色短发，戴眼镜 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `grow-print-book.png` | H4 做过绘本，印刷铺第二扇窗的窗台上立着一本小书，红书脊，封面是草地上的月亮。手画，放进仓库 | 手画 | `scripts/art/growth.py` |
+| `mum.png` | H4 绘本带来的客人小满妈妈，每晚给孩子讲故事，棕色长发，蓝上衣 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
 | `dad.png` | H2 小游戏带来的客人朵朵爸，想给女儿做个游戏的爸爸，戴一顶蓝色鸭舌帽 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |

@@ -43,7 +43,7 @@ export const ROOM_GROWTH = {
  * rather than by the shop's own count: a family ledger lying on the print shop's counter. The templates say which.
  */
 export const ROOM_WORK: { shop: StreetShop; id: BroughtRoomId; at: number; work: TemplateId }[] = TEMPLATES.flatMap((t) =>
-  ('roomGrowth' in t ? [{ shop: t.shop as StreetShop, id: t.roomGrowth.id, at: t.roomGrowth.at, work: t.id }] : []));
+  ('roomGrowth' in t ? [{ shop: ('then' in t ? t.then : t.shop) as StreetShop, id: t.roomGrowth.id, at: t.roomGrowth.at, work: t.id }] : []));
 export type RoomPiece<S extends StreetShop = StreetShop> = (typeof ROOM_GROWTH)[S][number]['id'] | BroughtRoomId;
 /** Everything a shop along the street can come to have in its room: its own four, then what its kinds of work bring. */
 export const roomPieceIds = (shop: StreetShop): RoomPiece[] => [...ROOM_GROWTH[shop].map((g) => g.id), ...ROOM_WORK.filter((g) => g.shop === shop).map((g) => g.id)];

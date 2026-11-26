@@ -43,7 +43,8 @@
     "pupil": "Lele",
     "bookkeeper": "Auntie Qin",
     "dad": "Duoduo's dad",
-    "editor": "Xiaosu"
+    "editor": "Xiaosu",
+    "mum": "Xiaoman's mum"
   },
   "you": {
     "label": "You"
@@ -245,6 +246,9 @@
       "comic": "Comic strip",
       "comicFill": "Draw me a four-panel comic about ..., with the lines: ...",
       "comicHint": "The studio draws a four-panel comic strip: four panels top to bottom, the lines in speech bubbles. Your own lines are used as written; if you give none, Iris writes them. You get one long picture and a PDF.",
+      "picturebook": "Picture book",
+      "picturebookFill": "Make a bedtime picture book for ..., who loves ...",
+      "picturebookHint": "The studio draws a bedtime picture book of about eight pages, a picture and a short passage on each, and the print shop lays it out as a landscape PDF. The cover has the title and the child's name. Give an opening to the story, or just the child's name and what they love.",
       "ledgerbookHint": "The print shop makes an Excel ledger: a sheet a month, and the categories for money in and out on a sheet of their own, to change any time. The month's summary and pie chart work themselves out, so the empty book is ready to fill in.",
       "resumeHint": "Hand over an old résumé or a list of what you've done, if you have one. Nothing gets made up; gaps are left for you to fill in.",
       "notesHint": "Hand over your highlights and jottings. Quotations come only from what you hand over.",
@@ -746,7 +750,8 @@
         "pupil": "Just a minute. One more page to learn.",
         "bookkeeper": "Just a minute. The shopping is in my basket.",
         "dad": "Just a minute. Duoduo is playing outside.",
-        "editor": "Just a minute. This week's post isn't settled."
+        "editor": "Just a minute. This week's post isn't settled.",
+        "mum": "Just a minute. Xiaoman is still at nursery."
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {
@@ -1258,6 +1263,9 @@
       "comicPage": "comic.html",
       "comicPng": "comic.png",
       "comicPdf": "comic.pdf",
+      "bookPage": "picture-book.html",
+      "bookPng": "picture-book-cover.png",
+      "bookPdf": "picture-book.pdf",
       "toolScript": "tool.ps1",
       "toolLauncher": "run.cmd",
       "toolSamples": "samples",
@@ -1474,7 +1482,8 @@
         "flashcards": "Revision cards",
         "ledgerbook": "Family ledger",
         "minigame": "Small game",
-        "comic": "Comic strip"
+        "comic": "Comic strip",
+        "picturebook": "Picture book"
       }
     },
     "mini": {

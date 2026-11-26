@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, powerMonitor, powerSaveBlocker, safeStorage, session, shell } from 'electron';
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { FROM_AFAR, shopOf, template } from '../shared/templates';
+import { FROM_AFAR, finishOf, movesOn, template, workShop } from '../shared/templates';
 import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type ShareFormat, type ShareOptions, type ShareResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
@@ -113,7 +113,9 @@ const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.clo
  */
 type Run = { id: string; job: Job; project: RunProject; abort: AbortController; started: number; stuck: StuckTracker; choices: Record<string, string>; note?: (text: string) => boolean;
   /** What the stretch since Claude Code last reported would cost (B7), and whether that is in the ledger already. */
-  unreported?: () => number; counted?: boolean };
+  unreported?: () => number; counted?: boolean;
+  /** Carried on to the shop that finishes this kind of work (plan-1.8.md H4): a picture book, once it is laid out. */
+  moved?: boolean };
 const runs = new Map<string, Run>();
 /** Rounds waiting their turn: what starts one once it may, with what it may spend held, and how its caller hears it was called off. */
 type Waiting = Ticket & { title: string; grant?: Grant; go: (grant: Grant) => void; drop: () => void };
@@ -269,6 +271,13 @@ function emittersFor(run: string, project: RunProject) {
   return {
     emit: emitters.emit,
     emitAi: (event: AiEvent) => {
+      // A picture book is drawn in the studio and laid out in the print shop (plan-1.8.md H4): the round goes there as it
+      // is laid out, so the laying out itself is played there.
+      const me = runs.get(run);
+      if (me && !me.moved && event.kind === 'tool_start' && event.tool && movesOn(me.job.form.template, event.tool)) {
+        me.moved = true;
+        sendRuns();
+      }
       send(IPC.aiEvent, { ...event, raw: undefined, run, project });
       lan?.push({ t: event.t, kind: event.kind, agent: event.agent, plain: event.plain });
       mini.feed({ type: 'ai', run, project: many() ? project.title : undefined, event: { kind: event.kind, agent: event.agent, plain: event.plain, todos: event.todos } });
@@ -724,8 +733,9 @@ function runInfos(): RunInfo[] {
   const color = (run: string, project?: string) => (project ? projects.findIndex((p) => p.id === project) : projects.length + fresh.indexOf(run));
   return [
     ...under.map((r): RunInfo => {
-      // Where it is played (D3): the shop its kind of work belongs to; the home shop's rounds say nothing.
-      const shop = shopOf(r.job.form.template);
+      // Where it is played (D3): the shop its kind of work belongs to, or the one it has moved on to (H4); the home
+      // shop's rounds say nothing.
+      const shop = workShop(r.job.form.template, Boolean(r.moved));
       return { run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id), ...(shop === 'home' ? {} : { shop }) };
     }),
     ...queue.queued.map((t): RunInfo => {
@@ -936,7 +946,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
         : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched, usd: spentThisRun }, stuckHere);
       if (entry) keepRound(entry);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
-      const grew = result.ok && !r ? memory.finished(new Date(), shopOf(job.form.template)) : [];
+      const grew = result.ok && !r ? memory.finished(new Date(), finishOf(job.form.template)) : [];
       // A research write-up is checked against its sources and against what this round searched or fetched (C7).
       const F = strings.ui.files;
       const citations = job.form.template === 'research' ? citationsIn(job.workDir, { summary: F.summary, sources: F.sources }, result.seenUrls ?? []) : undefined;

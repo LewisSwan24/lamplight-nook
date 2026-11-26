@@ -1556,6 +1556,99 @@
     - editor: 年底这期，画一年的总结。
     - adeng: 四格装得下一年吗？
 
+- id: mum_story
+  when: idle
+  guest: mum
+  turns:
+    - mum: 小满每晚要听一个故事。
+    - adeng: 一本书够讲几晚？
+    - mum: 同一本他能听十遍。
+
+- id: mum_name
+  when: idle
+  guest: mum
+  turns:
+    - mum: 封面上写了他的名字。
+    - mum: 他天天拿去给奶奶看。
+
+- id: mum_bear
+  when: idle
+  guest: mum
+  turns:
+    - mum: 每页的小熊都一个样子。
+    - qingdai: 先定好样子，再动笔。
+
+- id: mum_paper
+  when: idle
+  guest: mum
+  turns:
+    - mum: 纸挑厚一点，他翻得勤。
+    - laoshi: 用一百五十克的纸，翻不坏。
+
+- id: mum_asleep
+  when: idle
+  guest: mum
+  turns:
+    - mum: 昨晚讲到第五页就睡着了。
+    - adeng: 后面几页留到今晚。
+
+- id: mum_dino
+  when: idle
+  guest: mum
+  turns:
+    - mum: 下一本他想要恐龙。
+    - qingdai: 吃草的那种，脖子长长的。
+
+- id: mum_milk
+  when: idle
+  guest: mum
+  turns:
+    - mum: 一杯热牛奶，少放糖。
+    - xiaoju: 马上就好。
+
+- id: mum_moon
+  when: idle
+  guest: mum
+  turns:
+    - mum: 他自己认得“月亮”两个字了。
+    - adeng: 书里写了好多遍月亮。
+
+- id: mum_spring
+  when: idle
+  guest: mum
+  after: 20
+  season: spring
+  turns:
+    - mum: 春天这本，想讲种花。
+    - qingdai: 每页让花长高一点。
+
+- id: mum_summer
+  when: idle
+  guest: mum
+  after: 20
+  season: summer
+  turns:
+    - mum: 夏天这本，讲萤火虫。
+    - qingdai: 底色用深蓝，光才显得出来。
+
+- id: mum_autumn
+  when: idle
+  guest: mum
+  after: 20
+  season: autumn
+  turns:
+    - mum: 秋天这本，讲捡落叶。
+    - xiaoju: 店门口的银杏叶正黄。
+
+- id: mum_winter
+  when: idle
+  guest: mum
+  after: 20
+  season: winter
+  turns:
+    - mum: 冬天这本，讲下雪。
+    - laoshi: 白色多，字用深色。
+
 - id: dad_game
   when: idle
   guest: dad

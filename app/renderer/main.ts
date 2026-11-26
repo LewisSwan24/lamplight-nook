@@ -707,7 +707,13 @@ window.lamplight.onRuns((list) => {
   const before = new Set(live().map((r) => r.run));
   runList = list;
   const now = live();
-  for (const r of now) runRoom.set(r.run, roomFor(r.shop, homeScene()));
+  for (const r of now) {
+    const from = runRoom.get(r.run);
+    const to = roomFor(r.shop, homeScene());
+    runRoom.set(r.run, to);
+    // Carried on to the shop that finishes it (plan-1.8.md H4): whoever was watching it there goes along.
+    if (from && from !== to) carriedOn(r.run, from, to);
+  }
   // Each room hears only of its own rounds (D3).
   for (const [room, r] of rooms) {
     const mine = now.filter((x) => roomOfRun(x.run) === room);
@@ -736,6 +742,16 @@ let showRoom: (room: RoomId, byUser: boolean) => Promise<void> = async () => {};
  * A round starts (D3). In a street shop: the shop is made ready, and Adeng takes the slip out of the home shop's door and
  * is back a little later. The view goes along to the round's room if the user placed it and has stayed put since.
  */
+/**
+ * A round moved on from one shop to another (plan-1.8.md H4): that shop's people take it up, before its next event comes
+ * (in the same order the events are played in), and the view follows it if it was there.
+ */
+function carriedOn(run: string, from: RoomId, to: RoomId) {
+  const ready = rooms.get(to);
+  if (ready && !building.has(to)) ready.stage.join(run);
+  else void roomOf(to).then((r) => r.stage.join(run));
+  if (scene.room === from) void showRoom(to, false);
+}
 function started(run: string, shop: RunInfo['shop']) {
   const room = roomOfRun(run);
   const away = shop !== undefined && shop !== 'home';
@@ -744,7 +760,8 @@ function started(run: string, shop: RunInfo['shop']) {
     homeStage.dispatch(run, shop as StreetShop);
     setTimeout(() => homeStage.homeAgain(), SLIP_BACK_MS);
   }
-  if (followsOrder({ placedAt, movedAt }) && scene.room !== room) setTimeout(() => void showRoom(room, false), away && scene === home ? SLIP_TO_DOOR_MS : 0);
+  // To wherever the round is by then: it may have moved on already (H4).
+  if (followsOrder({ placedAt, movedAt }) && scene.room !== room) setTimeout(() => void showRoom(runRoom.get(run) ?? room, false), away && scene === home ? SLIP_TO_DOOR_MS : 0);
   placedAt = undefined;
 }
 /** The first round starts: you come in with the slip and wait by the lamp while it is made. */

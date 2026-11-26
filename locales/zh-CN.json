@@ -43,7 +43,8 @@
     "pupil": "乐乐",
     "bookkeeper": "秦阿姨",
     "dad": "朵朵爸",
-    "editor": "小苏"
+    "editor": "小苏",
+    "mum": "小满妈妈"
   },
   "you": {
     "label": "你"
@@ -245,6 +246,9 @@
       "comic": "画四格漫画",
       "comicFill": "帮我画一个四格漫画，讲……，对白：……",
       "comicHint": "画室画一条四格漫画：四格从上往下排，对白放在气泡里。给了对白就照用，没给就由青黛来编。交回一张长图，另存一份 PDF。",
+      "picturebook": "做绘本",
+      "picturebookFill": "帮我做一本睡前绘本，给……，他喜欢……",
+      "picturebookHint": "画室画一本睡前绘本，八页左右，每页一张图一段话，画完送到印刷铺排成横版 PDF。封面有书名和“给某某”。给个故事开头，或者只说孩子的名字和喜欢什么，都行。",
       "ledgerbookHint": "印刷铺做一本 Excel 账本：每月一页，收入支出的分类在单独一页，随时能改。月底的小结和饼图自己会算，空着的账本拿回去就能填。",
       "resumeHint": "有旧简历，或者列过做过的事，可以递过来。没有的经历不会编，缺的地方留空给你填。",
       "notesHint": "摘抄和随手记可以递过来，摘录只从这里面摘。",
@@ -746,7 +750,8 @@
         "pupil": "就坐一会儿，背完这页就走。",
         "bookkeeper": "我坐一下，菜还在篮子里。",
         "dad": "我坐一下，朵朵在外面玩。",
-        "editor": "我坐一下，这周的稿子还没定。"
+        "editor": "我坐一下，这周的稿子还没定。",
+        "mum": "我坐一下，小满还在幼儿园。"
       },
       "you": "你的委托在做了，先坐会儿吧。",
       "grownMade": {
@@ -1258,6 +1263,9 @@
       "comicPage": "四格漫画.html",
       "comicPng": "四格漫画.png",
       "comicPdf": "四格漫画.pdf",
+      "bookPage": "绘本.html",
+      "bookPng": "绘本封面.png",
+      "bookPdf": "绘本.pdf",
       "toolScript": "小工具.ps1",
       "toolLauncher": "双击运行.cmd",
       "toolSamples": "样例",
@@ -1474,7 +1482,8 @@
         "flashcards": "复习卡片",
         "ledgerbook": "家庭账本",
         "minigame": "小游戏",
-        "comic": "四格漫画"
+        "comic": "四格漫画",
+        "picturebook": "绘本"
       }
     },
     "mini": {

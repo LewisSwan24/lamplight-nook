@@ -146,6 +146,22 @@ export class Translator {
     }
   }
 
+  /**
+   * A round is under way here: as it starts, or once it is carried on here from another shop (plan-1.8.md H4). A round's
+   * lead stays known after it ends, for its last lines still to be said.
+   */
+  join(run: string) {
+    if (!this.running.includes(run)) {
+      const beside = this.running.some((r) => r !== run && !this.seconds.has(r));
+      this.running.push(run);
+      if (beside) this.seconds.add(run);
+      else this.seconds.delete(run);
+      // A street shop's own person leads every round there, the second from the second crew's places (D3).
+      this.leads.set(run, this.shop ? this.crew[this.crew.length - 1] : beside ? 'qingdai' : 'adeng');
+    }
+    if (!this.ctxs.has(run)) this.ctxs.set(run, this.ctx);
+  }
+
   /** A round is over: it is no longer under way, and nobody works for it any more. */
   private let(run: string) {
     const i = this.running.indexOf(run);
@@ -202,16 +218,7 @@ export class Translator {
         this.hands.clear();
         this.waiting.clear();
       }
-      // A round's lead stays known after it ends, for its last lines still to be said.
-      if (!this.running.includes(run)) {
-        const beside = this.running.some((r) => r !== run && !this.seconds.has(r));
-        this.running.push(run);
-        if (beside) this.seconds.add(run);
-        else this.seconds.delete(run);
-        // A street shop's own person leads every round there, the second from the second crew's places (D3).
-        this.leads.set(run, this.shop ? this.crew[this.crew.length - 1] : beside ? 'qingdai' : 'adeng');
-      }
-      if (!this.ctxs.has(run)) this.ctxs.set(run, this.ctx);
+      this.join(run);
     }
     const away = e.agent === 'main' && (e.kind === 'tool_start' || e.kind === 'tool_ok' || e.kind === 'tool_fail') ? errandTo(this.room, e.tool) : undefined;
     const out = away ? this.across(e, away) : e.kind === 'subagent_start' || e.kind === 'subagent_stop' ? this.errand(e) : this.apply(e);

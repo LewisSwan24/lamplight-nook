@@ -209,7 +209,7 @@ def pieces_by_id():
 # card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text),
 # flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1),
 # ledgerbook (a pie chart in cream, red and green, plan-1.8.md H5), minigame (a blue gamepad, plan-1.8.md H2),
-# comic (four panels, two by two, plan-1.8.md H3).
+# comic (four panels, two by two, plan-1.8.md H3), picturebook (a closed book, a moon on its blue cover, plan-1.8.md H4).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -231,6 +231,7 @@ ICONS = {
     'ledgerbook': ['..dddd..', '.dyyrrd.', 'dyyyrrrd', 'dyyyrrrd', 'dyyyggdd', 'dyygggdd', '.dygggd.', '..dddd..'],
     'minigame': ['........', '........', '.uuuuuu.', 'uuxuuruu', 'uxxxurru', 'uuxuuuuu', '.uu..uu.', '........'],
     'comic': ['xxxxxxxx', 'xcwcxyyx', 'xcccxysx', 'xxxxxxxx', 'xpppxccx', 'xpwpxcsx', 'xpppxccx', 'xxxxxxxx'],
+    'picturebook': ['.xxxxxxx', '.xrccGcx', '.xrcGGcx', '.xrccccx', '.xrggggx', '.xrwwwwx', '.xrwllwx', '.xxxxxxx'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -245,7 +246,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
@@ -318,7 +319,12 @@ ROOM_DRAWN['strip'] = ['.....r.....', 'xxxxxxxxxxx', 'xccccccGGcx', 'xcwwwcccccx
                        'xyyyyyyyyyx', 'xyyyywwwyyx', 'xysyyywyyyx', 'xxxxyyyyyyx', 'xxxxxxxxxxx', 'xpppppppppx', 'xpwwwpppspx',
                        'xppwppppxpx', 'xppppppxxxx', 'xxxxxxxxxxx', 'xcccccccccx', 'xcscwwwscx'[:10] + 'x', 'xcxxcwrwxcx',
                        'xcxxcccxxcx', 'xxxxxxxxxxx']
-ROOM_WORK = {'print': [('ledgerbook', (245, 74))], 'workshop': [('arcade', (182, 22))], 'studio': [('strip', (184, 17))]}
+# A picture book (plan-1.8.md H4) is drawn in the studio but laid out in the print shop, so its piece stands there: a
+# little book on the sill of the second window, a red spine, a moon over grass on its cover and a white title band.
+# Written as grow-print-book.png.
+ROOM_DRAWN['book'] = ['xxxxxxxxx', 'xrcccGccx', 'xrccGGccx', 'xrcccGccx', 'xrccccccx', 'xrggggggx', 'xrwwwwwwx', 'xrwllllwx',
+                      'xrwwwwwwx', 'xxxxxxxxx']
+ROOM_WORK = {'print': [('ledgerbook', (245, 74)), ('book', (66, 26))], 'workshop': [('arcade', (182, 22))], 'studio': [('strip', (184, 17))]}
 # Shop -> (piece, slot), in the order they come (shared/growth.ts ROOM_GROWTH).
 ROOM_PIECES = {
     'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],

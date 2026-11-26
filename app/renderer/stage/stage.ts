@@ -263,6 +263,12 @@ export class Stage {
     if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') this.ended(run);
   }
 
+  /** A round carried on here from another shop (plan-1.8.md H4): this shop's people take it up from here. */
+  join(run: string) {
+    this.translator.join(run);
+    this.redress();
+  }
+
   /** The rounds still under way, from the main process: any other has ended, whether or not its last event came. */
   keepRuns(live: string[]) {
     const gone = this.translator.running.filter((run) => run !== '' && !live.includes(run));

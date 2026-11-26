@@ -46,7 +46,7 @@ describe('what grows on the street', () => {
 
 describe('what a kind of work brings into its own shop along the street (plan-1.8.md H5)', () => {
   it('puts a family ledger on the print shop\'s counter once there has been one, whatever the shop\'s count', () => {
-    expect(ROOM_WORK).toEqual([{ shop: 'print', id: 'ledgerbook', at: 1, work: 'ledgerbook' }, { shop: 'workshop', id: 'arcade', at: 1, work: 'minigame' }, { shop: 'studio', id: 'strip', at: 1, work: 'comic' }]);
+    expect(ROOM_WORK).toEqual([{ shop: 'print', id: 'ledgerbook', at: 1, work: 'ledgerbook' }, { shop: 'workshop', id: 'arcade', at: 1, work: 'minigame' }, { shop: 'studio', id: 'strip', at: 1, work: 'comic' }, { shop: 'print', id: 'book', at: 1, work: 'picturebook' }]);
     expect(roomGrown('print', 1)).toEqual(['proof']);
     expect(roomGrown('print', 1, { ledgerbook: 1 })).toEqual(['proof', 'ledgerbook']);
     expect(roomGrown('print', 0, { ledgerbook: 1, sheet: 4 })).toEqual(['ledgerbook']);
@@ -55,8 +55,11 @@ describe('what a kind of work brings into its own shop along the street (plan-1.
   });
 
   it('names it like the shop\'s own pieces, with a name of its own, and the room draws it', () => {
-    expect(roomPieceIds('print')).toEqual(['proof', 'ivy', 'typecase', 'ribbon', 'ledgerbook']);
-    expect(roomPieces('print')).toEqual(['print-proof', 'print-ivy', 'print-typecase', 'print-ribbon', 'print-ledgerbook']);
+    expect(roomPieceIds('print')).toEqual(['proof', 'ivy', 'typecase', 'ribbon', 'ledgerbook', 'book']);
+    expect(roomPieces('print')).toEqual(['print-proof', 'print-ivy', 'print-typecase', 'print-ribbon', 'print-ledgerbook', 'print-book']);
+    // A picture book (plan-1.8.md H4) is drawn in the studio but laid out in the print shop: its little book sits there.
+    expect(roomGrown('print', 0, { picturebook: 1 })).toEqual(['book']);
+    expect(roomGrown('studio', 0, { picturebook: 1 })).toEqual([]);
     expect(roomPieceIds('post')).toEqual(['stamp', 'ivy', 'horn', 'map']);
     // A small game (plan-1.8.md H2) puts a little game machine in the workshop.
     expect(roomPieceIds('workshop')).toEqual(['gear', 'ivy', 'clock', 'blueprint', 'arcade']);

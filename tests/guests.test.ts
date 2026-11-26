@@ -133,6 +133,8 @@ describe('new neighbours, who come because of the work', () => {
     expect(welcomeGuests({ minigame: 1 })).toEqual(['baker', 'postman', 'dad']);
     // A comic from the studio (plan-1.8.md H3) brings Xiaosu, who edits a newsletter account and needs one a week.
     expect(welcomeGuests({ comic: 1 })).toEqual(['baker', 'postman', 'editor']);
+    // A picture book (plan-1.8.md H4) brings Xiaoman's mum, who reads to him at bedtime.
+    expect(welcomeGuests({ picturebook: 1 })).toEqual(['baker', 'postman', 'mum']);
   });
 
   it('only sends those who are welcome, and someone new soon after they are', () => {
