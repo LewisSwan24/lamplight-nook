@@ -175,6 +175,13 @@ describe('working out the formulas', () => {
     // About 2,000 steps a cell, 30 cells: far more matching than the 20,000 budget, though only 33 cells are read.
     const v = computeBook([{ name: 'S', cells }], 20_000).S;
     expect([v.B1, v.B2]).toEqual([{ error: '#VALUE!' }, { error: '#VALUE!' }]);
+    // Copying and lowercasing a long text costs its length, even when the match is settled at the first letter.
+    const long: Record<string, Cell> = {};
+    for (let r = 1; r <= 5; r++) long[`A${r}`] = 'a'.repeat(30_000);
+    long.B1 = { f: '=COUNTIF(A1:A5,"b*")' };
+    long.B2 = { f: '=COUNTIF(A1:A5,">b")' };
+    const w = computeBook([{ name: 'S', cells: long }], 50_000).S;
+    expect([w.B1, w.B2]).toEqual([{ error: '#VALUE!' }, { error: '#VALUE!' }]);
     // An everyday criterion over a few cells still counts.
     expect(values({ A1: 'Rent', A2: 'rent bill', B1: { f: '=COUNTIF(A1:A2,"rent*")' } }).B1).toBe(2);
   });

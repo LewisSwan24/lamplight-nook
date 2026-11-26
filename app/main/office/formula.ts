@@ -539,12 +539,22 @@ function matcher(crit: Exclude<Scalar, Err>, budget: { left: number }): (v: Scal
       return { '=': v === asNumber, '<>': v !== asNumber, '<': v < asNumber, '>': v > asNumber, '<=': v <= asNumber, '>=': v >= asNumber }[op]!;
     };
   }
+  // Lowercasing a cell's text costs its length, paid before any copy is made; once the budget is spent no more
+  // text is copied, and the caller turns the answer into #VALUE!.
+  const lower = (v: string): string | undefined => ((budget.left -= v.length) < 0 ? undefined : v.toLowerCase());
   if (op === '=' || op === '<>') {
     const pattern = wildcards(rest);
-    const hit = (v: Scalar) => typeof v === 'string' && globMatch(pattern, v.toLowerCase(), budget);
+    const hit = (v: Scalar) => {
+      const text = typeof v === 'string' ? lower(v) : undefined;
+      return text !== undefined && globMatch(pattern, text, budget);
+    };
     return op === '=' ? hit : (v) => !hit(v);
   }
-  return (v) => typeof v === 'string' && { '<': v.toLowerCase() < rest.toLowerCase(), '>': v.toLowerCase() > rest.toLowerCase(), '<=': v.toLowerCase() <= rest.toLowerCase(), '>=': v.toLowerCase() >= rest.toLowerCase() }[op]!;
+  const bar = rest.toLowerCase();
+  return (v) => {
+    const text = typeof v === 'string' ? lower(v) : undefined;
+    return text !== undefined && { '<': text < bar, '>': text > bar, '<=': text <= bar, '>=': text >= bar }[op]!;
+  };
 }
 
 /** The most cells all of a workbook's formulas may read together; a household ledger reads a few thousand. */
