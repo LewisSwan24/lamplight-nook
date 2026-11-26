@@ -25,6 +25,9 @@
   whack-a-mole or snake. It is one page that opens and plays with no network, pitched for whoever will play it. The
   first one hangs a little game machine on the workshop's wall, and brings Duoduo's dad, who wanted a game for his
   daughter and drops in to say how she is getting on.
+- **Comic strip.** A new kind of order in the studio: a four-panel comic, drawn as one long picture with a PDF
+  beside it. Your own lines go in the speech bubbles as written; give none and Iris writes them. The first one pins a
+  strip of panels on the studio's wall, and brings Xiaosu, who edits a newsletter account and needs a strip a week.
 - **Charts in Excel files.** Workbooks the shop makes can carry pie and column charts and drop-down lists, and the
   picture on the result card shows what a workbook's formulas come to rather than the formulas themselves.
 

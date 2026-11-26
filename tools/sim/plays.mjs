@@ -89,6 +89,8 @@ const T = {
     planDone: '计划排好了：按周排，每一步都能在一次坐下来时做完，每周留了一天补课。',
     resumeDone: '简历做好了：一页 A4，另外存了一份 PDF，可以直接发出去。不知道的地方留在方括号里，按办公室文职的方向写的。',
     notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
+    comic: ['弄清讲什么、谁说什么', '请青黛定人物和配色', '分成四格，画出来', '存成长图和 PDF，再看一遍', '请老石检查'],
+    comicDone: '四格漫画画好了：猫偷了鱼还不认，最后一格露了馅。一张长图，另存了一份 PDF。',
     minigame: ['弄清给谁玩、玩什么', '定好玩法和规则', '写成一个网页', '画出第一屏看一眼', '请老石试玩'],
     minigameDone: '小游戏做好了：翻牌找朋友，点两张一样的就留下，全翻开就赢。一个网页，打开就能玩，不用联网。',
     journal: ['弄清去哪、几天', '请小橘查开放时间和票价', '排成一页手账，画路线图', '存成 PDF，再看一遍', '请老石检查'],
@@ -196,6 +198,8 @@ const T = {
     planDone: 'The plan is ready: week by week, each step small enough for one sitting, with a spare day each week.',
     resumeDone: 'The résumé is ready: one A4 page, and a PDF of it to send straight away. What I did not know is left in square brackets. I shaped it for an office job.',
     notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
+    comic: ['What happens, and who says what', 'Ask Iris for the look and colours', 'Split it into four, draw them', 'Save the picture and PDF, look', 'Ask Flint to check it'],
+    comicDone: 'The comic strip is ready: the cat took the fish and denies it, until the last panel gives it away. One long picture, and a PDF.',
     minigame: ['Who plays, and what game', 'Settle the rules', 'Write it as one page', 'Draw the first screen and look', 'Ask Flint to try it'],
     minigameDone: 'The game is ready: find the pairs. Turn over two cards; a matching pair stays face up. One page that plays with no network.',
     journal: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out one page, draw the route', 'Save the PDF and look it over', 'Ask Flint to check it'],
@@ -365,6 +369,26 @@ const JOURNAL = {
   },
 };
 /**
+ * A four-panel comic (plan-1.8.md H3): one page 800 by 3200, four panels one under another, each drawn in SVG with its
+ * line in a bubble placed inside it.
+ */
+const COMIC = {
+  zh: { title: '猫和鱼', lines: ['鱼呢？', '不是我。', '那你嘴边是什么？', '……是鱼的香味。'] },
+  en: { title: 'The cat and the fish', lines: ['Where is the fish?', 'Not me.', "Then what's on your whiskers?", '...The smell of fish.'] },
+};
+function comicPage(lang) {
+  const C = COMIC[lang];
+  const sky = ['#cfe6f5', '#f6e7c1', '#f3d1dc', '#d9ecd0'];
+  const cat = (x, y) => `<g fill="#e08a3c"><circle cx="${x}" cy="${y}" r="70"/><path d="M${x - 60} ${y - 40}l20-60 30 40zM${x + 60} ${y - 40}l-20-60-30 40z"/><ellipse cx="${x}" cy="${y + 140}" rx="90" ry="80"/></g><circle cx="${x - 25}" cy="${y - 10}" r="8" fill="#2a2233"/><circle cx="${x + 25}" cy="${y - 10}" r="8" fill="#2a2233"/>`;
+  const person = (x, y) => `<circle cx="${x}" cy="${y}" r="60" fill="#f2c9a0"/><rect x="${x - 70}" y="${y + 70}" width="140" height="220" rx="40" fill="#5b7fb5"/><circle cx="${x - 20}" cy="${y - 5}" r="7" fill="#2a2233"/><circle cx="${x + 20}" cy="${y - 5}" r="7" fill="#2a2233"/>`;
+  const fish = (x, y) => `<path d="M${x} ${y}q60-40 120 0q-60 40-120 0zM${x + 120} ${y}l40-30v60z" fill="#7aa6c9"/>`;
+  const scenes = [person(560, 330) + fish(140, 560), cat(250, 380) + person(560, 330), person(560, 330) + cat(250, 380), cat(380, 380) + fish(200, 640)];
+  const spots = [[60, 60], [430, 60], [60, 60], [60, 60]];
+  const panels = scenes.map((art, i) => `<section class="panel"><svg viewBox="0 0 748 748"><rect width="748" height="748" fill="${sky[i]}"/><rect y="600" width="748" height="148" fill="#c9a77c"/>${art}</svg><p class="bubble" style="left:${spots[i][0]}px;top:${spots[i][1]}px">${C.lines[i]}</p></section>`).join('');
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${C.title}</title><style>@page{size:800px 3200px;margin:0}html,body{margin:0}body{width:800px;height:3200px;display:grid;grid-template-rows:repeat(4,800px);background:#fff;font-family:system-ui,sans-serif;color:#2a2233}.panel{position:relative;box-sizing:border-box;margin:20px;border:6px solid #2a2233;overflow:hidden}.panel svg{position:absolute;inset:0;width:100%;height:100%}.bubble{position:absolute;margin:0;max-width:280px;padding:14px 22px;background:#fff;border:4px solid #2a2233;border-radius:28px;font-size:34px;line-height:1.3}</style></head>\n<body>${panels}</body></html>\n`;
+}
+
+/**
  * A small game (plan-1.8.md H2): matching pairs on one page, nothing loaded from anywhere. Each card keeps its face in
  * data-face, so a scenario can find a pair without guessing.
  */
@@ -519,6 +543,11 @@ export function pickPlay(prompt, state, system = '') {
     return plays.resume;
   }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
+  if (/This is a four-panel comic strip/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
+    return plays.comic;
+  }
   if (/This is a small game to play in a browser/.test(prompt)) {
     state.vars.out = quoted(prompt, 'single self-contained page');
     state.vars.png = quoted(prompt, 'first screen as');
@@ -1104,6 +1133,14 @@ export const plays = {
   }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
+  comic: simpleText('comic', null, (t) => t.comicDone, {
+    make: (s) => s.write(s.state.vars.out, comicPage(s.state.lang)),
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 800, height: 3200 });
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.png);
+    },
+  }),
   minigame: simpleText('minigame', null, (t) => t.minigameDone, {
     make: (s) => s.write(s.state.vars.out, gamePage(s.state.lang)),
     after: async (s) => {

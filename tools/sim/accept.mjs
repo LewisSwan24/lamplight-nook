@@ -63,6 +63,7 @@ const W = {
     ledgerbook: '帮我做一本家庭账本，从一月开始记，家里的钱常花在买菜、水电和孩子上学。',
     journal: '帮我做一份杭州三天的旅行手账，打印出来带着走。',
     minigame: '帮我做一个给五岁女儿玩的翻牌小游戏。',
+    comic: '帮我画一个四格漫画，讲家里的猫偷吃了鱼还不承认。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -93,6 +94,7 @@ const W = {
     ledgerbook: 'Make me a family ledger from January; our money mostly goes on groceries, bills and the children.',
     journal: 'Make me a travel journal for three days in Edinburgh, to print and take along.',
     minigame: 'Make me a matching pairs game for my five-year-old daughter.',
+    comic: 'Draw me a four-panel comic about our cat stealing the fish and denying it.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -5575,6 +5577,87 @@ const SCENARIOS = {
       check(came, 'Auntie Qin did not come in and say something');
       check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('bookkeeper')), 'Auntie Qin has no picture');
       await shop.shot(join(out, 'ledgerbook-qin.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A four-panel comic (plan-1.8.md H3): ordered at home, drawn in the studio as one long picture 800 by 3200 and a PDF.
+   * Opened in Chrome, its four panels line up, the same size one under another, and every bubble stays inside its
+   * panel with no word spilling out. Then a strip of panels hangs in the studio, someone at home says so, and Xiaosu
+   * starts dropping in.
+   */
+  async comic(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    try {
+      await sleep(1500);
+      await shop.order({ template: 'comic', want: W[lang].comic });
+      await shop.shot(join(out, 'comic-slip.png'));
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the comic did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      const dir = latestCommission(home);
+      const png = readFileSync(join(dir, F.comicPng));
+      check(png.subarray(1, 4).toString() === 'PNG' && png.readUInt32BE(16) === 800 && png.readUInt32BE(20) === 3200, `${F.comicPng} is not a picture 800 by 3200`);
+      check(readFileSync(join(dir, F.comicPdf)).subarray(0, 5).toString() === '%PDF-', `${F.comicPdf} is not a PDF`);
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const opens = await page.locator('.result-card').innerText();
+      check(opens.includes(F.comicPng), `the result card does not name ${F.comicPng}: ${opens.slice(0, 200)}`);
+      await sleep(400);
+      await shop.shot(join(out, 'comic-done.png'));
+      await page.keyboard.press('Escape');
+
+      // In Chrome: four panels the same size, one under another, every bubble inside its panel and no word spilling out.
+      const { chromium } = createRequire(import.meta.url)('playwright');
+      const browser = await chromium.launch({ channel: 'chrome' });
+      try {
+        const tab = await (await browser.newContext({ viewport: { width: 800, height: 3200 }, offline: true })).newPage();
+        await tab.goto(pathToFileURL(join(dir, F.comicPage)).href);
+        const laid = await tab.evaluate(() => [...document.querySelectorAll('.panel')].map((p) => {
+          const r = p.getBoundingClientRect();
+          const bubbles = [...p.querySelectorAll('.bubble')].map((b) => {
+            const q = b.getBoundingClientRect();
+            return { inside: q.left >= r.left && q.right <= r.right && q.top >= r.top && q.bottom <= r.bottom, spills: b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1 };
+          });
+          return { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height), svg: Boolean(p.querySelector('svg')), bubbles };
+        }));
+        check(laid.length === 4, `the comic has ${laid.length} panels`);
+        check(laid.every((p) => p.left === laid[0].left && p.width === laid[0].width && p.height === laid[0].height), `the panels do not line up: ${JSON.stringify(laid.map(({ bubbles, ...p }) => p))}`);
+        check(laid.every((p, i) => i === 0 || p.top > laid[i - 1].top + laid[i - 1].height - 1), 'the panels are not one under another');
+        check(laid.every((p) => p.svg && p.bubbles.length > 0), 'a panel has no drawing or no bubble');
+        check(laid.every((p) => p.bubbles.every((b) => b.inside && !b.spills)), `a bubble leaves its panel or its words spill: ${JSON.stringify(laid.map((p) => p.bubbles))}`);
+      } finally { await browser.close(); }
+
+      // The work was done in the studio: the strip already hangs on its wall.
+      const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+      check(await room() === 'studio', `the comic was not drawn in the studio: ${await room()}`);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(800);
+      check(await page.evaluate(() => window.lamplightDebug.rooms.get('studio')?.scene.growth.shows('studio-strip')), 'no comic strip on the studio\'s wall');
+      await shop.shot(join(out, 'comic-strip.png'));
+
+      // Back home, Adeng says so.
+      await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'cafe'; await sleep(300));
+      check(await room() === 'cafe', `did not go home: ${await room()}`);
+      const said = parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), 'cafe.yaml'), 'utf8')).grow.find((l) => l.id === 'grow_studio_strip').bubbles[0];
+      const told = await page.waitForFunction((line) => window.lamplightDebug.scene.isSaying('adeng', line), said, { timeout: 40_000, polling: 200 }).then(() => true, () => false);
+      check(told, `nobody said: ${said}`);
+      await shop.shot(join(out, 'comic-told.png'));
+
+      await page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await page.evaluate(() => window.lamplightDebug.welcome('editor'));
+      const came = await page.waitForFunction(() => {
+        const g = window.lamplightDebug.scene.guest;
+        return g?.id === 'editor' && g.speech;
+      }, null, { timeout: 20_000 }).then(() => true, () => false);
+      check(came, 'Xiaosu did not come in and say something');
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('editor')), 'Xiaosu has no picture');
+      await shop.shot(join(out, 'comic-su.png'));
     } finally { await shop.close(); }
   },
 

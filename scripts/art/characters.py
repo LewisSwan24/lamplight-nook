@@ -152,6 +152,13 @@ GUESTS = {
                    'Outfits/16x16/Outfit_26_01.png', 'Hairstyles/16x16/Hairstyle_02_01.png',
                    'Accessories/16x16/Accessory_04_Snapback_02.png'],
     },
+    # A comic brings Xiaosu (plan-1.8.md H3), who edits a newsletter account and needs a strip a week: a ginger bob,
+    # glasses and a dark outfit, so she reads apart from Lele's ponytail and Auntie Qin's red. Written as editor.png.
+    'editor': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_30_01.png', 'Hairstyles/16x16/Hairstyle_12_01.png',
+                   'Accessories/16x16/Accessory_15_Glasses_01.png'],
+    },
 }
 
 # The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as

@@ -1476,6 +1476,86 @@
     - pupil: Too cold to hold a pen today.
     - adeng: Hold this cup first.
 
+- id: su_weekly
+  when: idle
+  guest: editor
+  turns:
+    - editor: This week's strip went out again.
+    - adeng: Many readers?
+    - editor: Two hundred more than last week.
+
+- id: su_lines
+  when: idle
+  guest: editor
+  turns:
+    - editor: I write the lines. Iris does the drawing.
+    - qingdai: Just don't crowd the bubbles.
+
+- id: su_deadline
+  when: idle
+  guest: editor
+  turns:
+    - editor: It's due by Friday noon.
+    - laoshi: Lay it out on Thursday night.
+
+- id: su_sequel
+  when: idle
+  guest: editor
+  turns:
+    - editor: A reader asked for a sequel.
+    - xiaoju: Put it on the next slip.
+
+- id: su_cat
+  when: idle
+  guest: editor
+  turns:
+    - editor: Next week a cat is the star.
+    - adeng: Ours could sit for it.
+
+- id: su_rain
+  when: idle
+  guest: editor
+  sky: rain
+  turns:
+    - editor: Rain. A good day to think up jokes.
+    - adeng: Have something hot first.
+
+- id: su_spring
+  when: idle
+  guest: editor
+  after: 20
+  season: spring
+  turns:
+    - editor: The spring strip has everyone out walking.
+    - qingdai: Use plenty of fresh green.
+
+- id: su_summer
+  when: idle
+  guest: editor
+  after: 20
+  season: summer
+  turns:
+    - editor: The summer strip is about the remote.
+    - xiaoju: Whoever grabs it keeps it.
+
+- id: su_autumn
+  when: idle
+  guest: editor
+  after: 20
+  season: autumn
+  turns:
+    - editor: The autumn strip has mooncakes cut unevenly.
+    - laoshi: Cut six pieces. It works out.
+
+- id: su_winter
+  when: idle
+  guest: editor
+  after: 20
+  season: winter
+  turns:
+    - editor: The year-end strip sums up the year.
+    - adeng: Can four panels hold a year?
+
 - id: dad_game
   when: idle
   guest: dad
