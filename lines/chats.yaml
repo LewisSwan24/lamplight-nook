@@ -1476,6 +1476,81 @@
     - pupil: 太冷了，手都不想伸出来。
     - adeng: 先捧着这杯热的。
 
+- id: qin_book
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 账本我天天晚上记。
+    - adeng: 记了多少年了？
+    - bookkeeper: 从结婚那年记到现在。
+
+- id: qin_pie
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 那张饼图，孙子一看就懂。
+    - xiaoju: 哪一块最大？
+    - bookkeeper: 买菜那块，一眼就看出来。
+
+- id: qin_prices
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 今天菜场的青菜又涨了五毛。
+    - laoshi: 记上，月底一看就清楚。
+
+- id: qin_categories
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 我在分类里加了一项：养猫。
+    - qingdai: 猫粮也是一笔大开销。
+
+- id: qin_rain
+  when: idle
+  guest: bookkeeper
+  sky: rain
+  turns:
+    - bookkeeper: 下雨天，正好在家对账。
+    - adeng: 先喝口热的再回去。
+
+- id: qin_spring
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: spring
+  turns:
+    - bookkeeper: 开春了，暖气费总算停了。
+    - xiaoju: 冬天那几页可真厚。
+
+- id: qin_summer
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: summer
+  turns:
+    - bookkeeper: 空调一开，电费就上去了。
+    - laoshi: 七月那页，等着看。
+
+- id: qin_autumn
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: autumn
+  turns:
+    - bookkeeper: 孙子开学，学费单子来了。
+    - adeng: 这个月的饼图要变样了。
+
+- id: qin_winter
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: winter
+  turns:
+    - bookkeeper: 年底了，一年的账翻了一遍。
+    - laoshi: 结余多少？
+    - bookkeeper: 比去年多一点，够过个好年。
+
 # 1.6 的街（plan-1.6.md F5）：主店的人说起面包房、邮局和街上走过的人；桂姨和阿信来店里时说的。
 
 - id: f5_bread_smell

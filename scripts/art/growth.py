@@ -207,7 +207,8 @@ def pieces_by_id():
 # document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars),
 # menu (a card with a red band and prices, plan-1.6.md F1), recipe (a mixing bowl with a spoon in it),
 # card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text),
-# flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1).
+# flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1),
+# ledgerbook (a pie chart in cream, red and green, plan-1.8.md H5).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -226,6 +227,7 @@ ICONS = {
     'card': ['........', '.yyyyyy.', '.yryyry.', '.yrrrry.', '.yyrryy.', '.yyyyyy.', '.yyyyyy.', '........'],
     'newsletter': ['.dddddd.', '.dwwwwd.', '.dggggd.', '.dwwwwd.', '.dlwlld.', '.dwwwwd.', '.dlllwd.', '.dddddd.'],
     'flashcards': ['...ddddd', '...dyyyd', 'ddddddyd', 'dwwwwddd', 'drrrrd..', 'dwwwwd..', 'dllwwd..', 'dddddd..'],
+    'ledgerbook': ['..dddd..', '.dyyrrd.', 'dyyyrrrd', 'dyyyrrrd', 'dyyyggdd', 'dyygggdd', '.dygggd.', '..dddd..'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -240,7 +242,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
@@ -255,6 +257,8 @@ ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 
 # The bakery's two kinds of work bring pieces to the home shop too, among the overlays below: grow-chalkboard.png for a
 # menu and grow-cookbook.png for a recipe; and the post office's (plan-1.6.md F2) grow-cardline.png for a greeting card
 # and grow-newsletters.png for a newsletter. Revision cards (plan-1.8.md H1) bring grow-cardstack.png.
+# A family ledger (plan-1.8.md H5) brings its piece into the print shop itself, where it was made, rather than home:
+# grow-print-ledgerbook.png, an open account book on the counter (ROOM_WORK below; shared/towngrow.ts ROOM_WORK).
 ROOM_DRAWN = {
     'ivy': ['....x....', '....x....', '..xxxxx..', '.xoooooox'[:9], '.xoooooox'[:9], '..xxxxx..', '.gg.g.gg.', 'g.g.g.g.g',
             '.g..g..g.', '.g.gg..g.', 'g...g.g..', '....g....', '...g.....'],
@@ -292,6 +296,13 @@ ROOM_DRAWN = {
                   'xuwwwwwuuuwuux', 'xuuuuwuuuuwuux', 'xuuuuwwwwwwuux', 'xuuuuuuuuuuuux', 'xxxxxxxxxxxxxx'],
 }
 ROOM_SLOTS = {'first': (234, 20), 'ivy': (7, 17), 'eighth': (252, 18), 'twentieth': (270, 18)}
+# What a kind of work brings into the shop that does it (plan-1.8.md H5), by shop: (piece, where its top left goes).
+# These lie on furniture, so each has a place of its own rather than a wall slot. The family ledger lies open on the
+# right of the print shop's counter, over the galley (print.py, composing_frame at (216, 76)): ruled pages, a red
+# margin line, the red cloth of its cover showing at the foot.
+ROOM_DRAWN['ledgerbook'] = ['.xxxxxxxxxxxxx.', 'xwrwwwwxwrwwwwx', 'xwrlllwxwrlllwx', 'xwrwwwwxwrwwwwx', 'xwrllwwxwrllllx', 'xwwwwwwxwwwwwwx',
+                            'xnnnnnnxnnnnnnx', '.xxxxxxxxxxxxx.']
+ROOM_WORK = {'print': [('ledgerbook', (245, 74))]}
 # Shop -> (piece, slot), in the order they come (shared/growth.ts ROOM_GROWTH).
 ROOM_PIECES = {
     'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],
@@ -314,6 +325,21 @@ def room_overlays():
                     if c != '.':
                         img.putpixel((x, y), COLORS[c])
             overlay([(img, ROOM_SLOTS[slot])]).save(OUT / f'grow-{shop}-{piece}.png', optimize=True)
+    for shop, pieces in ROOM_WORK.items():
+        for piece, at in pieces:
+            overlay([(drawn_room(piece), at)]).save(OUT / f'grow-{shop}-{piece}.png', optimize=True)
+
+
+def drawn_room(piece):
+    """One of ROOM_DRAWN as a picture of its own size."""
+    rows = ROOM_DRAWN[piece]
+    img = Image.new('RGBA', (len(rows[0]), len(rows)), (0, 0, 0, 0))
+    for y, row in enumerate(rows):
+        assert len(row) == len(rows[0]), (piece, row)
+        for x, c in enumerate(row):
+            if c != '.':
+                img.putpixel((x, y), COLORS[c])
+    return img
 
 
 def overlay(pieces):

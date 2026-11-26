@@ -127,6 +127,8 @@ describe('new neighbours, who come because of the work', () => {
     expect(welcomeGuests({ card: 1, newsletter: 1 })).toEqual(['baker', 'postman', 'florist', 'organizer']);
     // Revision cards (plan-1.8.md H1) bring Lele, with an exam coming.
     expect(welcomeGuests({ flashcards: 1 })).toEqual(['baker', 'postman', 'pupil']);
+    // A family ledger from the print shop (plan-1.8.md H5) brings Auntie Qin, who keeps her household's accounts.
+    expect(welcomeGuests({ ledgerbook: 1 })).toEqual(['baker', 'postman', 'bookkeeper']);
   });
 
   it('only sends those who are welcome, and someone new soon after they are', () => {

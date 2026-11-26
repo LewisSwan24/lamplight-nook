@@ -12,6 +12,14 @@
   one-page quiz of ten questions with the answers on the back. Every question comes from what you handed over and
   nothing else. The first set leaves a stack of cards on the bookcase, and brings Lele, a schoolgirl with exams
   coming, who drops in now and then with a new pile of handouts.
+- **Family ledger.** A new kind of order in the print shop: an Excel ledger for a household, a sheet for each month
+  and the categories of money in and out on a sheet of their own, to change any time. Each month's summary (money in,
+  money out, what is left, and the spending by category) works itself out as you fill it in, with a pie chart beside
+  it, and the year sheet adds the months up and draws them. The empty book is ready to use as it is. The first one
+  leaves an open ledger on the print shop's counter, and brings Auntie Qin, who keeps her family's accounts and drops
+  in to talk about the price of greens.
+- **Charts in Excel files.** Workbooks the shop makes can carry pie and column charts and drop-down lists, and the
+  picture on the result card shows what a workbook's formulas come to rather than the formulas themselves.
 
 ## Unreleased (1.7)
 

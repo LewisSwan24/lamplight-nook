@@ -137,6 +137,14 @@ GUESTS = {
                    'Accessories/16x16/Accessory_03_Backpack_03.png'],
         'recolor': {'Outfits/16x16/Outfit_18_01.png': [((5, 50), '#3A4A78')]},
     },
+    # A family ledger brings Auntie Qin (plan-1.8.md H5), who keeps her household's accounts: dark brown hair, a top dyed
+    # brick red with its pink sash kept, so she reads apart from Mrs Wu's grey hair and plum cardigan. Written as
+    # bookkeeper.png.
+    'bookkeeper': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_25_01.png', 'Hairstyles/16x16/Hairstyle_07_04.png'],
+        'recolor': {'Outfits/16x16/Outfit_25_01.png': [((180, 240), '#A9503C')]},
+    },
 }
 
 # The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as

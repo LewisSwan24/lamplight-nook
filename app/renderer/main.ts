@@ -497,7 +497,7 @@ let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; 
 function showTownIn(room: RoomId, at: CafeScene) {
   at.setTown(shopDays.town);
   at.tales.show(leftBehind(tales.stories), at.reducedMotion);
-  if (isStreetShop(room)) at.growth.setGrown(roomGrown(room, shopDays.town.shops[room]).map((id) => `${room}-${id}`));
+  if (isStreetShop(room)) at.growth.setGrown(roomGrown(room, shopDays.town.shops[room], shopDays.made).map((id) => `${room}-${id}`));
 }
 /** How many works were on the shelf before this result came back (the shelf only shows from the first). */
 let worksKept = 0;
@@ -642,8 +642,9 @@ onNotebookForget(() => {
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
   const town = shopDays.town;
+  const made = shopDays.made;
   void refreshShop(result.grew ?? [], true).then(() => {
-    for (const news of townNews(town, shopDays.town)) {
+    for (const news of townNews(town, shopDays.town, { before: made, after: shopDays.made })) {
       sayOnce(news.line, TOWN_LINE_DELAY_MS, undefined, news.shop ? { shop: strings.ui.town.shops[news.shop] } : {});
     }
     noticeBeds(bedNews(before, shopDays.done));

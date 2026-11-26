@@ -5,6 +5,7 @@
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { ledgerBook } from './ledger.mjs';
 
 /** Text the plays say and write, per language. Player-facing words only appear in commission output. */
 const T = {
@@ -40,6 +41,9 @@ const T = {
     // Revision cards (plan-1.8.md H1): every card comes from a "term: what it is" line of the material.
     flashcards: ['读一遍你给的材料', '挑出要记的，一条一张卡', '排成能裁开的卡片，存成 PDF', '出一页十道题的小测', '请老石对照材料核一遍'],
     flashcardsDone: '复习卡片做好了：问答卡排成了能打印裁开的 PDF，正反面对得上；另有一页十道题的小测，答案在背面。题目都出自你给的材料。',
+    // A family ledger (plan-1.8.md H5): the empty book of ledger.mjs, made with make_xlsx.
+    ledgerbook: ['定好每月一页记哪几栏', '列出收入支出的分类', '月底小结和饼图用公式', '做成 Excel 账本', '请老石核对公式'],
+    ledgerbookDone: '家庭账本做好了：1 月到 12 月每月一页，分类在单独一页，改了每月的小结跟着变。月底小结和饼图都是公式，填上数就自己算。',
     cards: {
       title: '复习卡片', quiz: '小测', answers: '答案', from: '出自材料：', name: '姓名：________',
       ask: (term) => `${term}是什么？`, blank: (term) => `${term}：________`,
@@ -141,6 +145,8 @@ const T = {
     newsletterDoc: (w) => ({ title: w || 'Block newsletter', blocks: [{ p: 'Issue [number]' }, { h: 1, text: 'Saturday clinic' }, { p: 'Doctors from the community hospital come on Saturday morning to check blood pressure and small complaints.' }, { h: 1, text: 'Bikes in the hallway' }, { p: 'Please leave bikes in the shed behind the block, so the hallway stays clear.' }, { h: 1, text: 'Coming up' }, { list: ['Saturday 9:00, clinic, ground-floor room', '[date], spring cleaning'] }] }),
     flashcards: ['Read the material you handed over', 'Pick what to remember, one card each', 'Lay out cards to cut apart, save a PDF', 'Write a ten-question quiz', 'Ask Flint to check them against the material'],
     flashcardsDone: 'The revision cards are ready: a PDF of cards to print and cut apart, each answer on the back of its question, and a ten-question quiz with the answers on the back. Every question comes from your material.',
+    ledgerbook: ['Choose the columns for a month', 'List the categories for money in and out', 'Use formulas for the summary and pie', 'Make the Excel ledger', 'Ask Flint to check the formulas'],
+    ledgerbookDone: 'The family ledger is ready: a sheet for each month from January to December, and the categories on a sheet of their own, which every month\'s summary follows. The summaries and pie charts are formulas, so they work themselves out as you fill it in.',
     cards: {
       title: 'Revision cards', quiz: 'Quiz', answers: 'Answers', from: 'From the material: ', name: 'Name: ________',
       ask: (term) => `What is ${term}?`, blank: (term) => `${term}: ________`,
@@ -449,6 +455,7 @@ export function pickPlay(prompt, state, system = '') {
     [state.vars.pdf, state.vars.quizPdf] = [...prompt.matchAll(/Save it as "([^"]+)"/g)].map((m) => m[1]);
     return plays.flashcards;
   }
+  if (/This is a family ledger/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.ledgerbook; }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
   if (/This is a Word document/.test(prompt)) { state.vars.out = quoted(prompt, 'make_docx tool as'); return plays.document; }
@@ -1028,6 +1035,10 @@ export const plays = {
       await office(s, 'make_pdf', { page: s.state.vars.quiz, file: s.state.vars.quizPdf });
       await s.read(s.state.vars.pdf);
     },
+  }),
+  ledgerbook: simpleText('ledgerbook', null, (t) => t.ledgerbookDone, {
+    make: (s) => office(s, 'make_xlsx', { file: s.state.vars.out, ...ledgerBook(s.state.lang) }),
+    after: (s) => office(s, 'read_document', { file: s.state.vars.out }),
   }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),

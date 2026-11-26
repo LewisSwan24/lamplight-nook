@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import worksUrl from '../../../assets/sprites/works.png';
 import { overlayDepth } from './pieces';
 import { GROWTH, SHELF_SLOTS, WORK_ICONS, type WorkIcon } from '../../shared/growth';
-import { isStreetShop, ROOM_GROWTH } from '../../shared/towngrow';
+import { isStreetShop, roomPieceIds, ROOM_GROWTH } from '../../shared/towngrow';
 
 /** One overlay per piece, named after it: a kind of work that brings a new piece only adds the picture. */
 const URLS = import.meta.glob<string>('../../../assets/sprites/grow-*.png', { eager: true, import: 'default' });
@@ -11,11 +11,11 @@ const url = (id: string) => URLS[`../../../assets/sprites/grow-${id}.png`];
 
 /**
  * What a room can gather: the home shop's pieces in the cafe and the study, and in a shop along the street its own four
- * (road-to-1.4.md D5), named `<shop>-<piece>` like their pictures.
+ * (road-to-1.4.md D5) and what its kinds of work bring (plan-1.8.md H5), named `<shop>-<piece>` like their pictures.
  */
 export const roomPieces = (room: RoomId): string[] =>
-  isStreetShop(room) ? ROOM_GROWTH[room].map((g) => `${room}-${g.id}`) : GROWTH.map((g) => g.id);
-const ALL_PIECES = [...GROWTH.map((g) => g.id), ...Object.entries(ROOM_GROWTH).flatMap(([shop, list]) => list.map((g) => `${shop}-${g.id}`))];
+  isStreetShop(room) ? roomPieceIds(room).map((id) => `${room}-${id}`) : GROWTH.map((g) => g.id);
+const ALL_PIECES = [...GROWTH.map((g) => g.id), ...(Object.keys(ROOM_GROWTH) as (keyof typeof ROOM_GROWTH)[]).flatMap((shop) => roomPieces(shop))];
 
 /** On the wall behind everyone, like the holiday decorations, and under them. */
 const DEPTH = 1.4;
