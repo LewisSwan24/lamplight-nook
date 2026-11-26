@@ -32,6 +32,26 @@ export type SheetSpec = {
     charts?: ChartSpec[];
   }[];
 };
+/** What make_xlsx is handed: a sheet may instead be `like` one given before it (plan-1.8.md H5). */
+export type SheetInput = { sheets: (Partial<SheetSpec['sheets'][number]> & { name: string; like?: string })[] };
+/**
+ * The workbook a make_xlsx call describes, each sheet given `like` another filled in. Twelve months alike would be
+ * twelve copies of one long structure, and the real-key runs of plan-1.8.md H5 showed a model writing them out stops
+ * after the first. So a sheet may be like one given before it: a copy of its columns, rows, lists and charts, with
+ * whatever the sheet gives itself in their place. A chart title naming the sheet it copies takes the new name.
+ */
+export function fillSheets(input: SheetInput): SheetSpec {
+  const sheets: SheetSpec['sheets'] = [];
+  for (const { like, ...own } of input.sheets) {
+    const from = like === undefined ? undefined : sheets.find((s) => s.name === like);
+    if (like !== undefined && !from) throw new Error(`The sheet "${own.name}" is like "${like}" but no sheet before it has that name; give that sheet first, in full.`);
+    const base = from && { ...from, charts: from.charts?.map((c) => ({ ...c, title: c.title.replaceAll(from.name, own.name) })) };
+    const sheet = structuredClone({ ...base, ...own });
+    if (!sheet.columns || !sheet.rows) throw new Error(`The sheet "${own.name}" has no columns and rows; give them, or like: the name of a sheet before it to copy.`);
+    sheets.push({ ...sheet, columns: sheet.columns, rows: sheet.rows });
+  }
+  return { sheets };
+}
 export type SlideLayout = 'title' | 'bullets' | 'image' | 'two';
 export type SlideSpec = {
   title: string;
@@ -81,13 +101,15 @@ const chart = z.object({
 const sheet = z.object({
   // Excel refuses names past 31 characters or with any of : \ / ? * [ ]
   name: z.string().min(1).max(31).regex(/^[^:\\/?*[\]]+$/),
+  // The name of a sheet given before this one to copy; what this one gives replaces that part of the copy.
+  like: z.string().min(1).max(31).optional(),
   columns: z.array(z.object({
     header: line,
     width: z.number().min(1).max(255).optional(), // characters, as Excel counts them; 255 is its widest
     format: z.enum(['text', 'number', 'money', 'date', 'percent']).optional(),
     list: z.union([range, z.array(z.string().min(1).max(100)).min(1).max(50)]).optional(),
-  })).min(1).max(100),
-  rows: z.array(z.array(cell).max(100)).max(20_000),
+  })).min(1).max(100).optional(),
+  rows: z.array(z.array(cell).max(100)).max(20_000).optional(),
   freezeHeader: z.boolean().optional(),
   charts: z.array(chart).max(10).optional(),
 });

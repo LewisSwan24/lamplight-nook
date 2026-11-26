@@ -76,6 +76,17 @@ describe('the shop\'s office server (road-to-1.3.md C1)', () => {
     expect(readFileSync(join(run, 'notice.docx.html'), 'utf8')).toContain('Opening hours');
   });
 
+  it('make_xlsx makes a sheet given as like another a copy of it, in the file and in its preview', async () => {
+    const { said, call, workDir, previews } = round();
+    await said('make_xlsx', { file: 'two.xlsx', sheets: [...sheet.sheets, { name: 'More costs', like: 'Costs' }] });
+    const text = readDocument(join(workDir, 'two.xlsx'));
+    expect(text).toContain('## More costs');
+    expect(text.split('=SUM(B2:B3)')).toHaveLength(3);
+    // The preview shows the first sheet, worked out over the whole book with the copy filled in.
+    expect(readFileSync(join(previews, 'r1760000000000', 'two.xlsx.html'), 'utf8')).toContain('<div class="tab">Costs</div>');
+    await expect(call('make_xlsx', { file: 'none.xlsx', sheets: [{ name: 'Lost', like: 'Costs' }] })).rejects.toThrow(/"Costs"/);
+  });
+
   it('the make_ tools never write outside the folder or over a file that was there before the round', async () => {
     const { call, root, workDir } = round();
     await expect(call('make_docx', { file: join(root, 'away.docx'), ...doc })).rejects.toThrow(/outside the commission folder/);
