@@ -150,14 +150,12 @@ describe('working out the formulas', () => {
     expect(Date.now() - start).toBeLessThan(2_000);
   });
 
-  it('stops at a few million cells read, the rest coming out as an error', () => {
-    const cells: Record<string, Cell> = { CV20000: 1 };
-    for (let r = 1; r <= 200; r++) cells[`A${r}`] = { f: '=SUM(B1:CV20000)' };
-    const start = Date.now();
-    const v = values(cells);
-    expect(Date.now() - start).toBeLessThan(5_000);
-    expect(v.A1).toBe(1);
-    expect(v.A200).toEqual({ error: '#VALUE!' });
+  // The real budget is a few million cells; a small one here keeps the test from holding the worker for seconds.
+  it('stops once the cells read pass the budget, the rest coming out as an error', () => {
+    const cells: Record<string, Cell> = { CV100: 1 };
+    for (let r = 1; r <= 3; r++) cells[`A${r}`] = { f: '=SUM(B1:CV100)' };
+    const v = computeBook([{ name: 'S', cells }], 20_000).S;
+    expect([v.A1, v.A2, v.A3]).toEqual([1, 1, { error: '#VALUE!' }]);
   });
 
   it('matches wildcards in time that grows with the text, not with how many stars there are', () => {
@@ -167,6 +165,18 @@ describe('working out the formulas', () => {
     expect(Date.now() - start).toBeLessThan(2_000);
     const w = values({ A1: 'a*b', A2: 'axb', B1: { f: '=COUNTIF(A1:A2,"a~*b")' }, B2: { f: '=COUNTIF(A1:A2,"a?b")' }, B3: { f: '=COUNTIF(A1:A2,"<>a*")' } });
     expect([w.B1, w.B2, w.B3]).toEqual([1, 2, 0]);
+  });
+
+  it('counts the matching against the same budget, and refuses a criterion past Excel\'s 255 characters', () => {
+    const cells: Record<string, Cell> = {};
+    for (let r = 1; r <= 30; r++) cells[`A${r}`] = 'a'.repeat(2_000);
+    cells.B1 = { f: `=COUNTIF(A1:A30,"${'*a'.repeat(120)}*b")` };
+    cells.B2 = { f: `=COUNTIF(A1:A3,"${'a'.repeat(256)}")` };
+    // About 2,000 steps a cell, 30 cells: far more matching than the 20,000 budget, though only 33 cells are read.
+    const v = computeBook([{ name: 'S', cells }], 20_000).S;
+    expect([v.B1, v.B2]).toEqual([{ error: '#VALUE!' }, { error: '#VALUE!' }]);
+    // An everyday criterion over a few cells still counts.
+    expect(values({ A1: 'Rent', A2: 'rent bill', B1: { f: '=COUNTIF(A1:A2,"rent*")' } }).B1).toBe(2);
   });
 
   it('shows what a formula comes to in the preview, rather than the formula', () => {
