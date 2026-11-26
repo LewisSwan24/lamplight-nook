@@ -222,7 +222,21 @@ function parse(src: string, sheet: string): Node {
 /** Every cell of a workbook worked out: a formula as what it comes to, anything else as it is. */
 export function computeBook(book: Book): Record<string, Record<string, Value>> {
   const sheets = new Map(book.map((s) => [s.name.toLowerCase(), s]));
-  const lastRow = new Map(book.map((s) => [s.name.toLowerCase(), Math.max(0, ...Object.keys(s.cells).map((ref) => address(ref).r ?? 0))]));
+  // How far each sheet's cells reach. A range is read only that far, so A:XFD costs no more than the cells there are.
+  const lastRow = new Map<string, number>();
+  const lastCol = new Map<string, number>();
+  for (const s of book) {
+    let r1 = 0;
+    let c1 = 0;
+    for (const ref of Object.keys(s.cells)) {
+      const { c, r } = address(ref);
+      r1 = Math.max(r1, r ?? 0);
+      c1 = Math.max(c1, c);
+    }
+    lastRow.set(s.name.toLowerCase(), r1);
+    lastCol.set(s.name.toLowerCase(), c1);
+  }
+  let reads = 0;
   const done = new Map<string, Scalar>();
   const busy = new Set<string>();
 
@@ -254,10 +268,15 @@ export function computeBook(book: Book): Record<string, Record<string, Value>> {
   const cellsOf = (a: Area): Scalar[][] => {
     if (!sheets.has(a.sheet.toLowerCase())) return [[fail('#REF!')]];
     const r1 = Math.min(a.r1, lastRow.get(a.sheet.toLowerCase())!);
+    const c1 = Math.min(a.c1, lastCol.get(a.sheet.toLowerCase())!);
+    // The model writes these workbooks and the preview works them out in the main process: past a budget of cells read,
+    // a range comes out as an error rather than keep the app busy.
+    reads += Math.max(0, r1 - a.r0 + 1) * Math.max(0, c1 - a.c0 + 1);
+    if (reads > MAX_READS) return [[fail('#VALUE!')]];
     const rows: Scalar[][] = [];
     for (let r = a.r0; r <= r1; r++) {
       const row: Scalar[] = [];
-      for (let c = a.c0; c <= a.c1; c++) row.push(cellAt(a.sheet, c, r));
+      for (let c = a.c0; c <= c1; c++) row.push(cellAt(a.sheet, c, r));
       rows.push(row);
     }
     return rows;
@@ -517,9 +536,56 @@ function matcher(crit: Exclude<Scalar, Err>): (v: Scalar) => boolean {
     };
   }
   if (op === '=' || op === '<>') {
-    const pattern = new RegExp(`^${rest.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/~\*/g, '\u0001').replace(/~\?/g, '\u0002').replace(/\*/g, '.*').replace(/\?/g, '.').replace(/\u0001/g, '\\*').replace(/\u0002/g, '\\?')}$`, 'is');
-    const hit = (v: Scalar) => typeof v === 'string' && pattern.test(v);
+    const pattern = wildcards(rest);
+    const hit = (v: Scalar) => typeof v === 'string' && globMatch(pattern, v.toLowerCase());
     return op === '=' ? hit : (v) => !hit(v);
   }
   return (v) => typeof v === 'string' && { '<': v.toLowerCase() < rest.toLowerCase(), '>': v.toLowerCase() > rest.toLowerCase(), '<=': v.toLowerCase() <= rest.toLowerCase(), '>=': v.toLowerCase() >= rest.toLowerCase() }[op]!;
+}
+
+/** The most cells all of a workbook's formulas may read together; a household ledger reads a few thousand. */
+const MAX_READS = 2_000_000;
+
+type Wild = { star: true } | { one: true } | { ch: string };
+
+/** A criterion's wildcards: * any run, ? any one character, and ~ before either to mean the character itself. Lower case. */
+function wildcards(text: string): Wild[] {
+  const out: Wild[] = [];
+  const chars = [...text.toLowerCase()];
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    if (ch === '~' && (chars[i + 1] === '*' || chars[i + 1] === '?')) out.push({ ch: chars[++i] });
+    else if (ch === '*') {
+      if (!('star' in (out[out.length - 1] ?? {}))) out.push({ star: true });
+    } else if (ch === '?') out.push({ one: true });
+    else out.push({ ch });
+  }
+  return out;
+}
+
+/**
+ * Whether text matches a wildcard pattern, going back only to the last star on a miss: time grows with the text times the
+ * pattern at worst, never with how many stars there are, as a regular expression built from them could.
+ */
+function globMatch(p: Wild[], text: string): boolean {
+  const t = [...text];
+  let i = 0;
+  let j = 0;
+  let star = -1;
+  let from = 0;
+  while (i < t.length) {
+    const w = p[j];
+    if (w && !('star' in w) && ('one' in w || w.ch === t[i])) {
+      i++;
+      j++;
+    } else if (w && 'star' in w) {
+      star = j++;
+      from = i;
+    } else if (star >= 0) {
+      j = star + 1;
+      i = ++from;
+    } else return false;
+  }
+  while (j < p.length && 'star' in p[j]) j++;
+  return j === p.length;
 }

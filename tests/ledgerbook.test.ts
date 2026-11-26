@@ -141,6 +141,34 @@ describe('working out the formulas', () => {
     expect([v.A1, v.A2, v.A3, v.A5, v.A6]).toEqual([{ error: '#DIV/0!' }, { error: '#NAME?' }, { error: '#REF!' }, { error: '#VALUE!' }, { error: '#REF!' }]);
   });
 
+  // The preview works a made workbook out in the main process, from whatever the model handed make_xlsx: neither a
+  // range over the whole sheet nor a criterion full of wildcards may keep it busy.
+  it('reads a whole-sheet range only as far as the cells that are there', () => {
+    const start = Date.now();
+    const v = computeBook([{ name: 'S', cells: { A1: 1, B20000: 2 } }, { name: 'T', cells: { A1: { f: '=SUM(S!A:XFD)' }, A2: { f: '=SUM(S!A1:XFD20000)' } } }]).T;
+    expect([v.A1, v.A2]).toEqual([3, 3]);
+    expect(Date.now() - start).toBeLessThan(2_000);
+  });
+
+  it('stops at a few million cells read, the rest coming out as an error', () => {
+    const cells: Record<string, Cell> = { CV20000: 1 };
+    for (let r = 1; r <= 200; r++) cells[`A${r}`] = { f: '=SUM(B1:CV20000)' };
+    const start = Date.now();
+    const v = values(cells);
+    expect(Date.now() - start).toBeLessThan(5_000);
+    expect(v.A1).toBe(1);
+    expect(v.A200).toEqual({ error: '#VALUE!' });
+  });
+
+  it('matches wildcards in time that grows with the text, not with how many stars there are', () => {
+    const start = Date.now();
+    const v = values({ A1: 'a'.repeat(20_000), B1: { f: `=COUNTIF(A1,"${'*a'.repeat(30)}*b")` }, B2: { f: `=COUNTIF(A1,"${'*a'.repeat(30)}*")` }, B3: { f: '=COUNTIF(A1,"a?a~*")' } });
+    expect([v.B1, v.B2, v.B3]).toEqual([0, 1, 0]);
+    expect(Date.now() - start).toBeLessThan(2_000);
+    const w = values({ A1: 'a*b', A2: 'axb', B1: { f: '=COUNTIF(A1:A2,"a~*b")' }, B2: { f: '=COUNTIF(A1:A2,"a?b")' }, B3: { f: '=COUNTIF(A1:A2,"<>a*")' } });
+    expect([w.B1, w.B2, w.B3]).toEqual([1, 2, 0]);
+  });
+
   it('shows what a formula comes to in the preview, rather than the formula', () => {
     const html = previewHtml('xlsx', spending, () => Buffer.alloc(0));
     expect(html).toContain('<td class="n">850.00</td>');
