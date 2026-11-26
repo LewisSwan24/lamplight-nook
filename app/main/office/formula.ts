@@ -220,7 +220,7 @@ function parse(src: string, sheet: string): Node {
 }
 
 /** Every cell of a workbook worked out: a formula as what it comes to, anything else as it is. */
-export function computeBook(book: Book): Record<string, Record<string, Value>> {
+export function computeBook(book: Book, maxReads = MAX_READS): Record<string, Record<string, Value>> {
   const sheets = new Map(book.map((s) => [s.name.toLowerCase(), s]));
   // How far each sheet's cells reach. A range is read only that far, so A:XFD costs no more than the cells there are.
   const lastRow = new Map<string, number>();
@@ -236,7 +236,8 @@ export function computeBook(book: Book): Record<string, Record<string, Value>> {
     lastRow.set(s.name.toLowerCase(), r1);
     lastCol.set(s.name.toLowerCase(), c1);
   }
-  let reads = 0;
+  // Cells read and wildcard steps taken, by all of the workbook's formulas together (MAX_READS).
+  const budget = { left: maxReads };
   const done = new Map<string, Scalar>();
   const busy = new Set<string>();
 
@@ -271,8 +272,8 @@ export function computeBook(book: Book): Record<string, Record<string, Value>> {
     const c1 = Math.min(a.c1, lastCol.get(a.sheet.toLowerCase())!);
     // The model writes these workbooks and the preview works them out in the main process: past a budget of cells read,
     // a range comes out as an error rather than keep the app busy.
-    reads += Math.max(0, r1 - a.r0 + 1) * Math.max(0, c1 - a.c0 + 1);
-    if (reads > MAX_READS) return [[fail('#VALUE!')]];
+    budget.left -= Math.max(0, r1 - a.r0 + 1) * Math.max(0, c1 - a.c0 + 1);
+    if (budget.left < 0) return [[fail('#VALUE!')]];
     const rows: Scalar[][] = [];
     for (let r = a.r0; r <= r1; r++) {
       const row: Scalar[] = [];
@@ -345,8 +346,11 @@ export function computeBook(book: Book): Record<string, Record<string, Value>> {
       if (!a) return fail('#VALUE!');
       const crit = scalar(criterion, sheet);
       if (isErr(crit)) return crit;
-      const test = matcher(crit);
+      // Excel refuses a criterion past 255 characters; matching counts against the budget like reading does.
+      if (typeof crit === 'string' && crit.length > 255) return fail('#VALUE!');
+      const test = matcher(crit, budget);
       const hits = along(first, a).map(test);
+      if (budget.left < 0) return fail('#VALUE!');
       keep = keep ? keep.map((k, i) => k && hits[i]) : hits;
     }
     return keep!;
@@ -522,7 +526,7 @@ const show = (v: Exclude<Scalar, Err>) => (v === null ? '' : typeof v === 'boole
  * The test SUMIF and its kin put each cell to: "Food" (any case, * and ? as wildcards), a number, or a comparison
  * such as ">8" or "<>Rent". "" is an empty cell, "<>" one that is not.
  */
-function matcher(crit: Exclude<Scalar, Err>): (v: Scalar) => boolean {
+function matcher(crit: Exclude<Scalar, Err>, budget: { left: number }): (v: Scalar) => boolean {
   if (typeof crit === 'number' || typeof crit === 'boolean') return (v) => !isErr(v) && v !== null && compare(v, crit) === 0;
   const m = /^(<>|<=|>=|=|<|>)?(.*)$/s.exec(crit ?? '')!;
   const op = m[1] ?? '=';
@@ -537,7 +541,7 @@ function matcher(crit: Exclude<Scalar, Err>): (v: Scalar) => boolean {
   }
   if (op === '=' || op === '<>') {
     const pattern = wildcards(rest);
-    const hit = (v: Scalar) => typeof v === 'string' && globMatch(pattern, v.toLowerCase());
+    const hit = (v: Scalar) => typeof v === 'string' && globMatch(pattern, v.toLowerCase(), budget);
     return op === '=' ? hit : (v) => !hit(v);
   }
   return (v) => typeof v === 'string' && { '<': v.toLowerCase() < rest.toLowerCase(), '>': v.toLowerCase() > rest.toLowerCase(), '<=': v.toLowerCase() <= rest.toLowerCase(), '>=': v.toLowerCase() >= rest.toLowerCase() }[op]!;
@@ -567,13 +571,15 @@ function wildcards(text: string): Wild[] {
  * Whether text matches a wildcard pattern, going back only to the last star on a miss: time grows with the text times the
  * pattern at worst, never with how many stars there are, as a regular expression built from them could.
  */
-function globMatch(p: Wild[], text: string): boolean {
+function globMatch(p: Wild[], text: string, budget: { left: number }): boolean {
   const t = [...text];
   let i = 0;
   let j = 0;
   let star = -1;
   let from = 0;
   while (i < t.length) {
+    // Each step is paid for; once the budget is spent the caller turns the answer into #VALUE!.
+    if (--budget.left < 0) return false;
     const w = p[j];
     if (w && !('star' in w) && ('one' in w || w.ch === t[i])) {
       i++;
