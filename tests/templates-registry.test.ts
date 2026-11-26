@@ -30,7 +30,7 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic']);
   });
 
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
@@ -133,7 +133,7 @@ describe('the template table', () => {
   });
 
   it('adds a small game last, made in the workshop, whose piece stands in the workshop (plan-1.8.md H2)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['minigame']);
+    expect(TEMPLATES.map((t) => t.id).slice(22, 23)).toEqual(['minigame']);
     const t = template('minigame');
     expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['workshop', 23, 'page', { id: 'arcade', at: 1 }, 'dad', true, false, false, false]);
     for (const [lang, S] of Object.entries(LOCALES)) {
@@ -148,6 +148,27 @@ describe('the template table', () => {
       expect(steps, lang).toContain(`"${F.minigame}"`);
       expect(steps, lang).toContain(`"${F.minigamePng}" with the mcp__nook-office__render_png tool`);
       for (const said of [/single self-contained page/, /no libraries/, /straight from disk/, /play again/, /reviewer/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
+    }
+  });
+
+  it('adds a four-panel comic last, drawn in the studio, whose piece hangs in the studio (plan-1.8.md H3)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['comic']);
+    const t = template('comic');
+    expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['studio', 24, 'picture', { id: 'strip', at: 1 }, 'editor', true, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.comicPage, lang).toMatch(/\.html$/);
+      expect(F.comicPdf, lang).toMatch(/\.pdf$/);
+      // The strip as one long picture is what the card opens.
+      expect(MAIN_FILES.picture(F.comicPng, F), lang).toBe(true);
+      expect((S.ui.templates as Record<string, string>).comicHint, `${lang} comicHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).comic, `${lang} kinds.comic`).toBeTruthy();
+      // Four panels on one page, drawn in SVG, the dialogue in bubbles that stay inside, as a long picture and a PDF.
+      const steps = t.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain(`"${F.comicPage}"`);
+      expect(steps, lang).toContain(`"${F.comicPng}" with the mcp__nook-office__render_png tool at 800 by 3200`);
+      expect(steps, lang).toContain(`"${F.comicPdf}" with the mcp__nook-office__make_pdf tool`);
+      for (const said of [/four panels/, /inline SVG/, /speech bubbles/, /user's own words/, /designer subagent/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
     }
   });
 
@@ -213,7 +234,7 @@ describe('the template table', () => {
   it('sends every kind of work to a shop (road-to-1.4.md D3)', () => {
     const at = (shop: string) => TEMPLATES.filter((t) => t.shop === shop).map((t) => t.id).sort();
     expect(at('print')).toEqual(['document', 'ledgerbook', 'resume', 'sheet', 'slides']);
-    expect(at('studio')).toEqual(['album', 'chart', 'poster']);
+    expect(at('studio')).toEqual(['album', 'chart', 'comic', 'poster']);
     expect(at('workshop')).toEqual(['minigame', 'page', 'tool']);
     expect(at('bakery')).toEqual(['menu', 'recipe']);
     expect(at('post')).toEqual(['card', 'newsletter']);

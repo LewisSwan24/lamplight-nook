@@ -22,4 +22,6 @@
 | `grow-print-ledgerbook.png` | H5 做过家庭账本，印刷铺柜台上一本摊开的账簿。跟街上铺子自己的四件一样手画，放进仓库 | 手画 | `scripts/art/growth.py` |
 | `bookkeeper.png` | H5 家庭账本带来的客人秦阿姨，社区里管家里账的阿姨 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
 | `grow-workshop-arcade.png` | H2 做过小游戏，工坊墙上一块搁板，上面放一台蓝色的小游戏机。手画，放进仓库 | 手画 | `scripts/art/growth.py` |
+| `grow-studio-strip.png` | H3 画过四格漫画，画室墙上钉着一条竖排的四格小连环画。手画，放进仓库 | 手画 | `scripts/art/growth.py` |
+| `editor.png` | H3 四格漫画带来的客人小苏，做公众号的小编，姜黄色短发，戴眼镜 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
 | `dad.png` | H2 小游戏带来的客人朵朵爸，想给女儿做个游戏的爸爸，戴一顶蓝色鸭舌帽 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |

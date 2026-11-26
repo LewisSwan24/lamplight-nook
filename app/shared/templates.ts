@@ -44,7 +44,7 @@ export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
-  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng,
+  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng || name === files.comicPng,
   /** Revision cards (plan-1.8.md H1): their PDF, before the pages they were printed from and before the quiz. */
   cards: (name: string, files: Files) => name === files.flashcardsPdf,
   /** A travel journal (plan-1.8.md H6): its PDF, before the page it was printed from. */
@@ -411,6 +411,21 @@ export const TEMPLATES = [
       `When it is written, save a picture of its first screen as "${files.minigamePng}" with the mcp__nook-office__render_png tool at 800 by 600, and look at it with the Read tool: check the title, the line on how to play and the start button all show and nothing overlaps, and fix the page and draw it again if not.`,
       'When you ask the reviewer to check the game, give them that picture of its first screen too.',
       `In your final reply, say in ${language}, in one line, what the game is and how to play it.`,
+    ],
+  },
+  // A four-panel comic (plan-1.8.md H3): drawn in the studio as one long picture and a PDF. Its piece, a strip of panels,
+  // hangs on the studio's wall.
+  {
+    id: 'comic', shop: 'studio', icon: 24, revise: true, main: 'picture', roomGrowth: { id: 'strip', at: 1 }, guest: 'editor',
+    steps: ({ language, files }) => [
+      'This is a four-panel comic strip, drawn as one long picture.',
+      'Plan it first: four panels that tell one small story, a setting up, a building, a turn and the punchline in the last. Use the user\'s own words for the dialogue where they give them; where they do not, ask the designer subagent to write it, a line or two to a bubble.',
+      `Lay it out as a single self-contained page "${files.comicPage}" 800 pixels wide and 3200 high: the four panels one under another, each 800 by 800 with the same border and the same gap between them. CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+      'Draw each panel yourself in inline SVG: simple shapes and flat colours, and the same characters looking the same in every panel. Put the dialogue in speech bubbles over the drawing, each pointing at whoever says it, the words well inside the bubble and the bubble inside its panel.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.comicPng}" with the mcp__nook-office__render_png tool at 800 by 3200, and as "${files.comicPdf}" with the mcp__nook-office__make_pdf tool.`,
+      'When it is saved, look at it with the Read tool: check the four panels line up, no word runs out of its bubble and no bubble out of its panel, and fix the page and draw it again if not.',
+      `In your final reply, say in ${language}, in one line, what happens in the strip.`,
     ],
   },
 ] as const satisfies readonly TemplateSpec[];

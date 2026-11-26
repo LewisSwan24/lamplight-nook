@@ -353,6 +353,7 @@ grow:
   - { id: grow_print_typecase, speaker: laoshi, when: grow_print_typecase, bubbles: ["Pica hung up a case of type.", "A letter to each box."] }
   - { id: grow_print_ribbon, speaker: adeng, when: grow_print_ribbon, bubbles: ["The print shop got a certificate.", "Twenty jobs. Pica wants it framed."] }
   - { id: grow_print_ledgerbook, speaker: adeng, when: grow_print_ledgerbook, bubbles: ["A ledger on the print shop's counter.", "Pica kept one as a sample."] }
+  - { id: grow_studio_strip, speaker: adeng, when: grow_studio_strip, bubbles: ["A comic strip is pinned up in the studio.", "Iris says she will change it weekly."] }
   - { id: grow_workshop_arcade, speaker: adeng, when: grow_workshop_arcade, bubbles: ["A small game machine hangs in the workshop.", "Tack says anyone may play after hours."] }
   - { id: grow_studio_sketch, speaker: qingdai, when: grow_studio_sketch, bubbles: ["The studio hung its first sketch."] }
   - { id: grow_studio_ivy, speaker: xiaoju, when: grow_studio_ivy, bubbles: ["The studio has ivy too!"] }

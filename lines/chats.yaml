@@ -1476,6 +1476,86 @@
     - pupil: 太冷了，手都不想伸出来。
     - adeng: 先捧着这杯热的。
 
+- id: su_weekly
+  when: idle
+  guest: editor
+  turns:
+    - editor: 这周的四格又发出去了。
+    - adeng: 读的人多吗？
+    - editor: 比上周多两百个。
+
+- id: su_lines
+  when: idle
+  guest: editor
+  turns:
+    - editor: 对白我自己写，画交给青黛。
+    - qingdai: 气泡别塞太满就行。
+
+- id: su_deadline
+  when: idle
+  guest: editor
+  turns:
+    - editor: 周五中午前要交稿。
+    - laoshi: 周四晚上先排好。
+
+- id: su_sequel
+  when: idle
+  guest: editor
+  turns:
+    - editor: 有读者留言说想看续集。
+    - xiaoju: 下回递单写上续集。
+
+- id: su_cat
+  when: idle
+  guest: editor
+  turns:
+    - editor: 下周想画一只猫当主角。
+    - adeng: 店里那只可以当模特。
+
+- id: su_rain
+  when: idle
+  guest: editor
+  sky: rain
+  turns:
+    - editor: 下雨天，正好在家想段子。
+    - adeng: 先喝口热的。
+
+- id: su_spring
+  when: idle
+  guest: editor
+  after: 20
+  season: spring
+  turns:
+    - editor: 春天这期，画大家去踏青。
+    - qingdai: 多用点嫩绿。
+
+- id: su_summer
+  when: idle
+  guest: editor
+  after: 20
+  season: summer
+  turns:
+    - editor: 夏天这期，讲抢空调遥控器。
+    - xiaoju: 谁抢到算谁的。
+
+- id: su_autumn
+  when: idle
+  guest: editor
+  after: 20
+  season: autumn
+  turns:
+    - editor: 秋天这期，画月饼分不匀。
+    - laoshi: 切成六块，正好。
+
+- id: su_winter
+  when: idle
+  guest: editor
+  after: 20
+  season: winter
+  turns:
+    - editor: 年底这期，画一年的总结。
+    - adeng: 四格装得下一年吗？
+
 - id: dad_game
   when: idle
   guest: dad
