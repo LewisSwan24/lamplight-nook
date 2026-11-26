@@ -8,7 +8,7 @@ import { bookCells, readDocument } from '../app/main/office/read';
 import { officeSafe } from '../app/main/office/safe';
 import type { Cell, SheetSpec } from '../app/main/office/specs';
 import { readZip } from '../app/main/office/unzip';
-import { makeXlsx, sheetCells } from '../app/main/office/xlsx';
+import { LIST_ROWS, makeXlsx, sheetCells } from '../app/main/office/xlsx';
 import { ledgerBook } from '../tools/sim/ledger.mjs';
 
 // The family ledger (plan-1.8.md H5): a workbook with a sheet a month, categories the user can change, a summary that
@@ -53,6 +53,8 @@ describe('charts in a made workbook', () => {
     const file = save('spending.xlsx', buf);
     expect(officeSafe(file)).toEqual({ ok: true });
     expect(readDocument(file)).toContain('Total,=SUM(B2:B4)');
+    // Reading it back, the staff see the chart and what it draws from, not only the cells.
+    expect(readDocument(file)).toContain("(Pie chart \"Where it went\": labels 'Spending'!$A$2:$A$4, values 'Spending'!$B$2:$B$4.)");
   });
 
   it('draws a column chart with its two axes, placed where it is asked, and numbers charts across the workbook', () => {
@@ -93,7 +95,12 @@ describe('lists to pick from', () => {
     expect(sheet).toContain('<dataValidations count="2">');
     expect(sheet).toContain('<dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="A2:A500"><formula1>\'Kinds\'!$A$2:$A$9</formula1></dataValidation>');
     expect(sheet).toContain('<formula1>&quot;in,out&quot;</formula1>');
-    expect(officeSafe(save('book.xlsx', buf))).toEqual({ ok: true });
+    const file = save('book.xlsx', buf);
+    expect(officeSafe(file)).toEqual({ ok: true });
+    // read_document says where each list is and what it offers, so a check can see it.
+    const text = readDocument(file);
+    expect(text).toContain("(Drop-down list in A2:A500, from 'Kinds'!$A$2:$A$9.)");
+    expect(text).toContain('(Drop-down list in B2:B500, from "in,out".)');
   });
 
   it('refuses a list that reaches outside, or words a list cannot hold', () => {
@@ -215,6 +222,8 @@ describe('the stand-in\'s family ledger, worked out', () => {
         for (const m of spec.sheets.slice(0, 12)) {
           expect(m.columns[2].list, m.name).toBe(`'${kinds.name}'!$A$2:$A$16`);
           expect(m.charts, m.name).toEqual([expect.objectContaining({ type: 'pie', labels: 'H7:H21', values: 'I7:I21' })]);
+          // The month's sums reach as far down as its list does, so no entry the list offers is left out.
+          expect(m.rows[0]?.[8], m.name).toEqual({ f: `=SUM(D2:D${LIST_ROWS})` });
         }
         expect(year.charts).toEqual([expect.objectContaining({ type: 'bar', labels: 'A2:A13', values: 'C2:C13' })]);
         const buf = makeXlsx(spec);

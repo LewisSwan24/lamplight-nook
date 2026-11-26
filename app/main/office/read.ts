@@ -164,9 +164,40 @@ function readXlsx(zip: ZipEntries, numbered: boolean): string {
     if (rowCount > SHEET_MAX_ROWS || colCount > SHEET_MAX_COLUMNS) {
       out.push(`(Showing the first ${rows} of ${rowCount} rows and ${Math.min(colCount, SHEET_MAX_COLUMNS)} of ${colCount} columns.)`);
     }
+    // Lists to pick from and charts are not cells, but a check after saving needs to see what they draw from too.
+    for (const v of findAll(sheet, 'dataValidation')) {
+      const from = child(v, 'formula1');
+      if (v.attrs.type === 'list' && from) out.push(`(Drop-down list in ${v.attrs.sqref}, from ${ownText(from)}.)`);
+    }
+    out.push(...sheetCharts(zip, target!));
     out.push('');
   }
   return out.join('\n').trimEnd();
+}
+
+/** Each chart on a sheet in a line: its kind, its title and the ranges it draws (labels, then values). */
+function sheetCharts(zip: ZipEntries, sheetPart: string): string[] {
+  const out: string[] = [];
+  for (const drawing of rels(zip, sheetPart).values()) {
+    if (!drawing.type.endsWith('/drawing')) continue;
+    for (const part of rels(zip, drawing.target).values()) {
+      const chart = part.type.endsWith('/chart') ? xml(zip, part.target) : undefined;
+      const area = find(chart, 'plotArea');
+      const plot = area && elements(area).find((e) => /Chart$/.test(e.name));
+      if (!chart || !plot) continue;
+      const bar = plot.name === 'barChart' || plot.name === 'bar3DChart';
+      const kind = bar ? (child(plot, 'barDir')?.attrs.val === 'bar' ? 'Bar' : 'Column') : plot.name.replace(/(3D)?Chart$/, '').replace(/^./, (c) => c.toUpperCase());
+      const title = find(chart, 'title');
+      const name = title && textOf(title) ? ` "${textOf(title)}"` : '';
+      const refs = (n: string) => children(plot, 'ser').flatMap((s) => {
+        const f = find(child(s, n), 'f');
+        return f ? [ownText(f)] : [];
+      });
+      const said = [refs('cat').length ? `labels ${refs('cat')[0]}` : '', refs('val').length ? `values ${refs('val').join(' and ')}` : ''].filter(Boolean);
+      out.push(`(${kind} chart${name}${said.length ? `: ${said.join(', ')}` : ''}.)`);
+    }
+  }
+  return out;
 }
 
 /** A1 -> 0, AB7 -> 27. */
