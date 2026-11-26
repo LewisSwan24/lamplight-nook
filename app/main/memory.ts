@@ -228,7 +228,7 @@ export class MemoryStore {
       if (at !== 'home') {
         const own = (town.shops[at] ??= { done: 0, grown: [] });
         own.done++;
-        gather(own.grown, roomGrown(at, own.done));
+        gather(own.grown, roomGrown(at, own.done, madeOf(works)));
       }
     }
     this.data.shop = shop;

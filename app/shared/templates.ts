@@ -65,6 +65,11 @@ export type TemplateSpec = {
   main: keyof typeof MAIN_FILES;
   /** A piece the shop gathers after this many of this kind (growth.ts; assets/sprites/grow-<id>.png). */
   growth?: { id: string; at: number };
+  /**
+   * A piece that stands in the shop along the street that does this kind of work instead, after this many of this
+   * kind (plan-1.8.md H5; towngrow.ts ROOM_WORK; assets/sprites/grow-<shop>-<id>.png). Only for a street shop's work.
+   */
+  roomGrowth?: { id: string; at: number };
   /** A neighbour who starts dropping in once there has been one (guests.ts). */
   guest?: GuestId;
 };
@@ -344,11 +349,32 @@ export const TEMPLATES = [
       `In your final reply, say in ${language}, in one line, how many cards there are and what the quiz covers.`,
     ],
   },
+  // A family ledger (plan-1.8.md H5): an Excel workbook a household keeps its accounts in, a sheet a month, made in the
+  // print shop. Its piece, a ledger on the counter, stands in the print shop rather than at home.
+  {
+    id: 'ledgerbook', shop: 'print', icon: 22, revise: true, main: 'office', roomGrowth: { id: 'ledgerbook', at: 1 }, guest: 'bookkeeper',
+    steps: ({ language, files }) => [
+      'This is a family ledger: an Excel workbook a household keeps its accounts in, filled in by hand through the year. Do not make a web page.',
+      `Build it with the mcp__nook-office__make_xlsx tool as "${files.ledgerbook}": give the tool the structure (sheets, columns, rows, lists and charts) and it makes the file. Never write Office XML or an .xlsx by hand, and do not make a CSV.`,
+      'Make one sheet for each month, named after it, for twelve months from the month the request names (January if it names none); then a sheet for the whole year; then a categories sheet.',
+      'The categories sheet lists the categories of money in and money out, one to a row with whether each is in or out, and rows left free below for more: the user changes them there, never in the month sheets. Take them from the request, or pick a few everyday ones for a household.',
+      'Each month sheet has a row for each entry: the date, what it was, its category, money in, money out and a note, with the header kept in view (freezeHeader). The category column offers a drop-down list of the names on the categories sheet (the column\'s list).',
+      'Beside the entries stands a summary that works itself out as the month fills in: money in, money out and what is left, then the spending by category. Each category\'s line takes its name from the categories sheet by formula and its amount is a SUMIF over the month, so a category renamed or added turns up by itself; with IF, a line for an empty slot stays empty instead of showing 0.',
+      'Draw a pie chart of the spending by category on each month sheet, next to its summary. The year sheet takes each month\'s totals by formula, adds up the year, and has a column chart of the spending month by month.',
+      'Formulas use only this workbook. Give each column its format: date, money or text. A cell left empty is null.',
+      'Leave every entry row empty: the empty book is the finished piece, ready to fill in. Put in no example entries unless the request gives real ones.',
+      `Write every sheet name, header, label and category in ${language}.`,
+      'When it is saved, read it back with mcp__nook-office__read_document and check that each summary formula points at the right cells, and make it again if not.',
+      `In your final reply, say in ${language}, in one line, which months it covers and which categories it starts with.`,
+    ],
+  },
 ] as const satisfies readonly TemplateSpec[];
 
 export type TemplateId = (typeof TEMPLATES)[number]['id'];
 /** The id of a growth piece some kind of work brings. */
 export type BroughtId = Extract<(typeof TEMPLATES)[number], { growth: object }>['growth']['id'];
+/** The id of a piece some kind of work brings into a shop along the street (plan-1.8.md H5). */
+export type BroughtRoomId = Extract<(typeof TEMPLATES)[number], { roomGrowth: object }>['roomGrowth']['id'];
 
 export const template = (id: TemplateId): TemplateSpec => TEMPLATES.find((t) => t.id === id)!;
 /**

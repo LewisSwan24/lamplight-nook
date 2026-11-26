@@ -132,6 +132,7 @@
    "grow-ledger": 106.1,
    "grow-monitor": 158.1,
    "grow-plant": 94.1,
+   "grow-print-ledgerbook": 94.1,
    "grow-readinglamp": 106.1,
    "grow-teapot": 94.1,
    "grow-trophy": 152.1,
@@ -389,6 +390,12 @@
     "w": 9,
     "h": 13
    },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
+   },
    "print-proof": {
     "x": 234,
     "y": 20,
@@ -636,6 +643,7 @@
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 97.1,
+   "grow-print-ledgerbook": 97.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 97.1,
    "grow-trophy": 157.1,
@@ -895,6 +903,12 @@
     "w": 9,
     "h": 13
    },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
+   },
    "print-proof": {
     "x": 234,
     "y": 20,
@@ -1128,6 +1142,7 @@
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 96.1,
+   "grow-print-ledgerbook": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
    "grow-trophy": 156.1,
@@ -1383,6 +1398,12 @@
     "w": 9,
     "h": 13
    },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
+   },
    "print-proof": {
     "x": 234,
     "y": 20,
@@ -1622,6 +1643,7 @@
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 94.1,
+   "grow-print-ledgerbook": 94.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 94.1,
    "grow-trophy": 158.1,
@@ -1879,6 +1901,12 @@
     "w": 9,
     "h": 13
    },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
+   },
    "print-proof": {
     "x": 234,
     "y": 20,
@@ -2106,6 +2134,7 @@
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 95.1,
+   "grow-print-ledgerbook": 95.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 95.1,
    "season-autumn": 102.1,
@@ -2363,6 +2392,12 @@
     "w": 9,
     "h": 13
    },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
+   },
    "print-proof": {
     "x": 234,
     "y": 20,
@@ -2588,6 +2623,7 @@
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 96.1,
+   "grow-print-ledgerbook": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
    "season-autumn": 102.1,
@@ -2844,6 +2880,12 @@
     "w": 9,
     "h": 13
    },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
+   },
    "print-proof": {
     "x": 234,
     "y": 20,
@@ -3069,6 +3111,7 @@
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 96.1,
+   "grow-print-ledgerbook": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
    "grow-toolbox": 163.1,
@@ -3325,6 +3368,12 @@
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,

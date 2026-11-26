@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { extname, posix } from 'node:path';
 import { entryText, readZip, type ZipEntries } from './unzip';
+import type { Book } from './formula';
+import type { Cell } from './specs';
 import { letters } from './xlsx';
 import { child, children, elements, find, findAll, ownText, parseXml, textOf, type El } from './xml';
 
@@ -279,4 +281,42 @@ function paragraphs(shape: El): string[] {
   const table = find(shape, 'tbl');
   if (table) return children(table, 'tr').map((tr) => children(tr, 'tc').map((tc) => findAll(tc, 'p').map((p) => textOf(p).trim()).join(' ')).join(' | '));
   return findAll(child(shape, 'txBody') ?? shape, 'p').map((p) => textOf(p).trim()).filter(Boolean);
+}
+
+/**
+ * A workbook's cells, by sheet and address, as formula.ts works them out (plan-1.8.md H5): text, numbers, and a formula
+ * as its formula (whatever value Excel last saved with it is left out, so it is worked out afresh). TRUE and FALSE come
+ * back as text; an empty cell is left out.
+ */
+export function bookCells(buf: Buffer): Book {
+  const zip = readZip(buf);
+  const book = xml(zip, 'xl/workbook.xml');
+  if (!book) throw new Error('This .xlsx has no workbook part.');
+  const links = rels(zip, 'xl/workbook.xml');
+  const sst = xml(zip, 'xl/sharedStrings.xml');
+  const shared = sst ? children(find(sst, 'sst') ?? sst, 'si').map((si) => textOf(si, 't', ['rPh'])) : [];
+  return findAll(book, 'sheet').map((s) => {
+    const target = links.get(s.attrs.id)?.target;
+    const sheet = target ? xml(zip, target) : undefined;
+    const cells: Record<string, Cell> = {};
+    for (const c of sheet ? findAll(sheet, 'c') : []) {
+      const ref = c.attrs.r;
+      if (!ref) continue;
+      const f = child(c, 'f');
+      const formula = f ? ownText(f) : '';
+      if (formula) {
+        cells[ref] = { f: `=${formula}` };
+        continue;
+      }
+      const v = child(c, 'v');
+      const raw = v ? ownText(v) : undefined;
+      const t = c.attrs.t;
+      if (t === 'inlineStr') cells[ref] = textOf(child(c, 'is') ?? c, 't', ['rPh']);
+      else if (t === 's') cells[ref] = shared[Number(raw)] ?? '';
+      else if (t === 'b') cells[ref] = raw === '1' ? 'TRUE' : 'FALSE';
+      else if (t === 'str' || t === 'e') cells[ref] = raw ?? '';
+      else if (raw !== undefined && raw !== '') cells[ref] = Number(raw);
+    }
+    return { name: s.attrs.name ?? '', cells };
+  });
 }

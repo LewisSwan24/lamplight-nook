@@ -14,13 +14,22 @@ export type Block =
   | { image: string; caption?: string } // a path relative to the commission folder
   | { pageBreak: true };
 export type ColumnFormat = 'text' | 'number' | 'money' | 'date' | 'percent';
-export type Cell = string | number | { f: string };
+/** null leaves the cell out, so a block can stand to the right of columns left empty (plan-1.8.md H5). */
+export type Cell = string | number | { f: string } | null;
+/**
+ * A chart drawn from ranges of the workbook (plan-1.8.md H5): a pie of one column or row of values, or columns side by
+ * side. `labels` and `values` are ranges such as "H7:H21" on this sheet or "'Year'!C2:C13"; `at` is the cell its top
+ * left corner sits on, one column past the table and a row down unless given.
+ */
+export type ChartSpec = { type: 'pie' | 'bar'; title: string; labels: string; values: string; at?: string };
 export type SheetSpec = {
   sheets: {
     name: string;
-    columns: { header: string; width?: number; format?: ColumnFormat }[];
+    /** `list`: the column's cells offer a drop-down of a range of the workbook or of a few words (plan-1.8.md H5). */
+    columns: { header: string; width?: number; format?: ColumnFormat; list?: string | string[] }[];
     rows: Cell[][]; // f is a formula, such as =SUM(B2:B20)
     freezeHeader?: boolean;
+    charts?: ChartSpec[];
   }[];
 };
 export type SlideLayout = 'title' | 'bullets' | 'image' | 'two';
@@ -59,7 +68,16 @@ export const docSpecShape = {
   blocks: z.array(block).min(1).max(2_000),
 };
 
-const cell = z.union([text, z.number(), z.object({ f: z.string().min(1).max(TEXT) })]);
+const cell = z.union([text, z.number(), z.object({ f: z.string().min(1).max(TEXT) }), z.null()]);
+const range = z.string().min(3).max(100);
+// A chart a sheet carries: ten is more than any summary a person reads needs.
+const chart = z.object({
+  type: z.enum(['pie', 'bar']),
+  title: line,
+  labels: range,
+  values: range,
+  at: z.string().regex(/^[A-Z]{1,3}[1-9]\d{0,4}$/).optional(),
+});
 const sheet = z.object({
   // Excel refuses names past 31 characters or with any of : \ / ? * [ ]
   name: z.string().min(1).max(31).regex(/^[^:\\/?*[\]]+$/),
@@ -67,9 +85,11 @@ const sheet = z.object({
     header: line,
     width: z.number().min(1).max(255).optional(), // characters, as Excel counts them; 255 is its widest
     format: z.enum(['text', 'number', 'money', 'date', 'percent']).optional(),
+    list: z.union([range, z.array(z.string().min(1).max(100)).min(1).max(50)]).optional(),
   })).min(1).max(100),
   rows: z.array(z.array(cell).max(100)).max(20_000),
   freezeHeader: z.boolean().optional(),
+  charts: z.array(chart).max(10).optional(),
 });
 
 /** make_xlsx's input. */

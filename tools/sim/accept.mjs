@@ -60,6 +60,7 @@ const W = {
     card: '帮我给楼下的芳姐做一张生日贺卡，想写：生日快乐，花一直开。',
     newsletter: '帮我给我们楼做一份简报，这期讲：周六上午义诊，楼道别停自行车。',
     flashcards: '帮我把这份生物讲义做成复习卡片，下周考光合作用。',
+    ledgerbook: '帮我做一本家庭账本，从一月开始记，家里的钱常花在买菜、水电和孩子上学。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -87,6 +88,7 @@ const W = {
     card: 'Make a birthday card for Fern downstairs, saying: Happy birthday, may the flowers keep coming.',
     newsletter: 'Make a newsletter for our block, this issue about: a clinic on Saturday morning, and no bikes in the hallway.',
     flashcards: 'Turn this biology handout into revision cards, for a test on photosynthesis next week.',
+    ledgerbook: 'Make me a family ledger from January; our money mostly goes on groceries, bills and the children.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -5499,6 +5501,76 @@ const SCENARIOS = {
       check(came, 'Lele did not come in and say something');
       check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('pupil')), 'Lele has no picture');
       await shop.shot(join(out, 'flashcards-lele.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A family ledger (plan-1.8.md H5): ordered at home, made in the print shop as one Excel workbook, a sheet a month with
+   * a drop-down of categories, a summary in formulas and a pie chart, the year with a column chart, and the categories
+   * on a sheet of their own. It opens with a click (nothing in it reaches outside) and the card has its picture. The
+   * ledger then lies on the print shop's counter, someone at home says so, and Auntie Qin starts dropping in.
+   */
+  async ledgerbook(lang, out) {
+    const L = locale(lang);
+    const F = shopFiles(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    try {
+      await sleep(1500);
+      await shop.order({ template: 'ledgerbook', want: W[lang].ledgerbook });
+      await shop.shot(join(out, 'ledgerbook-slip.png'));
+      await shop.submit();
+      const made = await shop.workUntilDone();
+      check(made.ok, `the family ledger did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      const dir = latestCommission(home);
+      check(existsSync(join(dir, F.ledgerbook)), `${F.ledgerbook} is not in the commission folder`);
+      // Unpacked with the system's own tool: fourteen sheets, a chart on each month and on the year, a list to pick from.
+      const book = looksSafe(join(dir, F.ledgerbook), join(home.home, 'unpacked'));
+      const count = (re) => book.parts.filter((p) => re.test(p)).length;
+      check(count(/^xl\/worksheets\/sheet\d+\.xml$/) === 14, `the ledger has ${count(/^xl\/worksheets\/sheet\d+\.xml$/)} sheets`);
+      check(count(/^xl\/charts\/chart\d+\.xml$/) === 13, `the ledger has ${count(/^xl\/charts\/chart\d+\.xml$/)} charts`);
+      const part = (name) => readFileSync(join(book.dir, ...name.split('/')), 'utf8');
+      const jan = part('xl/worksheets/sheet1.xml');
+      check(/<dataValidation type="list"[^>]*sqref="C2:C\d+"/.test(jan), 'January has no list of categories to pick from');
+      check(/<f>IF\(H7="","",SUMIF\(\$C\$2:\$C\$301,H7,\$E\$2:\$E\$301\)\)<\/f>/.test(jan.replace(/&quot;/g, '"')), 'January\'s summary does not sum by category');
+      check(/<c r="A2"/.test(jan) === false, 'January is not empty: the empty book is the piece');
+      check(part('xl/charts/chart1.xml').includes('<c:pieChart>'), 'January has no pie chart');
+      check(part('xl/charts/chart13.xml').includes('<c:barChart>'), 'the year has no column chart');
+      await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+      const opens = await page.locator('.result-card').innerText();
+      check(opens.includes(F.ledgerbook), `the result card does not name ${F.ledgerbook}: ${opens.slice(0, 200)}`);
+      await sleep(400);
+      await shop.shot(join(out, 'ledgerbook-done.png'));
+      await page.keyboard.press('Escape');
+
+      // The work was done in the print shop, and the card came up there: the ledger already lies on its counter.
+      const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+      check(await room() === 'print', `the ledger was not made in the print shop: ${await room()}`);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(800);
+      check(await page.evaluate(() => window.lamplightDebug.rooms.get('print')?.scene.growth.shows('print-ledgerbook')), 'no ledger on the print shop\'s counter');
+      await shop.shot(join(out, 'ledgerbook-counter.png'));
+
+      // Back home, Adeng says so.
+      await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'cafe'; await sleep(300));
+      check(await room() === 'cafe', `did not go home: ${await room()}`);
+      const said = parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), 'cafe.yaml'), 'utf8')).grow.find((l) => l.id === 'grow_print_ledgerbook').bubbles[0];
+      const told = await page.waitForFunction((line) => window.lamplightDebug.scene.isSaying('adeng', line), said, { timeout: 40_000, polling: 200 }).then(() => true, () => false);
+      check(told, `nobody said: ${said}`);
+      await shop.shot(join(out, 'ledgerbook-told.png'));
+
+      await page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await page.evaluate(() => window.lamplightDebug.welcome('bookkeeper'));
+      const came = await page.waitForFunction(() => {
+        const g = window.lamplightDebug.scene.guest;
+        return g?.id === 'bookkeeper' && g.speech;
+      }, null, { timeout: 20_000 }).then(() => true, () => false);
+      check(came, 'Auntie Qin did not come in and say something');
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('bookkeeper')), 'Auntie Qin has no picture');
+      await shop.shot(join(out, 'ledgerbook-qin.png'));
     } finally { await shop.close(); }
   },
 

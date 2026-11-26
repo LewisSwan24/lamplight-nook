@@ -1476,6 +1476,81 @@
     - pupil: Too cold to hold a pen today.
     - adeng: Hold this cup first.
 
+- id: qin_book
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: I write the accounts up every night.
+    - adeng: How long have you kept them?
+    - bookkeeper: Since the year I married.
+
+- id: qin_pie
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: My grandson read the pie chart at once.
+    - xiaoju: Which slice was biggest?
+    - bookkeeper: Groceries. You can see it from the door.
+
+- id: qin_prices
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: Greens went up again at the market today.
+    - laoshi: Write it down. The month's end shows it.
+
+- id: qin_categories
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: I added a category for the cat.
+    - qingdai: Cat food adds up.
+
+- id: qin_rain
+  when: idle
+  guest: bookkeeper
+  sky: rain
+  turns:
+    - bookkeeper: Rain. A good day to check the accounts.
+    - adeng: Have something hot before you go.
+
+- id: qin_spring
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: spring
+  turns:
+    - bookkeeper: Spring at last. No more heating bills.
+    - xiaoju: Winter took a big slice.
+
+- id: qin_summer
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: summer
+  turns:
+    - bookkeeper: The fan is on, and so is the meter.
+    - laoshi: July's page will tell.
+
+- id: qin_autumn
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: autumn
+  turns:
+    - bookkeeper: School fees for my grandson came today.
+    - adeng: This month's pie will look different.
+
+- id: qin_winter
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: winter
+  turns:
+    - bookkeeper: Year end. I went through every page.
+    - laoshi: What was left over?
+    - bookkeeper: A little more than last year.
+
 # The street in 1.6 (plan-1.6.md F5): the home shop on the bakery, the post office and the people going by; Auntie
 # Olive and Pip when they drop in. Same ids as lines/chats.yaml.
 

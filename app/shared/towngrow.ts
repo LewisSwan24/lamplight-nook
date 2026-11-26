@@ -1,4 +1,6 @@
 import type { StreetShop } from './dispatch';
+import type { Made } from './growth';
+import { TEMPLATES, type BroughtRoomId, type TemplateId } from './templates';
 import { ROOMS, type RoomId, type SceneId } from './scenes';
 import type { TownDays } from './town';
 
@@ -36,14 +38,26 @@ export const ROOM_GROWTH = {
   // The post office (plan-1.6.md F2): the first stamp framed, the ivy, a brass post horn, a map of the rounds.
   post: [{ id: 'stamp', at: 1 }, { id: 'ivy', at: 3 }, { id: 'horn', at: 8 }, { id: 'map', at: 20 }],
 } as const satisfies Record<StreetShop, readonly { id: string; at: number }[]>;
-export type RoomPiece<S extends StreetShop = StreetShop> = (typeof ROOM_GROWTH)[S][number]['id'];
+/**
+ * Pieces a kind of work brings into the shop along the street that does it (plan-1.8.md H5), counted by that kind
+ * rather than by the shop's own count: a family ledger lying on the print shop's counter. The templates say which.
+ */
+export const ROOM_WORK: { shop: StreetShop; id: BroughtRoomId; at: number; work: TemplateId }[] = TEMPLATES.flatMap((t) =>
+  ('roomGrowth' in t ? [{ shop: t.shop as StreetShop, id: t.roomGrowth.id, at: t.roomGrowth.at, work: t.id }] : []));
+export type RoomPiece<S extends StreetShop = StreetShop> = (typeof ROOM_GROWTH)[S][number]['id'] | BroughtRoomId;
+/** Everything a shop along the street can come to have in its room: its own four, then what its kinds of work bring. */
+export const roomPieceIds = (shop: StreetShop): RoomPiece[] => [...ROOM_GROWTH[shop].map((g) => g.id), ...ROOM_WORK.filter((g) => g.shop === shop).map((g) => g.id)];
 
 const due = <T extends { id: string; at: number }>(pieces: readonly T[], count: number): T['id'][] =>
   pieces.filter((g) => count >= g.at).map((g) => g.id);
 
 export const streetGrown = (done: number): StreetPiece[] => due(STREET_GROWTH, done);
 export const frontGrown = (count: number): FrontPiece[] => due(FRONT_GROWTH, count);
-export const roomGrown = (shop: StreetShop, count: number): RoomPiece[] => due<{ id: RoomPiece; at: number }>(ROOM_GROWTH[shop], count);
+/** A shop's pieces by its own count, and those its kinds of work bring by how many of each kind there have been. */
+export const roomGrown = (shop: StreetShop, count: number, made: Made = {}): RoomPiece[] => [
+  ...due<{ id: RoomPiece; at: number }>(ROOM_GROWTH[shop], count),
+  ...ROOM_WORK.filter((g) => g.shop === shop && (made[g.work] ?? 0) >= g.at).map((g) => g.id),
+];
 
 const STREET_SHOPS = Object.keys(ROOM_GROWTH) as StreetShop[];
 export const isStreetShop = (room: RoomId): room is StreetShop => (STREET_SHOPS as string[]).includes(room);
@@ -65,8 +79,11 @@ export function townCounts(days: { done: number; town?: TownDays }, home: SceneI
 
 export type TownNews = { line: string; shop?: RoomId };
 
-/** What came with the last commission, as the lines that mention it: on the street, at a front, inside a shop. */
-export function townNews(before: TownCounts, after: TownCounts): TownNews[] {
+/**
+ * What came with the last commission, as the lines that mention it: on the street, at a front, inside a shop. `made`,
+ * how many of each kind of work there were before and after, brings in what a kind of work put in a shop (H5).
+ */
+export function townNews(before: TownCounts, after: TownCounts, made: { before: Made; after: Made } = { before: {}, after: {} }): TownNews[] {
   const fresh = <T extends string>(was: T[], now: T[]) => now.filter((id) => !was.includes(id));
   const out: TownNews[] = fresh(streetGrown(before.total), streetGrown(after.total)).map((id) => ({ line: `grow_street_${id}` }));
   for (const room of ROOMS) {
@@ -74,7 +91,7 @@ export function townNews(before: TownCounts, after: TownCounts): TownNews[] {
   }
   for (const room of ROOMS) {
     if (!isStreetShop(room)) continue;
-    for (const id of fresh(roomGrown(room, before.shops[room]), roomGrown(room, after.shops[room]))) out.push({ line: `grow_${room}_${id}` });
+    for (const id of fresh(roomGrown(room, before.shops[room], made.before), roomGrown(room, after.shops[room], made.after))) out.push({ line: `grow_${room}_${id}` });
   }
   return out;
 }

@@ -30,6 +30,7 @@ import lodgerUrl from '../../../assets/sprites/lodger.png';
 import floristUrl from '../../../assets/sprites/florist.png';
 import organizerUrl from '../../../assets/sprites/organizer.png';
 import pupilUrl from '../../../assets/sprites/pupil.png';
+import bookkeeperUrl from '../../../assets/sprites/bookkeeper.png';
 import grannyUrl from '../../../assets/sprites/granny.png';
 import studentUrl from '../../../assets/sprites/student.png';
 import catUrl from '../../../assets/sprites/cat.png';
@@ -117,7 +118,7 @@ const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerU
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = {
   rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl, fog: fogUrl, wind: windUrl, storm: stormUrl,
 };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
