@@ -272,7 +272,7 @@ function volumeRow(api: LamplightApi, settings: Settings, changed: (s: Settings)
   return el('div.volume-row', {}, slider, el('div.hint', {}, S.volumeHint));
 }
 
-type Switch = 'captions' | 'reducedMotion' | 'powerSaving' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused' | 'lan';
+type Switch = 'captions' | 'reducedMotion' | 'powerSaving' | 'handInFirst' | 'detailed' | 'notify' | 'closeToTray' | 'openAtLogin' | 'mini' | 'updates' | 'connectionsPaused' | 'lan';
 
 /** On/off switches, saved as soon as they change. */
 function switchRows(api: LamplightApi, settings: Settings, changed: (s: Settings) => void, rows: [Switch, string][]): HTMLElement {
@@ -645,6 +645,9 @@ export async function showSettings(api: LamplightApi, onChange: (s: Settings) =>
     work: [
       el('section', {}, el('h4', {}, S.checkLabel), envRows(api, env)),
       el('section', {}, el('h4', {}, S.folderLabel), folderRow(api, settings, onChange)),
+      // Which way of handing in the counter opens first (plan-1.8.md H8, Q-F11): the slip, or the hand-in card.
+      el('section.handin-first', {}, el('h4', {}, strings.ui.handin.firstLabel),
+        switchRows(api, settings, onChange, [['handInFirst', strings.ui.handin.firstToggle]]), el('div.hint', {}, strings.ui.handin.firstHint)),
       el('section.model', {}, el('h4', {}, S.modelLabel), settings.provider.kind === 'compatible'
         ? el('div.hint.model-set', {}, fill(S.provider.modelSet, { model: settings.provider.model ?? '' })) : modelRows(api, settings, onChange)),
       providerSection(api, settings, onChange),

@@ -8,8 +8,8 @@
 
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-import { closeSync, copyFileSync, cpSync, existsSync, ftruncateSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { closeSync, copyFileSync, cpSync, existsSync, ftruncateSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
+import { basename, join, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
@@ -5583,6 +5583,78 @@ const SCENARIOS = {
   },
 
   /**
+   * Handing in without typing (plan-1.8.md H8), with the setting that puts it first: the counter opens on the hand-in
+   * card, the slip is a click away and back. A file is handed over from the bag, a letter picked from the sample shelf,
+   * Wick's questions answered by clicking, and the slip he writes up signed. Not one key is pressed. The commission is
+   * the one the slip would have made from the same words typed in, and it is done like any other.
+   */
+  async handin(lang, out) {
+    const L = locale(lang);
+    const H = L.ui.handin;
+    const home = freshHome({ 'settings.json': { ...onboarded(lang), handInFirst: true } });
+    const bag = mkdtempSync(join(tmpdir(), 'nook-bag-'));
+    const note = join(bag, lang === 'en' ? 'parcels.txt' : '快递.txt');
+    writeFileSync(note, lang === 'en' ? 'Three parcels, Monday to Wednesday.' : '周一到周三，一共三个快递。');
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const card = page.locator('form.commission .handin');
+    const answer = (text) => card.locator('button.handin-answer', { hasText: text }).first();
+    try {
+      await sleep(1500);
+      await page.evaluate(() => { window.keysPressed = 0; document.addEventListener('keydown', () => { window.keysPressed++; }, true); });
+      await shop.order({});
+      check(await card.isVisible(), 'the counter did not open on the hand-in card');
+      check(!(await page.locator('form.commission textarea').first().isVisible()), 'the slip shows beside the hand-in card');
+      await shop.shot(join(out, 'handin-bag.png'));
+
+      // The slip is a click away, and the card a click back.
+      await card.locator('button.handin-to-slip').click();
+      check(await page.locator('form.commission textarea').first().isVisible() && !(await card.isVisible()), 'the slip did not come back');
+      await page.locator('form.commission button.handin-open').click();
+      check(await card.isVisible(), 'the hand-in card did not come back from the slip');
+
+      // From the bag: a file handed over, without a dialog to type in.
+      await shop.pickFiles([note]);
+      await answer(H.bagPick).click();
+      await card.locator('.material-tag', { hasText: basename(note) }).waitFor({ timeout: 5000 });
+      await card.locator('button.handin-next').click();
+
+      // The sample shelf: every kind but the two that start from a file of the user's.
+      await card.locator('.handin-shelf').waitFor();
+      const kinds = await card.locator('button.handin-sample').evaluateAll((bs) => bs.map((b) => b.dataset.kind));
+      check(kinds.length === 23 && !kinds.includes('edit') && !kinds.includes('tidy') && kinds.includes('picturebook'), `the shelf has ${kinds.join(',')}`);
+      await shop.shot(join(out, 'handin-shelf.png'));
+      await card.locator('button.handin-sample[data-kind="letter"]').click();
+
+      // Wick asks, the answers are there to click.
+      const want = H.examples.letter[0];
+      await answer(want).click();
+      await answer(H.audience.friends).click();
+      await answer(H.asks.print).click();
+      const slip = await card.locator('dl.handin-slip').innerText();
+      for (const said of [L.ui.templates.letter, want, H.audience.friends, H.asks.print, basename(note)]) check(slip.includes(said), `the slip does not say ${said}: ${slip}`);
+      await shop.shot(join(out, 'handin-slip.png'));
+      await card.locator('button.handin-sign').click();
+
+      const made = await shop.workUntilDone();
+      check(made.ok, `the signed commission did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      check(await page.evaluate(() => window.keysPressed) === 0, `keys were pressed: ${await page.evaluate(() => window.keysPressed)}`);
+      const form = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1).form;
+      check(form.want === want && form.template === 'letter' && form.audience === H.audience.friends && form.details === H.asks.print && !form.demo,
+        `the commission is not what was picked: ${JSON.stringify(form)}`);
+      check(form.materials?.length === 1 && basename(form.materials[0]) === basename(note), `the file handed over did not go with it: ${JSON.stringify(form.materials)}`);
+      await shop.shot(join(out, 'handin-done.png'));
+      await page.locator('.result-card button.close').click().catch(() => {});
+
+      // The setting that put it first, in settings.
+      await shop.openSettings('work');
+      const on = page.locator('.settings section.handin-first input[type=checkbox]');
+      check(await on.isChecked(), 'settings do not show the hand-in first');
+      await shop.shot(join(out, 'handin-settings.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
    * A picture book (plan-1.8.md H4): ordered at home, drawn in the studio, then carried on to the print shop and laid out
    * there as a landscape PDF, a cover and eight pages. The view goes along from one shop to the other, and each shop's
    * people have it in hand in turn. Then a little book stands on the print shop's sill, someone at home says so, and
@@ -5622,6 +5694,9 @@ const SCENARIOS = {
       const drawn = seen.findIndex((s) => s.view === 'studio' && s.studio && !s.print);
       const laid = seen.findIndex((s, i) => i > drawn && s.view === 'print' && s.print && !s.studio);
       check(drawn >= 0 && laid > drawn, `it was not drawn in the studio and then laid out in the print shop: ${JSON.stringify(seen)}`);
+      // The plan came along: the print shop's blackboard goes on from the studio's, to the end.
+      const chalk = await page.evaluate(() => [...document.querySelectorAll('#board .step')].map((s) => `${s.className}|${s.textContent}`));
+      check(chalk.some((c) => c.includes(' done')) && !chalk.some((c) => / (todo|doing)\|/.test(c)), `the print shop's blackboard did not follow the plan to the end: ${JSON.stringify(chalk)}`);
 
       // The book: a cover and eight pages, each a landscape sheet; the cover as a picture; the card opens the PDF.
       const dir = latestCommission(home);
@@ -5648,6 +5723,12 @@ const SCENARIOS = {
       check(await page.evaluate(() => window.lamplightDebug.rooms.get('print')?.scene.growth.shows('print-book')), 'no picture book on the print shop\'s sill');
       check(!(await page.evaluate(() => window.lamplightDebug.rooms.get('studio')?.scene.growth.shows('print-book'))), 'the picture book stands in the studio');
       await shop.shot(join(out, 'picturebook-sill.png'));
+
+      // Out in the street the shop's blackboard stays inside: none of its chalk over the street.
+      await page.locator(`.toolbar button.tool-btn[aria-label="${locale(lang).ui.toolbar.street}"]`).click();
+      await sleep(1500);
+      check(await page.evaluate(() => getComputedStyle(document.getElementById('board')).visibility) === 'hidden', "the blackboard's chalk shows over the street");
+      await shop.shot(join(out, 'picturebook-street.png'));
 
       // Back home, Adeng says so.
       await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));

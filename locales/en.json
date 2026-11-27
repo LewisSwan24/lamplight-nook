@@ -180,6 +180,145 @@
   "ui": {
     "startFail": { "title": "The shop couldn't open", "text": "The disk may be full, or the data folder may not be writable. Free up some space and try again.\n\n{reason}" },
     "commissionTitle": "Commission slip",
+    "handin": {
+      "open": "Hand it in without typing",
+      "title": "Hand it in",
+      "bagSay": "Drag any materials onto this slip, or go straight to the samples.",
+      "bagPick": "Pick from this computer...",
+      "bagNone": "No materials",
+      "bagNext": "Done, pick a sample",
+      "shelfSay": "Pick one from the sample shelf, and we make one like it.",
+      "topicSay": "What should it be?",
+      "own": "Write my own",
+      "ownDone": "That's it",
+      "layoutSay": "Which layout?",
+      "audienceSay": "Who is it for?",
+      "askSay": "Anything else to mind?",
+      "slipSay": "I have written it up. Have a look, and sign if it's right.",
+      "rows": {
+        "kind": "Kind",
+        "want": "What to make",
+        "audience": "Who it's for",
+        "details": "To mind",
+        "materials": "Materials",
+        "none": "None"
+      },
+      "again": "Start over",
+      "sign": "Sign",
+      "signed": "Signed, and over to Wick.",
+      "needPhotos": "An album needs its photos dragged in first.",
+      "audience": {
+        "me": "Me",
+        "family": "Family",
+        "kids": "Children",
+        "friends": "Friends",
+        "work": "Colleagues"
+      },
+      "asks": {
+        "simple": "Keep it simple",
+        "print": "Printable",
+        "phone": "For a phone",
+        "none": "Nothing else"
+      },
+      "examples": {
+        "page": [
+          "Make a small page about our weekend street market.",
+          "Make a small page introducing our book club."
+        ],
+        "research": [
+          "Look up how to care for a pothos and sum it up.",
+          "Look up gentle exercise for older people and sum it up."
+        ],
+        "letter": [
+          "Write a letter thanking my neighbour for taking in parcels.",
+          "Write a letter asking my landlord to fix the water heater."
+        ],
+        "sheet": [
+          "Make a table of what we spend on groceries each week.",
+          "Make a table of who does which chores each week."
+        ],
+        "plan": [
+          "Plan a two-day spring clean for the weekend.",
+          "Plan three runs a week for next month."
+        ],
+        "album": [
+          "Make these photos into an album.",
+          "Make a travel album from these photos."
+        ],
+        "resume": [
+          "Write me a résumé for a café job.",
+          "Write me a résumé for a design internship."
+        ],
+        "notes": [
+          "Write up reading notes on The Little Prince.",
+          "Write up reading notes on Charlotte's Web."
+        ],
+        "travel": [
+          "Make a three-day travel guide to Hangzhou.",
+          "Make a two-day guide to Suzhou with my parents."
+        ],
+        "tool": [
+          "Make a little tool to split a dinner bill.",
+          "Make a pomodoro timer."
+        ],
+        "document": [
+          "Write a notice on the parking rules, as a Word file.",
+          "Write our book club's rules, as a Word file."
+        ],
+        "slides": [
+          "Make five slides on sorting rubbish.",
+          "Make slides introducing our team to new colleagues."
+        ],
+        "chart": [
+          "Draw a chart: January 120, February 180, March 150.",
+          "Draw a chart: Monday 6000 steps, Tuesday 8000, Wednesday 5000."
+        ],
+        "poster": [
+          "Make a poster for Saturday's flea market.",
+          "Make a poster to find new book club members."
+        ],
+        "menu": [
+          "Make a weekend brunch menu.",
+          "Make a menu for our New Year's Eve dinner."
+        ],
+        "recipe": [
+          "Write a recipe for tomato and egg stir-fry.",
+          "Write a recipe for braised pork belly."
+        ],
+        "card": [
+          "Make a birthday card for my mum.",
+          "Make a New Year card for an old classmate."
+        ],
+        "newsletter": [
+          "Write this month's residents' newsletter.",
+          "Write our book club's monthly newsletter."
+        ],
+        "flashcards": [
+          "Make revision cards on buoyancy for year-8 physics.",
+          "Make revision cards for English irregular verbs."
+        ],
+        "ledgerbook": [
+          "Make a household ledger for this year.",
+          "Make a ledger for rent and bills."
+        ],
+        "minigame": [
+          "Make a matching pairs game for a five-year-old.",
+          "Make a whack-a-mole game."
+        ],
+        "comic": [
+          "Draw a four-panel comic about a cat stealing fish.",
+          "Draw a four-panel comic about Monday mornings."
+        ],
+        "picturebook": [
+          "Make a bedtime picture book for my son, who loves the moon.",
+          "Make a bedtime picture book for my daughter, who loves rabbits."
+        ]
+      },
+      "firstLabel": "Handing in",
+      "firstToggle": "The counter opens the hand-in first, not the slip",
+      "firstHint": "No typing: drag materials over, pick a sample, click Wick's answers, then sign. The slip is still there, one click away on the card.",
+      "toSlip": "Use the slip instead"
+    },
     "layout": {
       "label": "Layout:",
       "plain": "Guide",

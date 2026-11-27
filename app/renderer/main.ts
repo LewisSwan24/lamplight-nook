@@ -747,9 +747,11 @@ let showRoom: (room: RoomId, byUser: boolean) => Promise<void> = async () => {};
  * (in the same order the events are played in), and the view follows it if it was there.
  */
 function carriedOn(run: string, from: RoomId, to: RoomId) {
+  // Taken from the shop it leaves before that shop lets the round go, just below.
+  const plan = rooms.get(from)?.stage.planOf(run);
   const ready = rooms.get(to);
-  if (ready && !building.has(to)) ready.stage.join(run);
-  else void roomOf(to).then((r) => r.stage.join(run));
+  if (ready && !building.has(to)) ready.stage.join(run, plan);
+  else void roomOf(to).then((r) => r.stage.join(run, plan));
   if (scene.room === from) void showRoom(to, false);
 }
 function started(run: string, shop: RunInfo['shop']) {
@@ -848,7 +850,7 @@ async function newCommission(dropped: string[] = [], another = false) {
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped), () => { oldClaudeOk = true; void newCommission(dropped); });
   const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
   const settings = await window.lamplight.getSettings();
-  const form = await showCommissionForm(window.lamplight, settings.budgetUsd, handed, await window.lamplight.monthBudget(), settings.modelTier);
+  const form = await showCommissionForm(window.lamplight, settings.budgetUsd, handed, await window.lamplight.monthBudget(), settings.modelTier, settings.handInFirst);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   placedAt = Date.now();

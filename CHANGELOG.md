@@ -25,10 +25,19 @@
   whack-a-mole or snake. It is one page that opens and plays with no network, pitched for whoever will play it. The
   first one hangs a little game machine on the workshop's wall, and brings Duoduo's dad, who wanted a game for his
   daughter and drops in to say how she is getting on.
+- **Hand it in without typing.** A second way to order, beside the slip: drag your materials onto the card, pick a
+  kind from the sample shelf, click one of Wick's ready answers to what it should be, who it is for and what to mind,
+  then sign the slip he writes up. "Write my own" is there when no answer fits. The slip has a link to it, and a
+  switch in Settings (Work) makes the counter open on it first.
 - **Picture book.** A new kind of order: a bedtime picture book of about eight pages, a picture and a short passage
   on each, with the title and the child's name on the cover. The studio draws it, then the order is carried to the
   print shop, which lays it out as a landscape PDF, and you go along to watch. The first one leaves a little book on
   the print shop's windowsill, and brings Xiaoman's mum, who reads to him every night.
+- **The blackboard stays indoors.** Out in the street, the shop's blackboard chalk and project cards used to hang over
+  the street where the slate had been. They stay inside now.
+- **The blackboard follows a picture book.** When a picture book moved from the studio to the print shop, the print
+  shop's blackboard kept the studio's plan where it stopped. Now the plan goes with the order, and is ticked off to
+  the end.
 - **PDFs keep their page size.** A page that sets its own size, such as a landscape book, now comes out that size
   instead of being shrunk onto portrait A4.
 - **Comic strip.** A new kind of order in the studio: a four-panel comic, drawn as one long picture with a PDF

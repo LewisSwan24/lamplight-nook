@@ -3,7 +3,9 @@ import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type Citations, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
-import { TEMPLATES, type TemplateLayout, type TemplateSpec } from '../../shared/templates';
+import { TEMPLATES, template as templateOf, type TemplateId, type TemplateLayout, type TemplateSpec } from '../../shared/templates';
+import { ASKS, AUDIENCES, HANDIN_KINDS, handInForm, slipForm, type HandInPicks } from '../../shared/handin';
+import { workIconEl } from './shelf';
 import { isPicture } from '../../shared/pictures';
 import { sfx } from '../audio/sound';
 import { el, layer } from './dom';
@@ -150,6 +152,8 @@ const L = U.lent;
 const C = U.consult;
 /** How long Adeng's last word in a talk stays up before the slip comes back filled in. */
 const LAST_WORD_MS = 1600;
+/** How long the signature shows on the hand-in card before the commission goes in (plan-1.8.md H8). */
+const SIGN_MS = 700;
 
 /** Why something couldn't be handed over, in the shop's words. */
 export function refusalText(r: HandOver['refused'][number]): string {
@@ -163,9 +167,10 @@ export const commissionFormOpen = () => openForm;
 
 /**
  * `month`: this month's cap and what went under it; once past eight tenths, the slip says what is left. `tier`: the model
- * in settings, which "More" can change for this one commission (plan-1.6.md F6).
+ * in settings, which "More" can change for this one commission (plan-1.6.md F6). `handInFirst`: open on the hand-in
+ * card rather than the slip (plan-1.8.md H8, Q-F11).
  */
-export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }, month = { capUsd: 0, spentUsd: 0 }, tier: ModelTier = DEFAULT_TIER): Promise<CommissionForm | null> {
+export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver = { items: [], refused: [] }, month = { capUsd: 0, spentUsd: 0 }, tier: ModelTier = DEFAULT_TIER, handInFirst = false): Promise<CommissionForm | null> {
   return new Promise((resolve) => {
     const want = el('textarea', { rows: 2, required: true }) as HTMLTextAreaElement;
     // The empty-box reminder in the shop's own words (and language), not the browser's.
@@ -198,6 +203,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         } }, '\u00D7'))));
       materialNote.textContent = refused.map(refusalText).join(' ');
       materialNote.classList.toggle('warn', refused.length > 0);
+      // On the hand-in card too, while it is open there.
+      if (!handView.hidden) drawHand();
     };
     const add = async (paths: string[] | null) => {
       const r = await api.handOver(paths, materials);
@@ -400,10 +407,119 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       void send();
     });
 
+    // Handing in without typing (plan-1.8.md H8): materials dragged onto the card, a kind picked from the sample shelf,
+    // Adeng's questions answered with a click, and the slip he writes up signed. The same commission comes out as the slip
+    // would make from the same things typed in (shared/handin.ts).
+    const H = U.handin;
+    const budgetText = (budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap) +
+      (month.capUsd && month.spentUsd >= WARN_SHARE * month.capUsd ? ` ${fill(U.budgetLeft, { left: formatUsd(Math.max(0, month.capUsd - month.spentUsd)), cap: formatUsd(month.capUsd) })}` : '');
+    type HandStep = 'bag' | 'shelf' | 'topic' | 'own' | 'layout' | 'audience' | 'ask' | 'slip';
+    let handStep: HandStep = 'bag';
+    let picks: Partial<HandInPicks> = {};
+    const handView = el('div.handin', { hidden: true });
+    const handNote = el('div.hint.handin-note', { role: 'status' });
+    const kindName = (id: TemplateId) => (U.templates as Record<string, string>)[id];
+    const answer = (label: string, onclick: () => void, kind = '') => el(`button.handin-answer${kind}`, { type: 'button', onclick }, label);
+    const answers = (...buttons: HTMLElement[]) => el('div.handin-answers', {}, ...buttons);
+    const adengSays = (text: string) => withPortrait('adeng', 'calm', el('div.handin-say', {}, text));
+    const go = (step: HandStep) => {
+      handStep = step;
+      handNote.textContent = '';
+      handNote.classList.remove('warn');
+      drawHand();
+    };
+    const afterTopic = () => go(picks.template && templateOf(picks.template).layouts?.length ? 'layout' : 'audience');
+    const pickKind = (id: TemplateId) => {
+      // An album is made from photos: they come first.
+      if (templateOf(id).photos && !materials.some((m) => isPicture(m.name))) {
+        handNote.textContent = H.needPhotos;
+        handNote.classList.add('warn');
+        return;
+      }
+      picks = { template: id };
+      go('topic');
+    };
+    const handSlip = () => {
+      const k = picks.template!;
+      const rows: [string, string][] = [
+        [H.rows.kind, kindName(k) + (picks.layout ? ` · ${U.layout[picks.layout]}` : '')],
+        [H.rows.want, picks.want ?? ''],
+        [H.rows.audience, picks.audience ? H.audience[picks.audience] : H.rows.none],
+        [H.rows.details, picks.ask && picks.ask !== 'none' ? H.asks[picks.ask] : H.rows.none],
+        [H.rows.materials, materials.map((m) => m.name).join(', ') || H.rows.none],
+      ];
+      return el('dl.handin-slip', {}, ...rows.flatMap(([dt, dd]) => [el('dt', {}, dt), el('dd', {}, dd)]));
+    };
+    const sign = () => {
+      const filled = handInForm({ ...picks, materials: materials.map((m) => m.path) } as HandInPicks, H);
+      handView.classList.add('signed');
+      handNote.textContent = H.signed;
+      sfx('open');
+      setTimeout(() => done(filled), SIGN_MS);
+    };
+    const drawHand = () => {
+      const k = picks.template;
+      let body: HTMLElement[];
+      switch (handStep) {
+        case 'bag':
+          body = [adengSays(H.bagSay), el('div.material-tags', {}, ...materials.map((m) => el('span.material-tag', {}, m.name))),
+            el('div.hint.material-note', { role: 'status' }, materialNote.textContent ?? ''),
+            answers(answer(H.bagPick, () => void add(null)), answer(materials.length ? H.bagNext : H.bagNone, () => go('shelf'), '.handin-next'))];
+          break;
+        case 'shelf':
+          body = [adengSays(H.shelfSay), el('div.handin-shelf', {}, ...HANDIN_KINDS.map((id) =>
+            el('button.handin-sample', { type: 'button', 'data-kind': id, onclick: () => pickKind(id) }, workIconEl(id), el('span', {}, kindName(id)))))];
+          break;
+        case 'topic':
+          body = [adengSays(H.topicSay), answers(...(H.examples as Record<string, string[]>)[k!].map((w) => answer(w, () => { picks.want = w; afterTopic(); })),
+            answer(H.own, () => go('own'), '.handin-own'))];
+          break;
+        case 'own': {
+          // No ready answer fits: typed after all, starting from the kind's own wording.
+          const box = el('textarea.handin-write', { rows: 2, 'aria-label': H.topicSay }) as HTMLTextAreaElement;
+          box.value = (U.templates as Record<string, string>)[`${k}Fill`] ?? '';
+          body = [adengSays(H.topicSay), box, answers(answer(H.ownDone, () => {
+            if (!box.value.trim()) { box.focus(); return; }
+            picks.want = box.value;
+            afterTopic();
+          }, '.handin-next'))];
+          setTimeout(() => box.focus());
+          break;
+        }
+        case 'layout':
+          body = [adengSays(H.layoutSay), answers(...[undefined, ...(templateOf(k!).layouts ?? [])].map((l) =>
+            answer(l ? U.layout[l] : U.layout.plain, () => { picks.layout = l; go('audience'); })))];
+          break;
+        case 'audience':
+          body = [adengSays(H.audienceSay), answers(...AUDIENCES.map((a) => answer(H.audience[a], () => { picks.audience = a; go('ask'); })))];
+          break;
+        case 'ask':
+          body = [adengSays(H.askSay), answers(...ASKS.map((a) => answer(H.asks[a], () => { picks.ask = a; go('slip'); })))];
+          break;
+        case 'slip':
+          body = [adengSays(H.slipSay), handSlip(), el('div.hint.budget-note', {}, budgetText),
+            el('div.actions', {}, el('button.handin-again', { type: 'button', onclick: () => { picks = {}; go('bag'); } }, H.again),
+              el('button.handin-sign', { type: 'button', onclick: sign }, H.sign))];
+          break;
+      }
+      handView.replaceChildren(el('div.card-title', {}, H.title), ...body, handNote,
+        el('button.link.handin-to-slip', { type: 'button', onclick: () => showHand(false) }, H.toSlip));
+    };
+    const showHand = (on: boolean) => {
+      for (const part of slip) part.hidden = on;
+      handView.hidden = !on;
+      form.setAttribute('aria-label', on ? H.title : U.commissionTitle);
+      if (!on) { want.focus(); return; }
+      go(handStep);
+      handView.querySelector<HTMLButtonElement>('button.handin-answer, button.handin-sample, button.handin-sign')?.focus();
+    };
+
     const slip = [
       el('div.card-title', {}, U.commissionTitle),
       el('div.slip-body', {},
-        el('button.link.consult-open', { type: 'button', onclick: openTalk }, C.open),
+        el('div.slip-links', {},
+          el('button.link.consult-open', { type: 'button', onclick: openTalk }, C.open),
+          el('button.link.handin-open', { type: 'button', onclick: () => showHand(true) }, H.open)),
         el('div.hint', {}, T.label),
         el('div.template-row', {}, ...chips),
         layoutRow,
@@ -419,14 +535,13 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         el('label', {}, U.details, details),
         el('label', {}, U.audience, audience),
         el('details.slip-more', {}, el('summary', {}, U.slipMore), el('label', {}, U.slipModel, model)),
-        el('div.hint.budget-note', {}, budgetUsd ? fill(U.budgetCap, { cap: formatUsd(budgetUsd) }) : U.budgetNoCap,
-          month.capUsd && month.spentUsd >= WARN_SHARE * month.capUsd ? ` ${fill(U.budgetLeft, { left: formatUsd(Math.max(0, month.capUsd - month.spentUsd)), cap: formatUsd(month.capUsd) })}` : null),
+        el('div.hint.budget-note', {}, budgetText),
       ),
       el('div.actions', {}, el('button.default', { type: 'submit' }, U.submit)),
     ];
     // Working in the user's own folder is agreed to once, on the slip itself, so going back keeps what was written.
     const agree = el('div.lent-confirm', { hidden: true });
-    const form = el('form.card.paper.commission', {}, closeButton(), ...slip, agree, talkView);
+    const form = el('form.card.paper.commission', {}, closeButton(), ...slip, agree, talkView, handView);
     const askToLend = (filled: CommissionForm, name: string) => {
       const showing = (on: boolean) => {
         for (const part of slip) part.hidden = on;
@@ -485,22 +600,21 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
         materialHint.classList.add('warn');
         return;
       }
-      const template = chosen && chosen.id !== 'demo' ? chosen.id : undefined;
       const inPlace = lending();
-      const filled: CommissionForm = {
+      const filled = slipForm({
         want: text,
-        details: details.value.trim() || undefined,
-        audience: audience.value.trim() || undefined,
-        demo: chosen?.id === 'demo' && text === U.demoFill,
-        template,
-        layout: template ? layout : undefined,
+        details: details.value,
+        audience: audience.value,
+        template: chosen?.id as CommissionTemplate | 'demo' | undefined,
+        layout,
         source: needsSource() ? source?.path : undefined,
-        materials: chosen?.id === 'demo' || inPlace ? undefined : materials.map((m) => m.path),
+        materials: materials.map((m) => m.path),
         inPlace: inPlace?.path,
         consult: talkId ?? undefined,
-        connections: ticked.size ? [...ticked] : undefined,
+        connections: [...ticked],
         model: cleanTier(model.value),
-      };
+        demoFill: U.demoFill,
+      });
       if (inPlace) askToLend(filled, inPlace.name);
       else done(filled);
     });
@@ -510,7 +624,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     if (materials.length) { chosen = null; want.value = ''; } else want.value = U.demoFill;
     refresh();
     replaceOpen(form);
-    want.focus();
+    if (handInFirst) showHand(true);
+    else want.focus();
   });
 }
 
