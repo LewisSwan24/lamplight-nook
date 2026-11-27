@@ -1,6 +1,6 @@
 import type { Strings } from './i18n';
 import type { GuestId } from './types';
-import type { Shop } from './dispatch';
+import type { Shop, StreetShop } from './dispatch';
 
 /**
  * The ready-made kinds of commission (road-to-1.1.md A7), one record each, in the order of the stickers on the form.
@@ -49,6 +49,8 @@ export const MAIN_FILES = {
   cards: (name: string, files: Files) => name === files.flashcardsPdf,
   /** A travel journal (plan-1.8.md H6): its PDF, before the page it was printed from. */
   journal: (name: string, files: Files) => name === files.journalPdf,
+  /** A picture book (plan-1.8.md H4): its PDF, before its cover picture and the page it was printed from. */
+  book: (name: string, files: Files) => name === files.bookPdf,
   page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
@@ -60,6 +62,11 @@ export type TemplateSpec = {
   id: string;
   /** Where the work is done (road-to-1.4.md D3): the order is taken at home and carried to this shop. */
   shop: Shop;
+  /**
+   * The shop that finishes it (plan-1.8.md H4): the round is carried on there once it is laid out as a PDF (movesOn),
+   * and its piece grows there. Without one, the work stays where it starts.
+   */
+  then?: StreetShop;
   /** Frame in assets/sprites/works.png for the works shelf. */
   icon: number;
   source?: SourceKind;
@@ -428,6 +435,24 @@ export const TEMPLATES = [
       `In your final reply, say in ${language}, in one line, what happens in the strip.`,
     ],
   },
+  // A picture book (plan-1.8.md H4): drawn in the studio, then carried to the print shop and laid out there as a landscape
+  // PDF. Its piece, a little book, sits on the print shop's windowsill.
+  {
+    id: 'picturebook', shop: 'studio', then: 'print', icon: 25, revise: true, main: 'book', roomGrowth: { id: 'book', at: 1 }, guest: 'mum',
+    steps: ({ language, files }) => [
+      'This is a picture book for a child, read aloud at bedtime: a cover and about eight pages, each a picture with a short passage of the story.',
+      'Start from what the user gives: an opening to carry on, or only the child\'s name and what they love. Keep it gentle, with no villain and nothing frightening, and let it wind down to something calm at the end.',
+      'Before drawing, ask the designer subagent for one description of each character, their shape, colours and clothes, and for the palette. Draw every page from that one description, so each character looks the same on every page.',
+      `Lay it out as a single self-contained page "${files.bookPage}": the cover first, then one section to a page of the book, each the size of a sheet of A4 landscape (@page size A4 landscape, margin 0) with a page break after it. CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+      'The cover has the title and under it a line for the child: "给" and the child\'s name in Chinese, "For" and the child\'s name in English. With no name given, write it to "you". Use the child\'s name in the story too.',
+      'Draw each picture yourself in inline SVG: simple shapes and soft flat colours. Set the passage in large type that is easy to read aloud, no more than three short sentences to a page, clear of the picture.',
+      `Write every word in the book in ${language}.`,
+      `Save the cover as "${files.bookPng}" with the mcp__nook-office__render_png tool at 1123 by 794, and look at it with the Read tool: check the title and the line for the child show whole, and fix the page and draw it again if not.`,
+      `Then lay the book out as "${files.bookPdf}" with the mcp__nook-office__make_pdf tool, one page of the book to a sheet: that part is the print shop's.`,
+      'When you ask the reviewer to check the book, give them the picture of its cover too.',
+      `In your final reply, say in ${language}, in one line, what the story is about and who it is for.`,
+    ],
+  },
 ] as const satisfies readonly TemplateSpec[];
 
 export type TemplateId = (typeof TEMPLATES)[number]['id'];
@@ -444,3 +469,9 @@ export const template = (id: TemplateId): TemplateSpec => TEMPLATES.find((t) => 
 export const FROM_AFAR: readonly TemplateId[] = TEMPLATES.filter((t) => !('source' in t) && !('photos' in t)).map((t) => t.id);
 /** Which shop does a kind of work (road-to-1.4.md D3); work of no kind, and the demo, stays in the home shop. */
 export const shopOf = (id: TemplateId | undefined): Shop => (id ? template(id).shop : 'home');
+/** The shop that finishes a kind of work, where its piece grows (plan-1.8.md H4): the one it moves on to, if any. */
+export const finishOf = (id: TemplateId | undefined): Shop => (id ? template(id).then ?? template(id).shop : 'home');
+/** Where a round of this kind is played now: where it starts, until it has moved on (movesOn). */
+export const workShop = (id: TemplateId | undefined, moved: boolean): Shop => (moved ? finishOf(id) : shopOf(id));
+/** Whether this tool call carries a round on to the shop that finishes it: laying it out as a PDF. */
+export const movesOn = (id: TemplateId | undefined, tool: string): boolean => Boolean(id && template(id).then) && tool.endsWith('__make_pdf');

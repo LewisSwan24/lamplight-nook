@@ -33,9 +33,12 @@ async function inIsolatedWindow<T>(folder: string, file: string, size: { width: 
   }
 }
 
-/** A work's web page as an A4 PDF, as the browser's "Print to PDF" would make it. */
+/**
+ * A work's web page as a PDF, as the browser's "Print to PDF" would make it: A4, unless the page sets its own size with
+ * @page (a picture book's landscape sheets, plan-1.8.md H4).
+ */
 export function pageToPdf(folder: string, file: string): Promise<Buffer> {
-  return inIsolatedWindow(folder, file, undefined, (page) => page.printToPDF({ printBackground: true, pageSize: 'A4' }));
+  return inIsolatedWindow(folder, file, undefined, (page) => page.printToPDF({ printBackground: true, pageSize: 'A4', preferCSSPageSize: true }));
 }
 
 /**

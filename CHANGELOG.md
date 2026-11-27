@@ -25,6 +25,12 @@
   whack-a-mole or snake. It is one page that opens and plays with no network, pitched for whoever will play it. The
   first one hangs a little game machine on the workshop's wall, and brings Duoduo's dad, who wanted a game for his
   daughter and drops in to say how she is getting on.
+- **Picture book.** A new kind of order: a bedtime picture book of about eight pages, a picture and a short passage
+  on each, with the title and the child's name on the cover. The studio draws it, then the order is carried to the
+  print shop, which lays it out as a landscape PDF, and you go along to watch. The first one leaves a little book on
+  the print shop's windowsill, and brings Xiaoman's mum, who reads to him every night.
+- **PDFs keep their page size.** A page that sets its own size, such as a landscape book, now comes out that size
+  instead of being shrunk onto portrait A4.
 - **Comic strip.** A new kind of order in the studio: a four-panel comic, drawn as one long picture with a PDF
   beside it. Your own lines go in the speech bubbles as written; give none and Iris writes them. The first one pins a
   strip of panels on the studio's wall, and brings Xiaosu, who edits a newsletter account and needs a strip a week.

@@ -89,6 +89,8 @@ const T = {
     planDone: '计划排好了：按周排，每一步都能在一次坐下来时做完，每周留了一天补课。',
     resumeDone: '简历做好了：一页 A4，另外存了一份 PDF，可以直接发出去。不知道的地方留在方括号里，按办公室文职的方向写的。',
     notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
+    picturebook: ['弄清给谁、喜欢什么', '请青黛定人物和配色', '写八页故事，一页一页画', '画封面，送印刷铺排版', '请老石检查'],
+    picturebookDone: '绘本做好了：《小满和月亮》，封面写着“给小满”，八页，排成了横版 PDF。',
     comic: ['弄清讲什么、谁说什么', '请青黛定人物和配色', '分成四格，画出来', '存成长图和 PDF，再看一遍', '请老石检查'],
     comicDone: '四格漫画画好了：猫偷了鱼还不认，最后一格露了馅。一张长图，另存了一份 PDF。',
     minigame: ['弄清给谁玩、玩什么', '定好玩法和规则', '写成一个网页', '画出第一屏看一眼', '请老石试玩'],
@@ -198,6 +200,8 @@ const T = {
     planDone: 'The plan is ready: week by week, each step small enough for one sitting, with a spare day each week.',
     resumeDone: 'The résumé is ready: one A4 page, and a PDF of it to send straight away. What I did not know is left in square brackets. I shaped it for an office job.',
     notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
+    picturebook: ['Who it is for, and what they love', 'Ask Iris for the look and colours', 'Write eight pages, draw each', 'Draw the cover, lay it out', 'Ask Flint to check it'],
+    picturebookDone: 'The picture book is ready: "Xiaoman and the Moon", for Xiaoman, eight pages laid out as a landscape PDF.',
     comic: ['What happens, and who says what', 'Ask Iris for the look and colours', 'Split it into four, draw them', 'Save the picture and PDF, look', 'Ask Flint to check it'],
     comicDone: 'The comic strip is ready: the cat took the fish and denies it, until the last panel gives it away. One long picture, and a PDF.',
     minigame: ['Who plays, and what game', 'Settle the rules', 'Write it as one page', 'Draw the first screen and look', 'Ask Flint to try it'],
@@ -368,6 +372,24 @@ const JOURNAL = {
     places: [['Castle', 40, 110], ['Royal Mile', 120, 95], ['Holyrood', 200, 80], ["Arthur's Seat", 215, 165]],
   },
 };
+/**
+ * A picture book (plan-1.8.md H4): a cover and eight pages, each a sheet of A4 landscape with a picture drawn in SVG and a
+ * line of the story, the same little moon and the same boy on every page.
+ */
+const BOOK = {
+  zh: { title: '小满和月亮', to: '给小满', lines: ['小满睡不着，看见窗外的月亮。', '月亮说：“我们去散步吧。”', '他们走过安静的小桥。', '小猫在屋顶上打了个哈欠。', '花园里的花都合上了。', '月亮也慢慢变困了。', '小满送月亮回到天上。', '小满钻进被窝，睡着了。'] },
+  en: { title: 'Xiaoman and the Moon', to: 'For Xiaoman', lines: ['Xiaoman cannot sleep. The moon is at the window.', '"Shall we go for a walk?" says the moon.', 'They cross the quiet little bridge.', 'A cat yawns on the roof.', 'The flowers in the garden close up.', 'The moon is getting sleepy too.', 'Xiaoman takes the moon back up to the sky.', 'Xiaoman snuggles into bed and falls asleep.'] },
+};
+function bookPage(lang) {
+  const B = BOOK[lang];
+  const boy = (x, y) => `<circle cx="${x}" cy="${y}" r="40" fill="#f2c9a0"/><path d="M${x - 40} ${y - 10}q40-60 80 0z" fill="#3a2a22"/><rect x="${x - 45}" y="${y + 45}" width="90" height="130" rx="30" fill="#6a8fc4"/>`;
+  const moon = (x, y) => `<circle cx="${x}" cy="${y}" r="55" fill="#f4d470"/><circle cx="${x + 25}" cy="${y - 15}" r="50" fill="#27324f"/>`;
+  const page = (art, text, cls = '') => `<section class="page ${cls}"><svg viewBox="0 0 1000 560"><rect width="1000" height="560" fill="#27324f"/><rect y="440" width="1000" height="120" fill="#4c6b4f"/>${art}</svg><p>${text}</p></section>`;
+  const cover = `<section class="page cover"><svg viewBox="0 0 1000 560"><rect width="1000" height="560" fill="#27324f"/><rect y="440" width="1000" height="120" fill="#4c6b4f"/>${moon(700, 160)}${boy(330, 300)}</svg><h1>${B.title}</h1><p class="to">${B.to}</p></section>`;
+  const pages = B.lines.map((l, i) => page(moon(200 + i * 80, 140) + boy(620, 300), l)).join('');
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${B.title}</title><style>@page{size:A4 landscape;margin:0}html,body{margin:0}body{font-family:system-ui,sans-serif;color:#2a2233;background:#fff}.page{box-sizing:border-box;width:297mm;height:210mm;padding:12mm;display:grid;grid-template-rows:1fr auto;gap:6mm;break-after:page;overflow:hidden}.page svg{width:100%;height:100%;min-height:0}.page p{margin:0;font-size:26pt;line-height:1.4;text-align:center}.cover{grid-template-rows:1fr auto auto}.cover h1{margin:0;font-size:40pt;text-align:center}.cover .to{font-size:22pt}</style></head>\n<body>${cover}${pages}</body></html>\n`;
+}
+
 /**
  * A four-panel comic (plan-1.8.md H3): one page 800 by 3200, four panels one under another, each drawn in SVG with its
  * line in a bubble placed inside it.
@@ -543,6 +565,11 @@ export function pickPlay(prompt, state, system = '') {
     return plays.resume;
   }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
+  if (/This is a picture book for a child/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
+    return plays.picturebook;
+  }
   if (/This is a four-panel comic strip/.test(prompt)) {
     state.vars.out = quoted(prompt, 'single self-contained page');
     [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
@@ -1133,6 +1160,16 @@ export const plays = {
   }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
+  picturebook: simpleText('picturebook', null, (t) => t.picturebookDone, {
+    // Eight pages take a while to draw: long enough to walk over to the studio and watch.
+    make: async (s) => { await s.think(25); await s.write(s.state.vars.out, bookPage(s.state.lang)); },
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 1123, height: 794 });
+      await s.read(s.state.vars.png);
+      await s.think(2);
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+    },
+  }),
   comic: simpleText('comic', null, (t) => t.comicDone, {
     make: (s) => s.write(s.state.vars.out, comicPage(s.state.lang)),
     after: async (s) => {

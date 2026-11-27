@@ -1556,6 +1556,99 @@
     - editor: The year-end strip sums up the year.
     - adeng: Can four panels hold a year?
 
+- id: mum_story
+  when: idle
+  guest: mum
+  turns:
+    - mum: Xiaoman wants a story every night.
+    - adeng: How many nights does one book last?
+    - mum: He will hear the same one ten times.
+
+- id: mum_name
+  when: idle
+  guest: mum
+  turns:
+    - mum: His name is on the cover.
+    - mum: He shows it to his grandma every day.
+
+- id: mum_bear
+  when: idle
+  guest: mum
+  turns:
+    - mum: The bear looks the same on every page.
+    - qingdai: I settle the look first, then draw.
+
+- id: mum_paper
+  when: idle
+  guest: mum
+  turns:
+    - mum: Thick paper, please. He turns pages a lot.
+    - laoshi: 150gsm paper. It will hold up.
+
+- id: mum_asleep
+  when: idle
+  guest: mum
+  turns:
+    - mum: He fell asleep on page five last night.
+    - adeng: Save the rest for tonight.
+
+- id: mum_dino
+  when: idle
+  guest: mum
+  turns:
+    - mum: Next he wants dinosaurs.
+    - qingdai: The plant-eating kind, with long necks.
+
+- id: mum_milk
+  when: idle
+  guest: mum
+  turns:
+    - mum: A warm milk, not too sweet.
+    - xiaoju: Coming right up.
+
+- id: mum_moon
+  when: idle
+  guest: mum
+  turns:
+    - mum: He can read the word "moon" now.
+    - adeng: The book says it on every page.
+
+- id: mum_spring
+  when: idle
+  guest: mum
+  after: 20
+  season: spring
+  turns:
+    - mum: For spring, a story about planting.
+    - qingdai: The flowers grow a little each page.
+
+- id: mum_summer
+  when: idle
+  guest: mum
+  after: 20
+  season: summer
+  turns:
+    - mum: For summer, a story about fireflies.
+    - qingdai: A deep blue ground, so the lights show.
+
+- id: mum_autumn
+  when: idle
+  guest: mum
+  after: 20
+  season: autumn
+  turns:
+    - mum: For autumn, gathering fallen leaves.
+    - xiaoju: The ginkgo by the door is yellow now.
+
+- id: mum_winter
+  when: idle
+  guest: mum
+  after: 20
+  season: winter
+  turns:
+    - mum: This winter's book is about snow.
+    - laoshi: Lots of white, so dark type.
+
 - id: dad_game
   when: idle
   guest: dad

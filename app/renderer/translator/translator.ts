@@ -146,6 +146,22 @@ export class Translator {
     }
   }
 
+  /**
+   * A round is under way here: as it starts, or once it is carried on here from another shop (plan-1.8.md H4). A round's
+   * lead stays known after it ends, for its last lines still to be said.
+   */
+  join(run: string) {
+    if (!this.running.includes(run)) {
+      const beside = this.running.some((r) => r !== run && !this.seconds.has(r));
+      this.running.push(run);
+      if (beside) this.seconds.add(run);
+      else this.seconds.delete(run);
+      // A street shop's own person leads every round there, the second from the second crew's places (D3).
+      this.leads.set(run, this.shop ? this.crew[this.crew.length - 1] : beside ? 'qingdai' : 'adeng');
+    }
+    if (!this.ctxs.has(run)) this.ctxs.set(run, this.ctx);
+  }
+
   /** A round is over: it is no longer under way, and nobody works for it any more. */
   private let(run: string) {
     const i = this.running.indexOf(run);
@@ -202,16 +218,7 @@ export class Translator {
         this.hands.clear();
         this.waiting.clear();
       }
-      // A round's lead stays known after it ends, for its last lines still to be said.
-      if (!this.running.includes(run)) {
-        const beside = this.running.some((r) => r !== run && !this.seconds.has(r));
-        this.running.push(run);
-        if (beside) this.seconds.add(run);
-        else this.seconds.delete(run);
-        // A street shop's own person leads every round there, the second from the second crew's places (D3).
-        this.leads.set(run, this.shop ? this.crew[this.crew.length - 1] : beside ? 'qingdai' : 'adeng');
-      }
-      if (!this.ctxs.has(run)) this.ctxs.set(run, this.ctx);
+      this.join(run);
     }
     const away = e.agent === 'main' && (e.kind === 'tool_start' || e.kind === 'tool_ok' || e.kind === 'tool_fail') ? errandTo(this.room, e.tool) : undefined;
     const out = away ? this.across(e, away) : e.kind === 'subagent_start' || e.kind === 'subagent_stop' ? this.errand(e) : this.apply(e);
@@ -313,6 +320,17 @@ export class Translator {
   dispatch(run: string, shop: StreetShop): CharacterCommand[] {
     this.states.put('adeng', 'out');
     return [{ actor: 'adeng', state: 'out', moveTo: 'door', priority: PRIORITY.work, run, line: { group: 'dispatch_go', vars: { shop: strings.ui.town.shops[shop] }, speaker: 'adeng' } }];
+  }
+
+  /**
+   * A round carried on here from another shop (plan-1.8.md H4): it is under way here, and whoever of this shop's people
+   * sits idle gets ready for it, its lead at the counter, so the work that follows can start.
+   */
+  takeUp(run: string): CharacterCommand[] {
+    this.join(run);
+    const lead = this.leadOf(run);
+    for (const actor of this.crew) if (this.states.get(actor) === 'idle') this.states.put(actor, 'ready');
+    return [{ actor: lead, state: this.states.get(lead), moveTo: 'counter', priority: PRIORITY.work, run }];
   }
 
   /** Back from carrying an order over: Adeng is at the home shop's counter again. */

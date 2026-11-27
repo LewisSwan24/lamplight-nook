@@ -64,6 +64,7 @@ const W = {
     journal: '帮我做一份杭州三天的旅行手账，打印出来带着走。',
     minigame: '帮我做一个给五岁女儿玩的翻牌小游戏。',
     comic: '帮我画一个四格漫画，讲家里的猫偷吃了鱼还不承认。',
+    picturebook: '帮我做一本睡前绘本，给我儿子小满，他喜欢月亮和小猫。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -95,6 +96,7 @@ const W = {
     journal: 'Make me a travel journal for three days in Edinburgh, to print and take along.',
     minigame: 'Make me a matching pairs game for my five-year-old daughter.',
     comic: 'Draw me a four-panel comic about our cat stealing the fish and denying it.',
+    picturebook: 'Make a bedtime picture book for my son Xiaoman, who loves the moon and cats.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -5577,6 +5579,94 @@ const SCENARIOS = {
       check(came, 'Auntie Qin did not come in and say something');
       check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('bookkeeper')), 'Auntie Qin has no picture');
       await shop.shot(join(out, 'ledgerbook-qin.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * A picture book (plan-1.8.md H4): ordered at home, drawn in the studio, then carried on to the print shop and laid out
+   * there as a landscape PDF, a cover and eight pages. The view goes along from one shop to the other, and each shop's
+   * people have it in hand in turn. Then a little book stands on the print shop's sill, someone at home says so, and
+   * Xiaoman's mum starts dropping in.
+   */
+  async picturebook(lang, out) {
+    const F = shopFiles(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    try {
+      await sleep(1500);
+      await shop.order({ template: 'picturebook', want: W[lang].picturebook });
+      await shop.shot(join(out, 'picturebook-slip.png'));
+      await shop.submit();
+      // While it is made: which room is in view, and which shop's people have the order in hand.
+      const seen = [];
+      const shot = new Set();
+      let watching = true;
+      const watch = (async () => {
+        while (watching) {
+          const now = await page.evaluate(() => {
+            const d = window.lamplightDebug;
+            const busy = (room) => (d.rooms.get(room)?.stage.translator.running.length ?? 0) > 0;
+            return { view: d.scene.room, studio: busy('studio'), print: busy('print') };
+          }).catch(() => null);
+          if (now && JSON.stringify(now) !== JSON.stringify(seen.at(-1))) seen.push(now);
+          if (now && now.view === 'studio' && now.studio && !shot.has('studio')) { shot.add('studio'); await sleep(1500); await shop.shot(join(out, 'picturebook-studio.png')); }
+          if (now && now.view === 'print' && now.print && !shot.has('print')) { shot.add('print'); await sleep(1500); await shop.shot(join(out, 'picturebook-print.png')); }
+          await sleep(200);
+        }
+      })();
+      const made = await shop.workUntilDone();
+      watching = false;
+      await watch;
+      check(made.ok, `the picture book did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      const drawn = seen.findIndex((s) => s.view === 'studio' && s.studio && !s.print);
+      const laid = seen.findIndex((s, i) => i > drawn && s.view === 'print' && s.print && !s.studio);
+      check(drawn >= 0 && laid > drawn, `it was not drawn in the studio and then laid out in the print shop: ${JSON.stringify(seen)}`);
+
+      // The book: a cover and eight pages, each a landscape sheet; the cover as a picture; the card opens the PDF.
+      const dir = latestCommission(home);
+      const pdf = readFileSync(join(dir, F.bookPdf), 'latin1');
+      check(pdf.startsWith('%PDF-'), `${F.bookPdf} is not a PDF`);
+      const sheets = (pdf.match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+      check(sheets === 9, `the book is ${sheets} sheets, not a cover and eight pages`);
+      const box = /\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/.exec(pdf);
+      check(box && Number(box[1]) > Number(box[2]), `the book's sheets are not landscape: ${box?.[0]}`);
+      const png = readFileSync(join(dir, F.bookPng));
+      check(png.subarray(1, 4).toString() === 'PNG' && png.readUInt32BE(16) === 1123 && png.readUInt32BE(20) === 794, `${F.bookPng} is not a picture 1123 by 794`);
+      const opens = await page.locator('.result-card').innerText();
+      check(opens.includes(F.bookPdf), `the result card does not name ${F.bookPdf}: ${opens.slice(0, 200)}`);
+      await sleep(400);
+      await shop.shot(join(out, 'picturebook-done.png'));
+      await page.keyboard.press('Escape');
+
+      // It was finished in the print shop: the little book already stands on its sill.
+      const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+      check(await room() === 'print', `the picture book was not finished in the print shop: ${await room()}`);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(800);
+      check(await page.evaluate(() => window.lamplightDebug.rooms.get('print')?.scene.growth.shows('print-book')), 'no picture book on the print shop\'s sill');
+      check(!(await page.evaluate(() => window.lamplightDebug.rooms.get('studio')?.scene.growth.shows('print-book'))), 'the picture book stands in the studio');
+      await shop.shot(join(out, 'picturebook-sill.png'));
+
+      // Back home, Adeng says so.
+      await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'cafe'; await sleep(300));
+      check(await room() === 'cafe', `did not go home: ${await room()}`);
+      const said = parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), 'cafe.yaml'), 'utf8')).grow.find((l) => l.id === 'grow_print_book').bubbles[0];
+      const told = await page.waitForFunction((line) => window.lamplightDebug.scene.isSaying('adeng', line), said, { timeout: 40_000, polling: 200 }).then(() => true, () => false);
+      check(told, `nobody said: ${said}`);
+      await shop.shot(join(out, 'picturebook-told.png'));
+
+      await page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await page.evaluate(() => window.lamplightDebug.welcome('mum'));
+      const came = await page.waitForFunction(() => {
+        const g = window.lamplightDebug.scene.guest;
+        return g?.id === 'mum' && g.speech;
+      }, null, { timeout: 20_000 }).then(() => true, () => false);
+      check(came, 'Xiaoman\'s mum did not come in and say something');
+      check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('mum')), 'Xiaoman\'s mum has no picture');
+      await shop.shot(join(out, 'picturebook-mum.png'));
     } finally { await shop.close(); }
   },
 

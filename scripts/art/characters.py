@@ -159,6 +159,12 @@ GUESTS = {
                    'Outfits/16x16/Outfit_30_01.png', 'Hairstyles/16x16/Hairstyle_12_01.png',
                    'Accessories/16x16/Accessory_15_Glasses_01.png'],
     },
+    # A picture book brings Xiaoman's mum (plan-1.8.md H4), who reads to him at bedtime: long brown hair and a blue top,
+    # with no hat or glasses, so she reads apart from Xiaosu's bob. Written as mum.png.
+    'mum': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_04_03.png'],
+    },
 }
 
 # The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as

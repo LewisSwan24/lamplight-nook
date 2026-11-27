@@ -354,6 +354,7 @@ grow:
   - { id: grow_print_ribbon, speaker: adeng, when: grow_print_ribbon, bubbles: ["印刷铺得了张奖状。", "二十单，阿铅说要镶个框。"] }
   - { id: grow_print_ledgerbook, speaker: adeng, when: grow_print_ledgerbook, bubbles: ["印刷铺柜台上多了本账簿。", "阿铅说，留一本当样本。"] }
   - { id: grow_studio_strip, speaker: adeng, when: grow_studio_strip, bubbles: ["画室墙上钉了条四格漫画。", "青黛说，每周换一条。"] }
+  - { id: grow_print_book, speaker: adeng, when: grow_print_book, bubbles: ["印刷铺窗台上立了本绘本。", "老石留了一本样书。"] }
   - { id: grow_workshop_arcade, speaker: adeng, when: grow_workshop_arcade, bubbles: ["工坊墙上多了台小游戏机。", "小钉说，下班后谁都能玩。"] }
   - { id: grow_studio_sketch, speaker: qingdai, when: grow_studio_sketch, bubbles: ["画室挂了第一张画稿。"] }
   - { id: grow_studio_ivy, speaker: xiaoju, when: grow_studio_ivy, bubbles: ["画室也吊了盆绿萝！"] }
