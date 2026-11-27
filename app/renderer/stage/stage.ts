@@ -263,10 +263,24 @@ export class Stage {
     if (e.kind === 'done' || e.kind === 'failed' || e.kind === 'cancelled') this.ended(run);
   }
 
-  /** A round carried on here from another shop (plan-1.8.md H4): this shop's people take it up from here. */
-  join(run: string) {
+  /** A round's plan as the blackboard has it, to carry to another shop with the round (plan-1.8.md H4). */
+  planOf(run: string): { board: BoardStep[]; real: boolean } | undefined {
+    const plan = this.plans.get(run);
+    return plan && structuredClone(plan);
+  }
+
+  /**
+   * A round carried on here from another shop (plan-1.8.md H4): this shop's people take it up from here, and its plan
+   * comes with it, so the blackboard here goes on from where the other shop's left off.
+   */
+  join(run: string, plan?: { board: BoardStep[]; real: boolean }) {
     this.take(this.translator.takeUp(run));
+    if (plan) {
+      this.plans.set(run, plan);
+      if (!this.plans.has(this.lead) || !this.translator.running.includes(this.lead)) this.lead = run;
+    }
     this.redress();
+    this.drawBoard();
   }
 
   /** The rounds still under way, from the main process: any other has ended, whether or not its last event came. */

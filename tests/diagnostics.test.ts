@@ -46,7 +46,7 @@ describe('the diagnostics bundle', () => {
       os: { platform: 'win32', release: '10.0.26100', arch: 'x64' },
       hasClaude: true,
       keySource: 'stored',
-      settings: { name: 'Lewis', avatar: 1, workRoot: `${home}/Documents/x`, onboarded: true, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, powerSaving: false, lan: false, lanPort: 0, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: 'cafe', furnish: cleanFurnishings(undefined), modelTier: 'balanced', provider: { kind: 'anthropic' }, budgetUsd: 3, monthCapUsd: 20, language: 'system' },
+      settings: { name: 'Lewis', avatar: 1, workRoot: `${home}/Documents/x`, onboarded: true, muted: false, detailed: false, volume: 70, captions: false, reducedMotion: false, powerSaving: false, handInFirst: false, lan: false, lanPort: 0, notify: true, closeToTray: false, openAtLogin: false, schedulesPaused: false, connectionsPaused: false, mini: true, updates: true, scene: 'cafe', furnish: cleanFurnishings(undefined), modelTier: 'balanced', provider: { kind: 'anthropic' }, budgetUsd: 3, monthCapUsd: 20, language: 'system' },
       defaultWorkRoot: `${home}/Documents/default`,
       logDir,
       crashDir,
