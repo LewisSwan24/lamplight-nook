@@ -33,9 +33,10 @@ user-facing text lives in `locales/` (`zh-CN.json`, `en.json`) and `lines/` (Chi
 
 | Line | State | Where |
 |---|---|---|
-| 1.8.0 | Released 27 Nov 2026, with everything from 1.1 to 1.8 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases), `main`; plans in `docs/plan-1.5.md` to `docs/plan-1.8.md` |
+| 1.9.0 | Released 27 Nov 2026: the staff's own stories, friendships and memories, Bean growing up, three animals on the street | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases), `main`; plan in `docs/plan-1.9.md` |
+| 1.8.0 | Released 27 Nov 2026, with everything from 1.1 to 1.8 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases); plans in `docs/plan-1.5.md` to `docs/plan-1.8.md` |
 | 1.0.0 | Released 5 Nov 2026 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases) |
-| 1.9 to 2.0 | Planned, mostly new content: shops, stories, festivals, kinds of work | `docs/road-to-2.0.md` |
+| 2.0 | Planned, mostly new content: shops, stories, festivals, kinds of work | `docs/road-to-2.0.md` |
 
 What changed in each is in `CHANGELOG.md`.
 

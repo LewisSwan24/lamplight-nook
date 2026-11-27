@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased (1.9)
+## 1.9.0 (2026-11-27)
 
 - **Who worked on what.** The shop now knows which of its people were on each finished work: Wick on every one,
-  Clem, Iris and Flint when their errand went out, Bean once he has come, and the street shops' keepers on their own
+  Clem, Iris and Flint when their errand went out, Bean once Bean has come, and the street shops' keepers on their own
   shop's work. Nothing new is stored; it is all counted from the works already kept. The staff's stories, friendships
   and memories in 1.9 go by these counts.
 - **The staff's own stories.** Eight of the staff now have three chapters each about where they come from: Wick's
