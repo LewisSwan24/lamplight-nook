@@ -140,7 +140,10 @@ const PLAIN_DIR = /^(?![-~])[\p{L}\p{N}\p{M} _.\\/:+,~-]+$/u;
  */
 function plainTest(cmd: string, ctx: RiskContext): boolean {
   if (!isTestCommand(cmd) || BREAKS.test(cmd)) return false;
-  const { dir, rest: all } = steppingIn(cmd);
+  const { dir, bare, rest: all } = steppingIn(cmd);
+  // Unquoted, a backslash escapes the next character in Bash (mine/\.\. is mine/..), while the path is read here with
+  // it as a separator: the two would not agree on where the tests run.
+  if (bare && dir?.includes('\\')) return false;
   // Output kept short (`2>&1 | tail -15`) is still only the tests.
   const rest = trimmedTest(all).core;
   if (dir !== undefined && (!PLAIN_DIR.test(dir) || !reallyInside(ctx.workDir, abs(ctx.workDir, dir)))) return false;
