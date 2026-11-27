@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased (1.8)
+## 1.8.0 (2026-11-27)
+
+The first release since 1.0.0, with everything from 1.1 to 1.8.
+
+### 1.8
 
 - **Flint reads Word files.** The final review could not open a Word, Excel or PowerPoint file, so a document
   went out with nobody but its maker having read it. Flint now reads them. A Word document also takes Iris's design:
@@ -54,7 +58,7 @@
 - **Charts in Excel files.** Workbooks the shop makes can carry pie and column charts and drop-down lists, and the
   picture on the result card shows what a workbook's formulas come to rather than the formulas themselves.
 
-## Unreleased (1.7)
+### 1.7
 
 - **Every festival on the whole street.** The Lantern Festival hangs a string of little lanterns over every door, the
   Dragon Boat Festival puts mugwort either side of it, and at Mid-Autumn a rabbit lantern on wheels stands outside. At
@@ -83,7 +87,7 @@
 - **The lunar festivals run to 2040.** Lunar New Year, the Lantern, Dragon Boat and Mid-Autumn festivals were known
   only until 2035. The dates now run to 2040, checked against the Hong Kong Observatory's conversion tables.
 
-## Unreleased (1.6)
+### 1.6
 
 - **The keepers talk.** Walk into the bakery or the post office and Auntie Olive or Pip says something that fits the
   hour, the weather, the season or the holiday. While the shop is quiet they talk now and then, about the work, the
@@ -136,7 +140,7 @@
   counted as already met, so their first visit never came. The handwriting font also lacked five characters the new
   lines use.
 
-## Unreleased (1.5)
+### 1.5
 
 - **The shop on your home network.** A new switch in Settings, off by default, lets a phone or another computer at
   home follow what the shop is doing. Switch it on, pair a device by scanning the QR code, and its browser shows what
@@ -178,7 +182,7 @@
   browser and removing were walked through with an Android emulator standing in for a phone. The installer is about
   45 KiB larger than 1.4's.
 
-## Unreleased (1.4)
+### 1.4
 
 - **Out to the street.** A new toolbar button takes you out of the shop onto the town's street, without reloading:
   seven fronts in a row, panned along by dragging or with the arrow keys, by day and by night. Your own front, Enter
@@ -238,7 +242,7 @@
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.
   `docs/art.md` now says what the installer carries, and the question for LimeZu about it is written.
 
-## Unreleased (1.3)
+### 1.3
 
 - **The groundwork for connections.** The notebook has a Connections page, and the commission slip a line saying which
   connections a commission may use, none ticked unless you tick one. Making a connection first shows what it can read,
@@ -306,7 +310,7 @@
   listing opens by naming Claude Code, your own key and AI-generated work, lists the new kinds of work and the
   connections, and its privacy section matches the note in the app.
 
-## Unreleased (1.2)
+### 1.2
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in
   full however long it runs, where a work used to keep only its last ten changes. Upgrading turns each work you already
@@ -327,7 +331,7 @@
   into a new project in a folder of its own. Each project keeps up to 200 MB of versions; past that the oldest go, all
   but the first, and the timeline says which.
 
-## Unreleased (1.1)
+### 1.1
 
 - **Moving to the Microsoft Store version.** The Store version keeps its data in a folder of its own, because Windows
   would otherwise split a shared one between the real folder and the package's private copy. The first time it opens on
