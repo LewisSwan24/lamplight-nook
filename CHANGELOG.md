@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased (1.9)
+
+- **Who worked on what.** The shop now knows which of its people were on each finished work: Wick on every one,
+  Clem, Iris and Flint when their errand went out, Bean once he has come, and the street shops' keepers on their own
+  shop's work. Nothing new is stored; it is all counted from the works already kept. The staff's stories, friendships
+  and memories in 1.9 go by these counts.
+
 ## 1.8.0 (2026-11-27)
 
 The first release since 1.0.0, with everything from 1.1 to 1.8.
