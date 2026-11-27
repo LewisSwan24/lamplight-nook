@@ -266,6 +266,7 @@ setInterval(() => {
   bringLetter(!busy && !blocked && scene.view === 'shop');
   if (atHome()) dropIn(!busy && !blocked && scene.view === 'shop');
   talkInShop(!busy && !blocked && scene.view === 'shop');
+  nudgeStaff();
   if (running && !blocked) sayProgress();
 }, 5000);
 
@@ -496,7 +497,7 @@ window.lamplight.onDecision((req) => {
   }).catch((e) => append(`decision failed: ${e}`));
 });
 // What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
-let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; town: TownCounts } = { done: 0, told: new Set(), made: {}, town: townCounts({ done: 0 }, homeScene()) };
+let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; town: TownCounts; bonds?: Record<string, number> } = { done: 0, told: new Set(), made: {}, town: townCounts({ done: 0 }, homeScene()) };
 /** What the town has grown (road-to-1.4.md D5): the street and its inset in every room, and a shop's own pieces inside it. */
 function showTownIn(room: RoomId, at: CafeScene) {
   at.setTown(shopDays.town);
@@ -514,7 +515,7 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   home.growth.setWorks(state.works.map((w) => w.icon));
   home.garden.setWorksDone(state.done);
   homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
-  shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()) };
+  shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()), bonds: state.bonds };
   street.setTown(shopDays.town);
   tellAbout(state);
   showTownIn(home.room, home);
@@ -542,7 +543,7 @@ const staffChapter = (who: StaffTeller) => (tales.crew ? nextStaffChapter(who, t
 function nudgeStaff() {
   if (!tales.crew) return;
   const ready = staffWaiting(tales.staff, tales.crew, tales.today);
-  for (const [room, built] of rooms) for (const who of ready) if (ROOM_CREW[room].includes(who) && !built.scene.busyTalking(who)) built.scene.say(who, '', 'note');
+  for (const [room, built] of rooms) for (const who of ready) if (ROOM_CREW[room].includes(who) && !built.scene.busyTalking(who) && !built.scene.isSaying(who, '')) built.scene.say(who, '', 'note');
 }
 function hearStaffStory(who: StaffTeller) {
   const chapter = staffChapter(who);
@@ -1207,7 +1208,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
     // `rooms`: every room at work just now (D3), by room, with its scene and stage.
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome } });
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; } } });
   }
   const env = $('env');
   env.textContent = [

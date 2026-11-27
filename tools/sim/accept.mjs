@@ -6407,6 +6407,64 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
   /**
+   * Friends at home (plan-1.9.md I4): after thirty works Flint checked, Wick and Flint are friends, and Bean, there from
+   * the eleventh, is close to both. The chats waiting for those come up first; nobody else's do. One is played.
+   */
+  async bonds(lang, out) {
+    const chats = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/chats.yaml' : 'lines/chats.yaml'), 'utf8'));
+    const work = (i) => ({ id: `c${i}`, title: `W${i}`, date: '2026-10-01', result: 'done', choices: {}, folder: '', form: { want: 'x' },
+      rounds: [{ date: '2026-10-01', seconds: 1, helpers: { reviewer: 1 }, waits: 0, waitedSeconds: 0 }] });
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: Array.from({ length: 30 }, (_, i) => work(i + 1)), stuckNotes: [], greeted: 'c1',
+        shop: { done: 30, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } },
+      }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2026-10-14T10:00' });
+    const { page } = shop;
+    try {
+      await sleep(3000);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      const bonds = await page.evaluate(() => window.lamplightDebug.shopDays.bonds);
+      check(bonds['adeng+laoshi'] === 3 && bonds['adeng+xiaodou'] === 2 && bonds['laoshi+xiaodou'] === 2 && bonds['adeng+xiaoju'] === 1,
+        `the shop is not as close as thirty works make it: ${JSON.stringify(bonds)}`);
+      // Ask the chatter as if minutes had gone by between chats, forty times.
+      const drawn = await page.evaluate(() => {
+        const d = window.lamplightDebug;
+        const ids = [];
+        for (let k = 1; k <= 40; k++) ids.push(d.chatter.next('idle', Date.now() + k * 600_000, d.scene.period, d.scene.outside(), d.shopDays)?.id);
+        return ids;
+      });
+      const bondOf = (id) => chats.find((c) => c.id === id)?.bond;
+      const pairs = drawn.filter((id) => id?.startsWith('bond_')).map((id) => `${id.replace(/^bond_|_\d$/g, '')}:${bondOf(id)}`);
+      const allowed = new Set(['adeng_laoshi:2', 'adeng_laoshi:3', 'adeng_xiaodou:2', 'laoshi_xiaodou:2']);
+      check(pairs.filter((p) => !allowed.has(p)).length === 0, `chats for those not yet close enough: ${pairs.filter((p) => !allowed.has(p))}`);
+      check(pairs.filter((p) => p === 'adeng_laoshi:3').length >= 2, `Wick and Flint's friends' chats did not come up: ${pairs}`);
+      check(new Set(pairs).size === allowed.size, `not every chat that is due came up: ${[...new Set(pairs)]}`);
+      const friends = chats.find((c) => c.id === 'bond_adeng_laoshi_3');
+      const turns = friends.turns.map((t) => { const [speaker, text] = Object.entries(t)[0]; return { speaker, text }; });
+      // Wait for both to be free: Wick greets whoever comes in.
+      for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+        if (!(await page.evaluate(() => ['adeng', 'laoshi'].some((w) => window.lamplightDebug.scene.busyTalking(w))))) break;
+      }
+      await page.evaluate((t) => { void window.lamplightDebug.stage.talk(t); }, turns);
+      let heard = false;
+      for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) {
+        heard = await page.evaluate((t) => window.lamplightDebug.scene.isSaying(t.speaker, t.text), turns[0]);
+      }
+      check(heard, `${turns[0].speaker} did not say "${turns[0].text}"`);
+      await shop.shot(join(out, 'bonds-friends.png'));
+      // Flint has a chapter of his own waiting: its note gave way to the chat, and comes back once the chat is over.
+      let noted = false;
+      for (const end = Date.now() + 30_000; Date.now() < end && !noted; await sleep(500)) {
+        noted = await page.evaluate(() => window.lamplightDebug.scene.isSaying('laoshi', ''));
+      }
+      check(noted, 'the note of Flint’s waiting chapter did not come back after the chat');
+    } finally { await shop.close(); }
+  },
+  /**
    * The phone page (docs/plan-1.5.md E4): a paired phone sees what waits for an answer while a commission runs, answers
    * it there, and the card on the desk is put away; the commission goes on to the end.
    */

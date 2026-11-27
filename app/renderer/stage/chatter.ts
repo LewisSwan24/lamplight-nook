@@ -2,7 +2,7 @@ import type { Made } from '../../shared/growth';
 import type { Period } from '../game/daytime';
 import type { Holiday, Sky } from '../game/weather';
 import type { ActorId } from '../../shared/types';
-import type { Chat, Line } from '../translator/lines';
+import { bondPair, type Chat, type Line } from '../translator/lines';
 
 /** At least this long between two chats, and before the first one. */
 export const CHAT_GAP_MS = 120_000;
@@ -20,8 +20,11 @@ export type ShopMood = 'idle' | 'waiting' | 'working' | 'blocked';
 
 export type Talk = { kind: 'chat' | 'mutter'; id: string; turns: { speaker: ActorId; text: string }[]; once?: boolean };
 
-/** How far the shop has come with the user: commissions finished together, and the one-off stories already told. */
-export type ShopProgress = { done: number; told: ReadonlySet<string>; made: Made };
+/**
+ * How far the shop has come with the user: commissions finished together, and the one-off stories already told;
+ * `bonds`, how close each two at home are (plan-1.9.md I4), strangers when absent.
+ */
+export type ShopProgress = { done: number; told: ReadonlySet<string>; made: Made; bonds?: Readonly<Record<string, number>> };
 const NEW_SHOP: ShopProgress = { done: 0, told: new Set(), made: {} };
 
 /** Draws without repeats until every item has been used once, then starts a fresh round. */
@@ -92,8 +95,10 @@ export class Chatter {
       // Neighbours' visits are played when they drop in (game/guests.ts), not here.
       const fits = this.allChats.filter((c) => !c.guest && c.when === mood && (!c.period || c.period === period)
         && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday)
-        && (c.after === undefined || shop.done >= c.after) && (!c.made || !!shop.made[c.made]) && !(c.once && shop.told.has(c.id)));
-      const chat = this.chats.draw(fits, (c) => !!(c.sky || c.holiday || c.once || c.scene || c.made));
+        && (c.after === undefined || shop.done >= c.after) && (!c.made || !!shop.made[c.made]) && !(c.once && shop.told.has(c.id))
+        && (!c.bond || (shop.bonds?.[bondPair(c) ?? ''] ?? 1) >= c.bond));
+      // A chat between friends comes first while it is new, so two who have just become closer show it the same day.
+      const chat = this.chats.draw(fits, (c) => !!(c.sky || c.holiday || c.once || c.scene || c.made || c.bond));
       if (chat) {
         this.lastChat = now;
         return { kind: 'chat', id: chat.id, turns: chat.turns as Talk['turns'], ...(chat.once ? { once: true } : {}) };
