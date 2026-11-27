@@ -2,7 +2,8 @@ import { fill, strings } from '../../shared/i18n';
 import { formatUsd } from '../../shared/money';
 import { type BoardStep, boardPair, boardWindow } from '../../shared/board';
 import { withoutColourCodes, withoutPathFolders } from '../../shared/text';
-import { CONSULT_CAP_USD, CONSULT_MESSAGES, type ActorId, type BudgetNote, type Citations, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
+import { testsLine } from '../../shared/repair';
+import { CONSULT_CAP_USD, CONSULT_MESSAGES, type RepairSheet, type ActorId, type BudgetNote, type Citations, type CommissionForm, type CommissionResult, type CommissionTemplate, type ConsultBrief, type HandOver, type LamplightApi, type Material, type NotOpened } from '../../shared/types';
 import { TEMPLATES, template as templateOf, type TemplateId, type TemplateLayout, type TemplateSpec } from '../../shared/templates';
 import { ASKS, AUDIENCES, HANDIN_KINDS, handInForm, slipForm, type HandInPicks } from '../../shared/handin';
 import { workIconEl } from './shelf';
@@ -288,7 +289,8 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
     const refresh = () => {
       chips.forEach((c, i) => c.classList.toggle('on', STICKERS[i] === chosen));
       sourceRow.hidden = !needsSource();
-      pickButton.textContent = chosen?.spec?.source?.kind === 'folder' ? T.chooseFolder : T.chooseFile;
+      const kind = chosen?.spec?.source?.kind;
+      pickButton.textContent = kind === 'folder' ? T.chooseFolder : kind === 'repo' ? T.chooseRepo : T.chooseFile;
       sourceName.textContent = source?.name ?? '';
       sourceHint.textContent = needsSource() ? hintOf(chosen!.id) : '';
       sourceHint.classList.remove('warn');
@@ -312,7 +314,7 @@ export function showCommissionForm(api: FormApi, budgetUsd = 0, handed: HandOver
       const r = await api.chooseSource(chosen!.id as CommissionTemplate);
       if (!r) return;
       if ('error' in r) {
-        sourceHint.textContent = r.error === 'macros' ? T.macros : T.tooBig;
+        sourceHint.textContent = r.error === 'macros' ? T.macros : r.error === 'noGit' ? T.noGit : r.error === 'notRepo' ? T.notRepo : T.tooBig;
         sourceHint.classList.add('warn');
         return;
       }
@@ -643,6 +645,8 @@ export type ResultActions = {
   firstWork?: boolean;
   /** Something in it is not right (Store policy 11.16): a letter to us about what the staff made. */
   report?: () => void;
+  /** Keep or drop a repair's branch (plan-1.8.md H9). */
+  decideRepair?: (id: string, keep: boolean) => Promise<RepairSheet['state'] | null>;
 };
 
 /**
@@ -716,6 +720,7 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
     // An edit that came back as another kind of file says so (C3), before the file is named.
     result.converted ? el('div.hint.result-converted', { role: 'note' }, U.resultConverted[result.converted]) : null,
     result.citations ? citationBlock(result.citations, actions.openSource) : null,
+    result.repair ? repairBlock(result.repair, id, actions.decideRepair) : null,
     thumb,
     // In the user's own folder the lists below name the files instead.
     lent ?? (!result.main && !result.files.length ? null : el('div.hint.result-file', {}, target.split(/[\\/]/).pop())),
@@ -739,6 +744,47 @@ export function showResult(result: CommissionResult, actions: ResultActions) {
   // The work is handed over: once the card is put away, the blackboard and the parcels go too.
   card.addEventListener('panel-closed', clearWorkSigns);
   replaceOpen(card);
+}
+
+/**
+ * A repair's review sheet on its card (plan-1.8.md H9): the branch, each file changed with the fixer's reason, the tests,
+ * and the user's word on the branch. Approved, it stays in their repository for them to merge; turned down, it is deleted.
+ */
+function repairBlock(s: RepairSheet, id: string | undefined, decide?: ResultActions['decideRepair']): HTMLElement {
+  const R = strings.ui.repair;
+  const said = el('div.hint.repair-said', { role: 'status' });
+  const settled = (state: RepairSheet['state']) => (state === 'kept' ? fill(R.kept, { branch: s.branch }) : state === 'dropped' ? R.dropped : '');
+  said.textContent = settled(s.state);
+  const buttons = s.state === 'waiting' && id && decide ? el('div.actions.repair-decide', {}) : null;
+  const go = async (keep: boolean) => {
+    const all = Array.from(buttons!.querySelectorAll('button'));
+    for (const b of all) b.disabled = true;
+    try {
+      said.textContent = settled((await decide!(id!, keep)) ?? s.state);
+      buttons!.remove();
+    } catch (e) {
+      said.textContent = fill(R.failedDecide, { why: String(e) });
+      for (const b of all) b.disabled = false;
+    }
+  };
+  buttons?.append(
+    el('button.repair-drop', { type: 'button', onclick: () => void go(false) }, R.drop),
+    el('button.repair-keep', { type: 'button', onclick: () => void go(true) }, R.keep),
+  );
+  return el('div.repair-sheet', {},
+    s.state === 'waiting' ? el('div.repair-say', {}, R.say) : null,
+    el('div.hint.repair-branch', {}, `${R.branch}: `, el('code', {}, s.branch)),
+    el('div.repair-heading', {}, R.files),
+    s.files.length
+      ? el('ul.repair-files', {}, ...s.files.map((f) => el('li', {},
+        el('code', {}, f.path), ' ', el('span.repair-size', {}, f.added < 0 ? R.binary : `+${f.added} -${f.removed}`),
+        el('div.hint.repair-why', {}, f.why ?? R.noWhy))))
+      : el('div.hint', {}, R.noFiles),
+    el('div.repair-heading', {}, R.tests),
+    el('div.hint.repair-tests', {}, testsLine(s, R)),
+    said,
+    buttons,
+  );
 }
 
 /** How many sources the result card lists before it only counts them. */

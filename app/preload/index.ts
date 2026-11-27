@@ -44,6 +44,7 @@ const api: LamplightApi = {
   runDebugTask: (kind) => ipcRenderer.invoke(IPC.runDebugTask, kind),
   chooseSource: (id) => ipcRenderer.invoke(IPC.chooseSource, id),
   chooseLent: () => ipcRenderer.invoke(IPC.chooseLent),
+  decideRepair: (id, keep) => ipcRenderer.invoke(IPC.decideRepair, id, keep),
   handOver: (paths, already) => ipcRenderer.invoke(IPC.handOver, paths, already),
   pathsOf: (files) => files.map((f) => { try { return webUtils.getPathForFile(f); } catch { return ''; } }).filter(Boolean),
   startCommission: (form) => ipcRenderer.invoke(IPC.startCommission, form),

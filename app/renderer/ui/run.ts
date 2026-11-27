@@ -20,6 +20,8 @@ export type ProgressView = {
   realPlan: boolean;
   /** The latest thing anyone started doing; empty until the first of them. */
   now: string;
+  /** A repair's count of files read, changes made and tests (plan-1.8.md H9); absent for other work. */
+  tally?: string;
   staff: { actor: ActorId; state: string; doing: string }[];
 };
 
@@ -40,6 +42,7 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   const meta = el('div.hint');
   const others = el('div.hint.progress-others');
   const now = el('div.progress-now');
+  const tally = el('div.hint.progress-tally');
   const heading = el('div.hint.progress-heading');
   const list = el('ol.plan-list');
   const actions = el('div.actions');
@@ -74,6 +77,8 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
     others.textContent = [under.length ? fill(R.alsoRunning, { list: under.join(strings.app.listSeparator) }) : '', waiting.length ? fill(R.inQueue, { list: waiting.join(strings.app.listSeparator) }) : ''].filter(Boolean).join(' \u00B7 ');
     others.hidden = !others.textContent;
     if (!confirming) now.textContent = v.now || v.steps.find((s) => s.status === 'doing')?.label || R.progressThinking;
+    tally.textContent = v.tally ?? '';
+    tally.hidden = !v.tally;
     heading.textContent = planLine(v.steps, v.realPlan, R);
     const top = list.scrollTop;
     list.replaceChildren(...v.steps.map((s) => el(`li.${s.status}`, {}, s.label)));
@@ -85,7 +90,7 @@ export function showRunning(api: LamplightApi, view: () => ProgressView, act: { 
   };
   const card = el('div.card.paper.running-card.plan-card', {},
     closeButton(),
-    withPortrait('adeng', 'calm', el('div.card-title.progress-title', { title: first.want }, fill(R.runningTitle, { want: first.want })), meta, others, el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), now)),
+    withPortrait('adeng', 'calm', el('div.card-title.progress-title', { title: first.want }, fill(R.runningTitle, { want: first.want })), meta, others, el('div.waiting', {}, el('span.teacup', { 'aria-hidden': 'true' }), now), tally),
     heading,
     list,
     el('div.progress-staff', {}, ...staff.map((s) => s.button)),

@@ -191,6 +191,8 @@ export interface LamplightApi {
   chooseSource(template: CommissionTemplate): Promise<SourcePick | null>;
   /** Pick a folder of the user's own for the shop to work in; null if cancelled, an error if it can't be lent. */
   chooseLent(): Promise<SourcePick | null>;
+  /** Keep or drop a repair's branch, from its review sheet (plan-1.8.md H9); the state it ends in. */
+  decideRepair(id: string, keep: boolean): Promise<RepairSheet['state'] | null>;
   /** Files dragged onto the counter or the form (paths from pathsOf), or picked in a dialog when none are given. */
   handOver(paths: string[] | null, already: Material[]): Promise<HandOver>;
   /** The paths of files dropped on the page (the preload reads them; the page can't). */
@@ -414,7 +416,7 @@ export type Material = { path: string; name: string; size: number };
 export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' | 'picture' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
-export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' | 'macros' };
+export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' | 'macros' | 'noGit' | 'notRepo' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
@@ -462,7 +464,27 @@ export type CommissionResult = {
   scripts?: ScriptCheck[];
   /** The main file's thumbnail, a PNG data: address, once the main process has taken it (road-to-1.3.md C1). */
   preview?: string;
+  /** A repair in the user's code repository (plan-1.8.md H9): the review sheet, to keep or drop its branch. */
+  repair?: RepairSheet;
 };
+
+/**
+ * The review sheet a repair comes back with (plan-1.8.md H9): the branch it was done on, each file changed with the
+ * fixer's reason, and how the tests went. Kept, the branch stays for the user to merge; dropped, it is deleted (Q-F12).
+ * `added` and `removed` are lines, -1 for a binary file. `testsSeen`: the shop saw a test command run this round.
+ */
+export type RepairSheet = {
+  repo: string;
+  branch: string;
+  files: { path: string; added: number; removed: number; why?: string }[];
+  tests: { ran: boolean; passed?: boolean; command?: string; note?: string };
+  testsSeen: boolean;
+  state: 'waiting' | 'kept' | 'dropped';
+};
+
+/** Where a repair works: a worktree of the user's repository, inside the commission folder, on its own branch from `base`. */
+export type RepairBranch = { repo: string; branch: string; base: string; dir: string; gitDir: string };
+export type RepairRecord = RepairSheet & RepairBranch;
 
 /** Why a Word, Excel or PowerPoint file was shown in its folder rather than opened (office/safe.ts). */
 export type NotOpened = 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable' | 'notPlain' | 'notOurs';
@@ -548,6 +570,7 @@ export const IPC = {
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
   chooseLent: 'commission:choose-lent',
+  decideRepair: 'repair:decide',
   undoWork: 'commission:undo',
   shareOptions: 'shop:share-options',
   shareWork: 'shop:share-work',
@@ -642,6 +665,8 @@ export type AiEvent = {
   choice?: Choice;
   /** Consecutive failures for this agent so far. */
   failStreak?: number;
+  /** A shell command that runs the project's tests (plan-1.8.md H9): the workshop counts these. */
+  test?: boolean;
   /** For `plan` and `progress` events from Claude's own to-do list: the whole list as it stands. */
   todos?: Todo[];
   raw?: unknown;
@@ -656,7 +681,7 @@ export type AiEvent = {
  * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9). `shop`:
  * where it is played (road-to-1.4.md D3), from its commission's kind; absent for the home shop.
  */
-export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[]; shop?: Shop };
+export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[]; shop?: Shop; repair?: boolean };
 
 /** The project a round works on, as the shop names it: its id once it has one (a new commission gets it as it ends), and its title. */
 export type RunProject = { id?: string; title: string };
@@ -729,6 +754,8 @@ export type CommissionMemo = {
    * Only these go in its zip (A8); the rest of the folder is the user's.
    */
   touched?: string[];
+  /** A repair's branch and review sheet (plan-1.8.md H9). */
+  repair?: RepairRecord;
   /** The project it belongs to (1.2). Every commission has one once the notebook is open (projects.ts). */
   project?: string;
 };

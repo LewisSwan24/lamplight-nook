@@ -65,6 +65,8 @@ const W = {
     minigame: '帮我做一个给五岁女儿玩的翻牌小游戏。',
     comic: '帮我画一个四格漫画，讲家里的猫偷吃了鱼还不承认。',
     picturebook: '帮我做一本睡前绘本，给我儿子小满，他喜欢月亮和小猫。',
+    repair: '加法写错了，2 加 3 算出来是 -1，帮我修一下。',
+    repairPush: '加法写错了，帮我修一下，修好直接推上去。',
     toolRename: '帮我做一个按日期给照片改名的小工具。',
     toolWipe: '帮我做一个删掉文件夹里临时文件的小工具。',
     edit: '帮我改一下这份文档：读起来更顺一点。',
@@ -97,6 +99,8 @@ const W = {
     minigame: 'Make me a matching pairs game for my five-year-old daughter.',
     comic: 'Draw me a four-panel comic about our cat stealing the fish and denying it.',
     picturebook: 'Make a bedtime picture book for my son Xiaoman, who loves the moon and cats.',
+    repair: 'The add function is wrong: 2 plus 3 comes out as -1. Please fix it.',
+    repairPush: 'The add function is wrong. Fix it and push it straight up.',
     toolRename: 'Make me a small tool that renames photos by date.',
     toolWipe: 'Make me a small tool that deletes the temporary files in a folder.',
     edit: 'Please edit this document: make it read more smoothly.',
@@ -3184,6 +3188,11 @@ const SCENARIOS = {
         await shop.page.keyboard.press('Escape');
         await sleep(1500);
       }
+      // The last orders were played in the print shop (D3) and the view went along: back home, where the works shelf is.
+      const homeRoom = await shop.page.evaluate(() => [...window.lamplightDebug.rooms.keys()].find((r) => r === 'cafe' || r === 'study'));
+      await shop.page.evaluate((r) => window.lamplightDebug.street.onFront(r, true), homeRoom);
+      for (const end = Date.now() + 15_000; Date.now() < end && await shop.page.evaluate(() => window.lamplightDebug.scene.room) !== homeRoom; await sleep(300));
+      await sleep(800);
       await shop.hotspot(shop.L.ui.access.hotspotWorks);
       await sleep(300);
       await shop.shot(join(out, 'shelf.png'));
@@ -5652,6 +5661,119 @@ const SCENARIOS = {
       check(await on.isChecked(), 'settings do not show the hand-in first');
       await shop.shot(join(out, 'handin-settings.png'));
     } finally { await shop.close(); }
+  },
+
+  /**
+   * A repair (plan-1.8.md H9): a small repository lent to the workshop and fixed by the stand-in on a branch of its own,
+   * while the running card counts the files read, the changes and the tests. Approved once, the branch stays; turned down
+   * once, it goes. The user's branch, their uncommitted change and the remote never move, and the push the fixer tries
+   * the first time is refused.
+   */
+  async repair(lang, out) {
+    const L = locale(lang);
+    const R = L.ui.repair;
+    const T = L.ui.templates;
+    const F = shopFiles(lang);
+    const git = (cwd, ...args) => spawnSync('git', args, { cwd, encoding: 'utf8' }).stdout.trim();
+    const root = mkdtempSync(join(tmpdir(), 'nook-repo-'));
+    const remote = join(root, 'remote.git');
+    const repo = join(root, 'adder');
+    git(root, 'init', '-q', '--bare', remote);
+    git(root, 'init', '-q', '-b', 'main', repo);
+    for (const [k, v] of [['user.name', 'Owner'], ['user.email', 'owner@example.com'], ['core.autocrlf', 'false']]) git(repo, 'config', k, v);
+    writeFileSync(join(repo, 'add.js'), 'module.exports = (a, b) => a - b;\n');
+    writeFileSync(join(repo, 'add.test.js'), "const test = require('node:test');\nconst assert = require('node:assert');\nconst add = require('./add');\n\ntest('adds', () => assert.strictEqual(add(2, 3), 5));\ntest('adds negatives', () => assert.strictEqual(add(-1, -1), -2));\n");
+    writeFileSync(join(repo, 'README.md'), '# adder\n');
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'start');
+    git(repo, 'remote', 'add', 'origin', remote);
+    git(repo, 'push', '-q', '-u', 'origin', 'main');
+    writeFileSync(join(repo, 'README.md'), '# adder\n\nmine, not committed\n');
+    const theirs = () => JSON.stringify([git(repo, 'rev-parse', 'main'), git(repo, 'symbolic-ref', 'HEAD'), git(repo, 'status', '--porcelain'),
+      readFileSync(join(repo, 'add.js'), 'utf8'), readFileSync(join(repo, 'README.md'), 'utf8'), git(remote, 'for-each-ref')]);
+    const before = theirs();
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const counter = async () => {
+      const labels = await page.locator('button.hotspot').evaluateAll((bs) => bs.filter((b) => !b.hidden).map((b) => b.getAttribute('aria-label')));
+      const desks = [L.ui.access.hotspotCounter, ...Object.values(L.sceneText ?? {}).map((t) => t?.ui?.access?.hotspotCounter)];
+      await shop.hotspot(labels.find((l) => desks.includes(l)) ?? L.ui.access.hotspotCounter);
+    };
+    const round = async (n, want, keep) => {
+      await shop.order({ template: 'repair', want });
+      const row = page.locator('form.commission .source-row');
+      const pick = row.locator('button').first();
+      check(await pick.innerText() === T.chooseRepo, `the slip asks for ${await pick.innerText()}`);
+      // A folder that is not a repository is turned away on the slip.
+      await shop.pickFiles([root]);
+      await pick.click();
+      await sleep(400);
+      check((await row.innerText()).includes(T.notRepo), `a plain folder was taken: ${await row.innerText()}`);
+      await shop.pickFiles([repo]);
+      await pick.click();
+      await sleep(400);
+      check((await row.innerText()).includes('adder'), `the repository was not taken: ${await row.innerText()}`);
+      if (n === 1) await shop.shot(join(out, 'repair-slip.png'));
+      await shop.submit();
+
+      // Running its tests runs the repository's code: asked first, in those words.
+      await page.waitForSelector('.backdrop', { state: 'visible', timeout: 60_000 });
+      const asked = await page.locator('.backdrop').innerText();
+      check(asked.includes(L.risk.repairTests), `the test run was not asked about in its own words: ${asked}`);
+      await page.locator('.backdrop button', { hasText: L.decision.allow }).first().click();
+
+      // The running card in the workshop counts what the fixer read and changed, and how the tests went.
+      let tally = '';
+      for (let i = 0; i < 30 && !tally.includes(R.testsPassed); i++) {
+        await sleep(700);
+        if (!(await page.locator('.running-card').isVisible())) await counter();
+        tally = (await page.locator('.running-card .progress-tally').innerText().catch(() => '')) ?? '';
+      }
+      check(tally.includes('add.js') && tally.includes(R.testsPassed) && tally.includes(R.tallyEdits.replace('{n}', '1')), `the running card's count: ${tally}`);
+      // It is the workshop's plan and the workshop's fixer, as on its blackboard, even the first time the workshop is drawn.
+      const listed = await page.locator('.running-card .plan-list li').allInnerTexts();
+      const chalk = await page.locator('#board .step').count();
+      check(listed.length === 4 && chalk === 4, `the running card lists ${listed.length} steps, the blackboard ${chalk}`);
+      const people = (await page.locator('.running-card .progress-person').allInnerTexts()).join(' ');
+      check(people.includes(L.actors.xiaoding) && !people.includes(L.actors.xiaoju), `the running card names ${people}`);
+      if (n === 1) await shop.shot(join(out, 'repair-running.png'));
+      await page.locator('.running-card button.default').click();
+
+      const made = await shop.workUntilDone({ answers: (card) => card.buttons.find((b) => b === L.decision.allow) ?? null });
+      check(made.ok, `the repair did not finish: ${JSON.stringify(made).slice(0, 300)}`);
+      check(made.seen.length === 0, `cards came up after the tests: ${JSON.stringify(made.seen).slice(0, 300)}`);
+      const memo = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1);
+      const branch = memo.repair?.branch;
+      const sheet = await page.locator('.result-card .repair-sheet').innerText();
+      for (const said of [branch, 'add.js', '+1 -1', R.testsPassed, 'node --test', R.keep, R.drop]) check(said && sheet.toLowerCase().includes(said.toLowerCase()), `the review sheet does not say ${said}: ${sheet}`);
+      check(existsSync(join(memo.folder, F.repairSheet)) && readFileSync(join(memo.folder, F.repairSheet), 'utf8').includes(branch), 'the review sheet was not written to the folder');
+      check(git(repo, 'log', '-1', '--format=%an', branch) === 'Lamplight Nook' && git(repo, 'show', `${branch}:add.js`).includes('a + b'), 'the fix is not committed on the branch');
+      check(theirs() === before, 'the user\'s branch, files or remote changed while the repair ran');
+      if (n === 1) await shop.shot(join(out, 'repair-sheet.png'));
+
+      await page.locator(`.result-card button.${keep ? 'repair-keep' : 'repair-drop'}`).click();
+      await page.locator('.result-card .repair-said').filter({ hasText: keep ? branch : R.dropped }).waitFor({ timeout: 10_000 });
+      check(!(await page.locator('.result-card .repair-decide').count()), 'the buttons stayed after the decision');
+      check(!(await page.locator('.result-card .result-revise').count()), 'a repair offers a round of changes');
+      check(!existsSync(memo.repair.dir), 'the worktree is still in the commission folder');
+      check((git(repo, 'branch', '--list', branch) !== '') === keep, `the branch is ${keep ? 'gone' : 'still there'} after the user said ${keep ? 'keep' : 'drop'}`);
+      check(!git(repo, 'worktree', 'list').includes(basename(memo.folder)), 'the worktree is still listed');
+      check(theirs() === before, 'the user\'s branch, files or remote changed with the decision');
+      const saved = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1).repair.state;
+      check(saved === (keep ? 'kept' : 'dropped'), `the notebook says ${saved}`);
+      if (n === 1) await shop.shot(join(out, 'repair-kept.png'));
+      await page.locator('.result-card button.close').click().catch(() => {});
+      await sleep(800);
+    };
+    try {
+      await sleep(1500);
+      await round(1, W[lang].repairPush, true);
+      await round(2, W[lang].repair, false);
+    } finally {
+      await shop.close();
+      rmSync(root, { recursive: true, force: true });
+    }
   },
 
   /**

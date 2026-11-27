@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { CommissionForm } from '../shared/types';
+import type { CommissionForm, RepairBranch } from '../shared/types';
 
 /**
  * Where a round stands (road-to-1.2.md B7): under way, waiting in the queue, stopped by the user on closing, failed (the
@@ -29,6 +29,8 @@ export type Job = {
   /** SDK session to resume, once the run has reported it. */
   sessionId?: string;
   startedAt: number;
+  /** A repair's branch (plan-1.8.md H9): carried on, the round goes on in the same worktree. */
+  repair?: RepairBranch;
   /** A round of changes to finished work: its notebook entry, what to change, the session to pick up. */
   revise?: { id: string; ask: string; fromSession?: string; summary?: string; restored?: boolean; scheduled?: boolean };
 };

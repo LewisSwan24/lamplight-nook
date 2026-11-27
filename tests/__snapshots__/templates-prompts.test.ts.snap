@@ -4874,6 +4874,7 @@ exports[`what each kind of work brings to the shop > growth pieces, shelf icons 
     "minigame",
     "comic",
     "picturebook",
+    "repair",
   ],
   "one": {
     "album": [
@@ -5038,6 +5039,13 @@ exports[`what each kind of work brings to the shop > growth pieces, shelf icons 
         "baker",
         "postman",
         "lodger",
+      ],
+    ],
+    "repair": [
+      [],
+      [
+        "baker",
+        "postman",
       ],
     ],
     "research": [

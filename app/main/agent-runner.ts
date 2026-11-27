@@ -109,6 +109,8 @@ export type RunOptions = {
   preexisting?: Set<string>;
   /** Working in a folder the user lent: keeps the original of each of their files before it is first changed. */
   keepOriginal?: (file: string) => void;
+  /** A repair on a branch of the user's repository (plan-1.8.md H9): git is the shop's, and nothing is pushed. */
+  repair?: boolean;
   /** Abort the run (the user cancelled the commission or closed the app). */
   abort?: AbortController;
   /** Continue an earlier SDK session (retry after a network failure, or after the app closed mid-commission). */
@@ -170,7 +172,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook, model: asked, pricing }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, repair, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook, model: asked, pricing }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   // A connection's tools go by its kind in the events, so the shop plays them whatever the connection's number (C8).
@@ -211,7 +213,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   const nookTools = toolsByName(servers);
   const mcpServers = mcpServersOf(servers, { run: nook?.run ?? '', project: nook?.project, workDir, signal: abort?.signal ?? new AbortController().signal, preexisting: preexisting ?? new Set() }, nook?.actions);
   const canUseTool: CanUseTool = broker
-    ? makePermissionPolicy({ workDir, preexisting, keepOriginal, nook: nookTools, round: nook?.actions }, broker, {
+    ? makePermissionPolicy({ workDir, preexisting, keepOriginal, repair, nook: nookTools, round: nook?.actions }, broker, {
         onRequest: (tool, input, risk, reason, agentId) =>
           record({ source: 'permission', name: tool, payload: { input, risk, reason, agent_id: agentId } }),
         onDecision: (tool, choice, risk, label, agentId) =>
@@ -220,7 +222,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     : async (toolName, input, opts) => {
         const result = await interim(toolName, input, opts);
         // Debug tasks record the risk level without asking the user.
-        const { risk, reason } = classify(toolName, input, { workDir, nook: nookTools, round: nook?.actions });
+        const { risk, reason } = classify(toolName, input, { workDir, repair, nook: nookTools, round: nook?.actions });
         record({ source: 'permission', name: toolName, payload: { input, result, risk, reason, agent_id: opts.agentID } });
         return result;
       };

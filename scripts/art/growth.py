@@ -209,7 +209,8 @@ def pieces_by_id():
 # card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text),
 # flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1),
 # ledgerbook (a pie chart in cream, red and green, plan-1.8.md H5), minigame (a blue gamepad, plan-1.8.md H2),
-# comic (four panels, two by two, plan-1.8.md H3), picturebook (a closed book, a moon on its blue cover, plan-1.8.md H4).
+# comic (four panels, two by two, plan-1.8.md H3), picturebook (a closed book, a moon on its blue cover, plan-1.8.md H4),
+# repair (a dark screen on a stand with a green prompt and cursor, plan-1.8.md H9).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -232,6 +233,7 @@ ICONS = {
     'minigame': ['........', '........', '.uuuuuu.', 'uuxuuruu', 'uxxxurru', 'uuxuuuuu', '.uu..uu.', '........'],
     'comic': ['xxxxxxxx', 'xcwcxyyx', 'xcccxysx', 'xxxxxxxx', 'xpppxccx', 'xpwpxcsx', 'xpppxccx', 'xxxxxxxx'],
     'picturebook': ['.xxxxxxx', '.xrccGcx', '.xrcGGcx', '.xrccccx', '.xrggggx', '.xrwwwwx', '.xrwllwx', '.xxxxxxx'],
+    'repair': ['xxxxxxxx', 'xvvvvvvx', 'xvgvvvvx', 'xvvgvvvx', 'xvgvlllx', 'xvvvvvvx', 'xxxxxxxx', '..xxxx..'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -246,7 +248,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
