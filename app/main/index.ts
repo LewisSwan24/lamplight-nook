@@ -550,7 +550,7 @@ function talkGrant(t: Talk): number | null {
 async function talkTurn(t: Talk, prompt: string, usd: number, finish: boolean) {
   const cwd = join(app.getPath('userData'), 'consult');
   mkdirSync(cwd, { recursive: true });
-  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: talkModel() }));
+  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: talkModel(), recent: memory.recentWorks() }));
   reservations.settle('consult');
   t.sessionId = turn.sessionId ?? t.sessionId;
   spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now(), undefined, talkModel());

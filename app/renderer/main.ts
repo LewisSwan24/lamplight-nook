@@ -54,6 +54,10 @@ import { TOWN_MOVE } from '../shared/town';
 import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
 import { leftBehind, nextChapter, waiting, type Stories, type Teller } from '../shared/stories';
 import { showStaffStory, showStory } from './ui/story';
+import zhMemories from '../../lines/memories.yaml?raw';
+import enMemories from '../../lines/en/memories.yaml?raw';
+import { memoryLines, type Recalled } from '../shared/memories';
+import { parseMemories } from './translator/lines';
 import { isStaffTeller, nextStaffChapter, staffWaiting, type StaffStories, type StaffTeller } from '../shared/staffstories';
 import type { Staffer } from '../shared/crew';
 import { ShopTalk, type Moment } from './stage/shoptalk';
@@ -248,8 +252,16 @@ const leadStage = () => rooms.get(roomOfRun(live()[0]?.run))?.stage ?? stage;
 
 // Small talk when the shop is quiet: never while working, while a card waits for the user, or when hidden.
 let replaying = false;
-const chatter = new Chatter(ruleBook(home.room).chats, ruleBook(home.room).lines.idle_mutter ?? [], Date.now());
-onRuleBookChange(() => chatter.reload(ruleBook(home.room).chats, ruleBook(home.room).lines.idle_mutter ?? []));
+/**
+ * What the staff remember (plan-1.9.md I5): each says now and then a work they were on, by title and day, among the
+ * mutters at home and a street shop's idle lines. Filled in again whenever the shop's works change.
+ */
+const memoryBook = parseMemories(locale() === 'en' ? enMemories : zhMemories);
+let memories: ReturnType<typeof memoryLines> = [];
+const memoriesOf = (crew: readonly ActorId[]) => memories.filter((m) => crew.includes(m.speaker));
+const mutters = () => [...(ruleBook(home.room).lines.idle_mutter ?? []), ...memoriesOf(STAFF)];
+const chatter = new Chatter(ruleBook(home.room).chats, mutters(), Date.now());
+onRuleBookChange(() => chatter.reload(ruleBook(home.room).chats, mutters()));
 setInterval(() => {
   setPeriod(scene.period);
   const blocked = document.hidden || document.querySelector('.backdrop');
@@ -303,7 +315,7 @@ function greetIn(room: RoomId) {
 }
 function talkInShop(quiet: boolean) {
   if (atHome() || !isStreetShop(scene.room)) return;
-  const line = shopTalk.next(Date.now(), quiet, ruleBook(scene.room).lines.shop_idle ?? [], momentNow());
+  const line = shopTalk.next(Date.now(), quiet, [...(ruleBook(scene.room).lines.shop_idle ?? []), ...memoriesOf(ROOM_CREW[scene.room])], momentNow());
   if (line) void sayLine(line);
 }
 
@@ -516,6 +528,8 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   home.garden.setWorksDone(state.done);
   homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
   shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()), bonds: state.bonds };
+  memories = memoryLines(memoryBook, state.recall as Record<string, Recalled[]>, locale());
+  chatter.reload(ruleBook(home.room).chats, mutters());
   street.setTown(shopDays.town);
   tellAbout(state);
   showTownIn(home.room, home);
@@ -1208,7 +1222,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
     // `rooms`: every room at work just now (D3), by room, with its scene and stage.
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; } } });
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; } } });
   }
   const env = $('env');
   env.textContent = [

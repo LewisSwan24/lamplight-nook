@@ -1,0 +1,46 @@
+# What the staff remember (plan-1.9.md I5): a work they were on, by its title and its day (app/shared/memories.ts fills them).
+# Two bubbles each; the first names the work with {date} and {title}. Same writing rules as cafe.yaml, checked with the longest title and day.
+
+adeng:
+  - ["{date}那份《{title}》。", "那天柜台上的灯一直亮着。"]
+  - ["{date}的《{title}》。", "你后来又来看过一回。"]
+  - ["《{title}》，{date}。", "那单收尾最顺。"]
+  - ["{date}那份《{title}》。", "我在本子上记了一笔。"]
+
+xiaoju:
+  - ["{date}那份《{title}》！", "我查了一下午呢。"]
+  - ["《{title}》，{date}。", "那天我泡了三壶茶。"]
+  - ["{date}的《{title}》。", "资料我还留着。"]
+  - ["{date}那份《{title}》。", "我跑了两趟图书馆。"]
+
+laoshi:
+  - ["{date}，《{title}》。", "我看了三遍。"]
+  - ["《{title}》，{date}。", "有一处，改了。"]
+  - ["{date}那份《{title}》。", "没挑出错。"]
+  - ["{date}，《{title}》。", "那单，稳。"]
+
+qingdai:
+  - ["{date}那份《{title}》。", "配色是我挑的。"]
+  - ["《{title}》，{date}。", "那天的光很好。"]
+  - ["{date}的《{title}》。", "我留了一张小样。"]
+  - ["{date}那份《{title}》。", "边上那点留白，是故意的。"]
+
+xiaodou:
+  - ["{date}那份《{title}》！", "我跑的腿，记在本子上了。"]
+  - ["《{title}》，{date}。", "那天我数了，跑了四趟。"]
+  - ["{date}的《{title}》。", "小橘让我先去的！"]
+
+aqian:
+  - ["{date}，《{title}》。", "那版排了两遍。"]
+  - ["《{title}》，{date}。", "纸是我挑的。"]
+  - ["{date}那份《{title}》。", "校样还在架子上。"]
+
+xiaozhe:
+  - ["{date}，《{title}》。", "那天窗外是灰的。"]
+  - ["《{title}》，{date}。", "我画了好几稿。"]
+  - ["{date}那份《{title}》。", "颜色调了一上午。"]
+
+xiaoding:
+  - ["{date}那份《{title}》！", "拧了好几回才对。"]
+  - ["《{title}》，{date}。", "我试了三十遍。"]
+  - ["{date}的《{title}》。", "零件还剩一个。"]

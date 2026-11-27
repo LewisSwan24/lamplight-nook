@@ -23,6 +23,16 @@ export const CONSULT_PROMPT = [
   REPLY_LANGUAGE,
 ].join('\n');
 
+/**
+ * The latest works made with this customer (plan-1.9.md I5), by day and title only, so Adeng can tell which one they
+ * mean by "like last time". Nothing of what was asked, made or where it is.
+ */
+export function recentNote(recent: { title: string; date: string }[]): string {
+  if (!recent.length) return '';
+  return ['', 'Works the shop has made before for this customer, latest first, by day and title only. If they bring up an earlier one, say which one you think they mean and on what day:',
+    ...recent.map((w) => `- ${w.date} ${w.title}`)].join('\n');
+}
+
 /** What the last turn asks for, as the user's message. */
 export const FINISH_PROMPT = 'Write the commission up now, from everything said so far: want is what to make, in one or two sentences in the '
   + "customer's own words; details is everything else agreed, in one short paragraph; audience is who it is for; template is "
@@ -41,11 +51,11 @@ export const BRIEF_SCHEMA: Record<string, unknown> = {
 };
 
 /** The options of one turn. Only the last one (`finish`) asks for the slip as JSON. */
-export function consultOptions(o: { cwd: string; maxBudgetUsd: number; env: Record<string, string | undefined>; finish: boolean; resume?: string; claude?: string; model?: string }): Options {
+export function consultOptions(o: { cwd: string; maxBudgetUsd: number; env: Record<string, string | undefined>; finish: boolean; resume?: string; claude?: string; model?: string; recent?: { title: string; date: string }[] }): Options {
   return {
     cwd: o.cwd,
     model: o.model ?? CONSULT_MODEL,
-    systemPrompt: CONSULT_PROMPT,
+    systemPrompt: CONSULT_PROMPT + recentNote(o.recent ?? []),
     tools: [],
     maxTurns: 1,
     // As for a commission: nothing from Claude Code's own settings or MCP servers on this machine.
