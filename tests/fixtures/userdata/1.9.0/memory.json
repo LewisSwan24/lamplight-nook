@@ -1,0 +1,242 @@
+{
+  "commissions": [
+    {
+      "title": "做一个记录每天喝了几杯水的小网页",
+      "result": "done",
+      "choices": {},
+      "costUsd": 0.378,
+      "sessionId": "sim-mwz5h14g-9m0",
+      "summary": "改好了：颜色再浅一点。其他地方没动，上一版也留着。",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004230-做一个记录每天喝了几杯水的小网页",
+      "form": {
+        "want": "帮我做一个记录每天喝了几杯水的小网页。",
+        "demo": false,
+        "template": "page",
+        "materials": []
+      },
+      "preexisting": [],
+      "main": "index.html",
+      "id": "c1795794153103",
+      "date": "2026-11-28",
+      "asks": [
+        {
+          "ask": "颜色再浅一点",
+          "date": "2026-11-28"
+        }
+      ],
+      "project": "p1795794153103"
+    },
+    {
+      "title": "查一查阳台种番茄要注意什么",
+      "result": "done",
+      "choices": {},
+      "costUsd": 0.2016,
+      "sessionId": "sim-mwz5h4z4-w78",
+      "summary": "做好了：阳台种番茄要注意什么，写一份简短的总结。打开就能用，填的东西会记在这台电脑的浏览器里。",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004238-查一查阳台种番茄要注意什么",
+      "form": {
+        "want": "帮我查一查阳台种番茄要注意什么，写一份简短的总结。",
+        "demo": false,
+        "template": "research",
+        "materials": []
+      },
+      "preexisting": [],
+      "main": "index.html",
+      "id": "c1795794161634",
+      "date": "2026-11-28",
+      "project": "p1795794161634"
+    },
+    {
+      "title": "查一查冬天怎么给多肉浇水",
+      "result": "done",
+      "choices": {},
+      "costUsd": 0.216,
+      "sessionId": "sim-mwz5hk7n-tl4",
+      "summary": "查好了：冬天怎么给多肉浇水，写一份简短的总结。先是三句话的总结，后面是要点和出处，说法不一致的地方标出来了。",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004258-查一查冬天怎么给多肉浇水",
+      "form": {
+        "want": "帮我查一查冬天怎么给多肉浇水，写一份简短的总结。",
+        "demo": false,
+        "template": "research",
+        "materials": []
+      },
+      "preexisting": [],
+      "main": "总结.md",
+      "rounds": [
+        {
+          "date": "2026-11-28",
+          "seconds": 3,
+          "helpers": {
+            "researcher": 1,
+            "reviewer": 1
+          },
+          "waits": 0,
+          "waitedSeconds": 0
+        }
+      ],
+      "id": "c1795794181304",
+      "date": "2026-11-28",
+      "project": "p1795794181304"
+    },
+    {
+      "title": "做一个番茄钟小网页",
+      "result": "done",
+      "choices": {},
+      "costUsd": 0.2016,
+      "sessionId": "sim-mwz5hobd-st4",
+      "summary": "做好了：番茄钟小网页。打开就能用，填的东西会记在这台电脑的浏览器里。",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004303-做一个番茄钟小网页",
+      "form": {
+        "want": "帮我做一个番茄钟小网页。",
+        "demo": false,
+        "template": "page",
+        "materials": []
+      },
+      "preexisting": [],
+      "main": "index.html",
+      "rounds": [
+        {
+          "date": "2026-11-28",
+          "seconds": 3,
+          "helpers": {
+            "designer": 1,
+            "reviewer": 1
+          },
+          "waits": 0,
+          "waitedSeconds": 0
+        }
+      ],
+      "id": "c1795794186749",
+      "date": "2026-11-28",
+      "project": "p1795794186749"
+    }
+  ],
+  "projects": [
+    {
+      "id": "p1795794153103",
+      "title": "做一个记录每天喝了几杯水的小网页",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004230-做一个记录每天喝了几杯水的小网页",
+      "created": "2026-11-28",
+      "commissions": [
+        "c1795794153103"
+      ],
+      "rounds": [
+        {
+          "n": 1,
+          "commission": "c1795794153103",
+          "date": "2026-11-28"
+        },
+        {
+          "n": 2,
+          "commission": "c1795794153103",
+          "date": "2026-11-28",
+          "ask": "颜色再浅一点",
+          "summary": "改好了：颜色再浅一点。其他地方没动，上一版也留着。"
+        }
+      ]
+    },
+    {
+      "id": "p1795794161634",
+      "title": "查一查阳台种番茄要注意什么",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004238-查一查阳台种番茄要注意什么",
+      "created": "2026-11-28",
+      "commissions": [
+        "c1795794161634"
+      ],
+      "rounds": [
+        {
+          "n": 1,
+          "commission": "c1795794161634",
+          "date": "2026-11-28",
+          "summary": "做好了：阳台种番茄要注意什么，写一份简短的总结。打开就能用，填的东西会记在这台电脑的浏览器里。"
+        }
+      ]
+    },
+    {
+      "id": "p1795794181304",
+      "title": "查一查冬天怎么给多肉浇水",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004258-查一查冬天怎么给多肉浇水",
+      "created": "2026-11-28",
+      "commissions": [
+        "c1795794181304"
+      ],
+      "rounds": [
+        {
+          "n": 1,
+          "commission": "c1795794181304",
+          "date": "2026-11-28",
+          "summary": "查好了：冬天怎么给多肉浇水，写一份简短的总结。先是三句话的总结，后面是要点和出处，说法不一致的地方标出来了。",
+          "usd": 0.216,
+          "seconds": 3,
+          "version": "1"
+        }
+      ]
+    },
+    {
+      "id": "p1795794186749",
+      "title": "做一个番茄钟小网页",
+      "folder": "{HOME}\\Documents\\小灯屋\\委托\\2026-11-28-004303-做一个番茄钟小网页",
+      "created": "2026-11-28",
+      "commissions": [
+        "c1795794186749"
+      ],
+      "rounds": [
+        {
+          "n": 1,
+          "commission": "c1795794186749",
+          "date": "2026-11-28",
+          "summary": "做好了：番茄钟小网页。打开就能用，填的东西会记在这台电脑的浏览器里。",
+          "usd": 0.2016,
+          "seconds": 3,
+          "version": "1"
+        }
+      ]
+    }
+  ],
+  "stuckNotes": [],
+  "greeted": "c1795794161634",
+  "shop": {
+    "done": 4,
+    "grown": [
+      {
+        "id": "painting",
+        "date": "2026-11-28"
+      },
+      {
+        "id": "plant",
+        "date": "2026-11-28"
+      },
+      {
+        "id": "lights",
+        "date": "2026-11-28"
+      },
+      {
+        "id": "books",
+        "date": "2026-11-28"
+      }
+    ],
+    "told": [
+      "town-move"
+    ],
+    "town": {
+      "shops": {
+        "workshop": {
+          "done": 1,
+          "grown": [
+            {
+              "id": "gear",
+              "date": "2026-11-28"
+            }
+          ]
+        }
+      },
+      "street": [
+        {
+          "id": "lamps",
+          "date": "2026-11-28"
+        }
+      ],
+      "stories": {}
+    }
+  }
+}

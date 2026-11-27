@@ -351,3 +351,40 @@ describe('the old shop becomes a town (1.4)', () => {
     expect(state.grown.map((g) => g.id)).toEqual(['painting', 'plant']);
   });
 });
+
+// plan-2.0.md J0: a second user, who started with 1.0.0 and kept the shop up to 1.9.0 (tools/sim/legacy.mjs --chain).
+describe('a shop kept since 1.0.0', () => {
+  it('upgrades the 1.0.0 data to the town, keeping every work, its project, the count and what grew', () => {
+    const { data, memory } = homeFrom('1.0.0');
+    const finished = memory.commissions.filter((c) => c.result === 'done').length;
+    expect(finished).toBeGreaterThanOrEqual(2);
+    expect(memory.shop?.town).toBeUndefined();
+
+    const r = migrate(data, NOW);
+    expect(r.to).toBe(DATA_VERSION);
+    expect(r.from).toBeLessThan(DATA_VERSION);
+
+    const after = new MemoryStore(join(data, 'memory.json'));
+    const shop = after.shopState();
+    expect(after.get().commissions.map((c) => c.id)).toEqual(memory.commissions.map((c) => c.id));
+    expect(after.get().projects.flatMap((p) => p.commissions).sort()).toEqual(memory.commissions.filter((c) => c.result).map((c) => c.id).sort());
+    expect(shop.done).toBe(memory.shop!.done);
+    expect(shop.grown).toEqual(memory.shop!.grown);
+    expect(shop.town).toEqual(emptyTown());
+    expect(shop.told).not.toContain(TOWN_MOVE);
+  });
+
+  it('reads the 1.9.0 data as it is: nothing to upgrade, every work and the town kept', () => {
+    const { data, memory } = homeFrom('1.9.0');
+    expect(memory.commissions.length).toBeGreaterThanOrEqual(4);
+    expect(migrate(data, NOW)).toEqual({ from: DATA_VERSION, to: DATA_VERSION, changes: [] });
+
+    const after = new MemoryStore(join(data, 'memory.json'));
+    const shop = after.shopState();
+    expect(after.get().commissions.map((c) => c.id)).toEqual(memory.commissions.map((c) => c.id));
+    expect(shop.done).toBe(memory.shop!.done);
+    expect(shop.town).toEqual(memory.shop!.town);
+    // The research done with 1.9.0 went out with Xiaoju, and counts towards Xiaoju's story.
+    expect(shop.crew.xiaoju).toBeGreaterThan(0);
+  });
+});

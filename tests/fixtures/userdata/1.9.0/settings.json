@@ -1,0 +1,42 @@
+{
+  "name": "小林",
+  "avatar": 1,
+  "workRoot": "{HOME}\\Documents\\小灯屋\\委托",
+  "onboarded": true,
+  "muted": true,
+  "detailed": false,
+  "volume": 70,
+  "captions": false,
+  "reducedMotion": false,
+  "powerSaving": false,
+  "handInFirst": false,
+  "lan": false,
+  "lanPort": 0,
+  "notify": true,
+  "closeToTray": false,
+  "openAtLogin": false,
+  "schedulesPaused": false,
+  "connectionsPaused": false,
+  "mini": true,
+  "updates": true,
+  "scene": "cafe",
+  "furnish": {
+    "cafe": {
+      "wall": "default",
+      "curtain": "default",
+      "rug": "default"
+    },
+    "study": {
+      "wall": "default",
+      "curtain": "default",
+      "rug": "default"
+    }
+  },
+  "modelTier": "balanced",
+  "provider": {
+    "kind": "anthropic"
+  },
+  "budgetUsd": 5,
+  "monthCapUsd": 20,
+  "language": "zh-CN"
+}
