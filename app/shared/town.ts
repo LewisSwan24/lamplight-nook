@@ -1,3 +1,4 @@
+import type { StaffStories } from './staffstories';
 import type { GuestId } from './types';
 
 /** The town's shops, left to right along the street (road-to-1.4.md D1). */
@@ -17,6 +18,8 @@ export type TownDays = {
   street: Gathered[];
   /** How far each neighbour's story has got: the day each chapter was told (D4, shared/stories.ts). */
   stories: Partial<Record<GuestId, string[]>>;
+  /** How far each member of staff's own story has got (plan-1.9.md I1, shared/staffstories.ts). Absent before 1.9. */
+  staff?: StaffStories;
 };
 
 export const emptyTown = (): TownDays => ({ shops: {}, street: [], stories: {} });

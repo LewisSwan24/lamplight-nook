@@ -74,6 +74,7 @@ const api: LamplightApi = {
   markTold: (id) => ipcRenderer.invoke(IPC.markTold, id),
   markMet: (id) => ipcRenderer.invoke(IPC.markMet, id),
   tellStory: (who) => ipcRenderer.invoke(IPC.tellStory, who),
+  tellStaffStory: (who) => ipcRenderer.invoke(IPC.tellStaffStory, who),
   lanState: () => ipcRenderer.invoke(IPC.lanState),
   lanPair: () => ipcRenderer.invoke(IPC.lanPair),
   lanRemove: (id) => ipcRenderer.invoke(IPC.lanRemove, id),

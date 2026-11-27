@@ -5,7 +5,8 @@ import { fill, pattern, strings, type Strings } from '../../shared/i18n';
 import type { ActorId, GuestId, Speaker } from '../../shared/types';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky } from '../game/weather';
 import { ROOMS, forScene, type RoomId } from '../../shared/scenes';
-import { CHAPTERS, TELLERS } from '../../shared/stories';
+import { CHAPTERS, TELLERS, type Teller } from '../../shared/stories';
+import { STAFF_CHAPTERS, STAFF_TELLERS, type StaffTeller } from '../../shared/staffstories';
 import type { LineBook } from './director';
 
 export type Line = {
@@ -210,17 +211,27 @@ export function parseStories(text: string): StoryBook {
  * a note of what it leaves (two bubbles long at most), two to five bubbles, and the thing shared/stories.ts says it leaves.
  */
 export function lintStories(book: StoryBook, S: Strings = strings): string[] {
+  return lintBook(book, TELLERS, (who) => CHAPTERS[who as Teller], 2, 5, S);
+}
+
+/** The staff's own stories (lines/staff-stories.yaml, plan-1.9.md I1): the same, with three chapters each of four to six bubbles. */
+export function lintStaffStories(book: StoryBook, S: Strings = strings): string[] {
+  return lintBook(book, STAFF_TELLERS, (who) => STAFF_CHAPTERS[who as StaffTeller], 4, 6, S);
+}
+
+function lintBook(book: StoryBook, tellers: readonly string[], chaptersOf: (who: string) => { left: string }[], fewest: number, most: number, S: Strings): string[] {
   const rules = rulesFor(S);
   const problems: string[] = [];
-  for (const who of Object.keys(book)) if (!(TELLERS as readonly string[]).includes(who)) problems.push(fill(L.badStory, { id: who }));
-  for (const who of TELLERS) {
+  for (const who of Object.keys(book)) if (!tellers.includes(who)) problems.push(fill(L.badStory, { id: who }));
+  for (const who of tellers) {
     const chapters = book[who] ?? [];
-    if (chapters.length !== CHAPTERS[who].length) problems.push(fill(L.badStory, { id: who }));
+    const table = chaptersOf(who);
+    if (chapters.length !== table.length) problems.push(fill(L.badStory, { id: who }));
     chapters.forEach((c, i) => {
       const id = `${who}_${i + 1}`;
-      const bad = !c.title || !c.note || visibleLength(c.note) > rules.max * 2 || c.lines.length < 2 || c.lines.length > 5 || c.left !== CHAPTERS[who][i]?.left;
+      const bad = !c.title || !c.note || visibleLength(c.note) > rules.max * 2 || c.lines.length < fewest || c.lines.length > most || c.left !== table[i]?.left;
       if (bad) problems.push(fill(L.badStory, { id }));
-      for (const text of c.lines) checkBubble(id, who, text, problems, rules);
+      for (const text of c.lines) checkBubble(id, who as Speaker, text, problems, rules);
     });
   }
   return problems;
