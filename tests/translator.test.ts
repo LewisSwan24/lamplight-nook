@@ -550,6 +550,18 @@ describe('orders sent to the shops (road-to-1.4.md D3)', () => {
     expect(of(pdf, 'aqian')).toMatchObject({ room: 'print', moveTo: 'board' });
   });
 
+  it('takes up a picture book carried on from the studio, and lays it out there with no errand (plan-1.8.md H4)', () => {
+    const t = inShop('print');
+    expect(t.takeUp('r1')).toMatchObject([{ actor: 'aqian', state: 'ready', moveTo: 'counter', run: 'r1' }]);
+    t.takeUp('r1');
+    expect(t.running).toEqual(['r1']);
+    expect(t.leadOf('r1')).toBe('aqian');
+    expect(t.crews().get('aqian')).toBe('r1');
+    const pdf = t.translate(ev({ run: 'r1', tool: office('make_pdf') }));
+    expect(pdf.some((c) => c.room !== undefined || c.moveTo === 'door')).toBe(false);
+    expect(of(pdf, 'aqian')).toBeTruthy();
+  });
+
   it("has a shop's own person lead a second order there too, from the second crew's places; Adeng still brings the slip", () => {
     const t = started('print');
     const second = t.translate(ev({ kind: 'session_start', run: 'r2' }));

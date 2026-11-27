@@ -265,7 +265,7 @@ export class Stage {
 
   /** A round carried on here from another shop (plan-1.8.md H4): this shop's people take it up from here. */
   join(run: string) {
-    this.translator.join(run);
+    this.take(this.translator.takeUp(run));
     this.redress();
   }
 

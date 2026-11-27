@@ -322,6 +322,17 @@ export class Translator {
     return [{ actor: 'adeng', state: 'out', moveTo: 'door', priority: PRIORITY.work, run, line: { group: 'dispatch_go', vars: { shop: strings.ui.town.shops[shop] }, speaker: 'adeng' } }];
   }
 
+  /**
+   * A round carried on here from another shop (plan-1.8.md H4): it is under way here, and whoever of this shop's people
+   * sits idle gets ready for it, its lead at the counter, so the work that follows can start.
+   */
+  takeUp(run: string): CharacterCommand[] {
+    this.join(run);
+    const lead = this.leadOf(run);
+    for (const actor of this.crew) if (this.states.get(actor) === 'idle') this.states.put(actor, 'ready');
+    return [{ actor: lead, state: this.states.get(lead), moveTo: 'counter', priority: PRIORITY.work, run }];
+  }
+
   /** Back from carrying an order over: Adeng is at the home shop's counter again. */
   homeAgain(): CharacterCommand[] {
     this.states.put('adeng', 'ready');
