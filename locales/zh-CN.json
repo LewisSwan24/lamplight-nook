@@ -28,7 +28,10 @@
   },
   "animals": {
     "dog": "麦芽",
-    "hens": "母鸡"
+    "hens": "母鸡",
+    "bun": "馒头",
+    "stamp": "邮票",
+    "cinnabar": "朱砂"
   },
   "guests": {
     "baker": "桂姨",
@@ -1112,6 +1115,7 @@
       "hotspotCounter": "柜台：递一张委托",
       "hotspotActor": "{name}：看看在做什么",
       "hotspotCat": "{name}：摸摸它",
+      "hotspotPet": "{name}：打个招呼",
       "hotspotBell": "开会铃：叫大家到大桌边说两句",
       "hotspotGarden": "后门：看看后院",
       "hotspotShop": "后门：回店里",
