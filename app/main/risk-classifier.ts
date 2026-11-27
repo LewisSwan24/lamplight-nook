@@ -453,6 +453,9 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
       return as.risk === 'blocked' ? as : { risk: 'ask', reason: R.repairTests };
     }
     if (tool === 'Bash') return classifyBash(cmd, ctx);
+    // PowerShell ends a statement at any line break, a carriage return and the Unicode separators too: a line holding one
+    // is more than the command its first word names.
+    if (BREAKS.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
     if (DELETE.test(cmd)) return { risk: 'serious', reason: R.delete };
     if (NETWORK_SEND.test(cmd)) return { risk: 'serious', reason: R.networkSend };
     if (COMPLEX.test(cmd) || /\$/.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
