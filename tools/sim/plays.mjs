@@ -1116,7 +1116,8 @@ export const plays = {
     },
   },
 
-  // A repair in a lent repository (plan-1.8.md H9): reads it, fixes the subtraction in add.js, runs the tests for real,
+  // A repair in a lent repository (plan-1.8.md H9): reads it, fixes the subtraction in add.js, runs the tests for real
+  // from the commission folder, stepping into the copy first as a real fixer does,
   // and writes its notes. Asked to push, it tries: the shop refuses, so the remote must stay as it was.
   repair: {
     name: 'repair',
@@ -1129,7 +1130,7 @@ export const plays = {
       await p.next();
       await s.step(() => s.edit(join(repo, 'add.js'), 'a - b', 'a + b'));
       await p.next();
-      const ran = await s.step(() => s.tool('Bash', { command: 'node --test' }, { effect: () => {
+      const ran = await s.step(() => s.tool('Bash', { command: `cd "${join(s.cwd, repo)}" && node --test` }, { effect: () => {
         try { return { text: execFileSync('node', ['--test'], { cwd: join(s.cwd, repo), encoding: 'utf8' }) }; } catch (e) { return { text: String(e.stdout ?? e), error: true }; }
       } }));
       if (/推|push/i.test(s.state.vars.want ?? '')) {
