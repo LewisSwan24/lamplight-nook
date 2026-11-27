@@ -6543,6 +6543,80 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
   /**
+   * The street shops' animals (plan-1.9.md I3): Bun in the bakery, Stamp at the post office, Cinnabar in the studio,
+   * each in its place by day, answering a click (from the keyboard's button, by its name) without a word, kept in by
+   * night and rain; and each keeper with words about their animal.
+   */
+  async shoppets(lang, out) {
+    const L = locale(lang);
+    const PETS = { bakery: ['bun', 'guiyi', 'bk_bun_'], post: ['stamp', 'axin', 'po_stamp_'], studio: ['cinnabar', 'xiaozhe', 'st_cin_'] };
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2026-10-14T10:00' });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const pet = () => page.evaluate(() => window.lamplightDebug.scene.pet?.state() ?? null);
+    const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+    try {
+      await sleep(2500);
+      check(await pet() === null, 'the home shop has a pet of its own');
+      for (const [id, [name, keeper, prefix]] of Object.entries(PETS)) {
+        await streetButton();
+        await sleep(900);
+        await page.evaluate((i) => window.lamplightDebug.street.onFront(i, true), id);
+        for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== id; await sleep(300));
+        check(await room() === id, `did not get into the ${id}`);
+        await sleep(2000);
+        await page.evaluate(() => { const s = window.lamplightDebug.scene; s.setWeather('clear', null, true); s.setPeriod('day', true); });
+        await sleep(400);
+        const day = await pet();
+        const where = { bun: ['counter'], stamp: ['sill', 'rack'], cinnabar: ['bowl'] }[name];
+        check(day?.pet === name && where.includes(day.spot) && day.playing, `${id} by day: ${JSON.stringify(day)}`);
+        await shop.shot(join(out, `shoppets-${id}.png`));
+        // A click from the keyboard's button, found by the animal's name.
+        const label = L.ui.access.hotspotPet.replace('{name}', L.animals[name]);
+        const clicked = await page.evaluate((l) => {
+          const b = [...document.querySelectorAll('button.hotspot')].find((x) => x.getAttribute('aria-label') === l && !x.hidden);
+          b?.click();
+          return !!b;
+        }, label);
+        check(clicked, `no button for "${label}" in the ${id}`);
+        await sleep(250);
+        const poked = await pet();
+        const answered = { bun: poked.anim === 'pet-bun-bark', stamp: poked.busy && /fly/.test(poked.anim), cinnabar: poked.fast }[name];
+        check(answered, `${id}: a click got nothing back: ${JSON.stringify(poked)}`);
+        check(!(await page.evaluate(() => [...window.lamplightDebug.scene.speech.keys()].some((k) => !['aqian', 'xiaozhe', 'xiaoding', 'guiyi', 'axin'].includes(k)))), `${id}: the animal said something`);
+        await shop.shot(join(out, `shoppets-${id}-click.png`));
+        await sleep(2000);
+        // Kept in: Bun on the mat at night, Stamp on the sill in the rain and still at night.
+        if (name !== 'cinnabar') {
+          await page.evaluate(() => window.lamplightDebug.scene.setWeather('rain', null, true));
+          await sleep(300);
+          if (name === 'stamp') check((await pet()).spot === 'sill', `Stamp is out in the rain: ${JSON.stringify(await pet())}`);
+          await page.evaluate(() => { const s = window.lamplightDebug.scene; s.setWeather('clear', null, true); s.setPeriod('night', true); });
+          await sleep(300);
+          const night = await pet();
+          check(name === 'bun' ? night.spot === 'mat' : night.spot === 'sill' && !night.playing, `${id} at night: ${JSON.stringify(night)}`);
+          await shop.shot(join(out, `shoppets-${id}-night.png`));
+          await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+        }
+        // The keeper's words about the animal: ten or more, and one of them said here.
+        const lines = (await page.evaluate(() => window.lamplightDebug.lines().shop_idle)).filter((l) => l.id.startsWith(prefix));
+        check(lines.length >= 10 && lines.every((l) => l.speaker === keeper), `${id}: the keeper's lines on the animal: ${lines.length}`);
+        const text = lines.find((l) => !l.when).bubbles[0];
+        for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+          if (!(await page.evaluate((k) => window.lamplightDebug.scene.busyTalking(k), keeper))) break;
+        }
+        await page.evaluate(([k, t]) => { void window.lamplightDebug.stage.talk([{ speaker: k, text: t }]); }, [keeper, text]);
+        let heard = false;
+        for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) {
+          heard = await page.evaluate(([k, t]) => window.lamplightDebug.scene.isSaying(k, t), [keeper, text]);
+        }
+        check(heard, `${keeper} did not say "${text}"`);
+        await shop.shot(join(out, `shoppets-${id}-words.png`));
+      }
+    } finally { await shop.close(); }
+  },
+  /**
    * What the staff remember (plan-1.9.md I5): Flint, who checked a birthday invitation, remembers it by a shortened
    * title and its day; Iris, who was on nothing, remembers nothing; Pica remembers the print shop's work, in the print
    * shop. One memory each is played.

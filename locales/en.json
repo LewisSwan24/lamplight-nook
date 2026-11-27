@@ -28,7 +28,10 @@
   },
   "animals": {
     "dog": "Malt",
-    "hens": "The hens"
+    "hens": "The hens",
+    "bun": "Bun",
+    "stamp": "Stamp",
+    "cinnabar": "Cinnabar"
   },
   "guests": {
     "baker": "Auntie Olive",
@@ -1112,6 +1115,7 @@
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",
       "hotspotCat": "{name}: give her a pat",
+      "hotspotPet": "{name}: say hello",
       "hotspotBell": "Meeting bell: call everyone to the big table",
       "hotspotGarden": "Back door: look out at the garden",
       "hotspotShop": "Back door: go back inside",

@@ -221,3 +221,14 @@ shop_idle:
   - { id: st_idle_lantern_01, speaker: xiaozhe, when: holiday_lantern, bubbles: ["灯纸透光，颜色得调浅。"] }
   - { id: st_idle_dragon_boat_01, speaker: xiaozhe, when: holiday_dragon_boat, bubbles: ["龙舟的漆，三天没干透。"] }
   - { id: st_idle_mid_autumn_01, speaker: xiaozhe, when: holiday_mid_autumn, bubbles: ["月光下看颜色，全是银的。"] }
+  - { id: st_cin_01, speaker: xiaozhe, bubbles: ["朱砂今天游得慢。"] }
+  - { id: st_cin_02, speaker: xiaozhe, bubbles: ["朱砂这个红，我调不出来。"] }
+  - { id: st_cin_03, speaker: xiaozhe, bubbles: ["换了水，朱砂转了三圈。"] }
+  - { id: st_cin_04, speaker: xiaozhe, bubbles: ["朱砂是集市上拿画换的。"] }
+  - { id: st_cin_05, speaker: xiaozhe, bubbles: ["窗台的光，正好照着朱砂。"] }
+  - { id: st_cin_06, speaker: xiaozhe, when: period_night, bubbles: ["朱砂还醒着，我也是。"] }
+  - { id: st_cin_07, speaker: xiaozhe, when: sky_rain, bubbles: ["下雨天，朱砂贴着缸边游。"] }
+  - { id: st_cin_08, speaker: xiaozhe, bubbles: ["我画过十几张朱砂。"] }
+  - { id: st_cin_09, speaker: xiaozhe, bubbles: ["朱砂，别啄水草了。"] }
+  - { id: st_cin_10, speaker: xiaozhe, bubbles: ["喂朱砂，一小撮就够。"] }
+  - { id: st_cin_11, speaker: xiaozhe, when: period_dawn, bubbles: ["早上第一眼，先看朱砂。"] }

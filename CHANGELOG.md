@@ -23,6 +23,11 @@
   thirty, with a work apron over the green shirt, and grown after eighty, in a brown jacket. Bean talks differently at
   each: full of questions at first, fewer words once handy, steady when grown, and then greets the neighbours when
   Wick is busy. Wick marks the day of each, and so does the notebook.
+- **Three new animals.** Bun, a ginger dog, lies by the bread case in the bakery, looks up when someone comes in and
+  sleeps on the mat by the door at night. Stamp, a grey pigeon, flies between the post office's windowsill and the
+  letter rack, and keeps to the sill when it rains and after dark. Cinnabar, a goldfish, goes round a bowl on Umber's
+  windowsill. Click one, or press Enter on it, and it answers without a word: a bark, a flight, a dash round the
+  bowl. Their keepers talk about them now and then.
 
 ## 1.8.0 (2026-11-27)
 

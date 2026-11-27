@@ -222,3 +222,14 @@ shop_idle:
   - { id: st_idle_lantern_01, speaker: xiaozhe, when: holiday_lantern, bubbles: ["Lantern paper glows. Mix the colours pale."] }
   - { id: st_idle_dragon_boat_01, speaker: xiaozhe, when: holiday_dragon_boat, bubbles: ["The boat paint's still tacky. Three days."] }
   - { id: st_idle_mid_autumn_01, speaker: xiaozhe, when: holiday_mid_autumn, bubbles: ["Under the moon, every colour's silver."] }
+  - { id: st_cin_01, speaker: xiaozhe, bubbles: ["Cinnabar's swimming slowly today."] }
+  - { id: st_cin_02, speaker: xiaozhe, bubbles: ["I can't mix a red like Cinnabar's."] }
+  - { id: st_cin_03, speaker: xiaozhe, bubbles: ["Fresh water. Cinnabar did three laps."] }
+  - { id: st_cin_04, speaker: xiaozhe, bubbles: ["I swapped a sketch for Cinnabar at the fair."] }
+  - { id: st_cin_05, speaker: xiaozhe, bubbles: ["The light from the sill falls on Cinnabar."] }
+  - { id: st_cin_06, speaker: xiaozhe, when: period_night, bubbles: ["Cinnabar's still up. So am I."] }
+  - { id: st_cin_07, speaker: xiaozhe, when: sky_rain, bubbles: ["Rainy days, Cinnabar hugs the glass."] }
+  - { id: st_cin_08, speaker: xiaozhe, bubbles: ["I've painted Cinnabar a dozen times."] }
+  - { id: st_cin_09, speaker: xiaozhe, bubbles: ["Cinnabar, leave the weed alone."] }
+  - { id: st_cin_10, speaker: xiaozhe, bubbles: ["Cinnabar needs a pinch of food. No more."] }
+  - { id: st_cin_11, speaker: xiaozhe, when: period_dawn, bubbles: ["Each morning, I check on Cinnabar first."] }
