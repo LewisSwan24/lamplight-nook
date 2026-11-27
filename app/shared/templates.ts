@@ -1,6 +1,6 @@
 import type { Strings } from './i18n';
 import type { GuestId } from './types';
-import type { Shop } from './dispatch';
+import type { Shop, StreetShop } from './dispatch';
 
 /**
  * The ready-made kinds of commission (road-to-1.1.md A7), one record each, in the order of the stickers on the form.
@@ -12,6 +12,10 @@ import type { Shop } from './dispatch';
 
 type Files = Strings['ui']['files'];
 
+/** Layouts a kind may come in besides its plain one, picked on the slip (plan-1.8.md H6): the travel guide's journal. */
+export const LAYOUTS = ['journal'] as const;
+export type TemplateLayout = (typeof LAYOUTS)[number];
+
 /** What a template's prompt is built from: the shop's words for its files, and the file or folder the user picked. */
 export type PromptParts = {
   language: string;
@@ -21,24 +25,32 @@ export type PromptParts = {
   /** What the shop calls its copy of a picked file, and the edited version. */
   original: string;
   revised: string;
+  /** The layout picked on the slip, one of the template's own `layouts`; absent: the plain one. */
+  layout?: TemplateLayout;
 };
 
 /**
  * What the user picks besides writing the request, through the main process's dialog: a file (copied into the
  * commission folder as the original) or a folder (listed into it; the shop never sees the folder itself).
  */
-export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes: number } | { kind: 'folder' };
+export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes: number } | { kind: 'folder' } | { kind: 'repo' };
 
 /**
  * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
- * a poster, a menu or a greeting card drawn as a picture (before the page it was drawn from), any page, a Word, Excel or PowerPoint file or a
+ * a poster, a menu or a greeting card drawn as a picture (before the page it was drawn from), revision cards, any page, a Word, Excel or PowerPoint file or a
  * PDF (never the kinds with macros), a write-up in Markdown, an email draft (C5, which opens in the mail program), then
  * a table or a letter.
  */
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
-  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng,
+  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng || name === files.comicPng,
+  /** Revision cards (plan-1.8.md H1): their PDF, before the pages they were printed from and before the quiz. */
+  cards: (name: string, files: Files) => name === files.flashcardsPdf,
+  /** A travel journal (plan-1.8.md H6): its PDF, before the page it was printed from. */
+  journal: (name: string, files: Files) => name === files.journalPdf,
+  /** A picture book (plan-1.8.md H4): its PDF, before its cover picture and the page it was printed from. */
+  book: (name: string, files: Files) => name === files.bookPdf,
   page: (name: string) => /\.html?$/i.test(name),
   office: (name: string) => /\.(docx|xlsx|pptx|pdf)$/i.test(name),
   writeup: (name: string) => /\.md$/i.test(name),
@@ -50,6 +62,11 @@ export type TemplateSpec = {
   id: string;
   /** Where the work is done (road-to-1.4.md D3): the order is taken at home and carried to this shop. */
   shop: Shop;
+  /**
+   * The shop that finishes it (plan-1.8.md H4): the round is carried on there once it is laid out as a PDF (movesOn),
+   * and its piece grows there. Without one, the work stays where it starts.
+   */
+  then?: StreetShop;
   /** Frame in assets/sprites/works.png for the works shelf. */
   icon: number;
   source?: SourceKind;
@@ -63,8 +80,15 @@ export type TemplateSpec = {
   main: keyof typeof MAIN_FILES;
   /** A piece the shop gathers after this many of this kind (growth.ts; assets/sprites/grow-<id>.png). */
   growth?: { id: string; at: number };
+  /**
+   * A piece that stands in the shop along the street that does this kind of work instead, after this many of this
+   * kind (plan-1.8.md H5; towngrow.ts ROOM_WORK; assets/sprites/grow-<shop>-<id>.png). Only for a street shop's work.
+   */
+  roomGrowth?: { id: string; at: number };
   /** A neighbour who starts dropping in once there has been one (guests.ts). */
   guest?: GuestId;
+  /** Layouts the slip offers besides the plain one (plan-1.8.md H6); `ui.templates.layout.<id>` names each. */
+  layouts?: readonly TemplateLayout[];
 };
 
 /**
@@ -73,6 +97,26 @@ export type TemplateSpec = {
  */
 export const EDITABLE = ['txt', 'md', 'html', 'htm', 'csv', 'json', 'docx', 'xlsx', 'pptx', 'pdf'];
 export const MAX_EDIT_BYTES = 20 * 1024 * 1024;
+
+/**
+ * The travel guide as a journal (plan-1.8.md H6): one A4 page to print and take along, the route, a list for each day
+ * and a map of the route drawn on the page itself. The shop has no way to take a picture of a web map, and a page that
+ * loads one would not print offline, so the map is drawn.
+ */
+function journalSteps(language: string, files: Files): string[] {
+  return [
+    'This is a travel journal: the trip on one page, to print and take along.',
+    `Make it as a single self-contained page "${files.journalPage}" for one A4 page, portrait: CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+    'Lay it out like a hand-kept journal, the parts side by side: the route at the top, a short list for each day (where to go, what to do, what to bring), and a small map of the route.',
+    'Draw the map yourself in inline SVG: the places as dots roughly where they lie to each other, joined in the order of the trip, each with its name and the day it falls on. It is a sketch, never a web map or a picture of one.',
+    'Send the researcher subagent to check what changes: opening hours, ticket prices, how to get there. Give each such fact its source and the date it was checked in small print, and remind the user to check again before setting off.',
+    'If something cannot be found, say so instead of guessing.',
+    `Write it in ${language}.`,
+    `Save it as "${files.journalPdf}" with the mcp__nook-office__make_pdf tool.`,
+    'When it is saved, look at it with the Read tool: check it is one page, nothing is cut off and nothing overlaps, and fix the page and save it again if not.',
+    `In your final reply, say in ${language}, in one line, which days and places it covers.`,
+  ];
+}
 
 /** What the edit template asks for, by the kind of file: text by hand, Office files by number with the edit tools, a PDF again as Word. */
 function editSteps({ original, revised }: PromptParts): string[] {
@@ -196,8 +240,8 @@ export const TEMPLATES = [
     ],
   },
   {
-    id: 'travel', shop: 'home', icon: 11, revise: true, main: 'index', growth: { id: 'postcards', at: 1 },
-    steps: ({ language }) => [
+    id: 'travel', shop: 'home', icon: 11, revise: true, main: 'index', growth: { id: 'postcards', at: 1 }, layouts: ['journal'],
+    steps: ({ language, files, layout }) => layout === 'journal' ? journalSteps(language, files) : [
       'This is a travel guide.',
       'Make it as a single self-contained page named "index.html": CSS and JavaScript inline, no build step, and it must work when opened straight from disk.',
       'Lay it out day by day, then a budget table, then a packing list. For each place give a link to it on a map; do not embed maps.',
@@ -323,11 +367,112 @@ export const TEMPLATES = [
       `In your final reply, say in ${language}, in one line, which issue it is and how many pieces of news are in it.`,
     ],
   },
+  // Revision cards (plan-1.8.md H1): a set of cards to print and cut apart, and a one-page quiz with its answers on the
+  // back, both made from what the user is studying and from nothing else.
+  {
+    id: 'flashcards', shop: 'home', icon: 21, revise: true, main: 'cards', growth: { id: 'cardstack', at: 1 }, guest: 'pupil',
+    steps: ({ language, files }) => [
+      'These are revision cards and a short quiz for someone getting ready for a test, made to be printed.',
+      `Read the material first: what the user handed over in "${files.materials}" (handouts, notes, a chapter; the Read tool reads text, pictures and PDFs, and mcp__nook-office__read_document reads Word, Excel and PowerPoint files), or the text in the request. If there is nothing to work from, ask for it in your reply instead of making cards from memory.`,
+      'Every question and every answer must come from that material. Never add a fact it does not hold, and never correct it from memory; if something in it looks wrong, keep it as it is and say so in your reply.',
+      'Pick what is worth remembering: terms and what they mean, names, dates, causes and what they led to, steps in order. One card for each, from 12 to 40 cards, fewer for a short text. A question asks one thing; its answer is a few words or one short sentence.',
+      'Write them in the language of the material, unless the request asks for another.',
+      `Lay the cards out as a single self-contained page "${files.flashcardsPage}" for A4: CSS inline, no web fonts, nothing the page loads from outside this folder. Eight cards to a sheet, two across and four down, each the same size with a dashed border to cut along and its number in a corner.`,
+      'Follow each sheet of questions with a sheet of their answers, the two columns swapped, so that printed on both sides and flipped on the long edge every answer lands on the back of its question. Never let a card break across two pages.',
+      `Save it as "${files.flashcardsPdf}" with the mcp__nook-office__make_pdf tool.`,
+      `Then the quiz: ten questions on what matters most in the material, mixing a few kinds (one of four, true or false, fill in the blank, a short answer), as a page "${files.quizPage}" for A4 with the same rules. The first page holds the ten questions with room to write; the second holds the answers, numbered, each with one line on where in the material it comes from, so it prints on the back.`,
+      `Save it as "${files.quizPdf}" with the mcp__nook-office__make_pdf tool.`,
+      'When both are saved, look at them with the Read tool: check no card is cut off, every answer sits behind its question and the quiz fits on two pages, and fix the pages and save them again if not.',
+      `In your final reply, say in ${language}, in one line, how many cards there are and what the quiz covers.`,
+    ],
+  },
+  // A family ledger (plan-1.8.md H5): an Excel workbook a household keeps its accounts in, a sheet a month, made in the
+  // print shop. Its piece, a ledger on the counter, stands in the print shop rather than at home.
+  {
+    id: 'ledgerbook', shop: 'print', icon: 22, revise: true, main: 'office', roomGrowth: { id: 'ledgerbook', at: 1 }, guest: 'bookkeeper',
+    steps: ({ language, files }) => [
+      'This is a family ledger: an Excel workbook a household keeps its accounts in, filled in by hand through the year. Do not make a web page.',
+      `Build it with the mcp__nook-office__make_xlsx tool as "${files.ledgerbook}": give the tool the structure (sheets, columns, rows, lists and charts) and it makes the file. Never write Office XML or an .xlsx by hand, and do not make a CSV.`,
+      'Make one sheet for each month, named after it, for twelve months from the month the request names (January if it names none); then a sheet for the whole year; then a categories sheet. Write the first month out in full and each later one in a single line like it, {name, like: the first month\'s name}, so the whole book goes in one call.',
+      'The categories sheet lists the categories of money in and money out, one to a row with whether each is in or out, and rows left free below for more: the user changes them there, never in the month sheets. Take them from the request, or pick a few everyday ones for a household.',
+      'Each month sheet has a row for each entry: the date, what it was, its category, money in, money out and a note, with the header kept in view (freezeHeader). The category column offers a drop-down list of the names on the categories sheet (the column\'s list).',
+      'Beside the entries stands a summary that works itself out as the month fills in: money in, money out and what is left, then the spending by category. Each category\'s line takes its name from the categories sheet by formula and its amount is a SUMIF over the month, so a category renamed or added turns up by itself; with IF, a line for an empty slot stays empty instead of showing 0. Every SUM and SUMIF over the entries reaches to row 500, as far down as the drop-down list does, so a busy month never runs past them.',
+      'Draw a pie chart of the spending by category on each month sheet, next to its summary. The year sheet takes each month\'s totals by formula, adds up the year, and has a column chart of the spending month by month.',
+      'Formulas use only this workbook. Give each column its format: date, money or text. A cell left empty is null.',
+      'Leave every entry row empty: the empty book is the finished piece, ready to fill in. Put in no example entries unless the request gives real ones.',
+      `Write every sheet name, header, label and category in ${language}.`,
+      'When it is saved, read it back with mcp__nook-office__read_document and check that each summary formula points at the right cells and that each chart and drop-down list draws from the right range, and make it again if not.',
+      `In your final reply, say in ${language}, in one line, which months it covers and which categories it starts with.`,
+    ],
+  },
+  // A small game (plan-1.8.md H2): one page that plays in a browser with no network, made in the workshop. Its piece, a
+  // little game machine, stands in the workshop.
+  {
+    id: 'minigame', shop: 'workshop', icon: 23, revise: true, main: 'page', roomGrowth: { id: 'arcade', at: 1 }, guest: 'dad',
+    steps: ({ language, files }) => [
+      'This is a small game to play in a browser, the size of one sitting: matching pairs, whack-a-mole, snake and the like. Do not make a tool or a page of text.',
+      `Make it as a single self-contained page "${files.minigame}": CSS and JavaScript inline, no libraries, no build step, no web fonts, nothing loaded from outside this folder. It must work when opened straight from disk with no network.`,
+      'Give it a title, one line on how to play, a start button, a score in view and a way to play again when a round ends. It plays with a mouse or a finger, and with the keyboard too if the game needs keys.',
+      'Pitch it for whoever the request says will play: for a child, big pieces, a gentle pace, nothing frightening, and no clock that punishes.',
+      'It keeps nothing and sends nothing: no network, no storage beyond the page while it is open.',
+      `When it is written, save a picture of its first screen as "${files.minigamePng}" with the mcp__nook-office__render_png tool at 800 by 600, and look at it with the Read tool: check the title, the line on how to play and the start button all show and nothing overlaps, and fix the page and draw it again if not.`,
+      'When you ask the reviewer to check the game, give them that picture of its first screen too.',
+      `In your final reply, say in ${language}, in one line, what the game is and how to play it.`,
+    ],
+  },
+  // A four-panel comic (plan-1.8.md H3): drawn in the studio as one long picture and a PDF. Its piece, a strip of panels,
+  // hangs on the studio's wall.
+  {
+    id: 'comic', shop: 'studio', icon: 24, revise: true, main: 'picture', roomGrowth: { id: 'strip', at: 1 }, guest: 'editor',
+    steps: ({ language, files }) => [
+      'This is a four-panel comic strip, drawn as one long picture.',
+      'Plan it first: four panels that tell one small story, a setting up, a building, a turn and the punchline in the last. Use the user\'s own words for the dialogue where they give them; where they do not, ask the designer subagent to write it, a line or two to a bubble.',
+      `Lay it out as a single self-contained page "${files.comicPage}" 800 pixels wide and 3200 high: the four panels one under another, each 800 by 800 with the same border and the same gap between them. CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+      'Draw each panel yourself in inline SVG: simple shapes and flat colours, and the same characters looking the same in every panel. Put the dialogue in speech bubbles over the drawing, each pointing at whoever says it, the words well inside the bubble and the bubble inside its panel.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.comicPng}" with the mcp__nook-office__render_png tool at 800 by 3200, and as "${files.comicPdf}" with the mcp__nook-office__make_pdf tool.`,
+      'When it is saved, look at it with the Read tool: check the four panels line up, no word runs out of its bubble and no bubble out of its panel, and fix the page and draw it again if not.',
+      `In your final reply, say in ${language}, in one line, what happens in the strip.`,
+    ],
+  },
+  // A picture book (plan-1.8.md H4): drawn in the studio, then carried to the print shop and laid out there as a landscape
+  // PDF. Its piece, a little book, sits on the print shop's windowsill.
+  {
+    id: 'picturebook', shop: 'studio', then: 'print', icon: 25, revise: true, main: 'book', roomGrowth: { id: 'book', at: 1 }, guest: 'mum',
+    steps: ({ language, files }) => [
+      'This is a picture book for a child, read aloud at bedtime: a cover and about eight pages, each a picture with a short passage of the story.',
+      'Start from what the user gives: an opening to carry on, or only the child\'s name and what they love. Keep it gentle, with no villain and nothing frightening, and let it wind down to something calm at the end.',
+      'Before drawing, ask the designer subagent for one description of each character, their shape, colours and clothes, and for the palette. Draw every page from that one description, so each character looks the same on every page.',
+      `Lay it out as a single self-contained page "${files.bookPage}": the cover first, then one section to a page of the book, each the size of a sheet of A4 landscape (@page size A4 landscape, margin 0) with a page break after it. CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+      `The cover has the title and under it one line for the child, in ${language} only: never both languages. In Chinese it is "给" and the child's name, in English "For" and the child's name. With no name given, write it to "you". Use the child's name in the story too.`,
+      'Draw each picture yourself in inline SVG: simple shapes and soft flat colours. Set the passage in large type that is easy to read aloud, no more than three short sentences to a page, clear of the picture.',
+      `Write every word in the book in ${language}.`,
+      `Save the cover as "${files.bookPng}" with the mcp__nook-office__render_png tool at 1123 by 794, and look at it with the Read tool: check the title and the line for the child show whole, and fix the page and draw it again if not.`,
+      `Then lay the book out as "${files.bookPdf}" with the mcp__nook-office__make_pdf tool, one page of the book to a sheet: that part is the print shop's.`,
+      'When you ask the reviewer to check the book, give them the picture of its cover too.',
+      `In your final reply, say in ${language}, in one line, what the story is about and who it is for.`,
+    ],
+  },
+  // A repair (plan-1.8.md H9): a code repository the user lends, worked on in a worktree on a branch of its own, so
+  // their branches and remotes are never touched. The shop commits the work and writes the review sheet (main/repair.ts).
+  {
+    id: 'repair', shop: 'workshop', icon: 26, revise: false, main: 'writeup', source: { kind: 'repo' },
+    steps: ({ language, files, sourceName }) => [
+      `The user lent the shop their code repository. It is checked out in the folder "${sourceName}" here, on a branch of its own made for this commission. Work only inside that folder.`,
+      'Read what you need to understand the code before you change it. Keep the change as small as the request allows, in the style the code already has.',
+      'Leave git to the shop: do not commit, switch, make or move branches, reset, merge, rebase, stash, tag or push, and do not touch remotes. git status, diff, log and show are fine. The shop commits your work on the branch when you finish.',
+      `If the project has tests, run them after the change and fix what your change broke. Run them as one command on its own line, cd "${sourceName}" && <the test command>: the user is asked before each test run, so put nothing else on that line. Install nothing new unless the tests cannot run without it.`,
+      `When you are done, write "${files.repairNotes}" here, beside that folder and not inside it, as JSON: {"changes": [{"file": "<its path inside the repository, with />", "why": "<one sentence in ${language}>"}], "tests": {"ran": true or false, "command": "<the command you ran>", "passed": true or false, "note": "<one sentence in ${language}>"}}, with one entry for each file you changed, added or deleted.`,
+      `In your final reply, say in ${language}, in one or two lines, what was wrong and what you changed.`,
+    ],
+  },
 ] as const satisfies readonly TemplateSpec[];
 
 export type TemplateId = (typeof TEMPLATES)[number]['id'];
 /** The id of a growth piece some kind of work brings. */
 export type BroughtId = Extract<(typeof TEMPLATES)[number], { growth: object }>['growth']['id'];
+/** The id of a piece some kind of work brings into a shop along the street (plan-1.8.md H5). */
+export type BroughtRoomId = Extract<(typeof TEMPLATES)[number], { roomGrowth: object }>['roomGrowth']['id'];
 
 export const template = (id: TemplateId): TemplateSpec => TEMPLATES.find((t) => t.id === id)!;
 /**
@@ -337,3 +482,9 @@ export const template = (id: TemplateId): TemplateSpec => TEMPLATES.find((t) => 
 export const FROM_AFAR: readonly TemplateId[] = TEMPLATES.filter((t) => !('source' in t) && !('photos' in t)).map((t) => t.id);
 /** Which shop does a kind of work (road-to-1.4.md D3); work of no kind, and the demo, stays in the home shop. */
 export const shopOf = (id: TemplateId | undefined): Shop => (id ? template(id).shop : 'home');
+/** The shop that finishes a kind of work, where its piece grows (plan-1.8.md H4): the one it moves on to, if any. */
+export const finishOf = (id: TemplateId | undefined): Shop => (id ? template(id).then ?? template(id).shop : 'home');
+/** Where a round of this kind is played now: where it starts, until it has moved on (movesOn). */
+export const workShop = (id: TemplateId | undefined, moved: boolean): Shop => (moved ? finishOf(id) : shopOf(id));
+/** Whether this tool call carries a round on to the shop that finishes it: laying it out as a PDF. */
+export const movesOn = (id: TemplateId | undefined, tool: string): boolean => Boolean(id && template(id).then) && tool.endsWith('__make_pdf');

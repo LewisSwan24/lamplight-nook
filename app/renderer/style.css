@@ -90,8 +90,8 @@ body.debug #debug { display: block; }
 .actions button:hover, .commission button:hover, .sticker:hover { transform: translateY(-1px) rotate(-0.4deg); }
 .actions button:active, .commission button:active, .sticker:active { transform: translateY(1px); }
 .actions button:active::before, .commission button:active::before, .sticker:active::before { box-shadow: inset 0 0 8px rgba(122, 82, 54, 0.4); }
-.actions button.default, .actions button.consult-finish { color: #fff; }
-.actions button.default::before, .actions button.consult-finish::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
+.actions button.default, .actions button.consult-finish, .actions button.handin-sign, .actions button.repair-keep { color: #fff; }
+.actions button.default::before, .actions button.consult-finish::before, .actions button.handin-sign::before, .actions button.repair-keep::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
 .actions button:focus-visible, .sticker:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .commission label { display: block; margin: 8px 0; font-family: var(--hand); font-size: 17px; }
 .commission textarea, .commission input, .meeting textarea, .welcome input, .settings input { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 15px; background: rgba(255, 253, 248, 0.7) !important; border: none !important; border-bottom: 1.5px solid rgba(122, 82, 54, 0.45) !important; border-radius: 0 !important; }
@@ -103,6 +103,15 @@ body.debug #debug { display: block; }
 .slip-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px; }
 .template-row { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 4px 0 2px; }
 .commission button.template-chip { font-size: 15px; padding: 3px 11px; }
+.try-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 2px 0 6px; }
+.try-row .hint { margin: 0; }
+.commission button.try-chip { font-size: 14px; padding: 2px 10px; }
+/* A kind's layouts (plan-1.8.md H6): a row under the stickers, lit like them. */
+.layout-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 2px 0; }
+.layout-chips { display: inline-flex; gap: 6px; }
+.commission button.layout-chip { font-size: 14px; padding: 2px 10px; }
+.commission button.layout-chip.on { color: #fff; }
+.commission button.layout-chip.on::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
 .commission button.template-chip.on { color: #fff; }
 .commission button.template-chip.on::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
 .commission button:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
@@ -131,6 +140,23 @@ body.debug #debug { display: block; }
 /* A talk with Adeng before the slip (B4): his lines on the left, the user's on the right, the box to say more at the bottom. */
 .consult-open { margin: 0 0 4px; }
 .consult-note:empty { display: none; }
+/* Handing in without typing (plan-1.8.md H8): Adeng asks, the answers are buttons, the slip he writes is signed. */
+.slip-links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.handin { display: flex; flex-direction: column; gap: 8px; }
+.handin .portrait { --pp: 2px; }
+.handin-say { line-height: 1.5; }
+.handin-answers { display: flex; flex-wrap: wrap; gap: 6px; }
+.commission button.handin-answer { font-size: 14px; padding: 4px 12px; text-align: left; }
+.commission button.handin-answer.handin-next, .commission button.handin-answer.handin-own { font-style: italic; }
+.handin-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
+.commission button.handin-sample { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; font-size: 13px; line-height: 1.3; }
+.handin-write { width: 100%; resize: none; }
+.handin-slip { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; padding: 10px 12px; border: 1px dashed rgba(122, 82, 54, 0.45); border-radius: 6px; background: rgba(255, 253, 248, 0.7); }
+.handin-slip dt { font-family: var(--hand); color: var(--accent); }
+.handin-slip dd { margin: 0; overflow-wrap: anywhere; }
+.handin.signed .handin-slip { box-shadow: inset 0 -3px 0 rgba(122, 82, 54, 0.35); }
+.handin-note:empty { display: none; }
+.commission button.handin-to-slip { align-self: flex-start; margin-top: 2px; }
 .consult { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .consult .speaker { margin-bottom: 4px; }
 .consult .portrait { --pp: 2px; }
@@ -148,6 +174,18 @@ body.debug #debug { display: block; }
 .consult .actions { flex-wrap: wrap; }
 .commission button:disabled { opacity: 0.5; cursor: default; transform: none; }
 .result-lent .hint { overflow-wrap: anywhere; }
+/* A repair's review sheet (plan-1.8.md H9): the files scroll if there are many; the user's word sits under them. */
+.repair-sheet { margin: 4px 0 8px; }
+.repair-sheet code { font-family: Consolas, 'Cascadia Mono', monospace; font-size: 0.92em; overflow-wrap: anywhere; }
+.repair-say { margin-bottom: 4px; line-height: 1.6; }
+.repair-heading { font-weight: bold; margin-top: 6px; }
+.repair-files { max-height: 8.5em; overflow-y: auto; margin: 2px 0; padding-left: 1.2em; }
+.repair-files li { margin: 2px 0; }
+.repair-size { color: var(--muted, #8a7a6a); font-size: 0.9em; }
+.repair-why { margin: 0; }
+.repair-said:empty { display: none; }
+.repair-decide { flex-wrap: wrap; }
+.progress-tally { margin-top: 2px; overflow-wrap: anywhere; }
 .hint.warn { color: #a5452c; opacity: 1; }
 
 /* Decision dialog: background dimmed 40% */
@@ -568,6 +606,8 @@ pre.notices { white-space: pre-wrap; word-break: break-word; font-size: 11.5px; 
 
 /* The town's street (road-to-1.4.md D1): the room's labels stay inside, and a front's note shows near the top. */
 body.outside #labels { visibility: hidden; }
+/* Out in the street the shop's blackboard is not in view: its chalk and pinned cards stay inside with it. */
+body.outside #board, body.outside #board-pins { visibility: hidden; }
 .street-note { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); max-width: 70%; padding: 8px 14px; z-index: 40; text-align: center; pointer-events: none; }
 .street-note[hidden] { display: none; }
 #ui > .street-note { pointer-events: none; }

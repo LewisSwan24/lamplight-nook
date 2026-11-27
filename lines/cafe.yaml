@@ -222,12 +222,27 @@ app_open:
   - { id: open_01, speaker: adeng, bubbles: ["{name}，来啦。"] }
   - { id: open_rain, speaker: adeng, when: sky_rain, bubbles: ["{name}，来啦。", "外面下雨，先擦擦。"] }
   - { id: open_snow, speaker: adeng, when: sky_snow, bubbles: ["{name}，来啦。", "雪大，过来烤烤手。"] }
+  - { id: open_fog, speaker: adeng, when: sky_fog, bubbles: ["{name}，来啦。", "雾大，路上看得清吗？"] }
+  - { id: open_wind, speaker: adeng, when: sky_wind, bubbles: ["{name}，来啦。", "门我顶住了，快进来。"] }
+  - { id: open_storm, speaker: adeng, when: sky_storm, bubbles: ["{name}，来啦。", "打雷了，离窗户远点。"] }
   - { id: open_halloween, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "今天有南瓜汤。"] }
   - { id: open_christmas, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，来啦。", "栗子把彩灯扯下来两回了。"] }
   - { id: open_new_year, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，新年好。", "门上的福是小橘贴的。"] }
   - { id: open_lantern, speaker: adeng, when: holiday_lantern, bubbles: ["{name}，元宵好。", "灯谜是小橘出的，猜猜看。"] }
   - { id: open_dragon_boat, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}，来啦。", "桌上有粽子，甜的咸的都有。"] }
   - { id: open_mid_autumn, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}，中秋好。", "月饼切好了，先拿一块。"] }
+  - { id: open_halloween_2, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "门口的南瓜灯是老石刻的。"] }
+  - { id: open_halloween_3, speaker: adeng, when: holiday_halloween, bubbles: ["{name}，来啦。", "小橘扮成了栗子，你看出来没？"] }
+  - { id: open_christmas_2, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，来啦。", "热红茶在炉子上，自己倒。"] }
+  - { id: open_christmas_3, speaker: adeng, when: holiday_christmas, bubbles: ["{name}，圣诞好。", "树下那包是给你留的。"] }
+  - { id: open_new_year_2, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，过年好。", "瓜子花生在桌上，别客气。"] }
+  - { id: open_new_year_3, speaker: adeng, when: holiday_new_year, bubbles: ["{name}，新年好。", "今年头一单，想好做什么了吗？"] }
+  - { id: open_lantern_2, speaker: adeng, when: holiday_lantern, bubbles: ["{name}，来啦。", "汤圆刚出锅，芝麻馅的。"] }
+  - { id: open_lantern_3, speaker: adeng, when: holiday_lantern, bubbles: ["{name}，元宵好。", "晚上街上有灯，早点收工去看。"] }
+  - { id: open_dragon_boat_2, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}，端午好。", "门上的艾草是桂姨给的。"] }
+  - { id: open_dragon_boat_3, speaker: adeng, when: holiday_dragon_boat, bubbles: ["{name}，来啦。", "小豆在河边看龙舟，下午才回。"] }
+  - { id: open_mid_autumn_2, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}，来啦。", "今晚后院赏月，你也留下。"] }
+  - { id: open_mid_autumn_3, speaker: adeng, when: holiday_mid_autumn, bubbles: ["{name}，中秋好。", "青黛画了张月亮，挂在窗边。"] }
   - { id: open_mem, speaker: adeng, when: has_memory, bubbles: ["{name}，来啦。", "「{lastCommission}」还好用吗？"] }
   - { id: open_first, speaker: adeng, when: first_time, bubbles: ["来啦。怎么称呼你？"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
@@ -314,6 +329,7 @@ grow:
   - { id: grow_cardline, speaker: xiaoju, when: grow_cardline, bubbles: ["侧窗上挂了一串贺卡！", "芳姐说，卡片挂着比收着好看。"] }
   - { id: grow_newsletters, speaker: laoshi, when: grow_newsletters, bubbles: ["窗台上多了一摞简报。", "吴阿姨让我们帮着发发。"], reply: { speaker: adeng, bubbles: ["来喝咖啡的，顺手拿一份。"] } }
   - { id: grow_cookbook, speaker: laoshi, when: grow_cookbook, bubbles: ["桂姨送了本食谱。", "字是她一笔一笔抄的。"], reply: { speaker: xiaoju, bubbles: ["第一页就是葱油饼！"] } }
+  - { id: grow_cardstack, speaker: xiaoju, when: grow_cardstack, bubbles: ["书架上多了一叠卡片！", "皮筋扎着，一张没丢。"], reply: { speaker: laoshi, bubbles: ["做的时候多印了一份。"] } }
   - { id: grow_chime, speaker: qingdai, when: grow_chime, bubbles: ["窗边挂了串风铃。", "风一吹，叮叮当当。"] }
   - { id: grow_aquarium, speaker: xiaoju, when: grow_aquarium, bubbles: ["六十单了，养了缸金鱼！", "一条叫小灯，一条叫阿屋。"], reply: { speaker: laoshi, bubbles: ["水我来换。"] } }
   - { id: grow_scroll, speaker: adeng, when: grow_scroll, bubbles: ["墙上挂了幅字。", "老石写的，写了一整晚。"] }
@@ -336,6 +352,10 @@ grow:
   - { id: grow_print_ivy, speaker: xiaoju, when: grow_print_ivy, bubbles: ["印刷铺墙角吊了盆绿萝。"] }
   - { id: grow_print_typecase, speaker: laoshi, when: grow_print_typecase, bubbles: ["阿铅把铅字盘挂起来了。", "一格一个字。"] }
   - { id: grow_print_ribbon, speaker: adeng, when: grow_print_ribbon, bubbles: ["印刷铺得了张奖状。", "二十单，阿铅说要镶个框。"] }
+  - { id: grow_print_ledgerbook, speaker: adeng, when: grow_print_ledgerbook, bubbles: ["印刷铺柜台上多了本账簿。", "阿铅说，留一本当样本。"] }
+  - { id: grow_studio_strip, speaker: adeng, when: grow_studio_strip, bubbles: ["画室墙上钉了条四格漫画。", "青黛说，每周换一条。"] }
+  - { id: grow_print_book, speaker: adeng, when: grow_print_book, bubbles: ["印刷铺窗台上立了本绘本。", "老石留了一本样书。"] }
+  - { id: grow_workshop_arcade, speaker: adeng, when: grow_workshop_arcade, bubbles: ["工坊墙上多了台小游戏机。", "小钉说，下班后谁都能玩。"] }
   - { id: grow_studio_sketch, speaker: qingdai, when: grow_studio_sketch, bubbles: ["画室挂了第一张画稿。"] }
   - { id: grow_studio_ivy, speaker: xiaoju, when: grow_studio_ivy, bubbles: ["画室也吊了盆绿萝！"] }
   - { id: grow_studio_palette, speaker: qingdai, when: grow_studio_palette, bubbles: ["小赭把用旧的调色板挂墙上了。", "颜料都干成一块块的了。"] }
@@ -403,3 +423,58 @@ cross_back:
   - { id: cross_back_xz_01, speaker: xiaozhe, bubbles: ["画好了。", "颜色你看看。"] }
   - { id: cross_back_xz_02, speaker: xiaozhe, bubbles: ["图给你，", "干了，不会蹭。"] }
   - { id: cross_back_xz_03, speaker: xiaozhe, bubbles: ["从{shop}拿来的，", "你收好。"] }
+
+# 换上应季的颜色时，或换季时店里正用着那个季节的颜色，有人提一句（plan-1.7.md G2，shared/furnish.ts）。
+furnish_in_season:
+  - { id: fis_spring, speaker: qingdai, when: season_spring, bubbles: ["桃花粉配春天，正合时令。"] }
+  - { id: fis_summer, speaker: xiaoju, when: season_summer, bubbles: ["竹青色，看着就凉快！"] }
+  - { id: fis_autumn, speaker: adeng, when: season_autumn, bubbles: ["这颜色，和外头的叶子一个样。"] }
+  - { id: fis_winter, speaker: laoshi, when: season_winter, bubbles: ["下雪天配这个颜色，屋里显得暖。"] }
+
+# 节气那天开店，阿灯在问候后面多说一句（plan-1.7.md G3，shared/calendar.ts）。when：term_<节气>。
+solar_term:
+  - { id: term_minor_cold, speaker: adeng, when: term_minor_cold, bubbles: ["今天小寒，炉子多添块炭。"] }
+  - { id: term_major_cold, speaker: adeng, when: term_major_cold, bubbles: ["大寒，一年最冷就这几天。"] }
+  - { id: term_start_of_spring, speaker: adeng, when: term_start_of_spring, bubbles: ["立春了，窗缝里的风软了点。"] }
+  - { id: term_rain_water, speaker: adeng, when: term_rain_water, bubbles: ["雨水，往后雨要多起来。"] }
+  - { id: term_awakening_of_insects, speaker: adeng, when: term_awakening_of_insects, bubbles: ["惊蛰，后院的土该翻了。"] }
+  - { id: term_spring_equinox, speaker: adeng, when: term_spring_equinox, bubbles: ["春分，白天黑夜一样长。"] }
+  - { id: term_pure_brightness, speaker: adeng, when: term_pure_brightness, bubbles: ["清明，小豆说要回家一趟。"] }
+  - { id: term_grain_rain, speaker: adeng, when: term_grain_rain, bubbles: ["谷雨，新茶该到了。"] }
+  - { id: term_start_of_summer, speaker: adeng, when: term_start_of_summer, bubbles: ["立夏了，门口换竹帘。"] }
+  - { id: term_grain_buds, speaker: adeng, when: term_grain_buds, bubbles: ["小满，麦子快熟了。"] }
+  - { id: term_grain_in_ear, speaker: adeng, when: term_grain_in_ear, bubbles: ["芒种，桂姨在等新麦子。"] }
+  - { id: term_summer_solstice, speaker: adeng, when: term_summer_solstice, bubbles: ["夏至，今天天黑得最晚。"] }
+  - { id: term_minor_heat, speaker: adeng, when: term_minor_heat, bubbles: ["小暑，冰箱里有绿豆汤。"] }
+  - { id: term_major_heat, speaker: adeng, when: term_major_heat, bubbles: ["大暑，下午少走动。"] }
+  - { id: term_start_of_autumn, speaker: adeng, when: term_start_of_autumn, bubbles: ["立秋了，早晚凉一点。"] }
+  - { id: term_end_of_heat, speaker: adeng, when: term_end_of_heat, bubbles: ["处暑，热到头了。"] }
+  - { id: term_white_dew, speaker: adeng, when: term_white_dew, bubbles: ["白露，窗台上有露水了。"] }
+  - { id: term_autumn_equinox, speaker: adeng, when: term_autumn_equinox, bubbles: ["秋分，白天黑夜又一样长了。"] }
+  - { id: term_cold_dew, speaker: adeng, when: term_cold_dew, bubbles: ["寒露，出门加件衣服。"] }
+  - { id: term_frost_descent, speaker: adeng, when: term_frost_descent, bubbles: ["霜降，后院的菜该收了。"] }
+  - { id: term_start_of_winter, speaker: adeng, when: term_start_of_winter, bubbles: ["立冬，晚上吃饺子。"] }
+  - { id: term_minor_snow, speaker: adeng, when: term_minor_snow, bubbles: ["小雪，炉子该点上了。"] }
+  - { id: term_major_snow, speaker: adeng, when: term_major_snow, bubbles: ["大雪，门口的伞别收。"] }
+  - { id: term_winter_solstice, speaker: adeng, when: term_winter_solstice, bubbles: ["冬至，今天天黑得最早。"] }
+
+# 生日那天开店时说的（plan-1.7.md G3）。店里的人过生日，本人接一句；街上的店主过生日，阿灯提一句，进那间店时店主自己说。
+birthday:
+  - { id: bday_adeng, speaker: xiaoju, when: birthday_adeng, bubbles: ["阿灯，生日！", "蛋糕藏在柜子里，别看。"], reply: { speaker: adeng, bubbles: ["……我已经看见了。"] } }
+  - { id: bday_xiaoju, speaker: adeng, when: birthday_xiaoju, bubbles: ["小橘，今天你生日。", "今天的跑腿我去。"], reply: { speaker: xiaoju, bubbles: ["那我负责吃！"] } }
+  - { id: bday_laoshi, speaker: xiaoju, when: birthday_laoshi, bubbles: ["老石，生日！", "我们凑钱买了把新刨子。"], reply: { speaker: laoshi, bubbles: ["刨子不错。"] } }
+  - { id: bday_qingdai, speaker: adeng, when: birthday_qingdai, bubbles: ["青黛，今天你生日。", "不用画了，歇一天。"], reply: { speaker: qingdai, bubbles: ["那我画着玩。"] } }
+  - { id: bday_xiaodou, speaker: laoshi, when: birthday_xiaodou, bubbles: ["小豆，今天你生日。"], reply: { speaker: xiaodou, bubbles: ["我记在本子上了。"] } }
+  - { id: bday_guiyi, speaker: adeng, when: birthday_guiyi, bubbles: ["今天桂姨生日。", "路过面包房，进去说一声。"] }
+  - { id: bday_axin, speaker: adeng, when: birthday_axin, bubbles: ["今天阿信生日。", "邮局门口那束花是小橘放的。"] }
+  - { id: bday_aqian, speaker: adeng, when: birthday_aqian, bubbles: ["今天阿铅生日。", "去印刷铺道个喜。"] }
+  - { id: bday_xiaozhe, speaker: adeng, when: birthday_xiaozhe, bubbles: ["今天小赭生日。", "画室门口挂了张新画。"] }
+  - { id: bday_xiaoding, speaker: adeng, when: birthday_xiaoding, bubbles: ["今天小钉生日。", "工坊里在放音乐，难得。"] }
+
+# 开店纪念日，大桌上摆着蛋糕，在店里的人一人一句（plan-1.7.md G3）。
+anniversary:
+  - { id: anniv_adeng, speaker: adeng, bubbles: ["蛋糕在大桌上，都来切。"] }
+  - { id: anniv_xiaoju, speaker: xiaoju, bubbles: ["我要有蜡烛的那块！"] }
+  - { id: anniv_laoshi, speaker: laoshi, bubbles: ["切匀一点。"] }
+  - { id: anniv_qingdai, speaker: qingdai, bubbles: ["奶油上的花是我挤的。"] }
+  - { id: anniv_xiaodou, speaker: xiaodou, bubbles: ["第几年，我记下来了。"] }

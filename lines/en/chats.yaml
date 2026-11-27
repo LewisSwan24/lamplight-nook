@@ -121,6 +121,48 @@
     - laoshi: Shut the window.
     - adeng: I'll put the kettle on.
 
+- id: fog_window
+  when: idle
+  sky: fog
+  turns:
+    - xiaoju: Can't see a thing out the window.
+    - qingdai: Like a wash that never dried.
+
+- id: fog_lamp
+  when: idle
+  sky: fog
+  turns:
+    - adeng: Fog. Put the door lamp on early.
+    - xiaoju: I'll do it.
+
+- id: wind_sign
+  when: idle
+  sky: wind
+  turns:
+    - xiaoju: The sign's swinging. Will it fall?
+    - laoshi: I screwed it on.
+
+- id: wind_door
+  when: idle
+  sky: wind
+  turns:
+    - qingdai: The wind blew the door open twice.
+    - adeng: Prop a brick against it.
+
+- id: storm_count
+  when: idle
+  sky: storm
+  turns:
+    - xiaoju: Lightning! One, two, three...
+    - laoshi: Three miles off.
+
+- id: storm_cat
+  when: idle
+  sky: storm
+  turns:
+    - qingdai: Chestnut's under the cupboard.
+    - adeng: Out again once the thunder stops.
+
 - id: leaves_door
   when: idle
   sky: leaves
@@ -1356,6 +1398,412 @@
     - organizer: Cold out. I am checking everyone's heating.
     - adeng: Sit down first. Something hot.
 
+# Lele, brought by revision cards (plan-1.8.md H1): in her last year of school, exams coming.
+
+- id: lele_cards
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: I carry the cards everywhere.
+    - adeng: How far have you got?
+    - pupil: Second time round. The red ones slip.
+
+- id: lele_quiz
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: I did that quiz three times.
+    - laoshi: Look the misses up in the handout.
+    - pupil: I did. All from chapter two.
+
+- id: lele_mock
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: Mock exams next week.
+    - xiaoju: Which subjects?
+    - pupil: All of them.
+
+- id: lele_desk
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: It is loud at home. Can I sit here?
+    - adeng: The table by the window is yours.
+
+- id: lele_rain
+  when: idle
+  guest: pupil
+  sky: rain
+  turns:
+    - pupil: I will wait for the rain to ease off.
+    - qingdai: Good. Time for a few more cards.
+
+- id: lele_spring
+  when: idle
+  guest: pupil
+  after: 20
+  season: spring
+  turns:
+    - pupil: New term. My bag weighs a ton again.
+    - xiaoju: All exam papers?
+    - pupil: Half papers, half cards.
+
+- id: lele_summer
+  when: idle
+  guest: pupil
+  after: 20
+  season: summer
+  turns:
+    - pupil: Exams are over. I am keeping the cards.
+    - laoshi: Good. They are worth a look later.
+
+- id: lele_autumn
+  when: idle
+  guest: pupil
+  after: 20
+  season: autumn
+  turns:
+    - pupil: New term, a new pile of handouts.
+    - adeng: Bring them over. Same as before.
+
+- id: lele_winter
+  when: idle
+  guest: pupil
+  after: 20
+  season: winter
+  turns:
+    - pupil: Too cold to hold a pen today.
+    - adeng: Hold this cup first.
+
+- id: su_weekly
+  when: idle
+  guest: editor
+  turns:
+    - editor: This week's strip went out again.
+    - adeng: Many readers?
+    - editor: Two hundred more than last week.
+
+- id: su_lines
+  when: idle
+  guest: editor
+  turns:
+    - editor: I write the lines. Iris does the drawing.
+    - qingdai: Just don't crowd the bubbles.
+
+- id: su_deadline
+  when: idle
+  guest: editor
+  turns:
+    - editor: It's due by Friday noon.
+    - laoshi: Lay it out on Thursday night.
+
+- id: su_sequel
+  when: idle
+  guest: editor
+  turns:
+    - editor: A reader asked for a sequel.
+    - xiaoju: Put it on the next slip.
+
+- id: su_cat
+  when: idle
+  guest: editor
+  turns:
+    - editor: Next week a cat is the star.
+    - adeng: Ours could sit for it.
+
+- id: su_rain
+  when: idle
+  guest: editor
+  sky: rain
+  turns:
+    - editor: Rain. A good day to think up jokes.
+    - adeng: Have something hot first.
+
+- id: su_spring
+  when: idle
+  guest: editor
+  after: 20
+  season: spring
+  turns:
+    - editor: The spring strip has everyone out walking.
+    - qingdai: Use plenty of fresh green.
+
+- id: su_summer
+  when: idle
+  guest: editor
+  after: 20
+  season: summer
+  turns:
+    - editor: The summer strip is about the remote.
+    - xiaoju: Whoever grabs it keeps it.
+
+- id: su_autumn
+  when: idle
+  guest: editor
+  after: 20
+  season: autumn
+  turns:
+    - editor: The autumn strip has mooncakes cut unevenly.
+    - laoshi: Cut six pieces. It works out.
+
+- id: su_winter
+  when: idle
+  guest: editor
+  after: 20
+  season: winter
+  turns:
+    - editor: The year-end strip sums up the year.
+    - adeng: Can four panels hold a year?
+
+- id: mum_story
+  when: idle
+  guest: mum
+  turns:
+    - mum: Xiaoman wants a story every night.
+    - adeng: How many nights does one book last?
+    - mum: He will hear the same one ten times.
+
+- id: mum_name
+  when: idle
+  guest: mum
+  turns:
+    - mum: His name is on the cover.
+    - mum: He shows it to his grandma every day.
+
+- id: mum_bear
+  when: idle
+  guest: mum
+  turns:
+    - mum: The bear looks the same on every page.
+    - qingdai: I settle the look first, then draw.
+
+- id: mum_paper
+  when: idle
+  guest: mum
+  turns:
+    - mum: Thick paper, please. He turns pages a lot.
+    - laoshi: 150gsm paper. It will hold up.
+
+- id: mum_asleep
+  when: idle
+  guest: mum
+  turns:
+    - mum: He fell asleep on page five last night.
+    - adeng: Save the rest for tonight.
+
+- id: mum_dino
+  when: idle
+  guest: mum
+  turns:
+    - mum: Next he wants dinosaurs.
+    - qingdai: The plant-eating kind, with long necks.
+
+- id: mum_milk
+  when: idle
+  guest: mum
+  turns:
+    - mum: A warm milk, not too sweet.
+    - xiaoju: Coming right up.
+
+- id: mum_moon
+  when: idle
+  guest: mum
+  turns:
+    - mum: He can read the word "moon" now.
+    - adeng: The book says it on every page.
+
+- id: mum_spring
+  when: idle
+  guest: mum
+  after: 20
+  season: spring
+  turns:
+    - mum: For spring, a story about planting.
+    - qingdai: The flowers grow a little each page.
+
+- id: mum_summer
+  when: idle
+  guest: mum
+  after: 20
+  season: summer
+  turns:
+    - mum: For summer, a story about fireflies.
+    - qingdai: A deep blue ground, so the lights show.
+
+- id: mum_autumn
+  when: idle
+  guest: mum
+  after: 20
+  season: autumn
+  turns:
+    - mum: For autumn, gathering fallen leaves.
+    - xiaoju: The ginkgo by the door is yellow now.
+
+- id: mum_winter
+  when: idle
+  guest: mum
+  after: 20
+  season: winter
+  turns:
+    - mum: This winter's book is about snow.
+    - laoshi: Lots of white, so dark type.
+
+- id: dad_game
+  when: idle
+  guest: dad
+  turns:
+    - dad: Duoduo plays that matching game every day.
+    - adeng: What's her best time?
+    - dad: Forty seconds. Faster than me.
+
+- id: dad_level
+  when: idle
+  guest: dad
+  turns:
+    - dad: Could you add one harder level?
+    - xiaoju: Write it on the slip next time.
+
+- id: dad_time
+  when: idle
+  guest: dad
+  turns:
+    - dad: We agreed on fifteen minutes a day.
+    - laoshi: Set an alarm and stop when it rings.
+
+- id: dad_bus
+  when: idle
+  guest: dad
+  turns:
+    - dad: It plays with no signal. Good for the bus.
+    - adeng: The underground too.
+
+- id: dad_draw
+  when: idle
+  guest: dad
+  turns:
+    - dad: Duoduo wants to draw herself into the game.
+    - qingdai: Bring the drawing. I'll pick the colours.
+
+- id: dad_rain
+  when: idle
+  guest: dad
+  sky: rain
+  turns:
+    - dad: Rain. One round at home, then.
+    - adeng: Have something hot before you go.
+
+- id: dad_spring
+  when: idle
+  guest: dad
+  after: 20
+  season: spring
+  turns:
+    - dad: Spring. Kites with Duoduo this weekend.
+    - xiaoju: A kite could be a game too.
+
+- id: dad_summer
+  when: idle
+  guest: dad
+  after: 20
+  season: summer
+  turns:
+    - dad: Summer holidays. She asks to play all day.
+    - laoshi: Homework first, then one round.
+
+- id: dad_autumn
+  when: idle
+  guest: dad
+  after: 20
+  season: autumn
+  turns:
+    - dad: School is back. Games are for weekends.
+    - qingdai: Keep the weekend round as a treat.
+
+- id: dad_winter
+  when: idle
+  guest: dad
+  after: 20
+  season: winter
+  turns:
+    - dad: Cold out. Duoduo plays indoors more.
+    - adeng: Then a snowy level next.
+
+- id: qin_book
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: I write the accounts up every night.
+    - adeng: How long have you kept them?
+    - bookkeeper: Since the year I married.
+
+- id: qin_pie
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: My grandson read the pie chart at once.
+    - xiaoju: Which slice was biggest?
+    - bookkeeper: Groceries. You can see it from the door.
+
+- id: qin_prices
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: Greens went up again at the market today.
+    - laoshi: Write it down. The month's end shows it.
+
+- id: qin_categories
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: I added a category for the cat.
+    - qingdai: Cat food adds up.
+
+- id: qin_rain
+  when: idle
+  guest: bookkeeper
+  sky: rain
+  turns:
+    - bookkeeper: Rain. A good day to check the accounts.
+    - adeng: Have something hot before you go.
+
+- id: qin_spring
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: spring
+  turns:
+    - bookkeeper: Spring at last. No more heating bills.
+    - xiaoju: Winter took a big slice.
+
+- id: qin_summer
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: summer
+  turns:
+    - bookkeeper: The fan is on, and so is the meter.
+    - laoshi: July's page will tell.
+
+- id: qin_autumn
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: autumn
+  turns:
+    - bookkeeper: School fees for my grandson came today.
+    - adeng: This month's pie will look different.
+
+- id: qin_winter
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: winter
+  turns:
+    - bookkeeper: Year end. I went through every page.
+    - laoshi: What was left over?
+    - bookkeeper: A little more than last year.
+
 # The street in 1.6 (plan-1.6.md F5): the home shop on the bakery, the post office and the people going by; Auntie
 # Olive and Pip when they drop in. Same ids as lines/chats.yaml.
 
@@ -2025,3 +2473,194 @@
     - xiaoju: That's the tenth person past the window.
     - adeng: You're counting?
     - xiaoju: At twenty the work's done.
+
+# Festivals, more of them (plan-1.7.md G1): six chats for each.
+
+- id: g1_halloween_mask
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaoju: Guess who my mask is.
+    - qingdai: Pointy ears. Chestnut.
+    - xiaoju: Got it first try. No fun.
+
+- id: g1_halloween_candy
+  when: idle
+  holiday: halloween
+  after: 10
+  turns:
+    - xiaodou: Three lots of trick-or-treaters so far.
+    - adeng: Do we have enough sweets?
+    - xiaodou: Half a jar left.
+
+- id: g1_christmas_socks
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: Stockings are up. One each.
+    - laoshi: Mine has a hole.
+    - xiaoju: Then the presents fall through.
+
+- id: g1_christmas_cards
+  when: idle
+  holiday: christmas
+  turns:
+    - qingdai: I drew a card for every shop on the street.
+    - adeng: Clem can take the post office one over.
+
+- id: g1_christmas_lights
+  when: idle
+  holiday: christmas
+  after: 10
+  turns:
+    - xiaodou: The lights blink every four seconds.
+    - laoshi: I set them.
+
+- id: g1_new_year_dumplings
+  when: idle
+  holiday: new_year
+  turns:
+    - adeng: Dumplings tonight. Everyone stays.
+    - xiaoju: I'm putting a coin in one!
+    - laoshi: Mind your teeth.
+
+- id: g1_new_year_couplets
+  when: idle
+  holiday: new_year
+  after: 10
+  turns:
+    - qingdai: The stall in the lot sells couplets.
+    - xiaodou: I copied a few. I'll compare the hands.
+
+- id: g1_lantern_string
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: I hung the little lanterns over the door.
+    - adeng: Nice and straight.
+
+- id: g1_lantern_count
+  when: idle
+  holiday: lantern
+  after: 10
+  turns:
+    - xiaodou: I counted. Six dumplings each.
+    - xiaoju: What about Chestnut?
+    - xiaodou: Chestnut doesn't eat dumplings.
+
+- id: g1_dragon_boat_mugwort
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - laoshi: Mugwort by the door keeps the bugs off.
+    - xiaoju: Smells like medicine.
+
+- id: g1_dragon_boat_race
+  when: idle
+  holiday: dragon_boat
+  after: 10
+  turns:
+    - xiaodou: The red boat's winning at the river.
+    - xiaoju: I want to row!
+    - laoshi: Learn to swim first.
+
+- id: g1_dragon_boat_cords
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - qingdai: Five-colour cords. Hold out your wrist.
+    - adeng: A bit tighter.
+
+- id: g1_dragon_boat_sweet
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: Sweet zongzi or savoury?
+    - laoshi: Savoury.
+    - adeng: Both.
+
+- id: g1_mid_autumn_rabbit
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: The rabbit lantern lights up at night.
+    - qingdai: I painted the ears pink.
+
+- id: g1_mid_autumn_letter
+  when: idle
+  holiday: mid_autumn
+  after: 10
+  turns:
+    - xiaodou: I wrote a letter home.
+    - adeng: Pip can take it in the morning.
+
+- id: g1_halloween_costume
+  when: idle
+  holiday: halloween
+  turns:
+    - laoshi: I'm not dressing up.
+    - xiaoju: Just a hat, then.
+    - laoshi: No.
+
+- id: g1_halloween_soup
+  when: idle
+  holiday: halloween
+  after: 10
+  turns:
+    - adeng: There's a bit of pumpkin soup left.
+    - xiaodou: I'll take it to Pip.
+
+- id: g1_new_year_firecrackers
+  when: idle
+  holiday: new_year
+  after: 10
+  turns:
+    - xiaoju: Firecrackers outside!
+    - xiaodou: Chestnut's gone under the bed.
+    - adeng: Leave Chestnut be.
+
+- id: g1_new_year_wish
+  when: idle
+  holiday: new_year
+  turns:
+    - qingdai: This year I want to paint a whole wall.
+    - adeng: The garden wall is yours.
+
+- id: g1_lantern_answer
+  when: idle
+  holiday: lantern
+  after: 10
+  turns:
+    - xiaodou: Yesterday's riddle was umbrella.
+    - xiaoju: I guessed mushroom.
+
+- id: g1_lantern_walk
+  when: idle
+  holiday: lantern
+  turns:
+    - adeng: Lanterns out on the street tonight. Coming?
+    - xiaoju: Me!
+    - laoshi: I'll mind the shop.
+
+- id: g1_dragon_boat_eggs
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: Auntie Olive sent a net of salted eggs.
+    - adeng: With rice porridge for supper, then.
+
+- id: g1_mid_autumn_garden
+  when: idle
+  holiday: mid_autumn
+  after: 10
+  turns:
+    - xiaodou: The garden table's out.
+    - qingdai: The moon isn't up yet.
+    - adeng: Give it time.
+
+- id: g1_mid_autumn_slices
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: Mooncake in five or six?
+    - laoshi: Six. Chestnut counts.

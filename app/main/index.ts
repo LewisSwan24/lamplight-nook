@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, clipboard, crashReporter, dialog, ipcMain, Menu, net, powerMonitor, powerSaveBlocker, safeStorage, session, shell } from 'electron';
 import electronUpdater, { type BaseUpdater } from 'electron-updater';
 import { fill, locale, shorten, strings } from '../shared/i18n';
-import { FROM_AFAR, shopOf, template } from '../shared/templates';
-import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type ShareFormat, type ShareOptions, type ShareResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
+import { FROM_AFAR, finishOf, movesOn, template, workShop } from '../shared/templates';
+import { IPC, type GuestId, type AiEvent, type CommissionForm, type CommissionMemo, type ExportResult, type ShareFormat, type ShareOptions, type ShareResult, type DataDamage, type DecisionAnswer, type EnvStatus, type ExternalLink, type KeySaveResult, type Memory, type Project, type BudgetNote, type Recall, type ReviseRequest, type RunResult, type ShopState, type Settings, type SourcePick, type RepairSheet, type CommissionTemplate, type HandOver, type Material, type WriteResult, type Letter, type MoveOffer, type ConsultBrief, type ConsultLine, type ConsultReply, type ProjectRow, type ProjectStatus, type ProjectTimeline, type RunInfo, type RunProject, type Schedule, type ScheduleEvery, type PendingRound, type Connection, type NotOpened, type SetupError } from '../shared/types';
 import { DEBUG_PROMPTS, commissionDir, runAgent } from './agent-runner';
 import { KeyStore, agentEnv, keyHint, pickCredentials, saveKey } from './api-key';
 import { CONSULT_CAP_USD, CONSULT_MESSAGES, FINISH_PROMPT, briefFrom, briefFromChat, consultFolder, consultOptions, consultTurn, userMessage } from './consult';
@@ -24,6 +24,8 @@ import { claudeVersion } from './claude-version';
 import { feedbackMail, mailtoUrl, osName } from './feedback';
 import { MemoryStore, StuckTracker } from './memory';
 import { type Job, PendingStore } from './pending';
+import { borrowRepo, dropBranch, gitReady, handBack, keepBranch, repoOf } from './repair';
+import { NO_TALLY, sheetMarkdown, tallyRepair } from '../shared/repair';
 import { NETWORK_WAIT_MS, Sleep, resumeOnWake } from './resume';
 import { DecisionBroker } from './decision-broker';
 import { isInside } from './paths';
@@ -113,7 +115,9 @@ const tray = new ShopTray(iconDir(), () => win, () => { leaving = true; win?.clo
  */
 type Run = { id: string; job: Job; project: RunProject; abort: AbortController; started: number; stuck: StuckTracker; choices: Record<string, string>; note?: (text: string) => boolean;
   /** What the stretch since Claude Code last reported would cost (B7), and whether that is in the ledger already. */
-  unreported?: () => number; counted?: boolean };
+  unreported?: () => number; counted?: boolean;
+  /** Carried on to the shop that finishes this kind of work (plan-1.8.md H4): a picture book, once it is laid out. */
+  moved?: boolean };
 const runs = new Map<string, Run>();
 /** Rounds waiting their turn: what starts one once it may, with what it may spend held, and how its caller hears it was called off. */
 type Waiting = Ticket & { title: string; grant?: Grant; go: (grant: Grant) => void; drop: () => void };
@@ -269,6 +273,13 @@ function emittersFor(run: string, project: RunProject) {
   return {
     emit: emitters.emit,
     emitAi: (event: AiEvent) => {
+      // A picture book is drawn in the studio and laid out in the print shop (plan-1.8.md H4): the round goes there as it
+      // is laid out, so the laying out itself is played there.
+      const me = runs.get(run);
+      if (me && !me.moved && event.kind === 'tool_start' && event.tool && movesOn(me.job.form.template, event.tool)) {
+        me.moved = true;
+        sendRuns();
+      }
       send(IPC.aiEvent, { ...event, raw: undefined, run, project });
       lan?.push({ t: event.t, kind: event.kind, agent: event.agent, plain: event.plain });
       mini.feed({ type: 'ai', run, project: many() ? project.title : undefined, event: { kind: event.kind, agent: event.agent, plain: event.plain, todos: event.todos } });
@@ -724,9 +735,10 @@ function runInfos(): RunInfo[] {
   const color = (run: string, project?: string) => (project ? projects.findIndex((p) => p.id === project) : projects.length + fresh.indexOf(run));
   return [
     ...under.map((r): RunInfo => {
-      // Where it is played (D3): the shop its kind of work belongs to; the home shop's rounds say nothing.
-      const shop = shopOf(r.job.form.template);
-      return { run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id), ...(shop === 'home' ? {} : { shop }) };
+      // Where it is played (D3): the shop its kind of work belongs to, or the one it has moved on to (H4); the home
+      // shop's rounds say nothing.
+      const shop = workShop(r.job.form.template, Boolean(r.moved));
+      return { run: r.id, project: r.project, state: broker.waitingOn(r.id) ? 'waiting' : 'running', color: color(r.id, r.project.id), ...(shop === 'home' ? {} : { shop }), ...(r.job.repair ? { repair: true } : {}) };
     }),
     ...queue.queued.map((t): RunInfo => {
       const waits = t.waits ?? 'slot';
@@ -840,6 +852,8 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
   pending.save(job);
   sendRuns();
   const tally = new RoundTally(started);
+  // A repair counts what the fixer read and changed and how the tests went, for its review sheet (H9).
+  let seen = NO_TALLY;
   log?.info('run start', { run, demo: Boolean(job.form.demo), again, resumed: Boolean(again && job.sessionId), together: runs.size, connections: job.form.connections?.length ?? 0 });
   const r = job.revise;
   // A round of changes is a round inside a project: it starts with what the staff remember of it (B3), and carries the
@@ -896,7 +910,8 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       keepOriginal: lent ? (file) => versions.keepOriginal(job.workDir, file) : undefined,
       abort,
       ...out,
-      emitAi: (e) => { stuck.see(e); tally.see(e); out.emitAi(e); },
+      repair: Boolean(job.repair),
+      emitAi: (e) => { stuck.see(e); tally.see(e); if (job.repair) seen = tallyRepair(seen, e); out.emitAi(e); },
     });
     // Whatever the outcome, even called off: what it made so far must go too if the user undoes it.
     if (lent) versions.noteAdded(job.workDir, atStart, entriesIn(job.workDir));
@@ -924,7 +939,12 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       const stuckHere = result.ok ? stuck.stuck : [...stuck.stuck, ...stuck.unresolved];
       const outcome = { result: result.ok ? 'done' as const : 'failed' as const, choices, costUsd, sessionId: job.sessionId, summary: result.summary };
       const changes = lent ? versions.lentChanges(job.workDir) : undefined;
-      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, before, job.form.template);
+      // A repair done hands its branch back with the review sheet (H9): the work committed on it, the sheet written out,
+      // and the branch waiting for the user's word. The repository's files are never the commission's outputs.
+      const repair = job.repair && result.ok ? handBack(job.repair, { notes: join(job.workDir, strings.ui.files.repairNotes), title, seen }) : undefined;
+      if (repair) writeFileSync(join(job.workDir, strings.ui.files.repairSheet), sheetMarkdown(repair, title, strings.ui.repair), 'utf8');
+      const kept = job.repair && existsSync(job.repair.dir) ? new Set([...before, ...snapshot(job.repair.dir)]) : before;
+      const outputs = changes ? lentOutputs(job.workDir, changes) : collectOutputs(job.workDir, kept, job.form.template);
       // The main file may sit in a subfolder of a lent one.
       const main = outputs.main ? relative(job.workDir, outputs.main) : undefined;
       const round = { ...tally.result(Date.now(), result.ok, result.error), ...(result.contextTokens ? { contextTokens: result.contextTokens } : {}) };
@@ -933,10 +953,10 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       const touched = changes && [...changes.changed, ...changes.added].sort();
       const entry = r
         ? memory.revise(r.id, r.ask, { ...outcome, main, round, touched, usd: spentThisRun }, stuckHere, undefined, Boolean(r.scheduled) && !again)
-        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched, usd: spentThisRun }, stuckHere);
+        : memory.remember({ title, ...outcome, folder: job.workDir, form: job.form, preexisting: lent ? undefined : job.preexisting, main, rounds: [round], touched, usd: spentThisRun, ...(repair ? { repair } : {}) }, stuckHere);
       if (entry) keepRound(entry);
       // A new commission done together is one more for the shop; a round of changes is part of the same one.
-      const grew = result.ok && !r ? memory.finished(new Date(), shopOf(job.form.template)) : [];
+      const grew = result.ok && !r ? memory.finished(new Date(), finishOf(job.form.template)) : [];
       // A research write-up is checked against its sources and against what this round searched or fetched (C7).
       const F = strings.ui.files;
       const citations = job.form.template === 'research' ? citationsIn(job.workDir, { summary: F.summary, sources: F.sources }, result.seenUrls ?? []) : undefined;
@@ -944,6 +964,7 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
       send(IPC.result, {
         citations, run, project: { ...who, id: entry?.project ?? who.id }, ok: result.ok, error, workDir: job.workDir, costUsd, summary: result.summary, ...outputs,
         converted: convertedNote(job.form, outputs.main), id: entry?.id, round: entry?.asks?.length ?? 0, canRestore: Boolean(r && !lent && entry && previousRound(entry)), canUndo: lent && versions.canUndo(job.workDir), grew, budget,
+        ...(repair ? { repair } : {}),
       });
       // The card first, its thumbnail when it is ready (C1): loading a page takes a moment, which the card need not wait for.
       if (outputs.main) {
@@ -970,8 +991,22 @@ async function runJob(run: string, grant: Grant, job: Job, again: boolean, proje
     finishedIn.add(job.workDir);
     mini.feed({ type: 'run', running: runs.size > 0 });
     sendRuns();
+    // A repair called off leaves the user's repository as it was: its branch goes (H9). One stopped by closing the shop
+    // is carried on later, on the same branch.
+    if (job.repair && outcome === 'cancelled' && !quitting && !ending) dropBranch(job.repair);
   }
 }
+
+/** The user's word on a repair's review sheet (plan-1.8.md H9): kept, its branch stays for them to merge; dropped, it goes. */
+ipcMain.handle(IPC.decideRepair, (_e, id: unknown, keep: unknown): RepairSheet['state'] | null => {
+  const memo = typeof id === 'string' ? memory.find(id) : undefined;
+  if (!memo?.repair || memo.repair.state !== 'waiting') return memo?.repair?.state ?? null;
+  if (keep === true) keepBranch(memo.repair);
+  else dropBranch(memo.repair);
+  const state = keep === true ? 'kept' : 'dropped';
+  memory.repairDecided(memo.id, state);
+  return state;
+});
 
 /**
  * Rounds whose card lists sources (C7), by run, with their commission folder: openSource opens only a web address that
@@ -995,6 +1030,7 @@ const lendable = new Set<string>();
 ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<SourcePick | null> => {
   if (!win) return null;
   const source = template(id).source!;
+  if (source.kind === 'repo') return chooseRepo(win);
   const r = await dialog.showOpenDialog(win, source.kind === 'folder'
     ? { properties: ['openDirectory'] }
     : { properties: ['openFile'], filters: [{ name: strings.ui.templates[id], extensions: [...source.extensions] }] });
@@ -1006,6 +1042,21 @@ ipcMain.handle(IPC.chooseSource, async (_e, id: CommissionTemplate): Promise<Sou
   picked.add(path);
   return { path, name: basename(path) };
 });
+
+/**
+ * A code repository to lend the workshop (plan-1.8.md H9): git has to be on this computer, and the folder inside a
+ * repository with a commit to start from. The repository's top is what is lent, wherever inside it the user picked.
+ */
+async function chooseRepo(at: BrowserWindow): Promise<SourcePick | null> {
+  if (!gitReady()) return { error: 'noGit' };
+  const r = await dialog.showOpenDialog(at, { properties: ['openDirectory'] });
+  const path = r.canceled ? undefined : r.filePaths[0];
+  if (!path) return null;
+  const repo = repoOf(path);
+  if (!repo) return { error: 'notRepo' };
+  picked.add(repo);
+  return { path: repo, name: basename(repo) };
+}
 
 /**
  * "Work in a folder I already have" (road-to-1.1.md A6): one the user picked here, not one that holds too much, and
@@ -1055,7 +1106,14 @@ function startNew(form: CommissionForm, by: Ticket['by'] = 'user', schedule?: st
     if (f.demo) prepareDemoFolder(workDir, join(app.getAppPath(), 'demo', 'check.js'));
     prepareSource(workDir, f);
     try { await copyMaterials(workDir, f.materials ?? [], pictureToPng); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
-    return runJob(run, grant, { form: f, workDir, preexisting: [...snapshot(workDir)], startedAt: Date.now(), ...(schedule ? { schedule } : {}) }, false);
+    const preexisting = [...snapshot(workDir)];
+    // A repair works in a worktree on a branch of its own (H9), checked out after the folder's own files are counted: the
+    // fixer changes the code there without a card each time, since the branch is what keeps it apart from the user's.
+    let repair: Job['repair'];
+    if (f.template === 'repair' && f.source) {
+      try { repair = borrowRepo(f.source, workDir); } catch (e) { return { run, ok: false, recordingPath: '', workDir, error: 'source', detail: String(e) }; }
+    }
+    return runJob(run, grant, { form: f, workDir, preexisting, startedAt: Date.now(), ...(schedule ? { schedule } : {}), ...(repair ? { repair } : {}) }, false);
   }, by, runId(Date.now()), f.by?.id);
 }
 

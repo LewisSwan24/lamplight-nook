@@ -5,6 +5,7 @@
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { ledgerBook } from './ledger.mjs';
 
 /** Text the plays say and write, per language. Player-facing words only appear in commission output. */
 const T = {
@@ -37,6 +38,17 @@ const T = {
     newsletter: ['把这期要讲的事理一遍', '分条写，要紧的放前头', '排成文档，另存一份 PDF', '请老石核对日子'],
     newsletterDone: '简报做好了：一份 Word 文档，另存了一份 PDF 可以贴出去。日子和地点单列在最后，没给的留在方括号里。',
     newsletterDoc: (w) => ({ title: w || '楼里简报', blocks: [{ p: '第 [期数] 期' }, { h: 1, text: '周六义诊' }, { p: '社区医院的医生周六上午来，量血压、看看小毛病。' }, { h: 1, text: '楼道自行车' }, { p: '请把自行车停到楼后车棚，楼道留给人走。' }, { h: 1, text: '近期安排' }, { list: ['周六 9:00 义诊，一楼活动室', '[日期] 大扫除'] }] }),
+    // Revision cards (plan-1.8.md H1): every card comes from a "term: what it is" line of the material.
+    flashcards: ['读一遍你给的材料', '挑出要记的，一条一张卡', '排成能裁开的卡片，存成 PDF', '出一页十道题的小测', '请老石对照材料核一遍'],
+    flashcardsDone: '复习卡片做好了：问答卡排成了能打印裁开的 PDF，正反面对得上；另有一页十道题的小测，答案在背面。题目都出自你给的材料。',
+    // A family ledger (plan-1.8.md H5): the empty book of ledger.mjs, made with make_xlsx.
+    ledgerbook: ['定好每月一页记哪几栏', '列出收入支出的分类', '月底小结和饼图用公式', '做成 Excel 账本', '请老石核对公式'],
+    ledgerbookDone: '家庭账本做好了：1 月到 12 月每月一页，分类在单独一页，改了每月的小结跟着变。月底小结和饼图都是公式，填上数就自己算。',
+    cards: {
+      title: '复习卡片', quiz: '小测', answers: '答案', from: '出自材料：', name: '姓名：________',
+      ask: (term) => `${term}是什么？`, blank: (term) => `${term}：________`,
+      sample: [['光合作用', '植物用光把二氧化碳和水变成糖和氧气。'], ['叶绿体', '植物细胞里做光合作用的地方。'], ['气孔', '叶子背面进出气体的小孔。']],
+    },
     newsletterPage: (w) => `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:20mm}body{font-family:system-ui,sans-serif;color:#2a2233}h1{color:#34765a}</style></head><body><h1>${esc(w || '楼里简报')}</h1><p>第 [期数] 期</p><h2>周六义诊</h2><p>社区医院的医生周六上午来，量血压、看看小毛病。</p><h2>楼道自行车</h2><p>请把自行车停到楼后车棚，楼道留给人走。</p><h2>近期安排</h2><ul><li>周六 9:00 义诊，一楼活动室</li><li>[日期] 大扫除</li></ul></body></html>\n`,
     recipeDoc: (w) => ({ title: w || '食谱', blocks: [{ p: '两人份，准备 15 分钟，做 20 分钟。分量是家常的量，可以照口味调。' }, { h: 1, text: '用料' }, { list: ['面粉 200 克', '温水 120 毫升', '葱 3 根', '盐 3 克'] }, { h: 1, text: '做法' }, { list: ['1. 面粉加温水揉成团，盖上布醒 15 分钟。', '2. 擀成薄片，抹油撒葱和盐，卷起再擀开。', '3. 中火烙到两面金黄，约 6 分钟。'] }, { h: 1, text: '要注意' }, { list: ['含小麦（面筋）。', '油温太高容易外焦里生。'] }] }),
     notes: ['弄清是哪本书', '请小橘查作者和年份', '写要点和摘录', '请老石检查'],
@@ -77,6 +89,18 @@ const T = {
     planDone: '计划排好了：按周排，每一步都能在一次坐下来时做完，每周留了一天补课。',
     resumeDone: '简历做好了：一页 A4，另外存了一份 PDF，可以直接发出去。不知道的地方留在方括号里，按办公室文职的方向写的。',
     notesDone: '读书笔记做好了：先是这本书讲什么，再是要点和摘录，最后留了几个问题。摘录都出自你递来的材料。',
+    picturebook: ['弄清给谁、喜欢什么', '请青黛定人物和配色', '写八页故事，一页一页画', '画封面，送印刷铺排版', '请老石检查'],
+    picturebookDone: '绘本做好了：《小满和月亮》，封面写着“给小满”，八页，排成了横版 PDF。',
+    comic: ['弄清讲什么、谁说什么', '请青黛定人物和配色', '分成四格，画出来', '存成长图和 PDF，再看一遍', '请老石检查'],
+    comicDone: '四格漫画画好了：猫偷了鱼还不认，最后一格露了馅。一张长图，另存了一份 PDF。',
+    minigame: ['弄清给谁玩、玩什么', '定好玩法和规则', '写成一个网页', '画出第一屏看一眼', '请老石试玩'],
+    minigameDone: '小游戏做好了：翻牌找朋友，点两张一样的就留下，全翻开就赢。一个网页，打开就能玩，不用联网。',
+    repair: ['看看仓库和出错的地方', '改代码', '跑测试', '写验货单'],
+    repairDone: '修好了：加法写成了减法，改回来了，测试也过了。验货单在柜台上。',
+    repairWhy: '加法写成了减法。',
+    repairNote: '两个测试都过了。',
+    journal: ['弄清去哪、几天', '请小橘查开放时间和票价', '排成一页手账，画路线图', '存成 PDF，再看一遍', '请老石检查'],
+    journalDone: '手账做好了：一页 A4，三天的路线和清单，还有一张手画的路线图，存成了 PDF。开放时间注了出处，出发前再核对一下。',
     travelDone: '攻略做好了：按天排的行程、预算表和要带的东西。开放时间和票价都注了出处和查的日期，出发前再核对一下。',
     toolDone: '小工具做好了：1. 打开小工具.html；2. 选一个文件；3. 点「下载结果」。它只读你选的文件，不动电脑上别的东西。',
     toolScriptDone: '脚本写好了：1. 双击启动文件；2. 把文件夹拖进窗口；3. 看过要做的事再确认。',
@@ -131,6 +155,15 @@ const T = {
     newsletter: ['Go through what this issue covers', 'Write it up, the big news first', 'Lay it out as a document, save a PDF', 'Ask Flint to check the dates'],
     newsletterDone: 'The newsletter is ready: a Word document, and a PDF to pin up. Dates and places are listed at the end; a missing one is left in square brackets.',
     newsletterDoc: (w) => ({ title: w || 'Block newsletter', blocks: [{ p: 'Issue [number]' }, { h: 1, text: 'Saturday clinic' }, { p: 'Doctors from the community hospital come on Saturday morning to check blood pressure and small complaints.' }, { h: 1, text: 'Bikes in the hallway' }, { p: 'Please leave bikes in the shed behind the block, so the hallway stays clear.' }, { h: 1, text: 'Coming up' }, { list: ['Saturday 9:00, clinic, ground-floor room', '[date], spring cleaning'] }] }),
+    flashcards: ['Read the material you handed over', 'Pick what to remember, one card each', 'Lay out cards to cut apart, save a PDF', 'Write a ten-question quiz', 'Ask Flint to check them against the material'],
+    flashcardsDone: 'The revision cards are ready: a PDF of cards to print and cut apart, each answer on the back of its question, and a ten-question quiz with the answers on the back. Every question comes from your material.',
+    ledgerbook: ['Choose the columns for a month', 'List the categories for money in and out', 'Use formulas for the summary and pie', 'Make the Excel ledger', 'Ask Flint to check the formulas'],
+    ledgerbookDone: 'The family ledger is ready: a sheet for each month from January to December, and the categories on a sheet of their own, which every month\'s summary follows. The summaries and pie charts are formulas, so they work themselves out as you fill it in.',
+    cards: {
+      title: 'Revision cards', quiz: 'Quiz', answers: 'Answers', from: 'From the material: ', name: 'Name: ________',
+      ask: (term) => `What is ${term}?`, blank: (term) => `${term}: ________`,
+      sample: [['Photosynthesis', 'Plants use light to turn carbon dioxide and water into sugar and oxygen.'], ['Chloroplast', 'The part of a plant cell where photosynthesis happens.'], ['Stoma', 'A tiny opening under a leaf that lets gases in and out.']],
+    },
     newsletterPage: (w) => `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:20mm}body{font-family:system-ui,sans-serif;color:#2a2233}h1{color:#34765a}</style></head><body><h1>${esc(w || 'Block newsletter')}</h1><p>Issue [number]</p><h2>Saturday clinic</h2><p>Doctors from the community hospital come on Saturday morning to check blood pressure and small complaints.</p><h2>Bikes in the hallway</h2><p>Please leave bikes in the shed behind the block, so the hallway stays clear.</p><h2>Coming up</h2><ul><li>Saturday 9:00, clinic, ground-floor room</li><li>[date], spring cleaning</li></ul></body></html>\n`,
     recipeDoc: (w) => ({ title: w || 'Recipe', blocks: [{ p: 'Serves two. 15 minutes of work, 20 of cooking. The amounts are everyday ones; adjust to taste.' }, { h: 1, text: 'What goes in' }, { list: ['200 g flour', '120 ml warm water', '3 scallions', '3 g salt'] }, { h: 1, text: 'Steps' }, { list: ['1. Knead the flour and water into a dough; cover and rest for 15 minutes.', '2. Roll it thin, brush with oil, scatter scallions and salt, roll up and flatten again.', '3. Fry on a medium heat until golden on both sides, about 6 minutes.'] }, { h: 1, text: 'Watch out for' }, { list: ['Contains wheat (gluten).', 'Too hot a pan burns the outside before the middle is done.'] }] }),
     notes: ['Work out which book', 'Send Clem for the author and year', 'Write the ideas and quotations', 'Ask Flint to check it'],
@@ -171,6 +204,18 @@ const T = {
     planDone: 'The plan is ready: week by week, each step small enough for one sitting, with a spare day each week.',
     resumeDone: 'The résumé is ready: one A4 page, and a PDF of it to send straight away. What I did not know is left in square brackets. I shaped it for an office job.',
     notesDone: 'The reading notes are ready: what the book is about, the main ideas, quotations, then a few questions. Every quotation comes from what you handed over.',
+    picturebook: ['Who it is for, and what they love', 'Ask Iris for the look and colours', 'Write eight pages, draw each', 'Draw the cover, lay it out', 'Ask Flint to check it'],
+    picturebookDone: 'The picture book is ready: "Xiaoman and the Moon", for Xiaoman, eight pages laid out as a landscape PDF.',
+    comic: ['What happens, and who says what', 'Ask Iris for the look and colours', 'Split it into four, draw them', 'Save the picture and PDF, look', 'Ask Flint to check it'],
+    comicDone: 'The comic strip is ready: the cat took the fish and denies it, until the last panel gives it away. One long picture, and a PDF.',
+    minigame: ['Who plays, and what game', 'Settle the rules', 'Write it as one page', 'Draw the first screen and look', 'Ask Flint to try it'],
+    minigameDone: 'The game is ready: find the pairs. Turn over two cards; a matching pair stays face up. One page that plays with no network.',
+    repair: ['Look through the repository', 'Change the code', 'Run the tests', 'Write the review sheet'],
+    repairDone: 'Fixed: the add function subtracted. It adds now, and the tests pass. The review sheet is at the counter.',
+    repairWhy: 'It subtracted instead of adding.',
+    repairNote: 'Both tests pass.',
+    journal: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out one page, draw the route', 'Save the PDF and look it over', 'Ask Flint to check it'],
+    journalDone: 'The travel journal is ready: one A4 page with the three days, a list for each and a hand-drawn map of the route, saved as a PDF. Opening hours carry their source; check them again before you set off.',
     travelDone: 'The travel guide is ready: day by day, a budget table and a packing list. Opening hours and prices carry their source and the date checked; check them again before you set off.',
     toolDone: 'The tool is ready: 1. Open tool.html. 2. Pick a file. 3. Click "Download the result". It only reads the file you pick.',
     toolScriptDone: 'The script is ready: 1. Double-click the launcher. 2. Drop a folder on the window. 3. Look over what it will do, then confirm.',
@@ -306,6 +351,127 @@ function cardPage(t, w) {
     + `<body><div class="sun"></div><h1>${esc(C.greeting)}</h1><p>${esc(C.line)}</p><p>${esc(C.from)}</p></body></html>\n`;
 }
 
+/**
+ * The cards a revision-cards commission makes (plan-1.8.md H1): one for every "term: what it is" line of the text files
+ * handed over, or of the request itself; three sample cards only when there is nothing of the kind.
+ */
+function cardsFrom(s) {
+  const C = T[s.state.lang].cards;
+  const dir = s.state.vars.materialsDir;
+  const texts = dir && existsSync(join(s.cwd, dir)) ? readdirSync(join(s.cwd, dir)).filter((f) => /\.(txt|md)$/i.test(f)).map((f) => readFileSync(join(s.cwd, dir, f), 'utf8')) : [];
+  const pairs = [...texts, s.state.vars.want || ''].join('\n').split(/\r?\n/)
+    .map((l) => /^\s*(?:[-*•]\s*)?([^:：]{1,30}?)\s*[:：]\s*(\S.+)$/.exec(l)).filter(Boolean).map((m) => [m[1].trim(), m[2].trim()]);
+  return (pairs.length ? pairs : C.sample).map(([term, a]) => ({ term, q: C.ask(term), a }));
+}
+
+/**
+ * A travel journal (plan-1.8.md H6): one A4 page, the route across the top, a list for each day, and the route drawn as
+ * a sketch in SVG, places as numbered dots joined in the order of the trip. Nothing on it comes from the web.
+ */
+const JOURNAL = {
+  zh: {
+    title: '杭州三日手账', route: '路线', map: '路线图', checked: '开放时间查自景区官网，2026-11-27 查的，出发前再核对一下。',
+    days: [['第一天', '西湖', ['断桥看日出', '苏堤骑车', '带：水和防晒']], ['第二天', '灵隐寺', ['早上八点前到', '飞来峰石刻', '带：现金买香']], ['第三天', '龙井村', ['喝一杯明前茶', '晚上去河坊街', '带：能走路的鞋']]],
+    places: [['西湖', 150, 120], ['灵隐寺', 50, 70], ['龙井村', 70, 175], ['河坊街', 205, 165]],
+  },
+  en: {
+    title: 'Three days in Edinburgh', route: 'Route', map: 'Map of the route', checked: 'Opening hours from the official sites, checked 2026-11-27. Check again before you set off.',
+    days: [['Day 1', 'The Castle', ['Go at opening time', 'One o\'clock gun', 'Bring: a rain jacket']], ['Day 2', 'Royal Mile', ['St Giles\' Cathedral', 'A close or two', 'Bring: cash for tea']], ['Day 3', 'Holyrood', ['The palace first', 'Up Arthur\'s Seat', 'Bring: walking shoes']]],
+    places: [['Castle', 40, 110], ['Royal Mile', 120, 95], ['Holyrood', 200, 80], ["Arthur's Seat", 215, 165]],
+  },
+};
+/**
+ * A picture book (plan-1.8.md H4): a cover and eight pages, each a sheet of A4 landscape with a picture drawn in SVG and a
+ * line of the story, the same little moon and the same boy on every page.
+ */
+const BOOK = {
+  zh: { title: '小满和月亮', to: '给小满', lines: ['小满睡不着，看见窗外的月亮。', '月亮说：“我们去散步吧。”', '他们走过安静的小桥。', '小猫在屋顶上打了个哈欠。', '花园里的花都合上了。', '月亮也慢慢变困了。', '小满送月亮回到天上。', '小满钻进被窝，睡着了。'] },
+  en: { title: 'Xiaoman and the Moon', to: 'For Xiaoman', lines: ['Xiaoman cannot sleep. The moon is at the window.', '"Shall we go for a walk?" says the moon.', 'They cross the quiet little bridge.', 'A cat yawns on the roof.', 'The flowers in the garden close up.', 'The moon is getting sleepy too.', 'Xiaoman takes the moon back up to the sky.', 'Xiaoman snuggles into bed and falls asleep.'] },
+};
+function bookPage(lang) {
+  const B = BOOK[lang];
+  const boy = (x, y) => `<circle cx="${x}" cy="${y}" r="40" fill="#f2c9a0"/><path d="M${x - 40} ${y - 10}q40-60 80 0z" fill="#3a2a22"/><rect x="${x - 45}" y="${y + 45}" width="90" height="130" rx="30" fill="#6a8fc4"/>`;
+  const moon = (x, y) => `<circle cx="${x}" cy="${y}" r="55" fill="#f4d470"/><circle cx="${x + 25}" cy="${y - 15}" r="50" fill="#27324f"/>`;
+  const page = (art, text, cls = '') => `<section class="page ${cls}"><svg viewBox="0 0 1000 560"><rect width="1000" height="560" fill="#27324f"/><rect y="440" width="1000" height="120" fill="#4c6b4f"/>${art}</svg><p>${text}</p></section>`;
+  const cover = `<section class="page cover"><svg viewBox="0 0 1000 560"><rect width="1000" height="560" fill="#27324f"/><rect y="440" width="1000" height="120" fill="#4c6b4f"/>${moon(700, 160)}${boy(330, 300)}</svg><h1>${B.title}</h1><p class="to">${B.to}</p></section>`;
+  const pages = B.lines.map((l, i) => page(moon(200 + i * 80, 140) + boy(620, 300), l)).join('');
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${B.title}</title><style>@page{size:A4 landscape;margin:0}html,body{margin:0}body{font-family:system-ui,sans-serif;color:#2a2233;background:#fff}.page{box-sizing:border-box;width:297mm;height:210mm;padding:12mm;display:grid;grid-template-rows:1fr auto;gap:6mm;break-after:page;overflow:hidden}.page svg{width:100%;height:100%;min-height:0}.page p{margin:0;font-size:26pt;line-height:1.4;text-align:center}.cover{grid-template-rows:1fr auto auto}.cover h1{margin:0;font-size:40pt;text-align:center}.cover .to{font-size:22pt}</style></head>\n<body>${cover}${pages}</body></html>\n`;
+}
+
+/**
+ * A four-panel comic (plan-1.8.md H3): one page 800 by 3200, four panels one under another, each drawn in SVG with its
+ * line in a bubble placed inside it.
+ */
+const COMIC = {
+  zh: { title: '猫和鱼', lines: ['鱼呢？', '不是我。', '那你嘴边是什么？', '……是鱼的香味。'] },
+  en: { title: 'The cat and the fish', lines: ['Where is the fish?', 'Not me.', "Then what's on your whiskers?", '...The smell of fish.'] },
+};
+function comicPage(lang) {
+  const C = COMIC[lang];
+  const sky = ['#cfe6f5', '#f6e7c1', '#f3d1dc', '#d9ecd0'];
+  const cat = (x, y) => `<g fill="#e08a3c"><circle cx="${x}" cy="${y}" r="70"/><path d="M${x - 60} ${y - 40}l20-60 30 40zM${x + 60} ${y - 40}l-20-60-30 40z"/><ellipse cx="${x}" cy="${y + 140}" rx="90" ry="80"/></g><circle cx="${x - 25}" cy="${y - 10}" r="8" fill="#2a2233"/><circle cx="${x + 25}" cy="${y - 10}" r="8" fill="#2a2233"/>`;
+  const person = (x, y) => `<circle cx="${x}" cy="${y}" r="60" fill="#f2c9a0"/><rect x="${x - 70}" y="${y + 70}" width="140" height="220" rx="40" fill="#5b7fb5"/><circle cx="${x - 20}" cy="${y - 5}" r="7" fill="#2a2233"/><circle cx="${x + 20}" cy="${y - 5}" r="7" fill="#2a2233"/>`;
+  const fish = (x, y) => `<path d="M${x} ${y}q60-40 120 0q-60 40-120 0zM${x + 120} ${y}l40-30v60z" fill="#7aa6c9"/>`;
+  const scenes = [person(560, 330) + fish(140, 560), cat(250, 380) + person(560, 330), person(560, 330) + cat(250, 380), cat(380, 380) + fish(200, 640)];
+  const spots = [[60, 60], [430, 60], [60, 60], [60, 60]];
+  const panels = scenes.map((art, i) => `<section class="panel"><svg viewBox="0 0 748 748"><rect width="748" height="748" fill="${sky[i]}"/><rect y="600" width="748" height="148" fill="#c9a77c"/>${art}</svg><p class="bubble" style="left:${spots[i][0]}px;top:${spots[i][1]}px">${C.lines[i]}</p></section>`).join('');
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${C.title}</title><style>@page{size:800px 3200px;margin:0}html,body{margin:0}body{width:800px;height:3200px;display:grid;grid-template-rows:repeat(4,800px);background:#fff;font-family:system-ui,sans-serif;color:#2a2233}.panel{position:relative;box-sizing:border-box;margin:20px;border:6px solid #2a2233;overflow:hidden}.panel svg{position:absolute;inset:0;width:100%;height:100%}.bubble{position:absolute;margin:0;max-width:280px;padding:14px 22px;background:#fff;border:4px solid #2a2233;border-radius:28px;font-size:34px;line-height:1.3}</style></head>\n<body>${panels}</body></html>\n`;
+}
+
+/**
+ * A small game (plan-1.8.md H2): matching pairs on one page, nothing loaded from anywhere. Each card keeps its face in
+ * data-face, so a scenario can find a pair without guessing.
+ */
+const GAME = {
+  zh: { title: '翻牌找朋友', how: '点两张牌，一样的就留着。全部翻开就赢了。', start: '开始', score: '找到', again: '再玩一次', won: '全找到了！' },
+  en: { title: 'Find the pairs', how: 'Turn over two cards. A matching pair stays face up. Find them all to win.', start: 'Start', score: 'Pairs', again: 'Play again', won: 'All found!' },
+};
+function gamePage(lang) {
+  const G = GAME[lang];
+  const script = "var faces=['\u{1F34E}','\u{1F34C}','\u{1F347}','\u{1F353}'],open=[],found=0;"
+    + "var grid=document.getElementById('grid'),score=document.getElementById('score'),again=document.getElementById('again'),won=document.getElementById('won');"
+    + "function deal(){found=0;open=[];score.textContent=0;again.hidden=true;won.hidden=true;grid.replaceChildren.apply(grid,faces.concat(faces).sort(function(){return Math.random()-.5}).map(function(f){var b=document.createElement('button');b.className='card';b.dataset.face=f;b.textContent='?';b.onclick=function(){turn(b)};return b}))}"
+    + "function turn(b){if(b.classList.contains('up')||open.length===2)return;b.classList.add('up');b.textContent=b.dataset.face;open.push(b);if(open.length<2)return;"
+    + "if(open[0].dataset.face===open[1].dataset.face){found++;score.textContent=found;open=[];if(found===faces.length){again.hidden=false;won.hidden=false}}"
+    + "else setTimeout(function(){open.forEach(function(x){x.classList.remove('up');x.textContent='?'});open=[]},700)}"
+    + "document.getElementById('start').onclick=function(){this.hidden=true;deal()};again.onclick=deal;";
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${G.title}</title><style>body{font-family:system-ui,sans-serif;background:#fdf6e3;color:#3a2f28;text-align:center;margin:0;padding:24px}h1{font-size:40px;margin:8px 0}p{font-size:20px}button{font-size:24px;border:0;border-radius:12px;background:#e0884a;color:#fff;padding:12px 32px;cursor:pointer}#grid{display:grid;grid-template-columns:repeat(4,110px);gap:14px;justify-content:center;margin:20px 0}.card{height:110px;padding:0;font-size:48px;background:#6a8fc0}.card.up{background:#fff;color:#3a2f28;box-shadow:0 0 0 3px #e0884a inset}.score{font-size:22px}</style></head>\n<body><h1>${G.title}</h1><p>${G.how}</p><p class="score">${G.score}：<b id="score">0</b></p><button id="start">${G.start}</button><div id="grid"></div><p id="won" hidden>${G.won}</p><button id="again" hidden>${G.again}</button><script>${script}</script></body></html>\n`;
+}
+
+function journalPage(lang) {
+  const J = JOURNAL[lang];
+  const dots = J.places.map(([name, x, y], i) => `<circle cx="${x}" cy="${y}" r="6"/><text x="${x + 9}" y="${y + 4}">${i + 1} ${name}</text>`).join('');
+  const line = J.places.map(([, x, y]) => `${x},${y}`).join(' ');
+  const days = J.days.map(([day, where, items]) => `<section class="day"><h2>${day} · ${where}</h2><ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul></section>`).join('');
+  return `<!doctype html>\n<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head><meta charset="utf-8"><title>${J.title}</title><style>@page{size:A4 portrait;margin:12mm}html,body{margin:0}body{font-family:system-ui,sans-serif;color:#2f2a26;height:270mm;display:grid;grid-template-rows:auto auto auto 1fr auto;gap:6mm}h1{margin:0;font-size:22pt}.route{font-size:12pt;border-bottom:1.5px dashed #b99c7a;padding-bottom:3mm}.days{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}.day{border:1.5px solid #d8c6ae;border-radius:3mm;padding:3mm 4mm;background:#fdf8ef}.day h2{font-size:13pt;margin:0 0 2mm}.day ul{margin:0;padding-left:5mm;font-size:11pt;line-height:1.6}figure{margin:0}figure svg{width:100%;height:110mm;border:1.5px solid #d8c6ae;border-radius:3mm;background:#fffdf8}figure circle{fill:#c0603a}figure polyline{fill:none;stroke:#c0603a;stroke-width:2;stroke-dasharray:6 4}figure text{font-size:9px;fill:#2f2a26}figcaption{font-size:11pt;margin-bottom:2mm}small{font-size:9pt;color:#7a6e64}</style></head>\n<body><h1>${J.title}</h1><div class="route"><b>${J.route}：</b>${J.places.map(([n]) => n).join(' → ')}</div><div class="days">${days}</div><figure><figcaption>${J.map}</figcaption><svg viewBox="0 0 260 220" role="img" aria-label="${J.map}"><polyline points="${line}"/>${dots}</svg></figure><small>${J.checked}</small></body></html>\n`;
+}
+
+const SHEET_STYLE = '@page{size:A4;margin:10mm}html,body{margin:0}body{font-family:system-ui,sans-serif;color:#2a2233}section{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);height:276mm;break-after:page}.c{border:1px dashed #9a9a9a;padding:8mm;position:relative;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15pt;break-inside:avoid}.c b{position:absolute;top:3mm;left:4mm;font-size:9pt;color:#8a8a8a}.a{background:#fdf6e3;font-size:12pt}';
+
+/** Eight cards to a sheet; behind each sheet of questions, their answers with each row's two cards swapped. */
+function cardsPage(t, cards) {
+  const cell = (n, text, kind) => `<div class="c ${kind}"><b>${n}</b><p>${esc(text)}</p></div>`;
+  const blank = '<div class="c"></div>';
+  let body = '';
+  for (let k = 0; k < cards.length; k += 8) {
+    const sheet = cards.slice(k, k + 8);
+    const front = sheet.map((c, j) => cell(k + j + 1, c.q, 'q')).join('') + blank.repeat(8 - sheet.length);
+    const back = [0, 1, 2, 3].flatMap((r) => [r * 2 + 1, r * 2]).map((j) => (sheet[j] ? cell(k + j + 1, sheet[j].a, 'a') : blank)).join('');
+    body += `<section>${front}</section><section>${back}</section>`;
+  }
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><title>${esc(t.cards.title)}</title><style>${SHEET_STYLE}</style></head><body>${body}</body></html>\n`;
+}
+
+/** Ten questions on the first page, short answers and blanks to fill in turn; the answers, with where they come from, on the second. */
+function quizPage(t, cards) {
+  const C = t.cards;
+  const ten = Array.from({ length: 10 }, (_, i) => ({ ...cards[i % cards.length], blank: i % 2 === 1 }));
+  const qs = ten.map((c) => `<li>${esc(c.blank ? C.blank(c.term) : c.q)}<div class="room"></div></li>`).join('');
+  const as = ten.map((c) => `<li>${esc(c.a)}<small>${esc(C.from + c.term)}</small></li>`).join('');
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><title>${esc(C.quiz)}</title><style>@page{size:A4;margin:18mm}body{font-family:system-ui,sans-serif;color:#2a2233;font-size:12pt}section{break-after:page}li{margin:0 0 4mm}.room{height:10mm;border-bottom:1px solid #ccc}small{display:block;color:#777}</style></head>`
+    + `<body><section><h1>${esc(C.quiz)}</h1><p>${esc(C.name)}</p><ol>${qs}</ol></section><section><h1>${esc(C.answers)}</h1><ol>${as}</ol></section></body></html>\n`;
+}
+
 /** Pick the play for a prompt. A resumed session keeps its play; a request for changes starts a round of changes. */
 export function pickPlay(prompt, state, system = '') {
   state.vars ??= {};
@@ -389,6 +555,13 @@ export function pickPlay(prompt, state, system = '') {
     state.vars.pdf = quoted(prompt, 'and save it as');
     return plays.newsletter;
   }
+  if (/These are revision cards and a short quiz/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'Lay the cards out as a single self-contained page');
+    state.vars.quiz = quoted(prompt, 'as a page');
+    [state.vars.pdf, state.vars.quizPdf] = [...prompt.matchAll(/Save it as "([^"]+)"/g)].map((m) => m[1]);
+    return plays.flashcards;
+  }
+  if (/This is a family ledger/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.ledgerbook; }
   if (/This is a letter or an email/.test(prompt)) { state.vars.out = quoted(prompt, 'Write it as'); return plays.letter; }
   if (/This is a table/.test(prompt)) { state.vars.out = quoted(prompt, 'make_xlsx tool as'); return plays.sheet; }
   if (/This is a Word document/.test(prompt)) { state.vars.out = quoted(prompt, 'make_docx tool as'); return plays.document; }
@@ -400,6 +573,31 @@ export function pickPlay(prompt, state, system = '') {
     return plays.resume;
   }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
+  if (/The user lent the shop their code repository/.test(prompt)) {
+    state.vars.repo = quoted(prompt, 'checked out in the folder');
+    state.vars.notes = quoted(prompt, 'When you are done, write');
+    return plays.repair;
+  }
+  if (/This is a picture book for a child/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
+    return plays.picturebook;
+  }
+  if (/This is a four-panel comic strip/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
+    return plays.comic;
+  }
+  if (/This is a small game to play in a browser/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    state.vars.png = quoted(prompt, 'first screen as');
+    return plays.minigame;
+  }
+  if (/This is a travel journal/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    state.vars.pdf = quoted(prompt, 'Save it as');
+    return plays.journal;
+  }
   if (/This is a travel guide/.test(prompt)) { state.vars.out = 'index.html'; return plays.travel; }
   // A small tool: a page in the browser, unless the request is to rename or delete files. Then it writes a script and
   // its launcher, careful (a preview, -Apply to act) for renaming and careless (deletes at once) for deleting, so the
@@ -918,6 +1116,36 @@ export const plays = {
     },
   },
 
+  // A repair in a lent repository (plan-1.8.md H9): reads it, fixes the subtraction in add.js, runs the tests for real
+  // from the commission folder, stepping into the copy first as a real fixer does,
+  // and writes its notes. Asked to push, it tries: the shop refuses, so the remote must stay as it was.
+  repair: {
+    name: 'repair',
+    async run(s) {
+      const t = T[s.state.lang];
+      const { repo, notes } = s.state.vars;
+      const p = planner(s, t.repair);
+      await p.start();
+      for (const f of readdirSync(join(s.cwd, repo)).filter((f) => /\.(js|md)$/.test(f))) await s.step(() => s.read(join(repo, f)));
+      await p.next();
+      await s.step(() => s.edit(join(repo, 'add.js'), 'a - b', 'a + b'));
+      await p.next();
+      const ran = await s.step(() => s.tool('Bash', { command: `cd "${join(s.cwd, repo)}" && node --test` }, { effect: () => {
+        try { return { text: execFileSync('node', ['--test'], { cwd: join(s.cwd, repo), encoding: 'utf8' }) }; } catch (e) { return { text: String(e.stdout ?? e), error: true }; }
+      } }));
+      if (/推|push/i.test(s.state.vars.want ?? '')) {
+        await s.step(() => s.tool('Bash', { command: 'git push' }, { effect: () => ({ text: execFileSync('git', ['push'], { cwd: join(s.cwd, repo), encoding: 'utf8' }) }) }));
+      }
+      // A moment before the notes, so the running card can be looked at with the tests done.
+      await s.step(() => s.think(12));
+      await p.next();
+      const passed = !ran?.error;
+      await s.step(() => s.write(notes, JSON.stringify({ changes: [{ file: 'add.js', why: t.repairWhy }], tests: { ran: true, command: 'node --test', passed, note: t.repairNote } }, null, 2)));
+      await p.end();
+      await s.finish(t.repairDone);
+    },
+  },
+
   letter: simpleText('letter', (t, w) => t.letterBody(w), (t) => t.letterDone),
   sheet: simpleText('sheet', null, (t) => t.sheetDone, { make: (s, o) => office(s, 'make_xlsx', { file: s.state.vars.out, ...o.sheet }) }),
   document: simpleText('document', null, (t) => t.documentDone, { make: (s, o, w) => office(s, 'make_docx', { file: s.state.vars.out, ...o.doc(w) }) }),
@@ -960,8 +1188,54 @@ export const plays = {
       await office(s, 'make_pdf', { page: s.state.vars.page, file: s.state.vars.pdf });
     },
   }),
+  flashcards: simpleText('flashcards', null, (t) => t.flashcardsDone, {
+    make: (s) => s.write(s.state.vars.out, cardsPage(T[s.state.lang], cardsFrom(s))),
+    after: async (s) => {
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.write(s.state.vars.quiz, quizPage(T[s.state.lang], cardsFrom(s)));
+      await office(s, 'make_pdf', { page: s.state.vars.quiz, file: s.state.vars.quizPdf });
+      await s.read(s.state.vars.pdf);
+    },
+  }),
+  ledgerbook: simpleText('ledgerbook', null, (t) => t.ledgerbookDone, {
+    make: (s) => office(s, 'make_xlsx', { file: s.state.vars.out, ...ledgerBook(s.state.lang) }),
+    after: (s) => office(s, 'read_document', { file: s.state.vars.out }),
+  }),
   notes: simpleText('notes',(t, w) => t.notesBody(w), (t) => t.notesDone, { research: true }),
   travel: simpleText('travel', (t, w) => t.travelBody(w), (t) => t.travelDone, { research: true }),
+  picturebook: simpleText('picturebook', null, (t) => t.picturebookDone, {
+    // Eight pages take a while to draw: long enough to walk over to the studio and watch.
+    make: async (s) => { await s.think(25); await s.write(s.state.vars.out, bookPage(s.state.lang)); },
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 1123, height: 794 });
+      await s.read(s.state.vars.png);
+      await s.think(2);
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+    },
+  }),
+  comic: simpleText('comic', null, (t) => t.comicDone, {
+    make: (s) => s.write(s.state.vars.out, comicPage(s.state.lang)),
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 800, height: 3200 });
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  minigame: simpleText('minigame', null, (t) => t.minigameDone, {
+    make: (s) => s.write(s.state.vars.out, gamePage(s.state.lang)),
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 800, height: 600 });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  journal: simpleText('journal', null, (t) => t.journalDone, {
+    research: true,
+    make: (s) => s.write(s.state.vars.out, journalPage(s.state.lang)),
+    after: async (s) => {
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.pdf);
+    },
+  }),
   tool: simpleText('tool', (t, w) => t.toolBody(w), (t) => t.toolDone),
 
   toolScript: {

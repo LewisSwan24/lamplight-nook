@@ -13,6 +13,8 @@ import workshopUrl from '../../../assets/sprites/workshop-room.png';
 import workshopPiecesUrl from '../../../assets/sprites/workshop-pieces.png';
 import bakeryUrl from '../../../assets/sprites/bakery-room.png';
 import bakeryPiecesUrl from '../../../assets/sprites/bakery-pieces.png';
+import bakeryBoardUrl from '../../../assets/sprites/bakery-board.png';
+import cakeUrl from '../../../assets/sprites/cake.png';
 import postUrl from '../../../assets/sprites/post-room.png';
 import postPiecesUrl from '../../../assets/sprites/post-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
@@ -27,6 +29,11 @@ import cookUrl from '../../../assets/sprites/cook.png';
 import lodgerUrl from '../../../assets/sprites/lodger.png';
 import floristUrl from '../../../assets/sprites/florist.png';
 import organizerUrl from '../../../assets/sprites/organizer.png';
+import pupilUrl from '../../../assets/sprites/pupil.png';
+import bookkeeperUrl from '../../../assets/sprites/bookkeeper.png';
+import dadUrl from '../../../assets/sprites/dad.png';
+import editorUrl from '../../../assets/sprites/editor.png';
+import mumUrl from '../../../assets/sprites/mum.png';
 import grannyUrl from '../../../assets/sprites/granny.png';
 import studentUrl from '../../../assets/sprites/student.png';
 import catUrl from '../../../assets/sprites/cat.png';
@@ -55,6 +62,9 @@ import leavesUrl from '../../../assets/sprites/weather-leaves.png';
 import petalsUrl from '../../../assets/sprites/weather-petals.png';
 import rainUrl from '../../../assets/sprites/weather-rain.png';
 import snowUrl from '../../../assets/sprites/weather-snow.png';
+import fogUrl from '../../../assets/sprites/weather-fog.png';
+import windUrl from '../../../assets/sprites/weather-wind.png';
+import stormUrl from '../../../assets/sprites/weather-storm.png';
 import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
 import aqianUrl from '../../../assets/sprites/aqian.png';
 import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
@@ -76,7 +86,7 @@ import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/t
 import type { RoomId } from '../../shared/scenes';
 import { ROOM_CREW } from '../../shared/staff';
 import catWalkUrl from '../../../assets/sprites/cat-walk.png';
-import { counterTop, pieceData } from './pieces';
+import { counterTop, overlayDepth, pieceData } from './pieces';
 import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
 import { CORK, WALL_CARD, stampColour, wallIndex, wallSpots } from './postwall';
@@ -100,6 +110,7 @@ import { DOG_FRAME, HEN_FRAME } from './animals';
 import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT, POST_SPOT } from './guests';
 import { PASSER_FEET, WINDOW_PANES, passBy } from './passers';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky, holidayOn, seasonOf, skyOn, withWeather } from './weather';
+import { MENU_BOARD, menuFrame } from '../../shared/menu';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -107,8 +118,10 @@ const DECOR_URLS: Record<Holiday, string> = {
   halloween: halloweenUrl, christmas: christmasUrl, new_year: newYearUrl, lantern: lanternUrl, dragon_boat: dragonBoatUrl, mid_autumn: midAutumnUrl,
 };
 const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerUrl, autumn: autumnUrl, winter: winterUrl };
-const WEATHER_URLS: Record<(typeof SKIES)[number], string> = { rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl };
+const WEATHER_URLS: Record<(typeof SKIES)[number], string> = {
+  rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl, fog: fogUrl, wind: windUrl, storm: stormUrl,
+};
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl, dad: dadUrl, editor: editorUrl, mum: mumUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
@@ -289,6 +302,14 @@ export class CafeScene extends Phaser.Scene {
   growth!: ShopGrowth;
   /** What Auntie Olive's and Pip's stories left, hung in their shops (plan-1.6.md F4). */
   tales!: RoomTales;
+  /** The season has turned while the shop was open (plan-1.7.md G2: a word if the room wears its colour). */
+  onSeasonTurn?: (season: Season) => void;
+  /** The cake on the big table on the shop's anniversary (plan-1.7.md G3); only at home. */
+  private cake?: Phaser.GameObjects.Image;
+  /** Whether the cake should be out: said before the room is built, or kept while away in another room. */
+  private cakeWanted = false;
+  /** The bakery's menu for the season, over the bare blackboard (plan-1.7.md G2). */
+  menu?: Phaser.GameObjects.Image;
   /** Sounds the room makes: the door bell, Laoshi's mallet, Adeng's pencil. */
   onSound?: (name: 'door' | 'mallet' | 'pencil') => void;
   /** The street inset opened or closed (the page moves what sits in that corner). */
@@ -337,6 +358,10 @@ export class CafeScene extends Phaser.Scene {
     }
     // What the baker's and the postman's stories leave, in their own shops only (F4).
     preloadTales(this.load, this.room);
+    if ((this.room === 'cafe' || this.room === 'study') && !this.textures.exists('cake')) this.load.image('cake', cakeUrl);
+    if (this.room === MENU_BOARD.room && !this.textures.exists('bakery-board')) {
+      this.load.spritesheet('bakery-board', bakeryBoardUrl, { frameWidth: MENU_BOARD.w, frameHeight: MENU_BOARD.h });
+    }
     // Everything else the rooms share, loaded by the first one (the home shop's) for the whole game.
     if (this.textures.exists('cat')) return;
     // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
@@ -393,6 +418,12 @@ export class CafeScene extends Phaser.Scene {
     this.growth = new ShopGrowth(this, this.room, () => {});
     this.growth.onShelfClick = () => this.activate('works');
     this.tales = new RoomTales(this, this.room);
+    // On the wall behind everyone, like what the stories leave.
+    // Beside the season's vase on the big table, and drawn at its depth.
+    if (this.room === 'cafe' || this.room === 'study') {
+      this.cake = this.add.image(0, 0, 'cake').setOrigin(0).setDepth(overlayDepth(this.room, 'season-spring', 1.5)).setVisible(this.cakeWanted);
+    }
+    if (this.room === MENU_BOARD.room) this.menu = this.add.image(MENU_BOARD.x, MENU_BOARD.y, 'bakery-board', 0).setOrigin(0).setDepth(1.4);
     this.addObjects();
     const slate = ZONES.find((z) => z.id === 'board')!;
     this.add
@@ -781,10 +812,10 @@ export class CafeScene extends Phaser.Scene {
     this.weather.setReducedMotion(this.reducedMotion);
     // The hour first, so today's weather (and the animals) start out right for it.
     this.period = periodAt(new Date().getHours());
-    this.followCalendar(new Date());
+    this.followCalendar(new Date(), false);
     this.setPeriod(periodAt(new Date().getHours()), true);
     const tick = () => this.time.delayedCall(msToNextHour(new Date()) + 1000, () => {
-      this.followCalendar(new Date());
+      this.followCalendar(new Date(), true);
       this.setPeriod(periodAt(new Date().getHours()));
       tick();
     });
@@ -792,10 +823,14 @@ export class CafeScene extends Phaser.Scene {
   }
 
   /** A new day may bring new weather, a new season or put the decorations up (checked every hour with the light). */
-  private followCalendar(date: Date) {
+  private followCalendar(date: Date, open: boolean) {
     const sky = skyOn(date);
     const holiday = holidayOn(date);
-    if (seasonOf(date) !== this.weather.season) this.setSeason(seasonOf(date));
+    if (seasonOf(date) !== this.weather.season) {
+      this.setSeason(seasonOf(date));
+      // Only a season turning while the shop is open, not the one it opens in.
+      if (open) this.onSeasonTurn?.(seasonOf(date));
+    }
     if (sky !== this.weather.sky || holiday !== this.weather.holiday) this.setWeather(sky, holiday, false);
   }
 
@@ -804,9 +839,21 @@ export class CafeScene extends Phaser.Scene {
     return { sky: this.weather?.sky ?? 'clear', holiday: this.weather?.holiday ?? null, season: this.weather?.season ?? 'spring' };
   }
 
+  /** The shop's anniversary cake on the big table, or not (also for screenshots). */
+  setCake(on: boolean) {
+    this.cakeWanted = on;
+    this.cake?.setVisible(on);
+  }
+
+  /** Whether the cake is out, for the acceptance scenarios. */
+  cakeOut(): boolean {
+    return !!this.cake?.visible;
+  }
+
   /** The season's piece in the shop and what grows in the garden (also for screenshots: lamplightDebug.scene.setSeason). */
   setSeason(season: Season) {
     this.weather.setSeason(season);
+    this.menu?.setFrame(menuFrame(season));
     this.garden.setSeason(season);
     this.street?.setOutside(this.outside());
   }
@@ -827,6 +874,7 @@ export class CafeScene extends Phaser.Scene {
     const from = fromLook ?? withWeather(LOOKS[this.period], this.weather?.sky ?? 'clear');
     this.period = period;
     this.garden?.setOutdoors(this.weather?.sky ?? 'clear', period);
+    this.weather?.setPeriod(period);
     const apply = (t: number) => {
       const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
         Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 1, t);

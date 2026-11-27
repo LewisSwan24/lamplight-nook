@@ -142,3 +142,83 @@ cancelled:
   - { id: pr_cancelled_01, speaker: aqian, bubbles: ["好，那先搁着。"] }
   - { id: pr_cancelled_02, speaker: aqian, bubbles: ["行，排好的版都留着。"] }
   - { id: pr_cancelled_03, speaker: aqian, bubbles: ["好，先不印了。"] }
+
+# 走进印刷铺时阿铅说的一句（plan-1.7.md G2，app/renderer/stage/shoptalk.ts）。有节日先说节日的，再看天气，
+# 都没有就在时辰、季节和平常的里面挑。when：period_dawn/day/dusk/night、sky_rain 等、holiday_*、season_*。
+shop_in:
+  - { id: pr_in_birthday, speaker: aqian, when: birthday_aqian, bubbles: ["今天我生日。", "给自己印了张贺卡。"] }
+  - { id: pr_in_01, speaker: aqian, bubbles: ["进来，当心脚下散落的铅字。"] }
+  - { id: pr_in_02, speaker: aqian, bubbles: ["坐，墨还在滚筒上匀着。"] }
+  - { id: pr_in_03, speaker: aqian, bubbles: ["来了。我这一行排完就来。"] }
+  - { id: pr_in_04, speaker: aqian, bubbles: ["别碰那张，墨还没干。"] }
+  - { id: pr_in_05, speaker: aqian, bubbles: ["进来吧，纸味有点冲。"] }
+  - { id: pr_in_06, speaker: aqian, bubbles: ["随便看，样张都在墙上。"] }
+  - { id: pr_in_dawn_01, speaker: aqian, when: period_dawn, bubbles: ["这么早？", "我刚把字盘摆出来。"] }
+  - { id: pr_in_dawn_02, speaker: aqian, when: period_dawn, bubbles: ["天刚亮，眼睛清，正好排字。"] }
+  - { id: pr_in_day_01, speaker: aqian, when: period_day, bubbles: ["中午光好，我在校样。"] }
+  - { id: pr_in_dusk_01, speaker: aqian, when: period_dusk, bubbles: ["傍晚了，今天这版快印完。"] }
+  - { id: pr_in_dusk_02, speaker: aqian, when: period_dusk, bubbles: ["天暗了，我刚点上台灯。"] }
+  - { id: pr_in_night_01, speaker: aqian, when: period_night, bubbles: ["这么晚。", "我在拆版，字要一个个归位。"] }
+  - { id: pr_in_night_02, speaker: aqian, when: period_night, bubbles: ["印机歇了，屋里还有墨味。"] }
+  - { id: pr_in_rain_01, speaker: aqian, when: sky_rain, bubbles: ["下雨天，纸得收进柜里。", "伞放门外。"] }
+  - { id: pr_in_snow_01, speaker: aqian, when: sky_snow, bubbles: ["快进来，门一开纸就飞。"] }
+  - { id: pr_in_spring_01, speaker: aqian, when: season_spring, bubbles: ["开春了，新纸刚到一批。"] }
+  - { id: pr_in_summer_01, speaker: aqian, when: season_summer, bubbles: ["天热，墨干得快，我手也快。"] }
+  - { id: pr_in_autumn_01, speaker: aqian, when: season_autumn, bubbles: ["秋天干爽，印出来字最清。"] }
+  - { id: pr_in_winter_01, speaker: aqian, when: season_winter, bubbles: ["冬天墨发稠，我在炉边烘着。"] }
+  - { id: pr_in_new_year, speaker: aqian, when: holiday_new_year, bubbles: ["过年好。", "春联印了一百副，红纸还剩半刀。"] }
+  - { id: pr_in_lantern, speaker: aqian, when: holiday_lantern, bubbles: ["元宵好。", "灯谜条是我印的，一条一个谜。"] }
+  - { id: pr_in_dragon_boat, speaker: aqian, when: holiday_dragon_boat, bubbles: ["端午好。", "龙舟队的号码布，我在印。"] }
+  - { id: pr_in_mid_autumn, speaker: aqian, when: holiday_mid_autumn, bubbles: ["中秋好。", "桂姨的月饼纸签，是我印的。"] }
+  - { id: pr_in_halloween, speaker: aqian, when: holiday_halloween, bubbles: ["南瓜灯的纸样，我印了一沓。"] }
+  - { id: pr_in_christmas, speaker: aqian, when: holiday_christmas, bubbles: ["圣诞卡印两色，红的那版刚上机。"] }
+
+# 店里没活时阿铅隔一会儿说一句：铅字、墨、纸、街坊、收工。when 同上，不写就是什么时候都行。
+shop_idle:
+  - { id: pr_idle_01, speaker: aqian, bubbles: ["这个“永”字磨平了，该换。"] }
+  - { id: pr_idle_02, speaker: aqian, bubbles: ["字盘里又少了个“的”。"] }
+  - { id: pr_idle_03, speaker: aqian, bubbles: ["滚筒要擦干净，不然印出来发花。"] }
+  - { id: pr_idle_04, speaker: aqian, bubbles: ["铅字是反的，看久了，人也倒着读。"] }
+  - { id: pr_idle_05, speaker: aqian, bubbles: ["纸要顺着纹路裁，才不起毛。"] }
+  - { id: pr_idle_06, speaker: aqian, bubbles: ["印机的把手，又松了一圈。"] }
+  - { id: pr_idle_07, speaker: aqian, bubbles: ["这刀纸厚薄不匀，得挑一挑。"] }
+  - { id: pr_idle_08, speaker: aqian, bubbles: ["行距差一点，整页都歪。"] }
+  - { id: pr_idle_09, speaker: aqian, bubbles: ["这盘老字，比这间铺子还老。"] }
+  - { id: pr_idle_10, speaker: aqian, bubbles: ["校样我看三遍，第四遍念出声。"] }
+  - { id: pr_idle_11, speaker: aqian, bubbles: ["错字最爱藏在标题里。"] }
+  - { id: pr_idle_12, speaker: aqian, bubbles: ["铅字一格一个，乱了就难找。"] }
+  - { id: pr_idle_13, speaker: aqian, bubbles: ["阿灯早上送来一单，压在排字台上。"] }
+  - { id: pr_idle_14, speaker: aqian, bubbles: ["桂姨要一沓价签，我顺手印了。"] }
+  - { id: pr_idle_15, speaker: aqian, bubbles: ["阿信要的明信片，印了五十张。"] }
+  - { id: pr_idle_16, speaker: aqian, bubbles: ["小禾拿来一首诗，想印成小册子。"] }
+  - { id: pr_idle_17, speaker: aqian, bubbles: ["吴阿姨的简报，每月十五号来印。"] }
+  - { id: pr_idle_18, speaker: aqian, bubbles: ["老马的菜单又改价了，重排一遍。"] }
+  - { id: pr_idle_19, speaker: aqian, bubbles: ["门口有人看墙上的样张，看了半天。"] }
+  - { id: pr_idle_20, speaker: aqian, bubbles: ["栗子来过，在纸上留了串墨爪印。"] }
+  - { id: pr_idle_dawn_01, speaker: aqian, when: period_dawn, bubbles: ["一早手稳，小号字留到这会儿排。"] }
+  - { id: pr_idle_dawn_02, speaker: aqian, when: period_dawn, bubbles: ["面包房的香味飘过来了。"] }
+  - { id: pr_idle_day_01, speaker: aqian, when: period_day, bubbles: ["中午街上吵，印机声都盖住了。"] }
+  - { id: pr_idle_dusk_01, speaker: aqian, when: period_dusk, bubbles: ["天暗了，红墨看着像黑的。"] }
+  - { id: pr_idle_dusk_02, speaker: aqian, when: period_dusk, bubbles: ["今天印的，挂起来晾一夜。"] }
+  - { id: pr_idle_night_01, speaker: aqian, when: period_night, bubbles: ["字归了盘，明天的版明天排。"] }
+  - { id: pr_idle_night_02, speaker: aqian, when: period_night, bubbles: ["夜里静，我把滚筒拆下来洗。"] }
+  - { id: pr_idle_rain_01, speaker: aqian, when: sky_rain, bubbles: ["雨天纸发软，进纸得慢一点。"] }
+  - { id: pr_idle_rain_02, speaker: aqian, when: sky_rain, bubbles: ["窗缝漏雨，纸架往里挪了挪。"] }
+  - { id: pr_idle_snow_01, speaker: aqian, when: sky_snow, bubbles: ["下雪天，炉子不敢断，墨怕冻。"] }
+  - { id: pr_idle_snow_02, speaker: aqian, when: sky_snow, bubbles: ["雪光照进来，纸白得晃眼。"] }
+  - { id: pr_idle_petals_01, speaker: aqian, when: sky_petals, bubbles: ["花瓣落在湿样张上，印进去了。"] }
+  - { id: pr_idle_leaves_01, speaker: aqian, when: sky_leaves, bubbles: ["纸堆里夹了片叶子，留着当书签。"] }
+  - { id: pr_idle_spring_01, speaker: aqian, when: season_spring, bubbles: ["春天返潮，纸要一张张晾。"] }
+  - { id: pr_idle_spring_02, speaker: aqian, when: season_spring, bubbles: ["春天印请柬的多，都是喜事。"] }
+  - { id: pr_idle_summer_01, speaker: aqian, when: season_summer, bubbles: ["夏天手汗多，拿纸前先擦手。"] }
+  - { id: pr_idle_summer_02, speaker: aqian, when: season_summer, bubbles: ["蝉吵了一下午，我排错两个字。"] }
+  - { id: pr_idle_autumn_01, speaker: aqian, when: season_autumn, bubbles: ["秋天纸最听话，不卷不潮。"] }
+  - { id: pr_idle_autumn_02, speaker: aqian, when: season_autumn, bubbles: ["开学了，印了一沓课程表。"] }
+  - { id: pr_idle_winter_01, speaker: aqian, when: season_winter, bubbles: ["冬天手指僵，拣字慢了一半。"] }
+  - { id: pr_idle_winter_02, speaker: aqian, when: season_winter, bubbles: ["年底挂历的单子，排到下个月了。"] }
+  - { id: pr_idle_halloween_01, speaker: aqian, when: holiday_halloween, bubbles: ["南瓜脸的纸样，孩子们拿走一半。"] }
+  - { id: pr_idle_christmas_01, speaker: aqian, when: holiday_christmas, bubbles: ["绿的那版对歪了一点，再来。"] }
+  - { id: pr_idle_new_year_01, speaker: aqian, when: holiday_new_year, bubbles: ["福字倒着印，也是对的。"] }
+  - { id: pr_idle_lantern_01, speaker: aqian, when: holiday_lantern, bubbles: ["灯谜我先猜了一条，没猜中。"] }
+  - { id: pr_idle_dragon_boat_01, speaker: aqian, when: holiday_dragon_boat, bubbles: ["号码要印得大，岸上才看得见。"] }
+  - { id: pr_idle_mid_autumn_01, speaker: aqian, when: holiday_mid_autumn, bubbles: ["月亮那版用了金墨，贵。"] }

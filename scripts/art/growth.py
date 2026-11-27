@@ -59,6 +59,8 @@ DRAWN = {
     # tied with red string, left on the big table for anyone to take.
     'cardline': ['x.......................x', '.lllllllllllllllllllllll.', '.xxxxx.xxxxx.xxxxx.xxxxx.', '.xwwwx.xyyyx.xpppx.xaaax.', '.xwrwx.xygyx.xprpx.xawax.', '.xwwwx.xyyyx.xpppx.xaaax.', '.xxxxx.xxxxx.xxxxx.xxxxx.'],
     'newsletters': ['.xxxxxxxxxx.', '.xwlllwwllx.', '.xwwwwwwwwx.', 'xxxxxxxxxxxx', 'xwwwwwwwwwwx', 'xxxxxrrxxxxx'],
+    # Revision cards (plan-1.8.md H1): a stack of white index cards in a red rubber band, the top one a little askew.
+    'cardstack': ['..xxxxxxxx', '.xwwwwrwwx', 'xwwwwwrwwx', 'xlllllrllx', 'xxxxxxxxxx'],
     'toolbox': ['.....xxxx.....', '.....x..x.....', '..xxxxxxxxxx..', '.xrrrrrrrrrrx.', 'xxxxxxxxxxxxxx', 'xrrrrrrrrrrrrx',
                 'xrrrrrlllrrrrx', 'xrrrrrrrrrrrrx', 'xrrrrrrrrrrrrx', 'xxxxxxxxxxxxxx'],
     # Past fifty (road-to-1.1.md A9). c glass, a water, f goldfish, h brass shadow, m plum, t straw shadow; the rest as COLORS.
@@ -183,6 +185,9 @@ def pieces_by_id():
         'cookbook': [(drawn('cookbook'), (65, 89))],  # a recipe book lying on the filing cabinet
         'cardline': [(drawn('cardline'), (199, 15))],  # greeting cards on a string across the top of the side window (F2)
         'newsletters': [(drawn('newsletters'), (62, 31))],  # newsletters on the second window's sill, for anyone to take
+        # A stack of revision cards lying at the front of the bookcase top, in front of the books (plan-1.8.md H1). The
+        # study's bookcase top is a little higher than the cafe's; both reach the stack's bottom row.
+        'cardstack': [(drawn('cardstack'), (15, 112))],
         # Past fifty (road-to-1.1.md A9): hung on what wall there is left, on the counter, and in two corners nobody walks
         # through (tests/routes.test.ts). Each sits the same in the cafe and the study.
         'chime': [(drawn('chime'), (44, 17))],  # wind chimes between the two windows
@@ -201,7 +206,11 @@ def pieces_by_id():
 # resume (a sheet with a photo), notes (an open book with a bookmark), travel (a suitcase), tool (a wrench),
 # document (a page with a dog-ear, a blue heading and lines of text), slides (a slide on a stand, a title and bars),
 # menu (a card with a red band and prices, plan-1.6.md F1), recipe (a mixing bowl with a spoon in it),
-# card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text).
+# card (a cream card with a red heart, plan-1.6.md F2), newsletter (a sheet with a green masthead and lines of text),
+# flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1),
+# ledgerbook (a pie chart in cream, red and green, plan-1.8.md H5), minigame (a blue gamepad, plan-1.8.md H2),
+# comic (four panels, two by two, plan-1.8.md H3), picturebook (a closed book, a moon on its blue cover, plan-1.8.md H4),
+# repair (a dark screen on a stand with a green prompt and cursor, plan-1.8.md H9).
 ICONS = {
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
@@ -219,6 +228,12 @@ ICONS = {
     'recipe': ['........', '....l...', '....l...', 'uuuuluuu', 'uwwwwwwu', '.uwwwwu.', '..uuuu..', '........'],
     'card': ['........', '.yyyyyy.', '.yryyry.', '.yrrrry.', '.yyrryy.', '.yyyyyy.', '.yyyyyy.', '........'],
     'newsletter': ['.dddddd.', '.dwwwwd.', '.dggggd.', '.dwwwwd.', '.dlwlld.', '.dwwwwd.', '.dlllwd.', '.dddddd.'],
+    'flashcards': ['...ddddd', '...dyyyd', 'ddddddyd', 'dwwwwddd', 'drrrrd..', 'dwwwwd..', 'dllwwd..', 'dddddd..'],
+    'ledgerbook': ['..dddd..', '.dyyrrd.', 'dyyyrrrd', 'dyyyrrrd', 'dyyyggdd', 'dyygggdd', '.dygggd.', '..dddd..'],
+    'minigame': ['........', '........', '.uuuuuu.', 'uuxuuruu', 'uxxxurru', 'uuxuuuuu', '.uu..uu.', '........'],
+    'comic': ['xxxxxxxx', 'xcwcxyyx', 'xcccxysx', 'xxxxxxxx', 'xpppxccx', 'xpwpxcsx', 'xpppxccx', 'xxxxxxxx'],
+    'picturebook': ['.xxxxxxx', '.xrccGcx', '.xrcGGcx', '.xrccccx', '.xrggggx', '.xrwwwwx', '.xrwllwx', '.xxxxxxx'],
+    'repair': ['xxxxxxxx', 'xvvvvvvx', 'xvgvvvvx', 'xvvgvvvx', 'xvgvlllx', 'xvvvvvvx', 'xxxxxxxx', '..xxxx..'],
     'tool': ['.....l.l', '.....lll', '....lll.', '...lll..', '..lll...', '.lll....', '.ll.....', '........'],
     'document': ['.ddddd..', '.dwwwdd.', '.duuuwwd', '.dwwwwwd', '.dllllwd', '.dwwwwwd', '.dlllwwd', '.ddddddd'],
     'slides': ['kkkkkkkk', '.wwwwww.', '.wffffw.', '.wwwwuw.', '.wgwuuw.', '.wwwwww.', '...kk...', '..k..k..'],
@@ -233,7 +248,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
@@ -247,7 +262,9 @@ ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 
 #   post (plan-1.6.md F2): grow-post-stamp.png, grow-post-ivy.png, grow-post-horn.png, grow-post-map.png
 # The bakery's two kinds of work bring pieces to the home shop too, among the overlays below: grow-chalkboard.png for a
 # menu and grow-cookbook.png for a recipe; and the post office's (plan-1.6.md F2) grow-cardline.png for a greeting card
-# and grow-newsletters.png for a newsletter.
+# and grow-newsletters.png for a newsletter. Revision cards (plan-1.8.md H1) bring grow-cardstack.png.
+# A family ledger (plan-1.8.md H5) brings its piece into the print shop itself, where it was made, rather than home:
+# grow-print-ledgerbook.png, an open account book on the counter (ROOM_WORK below; shared/towngrow.ts ROOM_WORK).
 ROOM_DRAWN = {
     'ivy': ['....x....', '....x....', '..xxxxx..', '.xoooooox'[:9], '.xoooooox'[:9], '..xxxxx..', '.gg.g.gg.', 'g.g.g.g.g',
             '.g..g..g.', '.g.gg..g.', 'g...g.g..', '....g....', '...g.....'],
@@ -285,6 +302,31 @@ ROOM_DRAWN = {
                   'xuwwwwwuuuwuux', 'xuuuuwuuuuwuux', 'xuuuuwwwwwwuux', 'xuuuuuuuuuuuux', 'xxxxxxxxxxxxxx'],
 }
 ROOM_SLOTS = {'first': (234, 20), 'ivy': (7, 17), 'eighth': (252, 18), 'twentieth': (270, 18)}
+# What a kind of work brings into the shop that does it (plan-1.8.md H5), by shop: (piece, where its top left goes).
+# These lie on furniture, so each has a place of its own rather than a wall slot. The family ledger lies open on the
+# right of the print shop's counter, over the galley (print.py, composing_frame at (216, 76)): ruled pages, a red
+# margin line, the red cloth of its cover showing at the foot.
+ROOM_DRAWN['ledgerbook'] = ['.xxxxxxxxxxxxx.', 'xwrwwwwxwrwwwwx', 'xwrlllwxwrlllwx', 'xwrwwwwxwrwwwwx', 'xwrllwwxwrllllx', 'xwwwwwwxwwwwwwx',
+                            'xnnnnnnxnnnnnnx', '.xxxxxxxxxxxxx.']
+# A small game (plan-1.8.md H2) puts a little game machine on the workshop's wall, on a shelf of its own between the
+# tool board and the right-hand window: a blue cabinet with a yellow marquee, a lit screen, a stick and two red buttons.
+# Written as grow-workshop-arcade.png.
+ROOM_DRAWN['arcade'] = ['..xxxxxxxxx..', '.xuGGGGGGGux.', '.xuuuuuuuuux.', '.xuxxxxxxxux.', '.xuxaaaaaxux.', '.xuxacaaaxux.',
+                        '.xuxaaaGaxux.', '.xuxaaaaaxux.', '.xuxxxxxxxux.', 'xuuuuuuuuuuux', 'xulllurruGuux', 'xuuuuuuuuuuux',
+                        '.xuuuuuuuuux.', '.xuuuxGxuuux.', '.xuuuuuuuuux.', '.xxxxxxxxxxx.', 'kkkkkkkkkkkkk', 'xxxxxxxxxxxxx',
+                        '.x.........x.', '..x.......x..']
+# A comic (plan-1.8.md H3) pins a strip of four panels on the studio's wall, between the line of drawings and the
+# right-hand window: sky, sand, pink and sky again, someone in each and a bubble. Written as grow-studio-strip.png.
+ROOM_DRAWN['strip'] = ['.....r.....', 'xxxxxxxxxxx', 'xccccccGGcx', 'xcwwwcccccx', 'xccwcccsccx', 'xcccccxxxcx', 'xxxxxxxxxxx',
+                       'xyyyyyyyyyx', 'xyyyywwwyyx', 'xysyyywyyyx', 'xxxxyyyyyyx', 'xxxxxxxxxxx', 'xpppppppppx', 'xpwwwpppspx',
+                       'xppwppppxpx', 'xppppppxxxx', 'xxxxxxxxxxx', 'xcccccccccx', 'xcscwwwscx'[:10] + 'x', 'xcxxcwrwxcx',
+                       'xcxxcccxxcx', 'xxxxxxxxxxx']
+# A picture book (plan-1.8.md H4) is drawn in the studio but laid out in the print shop, so its piece stands there: a
+# little book on the sill of the second window, a red spine, a moon over grass on its cover and a white title band.
+# Written as grow-print-book.png.
+ROOM_DRAWN['book'] = ['xxxxxxxxx', 'xrcccGccx', 'xrccGGccx', 'xrcccGccx', 'xrccccccx', 'xrggggggx', 'xrwwwwwwx', 'xrwllllwx',
+                      'xrwwwwwwx', 'xxxxxxxxx']
+ROOM_WORK = {'print': [('ledgerbook', (245, 74)), ('book', (66, 26))], 'workshop': [('arcade', (182, 22))], 'studio': [('strip', (184, 17))]}
 # Shop -> (piece, slot), in the order they come (shared/growth.ts ROOM_GROWTH).
 ROOM_PIECES = {
     'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],
@@ -307,6 +349,21 @@ def room_overlays():
                     if c != '.':
                         img.putpixel((x, y), COLORS[c])
             overlay([(img, ROOM_SLOTS[slot])]).save(OUT / f'grow-{shop}-{piece}.png', optimize=True)
+    for shop, pieces in ROOM_WORK.items():
+        for piece, at in pieces:
+            overlay([(drawn_room(piece), at)]).save(OUT / f'grow-{shop}-{piece}.png', optimize=True)
+
+
+def drawn_room(piece):
+    """One of ROOM_DRAWN as a picture of its own size."""
+    rows = ROOM_DRAWN[piece]
+    img = Image.new('RGBA', (len(rows[0]), len(rows)), (0, 0, 0, 0))
+    for y, row in enumerate(rows):
+        assert len(row) == len(rows[0]), (piece, row)
+        for x, c in enumerate(row):
+            if c != '.':
+                img.putpixel((x, y), COLORS[c])
+    return img
 
 
 def overlay(pieces):

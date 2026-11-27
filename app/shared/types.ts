@@ -5,7 +5,7 @@ import type { RoomId, SceneId } from './scenes';
 import type { MiniState } from './mini';
 // Types shared by the main and renderer processes.
 import type { GrowthId, WorkIcon } from './growth';
-import type { TemplateId } from './templates';
+import type { TemplateId, TemplateLayout } from './templates';
 import type { Shop } from './dispatch';
 import type { ModelTier } from './models';
 import type { Provider } from './providers';
@@ -18,9 +18,12 @@ export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'a
 /**
  * Neighbours who drop in now and then: Auntie Gui from the bakery, Axin the postman, and those the work brings (game/guests.ts):
  * since plan-1.6.md F1 also Old Ma from the noodle bar (`cook`) and Lin who lives upstairs (`lodger`), and since F2 Fern
- * from the flower shop (`florist`) and Mrs Wu from the residents' committee (`organizer`).
+ * from the flower shop (`florist`) and Mrs Wu from the residents' committee (`organizer`); since plan-1.8.md H1 Lele, who
+ * has exams coming (`pupil`), since H5 Auntie Qin, who keeps her household's accounts (`bookkeeper`), and since H2
+ * Duoduo's dad, who wanted a small game for his daughter (`dad`), since H3 Xiaosu, who edits a newsletter account
+ * and needs a comic a week (`editor`), and since H4 Xiaoman's mum, who reads to him at bedtime (`mum`).
  */
-export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer'] as const;
+export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil', 'bookkeeper', 'dad', 'editor', 'mum'] as const;
 export type GuestId = (typeof GUESTS)[number];
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;
@@ -76,7 +79,7 @@ export type KeySaveResult = { ok: true; verified: boolean; hint: string } | { ok
  * the scene also shows what is really happening underneath (detailed mode).
  */
 /** volume is 0-100 and covers both effects and music. budgetUsd caps what one run may spend (0 = no cap). */
-export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; /** Which model the staff work on (plan-1.6.md F6). */ modelTier: ModelTier; /** Where the work is sent (plan-1.6.md F7); never a key. */ provider: Provider; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
+export type Settings = { name: string; /** The player's look in the shop, 1..AVATAR_COUNT (shared/avatars.ts). */ avatar: number; workRoot: string; onboarded: boolean; muted: boolean; detailed: boolean; volume: number; captions: boolean; reducedMotion: boolean; /** Fewer frames a second, for a slow computer or a battery (road-to-1.4.md D8). */ powerSaving: boolean; /** The counter opens the hand-in card first, not the slip (plan-1.8.md H8, Q-F11). */ handInFirst: boolean; /** Paired phones and computers on the home network may connect (docs/plan-1.5.md E1). */ lan: boolean; /** Its port, picked the first time it is switched on (0 until then). */ lanPort: number; notify: boolean; closeToTray: boolean; /** Open in the tray when the computer starts (road-to-1.2.md B6); never in the Store build. */ openAtLogin: boolean; /** Scheduled commissions are paused, from the tray's menu (B6). */ schedulesPaused: boolean; /** Every connection is paused, from settings (road-to-1.3.md C6). */ connectionsPaused: boolean; /** A small window in the corner of the desktop while the shop is out of sight. */ mini: boolean; /** Look for new versions (never in the Store build); downloading still waits for the user. */ updates: boolean; /** Where the shop is (shared/scenes.ts). */ scene: SceneId; /** How each scene is furnished (shared/furnish.ts). */ furnish: Furnishings; /** Which model the staff work on (plan-1.6.md F6). */ modelTier: ModelTier; /** Where the work is sent (plan-1.6.md F7); never a key. */ provider: Provider; budgetUsd: number; /** The most all rounds may spend in a calendar month (0 = no cap; road-to-1.2.md B8). */ monthCapUsd: number; language: LanguageChoice };
 
 /** The app's language: one of the locales, or whatever the system uses. Takes effect on restart. */
 export type LanguageChoice = 'system' | 'zh-CN' | 'en';
@@ -188,6 +191,8 @@ export interface LamplightApi {
   chooseSource(template: CommissionTemplate): Promise<SourcePick | null>;
   /** Pick a folder of the user's own for the shop to work in; null if cancelled, an error if it can't be lent. */
   chooseLent(): Promise<SourcePick | null>;
+  /** Keep or drop a repair's branch, from its review sheet (plan-1.8.md H9); the state it ends in. */
+  decideRepair(id: string, keep: boolean): Promise<RepairSheet['state'] | null>;
   /** Files dragged onto the counter or the form (paths from pathsOf), or picked in a dialog when none are given. */
   handOver(paths: string[] | null, already: Material[]): Promise<HandOver>;
   /** The paths of files dropped on the page (the preload reads them; the page can't). */
@@ -333,7 +338,9 @@ export type CommissionTemplate = TemplateId;
  * `consult`: the talk with Adeng the slip came out of (B4), to go on the project once it is handed in.
  * `connections`: the connections ticked under "this one may use" (road-to-1.3.md C4); none unless the user ticks one.
  */
-export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[];
+export type CommissionForm = { want: string; details?: string; audience?: string; demo?: boolean; template?: CommissionTemplate;
+  /** One of the template's own layouts, picked on the slip (plan-1.8.md H6); absent: the plain one. */
+  layout?: TemplateLayout; source?: string; materials?: string[]; inPlace?: string; consult?: string; connections?: string[];
   /** The model this one commission runs on, changed on the slip (plan-1.6.md F6); absent: the one in settings. */
   model?: ModelTier;
   /** Handed in from a paired device on the home network (docs/plan-1.5.md E5): which one. Absent: the owner, at the desk. */
@@ -409,7 +416,7 @@ export type Material = { path: string; name: string; size: number };
 export type HandOver = { items: Material[]; refused: { name: string; why: 'folder' | 'too-big' | 'too-many' | 'missing' | 'picture' }[] };
 
 /** A file or folder the user picked for a commission; error when it can't be used. */
-export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' | 'macros' };
+export type SourcePick = { path: string; name: string } | { error: 'too-big' | 'broad' | 'macros' | 'noGit' | 'notRepo' };
 
 /** Files produced by a finished commission. */
 /** costUsd: what this commission cost in all, as estimated (absent when unknown). */
@@ -457,7 +464,27 @@ export type CommissionResult = {
   scripts?: ScriptCheck[];
   /** The main file's thumbnail, a PNG data: address, once the main process has taken it (road-to-1.3.md C1). */
   preview?: string;
+  /** A repair in the user's code repository (plan-1.8.md H9): the review sheet, to keep or drop its branch. */
+  repair?: RepairSheet;
 };
+
+/**
+ * The review sheet a repair comes back with (plan-1.8.md H9): the branch it was done on, each file changed with the
+ * fixer's reason, and how the tests went. Kept, the branch stays for the user to merge; dropped, it is deleted (Q-F12).
+ * `added` and `removed` are lines, -1 for a binary file. `testsSeen`: the shop saw a test command run this round.
+ */
+export type RepairSheet = {
+  repo: string;
+  branch: string;
+  files: { path: string; added: number; removed: number; why?: string }[];
+  tests: { ran: boolean; passed?: boolean; command?: string; note?: string };
+  testsSeen: boolean;
+  state: 'waiting' | 'kept' | 'dropped';
+};
+
+/** Where a repair works: a worktree of the user's repository, inside the commission folder, on its own branch from `base`. */
+export type RepairBranch = { repo: string; branch: string; base: string; dir: string; gitDir: string };
+export type RepairRecord = RepairSheet & RepairBranch;
 
 /** Why a Word, Excel or PowerPoint file was shown in its folder rather than opened (office/safe.ts). */
 export type NotOpened = 'macros' | 'embedded' | 'externalTemplate' | 'externalLink' | 'unreadable' | 'notPlain' | 'notOurs';
@@ -543,6 +570,7 @@ export const IPC = {
   aiEvent: 'ai:event',
   chooseSource: 'commission:choose-source',
   chooseLent: 'commission:choose-lent',
+  decideRepair: 'repair:decide',
   undoWork: 'commission:undo',
   shareOptions: 'shop:share-options',
   shareWork: 'shop:share-work',
@@ -637,6 +665,8 @@ export type AiEvent = {
   choice?: Choice;
   /** Consecutive failures for this agent so far. */
   failStreak?: number;
+  /** A shell command that runs the project's tests (plan-1.8.md H9): the workshop counts these. */
+  test?: boolean;
   /** For `plan` and `progress` events from Claude's own to-do list: the whole list as it stands. */
   todos?: Todo[];
   raw?: unknown;
@@ -651,7 +681,7 @@ export type AiEvent = {
  * same as on the project board (ProjectRow.color): the flags over its crew and its column on the blackboard (B9). `shop`:
  * where it is played (road-to-1.4.md D3), from its commission's kind; absent for the home shop.
  */
-export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[]; shop?: Shop };
+export type RunInfo = { run: string; project: RunProject; state: 'running' | 'waiting' | 'queued'; color: number; waits?: 'slot' | 'project' | 'money'; behind?: string[]; shop?: Shop; repair?: boolean };
 
 /** The project a round works on, as the shop names it: its id once it has one (a new commission gets it as it ends), and its title. */
 export type RunProject = { id?: string; title: string };
@@ -724,6 +754,8 @@ export type CommissionMemo = {
    * Only these go in its zip (A8); the rest of the folder is the user's.
    */
   touched?: string[];
+  /** A repair's branch and review sheet (plan-1.8.md H9). */
+  repair?: RepairRecord;
   /** The project it belongs to (1.2). Every commission has one once the notebook is open (projects.ts). */
   project?: string;
 };
@@ -825,6 +857,8 @@ export type Work = {
   want?: string;
   /** The project it belongs to, for going there from the shelf (B2). */
   project: string;
+  /** The shop that made it, from its template; a free-form order is home's (plan-1.8 H7). */
+  shop: Shop;
 };
 
 /** Where a project stands, on the project board (B2). Queued comes with B5. */

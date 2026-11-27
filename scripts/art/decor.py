@@ -3,7 +3,8 @@
 Halloween and Christmas pieces come from LimeZu Modern Interiors (assets/vendor/, not in the repo);
 the Lunar New Year lanterns and couplets, the other lunar festivals, the seasons' pieces on the side window's sill
 and the weather touches are drawn here.
-Writes assets/sprites/decor-<holiday>.png, season-<season>.png and weather-<sky>.png.
+Writes assets/sprites/decor-<holiday>.png, season-<season>.png and weather-<sky>.png (weather-fog.png, weather-wind.png and
+weather-storm.png since 1.7).
 Run: python3 scripts/art/decor.py
 """
 from pathlib import Path
@@ -166,6 +167,31 @@ def season(name):
     return img
 
 
+# The shop's anniversary (plan-1.7.md G3): a cake on a plate beside the vase on the big table, one candle lit, pink
+# cream between the layers: cake.png, a whole-room overlay like the season's piece.
+CAKE = [
+    '.....y.....',
+    '.....o.....',
+    '.....p.....',
+    '..wwwpwww..',
+    '.wpwwwwwpw.',
+    'wwwwwwwwwww',
+    'cpcpcpcpcpc',
+    'ccccccccccc',
+    'wwwwwwwwwww',
+    'ccccccccccc',
+    '.xxxxxxxxx.',
+]
+CAKE_RIGHT_OF_VASE = 12
+
+
+def cake():
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    vx, vy = TABLE_PIECE
+    draw_at(img, CAKE, vx + CAKE_RIGHT_OF_VASE, vy)
+    return img
+
+
 # Weather touches, drawn by hand: u umbrella, h handle, w water, l leaf, o dark leaf, p petal.
 UMBRELLA = [
     '..hh.',
@@ -196,6 +222,11 @@ SILLS = (range(16, 84), range(197, 225))
 SILL_Y = 29
 SILL_WOOD = {(181, 117, 77), (199, 140, 89)}
 SNOW = (255, 255, 255, 255)
+# Fog (plan-1.7.md G4): beads of mist on the window panes, a little lighter than the glass.
+MIST = (236, 240, 244, 170)
+MIST_BEADS = [(20, 9), (27, 15), (35, 7), (44, 20), (51, 11), (60, 17), (69, 8), (77, 22), (23, 24), (56, 25), (201, 10), (209, 18), (218, 8), (221, 23)]
+# Wind: leaves blown in at the door and swept across the floor, further in than on a still day.
+BLOWN = [(296, 50, 'l'), (288, 56, 'o'), (270, 61, 'l'), (252, 58, 'o'), (236, 64, 'l'), (219, 60, 'o'), (204, 66, 'l'), (262, 68, 'o'), (244, 52, 'l')]
 
 
 def put(img, x, y, c, w=1):
@@ -228,7 +259,18 @@ def weather():
     petals = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     for x, y, c in PETALS:
         put(petals, x, y, c, 2)
-    return {'rain': rain, 'snow': snow, 'leaves': leaves, 'petals': petals}
+    # A storm leaves the same umbrella by the door, with a wider puddle.
+    storm = rain.copy()
+    for dx in range(-4, 10):
+        storm.putpixel((x + dx, y + len(UMBRELLA) + 2), WEATHER_COLORS['w'])
+    fog = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for bx, by in MIST_BEADS:
+        for dx, dy in ((0, 0), (1, 0), (0, 1)):
+            fog.putpixel((bx + dx, by + dy), MIST)
+    wind = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    for bx, by, c in BLOWN:
+        put(wind, bx, by, c, 2)
+    return {'rain': rain, 'snow': snow, 'leaves': leaves, 'petals': petals, 'storm': storm, 'fog': fog, 'wind': wind}
 
 
 def draw_with(img, rows, x, y, colors):
@@ -545,6 +587,23 @@ def stall(awning, goods, lantern_rows=None):
     return [''.join(r) for r in rows]
 
 
+# A rabbit lantern on little wheels, lit inside, for the pavement by each door at Mid-Autumn (1.7 G1).
+RABBIT_LANTERN = [
+    '.xx..xx.......',
+    '.xpx.xpx......',
+    '.xpx.xpx......',
+    'xxwwxwwxxx....',
+    'xwwwwwwwwwxx..',
+    'xrwwwwwwwwwwx.',
+    'xwwwwmmwwwwwx.',
+    'xwwwmmmmwwwwx.',
+    '.xwwwmmwwwwx..',
+    '..xxxxxxxxx...',
+    '..xbx...xbx...',
+    '...x.....x....',
+]
+# The New Year stall in the lot: folded couplets in two stacks on the counter, two hung from the awning to show.
+COUPLET_STACKS = ['rrrrrrrrr..ddddddddd', 'rgrrgrrgr..dgddgddgd', 'rrrrrrrrr..ddddddddd', 'rgrrgrrgr..dgddgddgd', 'rrrrrrrrr..ddddddddd']
 ZONGZI = ['...L.....L.....L.....L...', '..LDL...LDL...LDL...LDL..', '.LwLDL.LwLDL.LwLDL.LwLDL.', 'LLrLLLLLLrLLLLLLrLLLLLLrL']
 MOONCAKE_ROW = ['.xxx..xxx..xxx..xxx..xxx', 'xcycx.xcycxxcycx.xcycxcyc', 'xcccx.xcccxxcccx.xcccxccc', '.xxx..xxx..xxx..xxx..xxx']
 
@@ -563,6 +622,30 @@ def riddle_lanterns():
         draw(img, [row.replace('R', colour) for row in SMALL_LANTERN], x, 4)
         for y in range(15, 19):
             img.putpixel((x + 3, y), COLORS['w'])
+    return img
+
+
+def couplet_stall():
+    img = Image.new('RGBA', (36, 34), (0, 0, 0, 0))
+    draw(img, stall('rd', COUPLET_STACKS, FU), 0, 0)
+    for x in (6, 11):
+        for y in range(6, 20):
+            for dx in range(3):
+                img.putpixel((x + dx, y), COLORS['r'])
+            if y % 4 == 1:
+                img.putpixel((x + 1, y), COLORS['g'])
+    return img
+
+
+def small_lanterns(width):
+    """A string of little lanterns across a door, red and orange by turns, the string sagging a pixel between them."""
+    n = max(2, (width + 6) // 10)
+    w = n * 10 - 3
+    img = Image.new('RGBA', (w, 12), (0, 0, 0, 0))
+    for x in range(w):
+        img.putpixel((x, 0 if x % 10 in (0, 1, 2, 3, 4, 5, 6) else 1), COLORS['s'])
+    for i in range(n):
+        draw(img, [row.replace('R', 'ro'[i % 2]) for row in SMALL_LANTERN[1:]], i * 10, 1)
     return img
 
 
@@ -615,19 +698,30 @@ def street_layers(town):
             roof_snow(town, on_ground)
 
     # The New Year: two red lanterns at every door. Christmas: a wreath on it. Halloween: a pumpkin lantern beside it.
+    # Since 1.7 (G1) the other three as well: a string of little lanterns over the door for the Lantern Festival,
+    # mugwort either side of it for the Dragon Boat Festival, a rabbit lantern on the pavement for Mid-Autumn.
     new_year, xmas, halloween_ = layer('new_year'), layer('christmas'), layer('halloween')
+    lantern_, dragon, moon = layer('lantern'), layer('dragon_boat'), layer('mid_autumn')
     jack = jack_o_lantern()
+    rabbit = Image.new('RGBA', (len(RABBIT_LANTERN[0]), len(RABBIT_LANTERN)), (0, 0, 0, 0))
+    draw(rabbit, RABBIT_LANTERN, 0, 0)
     signs = [g for g in town['grow'] if g['id'] == 'sign']
     for shop, (left, right, top) in DOORS.items():
         for x in (left - 11, right + 2):
             # A lantern that would hang over the shop's new sign (D5) hangs just inside it instead.
             sign = next((g for g in signs if x < g['x'] + g['w'] and g['x'] < x + 9), None)
             draw(new_year, LANTERN, sign['x'] - 10 if sign else x, top - 9)
+            draw(dragon, MUGWORT, (sign['x'] - 10 if sign else x), top - 6)
         draw(xmas, WREATH, (left + right) // 2 - 4, top + 2)
+        string = small_lanterns(right - left)
+        lantern_.alpha_composite(string, ((left + right - string.width) // 2, top - 13))
         jx = left - 2 - jack.width if shop in PUMPKIN_LEFT else right + 2
         halloween_.alpha_composite(jack, (jx, kerb + 3 - jack.height))
+        rx = left - 2 - rabbit.width if shop in PUMPKIN_LEFT else right + 2
+        moon.alpha_composite(rabbit, (rx, kerb + 3 - rabbit.height))
 
-    # In the lot, where the cart stands: a tree, a pile of pumpkins, the lantern riddles, a zongzi and a mooncake stall.
+    # In the lot, where the cart stands: a tree, a pile of pumpkins, a couplet stall, the lantern riddles, a zongzi and a
+    # mooncake stall.
     def in_lot(id_, img):
         layer(id_, lot=True).alpha_composite(img, (SPOT[0] + (SPOT[1] - SPOT[0] - img.width) // 2, SPOT_BOTTOM - img.height + 1))
 
@@ -636,6 +730,7 @@ def street_layers(town):
     tree.alpha_composite(christmas.crop((0, 100, 30, 140)), (0, 1))
     in_lot('christmas', tree.crop(tree.getbbox()))
     in_lot('halloween', pumpkin_pile())
+    in_lot('new_year', couplet_stall())
     in_lot('lantern', riddle_lanterns())
     zongzi = Image.new('RGBA', (36, 34), (0, 0, 0, 0))
     draw(zongzi, stall('Ln', ZONGZI), 0, 0)
@@ -735,6 +830,7 @@ def build():
     mid_autumn().save(OUT / 'decor-mid_autumn.png')
     for name in SEASON_SPRIGS:
         season(name).save(OUT / f'season-{name}.png')
+    cake().save(OUT / 'cake.png')
     for sky, img in weather().items():
         img.save(OUT / f'weather-{sky}.png')
 

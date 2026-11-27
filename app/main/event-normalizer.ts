@@ -1,5 +1,6 @@
 import { fill, pattern, strings } from '../shared/i18n';
 import { plainTodo, todosOf, type Todo } from '../shared/board';
+import { isTestCommand, steppingIn, trimmedTest } from '../shared/repair';
 import type { AiEvent, AiEventKind, Choice, RawAgentEvent, Risk } from '../shared/types';
 
 /**
@@ -32,7 +33,7 @@ export type NormalizerOptions = {
   toolName?: (name: string) => string;
 };
 
-type Running = { tool: string; agent: Agent; target?: string; startedAt: number; longWaitSent: boolean };
+type Running = { tool: string; agent: Agent; target?: string; startedAt: number; longWaitSent: boolean; test?: boolean };
 
 const obj = (v: unknown): Obj => (v && typeof v === 'object' ? (v as Obj) : {});
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
@@ -40,6 +41,16 @@ const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : und
 function asAgent(type: unknown): Agent {
   if (type === undefined || type === null) return 'main';
   return SUBAGENT_TYPES.includes(type as Agent) ? (type as Agent) : 'unknown';
+}
+
+/**
+ * A shell command that runs the project's tests (plan-1.8.md H9), marked on its events so the workshop can count it.
+ * Its result is marked too (`outcome`), unless the output went through a pipe: then the exit status is the pipe's.
+ */
+function testOf(tool: string, input: unknown, outcome = false): { test: true } | Record<string, never> {
+  const cmd = str(obj(input).command);
+  if (!(tool === 'Bash' || tool === 'PowerShell') || !cmd || !isTestCommand(cmd)) return {};
+  return outcome && trimmedTest(steppingIn(cmd).rest).cut ? {} : { test: true };
 }
 
 function baseName(p: string): string {
@@ -208,7 +219,8 @@ export class EventNormalizer {
           return; // SubagentStart produces the event
         }
         const target = targetOf(tool, p.tool_input);
-        if (id) this.running.set(id, { tool, agent, target, startedAt: t, longWaitSent: false });
+        const test = testOf(tool, p.tool_input);
+        if (id) this.running.set(id, { tool, agent, target, startedAt: t, longWaitSent: false, ...testOf(tool, p.tool_input, true) });
         if (tool === 'AskUserQuestion') return; // the permission callback produces ask_user
         if (TASK_TOOLS.has(tool)) {
           if (agent === 'main' && this.onTask(tool, obj(p.tool_input), id)) {
@@ -226,7 +238,7 @@ export class EventNormalizer {
             return;
           }
         }
-        emit(tool === 'TodoWrite' ? 'plan' : 'tool_start', agent, { tool, target });
+        emit(tool === 'TodoWrite' ? 'plan' : 'tool_start', agent, { tool, target, ...test });
         return;
       }
       case 'PostToolUse': {
@@ -247,14 +259,14 @@ export class EventNormalizer {
         if (!tool || tool === 'AskUserQuestion' || tool === 'TodoWrite' || TASK_TOOLS.has(tool)) return;
         if (id && this.failedIds.has(id)) return;
         this.failStreak.set(agent, 0);
-        emit('tool_ok', agent, { tool, target: r?.target ?? targetOf(tool, p.tool_input), failStreak: 0 });
+        emit('tool_ok', agent, { tool, target: r?.target ?? targetOf(tool, p.tool_input), failStreak: 0, ...(r ? (r.test ? { test: true } : {}) : testOf(tool, p.tool_input, true)) });
         return;
       }
       case 'PostToolUseFailure': {
         if (id) this.running.delete(id);
         if (!tool || TASK_TOOLS.has(tool) || (id && this.failedIds.has(id))) return;
         if (id) this.failedIds.add(id);
-        this.fail(agent, tool, targetOf(tool, p.tool_input), emit);
+        this.fail(agent, tool, targetOf(tool, p.tool_input), emit, 'test' in testOf(tool, p.tool_input, true));
         return;
       }
       case 'SubagentStart': {
@@ -323,7 +335,7 @@ export class EventNormalizer {
         if (!r) continue;
         this.failedIds.add(id);
         this.running.delete(id);
-        this.fail(r.agent, r.tool, r.target, emit);
+        this.fail(r.agent, r.tool, r.target, emit, r.test);
       }
       return;
     }
@@ -399,10 +411,10 @@ export class EventNormalizer {
     emit('subagent_stop', call.type, { tool: 'Agent', target: call.summary ? clip(call.summary, 60) : call.description });
   }
 
-  private fail(agent: Agent, tool: string, target: string | undefined, emit: EmitFn) {
+  private fail(agent: Agent, tool: string, target: string | undefined, emit: EmitFn, test?: boolean) {
     const n = (this.failStreak.get(agent) ?? 0) + 1;
     this.failStreak.set(agent, n);
-    emit('tool_fail', agent, { tool, target, failStreak: n });
+    emit('tool_fail', agent, { tool, target, failStreak: n, ...(test ? { test } : {}) });
   }
 
   private finish() {

@@ -3,8 +3,9 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LOCALES } from '../app/shared/i18n';
 import { WORK_ICONS } from '../app/shared/growth';
-import { EDITABLE, MAIN_FILES, MAX_EDIT_BYTES, TEMPLATES, shopOf, template } from '../app/shared/templates';
+import { EDITABLE, MAIN_FILES, MAX_EDIT_BYTES, TEMPLATES, movesOn, shopOf, template, workShop } from '../app/shared/templates';
 import { SHOPS } from '../app/shared/dispatch';
+import { LIST_ROWS } from '../app/main/office/xlsx';
 import { readPng } from './png';
 
 /** The one table of templates (road-to-1.1.md A7): every record has what the rest of the app looks up by its id. */
@@ -29,13 +30,13 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair']);
   });
 
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
     expect(TEMPLATES.map((t) => t.id).slice(14, 16)).toEqual(['chart', 'poster']);
     expect(TEMPLATES.slice(14, 16).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[15, 'picture', false], [16, 'picture', false]]);
-    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'page', 'office', 'writeup', 'draft', 'table']);
+    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'cards', 'journal', 'book', 'page', 'office', 'writeup', 'draft', 'table']);
     for (const [lang, S] of Object.entries(LOCALES)) {
       const F = S.ui.files;
       expect([F.chartPage, F.chartPng, F.posterPage, F.posterPng, F.posterPdf].map((n) => n.slice(n.lastIndexOf('.'))), lang).toEqual(['.html', '.png', '.html', '.png', '.pdf']);
@@ -67,9 +68,9 @@ describe('the template table', () => {
     }
   });
 
-  it('adds a greeting card and a newsletter last, both made in the post office, each with its piece and its neighbour (plan-1.6.md F2)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['card', 'newsletter']);
-    expect(TEMPLATES.slice(-2).map((t) => [t.shop, t.icon, t.main, 'growth' in t ? t.growth : null, 'guest' in t ? t.guest : null])).toEqual([
+  it('adds a greeting card and a newsletter after the bakery\'s, both made in the post office, each with its piece and its neighbour (plan-1.6.md F2)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(18, 20)).toEqual(['card', 'newsletter']);
+    expect(TEMPLATES.slice(18, 20).map((t) => [t.shop, t.icon, t.main, 'growth' in t ? t.growth : null, 'guest' in t ? t.guest : null])).toEqual([
       ['post', 19, 'picture', { id: 'cardline', at: 1 }, 'florist'],
       ['post', 20, 'office', { id: 'newsletters', at: 2 }, 'organizer'],
     ]);
@@ -85,6 +86,147 @@ describe('the template table', () => {
     }
   });
 
+  it('adds revision cards after the post office\'s, made at home from what the user is studying, with their piece and their neighbour (plan-1.8.md H1)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(20, 21)).toEqual(['flashcards']);
+    const t = template('flashcards');
+    expect([t.shop, t.icon, t.main, t.growth, t.guest, t.revise, 'source' in t, 'photos' in t]).toEqual(['home', 21, 'cards', { id: 'cardstack', at: 1 }, 'pupil', true, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect([F.flashcardsPage, F.flashcardsPdf, F.quizPage, F.quizPdf].map((n) => n.slice(n.lastIndexOf('.'))), lang).toEqual(['.html', '.pdf', '.html', '.pdf']);
+      expect(new Set([F.flashcardsPage, F.flashcardsPdf, F.quizPage, F.quizPdf]).size, lang).toBe(4);
+      // The cards open first: before the pages they were printed from, and before the quiz.
+      expect(MAIN_FILES.cards(F.flashcardsPdf, F), lang).toBe(true);
+      for (const other of [F.flashcardsPage, F.quizPage, F.quizPdf, 'notes.pdf']) expect(MAIN_FILES.cards(other, F), `${lang} ${other}`).toBe(false);
+      expect((S.ui.templates as Record<string, string>).flashcardsHint, `${lang} flashcardsHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).flashcards, `${lang} kinds.flashcards`).toBeTruthy();
+      // Both are printed from a page with the office tools, and every question comes from the material handed over.
+      const steps = t.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      for (const name of [F.flashcardsPage, F.flashcardsPdf, F.quizPage, F.quizPdf, F.materials]) expect(steps, `${lang} ${name}`).toContain(`"${name}"`);
+      expect(steps.match(/mcp__nook-office__make_pdf/g)?.length, lang).toBe(2);
+      expect(steps).toMatch(/Every question and every answer must come from that material/);
+    }
+  });
+
+  it('adds a family ledger last, made in the print shop, whose piece stands in that shop and not at home (plan-1.8.md H5)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(21, 22)).toEqual(['ledgerbook']);
+    const t = template('ledgerbook');
+    expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['print', 22, 'office', { id: 'ledgerbook', at: 1 }, 'bookkeeper', true, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.ledgerbook, lang).toMatch(/\.xlsx$/);
+      expect(MAIN_FILES.office(F.ledgerbook), lang).toBe(true);
+      expect((S.ui.templates as Record<string, string>).ledgerbookHint, `${lang} ledgerbookHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).ledgerbook, `${lang} kinds.ledgerbook`).toBeTruthy();
+      // One workbook from the office tools, with a sheet a month, categories to change, a summary and a pie chart.
+      const steps = t.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain(`"${F.ledgerbook}"`);
+      expect(steps.match(/mcp__nook-office__make_xlsx/g)?.length, lang).toBe(1);
+      for (const said of [/one sheet for each month/, /categories sheet/, /pie chart/, /drop-down list/, /works itself out/, /empty/i]) expect(steps, `${lang} ${said}`).toMatch(said);
+      // The sums reach the rows the list does (the real-key run summed 30 rows of a 500-row list), and the check after
+      // saving looks at the charts and lists too, now that read_document shows them.
+      expect(steps, lang).toContain(`to row ${LIST_ROWS}`);
+      expect(steps, lang).toMatch(/each chart and drop-down list/);
+      // Both real-key runs wrote January alone again and again before the twelve months came out in one call: the
+      // later months are written like the first.
+      expect(steps, lang).toMatch(/like: the first month's name/);
+    }
+  });
+
+  it('adds a small game last, made in the workshop, whose piece stands in the workshop (plan-1.8.md H2)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(22, 23)).toEqual(['minigame']);
+    const t = template('minigame');
+    expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['workshop', 23, 'page', { id: 'arcade', at: 1 }, 'dad', true, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.minigame, lang).toMatch(/\.html$/);
+      expect(F.minigamePng, lang).toMatch(/\.png$/);
+      expect(MAIN_FILES.page(F.minigame), lang).toBe(true);
+      expect((S.ui.templates as Record<string, string>).minigameHint, `${lang} minigameHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).minigame, `${lang} kinds.minigame`).toBeTruthy();
+      // One page that plays offline, its first screen drawn as a picture and looked at, and that picture for the reviewer.
+      const steps = t.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain(`"${F.minigame}"`);
+      expect(steps, lang).toContain(`"${F.minigamePng}" with the mcp__nook-office__render_png tool`);
+      for (const said of [/single self-contained page/, /no libraries/, /straight from disk/, /play again/, /reviewer/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
+    }
+  });
+
+  it('adds a four-panel comic after the small game, drawn in the studio, whose piece hangs in the studio (plan-1.8.md H3)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-3, -2)).toEqual(['comic']);
+    const t = template('comic');
+    expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['studio', 24, 'picture', { id: 'strip', at: 1 }, 'editor', true, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.comicPage, lang).toMatch(/\.html$/);
+      expect(F.comicPdf, lang).toMatch(/\.pdf$/);
+      // The strip as one long picture is what the card opens.
+      expect(MAIN_FILES.picture(F.comicPng, F), lang).toBe(true);
+      expect((S.ui.templates as Record<string, string>).comicHint, `${lang} comicHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).comic, `${lang} kinds.comic`).toBeTruthy();
+      // Four panels on one page, drawn in SVG, the dialogue in bubbles that stay inside, as a long picture and a PDF.
+      const steps = t.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain(`"${F.comicPage}"`);
+      expect(steps, lang).toContain(`"${F.comicPng}" with the mcp__nook-office__render_png tool at 800 by 3200`);
+      expect(steps, lang).toContain(`"${F.comicPdf}" with the mcp__nook-office__make_pdf tool`);
+      for (const said of [/four panels/, /inline SVG/, /speech bubbles/, /user's own words/, /designer subagent/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
+    }
+  });
+
+  it('adds a picture book, drawn in the studio and laid out in the print shop (plan-1.8.md H4)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-2, -1)).toEqual(['picturebook']);
+    const t = template('picturebook');
+    expect([t.shop, t.then, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['studio', 'print', 25, 'book', { id: 'book', at: 1 }, 'mum', true, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.bookPage, lang).toMatch(/\.html$/);
+      expect(F.bookPng, lang).toMatch(/\.png$/);
+      // The book as a PDF is what the card opens, before its cover picture and the page it was printed from.
+      expect(MAIN_FILES.book(F.bookPdf, F), lang).toBe(true);
+      expect(MAIN_FILES.book(F.bookPng, F), lang).toBe(false);
+      expect((S.ui.templates as Record<string, string>).picturebookHint, `${lang} picturebookHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).picturebook, `${lang} kinds.picturebook`).toBeTruthy();
+      // A cover and about eight landscape pages, every character drawn from one description, the cover shown to the reviewer.
+      const steps = t.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain(`"${F.bookPage}"`);
+      expect(steps, lang).toContain(`"${F.bookPng}" with the mcp__nook-office__render_png tool at 1123 by 794`);
+      expect(steps, lang).toContain(`"${F.bookPdf}" with the mcp__nook-office__make_pdf tool`);
+      for (const said of [/eight pages/, /A4 landscape/, /cover/, /the child's name/, /one description/, /designer subagent/, /inline SVG/, /reviewer/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
+      // One line to the child, in the book's language only: a real run wrote both "给 小满" and "For Xiaoman".
+      expect(steps, lang).toMatch(/in L only: never both/);
+    }
+  });
+
+  it('adds a repair last, done in the workshop on a branch of a repository the user lends (plan-1.8.md H9)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['repair']);
+    const t = template('repair');
+    expect([t.shop, t.icon, t.main, t.revise, t.source, 'growth' in t, 'roomGrowth' in t, 'photos' in t]).toEqual(['workshop', 26, 'writeup', false, { kind: 'repo' }, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.repairNotes, lang).toBe('repair.json');
+      // The sheet the shop writes is what the card opens.
+      expect(MAIN_FILES.writeup(F.repairSheet), lang).toBe(true);
+      expect((S.ui.templates as Record<string, string>).repairHint, `${lang} repairHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).repair, `${lang} kinds.repair`).toBeTruthy();
+      const steps = t.steps({ language: 'L', files: F, sourceName: 'mine', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain('the folder "mine"');
+      expect(steps, lang).toContain(`"${F.repairNotes}"`);
+      for (const said of [/branch of its own/, /Work only inside that folder/, /do not commit/, /push/, /run them/, /"changes"/, /"tests"/, /in L/]) expect(steps, `${lang} ${said}`).toMatch(said);
+    }
+  });
+
+  it('moves a picture book to the print shop once it is laid out (plan-1.8.md H4)', () => {
+    expect(workShop('picturebook', false)).toBe('studio');
+    expect(workShop('picturebook', true)).toBe('print');
+    // Work that stays in one shop never moves.
+    expect(workShop('comic', true)).toBe('studio');
+    expect(workShop(undefined, true)).toBe('home');
+    // Laying the book out as a PDF is what moves it; drawing its cover does not, nor a comic's PDF.
+    expect(movesOn('picturebook', 'mcp__nook-office__make_pdf')).toBe(true);
+    expect(movesOn('picturebook', 'mcp__nook-office__render_png')).toBe(false);
+    expect(movesOn('comic', 'mcp__nook-office__make_pdf')).toBe(false);
+    expect(movesOn(undefined, 'mcp__nook-office__make_pdf')).toBe(false);
+  });
+
   it('adds a Word document and slides after the small tool, made with the shop\'s office tools (road-to-1.3.md C1)', () => {
     expect(TEMPLATES.map((t) => t.id).slice(12, 14)).toEqual(['document', 'slides']);
     expect(TEMPLATES.slice(12, 14).map((t) => [t.icon, t.main, 'growth' in t])).toEqual([[13, 'office', false], [14, 'office', false]]);
@@ -98,7 +240,7 @@ describe('the template table', () => {
   });
 
   it('tells Office files and PDFs apart as main files, after pages and before write-ups', () => {
-    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'page', 'office', 'writeup', 'draft', 'table']);
+    expect(Object.keys(MAIN_FILES)).toEqual(['index', 'revised', 'picture', 'cards', 'journal', 'book', 'page', 'office', 'writeup', 'draft', 'table']);
     for (const f of ['a.docx', 'b.XLSX', 'c.pptx', 'd.pdf']) expect(MAIN_FILES.office(f), f).toBe(true);
     for (const f of ['a.docm', 'b.xlsm', 'c.pptm', 'd.csv', 'e.html']) expect(MAIN_FILES.office(f), f).toBe(false);
   });
@@ -130,7 +272,7 @@ describe('the template table', () => {
     expect(EDITABLE.some((e) => /m$/.test(e) && e !== 'htm')).toBe(false);
     expect(MAX_EDIT_BYTES).toBe(20 * 1024 * 1024);
     expect(template('tidy').source).toEqual({ kind: 'folder' });
-    expect(TEMPLATES.filter((t) => 'source' in t).map((t) => t.id)).toEqual(['edit', 'tidy']);
+    expect(TEMPLATES.filter((t) => 'source' in t).map((t) => t.id)).toEqual(['edit', 'tidy', 'repair']);
     expect(TEMPLATES.filter((t) => 'photos' in t).map((t) => t.id)).toEqual(['album']);
   });
 
@@ -146,12 +288,12 @@ describe('the template table', () => {
 
   it('sends every kind of work to a shop (road-to-1.4.md D3)', () => {
     const at = (shop: string) => TEMPLATES.filter((t) => t.shop === shop).map((t) => t.id).sort();
-    expect(at('print')).toEqual(['document', 'resume', 'sheet', 'slides']);
-    expect(at('studio')).toEqual(['album', 'chart', 'poster']);
-    expect(at('workshop')).toEqual(['page', 'tool']);
+    expect(at('print')).toEqual(['document', 'ledgerbook', 'resume', 'sheet', 'slides']);
+    expect(at('studio')).toEqual(['album', 'chart', 'comic', 'picturebook', 'poster']);
+    expect(at('workshop')).toEqual(['minigame', 'page', 'repair', 'tool']);
     expect(at('bakery')).toEqual(['menu', 'recipe']);
     expect(at('post')).toEqual(['card', 'newsletter']);
-    expect(at('home')).toEqual(['edit', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);
+    expect(at('home')).toEqual(['edit', 'flashcards', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);
     for (const t of TEMPLATES) expect(SHOPS, t.id).toContain(t.shop);
     // A commission without a kind (written in the user's own words), or the demo, stays in the home shop.
     expect(shopOf(undefined)).toBe('home');
@@ -159,6 +301,6 @@ describe('the template table', () => {
   });
 
   it('repeats its steps in a round of changes, except research', () => {
-    expect(TEMPLATES.filter((t) => !t.revise).map((t) => t.id)).toEqual(['research']);
+    expect(TEMPLATES.filter((t) => !t.revise).map((t) => t.id)).toEqual(['research', 'repair']);
   });
 });

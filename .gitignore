@@ -20,6 +20,8 @@ lamplight-real-check-*/
 # Every sprite PNG is ignored by default; the ones our scripts draw entirely by hand are listed back in.
 assets/sprites/*.png
 !assets/sprites/back-door.png
+!assets/sprites/bakery-board.png
+!assets/sprites/cake.png
 !assets/sprites/decor-dragon_boat.png
 !assets/sprites/decor-lantern.png
 !assets/sprites/decor-mid_autumn.png

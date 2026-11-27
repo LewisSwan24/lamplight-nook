@@ -84,7 +84,7 @@ describe('a postcard', () => {
     const state: ShopState = {
       done: 4, grown: [{ id: 'painting', date: '2026-11-01' }], told: ['town-move'], met: [{ id: 'baker', date: '2026-11-02' }],
       town: { shops: {}, street: [], stories: {} }, today: '2026-11-22',
-      works: [{ id: 'c1', title: 'Rosa page', date: '2026-11-03', icon: 'page', rounds: 2, hasMain: true, page: true, want: WANT, project: 'p1' }],
+      works: [{ id: 'c1', title: 'Rosa page', date: '2026-11-03', icon: 'page', rounds: 2, hasMain: true, page: true, want: WANT, project: 'p1', shop: 'workshop' }],
     };
     const settings = { scene: 'cafe' as const, furnish: { cafe: DEFAULT_FURNISHING, study: DEFAULT_FURNISHING }, workRoot: s.folder, lan: true, lanPort: 47800 };
     const text = postcardText(makePostcard('Sam', settings, state));

@@ -2,7 +2,8 @@ import type { RoomId } from '../../shared/scenes';
 import { overlayDepth } from './pieces';
 import { DECOR_SHOPS, roomDecor } from './streetdecor';
 import Phaser from 'phaser';
-import { FALLING, HOLIDAYS, type Holiday, type Season, type Sky, multiply } from './weather';
+import type { Period } from './daytime';
+import { FALLING, FLASH_GAP_MS, HOLIDAYS, type Holiday, type Season, type Sky, flashesFor, fogFor, multiply } from './weather';
 
 /** Over the sky in the glass, under the room's light and shade, so night and dusk colour the rain too. */
 const GLASS_DEPTH = 0.6;
@@ -14,7 +15,7 @@ const WINDOW_AREA = { x: 16, y: 4, w: 64, h: 36 };
 const SIDE_WINDOW_AREA = { x: 197, y: 4, w: 28, h: 36 };
 
 /** Weather that leaves a touch in the room: a wet umbrella, snow on the sills, leaves or petals blown in. */
-export const SKIES: Exclude<Sky, 'clear'>[] = ['rain', 'snow', 'leaves', 'petals'];
+export const SKIES: Exclude<Sky, 'clear'>[] = ['rain', 'snow', 'leaves', 'petals', 'fog', 'wind', 'storm'];
 
 type Area = { x: number; y: number; w: number; h: number };
 /** `inset`: a small view above the room's shade, lit by itself and only there while it is open (the street). */
@@ -38,6 +39,11 @@ export class WeatherLayer {
   reducedMotion = false;
   private tint = 0xffffff;
   private outdoorsOn = false;
+  private period: Period = 'day';
+  /** Fog over the panes and over each view of the outside (plan-1.7.md G4); also what lightning lights up. */
+  private hazes: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] = [];
+  private flashes: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] = [];
+  private flashTimer?: Phaser.Time.TimerEvent;
 
   /**
    * `glass` is a mask texture of the window panes; `outdoors` are other views of the outside
@@ -57,6 +63,30 @@ export class WeatherLayer {
     this.decor = scene.add.image(0, 0, `decor-${HOLIDAYS[0]}`).setOrigin(0).setDepth(DECOR_DEPTH).setVisible(false);
     this.touch = scene.add.image(0, 0, `weather-${SKIES[0]}`).setOrigin(0).setDepth(DECOR_DEPTH).setVisible(false);
     this.seasonDecor = scene.add.image(0, 0, `season-${this.season}`).setOrigin(0).setDepth(DECOR_DEPTH);
+    // Fog and lightning: a pale sheet over the panes and over each outdoor view, and a white one that flashes.
+    const sheet = (color: number, depth: number) => [
+      scene.add.image(0, 0, glass).setOrigin(0).setTint(color).setDepth(depth).setAlpha(0),
+      ...outdoors.map((o) => scene.add.rectangle(o.area.x, o.area.y, o.area.w, o.area.h, color).setOrigin(0).setDepth(o.depth + 0.01).setMask(o.mask).setAlpha(0)),
+    ];
+    this.hazes = sheet(0xe8ecf0, GLASS_DEPTH + 0.01);
+    this.flashes = sheet(0xffffff, GLASS_DEPTH + 0.02);
+  }
+
+  /** Fog is thickest at dawn and thins out through the day. */
+  setPeriod(period: Period) {
+    this.period = period;
+    const a = fogFor(this.sky, period);
+    this.hazes.forEach((h, i) => h.setAlpha(a).setVisible(i === 0 || i > this.outdoors.length || this.outdoorsShown(i - 1)));
+  }
+
+  private outdoorsShown(i: number) {
+    return !this.outdoors[i].inset || this.outdoorsOn;
+  }
+
+  /** A flash of lightning over the panes and the views outside, then dark again. */
+  private flash() {
+    this.scene.tweens.add({ targets: this.flashes.filter((_, i) => i === 0 || this.outdoorsShown(i - 1)), alpha: { from: 0.75, to: 0 }, duration: 350, ease: 'Quad.easeOut' });
+    this.flashTimer = this.scene.time.delayedCall(Phaser.Math.Between(...FLASH_GAP_MS), () => this.flash());
   }
 
   /** Put out the season's piece (it stays hidden while a festival is up). */
@@ -88,22 +118,28 @@ export class WeatherLayer {
   /** Inset views take the room's light colour themselves (they sit above the room's shade). */
   setTint(color: number) {
     this.tint = color;
-    if (this.sky === 'clear') return;
-    for (const e of this.insets) e.setParticleTint(multiply(FALLING[this.sky].color, color));
+    const f = FALLING[this.sky];
+    if (!f) return;
+    for (const e of this.insets) e.setParticleTint(multiply(f.color, color));
   }
 
   /** Inset views are only there while their inset is open. */
   setOutdoorsVisible(on: boolean) {
     this.outdoorsOn = on;
     for (const e of this.insets) e.setVisible(on);
+    this.setPeriod(this.period);
   }
 
   private restart() {
     for (const e of this.emitters) e.destroy();
     this.emitters = [];
     this.insets = [];
+    this.setPeriod(this.period);
+    this.flashTimer?.remove();
+    this.flashTimer = undefined;
+    if (flashesFor(this.sky, this.reducedMotion)) this.flashTimer = this.scene.time.delayedCall(Phaser.Math.Between(1500, 4000), () => this.flash());
     // Falling things are motion: with less motion asked for, the day is only greyer.
-    if (this.sky === 'clear' || this.reducedMotion) return;
+    if (!FALLING[this.sky] || this.reducedMotion) return;
     const glassMask = this.scene.make.image({ x: 0, y: 0, key: this.glass, origin: 0 }, false).createBitmapMask();
     this.emitters.push(this.emitter(WINDOW_AREA, 1, GLASS_DEPTH).setMask(glassMask));
     this.emitters.push(this.emitter(SIDE_WINDOW_AREA, SIDE_WINDOW_AREA.w / WINDOW_AREA.w, GLASS_DEPTH).setMask(glassMask));
@@ -117,9 +153,9 @@ export class WeatherLayer {
   }
 
   private emitter(area: Area, density: number, depth: number) {
-    const f = FALLING[this.sky as Exclude<Sky, 'clear'>];
+    const f = FALLING[this.sky]!;
     const lifespan = ((area.h + 8) / f.speed) * 1000;
-    const sway = this.sky === 'rain' ? 0 : f.drift;
+    const sway = this.sky === 'rain' || this.sky === 'storm' ? 0 : f.drift / (this.sky === 'wind' ? 4 : 1);
     return this.scene.add.particles(0, 0, 'weather-px', {
       x: { min: area.x - Math.abs(f.drift), max: area.x + area.w + Math.abs(f.drift) },
       y: area.y - 4,

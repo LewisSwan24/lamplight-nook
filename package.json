@@ -1,7 +1,7 @@
 {
   "name": "lamplight-nook",
   "productName": "Lamplight Nook",
-  "version": "1.5.0",
+  "version": "1.8.0",
   "private": true,
   "description": "A cozy pixel-art desktop app that turns long AI tasks into the daily life of a small cafe crew.",
   "main": "out/main/index.js",

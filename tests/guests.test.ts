@@ -125,6 +125,16 @@ describe('new neighbours, who come because of the work', () => {
     expect(welcomeGuests({ recipe: 1, page: 1 })).toEqual(['baker', 'postman', 'mechanic', 'lodger']);
     // The post office's (plan-1.6.md F2): Fern from the flower shop for a card, Mrs Wu from the residents' committee for a newsletter.
     expect(welcomeGuests({ card: 1, newsletter: 1 })).toEqual(['baker', 'postman', 'florist', 'organizer']);
+    // Revision cards (plan-1.8.md H1) bring Lele, with an exam coming.
+    expect(welcomeGuests({ flashcards: 1 })).toEqual(['baker', 'postman', 'pupil']);
+    // A family ledger from the print shop (plan-1.8.md H5) brings Auntie Qin, who keeps her household's accounts.
+    expect(welcomeGuests({ ledgerbook: 1 })).toEqual(['baker', 'postman', 'bookkeeper']);
+    // A small game from the workshop (plan-1.8.md H2) brings Duoduo's dad, who wanted one for his daughter.
+    expect(welcomeGuests({ minigame: 1 })).toEqual(['baker', 'postman', 'dad']);
+    // A comic from the studio (plan-1.8.md H3) brings Xiaosu, who edits a newsletter account and needs one a week.
+    expect(welcomeGuests({ comic: 1 })).toEqual(['baker', 'postman', 'editor']);
+    // A picture book (plan-1.8.md H4) brings Xiaoman's mum, who reads to him at bedtime.
+    expect(welcomeGuests({ picturebook: 1 })).toEqual(['baker', 'postman', 'mum']);
   });
 
   it('only sends those who are welcome, and someone new soon after they are', () => {

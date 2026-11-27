@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { extname, posix } from 'node:path';
 import { entryText, readZip, type ZipEntries } from './unzip';
+import type { Book } from './formula';
+import type { Cell } from './specs';
 import { letters } from './xlsx';
 import { child, children, elements, find, findAll, ownText, parseXml, textOf, type El } from './xml';
 
@@ -162,9 +164,40 @@ function readXlsx(zip: ZipEntries, numbered: boolean): string {
     if (rowCount > SHEET_MAX_ROWS || colCount > SHEET_MAX_COLUMNS) {
       out.push(`(Showing the first ${rows} of ${rowCount} rows and ${Math.min(colCount, SHEET_MAX_COLUMNS)} of ${colCount} columns.)`);
     }
+    // Lists to pick from and charts are not cells, but a check after saving needs to see what they draw from too.
+    for (const v of findAll(sheet, 'dataValidation')) {
+      const from = child(v, 'formula1');
+      if (v.attrs.type === 'list' && from) out.push(`(Drop-down list in ${v.attrs.sqref}, from ${ownText(from)}.)`);
+    }
+    out.push(...sheetCharts(zip, target!));
     out.push('');
   }
   return out.join('\n').trimEnd();
+}
+
+/** Each chart on a sheet in a line: its kind, its title and the ranges it draws (labels, then values). */
+function sheetCharts(zip: ZipEntries, sheetPart: string): string[] {
+  const out: string[] = [];
+  for (const drawing of rels(zip, sheetPart).values()) {
+    if (!drawing.type.endsWith('/drawing')) continue;
+    for (const part of rels(zip, drawing.target).values()) {
+      const chart = part.type.endsWith('/chart') ? xml(zip, part.target) : undefined;
+      const area = find(chart, 'plotArea');
+      const plot = area && elements(area).find((e) => /Chart$/.test(e.name));
+      if (!chart || !plot) continue;
+      const bar = plot.name === 'barChart' || plot.name === 'bar3DChart';
+      const kind = bar ? (child(plot, 'barDir')?.attrs.val === 'bar' ? 'Bar' : 'Column') : plot.name.replace(/(3D)?Chart$/, '').replace(/^./, (c) => c.toUpperCase());
+      const title = find(chart, 'title');
+      const name = title && textOf(title) ? ` "${textOf(title)}"` : '';
+      const refs = (n: string) => children(plot, 'ser').flatMap((s) => {
+        const f = find(child(s, n), 'f');
+        return f ? [ownText(f)] : [];
+      });
+      const said = [refs('cat').length ? `labels ${refs('cat')[0]}` : '', refs('val').length ? `values ${refs('val').join(' and ')}` : ''].filter(Boolean);
+      out.push(`(${kind} chart${name}${said.length ? `: ${said.join(', ')}` : ''}.)`);
+    }
+  }
+  return out;
 }
 
 /** A1 -> 0, AB7 -> 27. */
@@ -279,4 +312,42 @@ function paragraphs(shape: El): string[] {
   const table = find(shape, 'tbl');
   if (table) return children(table, 'tr').map((tr) => children(tr, 'tc').map((tc) => findAll(tc, 'p').map((p) => textOf(p).trim()).join(' ')).join(' | '));
   return findAll(child(shape, 'txBody') ?? shape, 'p').map((p) => textOf(p).trim()).filter(Boolean);
+}
+
+/**
+ * A workbook's cells, by sheet and address, as formula.ts works them out (plan-1.8.md H5): text, numbers, and a formula
+ * as its formula (whatever value Excel last saved with it is left out, so it is worked out afresh). TRUE and FALSE come
+ * back as text; an empty cell is left out.
+ */
+export function bookCells(buf: Buffer): Book {
+  const zip = readZip(buf);
+  const book = xml(zip, 'xl/workbook.xml');
+  if (!book) throw new Error('This .xlsx has no workbook part.');
+  const links = rels(zip, 'xl/workbook.xml');
+  const sst = xml(zip, 'xl/sharedStrings.xml');
+  const shared = sst ? children(find(sst, 'sst') ?? sst, 'si').map((si) => textOf(si, 't', ['rPh'])) : [];
+  return findAll(book, 'sheet').map((s) => {
+    const target = links.get(s.attrs.id)?.target;
+    const sheet = target ? xml(zip, target) : undefined;
+    const cells: Record<string, Cell> = {};
+    for (const c of sheet ? findAll(sheet, 'c') : []) {
+      const ref = c.attrs.r;
+      if (!ref) continue;
+      const f = child(c, 'f');
+      const formula = f ? ownText(f) : '';
+      if (formula) {
+        cells[ref] = { f: `=${formula}` };
+        continue;
+      }
+      const v = child(c, 'v');
+      const raw = v ? ownText(v) : undefined;
+      const t = c.attrs.t;
+      if (t === 'inlineStr') cells[ref] = textOf(child(c, 'is') ?? c, 't', ['rPh']);
+      else if (t === 's') cells[ref] = shared[Number(raw)] ?? '';
+      else if (t === 'b') cells[ref] = raw === '1' ? 'TRUE' : 'FALSE';
+      else if (t === 'str' || t === 'e') cells[ref] = raw ?? '';
+      else if (raw !== undefined && raw !== '') cells[ref] = Number(raw);
+    }
+    return { name: s.attrs.name ?? '', cells };
+  });
 }

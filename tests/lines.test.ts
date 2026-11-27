@@ -57,17 +57,28 @@ describe('lines for the day outside', () => {
 
   it('greets with the weather or the holiday before bringing up the last commission', () => {
     expect(pickLine(lib.app_open, ['has_memory', 'sky_rain'], vars)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_rain')!.bubbles[1]);
-    expect(pickLine(lib.app_open, ['has_memory', 'holiday_halloween'], vars)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_halloween')!.bubbles[1]);
+    expect(pickLine(lib.app_open, ['has_memory', 'holiday_halloween'], vars, () => 0)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_halloween')!.bubbles[1]);
     expect(pickLine(lib.app_open, ['has_memory'], vars)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_mem')!.bubbles[1].replace('{lastCommission}', 'ledger'));
   });
 
   it('still brings up the last commission after the weather or holiday line, saying hello once', () => {
-    const say = (memory: string[], outside: string[]) => openingTurns(lib.app_open, memory, outside, vars)?.map((t) => t.text);
+    const say = (memory: string[], outside: string[]) => openingTurns(lib.app_open, memory, outside, vars, () => 0)?.map((t) => t.text);
     const mem = lib.app_open.find((l) => l.id === 'open_mem')!.bubbles[1].replace('{lastCommission}', 'ledger');
     const halloween = lib.app_open.find((l) => l.id === 'open_halloween')!.bubbles;
     expect(say(['has_memory'], ['holiday_halloween'])).toEqual([halloween[0].replace('{name}', 'Lin'), halloween[1], mem]);
     expect(say(['has_memory'], [])).toEqual(['Lin，来啦。', mem]);
     expect(say([], ['holiday_halloween'])).toEqual([halloween[0].replace('{name}', 'Lin'), halloween[1]]);
+  });
+
+  it('picks among the lines for the same day, so a festival is not greeted the same way every time', () => {
+    const halloween = lib.app_open.filter((l) => l.when === 'holiday_halloween');
+    expect(halloween.length).toBeGreaterThan(1);
+    const heard = new Set([0, 0.5, 0.99].map((r) => pickLine(lib.app_open, ['holiday_halloween'], vars, () => r)?.[1].text));
+    expect(heard.size).toBe(halloween.length);
+    // The festival comes before the weather when both hold: Christmas is nearly always snowy, and its greeting was
+    // seldom heard while the snow's came first.
+    expect(pickLine(lib.app_open, ['sky_snow', 'holiday_christmas'], vars, () => 0)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_christmas')!.bubbles[1]);
+    expect(pickLine(lib.app_open, ['sky_snow'], vars, () => 0)?.[1].text).toBe(lib.app_open.find((l) => l.id === 'open_snow')!.bubbles[1]);
   });
 
   it("has Xiaoju come back talking about the weather or the holiday, once, then as usual", () => {
@@ -92,5 +103,23 @@ describe('lines for the day outside', () => {
         expect(chats.some((c) => !c.guest && c.holiday === holiday), `${chatsFile} ${holiday}`).toBe(true);
       }
     }
+  });
+
+  it('gives every festival as many lines as the next, in both languages (plan-1.7.md G1)', () => {
+    const count = (dir: string) => {
+      const cafe = parseLines(readFileSync(`${dir}cafe.yaml`, 'utf8'));
+      const chats = parseChats(readFileSync(`${dir}chats.yaml`, 'utf8'));
+      const shop = (name: string) => parseLines(readFileSync(`${dir}${name}.yaml`, 'utf8'));
+      const bakery = shop('bakery');
+      const post = shop('post');
+      return HOLIDAYS.map((h) => {
+        const on = (ls: Line[]) => ls.filter((l) => l.when === `holiday_${h}`).length;
+        return { h, open: on(cafe.app_open), chats: chats.filter((c) => !c.guest && c.holiday === h).length,
+          bakeryIn: on(bakery.shop_in), bakeryIdle: on(bakery.shop_idle), postIn: on(post.shop_in), postIdle: on(post.shop_idle) };
+      });
+    };
+    const zh = count('lines/');
+    for (const c of zh) expect(c, c.h).toEqual({ h: c.h, open: 3, chats: 6, bakeryIn: 3, bakeryIdle: 2, postIn: 3, postIdle: 2 });
+    expect(count('lines/en/')).toEqual(zh);
   });
 });

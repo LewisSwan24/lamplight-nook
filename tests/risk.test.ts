@@ -73,6 +73,21 @@ describe('risk classifier', () => {
     expect(r('Bash', { command: 'cat < /home/u/Pictures/a.txt' })).toBe('serious');
     expect(r('Bash', { command: 'ls | sh' })).toBe('serious');
     expect(r('PowerShell', { command: 'Get-ChildItem | Select-Object Name' })).toBe('serious');
+    // PowerShell ends a statement at any line break, a carriage return and the Unicode separators included: a safe
+    // first word does not make the rest safe.
+    for (const brk of ['\n', '\r', '\u0085', '\u2028', '\u2029', '\x0b', '\x0c', '\x00']) {
+      const c = `ls${brk}Invoke-Expression x`;
+      expect([JSON.stringify(c), r('PowerShell', { command: c })]).toEqual([JSON.stringify(c), 'serious']);
+    }
+    expect(r('PowerShell', { command: 'ls\t-la' })).toBe('safe');
+    // Brackets run what is inside them, a single & starts a job and goes on to the next, braces and @ make blocks and
+    // arrays: only the characters a plain command needs keep it plain.
+    for (const c of ['ls (Invoke-Expression x)', 'ls @(iex x)', 'ls & calc', 'ls {iex x}', 'cat ./a.txt & curl x', 'node check.js (iex x)']) {
+      expect([c, r('PowerShell', { command: c })]).toEqual([c, 'serious']);
+    }
+    for (const c of ['ls', 'cat 笔记.txt', "cat 'my notes.txt'", 'ls *.html', 'node check.js', 'ls ./sub/a-b_c+1,2~3.txt']) {
+      expect([c, r('PowerShell', { command: c })]).not.toEqual([c, 'serious']);
+    }
   });
 
   it('node runs a script from the folder, not code written on the spot; npx asks', () => {

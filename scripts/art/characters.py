@@ -129,6 +129,42 @@ GUESTS = {
                    'Outfits/16x16/Outfit_24_01.png', 'Hairstyles/16x16/Hairstyle_02_05.png'],
         'recolor': {'Outfits/16x16/Outfit_24_01.png': [((180, 260), '#8A4A5A')]},
     },
+    # Revision cards bring Lele (plan-1.8.md H1), a schoolgirl with exams coming: a school jacket dyed navy, her hair in a
+    # bob, a green satchel of handouts. Written as pupil.png.
+    'pupil': {
+        'layers': ['Bodies/16x16/Body_04.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_18_01.png', 'Hairstyles/16x16/Hairstyle_16_03.png',
+                   'Accessories/16x16/Accessory_03_Backpack_03.png'],
+        'recolor': {'Outfits/16x16/Outfit_18_01.png': [((5, 50), '#3A4A78')]},
+    },
+    # A family ledger brings Auntie Qin (plan-1.8.md H5), who keeps her household's accounts: dark brown hair, a top dyed
+    # brick red with its pink sash kept, so she reads apart from Mrs Wu's grey hair and plum cardigan. Written as
+    # bookkeeper.png.
+    'bookkeeper': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_25_01.png', 'Hairstyles/16x16/Hairstyle_07_04.png'],
+        'recolor': {'Outfits/16x16/Outfit_25_01.png': [((180, 240), '#A9503C')]},
+    },
+    # A small game brings Duoduo's dad (plan-1.8.md H2), who wanted one for his daughter: short black hair under a
+    # snapback, a plain everyday outfit. Written as dad.png.
+    'dad': {
+        'layers': ['Bodies/16x16/Body_03.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_26_01.png', 'Hairstyles/16x16/Hairstyle_02_01.png',
+                   'Accessories/16x16/Accessory_04_Snapback_02.png'],
+    },
+    # A comic brings Xiaosu (plan-1.8.md H3), who edits a newsletter account and needs a strip a week: a ginger bob,
+    # glasses and a dark outfit, so she reads apart from Lele's ponytail and Auntie Qin's red. Written as editor.png.
+    'editor': {
+        'layers': ['Bodies/16x16/Body_01.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_30_01.png', 'Hairstyles/16x16/Hairstyle_12_01.png',
+                   'Accessories/16x16/Accessory_15_Glasses_01.png'],
+    },
+    # A picture book brings Xiaoman's mum (plan-1.8.md H4), who reads to him at bedtime: long brown hair and a blue top,
+    # with no hat or glasses, so she reads apart from Xiaosu's bob. Written as mum.png.
+    'mum': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_04_03.png'],
+    },
 }
 
 # The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as

@@ -1,4 +1,5 @@
 import { homedir } from 'node:os';
+import { isTestCommand, steppingIn, trimmedTest } from '../shared/repair';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
 import type { Risk, ToolKind } from '../shared/types';
@@ -33,6 +34,11 @@ export type RiskContext = {
   nook?: Map<string, NookEntry>;
   /** The round's connections being watched (C6); none when no connection was ticked. */
   round?: RoundWatch;
+  /**
+   * A repair in the user's code repository (plan-1.8.md H9): git is the shop's to run, so the fixer only looks with it.
+   * Pushing, committing, switching or moving branches, and changing remotes are refused outright.
+   */
+  repair?: boolean;
 };
 
 /**
@@ -68,6 +74,82 @@ const COMPLEX = /[|><`]|\$\(|&&|\|\||;/;
 const FIND_ACTION = /^-(delete|exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/;
 /** Where output may go without it being a write: the null device, and the other output stream. */
 const DISCARD = new Set(['/dev/null', 'NUL', 'nul']);
+
+/** What git may do in a repair: look, never change a branch, a commit or a remote (plan-1.8.md H9). */
+const GIT_LOOKS = new Set(['status', 'diff', 'log', 'show', 'grep', 'blame', 'ls-files', 'rev-parse', 'shortlog', 'cat-file']);
+/**
+ * Options that would have even a look run something, write somewhere, or look at another repository: config given on the
+ * spot, another folder or git dir, an output file, an external diff or text conversion, a pager to open files in.
+ */
+const GIT_REFUSED = /^(-c|-C|--config-env|--exec-path|--git-dir|--work-tree|--namespace|--output|--ext-diff|--textconv|-O|--open-files-in-pager)(=|$)|^-O./;
+/** A word that is git itself, however it is spelled: quoted, by its path, with .exe. */
+const isGit = (word: string) => basename(word.replace(/['"]/g, '').replace(/\\/g, '/')).toLowerCase().replace(/\.exe$/, '') === 'git';
+
+/**
+ * A control character or line break other than a tab: PowerShell ends a statement at a carriage return and at Unicode line
+ * separators too, so a line holding one is not the single command it looks like.
+ */
+const BREAKS = /[\x00-\x08\x0a-\x1f\x7f\x85\u2028\u2029]/;
+
+/**
+ * The characters a plain PowerShell command may hold: letters and digits in any script, spaces, and what paths, wildcards
+ * and quoted names need. Anything else (brackets that run what is inside them, a single & that starts a job and goes
+ * on, braces, @, and the rest) is more than the command its first word names.
+ */
+const PS_PLAIN = /^[\p{L}\p{N}\p{M} \t_.\\/:'"*?,=+~%#\[\]-]+$/u;
+
+/**
+ * Some git in this command line that does more than look. Read the way the rest of a command line is read (simpleCommands);
+ * a line that cannot be read that way, or git handed to another command to run, is refused whenever git is in it at all.
+ */
+function gitChanges(cmd: string, tool: string): boolean {
+  if (BREAKS.test(cmd)) return /git/i.test(cmd);
+  // PowerShell is not read like Bash: there only a plain look, the whole line, is let through.
+  if (tool !== 'Bash') {
+    if (!/git/i.test(cmd)) return false;
+    const m = /^\s*git(?:\.exe)?\s+([\w-]+)((?:\s+[^;&|`$()<>\n]*)?)$/i.exec(cmd);
+    return !m || !GIT_LOOKS.has(m[1]) || m[2].trim().split(/\s+/).some((a) => GIT_REFUSED.test(a));
+  }
+  const simple = simpleCommands(cmd);
+  if (!simple) return /git/i.test(cmd);
+  return simple.some(({ words }) => {
+    let at = 0;
+    while (at < words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[at])) at++;
+    if (words.slice(at + 1).some((w) => isGit(w) || /^['"]?git\s/i.test(w))) return true;
+    if (!isGit(words[at] ?? '')) return false;
+    const args = words.slice(at + 1);
+    let i = 0;
+    while (i < args.length && args[i].startsWith('-')) {
+      if (GIT_REFUSED.test(args[i])) return true;
+      i++;
+    }
+    return !GIT_LOOKS.has(args[i] ?? '') || args.slice(i + 1).some((a) => GIT_REFUSED.test(a));
+  });
+}
+
+/** Test runner options that run something else, load a plugin, or work in another folder: not a plain test run. */
+const TEST_REFUSED = /^(--prefix|-C|--cwd|--dir|--manifest-path|--rootdir|-p|-exec|--exec|-c|--config|-r|--require|--import|--loader|--experimental-loader|--workspace|-w)(=|$)/;
+
+/** A folder to step into, named plainly: nothing a shell would expand, no home (a ~ only counts at the start), no previous folder, no option. */
+const PLAIN_DIR = /^(?![-~])[\p{L}\p{N}\p{M} _.\\/:+,~-]+$/u;
+
+/**
+ * The project's tests, run plainly in the folder: no other command with them, no option that runs or looks elsewhere.
+ * The fixer may step into a folder first, the borrowed copy or one inside it, but not one a link leads out of, and may
+ * keep the output short.
+ */
+function plainTest(cmd: string, ctx: RiskContext): boolean {
+  if (!isTestCommand(cmd) || BREAKS.test(cmd)) return false;
+  const { dir, bare, rest: all } = steppingIn(cmd);
+  // Unquoted, a backslash escapes the next character in Bash (mine/\.\. is mine/..), while the path is read here with
+  // it as a separator: the two would not agree on where the tests run.
+  if (bare && dir?.includes('\\')) return false;
+  // Output kept short (`2>&1 | tail -15`) is still only the tests.
+  const rest = trimmedTest(all).core;
+  if (dir !== undefined && (!PLAIN_DIR.test(dir) || !reallyInside(ctx.workDir, abs(ctx.workDir, dir)))) return false;
+  if (/[;&|`$()<>]/.test(rest)) return false;
+  return rest.split(/\s+/).every((w) => !TEST_REFUSED.test(w) && !isAbsolute(w.replace(/^--?[\w-]+=/, '')) && !/(^|[\\/=])\.\.([\\/]|$)/.test(w));
+}
 
 const ORDER: Risk[] = ['safe', 'ask', 'serious', 'blocked'];
 const worse = (a: RiskVerdict, b: RiskVerdict) => (ORDER.indexOf(b.risk) > ORDER.indexOf(a.risk) ? b : a);
@@ -318,9 +400,12 @@ function pathVerdict(ctx: RiskContext, p: string, writing: boolean): RiskVerdict
     return { risk: 'blocked', reason: R.hiddenConfig };
   }
   if (!writing) return null;
+  // A repair's git is the shop's (H9): nothing is written into a .git, the worktree's or any other.
+  if (ctx.repair && full.split(/[\\/]/).some((part) => part.toLowerCase() === '.git')) return { risk: 'blocked', reason: R.repairGit };
   if (!isInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
   // A folder the user lent may hold their own links and junctions, which could lead a write anywhere.
-  if (ctx.keepOriginal && !reallyInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
+  // So may a repository lent for a repair (H9): its links are checked out with it.
+  if ((ctx.keepOriginal || ctx.repair) && !reallyInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
   if (ctx.preexisting?.has(full)) return { risk: 'serious', reason: fill(R.overwrite, { name }) };
   return null;
 }
@@ -382,7 +467,18 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
   if (tool === 'Bash' || tool === 'PowerShell') {
     const cmd = String(input.command ?? '').trim();
     if (!cmd) return { risk: 'serious', reason: R.emptyCommand };
+    if (ctx.repair && gitChanges(cmd, tool)) return { risk: 'blocked', reason: R.repairGit };
+    // A repair's tests run the repository's own code: the user is asked, in those words.
+    // A plain test run asks in those words, unless it would be refused anyway; anything else is judged as itself.
+    if (ctx.repair && plainTest(cmd, ctx)) {
+      const as = classifyCall(tool, input, { ...ctx, repair: false });
+      return as.risk === 'blocked' ? as : { risk: 'ask', reason: R.repairTests };
+    }
     if (tool === 'Bash') return classifyBash(cmd, ctx);
+    // PowerShell ends a statement at any line break, a carriage return and the Unicode separators too: a line holding one
+    // is more than the command its first word names.
+    if (BREAKS.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
+    if (!PS_PLAIN.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
     if (DELETE.test(cmd)) return { risk: 'serious', reason: R.delete };
     if (NETWORK_SEND.test(cmd)) return { risk: 'serious', reason: R.networkSend };
     if (COMPLEX.test(cmd) || /\$/.test(cmd)) return { risk: 'serious', reason: R.complexCommand };

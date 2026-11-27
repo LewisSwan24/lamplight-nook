@@ -172,7 +172,14 @@ try {
   await run.page.waitForSelector('#game canvas', { timeout: 30_000 });
   result.startMs = Date.now() - run.began;
 
-  // From the top again, now that someone is listening: nothing it asks for may be missing from the package.
+  // From the top again, now that someone is listening: nothing it asks for may be missing from the package. First let the
+  // first start finish what it fetches after the canvas is up (the street's guests): a reload would cut those short,
+  // and a request cut short reads as one that failed.
+  let last = Date.now();
+  const busy = (r) => { if (r.resourceType() !== 'media') last = Date.now(); };
+  for (const e of ['request', 'requestfinished', 'requestfailed']) run.page.on(e, busy);
+  for (const until = Date.now() + 20_000; Date.now() - last < 2000 && Date.now() < until;) await sleep(250);
+  for (const e of ['request', 'requestfinished', 'requestfailed']) run.page.off(e, busy);
   await run.page.reload();
   await run.page.waitForSelector('#game canvas', { timeout: 30_000 });
   await run.page.waitForFunction(() => window.lamplightDebug?.scene?.textures, null, { timeout: 30_000 });

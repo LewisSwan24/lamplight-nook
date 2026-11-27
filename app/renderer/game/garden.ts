@@ -83,13 +83,13 @@ export function pathInGarden(from: Point, to: Point): Point[] {
  * and the cat stays in by the fire when it snows.
  */
 export function outdoorsFor(free: ActorId[], sky: Sky, period: Period): ActorId[] {
-  if (sky === 'rain' || period === 'night') return [];
+  if (!gardenOpen(sky, period)) return [];
   return sky === 'snow' ? free.filter((a) => a !== 'cat') : free;
 }
 
 /** Whether anyone goes out at all; when not, whoever is out there comes back in. */
 export function gardenOpen(sky: Sky, period: Period): boolean {
-  return sky !== 'rain' && period !== 'night';
+  return sky !== 'rain' && sky !== 'wind' && sky !== 'storm' && period !== 'night';
 }
 
 /** How long a visit lasts, and how long the garden stays empty between visits. */

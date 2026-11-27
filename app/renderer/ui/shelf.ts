@@ -2,7 +2,7 @@ import worksUrl from '../../../assets/sprites/works.png';
 import { WORK_ICONS, type WorkIcon } from '../../shared/growth';
 import { fill, locale, strings } from '../../shared/i18n';
 import { monthName } from '../../shared/localday';
-import { byMonth, filterWorks, kindsOf, type ShelfFilter } from '../../shared/shelf';
+import { byMonth, filterWorks, kindsOf, shopsOf, type ShelfFilter } from '../../shared/shelf';
 import type { LamplightApi, ShareFormat, ShareOptions, Work } from '../../shared/types';
 import { el } from './dom';
 import { closeButton, replaceOpen } from './panels';
@@ -78,7 +78,7 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
   const many = works.length > FEW_WORKS;
   const list = el('ul.works', { tabindex: 0 });
   const count = el('div.hint.works-count', { 'aria-live': 'polite' });
-  const filter: ShelfFilter = { query: '', kind: null };
+  const filter: Required<ShelfFilter> = { query: '', kind: null, shop: null };
   let found = works;
   let drawn = 0;
   let lastMonth = '';
@@ -110,7 +110,7 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
     list.scrollTop = 0;
     drawNext();
     if (!found.length) list.append(el('li.works-none', {}, W.noMatch));
-    count.textContent = filter.query.trim() || filter.kind ? fill(W.found, { n: String(found.length) }) : '';
+    count.textContent = filter.query.trim() || filter.kind || filter.shop ? fill(W.found, { n: String(found.length) }) : '';
   };
 
   const askFor = (query: string) => {
@@ -132,21 +132,27 @@ export async function showShelf(api: LamplightApi, revise: (id: string, title: s
       }
     },
   }) as HTMLInputElement;
-  const chip = (label: string, n: number, kind: ShelfFilter['kind']) => el('button.kind-chip', {
-    type: 'button', 'aria-pressed': String(kind === filter.kind), onclick: (e: Event) => {
-      filter.kind = kind;
-      for (const c of Array.from(chips.children)) c.setAttribute('aria-pressed', String(c === e.currentTarget));
-      draw();
-    },
-  }, `${label} ${n}`);
-  const chips = el('div.kind-chips', { role: 'group', 'aria-label': W.kindsLabel }, chip(W.all, works.length, null),
-    ...kindsOf(works).map(({ kind, n }) => chip(W.kinds[kind], n, kind)));
+  // One row picks a kind, the other a shop (plan-1.8 H7); a press in one row leaves the other as it was.
+  const chipRow = <K extends 'kind' | 'shop'>(key: K, label: string, cls: string, options: { value: Required<ShelfFilter>[K]; label: string; n: number }[]) => {
+    const row = el(`div.kind-chips.${cls}`, { role: 'group', 'aria-label': label });
+    row.append(...[{ value: null as Required<ShelfFilter>[K], label: W.all, n: works.length }, ...options].map((o) => el('button.kind-chip', {
+      type: 'button', 'aria-pressed': String(o.value === filter[key]), onclick: (e: Event) => {
+        filter[key] = o.value;
+        for (const c of Array.from(row.children)) c.setAttribute('aria-pressed', String(c === e.currentTarget));
+        draw();
+      },
+    }, `${o.label} ${o.n}`)));
+    return row;
+  };
+  const chips = chipRow('kind', W.kindsLabel, 'by-kind', kindsOf(works).map(({ kind, n }) => ({ value: kind, label: W.kinds[kind], n })));
+  // The street's names over the doors, home first.
+  const shopChips = chipRow('shop', W.shopsLabel, 'by-shop', shopsOf(works).map(({ shop, n }) => ({ value: shop, label: W.shops[shop], n })));
 
   draw();
   replaceOpen(el('div.card.paper.shelf-card', { role: 'dialog', 'aria-label': W.title },
     closeButton(),
     withPortrait('adeng', 'happy', el('div.card-title', {}, W.title), el('div', {}, works.length ? W.text : W.empty)),
-    many ? el('div.shelf-tools', {}, search, chips, count) : null,
+    many ? el('div.shelf-tools', {}, search, chips, shopChips, count) : null,
     works.length ? list : null,
   ));
   if (many) search.focus();

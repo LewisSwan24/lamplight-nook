@@ -1,5 +1,7 @@
+import { computeBook, type Value } from './formula';
 import { dataUri } from './picture';
 import type { Block, DocSpec, SheetSpec, SlideSpec } from './specs';
+import { letters, sheetCells } from './xlsx';
 
 /** How much of a document, a sheet or a list the thumbnail has room for. */
 const DOC_BLOCKS = 14;
@@ -72,11 +74,18 @@ function docPage(spec: DocSpec, images: (rel: string) => Buffer): string {
 function sheetPage(spec: SheetSpec): string {
   const s = spec.sheets[0];
   const cols = s.columns.slice(0, SHEET_COLS);
-  const cell = (c: SheetSpec['sheets'][number]['rows'][number][number] | undefined) =>
-    c === undefined ? '<td></td>' : typeof c === 'number' ? `<td class="n">${c}</td>` : typeof c === 'object' ? `<td class="n">${esc(c.f.startsWith('=') ? c.f : `=${c.f}`)}</td>` : `<td>${esc(c)}</td>`;
+  // A formula shows what it comes to, as Excel will show it on opening (plan-1.8.md H5): money with two places.
+  const worked = computeBook(sheetCells(spec))[s.name];
+  const value = (v: Value | undefined, i: number) => {
+    if (v === undefined || (typeof v === 'object' && v !== null)) return `<td class="n">${esc(v ? v.error : '')}</td>`;
+    if (typeof v !== 'number') return `<td>${esc(String(v))}</td>`;
+    return `<td class="n">${cols[i].format === 'money' ? v.toFixed(2) : String(Math.round(v * 1e6) / 1e6)}</td>`;
+  };
+  const cell = (c: SheetSpec['sheets'][number]['rows'][number][number] | undefined, r: number, i: number) =>
+    c == null ? '<td></td>' : typeof c === 'number' ? `<td class="n">${c}</td>` : typeof c === 'object' ? value(worked[`${letters(i)}${r + 2}`], i) : `<td>${esc(c)}</td>`;
   return `<div class="sheet"><div class="tab">${esc(s.name)}</div><table>`
     + `<tr>${cols.map((c) => `<th>${esc(c.header)}</th>`).join('')}</tr>`
-    + s.rows.slice(0, SHEET_ROWS).map((r) => `<tr>${cols.map((_, i) => cell(r[i])).join('')}</tr>`).join('')
+    + s.rows.slice(0, SHEET_ROWS).map((row, r) => `<tr>${cols.map((_, i) => cell(row[i], r, i)).join('')}</tr>`).join('')
     + '</table></div>';
 }
 

@@ -33,10 +33,9 @@ user-facing text lives in `locales/` (`zh-CN.json`, `en.json`) and `lines/` (Chi
 
 | Line | State | Where |
 |---|---|---|
-| 1.0.0 | Released 5 Nov 2026 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases), `main` |
-| 1.1 to 1.3 | Finished, not released yet | `main` |
-| 1.4 and 1.5 | Finished, not released yet; the app calls itself 1.5.0 | `release-1.5` (1.4 is folded into it); plans in `docs/road-to-1.4.md` and `docs/plan-1.5.md` |
-| 1.6 to 2.0 | Planned, mostly new content: shops, stories, festivals, kinds of work | `docs/road-to-2.0.md` |
+| 1.8.0 | Released 27 Nov 2026, with everything from 1.1 to 1.8 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases), `main`; plans in `docs/plan-1.5.md` to `docs/plan-1.8.md` |
+| 1.0.0 | Released 5 Nov 2026 | [Releases](https://github.com/LewisSwan24/lamplight-nook/releases) |
+| 1.9 to 2.0 | Planned, mostly new content: shops, stories, festivals, kinds of work | `docs/road-to-2.0.md` |
 
 What changed in each is in `CHANGELOG.md`.
 

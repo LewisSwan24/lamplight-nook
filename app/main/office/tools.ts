@@ -11,7 +11,7 @@ import { makePptx } from './pptx';
 import { previewHtml, previewOfText } from './preview';
 import { readDocument } from './read';
 import { officeSafe } from './safe';
-import { docSpecShape, sheetSpecShape, slideSpecShape, type DocSpec, type SheetSpec, type SlideSpec } from './specs';
+import { docSpecShape, fillSheets, sheetSpecShape, slideSpecShape, type DocSpec, type SheetInput, type SlideSpec } from './specs';
 import { ZipError } from './unzip';
 import { makeXlsx } from './xlsx';
 
@@ -159,11 +159,12 @@ function maker(d: OfficeDeps, kind: Kind, label: () => string, description: stri
       const { file, ...spec } = input as { file: string };
       const full = outputPath(ctx.workDir, file, `.${kind}`, ctx.preexisting);
       const images = (rel: string) => imageFile(ctx.workDir, rel);
+      const book = kind === 'xlsx' ? fillSheets(spec as SheetInput) : undefined;
       const data = kind === 'docx' ? await makeDocx(spec as DocSpec, images)
-        : kind === 'xlsx' ? makeXlsx(spec as SheetSpec)
+        : book ? makeXlsx(book)
         : await makePptx(spec as SlideSpec, images);
       // The preview is drawn first: a picture it cannot take stops the call before anything is written.
-      const page = kind === 'docx' ? previewHtml('docx', spec as DocSpec, images) : kind === 'xlsx' ? previewHtml('xlsx', spec as SheetSpec, images) : previewHtml('pptx', spec as SlideSpec, images);
+      const page = kind === 'docx' ? previewHtml('docx', spec as DocSpec, images) : book ? previewHtml('xlsx', book, images) : previewHtml('pptx', spec as SlideSpec, images);
       mkdirSync(dirname(full), { recursive: true });
       writeFileSync(full, data);
       keepPreview(d, ctx.run, full, '.html', page);
@@ -201,10 +202,10 @@ export function officeServer(d: OfficeDeps): NookServer {
         },
       },
       maker(d, 'docx', () => O().makeDocx,
-        'Make a Word document (.docx) from its structure; never write Office XML yourself. `file` is the new file\'s path relative to the commission folder, ending in .docx. Blocks: {h: 1|2|3, text} a heading; {p} a paragraph, where **bold** and *italic* work and nothing else; {list, ordered?}; {table: {head, rows}}; {image, caption?} a .png, .jpg or .gif in the commission folder; {pageBreak: true}.',
+        'Make a Word document (.docx) from its structure; never write Office XML yourself. `file` is the new file\'s path relative to the commission folder, ending in .docx. Blocks: {h: 1|2|3, text} a heading; {p} a paragraph, where **bold** and *italic* work and nothing else; {list, ordered?}; {table: {head, rows}}; {image, caption?} a .png, .jpg or .gif in the commission folder; {pageBreak: true}. Optional: accent, a hex colour for the title, headings and table headers, and size, the body text in points (9 to 16), to carry out the designer\'s proposal.',
         docSpecShape),
       maker(d, 'xlsx', () => O().makeXlsx,
-        'Make an Excel workbook (.xlsx) from its structure; never write Office XML yourself. `file` is the new file\'s path relative to the commission folder, ending in .xlsx. Each sheet: a name, columns (header, width in characters, format text|number|money|date|percent), rows of cells. A cell is text, a number, or {f: "=SUM(B2:B20)"} for a formula that stays live; formulas use only this workbook, never other files or the web. freezeHeader keeps the first row in view.',
+        'Make an Excel workbook (.xlsx) from its structure; never write Office XML yourself. `file` is the new file\'s path relative to the commission folder, ending in .xlsx. Each sheet: a name, columns (header, width in characters, format text|number|money|date|percent), rows of cells. A cell is text, a number, {f: "=SUM(B2:B20)"} for a formula that stays live, or null to leave it empty; formulas use only this workbook, never other files or the web. freezeHeader keeps the first row in view. A sheet like another, {name: "Feb", like: "Jan"}, is a copy of a sheet given before it, its columns, rows, lists and charts, with a chart title naming that sheet given the new name; anything it gives beside like replaces that part of the copy. Write the first of a run of sheets alike in full and the rest this way. A column\'s list makes its cells a drop-down: a range such as "\'Categories\'!$A$2:$A$16", or a few words ["In", "Out"]. charts: [{type: pie|bar, title, labels: "H7:H21", values: "I7:I21", at: "K2"}], each range one column or row of this sheet or, with its name, another; a pie names each slice and its share.',
         sheetSpecShape),
       maker(d, 'pptx', () => O().makePptx,
         'Make a PowerPoint deck (.pptx) from its structure; never write Office XML yourself. `file` is the new file\'s path relative to the commission folder, ending in .pptx. A title, an optional accent colour (hex), and slides: layout title|bullets|image|two, a title, bullets, image (a .png, .jpg or .gif in the commission folder), right (the second column of "two"), notes for the speaker.',

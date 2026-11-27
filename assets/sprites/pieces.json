@@ -127,11 +127,12 @@
    "decor-dragon_boat": 106.1,
    "decor-mid_autumn": 106.1,
    "grow-album": 106.1,
+   "grow-cardstack": 152.1,
    "grow-fruit": 106.1,
    "grow-ledger": 106.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 106.1,
    "grow-plant": 94.1,
+   "grow-print-ledgerbook": 94.1,
    "grow-readinglamp": 106.1,
    "grow-teapot": 94.1,
    "grow-trophy": 152.1,
@@ -239,6 +240,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -318,8 +325,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -377,11 +384,23 @@
     "w": 13,
     "h": 10
    },
+   "print-book": {
+    "x": 66,
+    "y": 26,
+    "w": 9,
+    "h": 10
+   },
    "print-ivy": {
     "x": 7,
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,
@@ -443,6 +462,12 @@
     "w": 12,
     "h": 12
    },
+   "studio-strip": {
+    "x": 184,
+    "y": 17,
+    "w": 11,
+    "h": 22
+   },
    "sunset": {
     "x": 275,
     "y": 24,
@@ -466,6 +491,12 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-arcade": {
+    "x": 182,
+    "y": 22,
+    "w": 13,
+    "h": 20
    },
    "workshop-blueprint": {
     "x": 270,
@@ -625,10 +656,12 @@
    "grow-aquarium": 157.1,
    "grow-bonsai": 157.1,
    "grow-books": 157.1,
+   "grow-cardstack": 157.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 97.1,
+   "grow-print-ledgerbook": 97.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 97.1,
    "grow-trophy": 157.1,
@@ -636,7 +669,8 @@
    "season-spring": 102.1,
    "season-summer": 102.1,
    "season-winter": 102.1,
-   "weather-leaves": 97.1
+   "weather-leaves": 97.1,
+   "weather-wind": 97.1
   },
   "decor": [
    {
@@ -737,6 +771,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -816,8 +856,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -875,11 +915,23 @@
     "w": 13,
     "h": 10
    },
+   "print-book": {
+    "x": 66,
+    "y": 26,
+    "w": 9,
+    "h": 10
+   },
    "print-ivy": {
     "x": 7,
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,
@@ -941,6 +993,12 @@
     "w": 12,
     "h": 12
    },
+   "studio-strip": {
+    "x": 184,
+    "y": 17,
+    "w": 11,
+    "h": 22
+   },
    "sunset": {
     "x": 275,
     "y": 24,
@@ -964,6 +1022,12 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-arcade": {
+    "x": 182,
+    "y": 22,
+    "w": 13,
+    "h": 20
    },
    "workshop-blueprint": {
     "x": 270,
@@ -1109,14 +1173,17 @@
    "grow-bonsai": 156.1,
    "grow-books": 156.1,
    "grow-calendar": 57.1,
+   "grow-cardstack": 156.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
    "grow-plant": 96.1,
+   "grow-print-ledgerbook": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
    "grow-trophy": 156.1,
-   "weather-leaves": 96.1
+   "weather-leaves": 96.1,
+   "weather-wind": 96.1
   },
   "decor": [
    {
@@ -1217,6 +1284,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -1296,8 +1369,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -1355,11 +1428,23 @@
     "w": 13,
     "h": 10
    },
+   "print-book": {
+    "x": 66,
+    "y": 26,
+    "w": 9,
+    "h": 10
+   },
    "print-ivy": {
     "x": 7,
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,
@@ -1421,6 +1506,12 @@
     "w": 12,
     "h": 12
    },
+   "studio-strip": {
+    "x": 184,
+    "y": 17,
+    "w": 11,
+    "h": 22
+   },
    "sunset": {
     "x": 275,
     "y": 24,
@@ -1444,6 +1535,12 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-arcade": {
+    "x": 182,
+    "y": 22,
+    "w": 13,
+    "h": 20
    },
    "workshop-blueprint": {
     "x": 270,
@@ -1595,11 +1692,12 @@
    "grow-bonsai": 158.1,
    "grow-books": 158.1,
    "grow-calendar": 56.1,
+   "grow-cardstack": 158.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 94.1,
+   "grow-print-ledgerbook": 94.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 94.1,
    "grow-trophy": 158.1,
@@ -1707,6 +1805,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -1786,8 +1890,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -1845,11 +1949,23 @@
     "w": 13,
     "h": 10
    },
+   "print-book": {
+    "x": 66,
+    "y": 26,
+    "w": 9,
+    "h": 10
+   },
    "print-ivy": {
     "x": 7,
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,
@@ -1911,6 +2027,12 @@
     "w": 12,
     "h": 12
    },
+   "studio-strip": {
+    "x": 184,
+    "y": 17,
+    "w": 11,
+    "h": 22
+   },
    "sunset": {
     "x": 275,
     "y": 24,
@@ -1934,6 +2056,12 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-arcade": {
+    "x": 182,
+    "y": 22,
+    "w": 13,
+    "h": 20
    },
    "workshop-blueprint": {
     "x": 270,
@@ -2073,17 +2201,19 @@
    "grow-album": 102.1,
    "grow-bonsai": 156.1,
    "grow-books": 156.1,
+   "grow-cardstack": 156.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 95.1,
+   "grow-print-ledgerbook": 95.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 95.1,
    "season-autumn": 102.1,
    "season-spring": 102.1,
    "season-summer": 102.1,
-   "season-winter": 102.1
+   "season-winter": 102.1,
+   "weather-wind": 95.1
   },
   "decor": [
    {
@@ -2184,6 +2314,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -2263,8 +2399,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -2322,11 +2458,23 @@
     "w": 13,
     "h": 10
    },
+   "print-book": {
+    "x": 66,
+    "y": 26,
+    "w": 9,
+    "h": 10
+   },
    "print-ivy": {
     "x": 7,
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,
@@ -2388,6 +2536,12 @@
     "w": 12,
     "h": 12
    },
+   "studio-strip": {
+    "x": 184,
+    "y": 17,
+    "w": 11,
+    "h": 22
+   },
    "sunset": {
     "x": 275,
     "y": 24,
@@ -2411,6 +2565,12 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-arcade": {
+    "x": 182,
+    "y": 22,
+    "w": 13,
+    "h": 20
    },
    "workshop-blueprint": {
     "x": 270,
@@ -2548,11 +2708,12 @@
    "decor-lantern": 102.1,
    "decor-mid_autumn": 102.1,
    "grow-album": 102.1,
+   "grow-cardstack": 156.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 96.1,
+   "grow-print-ledgerbook": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
    "season-autumn": 102.1,
@@ -2659,6 +2820,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -2738,8 +2905,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -2797,11 +2964,23 @@
     "w": 13,
     "h": 10
    },
+   "print-book": {
+    "x": 66,
+    "y": 26,
+    "w": 9,
+    "h": 10
+   },
    "print-ivy": {
     "x": 7,
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,
@@ -2863,6 +3042,12 @@
     "w": 12,
     "h": 12
    },
+   "studio-strip": {
+    "x": 184,
+    "y": 17,
+    "w": 11,
+    "h": 22
+   },
    "sunset": {
     "x": 275,
     "y": 24,
@@ -2886,6 +3071,12 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-arcade": {
+    "x": 182,
+    "y": 22,
+    "w": 13,
+    "h": 20
    },
    "workshop-blueprint": {
     "x": 270,
@@ -3027,8 +3218,8 @@
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
    "grow-monitor": 158.1,
-   "grow-newsletters": 102.1,
    "grow-plant": 96.1,
+   "grow-print-ledgerbook": 96.1,
    "grow-readinglamp": 102.1,
    "grow-teapot": 96.1,
    "grow-toolbox": 163.1,
@@ -3136,6 +3327,12 @@
     "w": 25,
     "h": 7
    },
+   "cardstack": {
+    "x": 15,
+    "y": 112,
+    "w": 10,
+    "h": 5
+   },
    "chalkboard": {
     "x": 3,
     "y": 89,
@@ -3215,8 +3412,8 @@
     "h": 14
    },
    "newsletters": {
-    "x": 150,
-    "y": 74,
+    "x": 62,
+    "y": 31,
     "w": 12,
     "h": 6
    },
@@ -3274,11 +3471,23 @@
     "w": 13,
     "h": 10
    },
+   "print-book": {
+    "x": 66,
+    "y": 26,
+    "w": 9,
+    "h": 10
+   },
    "print-ivy": {
     "x": 7,
     "y": 17,
     "w": 9,
     "h": 13
+   },
+   "print-ledgerbook": {
+    "x": 245,
+    "y": 74,
+    "w": 15,
+    "h": 8
    },
    "print-proof": {
     "x": 234,
@@ -3340,6 +3549,12 @@
     "w": 12,
     "h": 12
    },
+   "studio-strip": {
+    "x": 184,
+    "y": 17,
+    "w": 11,
+    "h": 22
+   },
    "sunset": {
     "x": 275,
     "y": 24,
@@ -3363,6 +3578,12 @@
     "y": 97,
     "w": 11,
     "h": 16
+   },
+   "workshop-arcade": {
+    "x": 182,
+    "y": 22,
+    "w": 13,
+    "h": 20
    },
    "workshop-blueprint": {
     "x": 270,

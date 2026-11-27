@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameS
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
 import { localDay } from '../shared/localday';
-import { MAIN_FILES } from '../shared/templates';
+import { MAIN_FILES, shopOf } from '../shared/templates';
 import type { Shop } from '../shared/dispatch';
 import { emptyTown, type Gathered, TOWN_MOVE } from '../shared/town';
 import { nextChapter, told } from '../shared/stories';
@@ -228,7 +228,7 @@ export class MemoryStore {
       if (at !== 'home') {
         const own = (town.shops[at] ??= { done: 0, grown: [] });
         own.done++;
-        gather(own.grown, roomGrown(at, own.done));
+        gather(own.grown, roomGrown(at, own.done, madeOf(works)));
       }
     }
     this.data.shop = shop;
@@ -275,6 +275,7 @@ export class MemoryStore {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
       id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
       page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
+      shop: shopOf(c.form?.demo ? undefined : c.form?.template),
     }));
     return { ...structuredClone(this.shop()), works, today: localDay(now) };
   }
@@ -305,6 +306,12 @@ export class MemoryStore {
    */
   undone(id: string, left: string[]) {
     this.data.commissions.find((c) => c.id === id)!.touched = left;
+    this.save();
+  }
+
+  /** The user kept or dropped a repair's branch (plan-1.8.md H9). */
+  repairDecided(id: string, state: 'kept' | 'dropped') {
+    this.data.commissions.find((c) => c.id === id)!.repair!.state = state;
     this.save();
   }
 

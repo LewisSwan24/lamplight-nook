@@ -24,8 +24,12 @@ import { estimateUsd, type Usage } from './prices';
 import { pricedUsd } from './providers';
 import type { Prices } from '../shared/providers';
 import type { RoundActions } from './action-log';
-import { kindToolNames, mcpServersOf, toolsByName, type NookServer } from './nook-tools';
+import { kindToolNames, mcpServersOf, nookName, toolsByName, type NookServer } from './nook-tools';
 import { urlsSeen } from './citations';
+
+/** Reads a Word, Excel or PowerPoint file as text, which Read cannot (plan-1.8.md H0). Only there when the shop's office tools are. */
+const READ_OFFICE = nookName('office', 'read_document');
+const READ_OFFICE_HINT = `Read cannot open Word, Excel or PowerPoint files (.docx, .xlsx, .pptx): read those with ${READ_OFFICE} (read_document).`;
 
 /** The subagents. Their names map directly to characters (researcher -> Xiaoju, designer -> Qingdai, reviewer -> Laoshi). */
 export const SUBAGENTS: Record<string, AgentDefinition> = {
@@ -36,13 +40,13 @@ export const SUBAGENTS: Record<string, AgentDefinition> = {
   },
   designer: {
     description: 'Proposes the look of a page or interface before it is built: colours, type and layout. Read-only; never modifies files.',
-    prompt: `You design. Before anything is built, propose how it should look: a small palette (four to six colours as hex codes, each with what it is for), fonts and sizes, and the layout from top to bottom in a few lines. Keep it simple, warm and readable, and fit it to what the user asked for. Read any files that already exist if they matter; do not modify files. Finish with the proposal only, under fifteen lines. ${REPLY_LANGUAGE}`,
-    tools: ['Read', 'Glob', 'Grep'],
+    prompt: `You design. Before anything is built, propose how it should look: a small palette (four to six colours as hex codes, each with what it is for), fonts and sizes, and the layout from top to bottom in a few lines. Keep it simple, warm and readable, and fit it to what the user asked for. For a Word document only two things carry over: one accent colour for the title, headings and table headers, and the body size in points; propose just those. Read any files that already exist if they matter (${READ_OFFICE_HINT}); do not modify files. Finish with the proposal only, under fifteen lines. ${REPLY_LANGUAGE}`,
+    tools: ['Read', 'Glob', 'Grep', READ_OFFICE],
   },
   reviewer: {
     description: 'Checks finished work for problems. Use for the final review. Never modifies files.',
-    prompt: `You review work. Read the output and list what is wrong; if nothing is wrong, say so plainly. Do not modify files. ${REPLY_LANGUAGE}`,
-    tools: ['Read', 'Glob', 'Grep'],
+    prompt: `You review work. Read the output and list what is wrong; if nothing is wrong, say so plainly. ${READ_OFFICE_HINT} Do not modify files. ${REPLY_LANGUAGE}`,
+    tools: ['Read', 'Glob', 'Grep', READ_OFFICE],
   },
 };
 
@@ -105,6 +109,8 @@ export type RunOptions = {
   preexisting?: Set<string>;
   /** Working in a folder the user lent: keeps the original of each of their files before it is first changed. */
   keepOriginal?: (file: string) => void;
+  /** A repair on a branch of the user's repository (plan-1.8.md H9): git is the shop's, and nothing is pushed. */
+  repair?: boolean;
   /** Abort the run (the user cancelled the commission or closed the app). */
   abort?: AbortController;
   /** Continue an earlier SDK session (retry after a network failure, or after the app closed mid-commission). */
@@ -166,7 +172,7 @@ export { isInside };
 export const TOOLS = ['Agent', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebSearch', 'WebFetch', 'AskUserQuestion', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet'];
 
 /** Run one task, recording every message, hook call and permission decision. */
-export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook, model: asked, pricing }: RunOptions): Promise<RunResult> {
+export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, broker, preexisting, keepOriginal, repair, abort, resume, onSession, onInit, onInput, onUnreported, credentials, maxBudgetUsd, nook, model: asked, pricing }: RunOptions): Promise<RunResult> {
   mkdirSync(workDir, { recursive: true });
   const recorder = new Recorder(recordingPath);
   // A connection's tools go by its kind in the events, so the shop plays them whatever the connection's number (C8).
@@ -207,7 +213,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
   const nookTools = toolsByName(servers);
   const mcpServers = mcpServersOf(servers, { run: nook?.run ?? '', project: nook?.project, workDir, signal: abort?.signal ?? new AbortController().signal, preexisting: preexisting ?? new Set() }, nook?.actions);
   const canUseTool: CanUseTool = broker
-    ? makePermissionPolicy({ workDir, preexisting, keepOriginal, nook: nookTools, round: nook?.actions }, broker, {
+    ? makePermissionPolicy({ workDir, preexisting, keepOriginal, repair, nook: nookTools, round: nook?.actions }, broker, {
         onRequest: (tool, input, risk, reason, agentId) =>
           record({ source: 'permission', name: tool, payload: { input, risk, reason, agent_id: agentId } }),
         onDecision: (tool, choice, risk, label, agentId) =>
@@ -216,7 +222,7 @@ export async function runAgent({ prompt, workDir, recordingPath, emit, emitAi, b
     : async (toolName, input, opts) => {
         const result = await interim(toolName, input, opts);
         // Debug tasks record the risk level without asking the user.
-        const { risk, reason } = classify(toolName, input, { workDir, nook: nookTools, round: nook?.actions });
+        const { risk, reason } = classify(toolName, input, { workDir, repair, nook: nookTools, round: nook?.actions });
         record({ source: 'permission', name: toolName, payload: { input, result, risk, reason, agent_id: opts.agentID } });
         return result;
       };

@@ -98,6 +98,9 @@ describe('the shop grows with the commissions done together', () => {
     store.remember({ ...memo('broken'), result: 'failed' }, []);
     store.revise(a.id, 'lighter', { result: 'done', choices: {} }, []);
     expect(store.shopState().works.map((w) => [w.title, w.icon, w.rounds, w.hasMain])).toEqual([['page', 'page', 1, true], ['notes', 'research', 0, false]]);
+    // The shop that made it, for the shelf's shop row (plan-1.8 H7): a free-form order stays at home.
+    store.remember(memo('free', { form: { want: 'z' } }), []);
+    expect(store.shopState().works.map((w) => [w.title, w.icon, w.shop])).toEqual([['free', 'page', 'home'], ['page', 'page', 'workshop'], ['notes', 'research', 'home']]);
     expect(workIcon({ demo: true })).toBe('demo');
     expect(workIcon(undefined)).toBe('page');
   });

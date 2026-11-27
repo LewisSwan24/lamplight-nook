@@ -30,7 +30,7 @@ export function putAway(outside: Outside): string[] {
 }
 
 /** Rain or snow: whoever is out walks under an umbrella. */
-export const umbrellaUp = (sky: Sky): boolean => sky === 'rain' || sky === 'snow';
+export const umbrellaUp = (sky: Sky): boolean => sky === 'rain' || sky === 'snow' || sky === 'storm';
 
 /** The shops along the street, in the order of the rows of shops-decor.png; its columns follow HOLIDAYS. */
 export const DECOR_SHOPS = ['print', 'studio', 'workshop', 'bakery', 'post'] as const;

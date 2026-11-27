@@ -1,4 +1,4 @@
-import type { Look } from './daytime';
+import type { Look, Period } from './daytime';
 import type { Season } from '../../shared/growth';
 
 /**
@@ -6,7 +6,7 @@ import type { Season } from '../../shared/growth';
  * online. Each day gets its own weather, picked from the date, so it stays the same all day and on reopening.
  */
 export type { Season };
-export type Sky = 'clear' | 'rain' | 'snow' | 'petals' | 'leaves';
+export type Sky = 'clear' | 'rain' | 'snow' | 'petals' | 'leaves' | 'fog' | 'wind' | 'storm';
 export const SEASONS: Season[] = ['spring', 'summer', 'autumn', 'winter'];
 /** The festivals the shop decorates for (Q-A5): the same for everyone, in either language. */
 export const HOLIDAYS = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn'] as const;
@@ -28,12 +28,15 @@ export function dayRoll(date: Date): number {
   return ((h >>> 0) % 10000) / 10000;
 }
 
-/** Chances of each kind of day per season; whatever is left over is a clear day. */
+/**
+ * Chances of each kind of day per season; whatever is left over is a clear day. Fog, wind and storms (plan-1.7.md G4)
+ * come last, so they only take days that were clear before and every older kind of day stays as it was.
+ */
 const CHANCES: Record<Season, [Sky, number][]> = {
-  spring: [['rain', 0.25], ['petals', 0.3]],
-  summer: [['rain', 0.3]],
-  autumn: [['rain', 0.2], ['leaves', 0.35]],
-  winter: [['snow', 0.35], ['rain', 0.1]],
+  spring: [['rain', 0.25], ['petals', 0.3], ['fog', 0.08]],
+  summer: [['rain', 0.3], ['storm', 0.08]],
+  autumn: [['rain', 0.2], ['leaves', 0.35], ['fog', 0.08], ['wind', 0.08]],
+  winter: [['snow', 0.35], ['rain', 0.1], ['wind', 0.08]],
 };
 
 export function weatherOn(date: Date): Sky {
@@ -45,19 +48,25 @@ export function weatherOn(date: Date): Sky {
   return 'clear';
 }
 
-/** Lunar New Year's day (month index, day) for the years the app is likely to be open in. */
+/**
+ * Lunar New Year's day (month index, day) for the years the app is likely to be open in, 2025 to 2040. All three tables
+ * are checked against the Hong Kong Observatory's conversion tables (tests/fixtures/hko-calendar.json).
+ */
 const LUNAR_NEW_YEAR: Record<number, [number, number]> = {
   2025: [0, 29], 2026: [1, 17], 2027: [1, 6], 2028: [0, 26], 2029: [1, 13], 2030: [1, 3],
-  2031: [0, 23], 2032: [1, 11], 2033: [0, 31], 2034: [1, 19], 2035: [1, 8],
+  2031: [0, 23], 2032: [1, 11], 2033: [0, 31], 2034: [1, 19], 2035: [1, 8], 2036: [0, 28],
+  2037: [1, 15], 2038: [1, 4], 2039: [0, 24], 2040: [1, 12],
 };
 /** The Dragon Boat Festival (5th day of the 5th lunar month) and the Mid-Autumn Festival (15th of the 8th), same years. */
 const DRAGON_BOAT: Record<number, [number, number]> = {
   2025: [4, 31], 2026: [5, 19], 2027: [5, 9], 2028: [4, 28], 2029: [5, 16], 2030: [5, 5],
-  2031: [5, 24], 2032: [5, 12], 2033: [5, 1], 2034: [5, 20], 2035: [5, 10],
+  2031: [5, 24], 2032: [5, 12], 2033: [5, 1], 2034: [5, 20], 2035: [5, 10], 2036: [4, 30],
+  2037: [5, 18], 2038: [5, 7], 2039: [4, 27], 2040: [5, 14],
 };
 const MID_AUTUMN: Record<number, [number, number]> = {
   2025: [9, 6], 2026: [8, 25], 2027: [8, 15], 2028: [9, 3], 2029: [8, 22], 2030: [8, 12],
-  2031: [9, 1], 2032: [8, 19], 2033: [8, 8], 2034: [8, 27], 2035: [8, 16],
+  2031: [9, 1], 2032: [8, 19], 2033: [8, 8], 2034: [8, 27], 2035: [8, 16], 2036: [9, 4],
+  2037: [8, 24], 2038: [8, 13], 2039: [9, 2], 2040: [8, 20],
 };
 /** The Lantern Festival is the 15th day of the first month: fourteen days after New Year's day. */
 const LANTERN_AFTER = 14;
@@ -106,18 +115,37 @@ export function outsideFlags(outside: { sky: Sky; holiday: Holiday | null }): st
   return [...(outside.sky === 'clear' ? [] : [`sky_${outside.sky}`]), ...(outside.holiday ? [`holiday_${outside.holiday}`] : [])];
 }
 
-/** A rainy or snowy day is greyer: the room a little cooler and the window glass overcast. */
+/** The overcast glass for each grey kind of day. */
+export const LOOKS_GREY: Partial<Record<Sky, number>> = { rain: 0xa9b3c1, snow: 0xdfe4ec, storm: 0x7d8696, fog: 0xe6e9ec };
+/** How much a grey day cools the room, and how much sun it leaves. */
+const GREY_ROOM: Partial<Record<Sky, { tint: number; sun: number }>> = {
+  rain: { tint: 0xe4e7ee, sun: 0.5 }, snow: { tint: 0xf0f2f7, sun: 0.5 }, storm: { tint: 0xd4d8e2, sun: 0.3 }, fog: { tint: 0xf2f2f2, sun: 0.6 },
+};
+
+/** A rainy, snowy, stormy or foggy day is greyer: the room a little cooler and the window glass overcast. Wind is not. */
 export function withWeather(look: Look, sky: Sky): Look {
-  if (sky !== 'rain' && sky !== 'snow') return look;
-  const grey = sky === 'rain' ? 0xa9b3c1 : 0xdfe4ec;
+  const grey = LOOKS_GREY[sky];
+  const room = GREY_ROOM[sky];
+  if (grey === undefined || !room) return look;
   return {
     ...look,
-    tint: multiply(look.tint, sky === 'rain' ? 0xe4e7ee : 0xf0f2f7),
+    tint: multiply(look.tint, room.tint),
     sky: look.skyAlpha > 0.8 ? look.sky : grey,
     skyAlpha: Math.max(look.skyAlpha, 0.6),
-    sun: look.sun * 0.5,
+    sun: look.sun * room.sun,
   };
 }
+
+/** How thick the fog is over the glass and the street: thickest at dawn, thinning through the day. */
+export function fogFor(sky: Sky, period: Period): number {
+  if (sky !== 'fog') return 0;
+  return { dawn: 0.7, day: 0.4, dusk: 0.5, night: 0.35 }[period];
+}
+
+/** Lightning flashes in a storm, unless less motion is asked for. */
+export const flashesFor = (sky: Sky, reducedMotion: boolean): boolean => sky === 'storm' && !reducedMotion;
+/** How long between flashes, in milliseconds. */
+export const FLASH_GAP_MS: [number, number] = [6000, 15000];
 
 /** Multiply two 0xRRGGBB colours channel by channel. */
 export function multiply(a: number, b: number): number {
@@ -125,10 +153,16 @@ export function multiply(a: number, b: number): number {
   return (ch(16) << 16) | (ch(8) << 8) | ch(0);
 }
 
-/** What falls past the windows: colour, size and how it moves (pixels per second, sideways drift). */
-export const FALLING: Record<Exclude<Sky, 'clear'>, { color: number; w: number; h: number; speed: number; drift: number; perSecond: number }> = {
+/**
+ * What falls past the windows: colour, size and how it moves (pixels per second, sideways drift). Nothing falls in fog;
+ * in the wind, leaves blow across more than they fall.
+ */
+export type Falling = { color: number; w: number; h: number; speed: number; drift: number; perSecond: number };
+export const FALLING: Partial<Record<Sky, Falling>> = {
   rain: { color: 0xc4d4e8, w: 1, h: 3, speed: 140, drift: -12, perSecond: 40 },
   snow: { color: 0xffffff, w: 1, h: 1, speed: 14, drift: 6, perSecond: 10 },
   petals: { color: 0xf6c1cf, w: 2, h: 1, speed: 12, drift: 14, perSecond: 3 },
   leaves: { color: 0xd9822b, w: 2, h: 1, speed: 16, drift: 12, perSecond: 3 },
+  storm: { color: 0xb4c4da, w: 1, h: 4, speed: 180, drift: -30, perSecond: 70 },
+  wind: { color: 0xc98a3a, w: 2, h: 1, speed: 20, drift: 90, perSecond: 6 },
 };

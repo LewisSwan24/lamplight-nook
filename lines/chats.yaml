@@ -121,6 +121,48 @@
     - laoshi: 关好窗。
     - adeng: 我去烧壶热水。
 
+- id: fog_window
+  when: idle
+  sky: fog
+  turns:
+    - xiaoju: 窗外白茫茫的。
+    - qingdai: 像没干的水彩。
+
+- id: fog_lamp
+  when: idle
+  sky: fog
+  turns:
+    - adeng: 雾天，门口的灯早点开。
+    - xiaoju: 我去开。
+
+- id: wind_sign
+  when: idle
+  sky: wind
+  turns:
+    - xiaoju: 招牌在晃，会不会掉？
+    - laoshi: 我上过螺丝。
+
+- id: wind_door
+  when: idle
+  sky: wind
+  turns:
+    - qingdai: 风把门吹开了两回。
+    - adeng: 拿块砖顶上。
+
+- id: storm_count
+  when: idle
+  sky: storm
+  turns:
+    - xiaoju: 闪了！一、二、三……
+    - laoshi: 三里地。
+
+- id: storm_cat
+  when: idle
+  sky: storm
+  turns:
+    - qingdai: 栗子钻到柜子底下了。
+    - adeng: 雷停了就出来。
+
 - id: leaves_door
   when: idle
   sky: leaves
@@ -1356,6 +1398,412 @@
     - organizer: 天冷了，我挨家看暖气热不热。
     - adeng: 先坐下，喝口热的再走。
 
+# 1.8 复习卡片带来的乐乐（plan-1.8.md H1）：高三，书包里一半卷子一半卡片。
+
+- id: lele_cards
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 卡片我天天揣在兜里。
+    - adeng: 背到第几张了？
+    - pupil: 第二遍了，红笔的还没记住。
+
+- id: lele_quiz
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 那页小测我做了三遍。
+    - laoshi: 错的几道，回材料里找一找。
+    - pupil: 找了，都在第二章。
+
+- id: lele_mock
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 下礼拜模拟考。
+    - xiaoju: 考哪几门？
+    - pupil: 全部。
+
+- id: lele_desk
+  when: idle
+  guest: pupil
+  turns:
+    - pupil: 家里太吵，能在这儿坐会儿吗？
+    - adeng: 靠窗那张桌子给你留着。
+
+- id: lele_rain
+  when: idle
+  guest: pupil
+  sky: rain
+  turns:
+    - pupil: 雨太大，等小点再走。
+    - qingdai: 正好，把卡片再过一遍。
+
+- id: lele_spring
+  when: idle
+  guest: pupil
+  after: 20
+  season: spring
+  turns:
+    - pupil: 开学了，书包又沉了。
+    - xiaoju: 装的都是卷子吗？
+    - pupil: 一半卷子，一半卡片。
+
+- id: lele_summer
+  when: idle
+  guest: pupil
+  after: 20
+  season: summer
+  turns:
+    - pupil: 考完了，卡片还舍不得扔。
+    - laoshi: 留着，以后翻翻也好。
+
+- id: lele_autumn
+  when: idle
+  guest: pupil
+  after: 20
+  season: autumn
+  turns:
+    - pupil: 新学期，又发了一摞讲义。
+    - adeng: 拿来，照老样子做。
+
+- id: lele_winter
+  when: idle
+  guest: pupil
+  after: 20
+  season: winter
+  turns:
+    - pupil: 太冷了，手都不想伸出来。
+    - adeng: 先捧着这杯热的。
+
+- id: su_weekly
+  when: idle
+  guest: editor
+  turns:
+    - editor: 这周的四格又发出去了。
+    - adeng: 读的人多吗？
+    - editor: 比上周多两百个。
+
+- id: su_lines
+  when: idle
+  guest: editor
+  turns:
+    - editor: 对白我自己写，画交给青黛。
+    - qingdai: 气泡别塞太满就行。
+
+- id: su_deadline
+  when: idle
+  guest: editor
+  turns:
+    - editor: 周五中午前要交稿。
+    - laoshi: 周四晚上先排好。
+
+- id: su_sequel
+  when: idle
+  guest: editor
+  turns:
+    - editor: 有读者留言说想看续集。
+    - xiaoju: 下回递单写上续集。
+
+- id: su_cat
+  when: idle
+  guest: editor
+  turns:
+    - editor: 下周想画一只猫当主角。
+    - adeng: 店里那只可以当模特。
+
+- id: su_rain
+  when: idle
+  guest: editor
+  sky: rain
+  turns:
+    - editor: 下雨天，正好在家想段子。
+    - adeng: 先喝口热的。
+
+- id: su_spring
+  when: idle
+  guest: editor
+  after: 20
+  season: spring
+  turns:
+    - editor: 春天这期，画大家去踏青。
+    - qingdai: 多用点嫩绿。
+
+- id: su_summer
+  when: idle
+  guest: editor
+  after: 20
+  season: summer
+  turns:
+    - editor: 夏天这期，讲抢空调遥控器。
+    - xiaoju: 谁抢到算谁的。
+
+- id: su_autumn
+  when: idle
+  guest: editor
+  after: 20
+  season: autumn
+  turns:
+    - editor: 秋天这期，画月饼分不匀。
+    - laoshi: 切成六块，正好。
+
+- id: su_winter
+  when: idle
+  guest: editor
+  after: 20
+  season: winter
+  turns:
+    - editor: 年底这期，画一年的总结。
+    - adeng: 四格装得下一年吗？
+
+- id: mum_story
+  when: idle
+  guest: mum
+  turns:
+    - mum: 小满每晚要听一个故事。
+    - adeng: 一本书够讲几晚？
+    - mum: 同一本他能听十遍。
+
+- id: mum_name
+  when: idle
+  guest: mum
+  turns:
+    - mum: 封面上写了他的名字。
+    - mum: 他天天拿去给奶奶看。
+
+- id: mum_bear
+  when: idle
+  guest: mum
+  turns:
+    - mum: 每页的小熊都一个样子。
+    - qingdai: 先定好样子，再动笔。
+
+- id: mum_paper
+  when: idle
+  guest: mum
+  turns:
+    - mum: 纸挑厚一点，他翻得勤。
+    - laoshi: 用一百五十克的纸，翻不坏。
+
+- id: mum_asleep
+  when: idle
+  guest: mum
+  turns:
+    - mum: 昨晚讲到第五页就睡着了。
+    - adeng: 后面几页留到今晚。
+
+- id: mum_dino
+  when: idle
+  guest: mum
+  turns:
+    - mum: 下一本他想要恐龙。
+    - qingdai: 吃草的那种，脖子长长的。
+
+- id: mum_milk
+  when: idle
+  guest: mum
+  turns:
+    - mum: 一杯热牛奶，少放糖。
+    - xiaoju: 马上就好。
+
+- id: mum_moon
+  when: idle
+  guest: mum
+  turns:
+    - mum: 他自己认得“月亮”两个字了。
+    - adeng: 书里写了好多遍月亮。
+
+- id: mum_spring
+  when: idle
+  guest: mum
+  after: 20
+  season: spring
+  turns:
+    - mum: 春天这本，想讲种花。
+    - qingdai: 每页让花长高一点。
+
+- id: mum_summer
+  when: idle
+  guest: mum
+  after: 20
+  season: summer
+  turns:
+    - mum: 夏天这本，讲萤火虫。
+    - qingdai: 底色用深蓝，光才显得出来。
+
+- id: mum_autumn
+  when: idle
+  guest: mum
+  after: 20
+  season: autumn
+  turns:
+    - mum: 秋天这本，讲捡落叶。
+    - xiaoju: 店门口的银杏叶正黄。
+
+- id: mum_winter
+  when: idle
+  guest: mum
+  after: 20
+  season: winter
+  turns:
+    - mum: 冬天这本，讲下雪。
+    - laoshi: 白色多，字用深色。
+
+- id: dad_game
+  when: idle
+  guest: dad
+  turns:
+    - dad: 朵朵天天玩那个翻牌游戏。
+    - adeng: 她最快几秒翻完？
+    - dad: 四十秒，比我快。
+
+- id: dad_level
+  when: idle
+  guest: dad
+  turns:
+    - dad: 能不能再加一关难点的？
+    - xiaoju: 下回递单写上就行。
+
+- id: dad_time
+  when: idle
+  guest: dad
+  turns:
+    - dad: 我们说好一天只玩一刻钟。
+    - laoshi: 定个闹钟，响了就停。
+
+- id: dad_bus
+  when: idle
+  guest: dad
+  turns:
+    - dad: 不联网也能玩，坐车正好。
+    - adeng: 地铁上也行。
+
+- id: dad_draw
+  when: idle
+  guest: dad
+  turns:
+    - dad: 朵朵想把自己画进游戏里。
+    - qingdai: 画好拿来，我帮她配色。
+
+- id: dad_rain
+  when: idle
+  guest: dad
+  sky: rain
+  turns:
+    - dad: 下雨出不去，在家玩一局。
+    - adeng: 喝杯热的再走。
+
+- id: dad_spring
+  when: idle
+  guest: dad
+  after: 20
+  season: spring
+  turns:
+    - dad: 开春了，周末带朵朵放风筝。
+    - xiaoju: 风筝也能做成游戏。
+
+- id: dad_summer
+  when: idle
+  guest: dad
+  after: 20
+  season: summer
+  turns:
+    - dad: 放暑假，她天天想玩。
+    - laoshi: 先写作业，再玩一局。
+
+- id: dad_autumn
+  when: idle
+  guest: dad
+  after: 20
+  season: autumn
+  turns:
+    - dad: 开学了，游戏改成周末玩。
+    - qingdai: 周末那局留着当奖励。
+
+- id: dad_winter
+  when: idle
+  guest: dad
+  after: 20
+  season: winter
+  turns:
+    - dad: 天冷，朵朵在家玩得多。
+    - adeng: 再做个下雪的关卡。
+
+- id: qin_book
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 账本我天天晚上记。
+    - adeng: 记了多少年了？
+    - bookkeeper: 从结婚那年记到现在。
+
+- id: qin_pie
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 那张饼图，孙子一看就懂。
+    - xiaoju: 哪一块最大？
+    - bookkeeper: 买菜那块，一眼就看出来。
+
+- id: qin_prices
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 今天菜场的青菜又涨了五毛。
+    - laoshi: 记上，月底一看就清楚。
+
+- id: qin_categories
+  when: idle
+  guest: bookkeeper
+  turns:
+    - bookkeeper: 我在分类里加了一项：养猫。
+    - qingdai: 猫粮也是一笔大开销。
+
+- id: qin_rain
+  when: idle
+  guest: bookkeeper
+  sky: rain
+  turns:
+    - bookkeeper: 下雨天，正好在家对账。
+    - adeng: 先喝口热的再回去。
+
+- id: qin_spring
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: spring
+  turns:
+    - bookkeeper: 开春了，暖气费总算停了。
+    - xiaoju: 冬天那几页可真厚。
+
+- id: qin_summer
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: summer
+  turns:
+    - bookkeeper: 空调一开，电费就上去了。
+    - laoshi: 七月那页，等着看。
+
+- id: qin_autumn
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: autumn
+  turns:
+    - bookkeeper: 孙子开学，学费单子来了。
+    - adeng: 这个月的饼图要变样了。
+
+- id: qin_winter
+  when: idle
+  guest: bookkeeper
+  after: 20
+  season: winter
+  turns:
+    - bookkeeper: 年底了，一年的账翻了一遍。
+    - laoshi: 结余多少？
+    - bookkeeper: 比去年多一点，够过个好年。
+
 # 1.6 的街（plan-1.6.md F5）：主店的人说起面包房、邮局和街上走过的人；桂姨和阿信来店里时说的。
 
 - id: f5_bread_smell
@@ -2026,3 +2474,194 @@
     - xiaoju: 窗外走过去第十个人了。
     - adeng: 你在数？
     - xiaoju: 数到二十，活就好了。
+
+# Festivals, more of them (plan-1.7.md G1): six chats for each.
+
+- id: g1_halloween_mask
+  when: idle
+  holiday: halloween
+  turns:
+    - xiaoju: 我做了个面具，猜猜是谁？
+    - qingdai: 耳朵这么尖，是栗子。
+    - xiaoju: 一猜就中，没意思。
+
+- id: g1_halloween_candy
+  when: idle
+  holiday: halloween
+  after: 10
+  turns:
+    - xiaodou: 门口来了三拨要糖的。
+    - adeng: 糖还够吗？
+    - xiaodou: 还剩半罐。
+
+- id: g1_christmas_socks
+  when: idle
+  holiday: christmas
+  turns:
+    - xiaoju: 袜子挂好了，一人一只。
+    - laoshi: 我那只破了个洞。
+    - xiaoju: 那礼物就漏下去了。
+
+- id: g1_christmas_cards
+  when: idle
+  holiday: christmas
+  turns:
+    - qingdai: 我给街上每家画了张卡。
+    - adeng: 邮局那张让小橘送过去。
+
+- id: g1_christmas_lights
+  when: idle
+  holiday: christmas
+  after: 10
+  turns:
+    - xiaodou: 彩灯四秒闪一次，我数过。
+    - laoshi: 我调的。
+
+- id: g1_new_year_dumplings
+  when: idle
+  holiday: new_year
+  turns:
+    - adeng: 晚上包饺子，都留下。
+    - xiaoju: 我要包一个放硬币的！
+    - laoshi: 别硌了牙。
+
+- id: g1_new_year_couplets
+  when: idle
+  holiday: new_year
+  after: 10
+  turns:
+    - qingdai: 空地上那个摊子在卖春联。
+    - xiaodou: 我抄了几副，回头比比字。
+
+- id: g1_lantern_string
+  when: idle
+  holiday: lantern
+  turns:
+    - xiaoju: 门上那串小灯笼是我挂的。
+    - adeng: 挂得挺齐。
+
+- id: g1_lantern_count
+  when: idle
+  holiday: lantern
+  after: 10
+  turns:
+    - xiaodou: 汤圆我数过，一人六个。
+    - xiaoju: 那栗子呢？
+    - xiaodou: 栗子不吃汤圆。
+
+- id: g1_dragon_boat_mugwort
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - laoshi: 艾草挂在门两边，驱虫。
+    - xiaoju: 闻着像中药。
+
+- id: g1_dragon_boat_race
+  when: idle
+  holiday: dragon_boat
+  after: 10
+  turns:
+    - xiaodou: 河边在赛龙舟，红的那条快。
+    - xiaoju: 我也想去划！
+    - laoshi: 你先学会游泳。
+
+- id: g1_dragon_boat_cords
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - qingdai: 我编了五彩绳，手伸过来。
+    - adeng: 绑紧一点。
+
+- id: g1_dragon_boat_sweet
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: 甜粽子还是咸粽子？
+    - laoshi: 咸的。
+    - adeng: 都要。
+
+- id: g1_mid_autumn_rabbit
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: 门口那只兔子灯，晚上会亮。
+    - qingdai: 耳朵是我画的粉色。
+
+- id: g1_mid_autumn_letter
+  when: idle
+  holiday: mid_autumn
+  after: 10
+  turns:
+    - xiaodou: 我给家里写了封信。
+    - adeng: 明早让阿信带走。
+
+- id: g1_halloween_costume
+  when: idle
+  holiday: halloween
+  turns:
+    - laoshi: 我不扮。
+    - xiaoju: 你戴个帽子就行。
+    - laoshi: 不戴。
+
+- id: g1_halloween_soup
+  when: idle
+  holiday: halloween
+  after: 10
+  turns:
+    - adeng: 南瓜汤还剩一锅底。
+    - xiaodou: 我端去给阿信。
+
+- id: g1_new_year_firecrackers
+  when: idle
+  holiday: new_year
+  after: 10
+  turns:
+    - xiaoju: 外面在放鞭炮！
+    - xiaodou: 栗子钻床底下了。
+    - adeng: 让栗子待着。
+
+- id: g1_new_year_wish
+  when: idle
+  holiday: new_year
+  turns:
+    - qingdai: 今年想画一面墙。
+    - adeng: 后院那面给你。
+
+- id: g1_lantern_answer
+  when: idle
+  holiday: lantern
+  after: 10
+  turns:
+    - xiaodou: 昨天那条灯谜，谜底是“伞”。
+    - xiaoju: 我猜的是蘑菇。
+
+- id: g1_lantern_walk
+  when: idle
+  holiday: lantern
+  turns:
+    - adeng: 晚上去街上看灯，谁去？
+    - xiaoju: 我！
+    - laoshi: 我看店。
+
+- id: g1_dragon_boat_eggs
+  when: idle
+  holiday: dragon_boat
+  turns:
+    - xiaoju: 桂姨给了一网兜咸鸭蛋。
+    - adeng: 晚饭就配粥。
+
+- id: g1_mid_autumn_garden
+  when: idle
+  holiday: mid_autumn
+  after: 10
+  turns:
+    - xiaodou: 后院的桌子搬好了。
+    - qingdai: 月亮还没上来。
+    - adeng: 等等就有了。
+
+- id: g1_mid_autumn_slices
+  when: idle
+  holiday: mid_autumn
+  turns:
+    - xiaoju: 月饼切成五份还是六份？
+    - laoshi: 六份，栗子也算。

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { byMonth, filterWorks, kindsOf } from '../app/shared/shelf';
+import { byMonth, filterWorks, kindsOf, shopsOf } from '../app/shared/shelf';
 import { setLocale } from '../app/shared/i18n';
 import type { WorkIcon } from '../app/shared/growth';
+import type { Shop } from '../app/shared/dispatch';
+import { shopOf } from '../app/shared/templates';
 
-const work = (title: string, date = '2026-03-01', icon: WorkIcon = 'page', want = '') => ({ id: title, title, date, icon, want });
+const work = (title: string, date = '2026-03-01', icon: WorkIcon = 'page', want = '', shop: Shop = shopOf(icon === 'demo' ? undefined : icon)) =>
+  ({ id: title, title, date, icon, want, shop });
 const titles = (list: { title: string }[]) => list.map((w) => w.title);
 
 describe('finding a work on the shelf', () => {
@@ -52,6 +55,39 @@ describe('finding a work on the shelf', () => {
   it('keeps to one kind, together with the words', () => {
     expect(titles(filterWorks(works, { query: '', kind: 'album' }))).toEqual(['婚礼相册']);
     expect(filterWorks(works, { query: 'bakery', kind: 'album' })).toEqual([]);
+  });
+});
+
+describe('works by the shop that made them', () => {
+  const works = [
+    work('Rosa page', '2026-03-09', 'page'),
+    work('Bakery winter numbers', '2026-02-11', 'sheet', 'Look into why the bakery loses money'),
+    work('Rosa résumé', '2026-02-01', 'resume', 'a résumé for Rosa'),
+    work('Free-form page', '2026-01-20', 'page', 'anything', 'home'),
+    work('Rosa poster', '2026-01-10', 'poster'),
+  ];
+
+  it('keeps to one shop', () => {
+    expect(titles(filterWorks(works, { query: '', kind: null, shop: 'print' }))).toEqual(['Bakery winter numbers', 'Rosa résumé']);
+    expect(titles(filterWorks(works, { query: '', kind: null, shop: 'studio' }))).toEqual(['Rosa poster']);
+    expect(filterWorks(works, { query: '', kind: null, shop: 'bakery' })).toEqual([]);
+  });
+
+  it('counts a page with no template as the home shop\'s, not the workshop\'s', () => {
+    expect(titles(filterWorks(works, { query: '', kind: null, shop: 'home' }))).toEqual(['Free-form page']);
+    expect(titles(filterWorks(works, { query: '', kind: null, shop: 'workshop' }))).toEqual(['Rosa page']);
+  });
+
+  it('stacks with the kind and the words', () => {
+    expect(titles(filterWorks(works, { query: 'rosa', kind: null, shop: 'print' }))).toEqual(['Rosa résumé']);
+    expect(titles(filterWorks(works, { query: '', kind: 'sheet', shop: 'print' }))).toEqual(['Bakery winter numbers']);
+    expect(filterWorks(works, { query: '', kind: 'sheet', shop: 'studio' })).toEqual([]);
+    expect(filterWorks(works, { query: 'bakery', kind: 'resume', shop: 'print' })).toEqual([]);
+    expect(titles(filterWorks(works, { query: 'page', kind: 'page', shop: null }))).toEqual(['Rosa page', 'Free-form page']);
+  });
+
+  it('lists only the shops that made something, in the street\'s order', () => {
+    expect(shopsOf(works)).toEqual([{ shop: 'home', n: 1 }, { shop: 'print', n: 2 }, { shop: 'studio', n: 1 }, { shop: 'workshop', n: 1 }]);
   });
 });
 

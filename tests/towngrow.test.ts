@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import town from '../assets/sprites/town.json';
 import { MemoryStore } from '../app/main/memory';
-import { FRONT_GROWTH, ROOM_GROWTH, STREET_GROWTH, frontGrown, roomGrown, streetGrown, townCounts, townNews } from '../app/shared/towngrow';
+import { FRONT_GROWTH, ROOM_GROWTH, ROOM_WORK, STREET_GROWTH, frontGrown, roomGrown, roomPieceIds, streetGrown, townCounts, townNews } from '../app/shared/towngrow';
+import { roomPieces } from '../app/renderer/game/ShopGrowth';
 import { FRONTS, streetArea } from '../app/renderer/game/town';
 import { hitsFeet } from '../app/renderer/game/path';
 import { parseLines, pickLine } from '../app/renderer/translator/lines';
@@ -40,6 +41,44 @@ describe('what grows on the street', () => {
     expect(roomGrown('bakery', 8)).toEqual(['wheat', 'ivy', 'pin']);
     expect(roomGrown('bakery', 20)).toEqual(['wheat', 'ivy', 'pin', 'garland']);
     expect(roomGrown('post', 20)).toEqual(['stamp', 'ivy', 'horn', 'map']);
+  });
+});
+
+describe('what a kind of work brings into its own shop along the street (plan-1.8.md H5)', () => {
+  it('puts a family ledger on the print shop\'s counter once there has been one, whatever the shop\'s count', () => {
+    expect(ROOM_WORK).toEqual([{ shop: 'print', id: 'ledgerbook', at: 1, work: 'ledgerbook' }, { shop: 'workshop', id: 'arcade', at: 1, work: 'minigame' }, { shop: 'studio', id: 'strip', at: 1, work: 'comic' }, { shop: 'print', id: 'book', at: 1, work: 'picturebook' }]);
+    expect(roomGrown('print', 1)).toEqual(['proof']);
+    expect(roomGrown('print', 1, { ledgerbook: 1 })).toEqual(['proof', 'ledgerbook']);
+    expect(roomGrown('print', 0, { ledgerbook: 1, sheet: 4 })).toEqual(['ledgerbook']);
+    // Only in the shop that makes it.
+    expect(roomGrown('studio', 20, { ledgerbook: 3 })).toEqual(['sketch', 'ivy', 'palette', 'gallery']);
+  });
+
+  it('names it like the shop\'s own pieces, with a name of its own, and the room draws it', () => {
+    expect(roomPieceIds('print')).toEqual(['proof', 'ivy', 'typecase', 'ribbon', 'ledgerbook', 'book']);
+    expect(roomPieces('print')).toEqual(['print-proof', 'print-ivy', 'print-typecase', 'print-ribbon', 'print-ledgerbook', 'print-book']);
+    // A picture book (plan-1.8.md H4) is drawn in the studio but laid out in the print shop: its little book sits there.
+    expect(roomGrown('print', 0, { picturebook: 1 })).toEqual(['book']);
+    expect(roomGrown('studio', 0, { picturebook: 1 })).toEqual([]);
+    expect(roomPieceIds('post')).toEqual(['stamp', 'ivy', 'horn', 'map']);
+    // A small game (plan-1.8.md H2) puts a little game machine in the workshop.
+    expect(roomPieceIds('workshop')).toEqual(['gear', 'ivy', 'clock', 'blueprint', 'arcade']);
+    expect(roomGrown('workshop', 0, { minigame: 1 })).toEqual(['arcade']);
+    // A comic (plan-1.8.md H3) hangs a strip of panels on the studio's wall.
+    expect(roomPieceIds('studio')).toEqual(['sketch', 'ivy', 'palette', 'gallery', 'strip']);
+  });
+
+  it('writes down the day it came, and says so once', () => {
+    const store = fresh();
+    const made = (n: number) => ({ ledgerbook: n });
+    for (let i = 0; i < 2; i++) {
+      store.remember({ title: `book ${i}`, result: 'done', choices: {}, folder: `/w/${i}`, form: { want: 'x', template: 'ledgerbook' } }, []);
+      store.finished(DAY, 'print');
+    }
+    expect(store.shopState().town!.shops.print!.grown.map((g) => g.id)).toEqual(['proof', 'ledgerbook']);
+    const counts = townCounts(store.shopState(), 'cafe');
+    expect(townNews(counts, counts, { before: {}, after: made(1) }).map((n) => n.line)).toEqual(['grow_print_ledgerbook']);
+    expect(townNews(counts, counts, { before: made(1), after: made(2) })).toEqual([]);
   });
 });
 
@@ -103,6 +142,7 @@ describe('what is worth a word', () => {
         ...STREET_GROWTH.map((g) => `grow_street_${g.id}`),
         ...FRONT_GROWTH.map((g) => `grow_front_${g.id}`),
         ...Object.entries(ROOM_GROWTH).flatMap(([shop, pieces]) => pieces.map((g) => `grow_${shop}_${g.id}`)),
+        ...ROOM_WORK.map((g) => `grow_${g.shop}_${g.id}`),
       ];
       for (const id of ids) {
         const turns = pickLine(grow, [id], { shop: 'X' });

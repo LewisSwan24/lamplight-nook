@@ -1,6 +1,93 @@
 # Changelog
 
-## Unreleased (1.6)
+## 1.8.0 (2026-11-27)
+
+The first release since 1.0.0, with everything from 1.1 to 1.8.
+
+### 1.8
+
+- **Flint reads Word files.** The final review could not open a Word, Excel or PowerPoint file, so a document
+  went out with nobody but its maker having read it. Flint now reads them. A Word document also takes Iris's design:
+  an accent colour on the title, headings and table headers, and the body size she picks.
+- **The shelf by shop.** Under the kinds on the works shelf is a row of the street's shops. Pick one to see only what
+  it made; it works together with the kind and the words you type. A free-form order counts as the home shop's.
+- **Revision cards.** A new kind of order at home: hand over a handout, your notes or a chapter, and get back a set of
+  question-and-answer cards as a PDF to print on both sides and cut apart, every answer behind its question, and a
+  one-page quiz of ten questions with the answers on the back. Every question comes from what you handed over and
+  nothing else. The first set leaves a stack of cards on the bookcase, and brings Lele, a schoolgirl with exams
+  coming, who drops in now and then with a new pile of handouts.
+- **Family ledger.** A new kind of order in the print shop: an Excel ledger for a household, a sheet for each month
+  and the categories of money in and out on a sheet of their own, to change any time. Each month's summary (money in,
+  money out, what is left, and the spending by category) works itself out as you fill it in, with a pie chart beside
+  it, and the year sheet adds the months up and draws them. The empty book is ready to use as it is. The first one
+  leaves an open ledger on the print shop's counter, and brings Auntie Qin, who keeps her family's accounts and drops
+  in to talk about the price of greens.
+- **Travel journal.** The travel guide on the order slip now comes in two layouts. Pick Journal for one A4 page to
+  print and take along: the route, a short list for each day, and a small map of the route drawn on the page, saved
+  as a PDF.
+- **Small game.** A new kind of order in the workshop: a small game to play in a browser, such as matching pairs,
+  whack-a-mole or snake. It is one page that opens and plays with no network, pitched for whoever will play it. The
+  first one hangs a little game machine on the workshop's wall, and brings Duoduo's dad, who wanted a game for his
+  daughter and drops in to say how she is getting on.
+- **Hand it in without typing.** A second way to order, beside the slip: drag your materials onto the card, pick a
+  kind from the sample shelf, click one of Wick's ready answers to what it should be, who it is for and what to mind,
+  then sign the slip he writes up. "Write my own" is there when no answer fits. The slip has a link to it, and a
+  switch in Settings (Work) makes the counter open on it first.
+- **Picture book.** A new kind of order: a bedtime picture book of about eight pages, a picture and a short passage
+  on each, with the title and the child's name on the cover. The studio draws it, then the order is carried to the
+  print shop, which lays it out as a landscape PDF, and you go along to watch. The first one leaves a little book on
+  the print shop's windowsill, and brings Xiaoman's mum, who reads to him every night.
+- **The blackboard stays indoors.** Out in the street, the shop's blackboard chalk and project cards used to hang over
+  the street where the slate had been. They stay inside now.
+- **The blackboard follows a picture book.** When a picture book moved from the studio to the print shop, the print
+  shop's blackboard kept the studio's plan where it stopped. Now the plan goes with the order, and is ticked off to
+  the end.
+- **Fix code in the workshop.** A new kind of order: lend the workshop a code repository and say what to fix. The
+  fixer works on a new branch of its own beside the order's folder, and never touches your branches, your uncommitted
+  changes or anything online; a push is refused. While it works, the running card counts the files read, the changes
+  made and how the tests went, and running the tests asks you first. It comes back with a review sheet: every file
+  changed and why, and the test results. Approve it and the branch stays for you to merge; turn it down and the
+  branch is deleted.
+- **The running card matches the room.** In a street shop, the card for work under way now names that shop's own
+  people instead of the home staff, and shows the plan on its blackboard the first time the shop is drawn, too.
+- **PDFs keep their page size.** A page that sets its own size, such as a landscape book, now comes out that size
+  instead of being shrunk onto portrait A4.
+- **Comic strip.** A new kind of order in the studio: a four-panel comic, drawn as one long picture with a PDF
+  beside it. Your own lines go in the speech bubbles as written; give none and Iris writes them. The first one pins a
+  strip of panels on the studio's wall, and brings Xiaosu, who edits a newsletter account and needs a strip a week.
+- **Charts in Excel files.** Workbooks the shop makes can carry pie and column charts and drop-down lists, and the
+  picture on the result card shows what a workbook's formulas come to rather than the formulas themselves.
+
+### 1.7
+
+- **Every festival on the whole street.** The Lantern Festival hangs a string of little lanterns over every door, the
+  Dragon Boat Festival puts mugwort either side of it, and at Mid-Autumn a rabbit lantern on wheels stands outside. At
+  the New Year a stall in the lot sells couplets, where the cart stands. Each festival now has three greetings from
+  Wick, six chats among the staff, and three words at the door and two while you browse from Auntie Olive and from Pip,
+  in both languages. When a festival falls on a snowy or rainy day, the festival's greeting comes first.
+- **The shop through the seasons.** The bakery's blackboard has a menu for each season: green rice balls in spring,
+  mung bean cakes in summer, chestnut cake and pumpkin bread in autumn, hot toast in winter. In winter six of the beds
+  out back grow cabbages, onions and cauliflower, and two rest under straw. Furnishing has six new colours, two for
+  each part: peach blossom and snow for the walls, bamboo and warm orange for the curtains, wheat and crimson for the
+  rug. Each belongs to a season and can be chosen all year; put one up in its season, or have the season turn to it,
+  and someone in the shop says so. The keepers of the print shop, the studio and the workshop now say a word as you
+  walk in and talk now and then while the shop is quiet, for the hour, the weather, the season and every festival.
+- **The days of the year.** On each of the 24 solar terms Wick adds a word as the shop opens, a different one for
+  each. Everyone at home and each keeper along the street has a birthday: one of the staff wishes the others theirs
+  and they answer, and on a keeper's Wick mentions it and the keeper says so when you walk into their shop. On the
+  shop's anniversary there is a cake on the big table all day, and everyone in has a word about it.
+- **Fog, wind and storms.** Spring and autumn mornings are sometimes foggy, with mist over the windows and the street.
+  Autumn and winter bring days of high wind, with leaves blown sideways and in at the door. Summer has thunderstorms:
+  harder rain, a darker room, and lightning now and then, which does not flash with reduced motion on. Nobody goes into
+  the garden in wind or storms, and fewer people are out on the street. Wick, the staff, Auntie Olive and Pip each have
+  something to say about all three.
+- **Something to try.** The commission slip now suggests three things that fit the time of year, such as a look back
+  at the year in winter or a menu for the Mid-Autumn dinner. During a festival two of the three are for the festival.
+  Click one and it goes into the slip.
+- **The lunar festivals run to 2040.** Lunar New Year, the Lantern, Dragon Boat and Mid-Autumn festivals were known
+  only until 2035. The dates now run to 2040, checked against the Hong Kong Observatory's conversion tables.
+
+### 1.6
 
 - **The keepers talk.** Walk into the bakery or the post office and Auntie Olive or Pip says something that fits the
   hour, the weather, the season or the holiday. While the shop is quiet they talk now and then, about the work, the
@@ -53,7 +140,7 @@
   counted as already met, so their first visit never came. The handwriting font also lacked five characters the new
   lines use.
 
-## Unreleased (1.5)
+### 1.5
 
 - **The shop on your home network.** A new switch in Settings, off by default, lets a phone or another computer at
   home follow what the shop is doing. Switch it on, pair a device by scanning the QR code, and its browser shows what
@@ -95,7 +182,7 @@
   browser and removing were walked through with an Android emulator standing in for a phone. The installer is about
   45 KiB larger than 1.4's.
 
-## Unreleased (1.4)
+### 1.4
 
 - **Out to the street.** A new toolbar button takes you out of the shop onto the town's street, without reloading:
   seven fronts in a row, panned along by dragging or with the arrow keys, by day and by night. Your own front, Enter
@@ -155,7 +242,7 @@
   from or that it is drawn by hand, and the script that makes it, and a test keeps new pictures on that list.
   `docs/art.md` now says what the installer carries, and the question for LimeZu about it is written.
 
-## Unreleased (1.3)
+### 1.3
 
 - **The groundwork for connections.** The notebook has a Connections page, and the commission slip a line saying which
   connections a commission may use, none ticked unless you tick one. Making a connection first shows what it can read,
@@ -223,7 +310,7 @@
   listing opens by naming Claude Code, your own key and AI-generated work, lists the new kinds of work and the
   connections, and its privacy section matches the note in the app.
 
-## Unreleased (1.2)
+### 1.2
 
 - **Every work is now a project.** A project is a folder with all its commissions and every round of changes, kept in
   full however long it runs, where a work used to keep only its last ten changes. Upgrading turns each work you already
@@ -244,7 +331,7 @@
   into a new project in a folder of its own. Each project keeps up to 200 MB of versions; past that the oldest go, all
   but the first, and the timeline says which.
 
-## Unreleased (1.1)
+### 1.1
 
 - **Moving to the Microsoft Store version.** The Store version keeps its data in a folder of its own, because Windows
   would otherwise split a shared one between the real folder and the package's private copy. The first time it opens on

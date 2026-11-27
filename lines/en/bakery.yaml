@@ -149,6 +149,7 @@ cancelled:
 # What Auntie Olive says as you walk into the bakery (plan-1.6.md F5, app/renderer/stage/shoptalk.ts): the holiday's
 # line first, then the weather's, else one for the hour, the season or any time. Same ids as lines/bakery.yaml.
 shop_in:
+  - { id: bk_in_birthday, speaker: guiyi, when: birthday_guiyi, bubbles: ["It's my birthday today.", "Baked my own cake. Have a slice."] }
   - { id: bk_in_01, speaker: guiyi, bubbles: ["Come in. The oven's hot."] }
   - { id: bk_in_02, speaker: guiyi, bubbles: ["Mind the flour on the floor. It's slippy."] }
   - { id: bk_in_03, speaker: guiyi, bubbles: ["Good timing. A batch just came out."] }
@@ -163,6 +164,9 @@ shop_in:
   - { id: bk_in_night_02, speaker: guiyi, when: period_night, bubbles: ["Oven's off, but the room's still warm."] }
   - { id: bk_in_rain_01, speaker: guiyi, when: sky_rain, bubbles: ["Dough's slow on a wet day.", "Leave your brolly by the door."] }
   - { id: bk_in_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["Quick, come by the oven. It's warm."] }
+  - { id: bk_in_fog_01, speaker: guiyi, when: sky_fog, bubbles: ["Fog. The smell of bread stays put."] }
+  - { id: bk_in_wind_01, speaker: guiyi, when: sky_wind, bubbles: ["Windy. I tied the curtain back.", "In you come."] }
+  - { id: bk_in_storm_01, speaker: guiyi, when: sky_storm, bubbles: ["Thunder. Come in out of it."] }
   - { id: bk_in_spring_01, speaker: guiyi, when: season_spring, bubbles: ["Spring's here. I made green rice buns."] }
   - { id: bk_in_summer_01, speaker: guiyi, when: season_summer, bubbles: ["Hot day. Don't stand by the oven."] }
   - { id: bk_in_autumn_01, speaker: guiyi, when: season_autumn, bubbles: ["New wheat's in. You can smell it."] }
@@ -173,6 +177,18 @@ shop_in:
   - { id: bk_in_mid_autumn, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["I baked the mooncakes myself. Take one."] }
   - { id: bk_in_halloween, speaker: guiyi, when: holiday_halloween, bubbles: ["Pumpkin bread. That's all today."] }
   - { id: bk_in_christmas, speaker: guiyi, when: holiday_christmas, bubbles: ["I've had a go at a gingerbread house."] }
+  - { id: bk_in_halloween_2, speaker: guiyi, when: holiday_halloween, bubbles: ["Kids come for sweets. They get bread."] }
+  - { id: bk_in_halloween_3, speaker: guiyi, when: holiday_halloween, bubbles: ["Pip carried the pumpkins over for me."] }
+  - { id: bk_in_christmas_2, speaker: guiyi, when: holiday_christmas, bubbles: ["Every gingerbread face drawn by hand."] }
+  - { id: bk_in_christmas_3, speaker: guiyi, when: holiday_christmas, bubbles: ["Merry Christmas. Warm by the oven."] }
+  - { id: bk_in_new_year_2, speaker: guiyi, when: holiday_new_year, bubbles: ["No red envelopes. Have a date cake."] }
+  - { id: bk_in_new_year_3, speaker: guiyi, when: holiday_new_year, bubbles: ["Half days until the fifth."] }
+  - { id: bk_in_lantern_2, speaker: guiyi, when: holiday_lantern, bubbles: ["Black sesame or peanut, the dumplings."] }
+  - { id: bk_in_lantern_3, speaker: guiyi, when: holiday_lantern, bubbles: ["Early close tonight. I want the lanterns."] }
+  - { id: bk_in_dragon_boat_2, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["That mugwort on the door, I put it up."] }
+  - { id: bk_in_dragon_boat_3, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["Made a few zongzi. Those are for me."] }
+  - { id: bk_in_mid_autumn_2, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["Someone still wants the five-nut ones."] }
+  - { id: bk_in_mid_autumn_3, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["The mooncake mould was my mother's."] }
 
 # Auntie Olive now and then, while it's quiet: the weather, the season, who came in, closing up.
 shop_idle:
@@ -212,6 +228,12 @@ shop_idle:
   - { id: bk_idle_rain_02, speaker: guiyi, when: sky_rain, bubbles: ["Damp day. Keep the flour sealed."] }
   - { id: bk_idle_snow_01, speaker: guiyi, when: sky_snow, bubbles: ["In the snow the oven's the heating."] }
   - { id: bk_idle_snow_02, speaker: guiyi, when: sky_snow, bubbles: ["I'll sweep the step in a bit."] }
+  - { id: bk_idle_fog_01, speaker: guiyi, when: sky_fog, bubbles: ["Fog. The flour van is late."] }
+  - { id: bk_idle_fog_02, speaker: guiyi, when: sky_fog, bubbles: ["Damp air. The crust comes out soft."] }
+  - { id: bk_idle_wind_01, speaker: guiyi, when: sky_wind, bubbles: ["The wind blew flour everywhere."] }
+  - { id: bk_idle_wind_02, speaker: guiyi, when: sky_wind, bubbles: ["Windy day. The oven burns hot."] }
+  - { id: bk_idle_storm_01, speaker: guiyi, when: sky_storm, bubbles: ["When it thunders I count loaves."] }
+  - { id: bk_idle_storm_02, speaker: guiyi, when: sky_storm, bubbles: ["No power? The oven burns wood."] }
   - { id: bk_idle_petals_01, speaker: guiyi, when: sky_petals, bubbles: ["Petals blowing in. Not in the dough."] }
   - { id: bk_idle_leaves_01, speaker: guiyi, when: sky_leaves, bubbles: ["Leaves in the doorway. I'll sweep."] }
   - { id: bk_idle_spring_01, speaker: guiyi, when: season_spring, bubbles: ["Dough rises fast in spring. Watch it."] }
@@ -222,3 +244,15 @@ shop_idle:
   - { id: bk_idle_autumn_02, speaker: guiyi, when: season_autumn, bubbles: ["Chestnuts are in. Chestnut cake, then."] }
   - { id: bk_idle_winter_01, speaker: guiyi, when: season_winter, bubbles: ["Dough wants longer to rest in winter."] }
   - { id: bk_idle_winter_02, speaker: guiyi, when: season_winter, bubbles: ["Cold hands. Warm them by the oven first."] }
+  - { id: bk_idle_halloween_01, speaker: guiyi, when: holiday_halloween, bubbles: ["Pumpkin has to be soft before the dough."] }
+  - { id: bk_idle_halloween_02, speaker: guiyi, when: holiday_halloween, bubbles: ["Saving the seeds. I'll roast them."] }
+  - { id: bk_idle_christmas_01, speaker: guiyi, when: holiday_christmas, bubbles: ["The gingerbread roof's caved in again."] }
+  - { id: bk_idle_christmas_02, speaker: guiyi, when: holiday_christmas, bubbles: ["Icing waits till the biscuits cool."] }
+  - { id: bk_idle_new_year_01, speaker: guiyi, when: holiday_new_year, bubbles: ["Rice cake wants a full hour of steam."] }
+  - { id: bk_idle_new_year_02, speaker: guiyi, when: holiday_new_year, bubbles: ["Clem wrote this year's luck sign."] }
+  - { id: bk_idle_lantern_01, speaker: guiyi, when: holiday_lantern, bubbles: ["Knead the dough till it stops sticking."] }
+  - { id: bk_idle_lantern_02, speaker: guiyi, when: holiday_lantern, bubbles: ["This sesame filling's toasted just so."] }
+  - { id: bk_idle_dragon_boat_01, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["Soaked the leaves all night. Soft now."] }
+  - { id: bk_idle_dragon_boat_02, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["Bread's slow today. It's all zongzi."] }
+  - { id: bk_idle_mid_autumn_01, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["Mooncakes need two days to soften."] }
+  - { id: bk_idle_mid_autumn_02, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["This mould gives the sharpest pattern."] }

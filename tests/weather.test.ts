@@ -6,6 +6,9 @@ import { readPng } from './png';
 import { DECOR_SHOPS } from '../app/renderer/game/streetdecor';
 
 const day = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h);
+const HKO = JSON.parse(readFileSync('tests/fixtures/hko-calendar.json', 'utf8')) as {
+  years: Record<string, { newYear: number[]; dragonBoat: number[]; midAutumn: number[]; terms: Record<string, number[]> }>;
+};
 
 describe('seasons and weather', () => {
   it('follows the months of the northern hemisphere', () => {
@@ -66,7 +69,7 @@ describe('holidays', () => {
     expect(holidayOn(day(2026, 3, 3))).toBe('lantern');
     expect(holidayOn(day(2026, 2, 28))).toBe('new_year');
     // Years outside the table get no Lunar New Year rather than a wrong one.
-    expect(holidayOn(day(2040, 2, 12))).toBeNull();
+    expect(holidayOn(day(2041, 2, 1))).toBeNull();
   });
 
   it('hangs mugwort for the Dragon Boat Festival, the 5th of the 5th month', () => {
@@ -88,16 +91,22 @@ describe('holidays', () => {
     expect(holidayOn(day(2028, 10, 3))).toBe('mid_autumn');
   });
 
-  it('knows the lunar festivals for every year from 2025 to 2035', () => {
-    // From the Hong Kong Observatory's calendar; the Lantern Festival is fourteen days after New Year's day.
-    const dragon = ['2025-05-31', '2026-06-19', '2027-06-09', '2028-05-28', '2029-06-16', '2030-06-05', '2031-06-24', '2032-06-12', '2033-06-01', '2034-06-20', '2035-06-10'];
-    const moon = ['2025-10-06', '2026-09-25', '2027-09-15', '2028-10-03', '2029-09-22', '2030-09-12', '2031-10-01', '2032-09-19', '2033-09-08', '2034-09-27', '2035-09-16'];
-    const at = (iso: string) => {
-      const [y, m, d] = iso.split('-').map(Number);
-      return day(y, m, d);
-    };
-    for (const iso of dragon) expect(holidayOn(at(iso)), iso).toBe('dragon_boat');
-    for (const iso of moon) expect(holidayOn(at(iso)), iso).toBe('mid_autumn');
+  it('knows the lunar festivals for every year from 2025 to 2040, as the Hong Kong Observatory has them', () => {
+    // tests/fixtures/hko-calendar.json comes from the Observatory's tables (scripts/hko-calendar.mjs).
+    const years = Object.entries(HKO.years);
+    expect(years.map(([y]) => Number(y))).toEqual(Array.from({ length: 16 }, (_, i) => 2025 + i));
+    for (const [y, { newYear, dragonBoat, midAutumn }] of years) {
+      const at = ([m, d]: number[], plus = 0) => new Date(Number(y), m, d + plus, 12);
+      expect(holidayOn(at(newYear)), `${y} new year`).toBe('new_year');
+      expect(holidayOn(at(newYear, -7)), `${y} a week before`).toBe('new_year');
+      expect(holidayOn(at(newYear, -8)), `${y} eight days before`).toBeNull();
+      expect(holidayOn(at(newYear, 14)), `${y} lantern`).toBe('lantern');
+      expect(holidayOn(at(newYear, 15)), `${y} after the lanterns`).toBeNull();
+      expect(holidayOn(at(dragonBoat)), `${y} dragon boat`).toBe('dragon_boat');
+      expect(holidayOn(at(dragonBoat, 1)), `${y} after the dragon boats`).toBeNull();
+      expect(holidayOn(at(midAutumn)), `${y} mid-autumn`).toBe('mid_autumn');
+      expect(holidayOn(at(midAutumn, 1)), `${y} after mid-autumn`).toBeNull();
+    }
   });
 
   it('brings round every festival over the years', () => {

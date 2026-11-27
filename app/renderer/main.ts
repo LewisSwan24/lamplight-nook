@@ -5,6 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
+import { NO_TALLY, tallyLine, tallyRepair, type RepairTally } from '../shared/repair';
 import type { ActorId, AnchorId, CharacterCommand, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
@@ -18,6 +19,8 @@ import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook } from './stage/rulebook';
 import { openingTurns, pickLine } from './translator/lines';
+import { inSeason, newlyInSeason } from '../shared/furnish';
+import { birthdayOn, termOn } from '../shared/calendar';
 import { Stage, replay } from './stage/stage';
 import { recordLine, setCaptionBar, showCaptionLog } from './ui/captions';
 import { askerOf, dismissDecision, showDecision } from './ui/decision';
@@ -285,7 +288,7 @@ function tendGarden(quiet: boolean) {
 // The keeper of a shop along the street (plan-1.6.md F5): a word as you walk in that fits the hour, the weather, the
 // season or the holiday, and now and then something while the shop is quiet. The home shop has its chatter instead.
 const shopTalk = new ShopTalk(Date.now());
-const momentNow = (): Moment => ({ period: scene.period, ...scene.outside() });
+const momentNow = (): Moment => ({ period: scene.period, ...scene.outside(), birthdays: birthdayOn(new Date()) });
 async function sayLine(line: Line) {
   const at = stage;
   for (const text of line.bubbles) await at.answer(line.speaker, text);
@@ -457,6 +460,15 @@ scene.onSound = sfx;
 // Lines from a replay (the trial) are marked in the caption log, so they never pass for real work.
 scene.onSay = (who, text) => recordLine(who, replaying ? text + strings.ui.replayTag : text);
 scene.onStreet = (open) => document.body.classList.toggle('street-open', open);
+// The colours of a season (plan-1.7.md G2): someone says so when one goes up in its season, or the season turns to it.
+function sayInSeason() {
+  const turns = pickLine(ruleBook(scene.room).lines.furnish_in_season ?? [], [`season_${scene.outside().season}`], {});
+  if (turns) void stage.talk(turns);
+}
+scene.onSeasonTurn = (season) => {
+  const room = scene.room;
+  if (current && isScene(room) && inSeason(current.furnish[room], season)) sayInSeason();
+};
 
 // Decisions from the main process: show the dialog or serious card, send the answer back.
 // One at a time, in the order they came, so two cards never sit on top of each other.
@@ -486,7 +498,7 @@ let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; 
 function showTownIn(room: RoomId, at: CafeScene) {
   at.setTown(shopDays.town);
   at.tales.show(leftBehind(tales.stories), at.reducedMotion);
-  if (isStreetShop(room)) at.growth.setGrown(roomGrown(room, shopDays.town.shops[room]).map((id) => `${room}-${id}`));
+  if (isStreetShop(room)) at.growth.setGrown(roomGrown(room, shopDays.town.shops[room], shopDays.made).map((id) => `${room}-${id}`));
 }
 /** How many works were on the shelf before this result came back (the shelf only shows from the first). */
 let worksKept = 0;
@@ -550,11 +562,14 @@ let birthdayWaiting = '';
 async function noticeBirthday() {
   const { works, done, told } = await window.lamplight.shopState();
   const age = birthdayToday(works, done);
+  // The cake stays out all day (plan-1.7.md G3), however often the shop is opened.
+  scene.setCake(age > 0);
   const key = `birthday_${age}`;
   if (!age || told.includes(key) || birthdayWaiting === key) return;
   birthdayWaiting = key;
   // Counted as said only once it has been: a shop closed before then says it the next time.
   sayOnce('grow_birthday', BEDS_LINE_DELAY_MS, () => void window.lamplight.markTold(key));
+  sayRound('anniversary');
 }
 let today = localDay(new Date());
 setInterval(() => {
@@ -565,6 +580,15 @@ setInterval(() => {
 /** The lines still to be said, one at a time; forgetting everything takes them back. */
 let onceLines: Promise<unknown> = Promise.resolve();
 let forgotten = 0;
+/** A word from each one who is in, in turn, after the lines before it (the shop's anniversary, plan-1.7.md G3). */
+function sayRound(group: string) {
+  onceLines = onceLines.then(async () => {
+    const turns = (ruleBook(home.room).lines[group] ?? [])
+      .filter((l) => scene.anchorOf(l.speaker) !== null)
+      .flatMap((l) => l.bubbles.map((text) => ({ speaker: l.speaker, text })));
+    if (turns.length) await stage.talk(turns);
+  });
+}
 /** Said only once in the life of the shop, so it waits until someone is in the room to hear it, nothing lies over the shop, and the speaker is there and free. */
 function sayOnce(line: string, delay: number, said?: () => void, vars: Record<string, string> = {}) {
   const due = Date.now() + delay;
@@ -619,8 +643,9 @@ onNotebookForget(() => {
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
   const town = shopDays.town;
+  const made = shopDays.made;
   void refreshShop(result.grew ?? [], true).then(() => {
-    for (const news of townNews(town, shopDays.town)) {
+    for (const news of townNews(town, shopDays.town, { before: made, after: shopDays.made })) {
       sayOnce(news.line, TOWN_LINE_DELAY_MS, undefined, news.shop ? { shop: strings.ui.town.shops[news.shop] } : {});
     }
     noticeBeds(bedNews(before, shopDays.done));
@@ -649,9 +674,11 @@ function resultCard(result: CommissionResult) {
     showResult(result, {
       open: (path, how) => window.lamplight.openOutput(path, how),
       openSource: (n) => void window.lamplight.openSource(result.run ?? '', n),
-      revise: (id) => void revise(id),
+      // A repair is changed by another repair: its branch, once kept or dropped, is no longer the shop's to work on (H9).
+      revise: result.repair ? undefined : (id) => void revise(id),
       restore: (id) => window.lamplight.restorePrevious(id),
       undo: (id) => window.lamplight.undoWork(id),
+      decideRepair: (id, keep) => window.lamplight.decideRepair(id, keep),
       firstWork: worksKept === 0,
       report: () => void window.lamplight.writeToUs({ about: 'content', title: result.project?.title ?? lastWant ?? undefined }),
     });
@@ -683,7 +710,13 @@ window.lamplight.onRuns((list) => {
   const before = new Set(live().map((r) => r.run));
   runList = list;
   const now = live();
-  for (const r of now) runRoom.set(r.run, roomFor(r.shop, homeScene()));
+  for (const r of now) {
+    const from = runRoom.get(r.run);
+    const to = roomFor(r.shop, homeScene());
+    runRoom.set(r.run, to);
+    // Carried on to the shop that finishes it (plan-1.8.md H4): whoever was watching it there goes along.
+    if (from && from !== to) carriedOn(r.run, from, to);
+  }
   // Each room hears only of its own rounds (D3).
   for (const [room, r] of rooms) {
     const mine = now.filter((x) => roomOfRun(x.run) === room);
@@ -712,6 +745,18 @@ let showRoom: (room: RoomId, byUser: boolean) => Promise<void> = async () => {};
  * A round starts (D3). In a street shop: the shop is made ready, and Adeng takes the slip out of the home shop's door and
  * is back a little later. The view goes along to the round's room if the user placed it and has stayed put since.
  */
+/**
+ * A round moved on from one shop to another (plan-1.8.md H4): that shop's people take it up, before its next event comes
+ * (in the same order the events are played in), and the view follows it if it was there.
+ */
+function carriedOn(run: string, from: RoomId, to: RoomId) {
+  // Taken from the shop it leaves before that shop lets the round go, just below.
+  const plan = rooms.get(from)?.stage.planOf(run);
+  const ready = rooms.get(to);
+  if (ready && !building.has(to)) ready.stage.join(run, plan);
+  else void roomOf(to).then((r) => r.stage.join(run, plan));
+  if (scene.room === from) void showRoom(to, false);
+}
 function started(run: string, shop: RunInfo['shop']) {
   const room = roomOfRun(run);
   const away = shop !== undefined && shop !== 'home';
@@ -720,7 +765,8 @@ function started(run: string, shop: RunInfo['shop']) {
     homeStage.dispatch(run, shop as StreetShop);
     setTimeout(() => homeStage.homeAgain(), SLIP_BACK_MS);
   }
-  if (followsOrder({ placedAt, movedAt }) && scene.room !== room) setTimeout(() => void showRoom(room, false), away && scene === home ? SLIP_TO_DOOR_MS : 0);
+  // To wherever the round is by then: it may have moved on already (H4).
+  if (followsOrder({ placedAt, movedAt }) && scene.room !== room) setTimeout(() => void showRoom(runRoom.get(run) ?? room, false), away && scene === home ? SLIP_TO_DOOR_MS : 0);
   placedAt = undefined;
 }
 /** The first round starts: you come in with the slip and wait by the lamp while it is made. */
@@ -775,6 +821,12 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   if (hasFailureCard(r.error)) await whenFree();
   if (!showFailure(window.lamplight, r.error ?? '', again, { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0), ...cap }, r.cap ? undefined : r.workDir, (r.budget ?? []).map(budgetLine)) && !live().some((x) => x.run !== r.run)) clearWorkSigns();
 }
+/** Who the running card names: the people of the room the lead round is played in, a street shop's own or the home staff. */
+function crewOnCard(): ActorId[] {
+  const room = roomOfRun(live()[0]?.run);
+  return isStreetShop(room) ? ROOM_CREW[room] : STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done));
+}
+
 /** The one card for work under way. */
 function openProgress() {
   showRunning(window.lamplight, () => ({
@@ -786,7 +838,8 @@ function openProgress() {
     steps: boardSteps(),
     realPlan: leadStage().planIsReal,
     now: leadStage().latestDoing,
-    staff: STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done)).map((actor) => ({ actor, state: leadStage().actorInfo(actor).state, doing: leadStage().actorInfo(actor).doing ?? '' })),
+    tally: repairLine(live()[0]?.run ?? ''),
+    staff: crewOnCard().map((actor) => ({ actor, state: leadStage().actorInfo(actor).state, doing: leadStage().actorInfo(actor).doing ?? '' })),
   }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, leadStage().actorInfo(actor), view.detailed), another: () => void newCommission([], true) });
 }
 
@@ -807,7 +860,7 @@ async function newCommission(dropped: string[] = [], another = false) {
   if (notReady(env)) return showNotReady(window.lamplight, env, startTrial, () => void newCommission(dropped), () => { oldClaudeOk = true; void newCommission(dropped); });
   const handed = dropped.length ? await window.lamplight.handOver(dropped, []) : undefined;
   const settings = await window.lamplight.getSettings();
-  const form = await showCommissionForm(window.lamplight, settings.budgetUsd, handed, await window.lamplight.monthBudget(), settings.modelTier);
+  const form = await showCommissionForm(window.lamplight, settings.budgetUsd, handed, await window.lamplight.monthBudget(), settings.modelTier, settings.handInFirst);
   if (!form) return;
   append(`commission: ${form.want}${form.demo ? ' (demo)' : ''}`);
   placedAt = Date.now();
@@ -879,6 +932,7 @@ scene.onCounterClick = () => {
 const systemCalm = matchMedia('(prefers-reduced-motion: reduce)');
 let current: Settings | null = null;
 function applySettings(s: Settings) {
+  const before = current;
   current = s;
   setMix({ volume: s.volume, muted: s.muted, period: scene.period });
   setCaptionBar(s.captions);
@@ -890,7 +944,11 @@ function applySettings(s: Settings) {
   scene.setYouLook(s.avatar);
   // Furnishing is the home shop's; the shops along the street are as they are drawn.
   const room = scene.room;
-  if (isScene(room)) scene.setFurnishing(s.furnish[room]);
+  if (isScene(room)) {
+    scene.setFurnishing(s.furnish[room]);
+    // A colour of the season just put up gets a word (plan-1.7.md G2).
+    if (before && newlyInSeason(before.furnish[room], s.furnish[room], scene.outside().season)) sayInSeason();
+  }
   scene.youName = s.name;
   syncToolbar(s);
 }
@@ -905,8 +963,16 @@ const greet = (text: string) => {
 /** Welcome back, bringing up the last commission once if there is one to ask about. */
 async function greetBack(name: string) {
   const { flags, vars } = await window.lamplight.recallOnOpen();
-  const turns = openingTurns(ruleBook(scene.room).lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name });
-  if (turns) void stage.talk(turns);
+  const lines = ruleBook(scene.room).lines;
+  const turns = openingTurns(lines.app_open ?? [], flags, outsideFlags(scene.outside()), { ...vars, name }) ?? [];
+  // The days of the year (plan-1.7.md G3): Wick names a solar term, and whoever is in marks a birthday.
+  const now = new Date();
+  const term = termOn(now);
+  const days = [
+    ...(term ? [pickLine(lines.solar_term ?? [], [`term_${term}`], {})] : []),
+    ...birthdayOn(now).map((who) => pickLine(lines.birthday ?? [], [`birthday_${who}`], {})),
+  ].flatMap((t) => (t && t.every((x) => scene.anchorOf(x.speaker) !== null) ? t : []));
+  if (turns.length || days.length) void stage.talk([...turns, ...days]);
 }
 async function openShop() {
   const api = window.lamplight;
@@ -990,6 +1056,8 @@ async function openShop() {
       scene = next.scene;
       stage = next.stage;
       stage.onScreen = true;
+      // Its blackboard is chalked as it comes on screen: the running card, if open, says the same.
+      refreshRunning();
       if (current) applySettings(current);
     }
     if (outside) goOut(false, byUser);
@@ -1132,8 +1200,16 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
 });
 
 // Live runs: normalized events drive the stage and are logged.
+/** What each repair's fixer has done so far (plan-1.8.md H9), for the running card's line in the workshop. */
+const repairs = new Map<string, RepairTally>();
+/** The running card's line for a repair under way, or nothing for any other work. */
+function repairLine(run: string): string | undefined {
+  return runList.some((r) => r.run === run && r.repair) ? tallyLine(repairs.get(run) ?? NO_TALLY, strings.ui.repair) : undefined;
+}
+
 window.lamplight.onAiEvent((e) => {
   append(`${e.agent} | ${e.kind} | ${e.plain}${e.risk ? ` (${e.risk})` : ''}`);
+  if (e.run && runList.some((r) => r.run === e.run && r.repair)) repairs.set(e.run, tallyRepair(repairs.get(e.run) ?? NO_TALLY, e));
   // Played in the room of its round (D3); a room still being built takes its events once it is drawn, in order.
   const play = (r: Room) => {
     r.stage.speed = 1;
