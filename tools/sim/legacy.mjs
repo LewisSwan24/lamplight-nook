@@ -10,6 +10,9 @@
 //
 // --fixtures also writes the data files of the Chinese run to tests/fixtures/userdata/<version>/,
 // with the throwaway home replaced by {HOME}.
+//
+// --chain 1.0.0,1.9.0 runs a second user instead, who started with 1.0.0 (v1.0.0, 0144088) and kept it up to
+// 1.9.0 (v1.9.0, 55171bf) before this checkout (plan-2.0.md J0). Build them the same way.
 
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -21,6 +24,7 @@ const opt = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 
 const OLD = resolve(opt('old', join(ROOT, '..', 'old')));
 const LANGS = opt('lang', 'zh-CN,en').split(',');
 const OUT = join(ROOT, opt('out', 'legacy-out'));
+const CHAIN = opt('chain', '0.5.0,0.6.1,0.7.0').split(',');
 
 const W = {
   'zh-CN': {
@@ -29,6 +33,7 @@ const W = {
     page2: '帮我做一个番茄钟小网页。',
     ask: '颜色再浅一点',
     album: '用这些照片做一本秋天出游的小相册。',
+    research2: '帮我查一查冬天怎么给多肉浇水，写一份简短的总结。',
   },
   en: {
     page: 'Make me a small web page to count the glasses of water I drink.',
@@ -36,6 +41,7 @@ const W = {
     page2: 'Make me a small web page that works as a pomodoro timer.',
     ask: 'Make the colours a bit lighter',
     album: 'Make a little album of these photos: our autumn trip.',
+    research2: 'Look into watering succulents in winter and write me a short summary.',
   },
 };
 
@@ -86,14 +92,35 @@ const STEPS = {
     await sleep(500);
     if (!existsSync(pending)) throw new Error('the note of the running commission did not survive the hard stop');
   },
+  // The second user (--chain 1.0.0,1.9.0): a page with a round of changes and a piece of research with 1.0.0,
+  // then with 1.9.0 more research, which the helpers go out for, and another page.
+  '1.0.0': async (shop, w) => {
+    await commission(shop, { template: 'page', want: w.page });
+    await shop.page.locator('.result-revise').click();
+    await shop.page.fill('form.revise textarea', w.ask);
+    await shop.page.locator('form.revise button.default').click();
+    const r = await shop.workUntilDone();
+    if (!r.ok) throw new Error('the round of changes did not finish');
+    await closeCard(shop);
+    await commission(shop, { template: 'research', want: w.research });
+    await closeCard(shop);
+  },
+  '1.9.0': async (shop, w) => {
+    await commission(shop, { template: 'research', want: w.research2 });
+    await closeCard(shop);
+    await commission(shop, { template: 'page', want: w.page2 });
+    await closeCard(shop);
+  },
   current: async (shop, w, home) => {
     // The commission 0.7.0 left unfinished is offered first; carry on with it.
-    const resume = await shop.maybe('.pending-card button.default', 5000);
-    if (!resume) throw new Error('the unfinished commission from 0.7.0 was not offered');
-    await resume.click();
-    const r = await shop.workUntilDone();
-    if (!r.ok) throw new Error('the unfinished commission did not finish after the upgrade');
-    await closeCard(shop);
+    if (!CHAIN.includes('1.0.0')) {
+      const resume = await shop.maybe('.pending-card button.default', 5000);
+      if (!resume) throw new Error('the unfinished commission from 0.7.0 was not offered');
+      await resume.click();
+      const r = await shop.workUntilDone();
+      if (!r.ok) throw new Error('the unfinished commission did not finish after the upgrade');
+      await closeCard(shop);
+    }
     const dir = join(home.home, 'photos');
     mkdirSync(dir, { recursive: true });
     const photos = ['cafe.png', 'study.png'].map((f) => {
@@ -122,7 +149,8 @@ function dataFiles(home) {
         continue;
       }
       if (r.startsWith('versions/') && !r.endsWith('.json')) { out[r] = '(file)'; continue; }
-      if (name.endsWith('.json')) out[r] = readFileSync(p, 'utf8').split(home).join('{HOME}');
+      // The home as it is written inside JSON too: on Windows its backslashes are doubled there.
+      if (name.endsWith('.json')) out[r] = readFileSync(p, 'utf8').split(JSON.stringify(home).slice(1, -1)).join('{HOME}').split(home).join('{HOME}');
     }
   };
   walk(data, '');
@@ -131,7 +159,7 @@ function dataFiles(home) {
 
 for (const lang of LANGS) {
   const home = freshHome({ 'settings.json': onboarded(lang, { budgetUsd: 5 }) });
-  for (const version of ['0.5.0', '0.6.1', '0.7.0', 'current']) {
+  for (const version of [...CHAIN, 'current']) {
     const appDir = version === 'current' ? ROOT : join(OLD, version);
     if (!existsSync(join(appDir, 'out', 'main', 'index.js'))) throw new Error(`${appDir} is not built`);
     console.log(`${lang}: ${version}...`);

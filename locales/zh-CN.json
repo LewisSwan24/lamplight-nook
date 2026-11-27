@@ -1076,7 +1076,7 @@
     "town": {
       "moving": "店搬到街上来了。点一下就跳过。",
       "moved": "{name}，东西都搬过来了，摆得和原来一样。",
-      "shops": { "cafe": "咖啡馆", "study": "书房", "print": "印刷铺", "studio": "画室", "workshop": "工坊", "bakery": "面包房", "post": "邮局" },
+      "shops": { "cafe": "咖啡馆", "study": "书房", "print": "印刷铺", "studio": "画室", "workshop": "工坊", "bakery": "面包房", "post": "邮局", "florist": "花店", "bookshop": "书店" },
       "calling": "{shop}有事要问你，点这里过去",
       "notes": {
         "cafe": "咖啡馆。",
@@ -1085,7 +1085,9 @@
         "studio": "画室还在装修，过些日子开张。",
         "workshop": "工坊还在装修，过些日子开张。",
         "bakery": "桂姨的面包房，今天的面包刚出炉。",
-        "post": "阿信的邮局。要寄什么，跟店里说一声就行。"
+        "post": "阿信的邮局。要寄什么，跟店里说一声就行。",
+        "florist": "花店还在装修，过些日子开张。",
+        "bookshop": "书店还在装修，过些日子开张。"
       }
     },
     "visit": {

@@ -1,8 +1,28 @@
 import type { StaffStories } from './staffstories';
 import type { GuestId } from './types';
 
-/** The town's shops, left to right along the street (road-to-1.4.md D1). */
-export type ShopId = 'cafe' | 'study' | 'print' | 'studio' | 'workshop' | 'bakery' | 'post';
+/** The town's streets: the first one, and the one along the river past the bridge at its far end (plan-2.0.md J0). */
+export const STREETS = ['main', 'river'] as const;
+export type StreetId = (typeof STREETS)[number];
+
+/** Each shop's street, the shops of a street left to right (road-to-1.4.md D1, plan-2.0.md J0). */
+export const SHOP_STREET = {
+  cafe: 'main',
+  study: 'main',
+  print: 'main',
+  studio: 'main',
+  workshop: 'main',
+  bakery: 'main',
+  post: 'main',
+  florist: 'river',
+  bookshop: 'river',
+} as const satisfies Record<string, StreetId>;
+
+/** The town's shops. */
+export type ShopId = keyof typeof SHOP_STREET;
+
+export const streetOf = (id: ShopId): StreetId => SHOP_STREET[id];
+export const shopsOn = (street: StreetId): ShopId[] => (Object.keys(SHOP_STREET) as ShopId[]).filter((id) => SHOP_STREET[id] === street);
 
 /** Something gathered in the town and the day it came. */
 export type Gathered = { id: string; date: string };
