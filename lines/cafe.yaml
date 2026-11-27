@@ -63,9 +63,13 @@ sub_go_qingdai:
 
 sub_go_xiaodou:
   - { id: go_xd_rain, speaker: adeng, when: sky_rain, bubbles: ["小豆，带上伞再去：{topic}。"], reply: { speaker: xiaodou, bubbles: ["伞在门后，拿了！"] } }
-  - { id: go_xd_01, speaker: adeng, bubbles: ["小豆，你也跑一趟：{topic}。"], reply: { speaker: xiaodou, bubbles: ["好，我记下了！"] } }
+  - { id: go_xd_01, stage: 1, speaker: adeng, bubbles: ["小豆，你也跑一趟：{topic}。"], reply: { speaker: xiaodou, bubbles: ["好，我记下了！"] } }
   - { id: go_xd_02, speaker: adeng, bubbles: ["小橘走不开，这件交给你。"], reply: { speaker: xiaodou, bubbles: ["我这就去。"] } }
-  - { id: go_xd_03, speaker: xiaodou, bubbles: ["小橘姐忙着，我去！"] }
+  - { id: go_xd_03, stage: 1, speaker: xiaodou, bubbles: ["小橘姐忙着，我去！"] }
+  - { id: go_xd_s2_01, stage: 2, speaker: adeng, bubbles: ["小豆，这件你去：{topic}。"], reply: { speaker: xiaodou, bubbles: ["知道去哪儿，走了。"] } }
+  - { id: go_xd_s2_02, stage: 2, speaker: xiaodou, bubbles: ["这件我顺路，我去。"] }
+  - { id: go_xd_s3_01, stage: 3, speaker: adeng, bubbles: ["小豆，你看着办：{topic}。"], reply: { speaker: xiaodou, bubbles: ["交给我，晚饭前回。"] } }
+  - { id: go_xd_s3_02, stage: 3, speaker: xiaodou, bubbles: ["我带上小橘的单子一起去。"] }
 
 sub_queue:
   - { id: sub_queue_01, speaker: adeng, when: who_xiaoju, bubbles: ["等小橘回来再去。"] }
@@ -89,9 +93,15 @@ sub_back_xiaoju:
 
 sub_back_xiaodou:
   - { id: back_xd_rain, speaker: xiaodou, when: sky_rain, bubbles: ["鞋湿了，本子没湿。", "都记在上面了。"] }
-  - { id: back_xd_01, speaker: xiaodou, bubbles: ["回来了！", "一路上都记在本子上了。"] }
-  - { id: back_xd_02, speaker: xiaodou, bubbles: ["差点走错了路。", "问了阿信才找到。"] }
-  - { id: back_xd_03, speaker: xiaodou, bubbles: ["找到了，都在这儿。", "小橘姐教的法子真管用。"] }
+  - { id: back_xd_01, stage: 1, speaker: xiaodou, bubbles: ["回来了！", "一路上都记在本子上了。"] }
+  - { id: back_xd_02, stage: 1, speaker: xiaodou, bubbles: ["差点走错了路。", "问了阿信才找到。"] }
+  - { id: back_xd_03, stage: 1, speaker: xiaodou, bubbles: ["找到了，都在这儿。", "小橘姐教的法子真管用。"] }
+  - { id: back_xd_s2_01, stage: 2, speaker: xiaodou, bubbles: ["回来了，东西齐了。", "用不上的我没拿。"] }
+  - { id: back_xd_s2_02, stage: 2, speaker: xiaodou, bubbles: ["抄了两页，够用。", "页码也记上了。"] }
+  - { id: back_xd_s2_03, stage: 2, speaker: xiaodou, bubbles: ["这条路我闭着眼都能走。", "比上回快了一刻钟。"] }
+  - { id: back_xd_s3_01, stage: 3, speaker: xiaodou, bubbles: ["回来了。", "要紧的在上面，其余的在下面。"] }
+  - { id: back_xd_s3_02, stage: 3, speaker: xiaodou, bubbles: ["图书馆的管理员问你好。", "我替你回了。"] }
+  - { id: back_xd_s3_03, stage: 3, speaker: xiaodou, bubbles: ["资料齐了，我又核了一遍。", "两处日子对不上，标出来了。"] }
 
 sub_back_laoshi:
   - { id: back_ls_issue, speaker: laoshi, when: has_issues, bubbles: ["{issueCount}处不对。标出来了。"] }
@@ -192,6 +202,14 @@ idle_mutter:
   - { id: idle_laoshi_02, speaker: laoshi, bubbles: ["……歪了。"] }
   - { id: idle_qingdai, speaker: qingdai, bubbles: ["这面墙刷成豆绿就好了。"] }
   - { id: idle_qingdai_02, speaker: qingdai, bubbles: ["粉笔又短了一截。"] }
+  - { id: idle_xiaodou_s2_01, stage: 2, speaker: xiaodou, bubbles: ["围裙口袋正好装本子。"] }
+  - { id: idle_xiaodou_s2_02, stage: 2, speaker: xiaodou, bubbles: ["柜台下的纸，该补了。"] }
+  - { id: idle_xiaodou_s2_03, stage: 2, speaker: xiaodou, bubbles: ["这把钥匙是后门的。"] }
+  - { id: idle_xiaodou_s2_04, stage: 2, speaker: xiaodou, bubbles: ["门口的台阶，扫过了。"] }
+  - { id: idle_xiaodou_s3_01, stage: 3, speaker: xiaodou, bubbles: ["账我对过了，没差。"] }
+  - { id: idle_xiaodou_s3_02, stage: 3, speaker: xiaodou, bubbles: ["第一本本子，还在抽屉里。"] }
+  - { id: idle_xiaodou_s3_03, stage: 3, speaker: xiaodou, bubbles: ["明天早点开门。"] }
+  - { id: idle_xiaodou_s3_04, stage: 3, speaker: xiaodou, bubbles: ["柜台这块木头，摸得发亮了。"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: idle_adeng, scene: study, speaker: adeng, bubbles: ["书桌抽屉又卡住了。"] }
   - { id: idle_study_xiaoju, scene: study, speaker: xiaoju, bubbles: ["沙发比店里的椅子软多了。"] }
@@ -280,10 +298,14 @@ garden:
   - { id: garden_hens_xiaoju_02, speaker: xiaoju, when: spot_hens, bubbles: ["今天下了两个蛋！", "一个给阿灯，一个归我。"] }
   - { id: garden_hens_adeng, speaker: adeng, when: spot_hens, bubbles: ["一、二、三，一只没少。"] }
   - { id: garden_hens_adeng_02, speaker: adeng, when: spot_hens, bubbles: ["慢慢吃，都有份。"] }
-  - { id: garden_veg_xiaodou, speaker: xiaodou, when: spot_veg, bubbles: ["这棵是草还是菜？"] }
+  - { id: garden_veg_xiaodou, stage: 1, speaker: xiaodou, when: spot_veg, bubbles: ["这棵是草还是菜？"] }
   - { id: garden_veg_xiaodou_02, speaker: xiaodou, when: spot_veg, bubbles: ["老石说浇水要浇根。", "我记下了。"] }
   - { id: garden_hens_xiaodou, speaker: xiaodou, when: spot_hens, bubbles: ["别啄我鞋带！"] }
   - { id: garden_hens_xiaodou_02, speaker: xiaodou, when: spot_hens, bubbles: ["一把米，撒匀了。"] }
+  - { id: garden_veg_xiaodou_s2, stage: 2, speaker: xiaodou, when: spot_veg, bubbles: ["草拔了，菜没碰。"] }
+  - { id: garden_hens_xiaodou_s2, stage: 2, speaker: xiaodou, when: spot_hens, bubbles: ["蛋捡了四个，记上了。"] }
+  - { id: garden_veg_xiaodou_s3, stage: 3, speaker: xiaodou, when: spot_veg, bubbles: ["这垄该换种了，明年种豆。"] }
+  - { id: garden_hens_xiaodou_s3, stage: 3, speaker: xiaodou, when: spot_hens, bubbles: ["一把米，不多不少。"] }
   - { id: garden_dog_adeng, speaker: adeng, when: spot_bench, bubbles: ["麦芽，来这儿坐。"] }
   - { id: garden_dog_xiaoju, speaker: xiaoju, when: spot_lawn, bubbles: ["麦芽！别舔我的画本。"] }
   - { id: garden_dog_laoshi, speaker: laoshi, when: spot_veg, bubbles: ["麦芽。", "别刨。"] }
@@ -304,6 +326,8 @@ grow:
   - { id: grow_bed_ripe, speaker: laoshi, when: grow_bed_ripe, bubbles: ["后院第一棵菜熟了。", "从第一单长到现在。"] }
   - { id: grow_bed_full, speaker: adeng, when: grow_bed_full, bubbles: ["后院的菜地都长满了。", "都是这些单子一点点攒下来的。"] }
   - { id: grow_apprentice, speaker: adeng, when: grow_apprentice, bubbles: ["店里来了个学徒，叫小豆。", "跑腿的活，小橘能分一半出去了。"], reply: { speaker: xiaodou, bubbles: ["我腿脚快！"] } }
+  - { id: grow_apprentice_2, speaker: adeng, when: grow_apprentice_2, bubbles: ["小豆系上围裙了。", "跑腿以外的活，也能交给小豆了。"], reply: { speaker: xiaodou, bubbles: ["围裙是老石给的。"] } }
+  - { id: grow_apprentice_3, speaker: adeng, when: grow_apprentice_3, bubbles: ["小豆出师了。", "往后柜台，也能交给小豆看。"], reply: { speaker: xiaodou, bubbles: ["我先从倒茶开始。"] } }
   - { id: grow_painting, speaker: adeng, when: grow_painting, bubbles: ["墙上挂了幅小画。", "第一单做完那天买的。"] }
   - { id: grow_plant, speaker: xiaoju, when: grow_plant, bubbles: ["柜台上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_lights, speaker: qingdai, when: grow_lights, bubbles: ["窗上挂了串小灯。", "晚上看，店里暖一点。"] }

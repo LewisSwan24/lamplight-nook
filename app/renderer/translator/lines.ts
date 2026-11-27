@@ -1,5 +1,5 @@
 import { pairOf, type Bond, type Staffer } from '../../shared/crew';
-import { ALL_STAFF, STAFF } from '../../shared/staff';
+import { ALL_STAFF, STAFF, type ApprenticeStage } from '../../shared/staff';
 import { shortTitle } from '../../shared/memories';
 import { GUEST_IDS } from '../game/guests';
 import type { WorkIcon } from '../../shared/growth';
@@ -20,6 +20,8 @@ export type Line = {
   reply?: { speaker: ActorId; bubbles: string[] };
   /** Said only in this scene; replaces the line with the same id there (shared/scenes.ts). */
   scene?: RoomId;
+  /** A line of Bean's said only at this stage of the apprenticeship (plan-1.9.md I2). */
+  stage?: ApprenticeStage;
 };
 export type LineLibrary = Record<string, Line[]>;
 
@@ -47,6 +49,8 @@ export type Chat = {
   scene?: RoomId;
   /** Only once the two who speak in it are this close (plan-1.9.md I4): 2 close, 3 friends. */
   bond?: Bond;
+  /** Only at this stage of Bean's apprenticeship (plan-1.9.md I2); Bean speaks in it. */
+  stage?: ApprenticeStage;
   turns: { speaker: Speaker; text: string }[];
 };
 
@@ -67,6 +71,7 @@ export function parseChats(text: string): Chat[] {
     ...(c.mentions ? { mentions: true } : {}),
     ...(c.scene ? { scene: c.scene } : {}),
     ...(c.bond ? { bond: c.bond } : {}),
+    ...(c.stage ? { stage: c.stage } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
       return { speaker: speaker as Speaker, text: String(said) };
@@ -83,6 +88,14 @@ export function linesForScene(lib: LineLibrary, scene: RoomId): LineLibrary {
   return Object.fromEntries(Object.entries(lib).map(([group, lines]) => [group, forScene(lines, scene)]));
 }
 export const chatsForScene = (chats: Chat[], scene: RoomId) => forScene(chats, scene);
+
+/** What fits Bean's stage (plan-1.9.md I2): lines marked for another stage drop out; the rest are said at every stage. */
+const atStage = <T extends { stage?: ApprenticeStage }>(entries: T[], stage: ApprenticeStage) => entries.filter((e) => !e.stage || e.stage === stage);
+export function linesForStage(lib: LineLibrary, stage: ApprenticeStage): LineLibrary {
+  return Object.fromEntries(Object.entries(lib).map(([group, lines]) => [group, atStage(lines, stage)]));
+}
+export const chatsForStage = (chats: Chat[], stage: ApprenticeStage) => atStage(chats, stage);
+const badStage = (stage: unknown, speakers: Speaker[]) => stage !== undefined && (![1, 2, 3].includes(stage as number) || !speakers.includes('xiaodou'));
 export const knownScene = (scene: unknown) => scene === undefined || ROOMS.includes(scene as RoomId);
 
 /** Line library -> the Director's line book (bubbles joined by newlines; a reply keeps its own speaker). */
@@ -165,6 +178,7 @@ export function lintLines(lib: LineLibrary, S: Strings = strings): string[] {
       if (ids.has(key) || !knownScene(line.scene)) problems.push(fill(L.duplicateId, { id }));
       ids.add(key);
       const all = [{ speaker: line.speaker, bubbles: line.bubbles }, ...(line.reply ? [line.reply] : [])];
+      if (badStage(line.stage, all.map((a) => a.speaker))) problems.push(fill(L.badStage, { id }));
       for (const { speaker, bubbles } of all) for (const text of bubbles) checkBubble(id, speaker, text, problems, rules);
     }
   }
@@ -216,7 +230,7 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
     const badGuest = chat.guest ? !GUEST_IDS.includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
     // A chat between friends is between exactly two of the five at home, close or friends.
     const badBond = chat.bond !== undefined && (![2, 3].includes(chat.bond) || !bondPair(chat));
-    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badBond || badSky || badHoliday || badSeason || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
+    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badBond || badStage(chat.stage, chat.turns.map((t) => t.speaker)) || badSky || badHoliday || badSeason || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;

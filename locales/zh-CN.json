@@ -150,6 +150,7 @@
   "lineLint": {
     "tooFew": "{group}: fewer than 3 lines",
     "duplicateId": "{id}: duplicate id",
+    "badStage": "{id}：只有小豆说的台词才分阶段，阶段是 1、2、3",
     "tooLong": "{id}: \"{text}\" is longer than {max} characters",
     "laoshiParticle": "{id}: Laoshi never uses particles \"{text}\"",
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
@@ -1362,7 +1363,9 @@
       "bedRipe": "后院第一棵菜熟了",
       "birthday": "小店满 {n} 岁了",
       "bedFull": "后院菜地长满了",
-      "apprentice": "小豆来店里当学徒"
+      "apprentice": "小豆来店里当学徒",
+      "apprenticeHandy": "小豆上手了，系上了围裙",
+      "apprenticeGrown": "小豆出师了，能替阿灯招呼客人"
     },
     "tray": {
       "sectionLabel": "不在眼前的时候",

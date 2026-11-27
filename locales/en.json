@@ -150,6 +150,7 @@
   "lineLint": {
     "tooFew": "{group}: fewer than 3 lines",
     "duplicateId": "{id}: duplicate id",
+    "badStage": "{id}: only Bean's lines have a stage, and it is 1, 2 or 3",
     "tooLong": "{id}: \"{text}\" is longer than {max} characters",
     "laoshiParticle": "{id}: Laoshi never uses particles \"{text}\"",
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
@@ -1362,7 +1363,9 @@
       "bedSprout": "the first vegetable went in out back",
       "bedRipe": "the first vegetable out back was ripe",
       "bedFull": "the beds out back filled up",
-      "apprentice": "Bean came to the shop as an apprentice"
+      "apprentice": "Bean came to the shop as an apprentice",
+      "apprenticeHandy": "Bean got the hang of it, and an apron",
+      "apprenticeGrown": "Bean finished the apprenticeship, and minds the counter for Wick"
     },
     "tray": {
       "sectionLabel": "When you're away",

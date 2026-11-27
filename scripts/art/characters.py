@@ -44,6 +44,20 @@ STAFF = {
                    'Outfits/16x16/Outfit_17_01.png', 'Hairstyles/16x16/Hairstyle_03_03.png'],
         'recolor': {'Hairstyles/16x16/Hairstyle_03_03.png': [((0, 45), '#9C3F2C')]},
     },
+    # Bean growing up (plan-1.9.md I2), written as xiaodou-2.png and xiaodou-3.png. Handy from the 30th work: the same
+    # green shirt with a canvas work apron over it (only the apron of Adeng's outfit). Grown from the 80th: a new set of
+    # clothes, a warm brown jacket over a white shirt. The same hair, so it is still Bean.
+    'xiaodou-2': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_17_01.png', 'Hairstyles/16x16/Hairstyle_03_03.png'],
+        'recolor': {'Hairstyles/16x16/Hairstyle_03_03.png': [((0, 45), '#9C3F2C')]},
+        'apron': '#C9A46A',
+    },
+    'xiaodou-3': {
+        'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
+                   'Outfits/16x16/Outfit_18_01.png', 'Hairstyles/16x16/Hairstyle_03_03.png'],
+        'recolor': {'Hairstyles/16x16/Hairstyle_03_03.png': [((0, 45), '#9C3F2C')]},
+    },
     # The three new shops (road-to-1.4.md D2), written as aqian.png, xiaozhe.png and xiaoding.png.
     # Aqian (Pica) of the print shop: an old typesetter, grey hair, thin glasses, shirtsleeves and a dark work apron
     # (the apron outfit Adeng wears, dyed slate). Fair where Laoshi is dark, and no beard.
@@ -228,6 +242,22 @@ def recolor(img, rules):
     return img
 
 
+def apron(colour):
+    """Only the apron of Adeng's outfit (its red pixels), dyed, to tie over another outfit."""
+    src = Image.open(GEN / 'Outfits/16x16/Outfit_09_01.png').convert('RGBA').crop((0, 0, *SHEET_SIZE))
+    out = Image.new('RGBA', src.size)
+    sp, op = src.load(), out.load()
+    for y in range(src.height):
+        for x in range(src.width):
+            r, g, b, a = sp[x, y]
+            if not a:
+                continue
+            h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if s >= 0.25 and in_range(h * 360, 340, 20):
+                op[x, y] = (r, g, b, a)
+    return recolor(out, [((340, 20), colour)])
+
+
 def add_scarf(sheet, outfit, colour):
     """Paint the top row of the outfit in every frame (the collar) as a scarf."""
     rgb = hex_rgb(colour)
@@ -270,6 +300,8 @@ def build(name, recipe, write=True):
         if 'Outfits' in rel:
             outfit = layer
         sheet = layer.copy() if sheet is None else Image.alpha_composite(sheet, layer)
+        if 'Outfits' in rel and 'apron' in recipe:
+            sheet = Image.alpha_composite(sheet, apron(recipe['apron']))
     if 'scarf' in recipe:
         add_scarf(sheet, outfit, recipe['scarf'])
     OUT.mkdir(parents=True, exist_ok=True)

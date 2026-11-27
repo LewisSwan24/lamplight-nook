@@ -19,6 +19,10 @@
   an invitation read three times over, Pica a ledger set twice. Talking an order over, Wick now knows your
   latest twelve works by title and day, so "like last time" makes sense at the counter. Only titles and days go along; the
   privacy notice says so.
+- **Bean grows up.** Bean, the apprentice, now has three stages, counted by the works Bean has been on: handy after
+  thirty, with a work apron over the green shirt, and grown after eighty, in a brown jacket. Bean talks differently at
+  each: full of questions at first, fewer words once handy, steady when grown, and then greets the neighbours when
+  Wick is busy. Wick marks the day of each, and so does the notebook.
 
 ## 1.8.0 (2026-11-27)
 
