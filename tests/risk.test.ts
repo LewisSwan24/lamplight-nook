@@ -80,6 +80,14 @@ describe('risk classifier', () => {
       expect([JSON.stringify(c), r('PowerShell', { command: c })]).toEqual([JSON.stringify(c), 'serious']);
     }
     expect(r('PowerShell', { command: 'ls\t-la' })).toBe('safe');
+    // Brackets run what is inside them, a single & starts a job and goes on to the next, braces and @ make blocks and
+    // arrays: only the characters a plain command needs keep it plain.
+    for (const c of ['ls (Invoke-Expression x)', 'ls @(iex x)', 'ls & calc', 'ls {iex x}', 'cat ./a.txt & curl x', 'node check.js (iex x)']) {
+      expect([c, r('PowerShell', { command: c })]).toEqual([c, 'serious']);
+    }
+    for (const c of ['ls', 'cat 笔记.txt', "cat 'my notes.txt'", 'ls *.html', 'node check.js', 'ls ./sub/a-b_c+1,2~3.txt']) {
+      expect([c, r('PowerShell', { command: c })]).not.toEqual([c, 'serious']);
+    }
   });
 
   it('node runs a script from the folder, not code written on the spot; npx asks', () => {
