@@ -77,18 +77,49 @@ const DISCARD = new Set(['/dev/null', 'NUL', 'nul']);
 
 /** What git may do in a repair: look, never change a branch, a commit or a remote (plan-1.8.md H9). */
 const GIT_LOOKS = new Set(['status', 'diff', 'log', 'show', 'grep', 'blame', 'ls-files', 'rev-parse', 'shortlog', 'cat-file']);
-/** git's own options before its command; these two take a value. */
-const GIT_VALUE_OPTIONS = new Set(['-C', '-c']);
+/**
+ * Options that would have even a look run something, write somewhere, or look at another repository: config given on the
+ * spot, another folder or git dir, an output file, an external diff or text conversion, a pager to open files in.
+ */
+const GIT_REFUSED = /^(-c|-C|--config-env|--exec-path|--git-dir|--work-tree|--namespace|--output|--ext-diff|--textconv|-O|--open-files-in-pager)(=|$)|^-O./;
+/** A word that is git itself, however it is spelled: quoted, by its path, with .exe. */
+const isGit = (word: string) => basename(word.replace(/['"]/g, '').replace(/\\/g, '/')).toLowerCase().replace(/\.exe$/, '') === 'git';
 
-/** Some git in this command line that does more than look. */
-function gitChanges(cmd: string): boolean {
-  for (const m of cmd.matchAll(/(?:^|[\s;&|(])git(?:\.exe)?(?=\s|$)([^;&|\n]*)/gi)) {
-    const words = m[1].trim().split(/\s+/).filter(Boolean);
-    let i = 0;
-    while (i < words.length && words[i].startsWith('-')) i += GIT_VALUE_OPTIONS.has(words[i]) ? 2 : 1;
-    if (!GIT_LOOKS.has(words[i] ?? '')) return true;
+/**
+ * Some git in this command line that does more than look. Read the way the rest of a command line is read (simpleCommands);
+ * a line that cannot be read that way, or git handed to another command to run, is refused whenever git is in it at all.
+ */
+function gitChanges(cmd: string, tool: string): boolean {
+  // PowerShell is not read like Bash: there only a plain look, the whole line, is let through.
+  if (tool !== 'Bash') {
+    if (!/git/i.test(cmd)) return false;
+    const m = /^\s*git(?:\.exe)?\s+([\w-]+)((?:\s+[^;&|`$()<>\n]*)?)$/i.exec(cmd);
+    return !m || !GIT_LOOKS.has(m[1]) || m[2].trim().split(/\s+/).some((a) => GIT_REFUSED.test(a));
   }
-  return false;
+  const simple = simpleCommands(cmd);
+  if (!simple) return /git/i.test(cmd);
+  return simple.some(({ words }) => {
+    let at = 0;
+    while (at < words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[at])) at++;
+    if (words.slice(at + 1).some((w) => isGit(w) || /^['"]?git\s/i.test(w))) return true;
+    if (!isGit(words[at] ?? '')) return false;
+    const args = words.slice(at + 1);
+    let i = 0;
+    while (i < args.length && args[i].startsWith('-')) {
+      if (GIT_REFUSED.test(args[i])) return true;
+      i++;
+    }
+    return !GIT_LOOKS.has(args[i] ?? '') || args.slice(i + 1).some((a) => GIT_REFUSED.test(a));
+  });
+}
+
+/** Test runner options that run something else, load a plugin, or work in another folder: not a plain test run. */
+const TEST_REFUSED = /^(--prefix|-C|--cwd|--dir|--manifest-path|--rootdir|-p|-exec|--exec|-c|--config|-r|--require|--import|--loader|--experimental-loader|--workspace|-w)(=|$)/;
+
+/** The project's tests, run plainly in the folder: no other command with them, no option that runs or looks elsewhere. */
+function plainTest(cmd: string): boolean {
+  if (!isTestCommand(cmd) || /[;&|`$()<>\n]/.test(cmd)) return false;
+  return cmd.trim().split(/\s+/).every((w) => !TEST_REFUSED.test(w) && !isAbsolute(w.replace(/^--?[\w-]+=/, '')) && !/(^|[\\/=])\.\.([\\/]|$)/.test(w));
 }
 
 const ORDER: Risk[] = ['safe', 'ask', 'serious', 'blocked'];
@@ -344,7 +375,8 @@ function pathVerdict(ctx: RiskContext, p: string, writing: boolean): RiskVerdict
   if (ctx.repair && full.split(/[\\/]/).some((part) => part.toLowerCase() === '.git')) return { risk: 'blocked', reason: R.repairGit };
   if (!isInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
   // A folder the user lent may hold their own links and junctions, which could lead a write anywhere.
-  if (ctx.keepOriginal && !reallyInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
+  // So may a repository lent for a repair (H9): its links are checked out with it.
+  if ((ctx.keepOriginal || ctx.repair) && !reallyInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
   if (ctx.preexisting?.has(full)) return { risk: 'serious', reason: fill(R.overwrite, { name }) };
   return null;
 }
@@ -406,10 +438,13 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
   if (tool === 'Bash' || tool === 'PowerShell') {
     const cmd = String(input.command ?? '').trim();
     if (!cmd) return { risk: 'serious', reason: R.emptyCommand };
-    if (ctx.repair && gitChanges(cmd)) return { risk: 'blocked', reason: R.repairGit };
+    if (ctx.repair && gitChanges(cmd, tool)) return { risk: 'blocked', reason: R.repairGit };
     // A repair's tests run the repository's own code: the user is asked, in those words.
-    // Only a plain command: anything chained, piped or substituted onto it is judged as itself.
-    if (ctx.repair && isTestCommand(cmd) && !/[;&|`$()<>\n]/.test(cmd)) return { risk: 'ask', reason: R.repairTests };
+    // A plain test run asks in those words, unless it would be refused anyway; anything else is judged as itself.
+    if (ctx.repair && plainTest(cmd)) {
+      const as = classifyCall(tool, input, { ...ctx, repair: false });
+      return as.risk === 'blocked' ? as : { risk: 'ask', reason: R.repairTests };
+    }
     if (tool === 'Bash') return classifyBash(cmd, ctx);
     if (DELETE.test(cmd)) return { risk: 'serious', reason: R.delete };
     if (NETWORK_SEND.test(cmd)) return { risk: 'serious', reason: R.networkSend };

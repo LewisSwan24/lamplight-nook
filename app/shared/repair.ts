@@ -65,7 +65,9 @@ export function readNotes(text: string | undefined): Notes {
 /** How the tests went, in a few words: what the fixer said, and whether the shop saw them run. */
 export function testsLine(s: RepairSheet, R: Words): string {
   if (!s.tests.ran) return R.testsNotRun;
-  const how = s.tests.passed === false ? R.testsFailed : s.tests.passed ? R.testsPassed : R.testsRan;
+  const said = s.tests.passed === false ? R.testsFailed : s.tests.passed ? R.testsPassed : R.testsRan;
+  // The words are the running card's, in the middle of its line; here they start one.
+  const how = said.charAt(0).toUpperCase() + said.slice(1);
   return [how, s.tests.command && fill(R.testsCommand, { command: s.tests.command }), s.tests.note, s.testsSeen ? '' : R.testsNotSeen].filter(Boolean).join(' ');
 }
 

@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { readNotes, type RepairTally } from '../shared/repair';
 import type { RepairBranch, RepairRecord } from '../shared/types';
@@ -13,13 +14,20 @@ import type { RepairBranch, RepairRecord } from '../shared/types';
 /** The shop's name on its commits: the work is the shop's until the user merges it. */
 const AUTHOR = ['-c', 'user.name=Lamplight Nook', '-c', 'user.email=nook@lamplight.invalid'];
 /**
- * Every git call: none of the repository's own hooks run (a checkout or commit here must not run its scripts), nor a file
- * system monitor, long paths work on Windows, and nothing is signed or asks for a password.
+ * An empty folder of the shop's own, outside every worktree, as git's hooks folder: no hook runs, neither the
+ * repository's nor one the fixer planted (a relative path would be looked up inside the worktree).
  */
-const QUIET = ['-c', 'core.hooksPath=.nook-no-hooks', '-c', 'core.fsmonitor=false', '-c', 'core.longpaths=true', '-c', 'commit.gpgsign=false', '-c', 'tag.gpgsign=false'];
+let hooks: string | undefined;
+const noHooks = () => (hooks ??= mkdtempSync(join(tmpdir(), 'nook-no-hooks-')));
+
+/**
+ * Every git call: no hooks run (a checkout or commit here must not run anyone's scripts), nor a file system monitor,
+ * long paths work on Windows, and nothing is signed or asks for a password.
+ */
+const quiet = () => ['-c', `core.hooksPath=${noHooks()}`, '-c', 'core.fsmonitor=false', '-c', 'core.longpaths=true', '-c', 'commit.gpgsign=false', '-c', 'tag.gpgsign=false'];
 
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync('git', [...QUIET, ...args], {
+  return execFileSync('git', [...quiet(), ...args], {
     cwd, encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
   }).trim();
 }

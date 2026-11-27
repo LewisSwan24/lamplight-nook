@@ -3188,6 +3188,11 @@ const SCENARIOS = {
         await shop.page.keyboard.press('Escape');
         await sleep(1500);
       }
+      // The last orders were played in the print shop (D3) and the view went along: back home, where the works shelf is.
+      const homeRoom = await shop.page.evaluate(() => [...window.lamplightDebug.rooms.keys()].find((r) => r === 'cafe' || r === 'study'));
+      await shop.page.evaluate((r) => window.lamplightDebug.street.onFront(r, true), homeRoom);
+      for (const end = Date.now() + 15_000; Date.now() < end && await shop.page.evaluate(() => window.lamplightDebug.scene.room) !== homeRoom; await sleep(300));
+      await sleep(800);
       await shop.hotspot(shop.L.ui.access.hotspotWorks);
       await sleep(300);
       await shop.shot(join(out, 'shelf.png'));
@@ -5741,7 +5746,7 @@ const SCENARIOS = {
       const memo = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).commissions.at(-1);
       const branch = memo.repair?.branch;
       const sheet = await page.locator('.result-card .repair-sheet').innerText();
-      for (const said of [branch, 'add.js', '+1 -1', R.testsPassed, 'node --test', R.keep, R.drop]) check(said && sheet.includes(said), `the review sheet does not say ${said}: ${sheet}`);
+      for (const said of [branch, 'add.js', '+1 -1', R.testsPassed, 'node --test', R.keep, R.drop]) check(said && sheet.toLowerCase().includes(said.toLowerCase()), `the review sheet does not say ${said}: ${sheet}`);
       check(existsSync(join(memo.folder, F.repairSheet)) && readFileSync(join(memo.folder, F.repairSheet), 'utf8').includes(branch), 'the review sheet was not written to the folder');
       check(git(repo, 'log', '-1', '--format=%an', branch) === 'Lamplight Nook' && git(repo, 'show', `${branch}:add.js`).includes('a + b'), 'the fix is not committed on the branch');
       check(theirs() === before, 'the user\'s branch, files or remote changed while the repair ran');

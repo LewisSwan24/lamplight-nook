@@ -184,6 +184,7 @@ body.debug #debug { display: block; }
 .repair-size { color: var(--muted, #8a7a6a); font-size: 0.9em; }
 .repair-why { margin: 0; }
 .repair-said:empty { display: none; }
+.repair-decide { flex-wrap: wrap; }
 .progress-tally { margin-top: 2px; overflow-wrap: anywhere; }
 .hint.warn { color: #a5452c; opacity: 1; }
 

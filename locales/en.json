@@ -341,8 +341,8 @@
       "binary": "binary file",
       "tests": "Tests",
       "say": "It's fixed, and here's the review sheet. Approve it and the branch stays; merging is up to you.",
-      "keep": "Approve, keep the branch",
-      "drop": "Turn down, delete the branch",
+      "keep": "Keep the branch",
+      "drop": "Delete the branch",
       "kept": "The branch {branch} is in your repository. Merging it is up to you.",
       "dropped": "The branch is deleted. Your repository is as it was when you lent it.",
       "failedDecide": "That didn't work: {why}"

