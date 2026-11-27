@@ -1,5 +1,6 @@
 import { pairOf, type Bond, type Staffer } from '../../shared/crew';
-import { STAFF } from '../../shared/staff';
+import { ALL_STAFF, STAFF } from '../../shared/staff';
+import { shortTitle } from '../../shared/memories';
 import { GUEST_IDS } from '../game/guests';
 import type { WorkIcon } from '../../shared/growth';
 import { parse } from 'yaml';
@@ -171,6 +172,27 @@ export function lintLines(lib: LineLibrary, S: Strings = strings): string[] {
 }
 
 /** The same rules for small talk, plus: at least two turns, unique ids, a known `when`, and a season only for a neighbour. */
+/** What each member of staff remembers (lines/memories.yaml, plan-1.9.md I5): two bubbles each, the first naming the work. */
+export type MemoryBook = Record<string, string[][]>;
+export const parseMemories = (text: string): MemoryBook =>
+  Object.fromEntries(Object.entries((parse(text) ?? {}) as Record<string, unknown[][]>).map(([who, list]) => [who, list.map((m) => m.map(String))]));
+
+/** The bubble rules once filled with the longest title and day there can be; the first bubble must name the work and its day. */
+export function lintMemories(book: MemoryBook, lang: string, S: Strings = strings): string[] {
+  const rules = rulesFor(S);
+  const problems: string[] = [];
+  const title = shortTitle('一'.repeat(40), lang);
+  const date = lang === 'en' ? '30 September' : '12月31号';
+  for (const [who, memories] of Object.entries(book)) {
+    memories.forEach((m, i) => {
+      const id = `memory_${who}_${i + 1}`;
+      if (!ALL_STAFF.includes(who as ActorId) || m.length !== 2 || !m[0].includes('{title}') || !m[0].includes('{date}')) problems.push(fill(L.badChat, { id }));
+      else for (const b of m) checkBubble(id, who as Speaker, b.replaceAll('{title}', title).replaceAll('{date}', date), problems, rules);
+    });
+  }
+  return problems;
+}
+
 /** The pair at home a chat between friends belongs to: its two speakers, or undefined if it is not two of the five. */
 export function bondPair(chat: Chat): string | undefined {
   const who = [...new Set(chat.turns.map((t) => t.speaker))];

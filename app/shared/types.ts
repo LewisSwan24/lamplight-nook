@@ -8,6 +8,7 @@ import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId, TemplateLayout } from './templates';
 import type { Shop } from './dispatch';
 import type { Bond, Staffer } from './crew';
+import type { Recalled } from './memories';
 import type { StaffTeller } from './staffstories';
 import type { ModelTier } from './models';
 import type { Provider } from './providers';
@@ -943,7 +944,7 @@ export type LanRole = 'watch' | 'approve' | 'commission';
 export type LanState = { on: boolean; addresses: string[]; devices: { id: string; name: string; added: string; paired: boolean; lastSeen?: string; role: LanRole; capUsd: number }[] };
 /** `today`: the day by the shop's clock (main/clock.ts), which the simulations can move on; the stories go by it (D4). */
 /** `crew`: how many finished works each member of staff was on (plan-1.9.md I0), for their stories (I1); `bonds`: how close each two at home are (I4). */
-export type ShopState = ShopDays & { works: Work[]; today: string; crew: Record<Staffer, number>; bonds: Record<string, Bond> };
+export type ShopState = ShopDays & { works: Work[]; today: string; crew: Record<Staffer, number>; bonds: Record<string, Bond>; recall: Partial<Record<Staffer, Recalled[]>> };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {

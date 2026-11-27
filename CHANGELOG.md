@@ -15,6 +15,10 @@
   friends after twenty-five. Forty new chats wait for that: close ones tease, friends remember things done together.
   Nothing shows the count; you hear it. Someone with a story waiting now still chats, the note over their head
   stepping aside and coming back after.
+- **The staff remember.** Now and then one of them brings up a work they were on, by its title and its day: Flint
+  an invitation read three times over, Pica a ledger set twice. Talking an order over, Wick now knows your
+  latest twelve works by title and day, so "like last time" makes sense at the counter. Only titles and days go along; the
+  privacy notice says so.
 
 ## 1.8.0 (2026-11-27)
 

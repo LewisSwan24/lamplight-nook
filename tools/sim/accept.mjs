@@ -6465,6 +6465,59 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
   /**
+   * What the staff remember (plan-1.9.md I5): Flint, who checked a birthday invitation, remembers it by a shortened
+   * title and its day; Iris, who was on nothing, remembers nothing; Pica remembers the print shop's work, in the print
+   * shop. One memory each is played.
+   */
+  async memories(lang, out) {
+    const zh = lang !== 'en';
+    const long = zh ? '给奶奶的八十岁生日邀请函' : 'A birthday invitation for Granny';
+    const short = zh ? '给奶奶的八十岁生…' : 'A birthday invit…';
+    const day = zh ? '10月3号' : '3 October';
+    const work = (i, title, date, o) => ({ id: `c${i}`, title, date, result: 'done', choices: {}, folder: '', form: { want: 'x', ...(o.template ? { template: o.template } : {}) },
+      rounds: [{ date, seconds: 1, helpers: o.helpers ?? {}, waits: 0, waitedSeconds: 0 }] });
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [work(1, long, '2026-10-03', { helpers: { reviewer: 1 } }), work(2, zh ? '家用账本' : 'Home ledger', '2026-10-09', { template: 'ledgerbook' })],
+        stuckNotes: [], greeted: 'c1',
+        shop: { done: 2, told: ['town-move'], grown: [], met: [], town: { shops: { print: { done: 1, grown: [] } }, street: [], stories: {} } },
+      }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2026-10-20T10:00' });
+    const { page } = shop;
+    const play = async (who, file) => {
+      for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+        if (!(await page.evaluate((w) => window.lamplightDebug.scene.busyTalking(w), who))) break;
+      }
+      const mine = await page.evaluate((w) => window.lamplightDebug.memories.filter((m) => m.speaker === w), who);
+      check(mine.length > 0, `${who} remembers nothing`);
+      const turns = mine[0].bubbles.map((text) => ({ speaker: who, text }));
+      await page.evaluate((t) => { void window.lamplightDebug.stage.talk(t); }, turns);
+      let heard = false;
+      for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) heard = await page.evaluate((t) => window.lamplightDebug.scene.isSaying(t.speaker, t.text), turns[0]);
+      check(heard, `${who} did not say "${turns[0].text}"`);
+      await shop.shot(join(out, file));
+      return mine;
+    };
+    try {
+      await sleep(3000);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      const flint = await play('laoshi', 'memories-laoshi.png');
+      check(flint.every((m) => m.bubbles[0].includes(short) && m.bubbles[0].includes(day)), `Flint does not remember the invitation by "${short}" on ${day}: ${JSON.stringify(flint)}`);
+      const all = await page.evaluate(() => window.lamplightDebug.memories);
+      check(!all.some((m) => m.speaker === 'qingdai'), 'Iris remembers a work she was not on');
+      check(!all.some((m) => m.bubbles.join('').includes(long)), 'a memory carries the whole long title');
+
+      await page.evaluate(() => window.lamplightDebug.street.onFront('print', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await page.evaluate(() => window.lamplightDebug.scene.room).catch(() => null)) !== 'print'; await sleep(300));
+      await sleep(2500);
+      const pica = await play('aqian', 'memories-aqian.png');
+      check(pica.every((m) => m.bubbles[0].includes(zh ? '家用账本' : 'Home ledger')), `Pica does not remember the ledger: ${JSON.stringify(pica)}`);
+    } finally { await shop.close(); }
+  },
+  /**
    * The phone page (docs/plan-1.5.md E4): a paired phone sees what waits for an answer while a commission runs, answers
    * it there, and the card on the desk is put away; the commission goes on to the end.
    */
