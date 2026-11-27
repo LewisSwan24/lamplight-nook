@@ -1177,10 +1177,14 @@ export class CafeScene extends Phaser.Scene {
     if (this.actors.get(actorId)?.outside) this.street.errand(actorId, tool);
   }
 
-  /** Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). */
+  /**
+   * Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). The note
+   * of a story waiting to be told (plan-1.9.md I1) is not talk: it gives way to a chat and comes back after.
+   */
   busyTalking(actorId: ActorId): boolean {
     const actor = this.actors.get(actorId);
-    return this.speech.has(actorId) || !!actor?.outside || !!actor?.inGarden;
+    const said = this.speech.get(actorId);
+    return (!!said && !(said.icon === 'note' && !said.text)) || !!actor?.outside || !!actor?.inGarden;
   }
 
   isSaying(actorId: ActorId, text: string): boolean {

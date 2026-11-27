@@ -6,7 +6,7 @@ import { MAIN_FILES, shopOf } from '../shared/templates';
 import type { Shop } from '../shared/dispatch';
 import { emptyTown, type Gathered, TOWN_MOVE } from '../shared/town';
 import { nextChapter, told } from '../shared/stories';
-import { worksBy } from '../shared/crew';
+import { bonds, worksBy } from '../shared/crew';
 import { nextStaffChapter, toldStaff, type StaffTeller } from '../shared/staffstories';
 import { roomGrown, streetGrown } from '../shared/towngrow';
 import { forgetAside, putAside } from './aside';
@@ -296,7 +296,7 @@ export class MemoryStore {
       page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
       shop: shopOf(c.form?.demo ? undefined : c.form?.template),
     }));
-    return { ...structuredClone(this.shop()), works, today: localDay(now), crew: worksBy(this.data.commissions) };
+    return { ...structuredClone(this.shop()), works, today: localDay(now), crew: worksBy(this.data.commissions), bonds: bonds(this.data.commissions) };
   }
 
   /** A shop opened since 1.4 starts in the town, with no move to show (road-to-1.4.md D7). */

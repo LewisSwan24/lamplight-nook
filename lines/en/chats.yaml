@@ -2664,3 +2664,354 @@
   turns:
     - xiaoju: Mooncake in five or six?
     - laoshi: Six. Chestnut counts.
+
+# Friends at home (plan-1.9.md I4): each two of the five, once close (bond: 2, 8 works together) or friends (bond: 3, 25).
+
+- id: bond_adeng_xiaoju_1
+  when: idle
+  bond: 2
+  turns:
+    - xiaoju: "Wick, no sugar in your tea today."
+    - adeng: "I put it in myself. One less."
+    - xiaoju: "Then I’ll add one back."
+
+- id: bond_adeng_xiaoju_2
+  when: idle
+  bond: 2
+  turns:
+    - adeng: "You hum when you research."
+    - xiaoju: "I do not!"
+    - adeng: "Same song every time."
+
+- id: bond_adeng_xiaoju_3
+  when: idle
+  bond: 3
+  turns:
+    - xiaoju: "Remember my first job? I got it wrong."
+    - adeng: "You copied the year back to front."
+    - xiaoju: "You fixed it and said nothing."
+    - adeng: "You had it right the next day."
+
+- id: bond_adeng_xiaoju_4
+  when: idle
+  bond: 3
+  turns:
+    - adeng: "This shop doesn’t run without you."
+    - xiaoju: "Then raise my sugar."
+    - adeng: "One more spoon a day."
+
+- id: bond_adeng_laoshi_1
+  when: idle
+  bond: 2
+  turns:
+    - laoshi: "Your piece. A typo, third paragraph."
+    - adeng: "You caught it again."
+    - laoshi: "Always the same two words."
+
+- id: bond_adeng_laoshi_2
+  when: idle
+  bond: 2
+  turns:
+    - adeng: "Flint, take a break."
+    - laoshi: "After this page."
+    - adeng: "You said that last time."
+    - laoshi: "Last time I finished it."
+
+- id: bond_adeng_laoshi_3
+  when: idle
+  bond: 3
+  turns:
+    - laoshi: "The year you opened, I had my doubts."
+    - adeng: "And now?"
+    - laoshi: "The chairs don’t wobble."
+
+- id: bond_adeng_laoshi_4
+  when: idle
+  bond: 3
+  turns:
+    - adeng: "What you’ve checked, I never check again."
+    - laoshi: "You should."
+    - adeng: "I’d find nothing."
+    - laoshi: "Fair enough."
+
+- id: bond_adeng_qingdai_1
+  when: idle
+  bond: 2
+  turns:
+    - qingdai: "That plant on the counter should move."
+    - adeng: "Where to?"
+    - qingdai: "A hand to the left. The light is better."
+
+- id: bond_adeng_qingdai_2
+  when: idle
+  bond: 2
+  turns:
+    - adeng: "You’re drawing me again."
+    - qingdai: "You’re easiest when you stand still."
+    - adeng: "Then I’ll move."
+
+- id: bond_adeng_qingdai_3
+  when: idle
+  bond: 3
+  turns:
+    - qingdai: "We chose the shop’s colours together."
+    - adeng: "All I said was a bit warmer."
+    - qingdai: "That was the part that mattered."
+
+- id: bond_adeng_qingdai_4
+  when: idle
+  bond: 3
+  turns:
+    - adeng: "You’ve sketched every job all these years?"
+    - qingdai: "One small sketch each, kept in a book."
+    - adeng: "Show me some day."
+    - qingdai: "When there are a hundred."
+
+- id: bond_adeng_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "Wick, I got here first today!"
+    - adeng: "You opened up?"
+    - xiaodou: "I waited outside for ten minutes."
+
+- id: bond_adeng_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - adeng: "Bean, got the umbrella?"
+    - xiaodou: "It isn’t raining."
+    - adeng: "It will this afternoon."
+    - xiaodou: "Then I’ll take it!"
+
+- id: bond_adeng_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "Why was the apprentice notice crooked?"
+    - adeng: "Cold hands."
+    - xiaodou: "I thought you did it on purpose."
+
+- id: bond_adeng_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - adeng: "You run errands faster than Clem now."
+    - xiaodou: "Don’t tell her."
+    - adeng: "She already knows."
+
+- id: bond_xiaoju_laoshi_1
+  when: idle
+  bond: 2
+  turns:
+    - xiaoju: "Flint, your mallet is with me."
+    - laoshi: "Why is it with you."
+    - xiaoju: "I used it to crack walnuts."
+
+- id: bond_xiaoju_laoshi_2
+  when: idle
+  bond: 2
+  turns:
+    - laoshi: "I checked every source you gave."
+    - xiaoju: "All right?"
+    - laoshi: "One page number, off by one."
+    - xiaoju: "Just one!"
+
+- id: bond_xiaoju_laoshi_3
+  when: idle
+  bond: 3
+  turns:
+    - xiaoju: "Your corrections don’t scare me now."
+    - laoshi: "They did?"
+    - xiaoju: "I used to keep out of your way."
+    - laoshi: "Didn’t notice."
+
+- id: bond_xiaoju_laoshi_4
+  when: idle
+  bond: 3
+  turns:
+    - laoshi: "Here."
+    - xiaoju: "Walnuts? Already shelled?"
+    - laoshi: "Now give back the mallet."
+
+- id: bond_xiaoju_qingdai_1
+  when: idle
+  bond: 2
+  turns:
+    - xiaoju: "Iris, I looked up your blue."
+    - qingdai: "Which blue?"
+    - xiaoju: "The ten minutes before dark."
+
+- id: bond_xiaoju_qingdai_2
+  when: idle
+  bond: 2
+  turns:
+    - qingdai: "Your scarf clashes."
+    - xiaoju: "Orange and blue? Isn’t that nice?"
+    - qingdai: "It’s nice. It still clashes."
+
+- id: bond_xiaoju_qingdai_3
+  when: idle
+  bond: 3
+  turns:
+    - qingdai: "You find it, I draw it, we hand it in."
+    - xiaoju: "Together that makes one job."
+    - qingdai: "Neither half works alone."
+
+- id: bond_xiaoju_qingdai_4
+  when: idle
+  bond: 3
+  turns:
+    - xiaoju: "Let’s go see the dye works on a rainy day."
+    - qingdai: "It’s gone."
+    - xiaoju: "Then the place where it stood."
+    - qingdai: "All right."
+
+- id: bond_xiaoju_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "Clem, your sugar jar is empty."
+    - xiaoju: "Again?"
+    - xiaodou: "I counted. Twelve spoons a day."
+
+- id: bond_xiaoju_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaoju: "You take this errand, I’ll take that one."
+    - xiaodou: "Mine’s the near one!"
+    - xiaoju: "That’s why it’s yours."
+
+- id: bond_xiaoju_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "I never gave you back that umbrella."
+    - xiaoju: "Behind the door counts as back."
+    - xiaodou: "Then I’ll hang one up for you."
+
+- id: bond_xiaoju_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaoju: "You research more carefully than me now."
+    - xiaodou: "I learned it from you."
+    - xiaoju: "Then I’d better learn something new."
+
+- id: bond_laoshi_qingdai_1
+  when: idle
+  bond: 2
+  turns:
+    - qingdai: "Does this picture sit right to you?"
+    - laoshi: "Heavy on the left."
+    - qingdai: "I thought so too."
+
+- id: bond_laoshi_qingdai_2
+  when: idle
+  bond: 2
+  turns:
+    - laoshi: "I fixed your chair."
+    - qingdai: "I never said it was broken."
+    - laoshi: "The chair said so."
+
+- id: bond_laoshi_qingdai_3
+  when: idle
+  bond: 3
+  turns:
+    - qingdai: "You check my pictures and never say nice."
+    - laoshi: "Nice needs no saying."
+    - qingdai: "And when it isn’t?"
+    - laoshi: "Then I say."
+
+- id: bond_laoshi_qingdai_4
+  when: idle
+  bond: 3
+  turns:
+    - laoshi: "Made you a frame."
+    - qingdai: "How did you know the size?"
+    - laoshi: "Measured your sketches."
+
+- id: bond_laoshi_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "Flint, the mallet is under the counter."
+    - laoshi: "Who put it there."
+    - xiaodou: "Clem. I wrote it down."
+
+- id: bond_laoshi_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - laoshi: "Bean, plane this."
+    - xiaodou: "For how long?"
+    - laoshi: "Till you’re sick of it."
+
+- id: bond_laoshi_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "You kept the piece I planed?"
+    - laoshi: "Kept it."
+    - xiaodou: "It wasn’t good."
+    - laoshi: "Nobody’s first one is."
+
+- id: bond_laoshi_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - laoshi: "I can’t find a mistake in your work."
+    - xiaodou: "Really?"
+    - laoshi: "I’ll look again."
+    - xiaodou: "I knew it!"
+
+- id: bond_qingdai_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "Iris, what is this colour called?"
+    - qingdai: "What do you think?"
+    - xiaodou: "Four in the afternoon."
+    - qingdai: "Good name."
+
+- id: bond_qingdai_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - qingdai: "Your cat is fatter than Chestnut."
+    - xiaodou: "Chestnut has put on weight."
+    - qingdai: "Then you got it right."
+
+- id: bond_qingdai_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "Your paints, I haven’t used them up."
+    - qingdai: "When they’re gone, I’ll get you more."
+    - xiaodou: "I don’t want them to run out."
+
+- id: bond_qingdai_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - qingdai: "Can I draw in your notebook?"
+    - xiaodou: "Where?"
+    - qingdai: "A little in the corner of each page."
+    - xiaodou: "That’s over three hundred!"

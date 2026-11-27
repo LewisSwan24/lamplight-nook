@@ -11,6 +11,10 @@
   print works, Umber's hills and Tack's spare screw. A chapter comes once that person has been on enough works, and a
   note shows over their head; click them to hear it. Each leaves a keepsake. A new Stories page in the notebook keeps
   every chapter told, the neighbours' too, to read again.
+- **Friends at home.** Each two of the five at home grow closer with the works they do together: close after eight,
+  friends after twenty-five. Forty new chats wait for that: close ones tease, friends remember things done together.
+  Nothing shows the count; you hear it. Someone with a story waiting now still chats, the note over their head
+  stepping aside and coming back after.
 
 ## 1.8.0 (2026-11-27)
 

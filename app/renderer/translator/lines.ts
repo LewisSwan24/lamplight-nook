@@ -1,3 +1,5 @@
+import { pairOf, type Bond, type Staffer } from '../../shared/crew';
+import { STAFF } from '../../shared/staff';
 import { GUEST_IDS } from '../game/guests';
 import type { WorkIcon } from '../../shared/growth';
 import { parse } from 'yaml';
@@ -42,6 +44,8 @@ export type Chat = {
   once?: boolean;
   /** Only in this scene (shared/scenes.ts); replaces the chat with the same id there. */
   scene?: RoomId;
+  /** Only once the two who speak in it are this close (plan-1.9.md I4): 2 close, 3 friends. */
+  bond?: Bond;
   turns: { speaker: Speaker; text: string }[];
 };
 
@@ -61,6 +65,7 @@ export function parseChats(text: string): Chat[] {
     ...(c.made ? { made: c.made } : {}),
     ...(c.mentions ? { mentions: true } : {}),
     ...(c.scene ? { scene: c.scene } : {}),
+    ...(c.bond ? { bond: c.bond } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
       return { speaker: speaker as Speaker, text: String(said) };
@@ -166,6 +171,12 @@ export function lintLines(lib: LineLibrary, S: Strings = strings): string[] {
 }
 
 /** The same rules for small talk, plus: at least two turns, unique ids, a known `when`, and a season only for a neighbour. */
+/** The pair at home a chat between friends belongs to: its two speakers, or undefined if it is not two of the five. */
+export function bondPair(chat: Chat): string | undefined {
+  const who = [...new Set(chat.turns.map((t) => t.speaker))];
+  return who.length === 2 && who.every((s) => STAFF.includes(s as ActorId)) ? pairOf(who[0] as Staffer, who[1] as Staffer) : undefined;
+}
+
 export function lintChats(chats: Chat[], S: Strings = strings): string[] {
   const rules = rulesFor(S);
   const problems: string[] = [];
@@ -181,7 +192,9 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
     // A visit opens with the guest, and only that guest comes along.
     const guests = chat.turns.map((t) => t.speaker).filter((s) => GUEST_IDS.includes(s as GuestId));
     const badGuest = chat.guest ? !GUEST_IDS.includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
-    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badSky || badHoliday || badSeason || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
+    // A chat between friends is between exactly two of the five at home, close or friends.
+    const badBond = chat.bond !== undefined && (![2, 3].includes(chat.bond) || !bondPair(chat));
+    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badBond || badSky || badHoliday || badSeason || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;

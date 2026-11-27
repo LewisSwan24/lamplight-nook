@@ -47,6 +47,11 @@ export const pairOf = (a: Staffer, b: Staffer) => [a, b].sort((x, y) => STAFF.in
 /** The ten pairs of the five at home. */
 export const HOME_PAIRS: string[] = STAFF.flatMap((a, i) => STAFF.slice(i + 1).map((b) => pairOf(a as Staffer, b as Staffer)));
 
+/** How close two at home are (plan-1.9.md I4): strangers, close from 8 works together, friends from 25. */
+export const BOND_AT = [8, 25] as const;
+export type Bond = 1 | 2 | 3;
+export const bondOf = (together: number): Bond => (together >= BOND_AT[1] ? 3 : together >= BOND_AT[0] ? 2 : 1);
+
 /** How many finished works each pair at home was on together. */
 export function worksTogether(memos: CommissionMemo[]): Record<string, number> {
   const together = Object.fromEntries(HOME_PAIRS.map((p) => [p, 0]));
@@ -56,3 +61,7 @@ export function worksTogether(memos: CommissionMemo[]): Record<string, number> {
   }
   return together;
 }
+
+/** How close each pair at home is, by the works they were on together. */
+export const bonds = (memos: CommissionMemo[]): Record<string, Bond> =>
+  Object.fromEntries(Object.entries(worksTogether(memos)).map(([pair, n]) => [pair, bondOf(n)]));
