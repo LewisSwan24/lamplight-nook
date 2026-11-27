@@ -255,3 +255,14 @@ shop_idle:
   - { id: po_idle_dragon_boat_02, speaker: axin, when: holiday_dragon_boat, bubbles: ["艾草的味儿把邮票都熏香了。"] }
   - { id: po_idle_mid_autumn_01, speaker: axin, when: holiday_mid_autumn, bubbles: ["月饼盒子压得架子直响。"] }
   - { id: po_idle_mid_autumn_02, speaker: axin, when: holiday_mid_autumn, bubbles: ["这封信写着：今年回不去了。"] }
+  - { id: po_stamp_01, speaker: axin, bubbles: ["邮票又落在信架上了。"] }
+  - { id: po_stamp_02, speaker: axin, bubbles: ["邮票是自己飞进来的。"] }
+  - { id: po_stamp_03, speaker: axin, bubbles: ["邮票，那格是三号街的。"] }
+  - { id: po_stamp_04, speaker: axin, bubbles: ["邮票认得每个邮差。"] }
+  - { id: po_stamp_05, speaker: axin, when: sky_rain, bubbles: ["下雨天，邮票就待在窗台上。"] }
+  - { id: po_stamp_06, speaker: axin, when: period_night, bubbles: ["邮票睡了，信明早再分。"] }
+  - { id: po_stamp_07, speaker: axin, bubbles: ["邮票脖子上那圈绿，挺好看。"] }
+  - { id: po_stamp_08, speaker: axin, bubbles: ["邮票不碰信，只碰面包屑。"] }
+  - { id: po_stamp_09, speaker: axin, bubbles: ["桂姨给邮票留了半块饼。"] }
+  - { id: po_stamp_10, speaker: axin, bubbles: ["邮票在窗台和信架间来回飞。"] }
+  - { id: po_stamp_11, speaker: axin, when: period_dawn, bubbles: ["天一亮，邮票就在窗台等我。"] }

@@ -1,0 +1,46 @@
+# What the staff remember, in English (lines/memories.yaml is the Chinese set; plan-1.9.md I5).
+# Two bubbles each; the first names the work with {date} and {title}. Same writing rules as lines/en/cafe.yaml, checked with the longest title and day.
+
+adeng:
+  - ["{title}, on {date}.", "The lamp on the counter stayed on all day."]
+  - ["{title}, {date}.", "You came back to look at it later."]
+  - ["On {date}: {title}.", "That one wrapped up the smoothest."]
+  - ["{title}, on {date}.", "I made a note of it in the book."]
+
+xiaoju:
+  - ["{title}, on {date}!", "I spent a whole afternoon on that."]
+  - ["On {date}: {title}.", "I made three pots of tea that day."]
+  - ["{title}, {date}.", "I still have the notes."]
+  - ["{title}, on {date}.", "Two trips to the library for that one."]
+
+laoshi:
+  - ["{title}, {date}.", "I read it three times."]
+  - ["On {date}: {title}.", "One thing. Fixed."]
+  - ["{title}, on {date}.", "Found nothing wrong."]
+  - ["{title}, {date}.", "That one was solid."]
+
+qingdai:
+  - ["{title}, on {date}.", "I picked the colours."]
+  - ["On {date}: {title}.", "The light was good that day."]
+  - ["{title}, {date}.", "I kept a small sketch of it."]
+  - ["{title}, on {date}.", "The space at the edge was on purpose."]
+
+xiaodou:
+  - ["{title}, on {date}!", "I ran that errand. It’s in my notebook."]
+  - ["On {date}: {title}.", "I counted. Four trips that day."]
+  - ["{title}, {date}.", "Clem let me go first!"]
+
+aqian:
+  - ["{title}, {date}.", "I set that one twice."]
+  - ["On {date}: {title}.", "I chose the paper."]
+  - ["{title}, on {date}.", "The proof is still on the rack."]
+
+xiaozhe:
+  - ["{title}, {date}.", "The sky was grey that day."]
+  - ["On {date}: {title}.", "I did a few drafts of that."]
+  - ["{title}, on {date}.", "A morning just mixing the colours."]
+
+xiaoding:
+  - ["{title}, on {date}!", "Took a few goes to get it right."]
+  - ["On {date}: {title}.", "I tried it thirty times."]
+  - ["{title}, {date}.", "One part left over."]

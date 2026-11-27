@@ -1,3 +1,4 @@
+import { isStaffTeller } from '../shared/staffstories';
 import { oldInstallerData } from './store-home';
 import './locale-boot';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -549,7 +550,7 @@ function talkGrant(t: Talk): number | null {
 async function talkTurn(t: Talk, prompt: string, usd: number, finish: boolean) {
   const cwd = join(app.getPath('userData'), 'consult');
   mkdirSync(cwd, { recursive: true });
-  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: talkModel() }));
+  const turn = await consultTurn(prompt, consultOptions({ cwd, maxBudgetUsd: usd, env: agentEnv(credentials()!, process.env), finish, resume: t.sessionId, claude: locateClaude() ?? undefined, model: talkModel(), recent: memory.recentWorks() }));
   reservations.settle('consult');
   t.sessionId = turn.sessionId ?? t.sessionId;
   spend.record(consultFolder(t.id), t.sessionId, turn.costUsd, now(), undefined, talkModel());
@@ -1354,6 +1355,7 @@ ipcMain.handle(IPC.openKeptPostcard, (_e, i: number): boolean => {
   return true;
 });
 ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
+ipcMain.handle(IPC.tellStaffStory, (_e, who: string) => (isStaffTeller(who) ? memory.tellStaffStory(who, now()) : null));
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
 ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
 // From the works shelf: the main thing a commission made, or its folder; only what the notebook recorded.

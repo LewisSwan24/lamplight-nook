@@ -28,7 +28,10 @@
   },
   "animals": {
     "dog": "Malt",
-    "hens": "The hens"
+    "hens": "The hens",
+    "bun": "Bun",
+    "stamp": "Stamp",
+    "cinnabar": "Cinnabar"
   },
   "guests": {
     "baker": "Auntie Olive",
@@ -150,6 +153,7 @@
   "lineLint": {
     "tooFew": "{group}: fewer than 3 lines",
     "duplicateId": "{id}: duplicate id",
+    "badStage": "{id}: only Bean's lines have a stage, and it is 1, 2 or 3",
     "tooLong": "{id}: \"{text}\" is longer than {max} characters",
     "laoshiParticle": "{id}: Laoshi never uses particles \"{text}\"",
     "tooManyParticles": "{id}: more than one particle \"{text}\"",
@@ -1111,6 +1115,7 @@
       "hotspotCounter": "Counter: hand in a commission",
       "hotspotActor": "{name}: see what they're doing",
       "hotspotCat": "{name}: give her a pat",
+      "hotspotPet": "{name}: say hello",
       "hotspotBell": "Meeting bell: call everyone to the big table",
       "hotspotGarden": "Back door: look out at the garden",
       "hotspotShop": "Back door: go back inside",
@@ -1307,6 +1312,10 @@
       "postcardBig": "That file is too big to be a postcard. It wasn't opened.",
       "postcardNotPostcard": "That isn't a Lamplight Nook postcard. It wasn't opened.",
       "postcardBroken": "This postcard is damaged and can't be opened.",
+      "storiesTitle": "Stories",
+      "storiesText": "The stories the neighbours and the staff have told, kept here to read again.",
+      "storyChapter": "Chapter {n} · {title}",
+      "storyBlank": "Chapter {n} · not told yet",
       "ledgerJoin": ", ",
       "ledgerKind": {
         "net": "connection lost {n}×",
@@ -1358,7 +1367,9 @@
       "bedSprout": "the first vegetable went in out back",
       "bedRipe": "the first vegetable out back was ripe",
       "bedFull": "the beds out back filled up",
-      "apprentice": "Bean came to the shop as an apprentice"
+      "apprentice": "Bean came to the shop as an apprentice",
+      "apprenticeHandy": "Bean got the hang of it, and an apron",
+      "apprenticeGrown": "Bean finished the apprenticeship, and minds the counter for Wick"
     },
     "tray": {
       "sectionLabel": "When you're away",
@@ -1739,7 +1750,7 @@
   "legal": {
     "privacy": [
       "# Privacy",
-      "Last updated: November 23, 2026",
+      "Last updated: November 27, 2026",
       "Lamplight Nook collects none of your data: no analytics, no ads, nothing reported in the background. We run no servers and cannot see what happens in your shop.",
       "# What stays on your computer",
       "Your name and settings; your API key, encrypted with the system's own encryption so only you on this computer can unlock it; Wick's notebook (past commissions, the choices you made, where things got stuck); an estimate of what each month cost; records of the last 50 commissions; the last 7 days of the app's log; crash records; your connections and the record of outside actions (a calendar's address is encrypted like the key).",
@@ -1748,6 +1759,7 @@
       "# What is sent to Anthropic, or to the provider you chose",
       "The staff work through Claude Code on your computer. Your commissions, anything you add in a meeting, the contents of files the staff read in the commission folder, and web searches are sent to Anthropic through Claude Code with your own API key. If you tick a connection on a commission slip, the files the staff read in the synced folder and the events they read in the calendar are sent to Anthropic the same way. Anthropic's privacy policy and commercial terms apply to that, and the cost goes to your own Anthropic account.",
       "When you save an API key, Lamplight Nook makes one free request to Anthropic to check that it works.",
+      "When you talk an order over with Wick, the titles and days of your latest twelve works go along too, so Wick knows which one you mean by “last time”. Not what is in them, nor where they are.",
       "If you choose another provider under Provider in settings (a service with an Anthropic-compatible API, Amazon Bedrock or Google Vertex AI), all of the above goes to that provider instead, under its own terms and privacy rules. Each provider's key is stored encrypted on this computer, on its own, and never goes into the log, the diagnostics or the ledger. When you save a compatible service's key, Lamplight Nook sends it the shortest message there is to check the address, key and model, which that provider may charge a tiny amount for.",
       "If you connect a calendar, the calendar's address you gave is used to fetch it straight from this computer. Other than that, Lamplight Nook connects to no servers. When the staff look things up they visit the web pages they find.",
       "# Sharing, postcards and your home network",

@@ -460,6 +460,7 @@
 - id: apprentice_notes
   when: idle
   after: 10
+  stage: 1
   turns:
     - xiaodou: 阿灯哥，这个怎么记？
     - adeng: 先写日子，再写谁要的。
@@ -468,6 +469,7 @@
 - id: apprentice_mallet
   when: idle
   after: 10
+  stage: 1
   turns:
     - xiaodou: 老石，锤子能借我吗？
     - laoshi: 先看我敲十遍。
@@ -493,6 +495,7 @@
   when: idle
   guest: baker
   after: 10
+  stage: 1
   turns:
     - baker: 新来的孩子，跑得真勤快。
     - xiaodou: 桂姨好！
@@ -502,10 +505,158 @@
   when: idle
   guest: postman
   after: 10
+  stage: 1
   turns:
     - postman: 今天在街口碰见小豆了。
     - xiaodou: 我在找图书馆。
     - postman: 下回跟着我走。
+
+# Bean growing up (plan-1.9.md I2): handy from the 30th of their works, grown from the 80th.
+- id: handy_apron
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - adeng: "围裙系得挺像样。"
+    - xiaodou: "老石教的结。"
+    - laoshi: "打得还行。"
+
+- id: handy_errands
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - xiaoju: "今天两趟，都是你跑的？"
+    - xiaodou: "嗯，在一条街上。"
+    - xiaoju: "那我去泡茶。"
+
+- id: handy_notebook
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - qingdai: "你的本子换新的了。"
+    - xiaodou: "旧的写满了。"
+    - qingdai: "第几本了？"
+    - xiaodou: "第三本。"
+
+- id: handy_mallet
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - laoshi: "木槌放哪了？"
+    - xiaodou: "第二个抽屉，擦过了。"
+    - laoshi: "嗯。"
+
+- id: handy_quiet
+  when: waiting
+  after: 10
+  stage: 2
+  turns:
+    - adeng: "你最近话少了。"
+    - xiaodou: "手上忙。"
+    - adeng: "也好。"
+
+- id: handy_paper
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - xiaodou: "阿灯，纸我按大小排了。"
+    - adeng: "找起来快多了。"
+
+- id: handy_lookup
+  when: waiting
+  after: 10
+  stage: 2
+  turns:
+    - xiaoju: "这个书名，帮我查一下？"
+    - xiaodou: "查好了，在第三排。"
+    - xiaoju: "比我还快。"
+
+- id: baker_handy
+  when: idle
+  guest: baker
+  after: 10
+  stage: 2
+  turns:
+    - baker: "小豆，系上围裙了？"
+    - xiaodou: "上个月系上的。"
+    - baker: "像个样子了。"
+
+- id: grown_counter
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - adeng: "今天柜台你来看。"
+    - xiaodou: "好，你去后面歇着。"
+    - adeng: "我就在后面。"
+
+- id: grown_notes
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - xiaodou: "阿灯，这件我记好了。"
+    - adeng: "先写日子？"
+    - xiaodou: "再写谁要的。"
+
+- id: grown_mallet
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - laoshi: "木槌，你拿去用。"
+    - xiaodou: "你不用了？"
+    - laoshi: "你敲得比我匀。"
+
+- id: grown_steps
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - qingdai: "门口那三级台阶，还数吗？"
+    - xiaodou: "不数了，闭着眼都知道。"
+
+- id: grown_errands
+  when: waiting
+  after: 10
+  stage: 3
+  turns:
+    - xiaoju: "往后跑腿，我得跟你学。"
+    - xiaodou: "你教我的，我还给你。"
+
+- id: baker_grown
+  when: idle
+  guest: baker
+  after: 10
+  stage: 3
+  turns:
+    - baker: "阿灯不在？"
+    - xiaodou: "桂姨好，阿灯在后面，先喝口茶。"
+    - baker: "小豆现在像个掌柜了。"
+
+- id: postman_grown
+  when: idle
+  guest: postman
+  after: 10
+  stage: 3
+  turns:
+    - postman: "有阿灯的信。"
+    - xiaodou: "给我吧，我来签。"
+    - postman: "以前你还跟着我找路。"
+
+- id: granny_grown
+  when: idle
+  guest: granny
+  after: 10
+  stage: 3
+  turns:
+    - granny: "阿灯在吗？"
+    - xiaodou: "陈婆婆先坐，我去叫。"
+    - granny: "这孩子长高了。"
 
 # Further on as regulars: there is still more to say after the tenth.
 - id: regular_fifteen
@@ -2665,3 +2816,354 @@
   turns:
     - xiaoju: 月饼切成五份还是六份？
     - laoshi: 六份，栗子也算。
+
+# Friends at home (plan-1.9.md I4): each two of the five, once close (bond: 2, 8 works together) or friends (bond: 3, 25).
+
+- id: bond_adeng_xiaoju_1
+  when: idle
+  bond: 2
+  turns:
+    - xiaoju: "阿灯，你今天茶里没糖。"
+    - adeng: "我自己放的，少放一勺。"
+    - xiaoju: "那我再给你补一勺。"
+
+- id: bond_adeng_xiaoju_2
+  when: idle
+  bond: 2
+  turns:
+    - adeng: "你查资料的时候哼歌。"
+    - xiaoju: "哪有！"
+    - adeng: "每回都是同一首。"
+
+- id: bond_adeng_xiaoju_3
+  when: idle
+  bond: 3
+  turns:
+    - xiaoju: "还记得我第一单查错了吗？"
+    - adeng: "记得，你把年份抄反了。"
+    - xiaoju: "你没说我，自己改了。"
+    - adeng: "你第二天就查对了。"
+
+- id: bond_adeng_xiaoju_4
+  when: idle
+  bond: 3
+  turns:
+    - adeng: "这家店少了你，转不动。"
+    - xiaoju: "那给我涨糖。"
+    - adeng: "一天加一勺。"
+
+- id: bond_adeng_laoshi_1
+  when: idle
+  bond: 2
+  turns:
+    - laoshi: "你那份，第三段有个错字。"
+    - adeng: "又让你看出来了。"
+    - laoshi: "每次都是那两个字。"
+
+- id: bond_adeng_laoshi_2
+  when: idle
+  bond: 2
+  turns:
+    - adeng: "老石，歇会儿。"
+    - laoshi: "看完这页。"
+    - adeng: "你上回也这么说。"
+    - laoshi: "上回看完了。"
+
+- id: bond_adeng_laoshi_3
+  when: idle
+  bond: 3
+  turns:
+    - laoshi: "你开店那年，我还不信。"
+    - adeng: "现在信了？"
+    - laoshi: "椅子不晃了。"
+
+- id: bond_adeng_laoshi_4
+  when: idle
+  bond: 3
+  turns:
+    - adeng: "你复核过的，我从来不再看。"
+    - laoshi: "该看。"
+    - adeng: "看了也找不出东西。"
+    - laoshi: "那就算了。"
+
+- id: bond_adeng_qingdai_1
+  when: idle
+  bond: 2
+  turns:
+    - qingdai: "柜台那盆花，该挪个位置。"
+    - adeng: "挪哪？"
+    - qingdai: "往左一掌，光就对了。"
+
+- id: bond_adeng_qingdai_2
+  when: idle
+  bond: 2
+  turns:
+    - adeng: "你又在画我。"
+    - qingdai: "你站着不动的时候最好画。"
+    - adeng: "那我动一动。"
+
+- id: bond_adeng_qingdai_3
+  when: idle
+  bond: 3
+  turns:
+    - qingdai: "店里的颜色，是我们一起定的。"
+    - adeng: "我只说了一句暖一点。"
+    - qingdai: "那句最要紧。"
+
+- id: bond_adeng_qingdai_4
+  when: idle
+  bond: 3
+  turns:
+    - adeng: "这几年的单子，你都画了一遍？"
+    - qingdai: "每单一张小样，夹在本子里。"
+    - adeng: "改天给我看看。"
+    - qingdai: "等攒到一百张。"
+
+- id: bond_adeng_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "阿灯，今天我先到的！"
+    - adeng: "门是你开的？"
+    - xiaodou: "我在门口等了十分钟。"
+
+- id: bond_adeng_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - adeng: "小豆，伞带了吗？"
+    - xiaodou: "没下雨。"
+    - adeng: "下午会下。"
+    - xiaodou: "那我拿上！"
+
+- id: bond_adeng_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "那张招学徒的纸，你为什么写歪了？"
+    - adeng: "手冷。"
+    - xiaodou: "我还以为是故意的。"
+
+- id: bond_adeng_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - adeng: "你现在跑腿，比小橘还快。"
+    - xiaodou: "别跟她说。"
+    - adeng: "她已经知道了。"
+
+- id: bond_xiaoju_laoshi_1
+  when: idle
+  bond: 2
+  turns:
+    - xiaoju: "老石，你的木槌在我这。"
+    - laoshi: "为什么在你那。"
+    - xiaoju: "我拿来砸核桃了。"
+
+- id: bond_xiaoju_laoshi_2
+  when: idle
+  bond: 2
+  turns:
+    - laoshi: "你给的出处，我都查了。"
+    - xiaoju: "都对吧？"
+    - laoshi: "一处页码差一页。"
+    - xiaoju: "就一页！"
+
+- id: bond_xiaoju_laoshi_3
+  when: idle
+  bond: 3
+  turns:
+    - xiaoju: "你挑我的错，我现在不怕了。"
+    - laoshi: "以前怕？"
+    - xiaoju: "以前躲着你走。"
+    - laoshi: "没看出来。"
+
+- id: bond_xiaoju_laoshi_4
+  when: idle
+  bond: 3
+  turns:
+    - laoshi: "给。"
+    - xiaoju: "核桃？剥好的？"
+    - laoshi: "木槌还我。"
+
+- id: bond_xiaoju_qingdai_1
+  when: idle
+  bond: 2
+  turns:
+    - xiaoju: "青黛，你的蓝我查到了。"
+    - qingdai: "哪种蓝？"
+    - xiaoju: "天黑前十分钟那种。"
+
+- id: bond_xiaoju_qingdai_2
+  when: idle
+  bond: 2
+  turns:
+    - qingdai: "你的围巾，颜色撞了。"
+    - xiaoju: "橘配蓝，不好看吗？"
+    - qingdai: "好看，就是撞了。"
+
+- id: bond_xiaoju_qingdai_3
+  when: idle
+  bond: 3
+  turns:
+    - qingdai: "你查的，我画的，一起交出去。"
+    - xiaoju: "合起来才是一单。"
+    - qingdai: "少了谁都不行。"
+
+- id: bond_xiaoju_qingdai_4
+  when: idle
+  bond: 3
+  turns:
+    - xiaoju: "下雨天我们去看染坊吧。"
+    - qingdai: "拆了。"
+    - xiaoju: "那去看那块地。"
+    - qingdai: "好。"
+
+- id: bond_xiaoju_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "小橘，你的糖罐空了。"
+    - xiaoju: "又空了？"
+    - xiaodou: "我数了，一天十二勺。"
+
+- id: bond_xiaoju_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaoju: "这件你去跑，我去那件。"
+    - xiaodou: "我那件近！"
+    - xiaoju: "所以给你。"
+
+- id: bond_xiaoju_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "那天的伞，我一直没还你。"
+    - xiaoju: "挂门后就算还了。"
+    - xiaodou: "那我也给你挂一把。"
+
+- id: bond_xiaoju_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaoju: "你现在查得比我细。"
+    - xiaodou: "我跟你学的。"
+    - xiaoju: "那我得学点新的了。"
+
+- id: bond_laoshi_qingdai_1
+  when: idle
+  bond: 2
+  turns:
+    - qingdai: "这张图，你看着顺吗？"
+    - laoshi: "左边重。"
+    - qingdai: "我也觉得。"
+
+- id: bond_laoshi_qingdai_2
+  when: idle
+  bond: 2
+  turns:
+    - laoshi: "你那把椅子，我修了。"
+    - qingdai: "我没说它坏了。"
+    - laoshi: "它自己说的。"
+
+- id: bond_laoshi_qingdai_3
+  when: idle
+  bond: 3
+  turns:
+    - qingdai: "你复核我的图，从不说好看。"
+    - laoshi: "好看不用说。"
+    - qingdai: "那不好看呢？"
+    - laoshi: "那才说。"
+
+- id: bond_laoshi_qingdai_4
+  when: idle
+  bond: 3
+  turns:
+    - laoshi: "给你做了个画框。"
+    - qingdai: "尺寸怎么知道的？"
+    - laoshi: "量过你的小样。"
+
+- id: bond_laoshi_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "老石，木槌在柜台下面。"
+    - laoshi: "谁放的。"
+    - xiaodou: "小橘。我记下来了。"
+
+- id: bond_laoshi_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - laoshi: "小豆，这个拿去刨。"
+    - xiaodou: "刨多久？"
+    - laoshi: "刨到你不想刨。"
+
+- id: bond_laoshi_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "我刨的那块，你留着？"
+    - laoshi: "留着。"
+    - xiaodou: "刨得不好。"
+    - laoshi: "第一块都这样。"
+
+- id: bond_laoshi_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - laoshi: "你的单子，我挑不出错了。"
+    - xiaodou: "真的？"
+    - laoshi: "再看一遍。"
+    - xiaodou: "我就知道！"
+
+- id: bond_qingdai_xiaodou_1
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - xiaodou: "青黛，这个颜色叫什么？"
+    - qingdai: "你觉得呢？"
+    - xiaodou: "叫下午四点。"
+    - qingdai: "好名字。"
+
+- id: bond_qingdai_xiaodou_2
+  when: idle
+  bond: 2
+  after: 10
+  turns:
+    - qingdai: "你画的猫，比栗子胖。"
+    - xiaodou: "栗子最近就是胖了。"
+    - qingdai: "那画对了。"
+
+- id: bond_qingdai_xiaodou_3
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - xiaodou: "你给我的那盒颜料，我还没用完。"
+    - qingdai: "用完再给你一盒。"
+    - xiaodou: "我舍不得用。"
+
+- id: bond_qingdai_xiaodou_4
+  when: idle
+  bond: 3
+  after: 10
+  turns:
+    - qingdai: "你记的本子，我能画进去吗？"
+    - xiaodou: "画在哪？"
+    - qingdai: "每页角上画一点。"
+    - xiaodou: "那要画三百多个！"

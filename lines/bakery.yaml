@@ -255,3 +255,14 @@ shop_idle:
   - { id: bk_idle_dragon_boat_02, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["今天面包卖得少，都去买粽子了。"] }
   - { id: bk_idle_mid_autumn_01, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["月饼要回油两天才好吃。"] }
   - { id: bk_idle_mid_autumn_02, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["这模子压出来的花最清楚。"] }
+  - { id: bk_bun_01, speaker: guiyi, bubbles: ["馒头又趴到柜台边上了。"] }
+  - { id: bk_bun_02, speaker: guiyi, bubbles: ["馒头，面包边等会儿给你。"] }
+  - { id: bk_bun_03, speaker: guiyi, bubbles: ["门一响，馒头就抬头。"] }
+  - { id: bk_bun_04, speaker: guiyi, bubbles: ["馒头是我在桥头捡的。"] }
+  - { id: bk_bun_05, speaker: guiyi, bubbles: ["馒头这名字，是阿信起的。"] }
+  - { id: bk_bun_06, speaker: guiyi, when: period_night, bubbles: ["馒头睡门口，替我看门呢。"] }
+  - { id: bk_bun_07, speaker: guiyi, when: sky_rain, bubbles: ["下雨天，馒头一步都不出门。"] }
+  - { id: bk_bun_08, speaker: guiyi, bubbles: ["哪炉烤好了，馒头闻得出来。"] }
+  - { id: bk_bun_09, speaker: guiyi, bubbles: ["馒头不爱叫，就爱看人。"] }
+  - { id: bk_bun_10, speaker: guiyi, when: period_dawn, bubbles: ["馒头比我起得还早。"] }
+  - { id: bk_bun_11, speaker: guiyi, bubbles: ["馒头，别舔面粉袋。"] }

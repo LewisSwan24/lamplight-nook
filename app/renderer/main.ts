@@ -17,7 +17,7 @@ import { VisitPlanner, pickVisit, welcomeGuests } from './game/guests';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, toolIconPx, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
-import { onRuleBookChange, ruleBook } from './stage/rulebook';
+import { onRuleBookChange, ruleBook, setApprenticeStage } from './stage/rulebook';
 import { openingTurns, pickLine } from './translator/lines';
 import { inSeason, newlyInSeason } from '../shared/furnish';
 import { birthdayOn, termOn } from '../shared/calendar';
@@ -39,7 +39,7 @@ import { onProjectMeet, renderPins, showProjects, showTimeline } from './ui/proj
 import { projectColor } from '../shared/project-colors';
 import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
-import { ROOM_CREW, STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
+import { ROOM_CREW, STAFF, apprenticeHere, apprenticeNews, apprenticeStage, stageNews } from '../shared/staff';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { showUpdateLetter } from './ui/letter';
@@ -53,7 +53,13 @@ import type { StreetShop } from '../shared/dispatch';
 import { TOWN_MOVE } from '../shared/town';
 import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
 import { leftBehind, nextChapter, waiting, type Stories, type Teller } from '../shared/stories';
-import { showStory } from './ui/story';
+import { showStaffStory, showStory } from './ui/story';
+import zhMemories from '../../lines/memories.yaml?raw';
+import enMemories from '../../lines/en/memories.yaml?raw';
+import { memoryLines, type Recalled } from '../shared/memories';
+import { parseMemories } from './translator/lines';
+import { isStaffTeller, nextStaffChapter, staffWaiting, type StaffStories, type StaffTeller } from '../shared/staffstories';
+import type { Staffer } from '../shared/crew';
 import { ShopTalk, type Moment } from './stage/shoptalk';
 import type { Line } from './translator/lines';
 
@@ -246,8 +252,16 @@ const leadStage = () => rooms.get(roomOfRun(live()[0]?.run))?.stage ?? stage;
 
 // Small talk when the shop is quiet: never while working, while a card waits for the user, or when hidden.
 let replaying = false;
-const chatter = new Chatter(ruleBook(home.room).chats, ruleBook(home.room).lines.idle_mutter ?? [], Date.now());
-onRuleBookChange(() => chatter.reload(ruleBook(home.room).chats, ruleBook(home.room).lines.idle_mutter ?? []));
+/**
+ * What the staff remember (plan-1.9.md I5): each says now and then a work they were on, by title and day, among the
+ * mutters at home and a street shop's idle lines. Filled in again whenever the shop's works change.
+ */
+const memoryBook = parseMemories(locale() === 'en' ? enMemories : zhMemories);
+let memories: ReturnType<typeof memoryLines> = [];
+const memoriesOf = (crew: readonly ActorId[]) => memories.filter((m) => crew.includes(m.speaker));
+const mutters = () => [...(ruleBook(home.room).lines.idle_mutter ?? []), ...memoriesOf(STAFF)];
+const chatter = new Chatter(ruleBook(home.room).chats, mutters(), Date.now());
+onRuleBookChange(() => chatter.reload(ruleBook(home.room).chats, mutters()));
 setInterval(() => {
   setPeriod(scene.period);
   const blocked = document.hidden || document.querySelector('.backdrop');
@@ -264,6 +278,7 @@ setInterval(() => {
   bringLetter(!busy && !blocked && scene.view === 'shop');
   if (atHome()) dropIn(!busy && !blocked && scene.view === 'shop');
   talkInShop(!busy && !blocked && scene.view === 'shop');
+  nudgeStaff();
   if (running && !blocked) sayProgress();
 }, 5000);
 
@@ -300,7 +315,7 @@ function greetIn(room: RoomId) {
 }
 function talkInShop(quiet: boolean) {
   if (atHome() || !isStreetShop(scene.room)) return;
-  const line = shopTalk.next(Date.now(), quiet, ruleBook(scene.room).lines.shop_idle ?? [], momentNow());
+  const line = shopTalk.next(Date.now(), quiet, [...(ruleBook(scene.room).lines.shop_idle ?? []), ...memoriesOf(ROOM_CREW[scene.room])], momentNow());
   if (line) void sayLine(line);
 }
 
@@ -455,7 +470,8 @@ setInterval(pace, 5000);
 // Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
 const syncVisibility = () => { for (const r of rooms.values()) r.stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
-scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
+// A member of staff with a chapter of their own story waiting tells it (plan-1.9.md I1); anyone else shows their card.
+scene.onActorClick = (actor) => (isStaffTeller(actor) && staffChapter(actor) !== null ? hearStaffStory(actor) : showActorCard(actor, stage.actorInfo(actor), view.detailed));
 scene.onSound = sfx;
 // Lines from a replay (the trial) are marked in the caption log, so they never pass for real work.
 scene.onSay = (who, text) => recordLine(who, replaying ? text + strings.ui.replayTag : text);
@@ -493,7 +509,8 @@ window.lamplight.onDecision((req) => {
   }).catch((e) => append(`decision failed: ${e}`));
 });
 // What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
-let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; town: TownCounts } = { done: 0, told: new Set(), made: {}, town: townCounts({ done: 0 }, homeScene()) };
+/** `bean`: the works Bean has been on (plan-1.9.md I2), which set their stage. */
+let shopDays: { done: number; bean: number; told: Set<string>; made: Made; lastWork?: string; town: TownCounts; bonds?: Record<string, number> } = { done: 0, bean: 0, told: new Set(), made: {}, town: townCounts({ done: 0 }, homeScene()) };
 /** What the town has grown (road-to-1.4.md D5): the street and its inset in every room, and a shop's own pieces inside it. */
 function showTownIn(room: RoomId, at: CafeScene) {
   at.setTown(shopDays.town);
@@ -511,7 +528,12 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   home.growth.setWorks(state.works.map((w) => w.icon));
   home.garden.setWorksDone(state.done);
   homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
-  shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()) };
+  const stage = apprenticeStage(state.crew.xiaodou);
+  setApprenticeStage(stage);
+  home.setApprenticeLook(stage);
+  shopDays = { done: state.done, bean: state.crew.xiaodou, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()), bonds: state.bonds };
+  memories = memoryLines(memoryBook, state.recall as Record<string, Recalled[]>, locale());
+  chatter.reload(ruleBook(home.room).chats, mutters());
   street.setTown(shopDays.town);
   tellAbout(state);
   showTownIn(home.room, home);
@@ -526,11 +548,26 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
  * with a bubble; what the chapters told have left stands there too, or for Auntie Olive and Pip hangs in their shops
  * (plan-1.6.md F4). Nothing else says a chapter is waiting.
  */
-let tales: { stories: Stories; done: number; today: string } = { stories: {}, done: 0, today: '' };
-function tellAbout(state: { done: number; today: string; town?: { stories: Stories } }) {
-  tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today };
+let tales: { stories: Stories; done: number; today: string; staff: StaffStories; crew?: Record<Staffer, number> } = { stories: {}, done: 0, today: '', staff: {} };
+function tellAbout(state: { done: number; today: string; crew?: Record<Staffer, number>; town?: { stories: Stories; staff?: StaffStories } }) {
+  tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today, staff: state.town?.staff ?? {}, crew: state.crew };
   street.setStories(waiting(tales.stories, tales.done, tales.today), leftBehind(tales.stories));
   for (const [, built] of rooms) built.scene.tales.show(leftBehind(tales.stories), built.scene.reducedMotion);
+  nudgeStaff();
+}
+/** The staff's own stories (plan-1.9.md I1): the chapter someone has waiting today, or null. */
+const staffChapter = (who: StaffTeller) => (tales.crew ? nextStaffChapter(who, tales.staff, tales.crew, tales.today) : null);
+/** Whoever has a chapter waiting shows a note over their head, in whichever room they are in. */
+function nudgeStaff() {
+  if (!tales.crew) return;
+  const ready = staffWaiting(tales.staff, tales.crew, tales.today);
+  for (const [room, built] of rooms) for (const who of ready) if (ROOM_CREW[room].includes(who) && !built.scene.busyTalking(who) && !built.scene.isSaying(who, '')) built.scene.say(who, '', 'note');
+}
+function hearStaffStory(who: StaffTeller) {
+  const chapter = staffChapter(who);
+  if (chapter === null) return;
+  for (const [, built] of rooms) if (built.scene.isSaying(who, '')) built.scene.say(who, null);
+  showStaffStory(who, chapter, () => void window.lamplight.tellStaffStory(who).then(async () => tellAbout(await window.lamplight.shopState())));
 }
 /** A waiting neighbour was clicked: the chapter on a card, written down as told once the card is closed. */
 function hearStory(who: Teller) {
@@ -642,6 +679,7 @@ onNotebookForget(() => {
 });
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
+  const bean = shopDays.bean;
   const town = shopDays.town;
   const made = shopDays.made;
   void refreshShop(result.grew ?? [], true).then(() => {
@@ -651,6 +689,9 @@ window.lamplight.onResult((result) => {
     noticeBeds(bedNews(before, shopDays.done));
     // Adeng introduces the apprentice once they are through the door.
     if (apprenticeNews(before, shopDays.done)) sayOnce('grow_apprentice', APPRENTICE_LINE_DELAY_MS);
+    // And marks the day Bean reaches another stage (plan-1.9.md I2).
+    const grew = stageNews(bean, shopDays.bean);
+    if (grew) sayOnce(`grow_apprentice_${grew}`, APPRENTICE_LINE_DELAY_MS);
   });
   noticeGrowth(result.grew ?? []);
 });
@@ -1189,7 +1230,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
     // `rooms`: every room at work just now (D3), by room, with its scene and stage.
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome } });
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
   }
   const env = $('env');
   env.textContent = [

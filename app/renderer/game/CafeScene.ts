@@ -66,6 +66,8 @@ import fogUrl from '../../../assets/sprites/weather-fog.png';
 import windUrl from '../../../assets/sprites/weather-wind.png';
 import stormUrl from '../../../assets/sprites/weather-storm.png';
 import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
+import xiaodou2Url from '../../../assets/sprites/xiaodou-2.png';
+import xiaodou3Url from '../../../assets/sprites/xiaodou-3.png';
 import aqianUrl from '../../../assets/sprites/aqian.png';
 import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
 import xiaodingUrl from '../../../assets/sprites/xiaoding.png';
@@ -84,12 +86,14 @@ import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { fill, strings, wordsIn } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import type { RoomId } from '../../shared/scenes';
-import { ROOM_CREW } from '../../shared/staff';
+import { ROOM_CREW, apprenticeLook, type ApprenticeStage } from '../../shared/staff';
 import catWalkUrl from '../../../assets/sprites/cat-walk.png';
 import { counterTop, overlayDepth, pieceData } from './pieces';
 import { type PropId, PROPS, propFrame, propOffset } from './props';
 import { type ObjectBox, type ObjectId, objectBoxes } from './objects';
 import { CORK, WALL_CARD, stampColour, wallIndex, wallSpots } from './postwall';
+import { ShopPet, preloadPet } from './ShopPet';
+import { PET_SHEETS, SHOP_PET } from './shoppets';
 import type { SceneId } from '../../shared/scenes';
 import type { GrowthId } from '../../shared/growth';
 import { walkBetween } from './layout';
@@ -123,6 +127,10 @@ const WEATHER_URLS: Record<(typeof SKIES)[number], string> = {
 };
 const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl, dad: dadUrl, editor: editorUrl, mum: mumUrl };
 /** The player's looks, in order (shared/avatars.ts). */
+/** Bean's later looks (plan-1.9.md I2): the first is SHEETS.xiaodou. */
+const BEAN_SHEETS: Record<string, string> = { 'xiaodou-2': xiaodou2Url, 'xiaodou-3': xiaodou3Url };
+/** Which of them Bean's animations are drawn from; they belong to the whole game, like the animations. */
+let beanLook = 'xiaodou';
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
 const CORNER_PAUSE_MS = 90;
@@ -168,7 +176,7 @@ const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
 export type HintSpot = 'counter' | 'bell' | 'board';
-export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you' | 'cork' | `wall-${number}`;
+export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you' | 'cork' | 'pet' | `wall-${number}`;
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -279,6 +287,8 @@ export class CafeScene extends Phaser.Scene {
   private street!: StreetView;
   /** The back garden, beside the shop in this scene; the camera slides over to look at it. */
   garden!: GardenView;
+  /** The street shop's own animal, in the bakery, the post office and the studio (plan-1.9.md I3). */
+  pet?: ShopPet;
   private backDoor!: Phaser.GameObjects.Sprite;
   private glassMask!: Phaser.Display.Masks.BitmapMask;
   /** What the window shows: the shop, or the garden through the back door. */
@@ -358,6 +368,8 @@ export class CafeScene extends Phaser.Scene {
     }
     // What the baker's and the postman's stories leave, in their own shops only (F4).
     preloadTales(this.load, this.room);
+    const pet = SHOP_PET[this.room];
+    if (pet && !this.textures.exists(PET_SHEETS[pet].key)) preloadPet(this.load, pet);
     if ((this.room === 'cafe' || this.room === 'study') && !this.textures.exists('cake')) this.load.image('cake', cakeUrl);
     if (this.room === MENU_BOARD.room && !this.textures.exists('bakery-board')) {
       this.load.spritesheet('bakery-board', bakeryBoardUrl, { frameWidth: MENU_BOARD.w, frameHeight: MENU_BOARD.h });
@@ -381,6 +393,7 @@ export class CafeScene extends Phaser.Scene {
     for (const s of SEASONS) this.load.image(`season-${s}`, SEASON_URLS[s]);
     for (const s of SKIES) this.load.image(`weather-${s}`, WEATHER_URLS[s]);
     for (const id of [...STAFF_IDS, ...GUEST_IDS]) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
+    for (const [key, url] of Object.entries(BEAN_SHEETS)) this.load.spritesheet(key, url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     YOU_SHEETS.slice(0, AVATAR_COUNT).forEach((url, i) => this.load.spritesheet(avatarKey(i + 1), url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height }));
     this.load.spritesheet('cat', SHEETS.cat, { frameWidth: CAT_FRAME.width, frameHeight: CAT_FRAME.height });
     this.load.spritesheet('cat-walk', catWalkUrl, { frameWidth: CAT_WALK_FRAME.width, frameHeight: CAT_WALK_FRAME.height });
@@ -425,6 +438,8 @@ export class CafeScene extends Phaser.Scene {
     }
     if (this.room === MENU_BOARD.room) this.menu = this.add.image(MENU_BOARD.x, MENU_BOARD.y, 'bakery-board', 0).setOrigin(0).setDepth(1.4);
     this.addObjects();
+    const pet = SHOP_PET[this.room];
+    if (pet) this.pet = new ShopPet(this, pet, () => this.reducedMotion, () => this.activate('pet'));
     const slate = ZONES.find((z) => z.id === 'board')!;
     this.add
       .zone(slate.x, slate.y, slate.w, slate.h)
@@ -549,25 +564,46 @@ export class CafeScene extends Phaser.Scene {
     }
   }
 
+  /** Every animation of one person, drawn from `sheet`: their own, or for Bean the look of their stage. */
+  private personAnims(id: Parameters<typeof animKey>[0], sheet: string) {
+    for (const [name, def] of Object.entries(STAFF_ANIMS)) {
+      // The player's sheets stop after the hand-over row (scripts/art/characters.py, PLAYER_ROWS).
+      if (id.startsWith('you-') && def.row > STAFF_ANIMS.gift.row) continue;
+      const dirs = def.dirs === 'front' ? [DIRECTIONS[3]] : def.dirs;
+      for (const facing of dirs) {
+        const key = animKey(id, name, facing);
+        if (this.anims.exists(key)) this.anims.remove(key);
+        this.anims.create({ key, frames: this.anims.generateFrameNumbers(sheet, { frames: staffFrames(name, facing) }), frameRate: def.fps, repeat: def.repeat });
+      }
+    }
+  }
+
+  /**
+   * Bean's look for their stage (plan-1.9.md I2). The animations keep their names and are drawn from the stage's sheet,
+   * so every room shows the new look; here Bean changes at once, mid-step or standing.
+   */
+  setApprenticeLook(stage: ApprenticeStage) {
+    const look = apprenticeLook(stage);
+    if (look === beanLook) return;
+    beanLook = look;
+    if (!this.anims.exists('cup')) return;
+    this.personAnims('xiaodou', look);
+    const sprite = this.actors.get('xiaodou')?.sprite;
+    const playing = sprite?.anims.currentAnim?.key;
+    if (sprite) sprite.setTexture(look, sprite.frame.name);
+    if (sprite && playing) sprite.play(playing);
+  }
+
+  /** Bean's look now, for the acceptance scenarios. */
+  get apprenticeLook() {
+    return beanLook;
+  }
+
   private createAnims() {
     // Animations belong to the whole game: the first room makes them for every other.
     if (this.anims.exists('cup')) return;
     const looks = Array.from({ length: AVATAR_COUNT }, (_, i) => avatarKey(i + 1));
-    for (const id of [...STAFF_IDS, ...GUEST_IDS, ...looks]) {
-      for (const [name, def] of Object.entries(STAFF_ANIMS)) {
-        // The player's sheets stop after the hand-over row (scripts/art/characters.py, PLAYER_ROWS).
-        if (id.startsWith('you-') && def.row > STAFF_ANIMS.gift.row) continue;
-        const dirs = def.dirs === 'front' ? [DIRECTIONS[3]] : def.dirs;
-        for (const facing of dirs) {
-          this.anims.create({
-            key: animKey(id, name, facing),
-            frames: this.anims.generateFrameNumbers(id, { frames: staffFrames(name, facing) }),
-            frameRate: def.fps,
-            repeat: def.repeat,
-          });
-        }
-      }
-    }
+    for (const id of [...STAFF_IDS, ...GUEST_IDS, ...looks]) this.personAnims(id, id === 'xiaodou' ? beanLook : id);
     this.anims.create({ key: 'cat-walk', frames: this.anims.generateFrameNumbers('cat-walk', {}), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'cat-lie', frames: this.anims.generateFrameNumbers('cat', {}), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'clock', frames: this.anims.generateFrameNumbers('clock', {}), frameRate: 4, repeat: -1, yoyo: true });
@@ -874,6 +910,7 @@ export class CafeScene extends Phaser.Scene {
     const from = fromLook ?? withWeather(LOOKS[this.period], this.weather?.sky ?? 'clear');
     this.period = period;
     this.garden?.setOutdoors(this.weather?.sky ?? 'clear', period);
+    this.pet?.setOutdoors(this.weather?.sky ?? 'clear', period);
     this.weather?.setPeriod(period);
     const apply = (t: number) => {
       const mix = (a: number, b: number) => Phaser.Display.Color.Interpolate.ColorWithColor(
@@ -978,6 +1015,7 @@ export class CafeScene extends Phaser.Scene {
     if (target === 'works') return this.growth.hasWorks ? this.onWorksClick() : undefined;
     if (target === 'board') return this.boardInUse() ? this.onBoardClick() : this.onObjectClick('board');
     if (target === 'guest') return this.guestHello();
+    if (target === 'pet') return this.pet?.poke();
     if (target === 'you') return this.onYouClick();
     if (target === 'cork') return this.onWallCard(null);
     const card = wallIndex(target);
@@ -1024,7 +1062,8 @@ export class CafeScene extends Phaser.Scene {
     const cork = this.room !== 'post' ? [] : this.wallCards.length
       ? this.wallCards.map((c, i) => ({ id: `wall-${i}` as const, x: c.x, y: c.y, w: WALL_CARD.w, h: WALL_CARD.h }))
       : [{ id: 'cork' as const, ...CORK }];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...cork, ...people, ...out];
+    const pet = this.pet ? [{ id: 'pet' as const, ...this.pet.bounds() }] : [];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...cork, ...pet, ...people, ...out];
   }
 
   /**
@@ -1177,10 +1216,14 @@ export class CafeScene extends Phaser.Scene {
     if (this.actors.get(actorId)?.outside) this.street.errand(actorId, tool);
   }
 
-  /** Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). */
+  /**
+   * Whether a character is showing a bubble right now, or is out of the shop (either way, not free to chat). The note
+   * of a story waiting to be told (plan-1.9.md I1) is not talk: it gives way to a chat and comes back after.
+   */
   busyTalking(actorId: ActorId): boolean {
     const actor = this.actors.get(actorId);
-    return this.speech.has(actorId) || !!actor?.outside || !!actor?.inGarden;
+    const said = this.speech.get(actorId);
+    return (!!said && !(said.icon === 'note' && !said.text)) || !!actor?.outside || !!actor?.inGarden;
   }
 
   isSaying(actorId: ActorId, text: string): boolean {
@@ -1273,6 +1316,7 @@ export class CafeScene extends Phaser.Scene {
     // A commission came in while they were on their way: they carry on down the street.
     if (gone()) return;
     this.onGuestIn?.(id);
+    this.pet?.noticeDoor();
     const wait = (ms: number) => new Promise((r) => this.time.delayedCall(ms, r));
     const sprite = this.add.sprite(GUEST_DOOR.x, GUEST_DOOR.y - 8, id).setOrigin(0.5, 1).setAlpha(0).setDepth(GUEST_DOOR.y);
     const shadow = this.add.ellipse(GUEST_DOOR.x, GUEST_DOOR.y, 11, 4, 0x3b2a1e, 0.28);
@@ -1411,6 +1455,7 @@ export class CafeScene extends Phaser.Scene {
     const sprite = this.add.sprite(YOU_DOOR.x, YOU_DOOR.y - 8, key).setOrigin(0.5, 1).setAlpha(0).setDepth(YOU_DOOR.y);
     const shadow = this.add.ellipse(YOU_DOOR.x, YOU_DOOR.y, 11, 4, 0x3b2a1e, 0.28).setAlpha(0);
     const y: You = { sprite, shadow, seated: false, trip: 0 };
+    this.pet?.noticeDoor();
     this.you = y;
     sprite.setInteractive({ useHandCursor: true, pixelPerfect: true })
       .on('pointerover', () => (y.hovered = true))

@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.9.0 (2026-11-27)
+
+- **Who worked on what.** The shop now knows which of its people were on each finished work: Wick on every one,
+  Clem, Iris and Flint when their errand went out, Bean once Bean has come, and the street shops' keepers on their own
+  shop's work. Nothing new is stored; it is all counted from the works already kept. The staff's stories, friendships
+  and memories in 1.9 go by these counts.
+- **The staff's own stories.** Eight of the staff now have three chapters each about where they come from: Wick's
+  first lamp, Clem's library, Flint's carpentry master, Iris's grandmother's dye works, Bean's first errand, Pica's
+  print works, Umber's hills and Tack's spare screw. A chapter comes once that person has been on enough works, and a
+  note shows over their head; click them to hear it. Each leaves a keepsake. A new Stories page in the notebook keeps
+  every chapter told, the neighbours' too, to read again.
+- **Friends at home.** Each two of the five at home grow closer with the works they do together: close after eight,
+  friends after twenty-five. Forty new chats wait for that: close ones tease, friends remember things done together.
+  Nothing shows the count; you hear it. Someone with a story waiting now still chats, the note over their head
+  stepping aside and coming back after.
+- **The staff remember.** Now and then one of them brings up a work they were on, by its title and its day: Flint
+  an invitation read three times over, Pica a ledger set twice. Talking an order over, Wick now knows your
+  latest twelve works by title and day, so "like last time" makes sense at the counter. Only titles and days go along; the
+  privacy notice says so.
+- **Bean grows up.** Bean, the apprentice, now has three stages, counted by the works Bean has been on: handy after
+  thirty, with a work apron over the green shirt, and grown after eighty, in a brown jacket. Bean talks differently at
+  each: full of questions at first, fewer words once handy, steady when grown, and then greets the neighbours when
+  Wick is busy. Wick marks the day of each, and so does the notebook.
+- **Three new animals.** Bun, a ginger dog, lies by the bread case in the bakery, looks up when someone comes in and
+  sleeps on the mat by the door at night. Stamp, a grey pigeon, flies between the post office's windowsill and the
+  letter rack, and keeps to the sill when it rains and after dark. Cinnabar, a goldfish, goes round a bowl on Umber's
+  windowsill. Click one, or press Enter on it, and it answers without a word: a bark, a flight, a dash round the
+  bowl. Their keepers talk about them now and then.
+
 ## 1.8.0 (2026-11-27)
 
 The first release since 1.0.0, with everything from 1.1 to 1.8.

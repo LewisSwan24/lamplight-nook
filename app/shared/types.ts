@@ -7,6 +7,9 @@ import type { MiniState } from './mini';
 import type { GrowthId, WorkIcon } from './growth';
 import type { TemplateId, TemplateLayout } from './templates';
 import type { Shop } from './dispatch';
+import type { Bond, Staffer } from './crew';
+import type { Recalled } from './memories';
+import type { StaffTeller } from './staffstories';
 import type { ModelTier } from './models';
 import type { Provider } from './providers';
 
@@ -250,6 +253,8 @@ export interface LamplightApi {
   markMet(id: GuestId): Promise<void>;
   /** A neighbour on the street has told the chapter they had waiting (road-to-1.4.md D4): the chapter, or null if none was. */
   tellStory(who: GuestId): Promise<number | null>;
+  /** A member of staff has told the chapter of their own story they had waiting (plan-1.9.md I1). */
+  tellStaffStory(who: StaffTeller): Promise<number | null>;
   /** The home-network connection (docs/plan-1.5.md E1): where it listens and the paired devices. */
   lanState(): Promise<LanState>;
   /** A new device to pair: the address with its key, and a QR code of it (SVG). */
@@ -604,6 +609,7 @@ export const IPC = {
   markTold: 'shop:mark-told',
   markMet: 'shop:mark-met',
   tellStory: 'shop:tell-story',
+  tellStaffStory: 'shop:tell-staff-story',
   lanState: 'lan:state',
   lanPair: 'lan:pair',
   lanRemove: 'lan:remove',
@@ -937,7 +943,8 @@ export type ShareResult = ExportResult | 'cloud';
 export type LanRole = 'watch' | 'approve' | 'commission';
 export type LanState = { on: boolean; addresses: string[]; devices: { id: string; name: string; added: string; paired: boolean; lastSeen?: string; role: LanRole; capUsd: number }[] };
 /** `today`: the day by the shop's clock (main/clock.ts), which the simulations can move on; the stories go by it (D4). */
-export type ShopState = ShopDays & { works: Work[]; today: string };
+/** `crew`: how many finished works each member of staff was on (plan-1.9.md I0), for their stories (I1); `bonds`: how close each two at home are (I4). */
+export type ShopState = ShopDays & { works: Work[]; today: string; crew: Record<Staffer, number>; bonds: Record<string, Bond>; recall: Partial<Record<Staffer, Recalled[]>> };
 /** A place where a commission got stuck ("pits we fell into together"). */
 export type StuckNote = { commission: string; note: string; date: string };
 export type Memory = {

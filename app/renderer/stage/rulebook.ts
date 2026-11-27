@@ -24,7 +24,8 @@ import enBakery from '../../../lines/en/bakery.yaml?raw';
 import enPost from '../../../lines/en/post.yaml?raw';
 import { locale } from '../../shared/i18n';
 import type { RoomId } from '../../shared/scenes';
-import { type Chat, type LineLibrary, chatsForScene, linesForScene, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
+import type { ApprenticeStage } from '../../shared/staff';
+import { type Chat, type LineLibrary, chatsForScene, chatsForStage, linesForScene, linesForStage, lintChats, lintLines, parseChats, parseLines } from '../translator/lines';
 import { parseAnimTable, parseRules, type AnimTable, type Rule } from '../translator/translator';
 
 export type RuleBook = { rules: Rule[]; anims: AnimTable; lines: LineLibrary; chats: Chat[] };
@@ -44,8 +45,11 @@ function build(scene: RoomId, r: string, a: string, l: string, c: string): RuleB
   const allChats = parseChats(c);
   const problems = [...lintLines(allLines), ...lintChats(allChats)];
   if (problems.length) console.warn(`Dialogue lint:\n${problems.join('\n')}`);
-  // Only what fits the room (shared/scenes.ts).
-  return { rules: parseRules(own ? own.rules : r), anims: parseAnimTable(a), lines: linesForScene(allLines, scene), chats: chatsForScene(allChats, scene) };
+  // Only what fits the room (shared/scenes.ts), and Bean's stage (plan-1.9.md I2).
+  return {
+    rules: parseRules(own ? own.rules : r), anims: parseAnimTable(a),
+    lines: linesForStage(linesForScene(allLines, scene), stage), chats: chatsForStage(chatsForScene(allChats, scene), stage),
+  };
 }
 
 const english = locale() === 'en';
@@ -55,6 +59,8 @@ const chatsText = english ? enChats : zhChats;
 const texts = { r: rulesText, a: animText, l: linesText, c: chatsText };
 const books = new Map<RoomId, RuleBook>();
 const listeners = new Set<() => void>();
+/** How far Bean's apprenticeship has come (plan-1.9.md I2): only the lines of this stage are said. */
+let stage: ApprenticeStage = 1;
 
 /** A room's rules and lines, built the first time the room is shown (D2). */
 export function ruleBook(room: RoomId): RuleBook {
@@ -63,7 +69,15 @@ export function ruleBook(room: RoomId): RuleBook {
   return book;
 }
 
-/** Called whenever the rule files change (dev mode only); ask `ruleBook` again for the new version. */
+/** Bean has reached another stage: every room's lines are built again, and everyone listening hears of it. */
+export function setApprenticeStage(next: ApprenticeStage) {
+  if (next === stage) return;
+  stage = next;
+  books.clear();
+  for (const cb of listeners) cb();
+}
+
+/** Called whenever the rule files change (in dev mode), or Bean's stage does; ask `ruleBook` again for the new version. */
 export function onRuleBookChange(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);

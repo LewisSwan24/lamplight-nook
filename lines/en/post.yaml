@@ -256,3 +256,14 @@ shop_idle:
   - { id: po_idle_dragon_boat_02, speaker: axin, when: holiday_dragon_boat, bubbles: ["Stamps smell of mugwort now."] }
   - { id: po_idle_mid_autumn_01, speaker: axin, when: holiday_mid_autumn, bubbles: ["The shelf creaks under the mooncakes."] }
   - { id: po_idle_mid_autumn_02, speaker: axin, when: holiday_mid_autumn, bubbles: ["This one says: can't make it home this year."] }
+  - { id: po_stamp_01, speaker: axin, bubbles: ["Stamp's up on the letter rack again."] }
+  - { id: po_stamp_02, speaker: axin, bubbles: ["Stamp flew in one day and stayed."] }
+  - { id: po_stamp_03, speaker: axin, bubbles: ["Stamp, that slot is for Third Street."] }
+  - { id: po_stamp_04, speaker: axin, bubbles: ["Stamp knows every postman by sight."] }
+  - { id: po_stamp_05, speaker: axin, when: sky_rain, bubbles: ["Wet days, Stamp keeps to the sill."] }
+  - { id: po_stamp_06, speaker: axin, when: period_night, bubbles: ["Stamp's asleep. Sorting can wait."] }
+  - { id: po_stamp_07, speaker: axin, bubbles: ["That green ring on Stamp's neck is nice."] }
+  - { id: po_stamp_08, speaker: axin, bubbles: ["Stamp leaves the post alone. Crumbs only."] }
+  - { id: po_stamp_09, speaker: axin, bubbles: ["Auntie Olive saved Stamp half a biscuit."] }
+  - { id: po_stamp_10, speaker: axin, bubbles: ["Stamp goes sill, rack, sill, all day."] }
+  - { id: po_stamp_11, speaker: axin, when: period_dawn, bubbles: ["Stamp's on the sill by first light."] }

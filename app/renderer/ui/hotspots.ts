@@ -1,6 +1,7 @@
 import { fill, strings, wordsIn } from '../../shared/i18n';
 import type { ActorId } from '../../shared/types';
 import type { CafeScene, Target } from '../game/CafeScene';
+import { SHOP_PET } from '../game/shoppets';
 import { el, layer } from './dom';
 
 const A = strings.ui.access;
@@ -17,7 +18,9 @@ const O = strings.ui.objects;
 const objectName = (id: string): string | undefined =>
   id.startsWith('grow-') ? O.grown[id.slice(5) as keyof typeof O.grown] : O.names[id as keyof typeof O.names];
 const wall = (id: Target, scene: CafeScene) => (id === 'cork' ? strings.ui.visit.wallEmpty : /^wall-d$/.test(id) ? scene.wallLabel(Number(id.slice(5))) : undefined);
-const label = (id: Target, scene: CafeScene) => (id === 'counter' ? wordsIn(scene.room).ui.access.hotspotCounter : PLACES[id] ?? wall(id, scene)) ?? objectName(id) ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
+/** The street shop's animal (plan-1.9.md I3), by its name. */
+const pet = (scene: CafeScene) => fill(A.hotspotPet, { name: strings.animals[SHOP_PET[scene.room]!] });
+const label = (id: Target, scene: CafeScene) => (id === 'counter' ? wordsIn(scene.room).ui.access.hotspotCounter : id === 'pet' ? pet(scene) : PLACES[id] ?? wall(id, scene)) ?? objectName(id) ?? fill(id === 'cat' ? A.hotspotCat : A.hotspotActor, { name: strings.actors[id as ActorId] });
 
 /**
  * Invisible buttons over the counter, the doors and each character, so the shop works from the keyboard:

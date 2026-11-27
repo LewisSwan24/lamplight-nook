@@ -38,3 +38,18 @@ export const APPRENTICE_AT = 10;
 export const apprenticeHere = (done: number) => done >= APPRENTICE_AT;
 /** The work that brings the apprentice: worth a word, and a line in the shop's days. */
 export const apprenticeNews = (before: number, after: number) => !apprenticeHere(before) && apprenticeHere(after);
+
+/**
+ * The apprentice grows up (plan-1.9.md I2): just come, handy from 30 of their own works (shared/crew.ts), grown from 80.
+ * Each stage has a look of its own and a way of talking (lines marked `stage`).
+ */
+export const APPRENTICE_STAGES = [30, 80] as const;
+export type ApprenticeStage = 1 | 2 | 3;
+export const apprenticeStage = (works: number): ApprenticeStage => (works >= APPRENTICE_STAGES[1] ? 3 : works >= APPRENTICE_STAGES[0] ? 2 : 1);
+/** The stage a work brings, when it brings one: worth a word from Wick, and a line in the shop's days. */
+export const stageNews = (before: number, after: number): ApprenticeStage | null => {
+  const now = apprenticeStage(after);
+  return now > apprenticeStage(before) ? now : null;
+};
+/** The sprite sheet of each stage: the first is the one Bean came in. */
+export const apprenticeLook = (stage: ApprenticeStage) => (stage === 1 ? 'xiaodou' : `xiaodou-${stage}`);

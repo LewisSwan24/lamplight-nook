@@ -3789,7 +3789,8 @@ const SCENARIOS = {
       check(there.visible && there.at === 'counter' && !there.moving, `the apprentice did not open the shop at the counter: ${JSON.stringify(there)}`);
       await shop.shot(join(out, 'apprentice-shop.png'));
       await listen(shop);
-      await shop.order({ template: 'page', want: W[lang].page });
+      // A kind of work the home shop keeps (a page went to the workshop in road-to-1.4.md D3, and its errands with it).
+      await shop.order({ template: 'research', want: W[lang].research });
       await shop.submit();
       const shots = new Set();
       const r = await shop.workUntilDone({ onTick: async () => {
@@ -6328,6 +6329,347 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The staff's own stories (plan-1.9.md I1): Clem has been on enough works for her first chapter, so a note shows
+   * over her head; a click tells it on a card with its keepsake, and it is written down, and the next click on her is
+   * her card again. Pica tells hers in the print shop. The notebook keeps both to read again; the rest are blanks.
+   */
+  async staffstories(lang, out) {
+    const L = locale(lang);
+    const book = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/staff-stories.yaml' : 'lines/staff-stories.yaml'), 'utf8'));
+    const day = '2026-12-01';
+    const work = (i, o) => ({ id: `c${i}`, title: `W${i}`, date: '2026-11-27', result: 'done', choices: {}, folder: '', form: { want: 'x', ...(o.template ? { template: o.template } : {}) },
+      rounds: [{ date: '2026-11-27', seconds: 1, helpers: o.helpers ?? {}, waits: 0, waitedSeconds: 0 }] });
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [work(1, { helpers: { researcher: 1 } }), work(2, { helpers: { researcher: 1 } }), work(3, { template: 'ledgerbook' }), work(4, { template: 'ledgerbook' })],
+        stuckNotes: [], greeted: 'c1',
+        shop: { done: 4, told: ['town-move'], grown: [], met: [], town: { shops: { print: { done: 2, grown: [] } }, street: [], stories: {} } },
+      }),
+    });
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.staff ?? {};
+    const shop = await launch({ lang, home, speed: SPEED, clock: `${day}T10:00` });
+    const { page } = shop;
+    const clickOn = async (who) => {
+      const spot = await page.evaluate((w) => {
+        const s = window.lamplightDebug.scene.actors.get(w).sprite;
+        const r = document.querySelector('#game canvas').getBoundingClientRect();
+        return { x: r.x + s.x * r.width / 320, y: r.y + (s.y - 10) * r.height / 180 };
+      }, who);
+      await page.mouse.click(spot.x, spot.y);
+      await sleep(700);
+    };
+    const tells = async (who, keepsake, shot) => {
+      const c = book[who][0];
+      const card = page.locator(`.story-card.staff-story[data-staff="${who}"][data-chapter="1"]`);
+      check(await card.count() === 1, `clicking ${who} opened no card for their first chapter`);
+      const text = await card.innerText();
+      check(text.includes(L.actors[who]) && text.includes(c.title) && text.includes(c.lines[0]) && text.includes(c.note), `${who}'s card does not tell chapter 1: ${text}`);
+      check(await card.locator(`.keepsake[data-keepsake="${keepsake}"]`).count() === 1, `${who}'s card has no ${keepsake}`);
+      await shop.shot(join(out, shot));
+      await card.locator('button.primary').click();
+      await sleep(800);
+      check(JSON.stringify(saved()[who]) === JSON.stringify([day]), `${who}'s chapter was not written down: ${JSON.stringify(saved())}`);
+    };
+    try {
+      await sleep(2500);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      let noted = false;
+      for (const end = Date.now() + 8000; Date.now() < end && !noted; await sleep(200)) noted = await page.evaluate(() => window.lamplightDebug.scene.isSaying('xiaoju', ''));
+      check(noted, 'no note over Clem with her chapter waiting');
+      await shop.shot(join(out, 'staffstories-waiting.png'));
+      check(await page.evaluate(() => window.lamplightDebug.scene.isSaying('laoshi', '')) === false, 'a note over Flint, who has no chapter waiting');
+      await clickOn('xiaoju');
+      await tells('xiaoju', 'card', 'staffstories-xiaoju-card.png');
+      await clickOn('xiaoju');
+      check(await shop.maybe('.actor-card', 3000), 'clicking Clem after her chapter does not open her card');
+      await page.keyboard.press('Escape');
+
+      await page.evaluate(() => window.lamplightDebug.street.onFront('print', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await page.evaluate(() => window.lamplightDebug.scene.room).catch(() => null)) !== 'print'; await sleep(300));
+      await sleep(2500);
+      check(await page.evaluate(() => window.lamplightDebug.scene.room) === 'print', 'did not go into the print shop');
+      await clickOn('aqian');
+      await tells('aqian', 'sort', 'staffstories-aqian-card.png');
+
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      const page_ = page.locator('.notebook-stories');
+      await page_.waitFor({ timeout: 5000 });
+      check(await page_.locator('details.notebook-story').count() === 2, `the notebook keeps ${await page_.locator('details.notebook-story').count()} stories, not 2`);
+      check(await page_.locator('.notebook-story-blank').count() === 25 + 24 - 2, `${await page_.locator('.notebook-story-blank').count()} blanks in the notebook`);
+      const clem = page_.locator('details.notebook-story', { hasText: book.xiaoju[0].title });
+      await clem.locator('summary').click();
+      check((await clem.innerText()).includes(book.xiaoju[0].lines[1]), 'Clem\'s chapter does not open in the notebook');
+      check(!(await page_.innerText()).includes(book.xiaoju[1].title), 'the notebook gives away the title of a chapter not told');
+      await page_.scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'staffstories-notebook.png'));
+    } finally { await shop.close(); }
+  },
+  /**
+   * Friends at home (plan-1.9.md I4): after thirty works Flint checked, Wick and Flint are friends, and Bean, there from
+   * the eleventh, is close to both. The chats waiting for those come up first; nobody else's do. One is played.
+   */
+  async bonds(lang, out) {
+    const chats = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/chats.yaml' : 'lines/chats.yaml'), 'utf8'));
+    const work = (i) => ({ id: `c${i}`, title: `W${i}`, date: '2026-10-01', result: 'done', choices: {}, folder: '', form: { want: 'x' },
+      rounds: [{ date: '2026-10-01', seconds: 1, helpers: { reviewer: 1 }, waits: 0, waitedSeconds: 0 }] });
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: Array.from({ length: 30 }, (_, i) => work(i + 1)), stuckNotes: [], greeted: 'c1',
+        shop: { done: 30, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } },
+      }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2026-10-14T10:00' });
+    const { page } = shop;
+    try {
+      await sleep(3000);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      const bonds = await page.evaluate(() => window.lamplightDebug.shopDays.bonds);
+      check(bonds['adeng+laoshi'] === 3 && bonds['adeng+xiaodou'] === 2 && bonds['laoshi+xiaodou'] === 2 && bonds['adeng+xiaoju'] === 1,
+        `the shop is not as close as thirty works make it: ${JSON.stringify(bonds)}`);
+      // Ask the chatter as if minutes had gone by between chats, forty times.
+      const drawn = await page.evaluate(() => {
+        const d = window.lamplightDebug;
+        const ids = [];
+        for (let k = 1; k <= 40; k++) ids.push(d.chatter.next('idle', Date.now() + k * 600_000, d.scene.period, d.scene.outside(), d.shopDays)?.id);
+        return ids;
+      });
+      const bondOf = (id) => chats.find((c) => c.id === id)?.bond;
+      const pairs = drawn.filter((id) => id?.startsWith('bond_')).map((id) => `${id.replace(/^bond_|_\d$/g, '')}:${bondOf(id)}`);
+      const allowed = new Set(['adeng_laoshi:2', 'adeng_laoshi:3', 'adeng_xiaodou:2', 'laoshi_xiaodou:2']);
+      check(pairs.filter((p) => !allowed.has(p)).length === 0, `chats for those not yet close enough: ${pairs.filter((p) => !allowed.has(p))}`);
+      check(pairs.filter((p) => p === 'adeng_laoshi:3').length >= 2, `Wick and Flint's friends' chats did not come up: ${pairs}`);
+      check(new Set(pairs).size === allowed.size, `not every chat that is due came up: ${[...new Set(pairs)]}`);
+      const friends = chats.find((c) => c.id === 'bond_adeng_laoshi_3');
+      const turns = friends.turns.map((t) => { const [speaker, text] = Object.entries(t)[0]; return { speaker, text }; });
+      // Wait for both to be free: Wick greets whoever comes in.
+      for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+        if (!(await page.evaluate(() => ['adeng', 'laoshi'].some((w) => window.lamplightDebug.scene.busyTalking(w))))) break;
+      }
+      await page.evaluate((t) => { void window.lamplightDebug.stage.talk(t); }, turns);
+      let heard = false;
+      for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) {
+        heard = await page.evaluate((t) => window.lamplightDebug.scene.isSaying(t.speaker, t.text), turns[0]);
+      }
+      check(heard, `${turns[0].speaker} did not say "${turns[0].text}"`);
+      await shop.shot(join(out, 'bonds-friends.png'));
+      // Flint has a chapter of his own waiting: its note gave way to the chat, and comes back once the chat is over.
+      let noted = false;
+      for (const end = Date.now() + 30_000; Date.now() < end && !noted; await sleep(500)) {
+        noted = await page.evaluate(() => window.lamplightDebug.scene.isSaying('laoshi', ''));
+      }
+      check(noted, 'the note of Flint’s waiting chapter did not come back after the chat');
+    } finally { await shop.close(); }
+  },
+  /**
+   * The apprentice grows up (plan-1.9.md I2): three shops with Bean at each stage, each in their own look and saying only
+   * their own stage's lines; then the work that makes Bean handy, the new look at once and Wick's word for it.
+   */
+  async apprenticestages(lang, out) {
+    const chats = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/chats.yaml' : 'lines/chats.yaml'), 'utf8'));
+    const cafe = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/cafe.yaml' : 'lines/cafe.yaml'), 'utf8'));
+    const stageOf = new Map(chats.filter((c) => c.stage).map((c) => [c.id, c.stage]));
+    const work = (i) => ({ id: `c${i}`, title: `W${i}`, date: '2026-10-01', result: 'done', choices: {}, folder: '', form: { want: 'x' },
+      rounds: [{ date: '2026-10-01', seconds: 1, helpers: {}, waits: 0, waitedSeconds: 0 }] });
+    const seed = (done) => freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: Array.from({ length: done }, (_, i) => work(i + 1)), stuckNotes: [], greeted: 'c1',
+        shop: { done, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } },
+      }),
+    });
+    // Bean comes with the tenth work and is on every one after: 15 done is 5 of theirs, 45 is 35, 95 is 85.
+    for (const [done, stage] of [[15, 1], [45, 2], [95, 3]]) {
+      const shop = await launch({ lang, home: seed(done), speed: SPEED, clock: '2026-10-14T10:00' });
+      const { page } = shop;
+      try {
+        await sleep(3000);
+        await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        const look = await page.evaluate(() => window.lamplightDebug.scene.apprenticeLook);
+        check(look === (stage === 1 ? 'xiaodou' : `xiaodou-${stage}`), `${done} works: Bean looks like ${look}`);
+        const lines = await page.evaluate(() => window.lamplightDebug.lines());
+        const back = lines.sub_back_xiaodou.map((l) => l.stage ?? 0);
+        check(back.every((s) => s === 0 || s === stage) && back.includes(stage), `${done} works: Bean's errand lines are of stages ${back}`);
+        const drawn = await page.evaluate(() => {
+          const d = window.lamplightDebug;
+          const ids = [];
+          for (let k = 1; k <= 80; k++) ids.push(d.chatter.next('idle', Date.now() + k * 600_000, d.scene.period, d.scene.outside(), d.shopDays)?.id);
+          return ids;
+        });
+        const staged = drawn.filter((id) => stageOf.has(id)).map((id) => stageOf.get(id));
+        check(staged.every((s) => s === stage), `${done} works: chats of other stages came up: ${staged}`);
+        if (stage > 1) check(staged.length > 0, `${done} works: none of Bean's stage ${stage} chats came up`);
+        // Bean comes back from an errand in the stage's own words.
+        const own = cafe.sub_back_xiaodou.find((l) => l.stage === stage);
+        for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+          if (!(await page.evaluate(() => window.lamplightDebug.scene.busyTalking('xiaodou')))) break;
+        }
+        await page.evaluate((b) => { void window.lamplightDebug.stage.talk(b.map((text) => ({ speaker: 'xiaodou', text }))); }, own.bubbles);
+        let heard = false;
+        for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) {
+          heard = await page.evaluate((t) => window.lamplightDebug.scene.isSaying('xiaodou', t), own.bubbles[0]);
+        }
+        check(heard, `${done} works: Bean did not say "${own.bubbles[0]}"`);
+        await shop.shot(join(out, `apprenticestages-${stage}.png`));
+      } finally { await shop.close(); }
+    }
+
+    // The work that makes Bean handy: the apron at once, and Wick says so.
+    const word = cafe.grow.find((l) => l.id === 'grow_apprentice_2').bubbles[0];
+    const shop = await launch({ lang, home: seed(39), speed: 100 });
+    try {
+      await sleep(2000);
+      check(await shop.page.evaluate(() => window.lamplightDebug.scene.apprenticeLook) === 'xiaodou', 'Bean was handy before the 30th of their works');
+      await shop.page.evaluate(() => {
+        const { scene } = window.lamplightDebug;
+        const say = scene.say.bind(scene);
+        window.said = [];
+        scene.say = (id, text, bubble) => { if (text) window.said.push([id, text]); return say(id, text, bubble); };
+      });
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the work did not finish');
+      await shop.page.keyboard.press('Escape');
+      const heard = () => shop.page.evaluate((w) => window.said.some(([, text]) => text === w), word);
+      for (let i = 0; i < 80 && !(await heard()); i++) await sleep(500);
+      check(await heard(), `Wick did not say "${word}"`);
+      check(await shop.page.evaluate(() => window.lamplightDebug.scene.apprenticeLook) === 'xiaodou-2', 'Bean did not put the apron on');
+      await sleep(600);
+      await shop.shot(join(out, 'apprenticestages-handy.png'));
+    } finally { await shop.close(); }
+  },
+  /**
+   * The street shops' animals (plan-1.9.md I3): Bun in the bakery, Stamp at the post office, Cinnabar in the studio,
+   * each in its place by day, answering a click (from the keyboard's button, by its name) without a word, kept in by
+   * night and rain; and each keeper with words about their animal.
+   */
+  async shoppets(lang, out) {
+    const L = locale(lang);
+    const PETS = { bakery: ['bun', 'guiyi', 'bk_bun_'], post: ['stamp', 'axin', 'po_stamp_'], studio: ['cinnabar', 'xiaozhe', 'st_cin_'] };
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2026-10-14T10:00' });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const pet = () => page.evaluate(() => window.lamplightDebug.scene.pet?.state() ?? null);
+    const streetButton = () => page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+    try {
+      await sleep(2500);
+      check(await pet() === null, 'the home shop has a pet of its own');
+      for (const [id, [name, keeper, prefix]] of Object.entries(PETS)) {
+        await streetButton();
+        await sleep(900);
+        await page.evaluate((i) => window.lamplightDebug.street.onFront(i, true), id);
+        for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== id; await sleep(300));
+        check(await room() === id, `did not get into the ${id}`);
+        await sleep(2000);
+        await page.evaluate(() => { const s = window.lamplightDebug.scene; s.setWeather('clear', null, true); s.setPeriod('day', true); });
+        await sleep(400);
+        const day = await pet();
+        const where = { bun: ['counter'], stamp: ['sill', 'rack'], cinnabar: ['bowl'] }[name];
+        check(day?.pet === name && where.includes(day.spot) && day.playing, `${id} by day: ${JSON.stringify(day)}`);
+        await shop.shot(join(out, `shoppets-${id}.png`));
+        // A click from the keyboard's button, found by the animal's name.
+        const label = L.ui.access.hotspotPet.replace('{name}', L.animals[name]);
+        const clicked = await page.evaluate((l) => {
+          const b = [...document.querySelectorAll('button.hotspot')].find((x) => x.getAttribute('aria-label') === l && !x.hidden);
+          b?.click();
+          return !!b;
+        }, label);
+        check(clicked, `no button for "${label}" in the ${id}`);
+        await sleep(250);
+        const poked = await pet();
+        const answered = { bun: poked.anim === 'pet-bun-bark', stamp: poked.busy && /fly/.test(poked.anim), cinnabar: poked.fast }[name];
+        check(answered, `${id}: a click got nothing back: ${JSON.stringify(poked)}`);
+        check(!(await page.evaluate(() => [...window.lamplightDebug.scene.speech.keys()].some((k) => !['aqian', 'xiaozhe', 'xiaoding', 'guiyi', 'axin'].includes(k)))), `${id}: the animal said something`);
+        await shop.shot(join(out, `shoppets-${id}-click.png`));
+        await sleep(2000);
+        // Kept in: Bun on the mat at night, Stamp on the sill in the rain and still at night.
+        if (name !== 'cinnabar') {
+          await page.evaluate(() => window.lamplightDebug.scene.setWeather('rain', null, true));
+          await sleep(300);
+          if (name === 'stamp') check((await pet()).spot === 'sill', `Stamp is out in the rain: ${JSON.stringify(await pet())}`);
+          await page.evaluate(() => { const s = window.lamplightDebug.scene; s.setWeather('clear', null, true); s.setPeriod('night', true); });
+          await sleep(300);
+          const night = await pet();
+          check(name === 'bun' ? night.spot === 'mat' : night.spot === 'sill' && !night.playing, `${id} at night: ${JSON.stringify(night)}`);
+          await shop.shot(join(out, `shoppets-${id}-night.png`));
+          await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+        }
+        // The keeper's words about the animal: ten or more, and one of them said here.
+        const lines = (await page.evaluate(() => window.lamplightDebug.lines().shop_idle)).filter((l) => l.id.startsWith(prefix));
+        check(lines.length >= 10 && lines.every((l) => l.speaker === keeper), `${id}: the keeper's lines on the animal: ${lines.length}`);
+        const text = lines.find((l) => !l.when).bubbles[0];
+        for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+          if (!(await page.evaluate((k) => window.lamplightDebug.scene.busyTalking(k), keeper))) break;
+        }
+        await page.evaluate(([k, t]) => { void window.lamplightDebug.stage.talk([{ speaker: k, text: t }]); }, [keeper, text]);
+        let heard = false;
+        for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) {
+          heard = await page.evaluate(([k, t]) => window.lamplightDebug.scene.isSaying(k, t), [keeper, text]);
+        }
+        check(heard, `${keeper} did not say "${text}"`);
+        await shop.shot(join(out, `shoppets-${id}-words.png`));
+      }
+    } finally { await shop.close(); }
+  },
+  /**
+   * What the staff remember (plan-1.9.md I5): Flint, who checked a birthday invitation, remembers it by a shortened
+   * title and its day; Iris, who was on nothing, remembers nothing; Pica remembers the print shop's work, in the print
+   * shop. One memory each is played.
+   */
+  async memories(lang, out) {
+    const zh = lang !== 'en';
+    const long = zh ? '给奶奶的八十岁生日邀请函' : 'A birthday invitation for Granny';
+    const short = zh ? '给奶奶的八十岁生…' : 'A birthday invit…';
+    const day = zh ? '10月3号' : '3 October';
+    const work = (i, title, date, o) => ({ id: `c${i}`, title, date, result: 'done', choices: {}, folder: '', form: { want: 'x', ...(o.template ? { template: o.template } : {}) },
+      rounds: [{ date, seconds: 1, helpers: o.helpers ?? {}, waits: 0, waitedSeconds: 0 }] });
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [work(1, long, '2026-10-03', { helpers: { reviewer: 1 } }), work(2, zh ? '家用账本' : 'Home ledger', '2026-10-09', { template: 'ledgerbook' })],
+        stuckNotes: [], greeted: 'c1',
+        shop: { done: 2, told: ['town-move'], grown: [], met: [], town: { shops: { print: { done: 1, grown: [] } }, street: [], stories: {} } },
+      }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2026-10-20T10:00' });
+    const { page } = shop;
+    const play = async (who, file) => {
+      for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+        if (!(await page.evaluate((w) => window.lamplightDebug.scene.busyTalking(w), who))) break;
+      }
+      const mine = await page.evaluate((w) => window.lamplightDebug.memories.filter((m) => m.speaker === w), who);
+      check(mine.length > 0, `${who} remembers nothing`);
+      const turns = mine[0].bubbles.map((text) => ({ speaker: who, text }));
+      await page.evaluate((t) => { void window.lamplightDebug.stage.talk(t); }, turns);
+      let heard = false;
+      for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) heard = await page.evaluate((t) => window.lamplightDebug.scene.isSaying(t.speaker, t.text), turns[0]);
+      check(heard, `${who} did not say "${turns[0].text}"`);
+      await shop.shot(join(out, file));
+      return mine;
+    };
+    try {
+      await sleep(3000);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      const flint = await play('laoshi', 'memories-laoshi.png');
+      check(flint.every((m) => m.bubbles[0].includes(short) && m.bubbles[0].includes(day)), `Flint does not remember the invitation by "${short}" on ${day}: ${JSON.stringify(flint)}`);
+      const all = await page.evaluate(() => window.lamplightDebug.memories);
+      check(!all.some((m) => m.speaker === 'qingdai'), 'Iris remembers a work she was not on');
+      check(!all.some((m) => m.bubbles.join('').includes(long)), 'a memory carries the whole long title');
+
+      await page.evaluate(() => window.lamplightDebug.street.onFront('print', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await page.evaluate(() => window.lamplightDebug.scene.room).catch(() => null)) !== 'print'; await sleep(300));
+      await sleep(2500);
+      const pica = await play('aqian', 'memories-aqian.png');
+      check(pica.every((m) => m.bubbles[0].includes(zh ? '家用账本' : 'Home ledger')), `Pica does not remember the ledger: ${JSON.stringify(pica)}`);
+    } finally { await shop.close(); }
+  },
   /**
    * The phone page (docs/plan-1.5.md E4): a paired phone sees what waits for an answer while a commission runs, answers
    * it there, and the card on the desk is put away; the commission goes on to the end.

@@ -256,3 +256,14 @@ shop_idle:
   - { id: bk_idle_dragon_boat_02, speaker: guiyi, when: holiday_dragon_boat, bubbles: ["Bread's slow today. It's all zongzi."] }
   - { id: bk_idle_mid_autumn_01, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["Mooncakes need two days to soften."] }
   - { id: bk_idle_mid_autumn_02, speaker: guiyi, when: holiday_mid_autumn, bubbles: ["This mould gives the sharpest pattern."] }
+  - { id: bk_bun_01, speaker: guiyi, bubbles: ["Bun's curled up by the counter again."] }
+  - { id: bk_bun_02, speaker: guiyi, bubbles: ["Crusts later, Bun. Not now."] }
+  - { id: bk_bun_03, speaker: guiyi, bubbles: ["Bun looks up every time the door goes."] }
+  - { id: bk_bun_04, speaker: guiyi, bubbles: ["I found Bun by the bridge, years ago."] }
+  - { id: bk_bun_05, speaker: guiyi, bubbles: ["Pip named Bun. Said the colour fitted."] }
+  - { id: bk_bun_06, speaker: guiyi, when: period_night, bubbles: ["Bun sleeps by the door. Keeps watch."] }
+  - { id: bk_bun_07, speaker: guiyi, when: sky_rain, bubbles: ["Rain, and Bun won't set a paw outside."] }
+  - { id: bk_bun_08, speaker: guiyi, bubbles: ["Bun can smell when a batch is done."] }
+  - { id: bk_bun_09, speaker: guiyi, bubbles: ["Bun hardly barks. Just watches people."] }
+  - { id: bk_bun_10, speaker: guiyi, when: period_dawn, bubbles: ["Bun is up before I am."] }
+  - { id: bk_bun_11, speaker: guiyi, bubbles: ["Bun, leave the flour sack alone."] }

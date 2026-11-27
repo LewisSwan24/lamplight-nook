@@ -6,6 +6,9 @@ import { MAIN_FILES, shopOf } from '../shared/templates';
 import type { Shop } from '../shared/dispatch';
 import { emptyTown, type Gathered, TOWN_MOVE } from '../shared/town';
 import { nextChapter, told } from '../shared/stories';
+import { bonds, worksBy } from '../shared/crew';
+import { RECALL_WORKS, recallOf } from '../shared/memories';
+import { nextStaffChapter, toldStaff, type StaffTeller } from '../shared/staffstories';
 import { roomGrown, streetGrown } from '../shared/towngrow';
 import { forgetAside, putAside } from './aside';
 import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
@@ -270,6 +273,28 @@ export class MemoryStore {
     return chapter;
   }
 
+  /**
+   * A member of staff has told the chapter of their own story they had waiting (plan-1.9.md I1): the day is written
+   * down. Returns the chapter, or null when they had none today.
+   */
+  tellStaffStory(who: StaffTeller, now = new Date()): number | null {
+    const shop = this.shop();
+    if (!shop.town) return null;
+    const today = localDay(now);
+    const by = worksBy(this.data.commissions);
+    const chapter = nextStaffChapter(who, shop.town.staff ?? {}, by, today);
+    if (chapter === null) return null;
+    shop.town.staff = toldStaff(shop.town.staff ?? {}, who, by, today);
+    this.data.shop = shop;
+    this.save();
+    return chapter;
+  }
+
+  /** The latest finished works, by title and day only, for Adeng to know when talking an order over (plan-1.9.md I5). */
+  recentWorks(n = RECALL_WORKS): { title: string; date: string }[] {
+    return this.data.commissions.filter((c) => c.result === 'done').slice(-n).reverse().map((c) => ({ title: c.title, date: c.date }));
+  }
+
   /** The shop's days and the works shelf: finished commissions, latest first. `today` by the shop's clock, for the stories. */
   shopState(now = new Date()): ShopState {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
@@ -277,7 +302,7 @@ export class MemoryStore {
       page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
       shop: shopOf(c.form?.demo ? undefined : c.form?.template),
     }));
-    return { ...structuredClone(this.shop()), works, today: localDay(now) };
+    return { ...structuredClone(this.shop()), works, today: localDay(now), crew: worksBy(this.data.commissions), bonds: bonds(this.data.commissions), recall: recallOf(this.data.commissions) };
   }
 
   /** A shop opened since 1.4 starts in the town, with no move to show (road-to-1.4.md D7). */
