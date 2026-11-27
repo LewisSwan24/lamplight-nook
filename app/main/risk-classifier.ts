@@ -86,10 +86,17 @@ const GIT_REFUSED = /^(-c|-C|--config-env|--exec-path|--git-dir|--work-tree|--na
 const isGit = (word: string) => basename(word.replace(/['"]/g, '').replace(/\\/g, '/')).toLowerCase().replace(/\.exe$/, '') === 'git';
 
 /**
+ * A control character or line break other than a tab: PowerShell ends a statement at a carriage return and at Unicode line
+ * separators too, so a line holding one is not the single command it looks like.
+ */
+const BREAKS = /[\x00-\x08\x0a-\x1f\x7f\x85\u2028\u2029]/;
+
+/**
  * Some git in this command line that does more than look. Read the way the rest of a command line is read (simpleCommands);
  * a line that cannot be read that way, or git handed to another command to run, is refused whenever git is in it at all.
  */
 function gitChanges(cmd: string, tool: string): boolean {
+  if (BREAKS.test(cmd)) return /git/i.test(cmd);
   // PowerShell is not read like Bash: there only a plain look, the whole line, is let through.
   if (tool !== 'Bash') {
     if (!/git/i.test(cmd)) return false;
@@ -118,7 +125,7 @@ const TEST_REFUSED = /^(--prefix|-C|--cwd|--dir|--manifest-path|--rootdir|-p|-ex
 
 /** The project's tests, run plainly in the folder: no other command with them, no option that runs or looks elsewhere. */
 function plainTest(cmd: string): boolean {
-  if (!isTestCommand(cmd) || /[;&|`$()<>\n]/.test(cmd)) return false;
+  if (!isTestCommand(cmd) || BREAKS.test(cmd) || /[;&|`$()<>]/.test(cmd)) return false;
   return cmd.trim().split(/\s+/).every((w) => !TEST_REFUSED.test(w) && !isAbsolute(w.replace(/^--?[\w-]+=/, '')) && !/(^|[\\/=])\.\.([\\/]|$)/.test(w));
 }
 
