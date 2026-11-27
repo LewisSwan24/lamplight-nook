@@ -1307,6 +1307,10 @@
       "postcardBig": "这个文件太大了，不是明信片，没有打开。",
       "postcardNotPostcard": "这不是小灯屋的明信片，没有打开。",
       "postcardBroken": "这张明信片坏了，打不开。",
+      "storiesTitle": "故事",
+      "storiesText": "街坊和店员讲过的故事，都记在这里，点开能再看一遍。",
+      "storyChapter": "第{n}章 · {title}",
+      "storyBlank": "第{n}章 · 还没讲",
       "ledgerJoin": "、",
       "ledgerKind": {
         "net": "断网 {n} 次",

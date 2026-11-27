@@ -1,0 +1,229 @@
+# The staff's own stories, in English (lines/staff-stories.yaml is the Chinese set; plan-1.9.md I1).
+# When a chapter comes and what it leaves: app/shared/staffstories.ts. `left` must match that table.
+# Each line is one bubble, same writing rules as lines/en/cafe.yaml; four to six a chapter. `note` says what was kept.
+
+adeng:
+  - title: "The First Lamp"
+    left: lamp
+    note: "Wick set the old desk lamp on the counter."
+    lines:
+      - "This room was an empty shop once."
+      - "The day I came, there was no power."
+      - "I bought a desk lamp off a junk stall."
+      - "Plugged it in, and the room lit up."
+      - "That is how it became the Lamplight Nook."
+  - title: "The Winter Nobody Came"
+    left: inkpot
+    note: "An empty ink bottle sits on the counter."
+    lines:
+      - "The first winter, nobody came in."
+      - "So I sat by the window, writing letters."
+      - "For the neighbours, free. A whole bottle."
+      - "Come spring, they brought me customers."
+  - title: "The Door Sign"
+    left: sign
+    note: "Wick leaned the old door sign by the bookshelf."
+    lines:
+      - "Before the shop sign, there was a door sign."
+      - "A plank of wood, lettered by me."
+      - "Crooked. Clem laughed for a week."
+      - "The real sign hangs outside now."
+      - "This one I could never throw away."
+
+xiaoju:
+  - title: "Under the Stairs"
+    left: card
+    note: "Clem tucked her old library card into a book."
+    lines:
+      - "As a kid, I lived above a library."
+      - "I read every day, sat under the stairs."
+      - "The librarian said I was in the way."
+      - "Then she made me a library card."
+      - "She wrote my name on it. All wobbly."
+  - title: "What I Could Not Find"
+    left: magnifier
+    note: "A magnifying glass in Clem’s drawer."
+    lines:
+      - "When I was ten, I wanted to know a thing."
+      - "Why do oranges come in segments?"
+      - "I looked all summer and found nothing."
+      - "The librarian lent me a magnifying glass."
+      - "She said: if books don’t say, go and look."
+  - title: "The Answer"
+    left: slip
+    note: "Clem stuck the note inside her notebook’s cover."
+    lines:
+      - "Doing research the other day, there it was."
+      - "Why oranges come in segments."
+      - "One line. I read it five times."
+      - "I copied it out and posted it to her."
+      - "She wrote back that she knew I would!"
+
+laoshi:
+  - title: "The Plane"
+    left: plane
+    note: "An old wood plane on Flint’s workbench."
+    lines:
+      - "At sixteen, apprenticed to a carpenter."
+      - "First year, nothing but planing wood."
+      - "A year of it. Hands all callus."
+      - "This plane is from that year."
+  - title: "The Square"
+    left: square
+    note: "Flint hung the square beside his workbench."
+    lines:
+      - "My master did not talk much."
+      - "He put his square to what I made."
+      - "Off by a hair, he took it apart."
+      - "That is how I look at things now."
+      - "Off by a hair, I look again."
+  - title: "The Last Chair"
+    left: chair
+    note: "A palm-sized chair on Flint’s workbench."
+    lines:
+      - "The day the shop closed, he said nothing."
+      - "He had me make one last chair."
+      - "I made it. He sat. It did not wobble."
+      - "He said it was good."
+      - "This is a small copy of it."
+
+qingdai:
+  - title: "A Blue I Could Not Mix"
+    left: swatch
+    note: "Iris clipped the swatch to her drawing board."
+    lines:
+      - "There is a blue I have always tried to mix."
+      - "Darker than sky, lighter than ink."
+      - "Hundreds of swatches. All wrong."
+      - "I kept this one. It came closest."
+  - title: "The Dye Works"
+    left: cloth
+    note: "A piece of old blue cloth, folded in Iris’s drawer."
+    lines:
+      - "My grandmother ran a dye works."
+      - "The yard was full of blue cloth drying."
+      - "My name is a dye too. Indigo."
+      - "When they pulled it down, I took this."
+      - "That blue is the one I want."
+  - title: "That Blue"
+    left: vial
+    note: "A small jar of mixed paint on Iris’s desk."
+    lines:
+      - "The other evening, I stood outside."
+      - "Nearly dark. Streetlamps not on yet."
+      - "The sky was that blue."
+      - "I came in and mixed a jar. I got it."
+      - "You only see it for that one minute."
+
+xiaodou:
+  - title: "Apprentice Wanted"
+    left: flyer
+    note: "Bean still keeps the apprentice notice."
+    lines:
+      - "One evening I walked past the door."
+      - "A notice in the window: apprentice wanted."
+      - "The writing was all crooked."
+      - "I read it three times and came in!"
+      - "Only later I found out Wick wrote it."
+  - title: "My First Errand"
+    left: umbrella
+    note: "Bean hung the old umbrella back behind the door."
+    lines:
+      - "My first errand, it poured."
+      - "No umbrella. Soaked halfway there."
+      - "When I got back, Clem was at the door."
+      - "She was holding this umbrella."
+      - "It has hung behind the door ever since."
+  - title: "The Little Notebook"
+    left: pad
+    note: "Bean’s full notebook, kept under the counter."
+    lines:
+      - "I have a little notebook. I write it all."
+      - "How many sugars in everyone’s tea."
+      - "Where Flint left his mallet."
+      - "It is full. I counted: 312 entries."
+      - "The next one starts today!"
+
+aqian:
+  - title: "One Piece of Type"
+    left: sort
+    note: "A piece of type, the word for lamp, in Pica’s rack."
+    lines:
+      - "I learned in an old print works."
+      - "A whole wall of type cases. Thousands."
+      - "My master had me find the word lamp first."
+      - "Know that one and you can find the rest."
+  - title: "The Year It Closed"
+    left: apron
+    note: "Pica hung the old apron behind the door."
+    lines:
+      - "Then everyone set type on computers."
+      - "The day the works closed, I left last."
+      - "They carted off the cases. Sold as scrap."
+      - "All I kept was this apron."
+      - "Ten years of washing. The ink stayed."
+  - title: "A Shop of My Own"
+    left: seal
+    note: "A small seal, resting on Pica’s proofs."
+    lines:
+      - "Wick talked me into this shop."
+      - "I said nobody wants lead type now."
+      - "He said people want type set with care."
+      - "The day we opened, I carved this seal."
+      - "Every proof, I stamp it."
+
+xiaozhe:
+  - title: "Leaving Home"
+    left: brush
+    note: "A worn-down brush in Umber’s pot."
+    lines:
+      - "Home is up in the hills. Red earth."
+      - "As a kid I painted with mud and a twig."
+      - "At eighteen I came down with one brush."
+      - "This one. Nearly bald now."
+  - title: "The First Sale"
+    left: coin
+    note: "An old coin, pinned to Umber’s easel."
+    lines:
+      - "New in town, I set up by the bridge."
+      - "A whole week, I did not sell one."
+      - "Then a boy bought one with a coin."
+      - "It was a picture of his dog."
+      - "I never spent that coin."
+  - title: "Going Home"
+    left: pebble
+    note: "A red stone, weighing down Umber’s paper."
+    lines:
+      - "Last year I went back up to the hills."
+      - "I painted the slope outside our door."
+      - "My mum said the earth is not that red."
+      - "I brought this stone back."
+      - "It is red. I had it right."
+
+xiaoding:
+  - title: "Taking It Apart"
+    left: screw
+    note: "An old screw in Tack’s toolbox."
+    lines:
+      - "At five, I took our alarm clock apart."
+      - "Put it back. One screw left over."
+      - "It still ran. Dad never noticed."
+      - "I have kept that screw ever since!"
+  - title: "The Radio"
+    left: radio
+    note: "An old radio on Tack’s windowsill."
+    lines:
+      - "The old man next door had a broken radio."
+      - "He said if I could not fix it, bin it."
+      - "I worked on it three nights."
+      - "It came on playing his favourite opera."
+      - "When he passed, the radio came to me."
+  - title: "The Watch That Ran"
+    left: watch
+    note: "A pocket watch on Tack’s tool board."
+    lines:
+      - "My first job here was a pocket watch."
+      - "Old Zhou brought it in."
+      - "I opened it up. One screw missing."
+      - "I thought of that screw!"
+      - "In it went, and the watch ran."

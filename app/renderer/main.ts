@@ -53,7 +53,9 @@ import type { StreetShop } from '../shared/dispatch';
 import { TOWN_MOVE } from '../shared/town';
 import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
 import { leftBehind, nextChapter, waiting, type Stories, type Teller } from '../shared/stories';
-import { showStory } from './ui/story';
+import { showStaffStory, showStory } from './ui/story';
+import { isStaffTeller, nextStaffChapter, staffWaiting, type StaffStories, type StaffTeller } from '../shared/staffstories';
+import type { Staffer } from '../shared/crew';
 import { ShopTalk, type Moment } from './stage/shoptalk';
 import type { Line } from './translator/lines';
 
@@ -455,7 +457,8 @@ setInterval(pace, 5000);
 // Out of sight (minimized, or hidden to the tray) the stage skips the acting; back in view, it is up to date.
 const syncVisibility = () => { for (const r of rooms.values()) r.stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
-scene.onActorClick = (actor) => showActorCard(actor, stage.actorInfo(actor), view.detailed);
+// A member of staff with a chapter of their own story waiting tells it (plan-1.9.md I1); anyone else shows their card.
+scene.onActorClick = (actor) => (isStaffTeller(actor) && staffChapter(actor) !== null ? hearStaffStory(actor) : showActorCard(actor, stage.actorInfo(actor), view.detailed));
 scene.onSound = sfx;
 // Lines from a replay (the trial) are marked in the caption log, so they never pass for real work.
 scene.onSay = (who, text) => recordLine(who, replaying ? text + strings.ui.replayTag : text);
@@ -526,11 +529,26 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
  * with a bubble; what the chapters told have left stands there too, or for Auntie Olive and Pip hangs in their shops
  * (plan-1.6.md F4). Nothing else says a chapter is waiting.
  */
-let tales: { stories: Stories; done: number; today: string } = { stories: {}, done: 0, today: '' };
-function tellAbout(state: { done: number; today: string; town?: { stories: Stories } }) {
-  tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today };
+let tales: { stories: Stories; done: number; today: string; staff: StaffStories; crew?: Record<Staffer, number> } = { stories: {}, done: 0, today: '', staff: {} };
+function tellAbout(state: { done: number; today: string; crew?: Record<Staffer, number>; town?: { stories: Stories; staff?: StaffStories } }) {
+  tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today, staff: state.town?.staff ?? {}, crew: state.crew };
   street.setStories(waiting(tales.stories, tales.done, tales.today), leftBehind(tales.stories));
   for (const [, built] of rooms) built.scene.tales.show(leftBehind(tales.stories), built.scene.reducedMotion);
+  nudgeStaff();
+}
+/** The staff's own stories (plan-1.9.md I1): the chapter someone has waiting today, or null. */
+const staffChapter = (who: StaffTeller) => (tales.crew ? nextStaffChapter(who, tales.staff, tales.crew, tales.today) : null);
+/** Whoever has a chapter waiting shows a note over their head, in whichever room they are in. */
+function nudgeStaff() {
+  if (!tales.crew) return;
+  const ready = staffWaiting(tales.staff, tales.crew, tales.today);
+  for (const [room, built] of rooms) for (const who of ready) if (ROOM_CREW[room].includes(who) && !built.scene.busyTalking(who)) built.scene.say(who, '', 'note');
+}
+function hearStaffStory(who: StaffTeller) {
+  const chapter = staffChapter(who);
+  if (chapter === null) return;
+  for (const [, built] of rooms) if (built.scene.isSaying(who, '')) built.scene.say(who, null);
+  showStaffStory(who, chapter, () => void window.lamplight.tellStaffStory(who).then(async () => tellAbout(await window.lamplight.shopState())));
 }
 /** A waiting neighbour was clicked: the chapter on a card, written down as told once the card is closed. */
 function hearStory(who: Teller) {

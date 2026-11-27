@@ -1307,6 +1307,10 @@
       "postcardBig": "That file is too big to be a postcard. It wasn't opened.",
       "postcardNotPostcard": "That isn't a Lamplight Nook postcard. It wasn't opened.",
       "postcardBroken": "This postcard is damaged and can't be opened.",
+      "storiesTitle": "Stories",
+      "storiesText": "The stories the neighbours and the staff have told, kept here to read again.",
+      "storyChapter": "Chapter {n} · {title}",
+      "storyBlank": "Chapter {n} · not told yet",
       "ledgerJoin": ", ",
       "ledgerKind": {
         "net": "connection lost {n}×",

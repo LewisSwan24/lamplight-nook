@@ -1,3 +1,4 @@
+import { storiesPage } from './story';
 import { fill, strings } from '../../shared/i18n';
 import { shopTimeline } from '../../shared/days';
 import { localMonth } from '../../shared/localday';
@@ -160,11 +161,11 @@ function postcards(api: LamplightApi): HTMLElement {
  * (road-to-1.3.md C4) comes first when there is anything on it; `at` opens it there.
  */
 export async function showNotebook(api: LamplightApi, at?: 'connections') {
-  const [memory, spent, talks, linked, done] = await Promise.all([api.getMemory(), api.spendThisMonth(), api.consultsThisMonth(), api.connections(), api.actions()]);
+  const [memory, spent, talks, linked, done, shop] = await Promise.all([api.getMemory(), api.spendThisMonth(), api.consultsThisMonth(), api.connections(), api.actions(), api.shopState()]);
   const links = connectionsPage(api, linked, () => showNotebook(api, 'connections'), done);
   // What was done through them (C6) follows the connections.
   const outside = actionsPage(api, done, linked);
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), postcards(api), ...pages(api, memory, spent, talks, reviseOld));
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), postcards(api), storiesPage({ stories: shop.town?.stories ?? {}, staff: shop.town?.staff }), ...pages(api, memory, spent, talks, reviseOld));
   const actions = el('div.actions');
   const ask = () => {
     actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));

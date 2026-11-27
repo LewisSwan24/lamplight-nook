@@ -15,7 +15,7 @@ import { parse } from 'yaml';
  * @returns {Promise<Tables>}
  */
 export async function loadTables() {
-  const [{ TEMPLATES }, { ROOMS, SCENES }, { ALL_STAFF }, { GUESTS }, { CHAPTERS }, { GROWTH }, town, { HOLIDAYS }] = await Promise.all([
+  const [{ TEMPLATES }, { ROOMS, SCENES }, { ALL_STAFF }, { GUESTS }, { CHAPTERS }, { GROWTH }, town, { HOLIDAYS }, { STAFF_CHAPTERS }] = await Promise.all([
     import('../app/shared/templates.ts'),
     import('../app/shared/scenes.ts'),
     import('../app/shared/staff.ts'),
@@ -24,6 +24,7 @@ export async function loadTables() {
     import('../app/shared/growth.ts'),
     import('../app/shared/towngrow.ts'),
     import('../app/renderer/game/weather.ts'),
+    import('../app/shared/staffstories.ts'),
   ]);
   return {
     templates: TEMPLATES.map((t) => ({ id: t.id, shop: t.shop })),
@@ -32,6 +33,7 @@ export async function loadTables() {
     staff: [...ALL_STAFF],
     guests: [...GUESTS],
     tellers: CHAPTERS,
+    staffTellers: STAFF_CHAPTERS,
     growth: {
       shop: GROWTH.length,
       street: town.STREET_GROWTH.length,
@@ -44,7 +46,7 @@ export async function loadTables() {
 
 /**
  * @typedef {{ templates: { id: string, shop?: string }[], scenes: string[], rooms: string[], staff: string[], guests: string[],
- *   tellers: Record<string, { works: number, left: string }[]>, growth: Record<string, number>, holidays: string[] }} Tables
+ *   tellers: Record<string, { works: number, left: string }[]>, staffTellers?: Record<string, { works: number, left: string }[]>, growth: Record<string, number>, holidays: string[] }} Tables
  * @typedef {{ file: string, keys: number, zh: number, en: number }} LineCount
  * @typedef {{ totals: { label: string, value: number }[], lines: LineCount[], problems: string[], notes: string[] }} Count
  */
@@ -100,7 +102,7 @@ function chaptersIn(text) {
 }
 
 /** @returns {{ problems: string[], notes: string[] }} */
-function checkStories(root, tellers) {
+function checkStories(root, tellers, files = ['lines/stories.yaml', 'lines/en/stories.yaml'], sameDay = true) {
   const problems = [];
   const notes = [];
   const lefts = new Map();
@@ -116,8 +118,9 @@ function checkStories(root, tellers) {
   for (const [who, chapters] of Object.entries(tellers)) {
     chapters.forEach((c, i) => byWorks.set(c.works, [...(byWorks.get(c.works) ?? []), `${who} 第 ${i + 1} 章`]));
   }
-  for (const [works, who] of byWorks) if (who.length > 1) notes.push(`${who.join('、')}都在第 ${works} 单解锁，可能同一天来`);
-  for (const file of ['lines/stories.yaml', 'lines/en/stories.yaml']) {
+  // The staff's chapters go by each one's own works (shared/crew.ts), so the same number is not the same day.
+  if (sameDay) for (const [works, who] of byWorks) if (who.length > 1) notes.push(`${who.join('、')}都在第 ${works} 单解锁，可能同一天来`);
+  for (const file of files) {
     const told = chaptersIn(read(root, file));
     for (const [who, chapters] of Object.entries(tellers)) {
       const written = told[who] ?? [];
@@ -165,6 +168,9 @@ export function count(root, t) {
 
   const stories = checkStories(root, t.tellers);
   problems.push(...stories.problems);
+  // The staff's own stories (plan-1.9.md I1), in their own file.
+  const staffTellers = t.staffTellers ?? {};
+  problems.push(...checkStories(root, staffTellers, ['lines/staff-stories.yaml', 'lines/en/staff-stories.yaml'], false).problems);
 
   // Each shop along the street speaks its own lines over the home shop's (renderer/stage/rulebook.ts).
   for (const room of t.rooms.filter((r) => !t.scenes.includes(r))) {
@@ -178,6 +184,8 @@ export function count(root, t) {
     ['客人', t.guests.length],
     ['讲故事的人', Object.keys(t.tellers).length],
     ['故事章数', Object.values(t.tellers).reduce((n, c) => n + c.length, 0)],
+    ['讲故事的店员', Object.keys(staffTellers).length],
+    ['店员故事章数', Object.values(staffTellers).reduce((n, c) => n + c.length, 0)],
     ['长出来的东西', Object.values(t.growth).reduce((n, g) => n + g, 0)],
     ['节日', t.holidays.length],
     ['图', sprites.filter((f) => f.endsWith('.png')).length],

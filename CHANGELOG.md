@@ -6,6 +6,11 @@
   Clem, Iris and Flint when their errand went out, Bean once he has come, and the street shops' keepers on their own
   shop's work. Nothing new is stored; it is all counted from the works already kept. The staff's stories, friendships
   and memories in 1.9 go by these counts.
+- **The staff's own stories.** Eight of the staff now have three chapters each about where they come from: Wick's
+  first lamp, Clem's library, Flint's carpentry master, Iris's grandmother's dye works, Bean's first errand, Pica's
+  print works, Umber's hills and Tack's spare screw. A chapter comes once that person has been on enough works, and a
+  note shows over their head; click them to hear it. Each leaves a keepsake. A new Stories page in the notebook keeps
+  every chapter told, the neighbours' too, to read again.
 
 ## 1.8.0 (2026-11-27)
 

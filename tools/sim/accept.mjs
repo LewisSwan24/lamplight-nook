@@ -6329,6 +6329,84 @@ const SCENARIOS = {
   },
 
   /**
+   * The staff's own stories (plan-1.9.md I1): Clem has been on enough works for her first chapter, so a note shows
+   * over her head; a click tells it on a card with its keepsake, and it is written down, and the next click on her is
+   * her card again. Pica tells hers in the print shop. The notebook keeps both to read again; the rest are blanks.
+   */
+  async staffstories(lang, out) {
+    const L = locale(lang);
+    const book = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/staff-stories.yaml' : 'lines/staff-stories.yaml'), 'utf8'));
+    const day = '2026-12-01';
+    const work = (i, o) => ({ id: `c${i}`, title: `W${i}`, date: '2026-11-27', result: 'done', choices: {}, folder: '', form: { want: 'x', ...(o.template ? { template: o.template } : {}) },
+      rounds: [{ date: '2026-11-27', seconds: 1, helpers: o.helpers ?? {}, waits: 0, waitedSeconds: 0 }] });
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: [work(1, { helpers: { researcher: 1 } }), work(2, { helpers: { researcher: 1 } }), work(3, { template: 'ledgerbook' }), work(4, { template: 'ledgerbook' })],
+        stuckNotes: [], greeted: 'c1',
+        shop: { done: 4, told: ['town-move'], grown: [], met: [], town: { shops: { print: { done: 2, grown: [] } }, street: [], stories: {} } },
+      }),
+    });
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.staff ?? {};
+    const shop = await launch({ lang, home, speed: SPEED, clock: `${day}T10:00` });
+    const { page } = shop;
+    const clickOn = async (who) => {
+      const spot = await page.evaluate((w) => {
+        const s = window.lamplightDebug.scene.actors.get(w).sprite;
+        const r = document.querySelector('#game canvas').getBoundingClientRect();
+        return { x: r.x + s.x * r.width / 320, y: r.y + (s.y - 10) * r.height / 180 };
+      }, who);
+      await page.mouse.click(spot.x, spot.y);
+      await sleep(700);
+    };
+    const tells = async (who, keepsake, shot) => {
+      const c = book[who][0];
+      const card = page.locator(`.story-card.staff-story[data-staff="${who}"][data-chapter="1"]`);
+      check(await card.count() === 1, `clicking ${who} opened no card for their first chapter`);
+      const text = await card.innerText();
+      check(text.includes(L.actors[who]) && text.includes(c.title) && text.includes(c.lines[0]) && text.includes(c.note), `${who}'s card does not tell chapter 1: ${text}`);
+      check(await card.locator(`.keepsake[data-keepsake="${keepsake}"]`).count() === 1, `${who}'s card has no ${keepsake}`);
+      await shop.shot(join(out, shot));
+      await card.locator('button.primary').click();
+      await sleep(800);
+      check(JSON.stringify(saved()[who]) === JSON.stringify([day]), `${who}'s chapter was not written down: ${JSON.stringify(saved())}`);
+    };
+    try {
+      await sleep(2500);
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      let noted = false;
+      for (const end = Date.now() + 8000; Date.now() < end && !noted; await sleep(200)) noted = await page.evaluate(() => window.lamplightDebug.scene.isSaying('xiaoju', ''));
+      check(noted, 'no note over Clem with her chapter waiting');
+      await shop.shot(join(out, 'staffstories-waiting.png'));
+      check(await page.evaluate(() => window.lamplightDebug.scene.isSaying('laoshi', '')) === false, 'a note over Flint, who has no chapter waiting');
+      await clickOn('xiaoju');
+      await tells('xiaoju', 'card', 'staffstories-xiaoju-card.png');
+      await clickOn('xiaoju');
+      check(await shop.maybe('.actor-card', 3000), 'clicking Clem after her chapter does not open her card');
+      await page.keyboard.press('Escape');
+
+      await page.evaluate(() => window.lamplightDebug.street.onFront('print', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await page.evaluate(() => window.lamplightDebug.scene.room).catch(() => null)) !== 'print'; await sleep(300));
+      await sleep(2500);
+      check(await page.evaluate(() => window.lamplightDebug.scene.room) === 'print', 'did not go into the print shop');
+      await clickOn('aqian');
+      await tells('aqian', 'sort', 'staffstories-aqian-card.png');
+
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.notebook.title}"]`).click();
+      const page_ = page.locator('.notebook-stories');
+      await page_.waitFor({ timeout: 5000 });
+      check(await page_.locator('details.notebook-story').count() === 2, `the notebook keeps ${await page_.locator('details.notebook-story').count()} stories, not 2`);
+      check(await page_.locator('.notebook-story-blank').count() === 25 + 24 - 2, `${await page_.locator('.notebook-story-blank').count()} blanks in the notebook`);
+      const clem = page_.locator('details.notebook-story', { hasText: book.xiaoju[0].title });
+      await clem.locator('summary').click();
+      check((await clem.innerText()).includes(book.xiaoju[0].lines[1]), 'Clem\'s chapter does not open in the notebook');
+      check(!(await page_.innerText()).includes(book.xiaoju[1].title), 'the notebook gives away the title of a chapter not told');
+      await page_.scrollIntoViewIfNeeded();
+      await shop.shot(join(out, 'staffstories-notebook.png'));
+    } finally { await shop.close(); }
+  },
+  /**
    * The phone page (docs/plan-1.5.md E4): a paired phone sees what waits for an answer while a commission runs, answers
    * it there, and the card on the desk is put away; the commission goes on to the end.
    */
