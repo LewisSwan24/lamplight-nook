@@ -1,7 +1,8 @@
 import { bedNews } from './growth';
 import { fill, strings } from './i18n';
 import { localDay } from './localday';
-import { apprenticeNews } from './staff';
+import { crews } from './crew';
+import { apprenticeNews, stageNews } from './staff';
 import type { Memory } from './types';
 
 /** Works worth their own line in the shop's days. */
@@ -32,7 +33,8 @@ const dayOf = (time: number) => localDay(new Date(time));
 
 /**
  * What has happened to this shop, newest first, read only from what it already remembers: works by name at the first and
- * at round numbers, what it gathered, who came for the first time, the apprentice, and how the vegetable beds did.
+ * at round numbers, what it gathered, who came for the first time, the apprentice and how they grew up (plan-1.9.md I2),
+ * and how the vegetable beds did.
  */
 export function shopTimeline(memory: Memory, now = new Date()): DayEntry[] {
   const shop = memory.shop;
@@ -43,6 +45,13 @@ export function shopTimeline(memory: Memory, now = new Date()): DayEntry[] {
   // Versions before 1.0 kept only the last twenty, so the first one here may not be the first ever.
   const before = shop.done - works.length;
   const entries: DayEntry[] = [];
+  const grown = { 2: N.apprenticeHandy, 3: N.apprenticeGrown };
+  let bean = 0;
+  for (const { memo, crew } of crews(works)) {
+    if (!crew.includes('xiaodou')) continue;
+    const stage = stageNews(bean, ++bean);
+    if (stage) entries.push({ date: dayOf(madeAt(memo.id)), text: grown[stage as 2 | 3] });
+  }
   works.forEach((w, i) => {
     const n = before + i + 1;
     const date = dayOf(madeAt(w.id));

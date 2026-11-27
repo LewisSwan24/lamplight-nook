@@ -460,6 +460,7 @@
 - id: apprentice_notes
   when: idle
   after: 10
+  stage: 1
   turns:
     - xiaodou: 阿灯哥，这个怎么记？
     - adeng: 先写日子，再写谁要的。
@@ -468,6 +469,7 @@
 - id: apprentice_mallet
   when: idle
   after: 10
+  stage: 1
   turns:
     - xiaodou: 老石，锤子能借我吗？
     - laoshi: 先看我敲十遍。
@@ -493,6 +495,7 @@
   when: idle
   guest: baker
   after: 10
+  stage: 1
   turns:
     - baker: 新来的孩子，跑得真勤快。
     - xiaodou: 桂姨好！
@@ -502,10 +505,158 @@
   when: idle
   guest: postman
   after: 10
+  stage: 1
   turns:
     - postman: 今天在街口碰见小豆了。
     - xiaodou: 我在找图书馆。
     - postman: 下回跟着我走。
+
+# Bean growing up (plan-1.9.md I2): handy from the 30th of their works, grown from the 80th.
+- id: handy_apron
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - adeng: "围裙系得挺像样。"
+    - xiaodou: "老石教的结。"
+    - laoshi: "打得还行。"
+
+- id: handy_errands
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - xiaoju: "今天两趟，都是你跑的？"
+    - xiaodou: "嗯，在一条街上。"
+    - xiaoju: "那我去泡茶。"
+
+- id: handy_notebook
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - qingdai: "你的本子换新的了。"
+    - xiaodou: "旧的写满了。"
+    - qingdai: "第几本了？"
+    - xiaodou: "第三本。"
+
+- id: handy_mallet
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - laoshi: "木槌放哪了？"
+    - xiaodou: "第二个抽屉，擦过了。"
+    - laoshi: "嗯。"
+
+- id: handy_quiet
+  when: waiting
+  after: 10
+  stage: 2
+  turns:
+    - adeng: "你最近话少了。"
+    - xiaodou: "手上忙。"
+    - adeng: "也好。"
+
+- id: handy_paper
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - xiaodou: "阿灯，纸我按大小排了。"
+    - adeng: "找起来快多了。"
+
+- id: handy_lookup
+  when: waiting
+  after: 10
+  stage: 2
+  turns:
+    - xiaoju: "这个书名，帮我查一下？"
+    - xiaodou: "查好了，在第三排。"
+    - xiaoju: "比我还快。"
+
+- id: baker_handy
+  when: idle
+  guest: baker
+  after: 10
+  stage: 2
+  turns:
+    - baker: "小豆，系上围裙了？"
+    - xiaodou: "上个月系上的。"
+    - baker: "像个样子了。"
+
+- id: grown_counter
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - adeng: "今天柜台你来看。"
+    - xiaodou: "好，你去后面歇着。"
+    - adeng: "我就在后面。"
+
+- id: grown_notes
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - xiaodou: "阿灯，这件我记好了。"
+    - adeng: "先写日子？"
+    - xiaodou: "再写谁要的。"
+
+- id: grown_mallet
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - laoshi: "木槌，你拿去用。"
+    - xiaodou: "你不用了？"
+    - laoshi: "你敲得比我匀。"
+
+- id: grown_steps
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - qingdai: "门口那三级台阶，还数吗？"
+    - xiaodou: "不数了，闭着眼都知道。"
+
+- id: grown_errands
+  when: waiting
+  after: 10
+  stage: 3
+  turns:
+    - xiaoju: "往后跑腿，我得跟你学。"
+    - xiaodou: "你教我的，我还给你。"
+
+- id: baker_grown
+  when: idle
+  guest: baker
+  after: 10
+  stage: 3
+  turns:
+    - baker: "阿灯不在？"
+    - xiaodou: "桂姨好，阿灯在后面，先喝口茶。"
+    - baker: "小豆现在像个掌柜了。"
+
+- id: postman_grown
+  when: idle
+  guest: postman
+  after: 10
+  stage: 3
+  turns:
+    - postman: "有阿灯的信。"
+    - xiaodou: "给我吧，我来签。"
+    - postman: "以前你还跟着我找路。"
+
+- id: granny_grown
+  when: idle
+  guest: granny
+  after: 10
+  stage: 3
+  turns:
+    - granny: "阿灯在吗？"
+    - xiaodou: "陈婆婆先坐，我去叫。"
+    - granny: "这孩子长高了。"
 
 # Further on as regulars: there is still more to say after the tenth.
 - id: regular_fifteen

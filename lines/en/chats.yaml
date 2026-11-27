@@ -460,6 +460,7 @@
 - id: apprentice_notes
   when: idle
   after: 10
+  stage: 1
   turns:
     - xiaodou: Wick, how do I write this one down?
     - adeng: Date first, then who asked.
@@ -468,6 +469,7 @@
 - id: apprentice_mallet
   when: idle
   after: 10
+  stage: 1
   turns:
     - xiaodou: Flint, can I borrow the mallet?
     - laoshi: Watch me use it ten times first.
@@ -493,6 +495,7 @@
   when: idle
   guest: baker
   after: 10
+  stage: 1
   turns:
     - baker: Your new one runs about like anything.
     - xiaodou: Hello, Auntie Olive!
@@ -502,10 +505,158 @@
   when: idle
   guest: postman
   after: 10
+  stage: 1
   turns:
     - postman: Ran into Bean at the corner today.
     - xiaodou: I was looking for the library.
     - postman: Follow me next time.
+
+# Bean growing up (plan-1.9.md I2): handy from the 30th of their works, grown from the 80th.
+- id: handy_apron
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - adeng: "That apron looks right on you."
+    - xiaodou: "Flint showed me the knot."
+    - laoshi: "Not bad."
+
+- id: handy_errands
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - xiaoju: "You did both runs today?"
+    - xiaodou: "They were on the same street."
+    - xiaoju: "Then I'll make the tea."
+
+- id: handy_notebook
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - qingdai: "New notebook?"
+    - xiaodou: "The old one's full."
+    - qingdai: "Which number is this?"
+    - xiaodou: "Number three."
+
+- id: handy_mallet
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - laoshi: "Where's the mallet?"
+    - xiaodou: "Second drawer. I wiped it."
+    - laoshi: "Good."
+
+- id: handy_quiet
+  when: waiting
+  after: 10
+  stage: 2
+  turns:
+    - adeng: "You're quieter these days."
+    - xiaodou: "Busy hands."
+    - adeng: "Fair enough."
+
+- id: handy_paper
+  when: idle
+  after: 10
+  stage: 2
+  turns:
+    - xiaodou: "Wick, I sorted the paper by size."
+    - adeng: "Much quicker to find now."
+
+- id: handy_lookup
+  when: waiting
+  after: 10
+  stage: 2
+  turns:
+    - xiaoju: "Could you look up this title?"
+    - xiaodou: "Done. Third shelf."
+    - xiaoju: "Faster than me."
+
+- id: baker_handy
+  when: idle
+  guest: baker
+  after: 10
+  stage: 2
+  turns:
+    - baker: "An apron now, Bean?"
+    - xiaodou: "Since last month."
+    - baker: "You look the part."
+
+- id: grown_counter
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - adeng: "You mind the counter today."
+    - xiaodou: "Right. Go and sit down."
+    - adeng: "I'll be just at the back."
+
+- id: grown_notes
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - xiaodou: "Wick, I've written this one up."
+    - adeng: "Date first?"
+    - xiaodou: "Then who it's for."
+
+- id: grown_mallet
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - laoshi: "The mallet. Take it."
+    - xiaodou: "Don't you need it?"
+    - laoshi: "You strike more evenly now."
+
+- id: grown_steps
+  when: idle
+  after: 10
+  stage: 3
+  turns:
+    - qingdai: "Still counting the three steps?"
+    - xiaodou: "No need. I know them blind."
+
+- id: grown_errands
+  when: waiting
+  after: 10
+  stage: 3
+  turns:
+    - xiaoju: "I'll be learning errands from you now."
+    - xiaodou: "You taught me. I'm handing it back."
+
+- id: baker_grown
+  when: idle
+  guest: baker
+  after: 10
+  stage: 3
+  turns:
+    - baker: "Is Wick not in?"
+    - xiaodou: "Wick's at the back. Tea while you wait?"
+    - baker: "You run this place now, Bean."
+
+- id: postman_grown
+  when: idle
+  guest: postman
+  after: 10
+  stage: 3
+  turns:
+    - postman: "Letter for Wick."
+    - xiaodou: "I'll sign for it."
+    - postman: "You used to follow me to find the way."
+
+- id: granny_grown
+  when: idle
+  guest: granny
+  after: 10
+  stage: 3
+  turns:
+    - granny: "Is Wick about, dear?"
+    - xiaodou: "Have a seat, Granny Chen. I'll fetch Wick."
+    - granny: "My, you've grown."
 
 # Further on as regulars: there is still more to say after the tenth.
 - id: regular_fifteen

@@ -66,6 +66,8 @@ import fogUrl from '../../../assets/sprites/weather-fog.png';
 import windUrl from '../../../assets/sprites/weather-wind.png';
 import stormUrl from '../../../assets/sprites/weather-storm.png';
 import xiaodouUrl from '../../../assets/sprites/xiaodou.png';
+import xiaodou2Url from '../../../assets/sprites/xiaodou-2.png';
+import xiaodou3Url from '../../../assets/sprites/xiaodou-3.png';
 import aqianUrl from '../../../assets/sprites/aqian.png';
 import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
 import xiaodingUrl from '../../../assets/sprites/xiaoding.png';
@@ -84,7 +86,7 @@ import { AVATAR_COUNT, DEFAULT_AVATAR, avatarKey } from '../../shared/avatars';
 import { fill, strings, wordsIn } from '../../shared/i18n';
 import type { ActorId, AnchorId, Bubble, GuestId, Speaker } from '../../shared/types';
 import type { RoomId } from '../../shared/scenes';
-import { ROOM_CREW } from '../../shared/staff';
+import { ROOM_CREW, apprenticeLook, type ApprenticeStage } from '../../shared/staff';
 import catWalkUrl from '../../../assets/sprites/cat-walk.png';
 import { counterTop, overlayDepth, pieceData } from './pieces';
 import { type PropId, PROPS, propFrame, propOffset } from './props';
@@ -123,6 +125,10 @@ const WEATHER_URLS: Record<(typeof SKIES)[number], string> = {
 };
 const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl, dad: dadUrl, editor: editorUrl, mum: mumUrl };
 /** The player's looks, in order (shared/avatars.ts). */
+/** Bean's later looks (plan-1.9.md I2): the first is SHEETS.xiaodou. */
+const BEAN_SHEETS: Record<string, string> = { 'xiaodou-2': xiaodou2Url, 'xiaodou-3': xiaodou3Url };
+/** Which of them Bean's animations are drawn from; they belong to the whole game, like the animations. */
+let beanLook = 'xiaodou';
 const YOU_SHEETS = [you1Url, you2Url, you3Url, you4Url, you5Url, you6Url, you7Url, you8Url];
 /** Pause at each corner of a walk, so a turn reads as a turn. */
 const CORNER_PAUSE_MS = 90;
@@ -381,6 +387,7 @@ export class CafeScene extends Phaser.Scene {
     for (const s of SEASONS) this.load.image(`season-${s}`, SEASON_URLS[s]);
     for (const s of SKIES) this.load.image(`weather-${s}`, WEATHER_URLS[s]);
     for (const id of [...STAFF_IDS, ...GUEST_IDS]) this.load.spritesheet(id, SHEETS[id], { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
+    for (const [key, url] of Object.entries(BEAN_SHEETS)) this.load.spritesheet(key, url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     YOU_SHEETS.slice(0, AVATAR_COUNT).forEach((url, i) => this.load.spritesheet(avatarKey(i + 1), url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height }));
     this.load.spritesheet('cat', SHEETS.cat, { frameWidth: CAT_FRAME.width, frameHeight: CAT_FRAME.height });
     this.load.spritesheet('cat-walk', catWalkUrl, { frameWidth: CAT_WALK_FRAME.width, frameHeight: CAT_WALK_FRAME.height });
@@ -549,25 +556,46 @@ export class CafeScene extends Phaser.Scene {
     }
   }
 
+  /** Every animation of one person, drawn from `sheet`: their own, or for Bean the look of their stage. */
+  private personAnims(id: Parameters<typeof animKey>[0], sheet: string) {
+    for (const [name, def] of Object.entries(STAFF_ANIMS)) {
+      // The player's sheets stop after the hand-over row (scripts/art/characters.py, PLAYER_ROWS).
+      if (id.startsWith('you-') && def.row > STAFF_ANIMS.gift.row) continue;
+      const dirs = def.dirs === 'front' ? [DIRECTIONS[3]] : def.dirs;
+      for (const facing of dirs) {
+        const key = animKey(id, name, facing);
+        if (this.anims.exists(key)) this.anims.remove(key);
+        this.anims.create({ key, frames: this.anims.generateFrameNumbers(sheet, { frames: staffFrames(name, facing) }), frameRate: def.fps, repeat: def.repeat });
+      }
+    }
+  }
+
+  /**
+   * Bean's look for their stage (plan-1.9.md I2). The animations keep their names and are drawn from the stage's sheet,
+   * so every room shows the new look; here Bean changes at once, mid-step or standing.
+   */
+  setApprenticeLook(stage: ApprenticeStage) {
+    const look = apprenticeLook(stage);
+    if (look === beanLook) return;
+    beanLook = look;
+    if (!this.anims.exists('cup')) return;
+    this.personAnims('xiaodou', look);
+    const sprite = this.actors.get('xiaodou')?.sprite;
+    const playing = sprite?.anims.currentAnim?.key;
+    if (sprite) sprite.setTexture(look, sprite.frame.name);
+    if (sprite && playing) sprite.play(playing);
+  }
+
+  /** Bean's look now, for the acceptance scenarios. */
+  get apprenticeLook() {
+    return beanLook;
+  }
+
   private createAnims() {
     // Animations belong to the whole game: the first room makes them for every other.
     if (this.anims.exists('cup')) return;
     const looks = Array.from({ length: AVATAR_COUNT }, (_, i) => avatarKey(i + 1));
-    for (const id of [...STAFF_IDS, ...GUEST_IDS, ...looks]) {
-      for (const [name, def] of Object.entries(STAFF_ANIMS)) {
-        // The player's sheets stop after the hand-over row (scripts/art/characters.py, PLAYER_ROWS).
-        if (id.startsWith('you-') && def.row > STAFF_ANIMS.gift.row) continue;
-        const dirs = def.dirs === 'front' ? [DIRECTIONS[3]] : def.dirs;
-        for (const facing of dirs) {
-          this.anims.create({
-            key: animKey(id, name, facing),
-            frames: this.anims.generateFrameNumbers(id, { frames: staffFrames(name, facing) }),
-            frameRate: def.fps,
-            repeat: def.repeat,
-          });
-        }
-      }
-    }
+    for (const id of [...STAFF_IDS, ...GUEST_IDS, ...looks]) this.personAnims(id, id === 'xiaodou' ? beanLook : id);
     this.anims.create({ key: 'cat-walk', frames: this.anims.generateFrameNumbers('cat-walk', {}), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'cat-lie', frames: this.anims.generateFrameNumbers('cat', {}), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'clock', frames: this.anims.generateFrameNumbers('clock', {}), frameRate: 4, repeat: -1, yoyo: true });

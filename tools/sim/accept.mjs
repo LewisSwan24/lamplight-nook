@@ -6465,6 +6465,84 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
   /**
+   * The apprentice grows up (plan-1.9.md I2): three shops with Bean at each stage, each in their own look and saying only
+   * their own stage's lines; then the work that makes Bean handy, the new look at once and Wick's word for it.
+   */
+  async apprenticestages(lang, out) {
+    const chats = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/chats.yaml' : 'lines/chats.yaml'), 'utf8'));
+    const cafe = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/cafe.yaml' : 'lines/cafe.yaml'), 'utf8'));
+    const stageOf = new Map(chats.filter((c) => c.stage).map((c) => [c.id, c.stage]));
+    const work = (i) => ({ id: `c${i}`, title: `W${i}`, date: '2026-10-01', result: 'done', choices: {}, folder: '', form: { want: 'x' },
+      rounds: [{ date: '2026-10-01', seconds: 1, helpers: {}, waits: 0, waitedSeconds: 0 }] });
+    const seed = (done) => freshHome({
+      'settings.json': onboarded(lang),
+      'data-version.json': JSON.stringify({ data: 5 }),
+      'memory.json': JSON.stringify({
+        commissions: Array.from({ length: done }, (_, i) => work(i + 1)), stuckNotes: [], greeted: 'c1',
+        shop: { done, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } },
+      }),
+    });
+    // Bean comes with the tenth work and is on every one after: 15 done is 5 of theirs, 45 is 35, 95 is 85.
+    for (const [done, stage] of [[15, 1], [45, 2], [95, 3]]) {
+      const shop = await launch({ lang, home: seed(done), speed: SPEED, clock: '2026-10-14T10:00' });
+      const { page } = shop;
+      try {
+        await sleep(3000);
+        await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+        const look = await page.evaluate(() => window.lamplightDebug.scene.apprenticeLook);
+        check(look === (stage === 1 ? 'xiaodou' : `xiaodou-${stage}`), `${done} works: Bean looks like ${look}`);
+        const lines = await page.evaluate(() => window.lamplightDebug.lines());
+        const back = lines.sub_back_xiaodou.map((l) => l.stage ?? 0);
+        check(back.every((s) => s === 0 || s === stage) && back.includes(stage), `${done} works: Bean's errand lines are of stages ${back}`);
+        const drawn = await page.evaluate(() => {
+          const d = window.lamplightDebug;
+          const ids = [];
+          for (let k = 1; k <= 80; k++) ids.push(d.chatter.next('idle', Date.now() + k * 600_000, d.scene.period, d.scene.outside(), d.shopDays)?.id);
+          return ids;
+        });
+        const staged = drawn.filter((id) => stageOf.has(id)).map((id) => stageOf.get(id));
+        check(staged.every((s) => s === stage), `${done} works: chats of other stages came up: ${staged}`);
+        if (stage > 1) check(staged.length > 0, `${done} works: none of Bean's stage ${stage} chats came up`);
+        // Bean comes back from an errand in the stage's own words.
+        const own = cafe.sub_back_xiaodou.find((l) => l.stage === stage);
+        for (const end = Date.now() + 20_000; Date.now() < end; await sleep(300)) {
+          if (!(await page.evaluate(() => window.lamplightDebug.scene.busyTalking('xiaodou')))) break;
+        }
+        await page.evaluate((b) => { void window.lamplightDebug.stage.talk(b.map((text) => ({ speaker: 'xiaodou', text }))); }, own.bubbles);
+        let heard = false;
+        for (const end = Date.now() + 8000; Date.now() < end && !heard; await sleep(150)) {
+          heard = await page.evaluate((t) => window.lamplightDebug.scene.isSaying('xiaodou', t), own.bubbles[0]);
+        }
+        check(heard, `${done} works: Bean did not say "${own.bubbles[0]}"`);
+        await shop.shot(join(out, `apprenticestages-${stage}.png`));
+      } finally { await shop.close(); }
+    }
+
+    // The work that makes Bean handy: the apron at once, and Wick says so.
+    const word = cafe.grow.find((l) => l.id === 'grow_apprentice_2').bubbles[0];
+    const shop = await launch({ lang, home: seed(39), speed: 100 });
+    try {
+      await sleep(2000);
+      check(await shop.page.evaluate(() => window.lamplightDebug.scene.apprenticeLook) === 'xiaodou', 'Bean was handy before the 30th of their works');
+      await shop.page.evaluate(() => {
+        const { scene } = window.lamplightDebug;
+        const say = scene.say.bind(scene);
+        window.said = [];
+        scene.say = (id, text, bubble) => { if (text) window.said.push([id, text]); return say(id, text, bubble); };
+      });
+      await shop.order({ template: 'demo' });
+      await shop.submit();
+      check((await shop.workUntilDone()).ok, 'the work did not finish');
+      await shop.page.keyboard.press('Escape');
+      const heard = () => shop.page.evaluate((w) => window.said.some(([, text]) => text === w), word);
+      for (let i = 0; i < 80 && !(await heard()); i++) await sleep(500);
+      check(await heard(), `Wick did not say "${word}"`);
+      check(await shop.page.evaluate(() => window.lamplightDebug.scene.apprenticeLook) === 'xiaodou-2', 'Bean did not put the apron on');
+      await sleep(600);
+      await shop.shot(join(out, 'apprenticestages-handy.png'));
+    } finally { await shop.close(); }
+  },
+  /**
    * What the staff remember (plan-1.9.md I5): Flint, who checked a birthday invitation, remembers it by a shortened
    * title and its day; Iris, who was on nothing, remembers nothing; Pica remembers the print shop's work, in the print
    * shop. One memory each is played.

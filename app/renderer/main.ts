@@ -17,7 +17,7 @@ import { VisitPlanner, pickVisit, welcomeGuests } from './game/guests';
 import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, toolIconPx, uiScale } from './game/layout';
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
-import { onRuleBookChange, ruleBook } from './stage/rulebook';
+import { onRuleBookChange, ruleBook, setApprenticeStage } from './stage/rulebook';
 import { openingTurns, pickLine } from './translator/lines';
 import { inSeason, newlyInSeason } from '../shared/furnish';
 import { birthdayOn, termOn } from '../shared/calendar';
@@ -39,7 +39,7 @@ import { onProjectMeet, renderPins, showProjects, showTimeline } from './ui/proj
 import { projectColor } from '../shared/project-colors';
 import { birthdayToday } from '../shared/days';
 import { localDay } from '../shared/localday';
-import { ROOM_CREW, STAFF, apprenticeHere, apprenticeNews } from '../shared/staff';
+import { ROOM_CREW, STAFF, apprenticeHere, apprenticeNews, apprenticeStage, stageNews } from '../shared/staff';
 import { type GrowthId, type Made, bedNews, madeOf, shortWork } from '../shared/growth';
 import { showRevise } from './ui/revise';
 import { showUpdateLetter } from './ui/letter';
@@ -509,7 +509,8 @@ window.lamplight.onDecision((req) => {
   }).catch((e) => append(`decision failed: ${e}`));
 });
 // What the shop has gathered with the user, and the works shelf; refreshed whenever a commission comes back.
-let shopDays: { done: number; told: Set<string>; made: Made; lastWork?: string; town: TownCounts; bonds?: Record<string, number> } = { done: 0, told: new Set(), made: {}, town: townCounts({ done: 0 }, homeScene()) };
+/** `bean`: the works Bean has been on (plan-1.9.md I2), which set their stage. */
+let shopDays: { done: number; bean: number; told: Set<string>; made: Made; lastWork?: string; town: TownCounts; bonds?: Record<string, number> } = { done: 0, bean: 0, told: new Set(), made: {}, town: townCounts({ done: 0 }, homeScene()) };
 /** What the town has grown (road-to-1.4.md D5): the street and its inset in every room, and a shop's own pieces inside it. */
 function showTownIn(room: RoomId, at: CafeScene) {
   at.setTown(shopDays.town);
@@ -527,7 +528,10 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   home.growth.setWorks(state.works.map((w) => w.icon));
   home.garden.setWorksDone(state.done);
   homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
-  shopDays = { done: state.done, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()), bonds: state.bonds };
+  const stage = apprenticeStage(state.crew.xiaodou);
+  setApprenticeStage(stage);
+  home.setApprenticeLook(stage);
+  shopDays = { done: state.done, bean: state.crew.xiaodou, told: new Set(state.told), made: madeOf(state.works), lastWork: state.works[0] && shortWork(state.works[0].title), town: townCounts(state, homeScene()), bonds: state.bonds };
   memories = memoryLines(memoryBook, state.recall as Record<string, Recalled[]>, locale());
   chatter.reload(ruleBook(home.room).chats, mutters());
   street.setTown(shopDays.town);
@@ -675,6 +679,7 @@ onNotebookForget(() => {
 });
 window.lamplight.onResult((result) => {
   const before = shopDays.done;
+  const bean = shopDays.bean;
   const town = shopDays.town;
   const made = shopDays.made;
   void refreshShop(result.grew ?? [], true).then(() => {
@@ -684,6 +689,9 @@ window.lamplight.onResult((result) => {
     noticeBeds(bedNews(before, shopDays.done));
     // Adeng introduces the apprentice once they are through the door.
     if (apprenticeNews(before, shopDays.done)) sayOnce('grow_apprentice', APPRENTICE_LINE_DELAY_MS);
+    // And marks the day Bean reaches another stage (plan-1.9.md I2).
+    const grew = stageNews(bean, shopDays.bean);
+    if (grew) sayOnce(`grow_apprentice_${grew}`, APPRENTICE_LINE_DELAY_MS);
   });
   noticeGrowth(result.grew ?? []);
 });
@@ -1222,7 +1230,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
     // `rooms`: every room at work just now (D3), by room, with its scene and stage.
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; } } });
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
   }
   const env = $('env');
   env.textContent = [

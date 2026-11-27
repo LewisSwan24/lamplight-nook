@@ -9,3 +9,5 @@
 | 产出 | 用在 | 出处 | 脚本 |
 |---|---|---|---|
 | `keepsakes.png` | I1 八位店员故事留下的 24 件东西，一格 16×16，画在故事卡和小本子的故事页上 | 手画 | `scripts/art/keepsakes.py` |
+| `xiaodou-2.png` | I2 小豆上手以后的行走图：还是那件绿衬衫，腰上系一条帆布围裙，围裙取自阿灯那套衣服 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `xiaodou-3.png` | I2 小豆出师以后的行走图：换一身棕色外套配白衬衫，发型不变 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
