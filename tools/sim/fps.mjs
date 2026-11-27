@@ -96,6 +96,12 @@ for (const rate of RATES) {
       await shop.page.evaluate(() => window.lamplightDebug.street.lookAt('print'));
       await sleep(2500);
       await measure('street');
+      // The river street (plan-2.0.md J1), which another checkout from before 2.0 does not have.
+      if (!OTHER) {
+        await shop.page.evaluate(() => window.lamplightDebug.street.lookAt('florist'));
+        await sleep(2500);
+        await measure('river');
+      }
       for (const id of ['print', 'studio', 'workshop', 'bakery', 'post']) {
         await visit(shop.page, id);
         await measure(id);

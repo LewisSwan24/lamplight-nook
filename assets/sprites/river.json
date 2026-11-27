@@ -1,0 +1,104 @@
+{
+ "width": 784,
+ "height": 180,
+ "kerb": 124,
+ "road": 152,
+ "bridge": {
+  "x": 0,
+  "w": 112
+ },
+ "fronts": [
+  {
+   "id": "florist",
+   "x": 120,
+   "w": 144,
+   "door": 192
+  },
+  {
+   "id": "bookshop",
+   "x": 376,
+   "w": 112,
+   "door": 432
+  }
+ ],
+ "tower": {
+  "x": 292,
+  "y": 2,
+  "w": 56,
+  "h": 122
+ },
+ "props": [
+  {
+   "left": 93,
+   "right": 106,
+   "top": 130,
+   "bottom": 134
+  },
+  {
+   "left": 128,
+   "right": 139,
+   "top": 126,
+   "bottom": 130
+  },
+  {
+   "left": 144,
+   "right": 155,
+   "top": 126,
+   "bottom": 130
+  },
+  {
+   "left": 160,
+   "right": 171,
+   "top": 126,
+   "bottom": 130
+  },
+  {
+   "left": 214,
+   "right": 258,
+   "top": 129,
+   "bottom": 133
+  },
+  {
+   "left": 452,
+   "right": 460,
+   "top": 130,
+   "bottom": 134
+  },
+  {
+   "left": 501,
+   "right": 514,
+   "top": 130,
+   "bottom": 134
+  },
+  {
+   "left": 554,
+   "right": 560,
+   "top": 132,
+   "bottom": 136
+  },
+  {
+   "left": 590,
+   "right": 632,
+   "top": 134,
+   "bottom": 138
+  },
+  {
+   "left": 651,
+   "right": 662,
+   "top": 128,
+   "bottom": 132
+  },
+  {
+   "left": 698,
+   "right": 704,
+   "top": 132,
+   "bottom": 136
+  },
+  {
+   "left": 737,
+   "right": 745,
+   "top": 128,
+   "bottom": 132
+  }
+ ]
+}

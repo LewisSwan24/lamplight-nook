@@ -6921,7 +6921,13 @@ const SCENARIOS = {
           const umbrellas = () => page.evaluate(() => [...window.lamplightDebug.street.drawnPassers.values()].filter((d) => d.umbrella.visible).length);
           await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
           await sleep(1500);
-          const day = await passers();
+          // Run late at night, the street was first seen in the dark with nobody out, so by day they walk in from the
+          // edges, one every few seconds (plan-2.0.md J1): give the first one time to come into view.
+          let day = await passers();
+          for (let i = 0; i < 16 && !day.length; i++) {
+            await sleep(500);
+            day = await passers();
+          }
           check(day.length >= 1 && day.length <= 5, `by day the street has ${day.length} people in view`);
           const box = await page.locator('#game canvas').boundingBox();
           const k = box.width / 320;
@@ -6989,6 +6995,83 @@ const SCENARIOS = {
         }
       } finally { await shop.close(); }
     }
+  },
+
+  /**
+   * The river street (plan-2.0.md J1): along the first street with the arrow keys, over the bridge, to the end of the
+   * riverbank; the florist and the bookshop say they are not open yet; by day, by night and in the rain; back in at the
+   * cafe's front.
+   */
+  async riverstreet(lang, out) {
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
+    const width = town.width + river.width;
+    const L = locale(lang);
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: SPEED });
+    const { page } = shop;
+    try {
+      await sleep(2500);
+      await page.evaluate(() => { window.samePage = true; });
+      const look = () => page.evaluate(() => {
+        const g = window.lamplightDebug.street;
+        return { out: g.sys.isActive() && g.sys.isVisible(), x: g.cameras.main.scrollX, room: window.lamplightDebug.scene.sys.isVisible(), same: window.samePage === true };
+      });
+      const note = () => page.evaluate(() => document.querySelector('.street-note:not([hidden])')?.textContent ?? '');
+      const clickAt = async (x, y) => {
+        const { x: scroll } = await look();
+        const box = await page.locator('#game canvas').boundingBox();
+        const k = box.width / 320;
+        await page.mouse.click(box.x + (x - scroll) * k, box.y + y * k);
+        await sleep(500);
+      };
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(800);
+      let v = await look();
+      check(v.out, 'the street did not show');
+      // Along to the far end with the arrow keys alone: the whole first street, the bridge and the riverbank.
+      for (let i = 0; i < 60 && v.x < width - 320; i++) {
+        await page.keyboard.press('ArrowRight');
+        await sleep(40);
+        v = await look();
+      }
+      check(v.x === width - 320, `the arrow keys stop at ${v.x}, short of the end of the riverbank at ${width - 320}`);
+      check(await page.evaluate(() => ['river-street', 'river-fronts', 'river-props', 'river-tower'].every((k) => window.lamplightDebug.street.textures.exists(k))), 'the river street is not drawn');
+      await shop.shot(join(out, 'riverstreet-bank.png'));
+      for (const f of river.fronts) {
+        await page.evaluate((id) => window.lamplightDebug.street.lookAt(id), f.id);
+        await sleep(200);
+        await shop.shot(join(out, `riverstreet-${f.id}.png`));
+        await clickAt(town.width + f.x + f.w / 2, 60);
+        v = await look();
+        const said = await note();
+        check(v.out, `a click on the ${f.id} took me off the street`);
+        check(said === L.ui.town.notes[f.id], `the ${f.id} said "${said}", not that it opens soon`);
+      }
+      // The tower between them is no door.
+      await clickAt(town.width + river.tower.x + river.tower.w / 2, 60);
+      check((await look()).out, 'a click on the clock tower took me off the street');
+      // Over the bridge, by night and in the rain.
+      await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, town.width + river.bridge.x + river.bridge.w / 2 - 160);
+      await sleep(200);
+      await shop.shot(join(out, 'riverstreet-bridge.png'));
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('night', true));
+      await sleep(400);
+      await shop.shot(join(out, 'riverstreet-night.png'));
+      await page.evaluate(() => { window.lamplightDebug.scene.setPeriod('day', true); window.lamplightDebug.scene.setWeather('rain', null, false); });
+      await sleep(800);
+      await page.evaluate((id) => window.lamplightDebug.street.lookAt(id), 'florist');
+      await sleep(400);
+      await shop.shot(join(out, 'riverstreet-rain.png'));
+      await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+      // All the way back, and in at the cafe.
+      await page.evaluate(() => window.lamplightDebug.street.lookAt('cafe'));
+      await sleep(200);
+      const cafe = town.fronts.find((f) => f.id === 'cafe');
+      await clickAt(cafe.x + cafe.w / 2, 60);
+      v = await look();
+      check(!v.out && v.room && v.same, `going in at the cafe did not bring the room back on the same page: ${JSON.stringify(v)}`);
+    } finally { await shop.close(); }
   },
 
   async study(lang, out) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased (2.0)
+
+- **The river street.** The first street no longer stops at the post office: past it, a bridge goes over the canal to a
+  street along the river, with the river where the road would be. On it stand the florist and the bookshop, not open yet,
+  and between them the old clock tower, stopped long ago, its roof half fallen in and its door boarded up. A stretch of
+  riverbank with trees and a bench runs on past the bookshop. Drag along the street or use the arrow keys to get there.
+
 ## 1.9.0 (2026-11-27)
 
 - **Who worked on what.** The shop now knows which of its people were on each finished work: Wick on every one,

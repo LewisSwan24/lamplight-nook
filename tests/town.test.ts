@@ -6,8 +6,8 @@ import { CAMERA_W, FRONTS, MOVERS, cameraFor, doorOf, entering, followsOrder, fr
 // The town's street (road-to-1.4.md D1): seven fronts along a pavement wider than the canvas.
 
 describe('the street', () => {
-  it('has seven fronts in a row, the cafe first and the post office last, inside the street', () => {
-    expect(FRONTS.map((f) => f.id)).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post']);
+  it('has nine fronts in a row, the cafe first, the post office last on the first street and the bookshop by the river (plan-2.0.md J1)', () => {
+    expect(FRONTS.map((f) => f.id)).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post', 'florist', 'bookshop']);
     for (const [a, b] of FRONTS.slice(1).map((f, i) => [FRONTS[i], f])) expect(b.x).toBeGreaterThan(a.x + a.w);
     expect(FRONTS.at(-1)!.x + FRONTS.at(-1)!.w).toBeLessThanOrEqual(TOWN.width);
   });

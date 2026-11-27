@@ -3,12 +3,16 @@ import frontsUrl from '../../../assets/sprites/town-fronts.png';
 import propsUrl from '../../../assets/sprites/town-props.png';
 import signsUrl from '../../../assets/sprites/town-signs.png';
 import streetUrl from '../../../assets/sprites/town-street.png';
+import riverStreetUrl from '../../../assets/sprites/river-street.png';
+import riverFrontsUrl from '../../../assets/sprites/river-fronts.png';
+import riverPropsUrl from '../../../assets/sprites/river-props.png';
+import riverTowerUrl from '../../../assets/sprites/river-tower.png';
 import { streetGrown, type TownCounts } from '../../shared/towngrow';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
 import { animKey } from './sprites';
 import type { Walker } from './StreetView';
-import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, type ShopId, TOWN } from './town';
+import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, RIVER, type ShopId, TOWN } from './town';
 import { type Outside, putAway } from './streetdecor';
 import { addUmbrella, holdUmbrella, preloadTownDecor, TownDecor } from './TownDecor';
 import { preloadTownGrowth, TownGrowth } from './TownGrowth';
@@ -48,8 +52,12 @@ const IN_MS = 360;
  */
 const DEPTH = { street: 0, ground: 0.5, fronts: 1, grown: 2, story: 2.5, up: 3, people: 10, falling: 20 };
 
+/** The river street's layers (plan-2.0.md J1), laid on at the end of the first street; the tower stands on its own. */
+const RIVER_LAYERS = [['river-street', riverStreetUrl], ['river-fronts', riverFrontsUrl], ['river-props', riverPropsUrl], ['river-tower', riverTowerUrl]] as const;
+
 /**
- * The town's street (road-to-1.4.md D1): seven fronts in a row, wider than the canvas. Dragging or the arrow keys
+ * The town's street (road-to-1.4.md D1): seven fronts in a row, wider than the canvas, and past the bridge at its far
+ * end the street along the river with two more (plan-2.0.md J1). Dragging or the arrow keys
  * move along it; a click on a front goes in, or the front says why not. The shop lays its light over it.
  */
 export class StreetScene extends Phaser.Scene {
@@ -104,6 +112,7 @@ export class StreetScene extends Phaser.Scene {
     for (const [key, url] of [['town-street', streetUrl], ['town-fronts', frontsUrl], ['town-props', propsUrl], ['town-signs', signsUrl]]) {
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
+    for (const [key, url] of RIVER_LAYERS) if (!this.textures.exists(key)) this.load.image(key, url);
     if (!this.textures.exists('town-grow')) preloadTownGrowth(this.load);
     if (!this.textures.exists('town-decor')) preloadTownDecor(this.load);
     if (!this.textures.exists('town-story')) preloadTownStories(this.load);
@@ -116,6 +125,10 @@ export class StreetScene extends Phaser.Scene {
     for (const key of ['town-street', 'town-fronts', 'town-props', 'town-signs']) {
       this.add.image(0, 0, key).setOrigin(0).setDepth(key === 'town-street' ? DEPTH.street : DEPTH.fronts);
     }
+    this.add.image(RIVER.x, 0, 'river-street').setOrigin(0).setDepth(DEPTH.street);
+    this.add.image(RIVER.x, 0, 'river-fronts').setOrigin(0).setDepth(DEPTH.fronts);
+    this.add.image(RIVER.x, 0, 'river-props').setOrigin(0).setDepth(DEPTH.fronts);
+    this.add.image(RIVER.tower.x, RIVER.tower.y, 'river-tower').setOrigin(0).setDepth(DEPTH.fronts);
     this.growth = new TownGrowth(this);
     for (const image of this.growth.images) image.setDepth(DEPTH.grown);
     if (this.counts) this.growth.show(this.counts);

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 // themselves are not in the repository, so nothing here reads them.
 
 const doc = readFileSync('docs/art-1.4.md', 'utf8').replace(/\r\n/g, '\n');
-const docs = ['docs/art-1.4.md', 'docs/art-1.6.md', 'docs/art-1.7.md', 'docs/art-1.8.md', 'docs/art-1.9.md'].map((f) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n'));
+const docs = ['docs/art-1.4.md', 'docs/art-1.6.md', 'docs/art-1.7.md', 'docs/art-1.8.md', 'docs/art-1.9.md', 'docs/art-2.0.md'].map((f) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n'));
 const art = readFileSync('docs/art.md', 'utf8').replace(/\r\n/g, '\n');
 const before = new Set(readFileSync('tests/fixtures/sprites-1.3.txt', 'utf8').split(/\r?\n/).filter(Boolean));
 
