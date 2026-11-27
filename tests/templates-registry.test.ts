@@ -191,6 +191,8 @@ describe('the template table', () => {
       expect(steps, lang).toContain(`"${F.bookPng}" with the mcp__nook-office__render_png tool at 1123 by 794`);
       expect(steps, lang).toContain(`"${F.bookPdf}" with the mcp__nook-office__make_pdf tool`);
       for (const said of [/eight pages/, /A4 landscape/, /cover/, /the child's name/, /one description/, /designer subagent/, /inline SVG/, /reviewer/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
+      // One line to the child, in the book's language only: a real run wrote both "给 小满" and "For Xiaoman".
+      expect(steps, lang).toMatch(/in L only: never both/);
     }
   });
 
