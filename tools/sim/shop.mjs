@@ -12,7 +12,9 @@ import { delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:pa
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const { _electron: electron } = require('playwright');
+// Loaded only to start the app: the helpers that make a throwaway home need no browser, and a checkout that only
+// runs the unit tests (the release workflow) has no playwright installed.
+const electron = () => require('playwright')._electron;
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ELECTRON = join(ROOT, 'node_modules', 'electron', 'dist', process.platform === 'win32' ? 'electron.exe' : 'electron');
@@ -203,7 +205,7 @@ export async function launch({ lang = 'zh-CN', home = freshHome(), size = 'mediu
   };
   for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
   // Electron now and then fails to start right after another one quit; one more try is enough.
-  const start = () => electron.launch({ executablePath: ELECTRON, args: ['-r', ISOLATE, appDir, '--no-sandbox', ...(displayScale ? [`--force-device-scale-factor=${displayScale}`] : []), ...args], env, cwd: appDir });
+  const start = () => electron().launch({ executablePath: ELECTRON, args: ['-r', ISOLATE, appDir, '--no-sandbox', ...(displayScale ? [`--force-device-scale-factor=${displayScale}`] : []), ...args], env, cwd: appDir });
   const app = await start().catch(async (err) => {
     if (!/failed to launch/i.test(String(err?.message))) throw err;
     await sleep(2000);
