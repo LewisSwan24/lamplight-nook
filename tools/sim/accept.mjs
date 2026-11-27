@@ -3789,7 +3789,8 @@ const SCENARIOS = {
       check(there.visible && there.at === 'counter' && !there.moving, `the apprentice did not open the shop at the counter: ${JSON.stringify(there)}`);
       await shop.shot(join(out, 'apprentice-shop.png'));
       await listen(shop);
-      await shop.order({ template: 'page', want: W[lang].page });
+      // A kind of work the home shop keeps (a page went to the workshop in road-to-1.4.md D3, and its errands with it).
+      await shop.order({ template: 'research', want: W[lang].research });
       await shop.submit();
       const shots = new Set();
       const r = await shop.workUntilDone({ onTick: async () => {
