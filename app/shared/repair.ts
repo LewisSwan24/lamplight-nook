@@ -16,9 +16,9 @@ const SHOWN = 3;
  * A command that first steps into a folder, `cd <folder> && <the rest>`: the way a fixer runs the tests of the copy it
  * was lent, which sits one folder down from where it works.
  */
-export function steppingIn(command: string): { dir?: string; rest: string } {
+export function steppingIn(command: string): { dir?: string; bare?: boolean; rest: string } {
   const m = /^cd\s+(?:"([^"]*)"|'([^']*)'|([^\s"';&|]+))\s*&&\s*(\S[\s\S]*)$/.exec(command.trim());
-  return m ? { dir: m[1] ?? m[2] ?? m[3], rest: m[4] } : { rest: command.trim() };
+  return m ? { dir: m[1] ?? m[2] ?? m[3], bare: m[3] !== undefined, rest: m[4] } : { rest: command.trim() };
 }
 
 /** What a fixer puts after its tests to keep the output short: errors in with the rest, and the last lines only. */

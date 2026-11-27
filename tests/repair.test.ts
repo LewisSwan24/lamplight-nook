@@ -200,6 +200,12 @@ describe('repair: what the fixer may do with git', () => {
       expect([c, classify('Bash', { command: c }, { workDir, repair: true }).reason]).not.toEqual([c, strings.risk.repairTests]);
     }
     expect(isTestCommand(`cd "${mine}" && npm test`)).toBe(true);
+    // Bare, a backslash escapes the next character in Bash: mine/\.\./\.\. is mine/../.., one folder above the commission.
+    for (const c of ['cd mine/\\.\\./\\.\\. && npm test', 'cd mine\\sub && npm test', 'cd \\.\\. && npm test']) {
+      expect([c, classify('Bash', { command: c }, { workDir, repair: true }).reason]).not.toEqual([c, strings.risk.repairTests]);
+    }
+    // Quoted, it is only a character: a Windows path written with backslashes still steps into the copy.
+    expect(classify('Bash', { command: `cd "${mine}\\sub" && npm test` }, { workDir, repair: true }).reason).toBe(strings.risk.repairTests);
   });
 
   it('lets the fixer keep the test output short, the way a real one does, and nothing more', () => {
