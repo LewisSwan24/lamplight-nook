@@ -90,8 +90,8 @@ body.debug #debug { display: block; }
 .actions button:hover, .commission button:hover, .sticker:hover { transform: translateY(-1px) rotate(-0.4deg); }
 .actions button:active, .commission button:active, .sticker:active { transform: translateY(1px); }
 .actions button:active::before, .commission button:active::before, .sticker:active::before { box-shadow: inset 0 0 8px rgba(122, 82, 54, 0.4); }
-.actions button.default, .actions button.consult-finish, .actions button.handin-sign { color: #fff; }
-.actions button.default::before, .actions button.consult-finish::before, .actions button.handin-sign::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
+.actions button.default, .actions button.consult-finish, .actions button.handin-sign, .actions button.repair-keep { color: #fff; }
+.actions button.default::before, .actions button.consult-finish::before, .actions button.handin-sign::before, .actions button.repair-keep::before { background: radial-gradient(ellipse at 35% 30%, rgba(255, 220, 190, 0.55), transparent 65%), url('../../assets/ui/paper.png') center / 128px, var(--accent); }
 .actions button:focus-visible, .sticker:focus-visible { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .commission label { display: block; margin: 8px 0; font-family: var(--hand); font-size: 17px; }
 .commission textarea, .commission input, .meeting textarea, .welcome input, .settings input { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; font-size: 15px; background: rgba(255, 253, 248, 0.7) !important; border: none !important; border-bottom: 1.5px solid rgba(122, 82, 54, 0.45) !important; border-radius: 0 !important; }
@@ -174,6 +174,17 @@ body.debug #debug { display: block; }
 .consult .actions { flex-wrap: wrap; }
 .commission button:disabled { opacity: 0.5; cursor: default; transform: none; }
 .result-lent .hint { overflow-wrap: anywhere; }
+/* A repair's review sheet (plan-1.8.md H9): the files scroll if there are many; the user's word sits under them. */
+.repair-sheet { margin: 4px 0 8px; }
+.repair-sheet code { font-family: Consolas, 'Cascadia Mono', monospace; font-size: 0.92em; overflow-wrap: anywhere; }
+.repair-say { margin-bottom: 4px; line-height: 1.6; }
+.repair-heading { font-weight: bold; margin-top: 6px; }
+.repair-files { max-height: 8.5em; overflow-y: auto; margin: 2px 0; padding-left: 1.2em; }
+.repair-files li { margin: 2px 0; }
+.repair-size { color: var(--muted, #8a7a6a); font-size: 0.9em; }
+.repair-why { margin: 0; }
+.repair-said:empty { display: none; }
+.progress-tally { margin-top: 2px; overflow-wrap: anywhere; }
 .hint.warn { color: #a5452c; opacity: 1; }
 
 /* Decision dialog: background dimmed 40% */

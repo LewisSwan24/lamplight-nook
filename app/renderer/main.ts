@@ -5,6 +5,7 @@ import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
 import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
+import { NO_TALLY, tallyLine, tallyRepair, type RepairTally } from '../shared/repair';
 import type { ActorId, AnchorId, CharacterCommand, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
 import { setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
@@ -673,9 +674,11 @@ function resultCard(result: CommissionResult) {
     showResult(result, {
       open: (path, how) => window.lamplight.openOutput(path, how),
       openSource: (n) => void window.lamplight.openSource(result.run ?? '', n),
-      revise: (id) => void revise(id),
+      // A repair is changed by another repair: its branch, once kept or dropped, is no longer the shop's to work on (H9).
+      revise: result.repair ? undefined : (id) => void revise(id),
       restore: (id) => window.lamplight.restorePrevious(id),
       undo: (id) => window.lamplight.undoWork(id),
+      decideRepair: (id, keep) => window.lamplight.decideRepair(id, keep),
       firstWork: worksKept === 0,
       report: () => void window.lamplight.writeToUs({ about: 'content', title: result.project?.title ?? lastWant ?? undefined }),
     });
@@ -818,6 +821,12 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
   if (hasFailureCard(r.error)) await whenFree();
   if (!showFailure(window.lamplight, r.error ?? '', again, { cost: formatUsd(r.spentThisRun ?? r.costUsd ?? 0), ...cap }, r.cap ? undefined : r.workDir, (r.budget ?? []).map(budgetLine)) && !live().some((x) => x.run !== r.run)) clearWorkSigns();
 }
+/** Who the running card names: the people of the room the lead round is played in, a street shop's own or the home staff. */
+function crewOnCard(): ActorId[] {
+  const room = roomOfRun(live()[0]?.run);
+  return isStreetShop(room) ? ROOM_CREW[room] : STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done));
+}
+
 /** The one card for work under way. */
 function openProgress() {
   showRunning(window.lamplight, () => ({
@@ -829,7 +838,8 @@ function openProgress() {
     steps: boardSteps(),
     realPlan: leadStage().planIsReal,
     now: leadStage().latestDoing,
-    staff: STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done)).map((actor) => ({ actor, state: leadStage().actorInfo(actor).state, doing: leadStage().actorInfo(actor).doing ?? '' })),
+    tally: repairLine(live()[0]?.run ?? ''),
+    staff: crewOnCard().map((actor) => ({ actor, state: leadStage().actorInfo(actor).state, doing: leadStage().actorInfo(actor).doing ?? '' })),
   }), { meet: () => void meeting(), actor: (actor) => showActorCard(actor, leadStage().actorInfo(actor), view.detailed), another: () => void newCommission([], true) });
 }
 
@@ -1046,6 +1056,8 @@ async function openShop() {
       scene = next.scene;
       stage = next.stage;
       stage.onScreen = true;
+      // Its blackboard is chalked as it comes on screen: the running card, if open, says the same.
+      refreshRunning();
       if (current) applySettings(current);
     }
     if (outside) goOut(false, byUser);
@@ -1188,8 +1200,16 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
 });
 
 // Live runs: normalized events drive the stage and are logged.
+/** What each repair's fixer has done so far (plan-1.8.md H9), for the running card's line in the workshop. */
+const repairs = new Map<string, RepairTally>();
+/** The running card's line for a repair under way, or nothing for any other work. */
+function repairLine(run: string): string | undefined {
+  return runList.some((r) => r.run === run && r.repair) ? tallyLine(repairs.get(run) ?? NO_TALLY, strings.ui.repair) : undefined;
+}
+
 window.lamplight.onAiEvent((e) => {
   append(`${e.agent} | ${e.kind} | ${e.plain}${e.risk ? ` (${e.risk})` : ''}`);
+  if (e.run && runList.some((r) => r.run === e.run && r.repair)) repairs.set(e.run, tallyRepair(repairs.get(e.run) ?? NO_TALLY, e));
   // Played in the room of its round (D3); a room still being built takes its events once it is drawn, in order.
   const play = (r: Room) => {
     r.stage.speed = 1;

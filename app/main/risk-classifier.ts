@@ -1,4 +1,5 @@
 import { homedir } from 'node:os';
+import { isTestCommand } from '../shared/repair';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
 import type { Risk, ToolKind } from '../shared/types';
@@ -33,6 +34,11 @@ export type RiskContext = {
   nook?: Map<string, NookEntry>;
   /** The round's connections being watched (C6); none when no connection was ticked. */
   round?: RoundWatch;
+  /**
+   * A repair in the user's code repository (plan-1.8.md H9): git is the shop's to run, so the fixer only looks with it.
+   * Pushing, committing, switching or moving branches, and changing remotes are refused outright.
+   */
+  repair?: boolean;
 };
 
 /**
@@ -68,6 +74,22 @@ const COMPLEX = /[|><`]|\$\(|&&|\|\||;/;
 const FIND_ACTION = /^-(delete|exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/;
 /** Where output may go without it being a write: the null device, and the other output stream. */
 const DISCARD = new Set(['/dev/null', 'NUL', 'nul']);
+
+/** What git may do in a repair: look, never change a branch, a commit or a remote (plan-1.8.md H9). */
+const GIT_LOOKS = new Set(['status', 'diff', 'log', 'show', 'grep', 'blame', 'ls-files', 'rev-parse', 'shortlog', 'cat-file']);
+/** git's own options before its command; these two take a value. */
+const GIT_VALUE_OPTIONS = new Set(['-C', '-c']);
+
+/** Some git in this command line that does more than look. */
+function gitChanges(cmd: string): boolean {
+  for (const m of cmd.matchAll(/(?:^|[\s;&|(])git(?:\.exe)?(?=\s|$)([^;&|\n]*)/gi)) {
+    const words = m[1].trim().split(/\s+/).filter(Boolean);
+    let i = 0;
+    while (i < words.length && words[i].startsWith('-')) i += GIT_VALUE_OPTIONS.has(words[i]) ? 2 : 1;
+    if (!GIT_LOOKS.has(words[i] ?? '')) return true;
+  }
+  return false;
+}
 
 const ORDER: Risk[] = ['safe', 'ask', 'serious', 'blocked'];
 const worse = (a: RiskVerdict, b: RiskVerdict) => (ORDER.indexOf(b.risk) > ORDER.indexOf(a.risk) ? b : a);
@@ -318,6 +340,8 @@ function pathVerdict(ctx: RiskContext, p: string, writing: boolean): RiskVerdict
     return { risk: 'blocked', reason: R.hiddenConfig };
   }
   if (!writing) return null;
+  // A repair's git is the shop's (H9): nothing is written into a .git, the worktree's or any other.
+  if (ctx.repair && full.split(/[\\/]/).some((part) => part.toLowerCase() === '.git')) return { risk: 'blocked', reason: R.repairGit };
   if (!isInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
   // A folder the user lent may hold their own links and junctions, which could lead a write anywhere.
   if (ctx.keepOriginal && !reallyInside(ctx.workDir, full)) return { risk: 'serious', reason: R.outsideFolder };
@@ -382,6 +406,10 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
   if (tool === 'Bash' || tool === 'PowerShell') {
     const cmd = String(input.command ?? '').trim();
     if (!cmd) return { risk: 'serious', reason: R.emptyCommand };
+    if (ctx.repair && gitChanges(cmd)) return { risk: 'blocked', reason: R.repairGit };
+    // A repair's tests run the repository's own code: the user is asked, in those words.
+    // Only a plain command: anything chained, piped or substituted onto it is judged as itself.
+    if (ctx.repair && isTestCommand(cmd) && !/[;&|`$()<>\n]/.test(cmd)) return { risk: 'ask', reason: R.repairTests };
     if (tool === 'Bash') return classifyBash(cmd, ctx);
     if (DELETE.test(cmd)) return { risk: 'serious', reason: R.delete };
     if (NETWORK_SEND.test(cmd)) return { risk: 'serious', reason: R.networkSend };

@@ -33,7 +33,7 @@ export type PromptParts = {
  * What the user picks besides writing the request, through the main process's dialog: a file (copied into the
  * commission folder as the original) or a folder (listed into it; the shop never sees the folder itself).
  */
-export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes: number } | { kind: 'folder' };
+export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes: number } | { kind: 'folder' } | { kind: 'repo' };
 
 /**
  * What the result card opens, best first, matched on file names: a page the shop made, an edited document, a chart
@@ -451,6 +451,19 @@ export const TEMPLATES = [
       `Then lay the book out as "${files.bookPdf}" with the mcp__nook-office__make_pdf tool, one page of the book to a sheet: that part is the print shop's.`,
       'When you ask the reviewer to check the book, give them the picture of its cover too.',
       `In your final reply, say in ${language}, in one line, what the story is about and who it is for.`,
+    ],
+  },
+  // A repair (plan-1.8.md H9): a code repository the user lends, worked on in a worktree on a branch of its own, so
+  // their branches and remotes are never touched. The shop commits the work and writes the review sheet (main/repair.ts).
+  {
+    id: 'repair', shop: 'workshop', icon: 26, revise: false, main: 'writeup', source: { kind: 'repo' },
+    steps: ({ language, files, sourceName }) => [
+      `The user lent the shop their code repository. It is checked out in the folder "${sourceName}" here, on a branch of its own made for this commission. Work only inside that folder.`,
+      'Read what you need to understand the code before you change it. Keep the change as small as the request allows, in the style the code already has.',
+      'Leave git to the shop: do not commit, switch, make or move branches, reset, merge, rebase, stash, tag or push, and do not touch remotes. git status, diff, log and show are fine. The shop commits your work on the branch when you finish.',
+      'If the project has tests, run them after the change and fix what your change broke. Install nothing new unless the tests cannot run without it.',
+      `When you are done, write "${files.repairNotes}" here, beside that folder and not inside it, as JSON: {"changes": [{"file": "<its path inside the repository, with />", "why": "<one sentence in ${language}>"}], "tests": {"ran": true or false, "command": "<the command you ran>", "passed": true or false, "note": "<one sentence in ${language}>"}}, with one entry for each file you changed, added or deleted.`,
+      `In your final reply, say in ${language}, in one or two lines, what was wrong and what you changed.`,
     ],
   },
 ] as const satisfies readonly TemplateSpec[];

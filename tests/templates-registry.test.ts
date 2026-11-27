@@ -30,7 +30,7 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair']);
   });
 
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
@@ -152,7 +152,7 @@ describe('the template table', () => {
   });
 
   it('adds a four-panel comic after the small game, drawn in the studio, whose piece hangs in the studio (plan-1.8.md H3)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-2, -1)).toEqual(['comic']);
+    expect(TEMPLATES.map((t) => t.id).slice(-3, -2)).toEqual(['comic']);
     const t = template('comic');
     expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['studio', 24, 'picture', { id: 'strip', at: 1 }, 'editor', true, false, false, false]);
     for (const [lang, S] of Object.entries(LOCALES)) {
@@ -172,8 +172,8 @@ describe('the template table', () => {
     }
   });
 
-  it('adds a picture book last, drawn in the studio and laid out in the print shop (plan-1.8.md H4)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['picturebook']);
+  it('adds a picture book, drawn in the studio and laid out in the print shop (plan-1.8.md H4)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-2, -1)).toEqual(['picturebook']);
     const t = template('picturebook');
     expect([t.shop, t.then, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['studio', 'print', 25, 'book', { id: 'book', at: 1 }, 'mum', true, false, false, false]);
     for (const [lang, S] of Object.entries(LOCALES)) {
@@ -193,6 +193,24 @@ describe('the template table', () => {
       for (const said of [/eight pages/, /A4 landscape/, /cover/, /the child's name/, /one description/, /designer subagent/, /inline SVG/, /reviewer/, /Read tool/]) expect(steps, `${lang} ${said}`).toMatch(said);
       // One line to the child, in the book's language only: a real run wrote both "给 小满" and "For Xiaoman".
       expect(steps, lang).toMatch(/in L only: never both/);
+    }
+  });
+
+  it('adds a repair last, done in the workshop on a branch of a repository the user lends (plan-1.8.md H9)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['repair']);
+    const t = template('repair');
+    expect([t.shop, t.icon, t.main, t.revise, t.source, 'growth' in t, 'roomGrowth' in t, 'photos' in t]).toEqual(['workshop', 26, 'writeup', false, { kind: 'repo' }, false, false, false]);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      expect(F.repairNotes, lang).toBe('repair.json');
+      // The sheet the shop writes is what the card opens.
+      expect(MAIN_FILES.writeup(F.repairSheet), lang).toBe(true);
+      expect((S.ui.templates as Record<string, string>).repairHint, `${lang} repairHint`).toBeTruthy();
+      expect((S.ui.shelf.kinds as Record<string, string>).repair, `${lang} kinds.repair`).toBeTruthy();
+      const steps = t.steps({ language: 'L', files: F, sourceName: 'mine', original: '', revised: '' }).join(' ');
+      expect(steps, lang).toContain('the folder "mine"');
+      expect(steps, lang).toContain(`"${F.repairNotes}"`);
+      for (const said of [/branch of its own/, /Work only inside that folder/, /do not commit/, /push/, /run them/, /"changes"/, /"tests"/, /in L/]) expect(steps, `${lang} ${said}`).toMatch(said);
     }
   });
 
@@ -254,7 +272,7 @@ describe('the template table', () => {
     expect(EDITABLE.some((e) => /m$/.test(e) && e !== 'htm')).toBe(false);
     expect(MAX_EDIT_BYTES).toBe(20 * 1024 * 1024);
     expect(template('tidy').source).toEqual({ kind: 'folder' });
-    expect(TEMPLATES.filter((t) => 'source' in t).map((t) => t.id)).toEqual(['edit', 'tidy']);
+    expect(TEMPLATES.filter((t) => 'source' in t).map((t) => t.id)).toEqual(['edit', 'tidy', 'repair']);
     expect(TEMPLATES.filter((t) => 'photos' in t).map((t) => t.id)).toEqual(['album']);
   });
 
@@ -272,7 +290,7 @@ describe('the template table', () => {
     const at = (shop: string) => TEMPLATES.filter((t) => t.shop === shop).map((t) => t.id).sort();
     expect(at('print')).toEqual(['document', 'ledgerbook', 'resume', 'sheet', 'slides']);
     expect(at('studio')).toEqual(['album', 'chart', 'comic', 'picturebook', 'poster']);
-    expect(at('workshop')).toEqual(['minigame', 'page', 'tool']);
+    expect(at('workshop')).toEqual(['minigame', 'page', 'repair', 'tool']);
     expect(at('bakery')).toEqual(['menu', 'recipe']);
     expect(at('post')).toEqual(['card', 'newsletter']);
     expect(at('home')).toEqual(['edit', 'flashcards', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);
@@ -283,6 +301,6 @@ describe('the template table', () => {
   });
 
   it('repeats its steps in a round of changes, except research', () => {
-    expect(TEMPLATES.filter((t) => !t.revise).map((t) => t.id)).toEqual(['research']);
+    expect(TEMPLATES.filter((t) => !t.revise).map((t) => t.id)).toEqual(['research', 'repair']);
   });
 });

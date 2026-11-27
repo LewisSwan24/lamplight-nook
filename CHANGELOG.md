@@ -38,6 +38,14 @@
 - **The blackboard follows a picture book.** When a picture book moved from the studio to the print shop, the print
   shop's blackboard kept the studio's plan where it stopped. Now the plan goes with the order, and is ticked off to
   the end.
+- **Fix code in the workshop.** A new kind of order: lend the workshop a code repository and say what to fix. The
+  fixer works on a new branch of its own beside the order's folder, and never touches your branches, your uncommitted
+  changes or anything online; a push is refused. While it works, the running card counts the files read, the changes
+  made and how the tests went, and running the tests asks you first. It comes back with a review sheet: every file
+  changed and why, and the test results. Approve it and the branch stays for you to merge; turn it down and the
+  branch is deleted.
+- **The running card matches the room.** In a street shop, the card for work under way now names that shop's own
+  people instead of the home staff, and shows the plan on its blackboard the first time the shop is drawn, too.
 - **PDFs keep their page size.** A page that sets its own size, such as a landscape book, now comes out that size
   instead of being shrunk onto portrait A4.
 - **Comic strip.** A new kind of order in the studio: a four-panel comic, drawn as one long picture with a PDF

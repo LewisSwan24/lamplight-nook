@@ -309,6 +309,12 @@ export class MemoryStore {
     this.save();
   }
 
+  /** The user kept or dropped a repair's branch (plan-1.8.md H9). */
+  repairDecided(id: string, state: 'kept' | 'dropped') {
+    this.data.commissions.find((c) => c.id === id)!.repair!.state = state;
+    this.save();
+  }
+
   find(id: string): CommissionMemo | undefined {
     const c = this.data.commissions.find((m) => m.id === id);
     return c && structuredClone(c);

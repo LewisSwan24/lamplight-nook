@@ -95,6 +95,10 @@ const T = {
     comicDone: '四格漫画画好了：猫偷了鱼还不认，最后一格露了馅。一张长图，另存了一份 PDF。',
     minigame: ['弄清给谁玩、玩什么', '定好玩法和规则', '写成一个网页', '画出第一屏看一眼', '请老石试玩'],
     minigameDone: '小游戏做好了：翻牌找朋友，点两张一样的就留下，全翻开就赢。一个网页，打开就能玩，不用联网。',
+    repair: ['看看仓库和出错的地方', '改代码', '跑测试', '写验货单'],
+    repairDone: '修好了：加法写成了减法，改回来了，测试也过了。验货单在柜台上。',
+    repairWhy: '加法写成了减法。',
+    repairNote: '两个测试都过了。',
     journal: ['弄清去哪、几天', '请小橘查开放时间和票价', '排成一页手账，画路线图', '存成 PDF，再看一遍', '请老石检查'],
     journalDone: '手账做好了：一页 A4，三天的路线和清单，还有一张手画的路线图，存成了 PDF。开放时间注了出处，出发前再核对一下。',
     travelDone: '攻略做好了：按天排的行程、预算表和要带的东西。开放时间和票价都注了出处和查的日期，出发前再核对一下。',
@@ -206,6 +210,10 @@ const T = {
     comicDone: 'The comic strip is ready: the cat took the fish and denies it, until the last panel gives it away. One long picture, and a PDF.',
     minigame: ['Who plays, and what game', 'Settle the rules', 'Write it as one page', 'Draw the first screen and look', 'Ask Flint to try it'],
     minigameDone: 'The game is ready: find the pairs. Turn over two cards; a matching pair stays face up. One page that plays with no network.',
+    repair: ['Look through the repository', 'Change the code', 'Run the tests', 'Write the review sheet'],
+    repairDone: 'Fixed: the add function subtracted. It adds now, and the tests pass. The review sheet is at the counter.',
+    repairWhy: 'It subtracted instead of adding.',
+    repairNote: 'Both tests pass.',
     journal: ['Where to, and for how long', 'Send Clem for opening hours and prices', 'Lay out one page, draw the route', 'Save the PDF and look it over', 'Ask Flint to check it'],
     journalDone: 'The travel journal is ready: one A4 page with the three days, a list for each and a hand-drawn map of the route, saved as a PDF. Opening hours carry their source; check them again before you set off.',
     travelDone: 'The travel guide is ready: day by day, a budget table and a packing list. Opening hours and prices carry their source and the date checked; check them again before you set off.',
@@ -565,6 +573,11 @@ export function pickPlay(prompt, state, system = '') {
     return plays.resume;
   }
   if (/These are reading notes/.test(prompt)) { state.vars.out = quoted(prompt, 'Write them as'); return plays.notes; }
+  if (/The user lent the shop their code repository/.test(prompt)) {
+    state.vars.repo = quoted(prompt, 'checked out in the folder');
+    state.vars.notes = quoted(prompt, 'When you are done, write');
+    return plays.repair;
+  }
   if (/This is a picture book for a child/.test(prompt)) {
     state.vars.out = quoted(prompt, 'single self-contained page');
     [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
@@ -1100,6 +1113,35 @@ export const plays = {
       await reviewer(s, t, s.state.vars.out);
       await p.end();
       await s.finish(t.tidyDone);
+    },
+  },
+
+  // A repair in a lent repository (plan-1.8.md H9): reads it, fixes the subtraction in add.js, runs the tests for real,
+  // and writes its notes. Asked to push, it tries: the shop refuses, so the remote must stay as it was.
+  repair: {
+    name: 'repair',
+    async run(s) {
+      const t = T[s.state.lang];
+      const { repo, notes } = s.state.vars;
+      const p = planner(s, t.repair);
+      await p.start();
+      for (const f of readdirSync(join(s.cwd, repo)).filter((f) => /\.(js|md)$/.test(f))) await s.step(() => s.read(join(repo, f)));
+      await p.next();
+      await s.step(() => s.edit(join(repo, 'add.js'), 'a - b', 'a + b'));
+      await p.next();
+      const ran = await s.step(() => s.tool('Bash', { command: 'node --test' }, { effect: () => {
+        try { return { text: execFileSync('node', ['--test'], { cwd: join(s.cwd, repo), encoding: 'utf8' }) }; } catch (e) { return { text: String(e.stdout ?? e), error: true }; }
+      } }));
+      if (/推|push/i.test(s.state.vars.want ?? '')) {
+        await s.step(() => s.tool('Bash', { command: 'git push' }, { effect: () => ({ text: execFileSync('git', ['push'], { cwd: join(s.cwd, repo), encoding: 'utf8' }) }) }));
+      }
+      // A moment before the notes, so the running card can be looked at with the tests done.
+      await s.step(() => s.think(12));
+      await p.next();
+      const passed = !ran?.error;
+      await s.step(() => s.write(notes, JSON.stringify({ changes: [{ file: 'add.js', why: t.repairWhy }], tests: { ran: true, command: 'node --test', passed, note: t.repairNote } }, null, 2)));
+      await p.end();
+      await s.finish(t.repairDone);
     },
   },
 

@@ -81,6 +81,20 @@ describe('normalizer: cases not in the recording', () => {
     expect(n.push(hook('PostToolUse', { tool_name: 'Bash', tool_use_id: 'c' }))[0]).toMatchObject({ kind: 'tool_ok', failStreak: 0 });
   });
 
+  it('marks a test run from start to end, and nothing else (plan-1.8.md H9)', () => {
+    const n = new EventNormalizer();
+    const pre = (id: string, command: string) => hook('PreToolUse', { tool_name: 'Bash', tool_use_id: id, tool_input: { command } });
+    expect(n.push(pre('a', 'npm run test -- --reporter dot'))[0]).toMatchObject({ kind: 'tool_start', test: true });
+    expect(n.push(hook('PostToolUse', { tool_name: 'Bash', tool_use_id: 'a' }))[0]).toMatchObject({ kind: 'tool_ok', test: true });
+    n.push(pre('b', 'pytest -q'));
+    expect(n.push(msg({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'b', is_error: true }] } }))[0]).toMatchObject({ kind: 'tool_fail', test: true });
+    n.push(pre('c', 'go test ./...'));
+    expect(n.push(hook('PostToolUseFailure', { tool_name: 'Bash', tool_use_id: 'c', tool_input: { command: 'go test ./...' } }))[0]).toMatchObject({ kind: 'tool_fail', test: true });
+    const plain = n.push(pre('d', 'npm run build'))[0];
+    expect(plain.kind).toBe('tool_start');
+    expect('test' in plain).toBe(false);
+  });
+
   it('emits long_wait once when a shell command runs past 30 s', () => {
     const n = new EventNormalizer();
     n.push(hook('PreToolUse', { tool_name: 'Bash', tool_use_id: 'x', tool_input: { command: 'npm install' } }, 0));
