@@ -86,7 +86,8 @@ export class Crowd {
     for (let i = this.passers.length - 1; i >= 0; i--) {
       const p = this.passers[i];
       const out = p.dir > 0 ? p.x > at.view.right + GONE : p.x < at.view.left - GONE;
-      if (out || p.x < 0 || p.x > TOWN.width) this.passers.splice(i, 1);
+      // Past either end of the town too, as far out as past the view: at an end they set off from beyond it (plan-2.0.md J1).
+      if (out || p.x < -GONE || p.x > TOWN.width + GONE) this.passers.splice(i, 1);
     }
     if (this.passers.length >= target) return;
     this.gap -= dt;

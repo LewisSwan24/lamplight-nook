@@ -1,6 +1,7 @@
 import data from '../../../assets/sprites/town.json';
+import river from '../../../assets/sprites/river.json';
 import { ROOMS, type RoomId } from '../../shared/scenes';
-import type { ShopId } from '../../shared/town';
+import type { ShopId, StreetId } from '../../shared/town';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
 import { WALK_SPEED } from './life';
@@ -14,8 +15,17 @@ import { type Area, type Box, findPath, type Point } from './path';
 export type { ShopId };
 export type Front = { id: ShopId; x: number; w: number; door: number };
 
-export const TOWN = { width: data.width, height: data.height, kerb: data.kerb, road: data.road } as const;
-export const FRONTS = data.fronts as Front[];
+/**
+ * The street along the river (plan-2.0.md J1, scripts/art/river.py), put on at the end of the first street: it starts at
+ * `x`, with the bridge, and its fronts, tower and props are where river.json has them, moved along by `x`.
+ */
+export const RIVER = { x: data.width, width: river.width, bridge: { x: data.width + river.bridge.x, w: river.bridge.w }, tower: { ...river.tower, x: data.width + river.tower.x } } as const;
+/** The whole town end to end: the first street, then the river street. */
+export const TOWN = { width: data.width + river.width, height: data.height, kerb: data.kerb, road: data.road } as const;
+export const FRONTS = [...(data.fronts as Front[]), ...(river.fronts as Front[]).map((f) => ({ ...f, x: RIVER.x + f.x, door: RIVER.x + f.door }))];
+
+/** Which street a point along the town is on: the bridge still belongs to the first. */
+export const streetAt = (x: number): StreetId => (x < RIVER.bridge.x + RIVER.bridge.w ? 'main' : 'river');
 
 /** The fronts one can go into: every room (D2). The bakery and the post office stay neighbours' doors. */
 export const OPEN: ReadonlySet<ShopId> = new Set(ROOMS);
@@ -48,7 +58,11 @@ export const doorOf = (id: ShopId): Point => ({ x: FRONTS.find((f) => f.id === i
  * walk stays the same as the town grows.
  */
 export function streetArea(): Area {
-  const feet = [...data.props, ...data.grow.flatMap((p) => ('foot' in p && p.foot ? [p.foot] : []))];
+  const feet = [
+    ...data.props,
+    ...data.grow.flatMap((p) => ('foot' in p && p.foot ? [p.foot] : [])),
+    ...river.props.map((p) => ({ ...p, left: RIVER.x + p.left, right: RIVER.x + p.right })),
+  ];
   const obstacles: Box[] = feet.map((p) => ({ left: p.left - 1, right: p.right + 1, top: p.top - 1, bottom: p.bottom + 1 }));
   return { left: 4, right: TOWN.width - 4, top: TOWN.kerb + 4, bottom: TOWN.road - 4, obstacles };
 }

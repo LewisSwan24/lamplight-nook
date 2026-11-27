@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Crowd, GLANCE_MS, LANES, PASSER_LOOKS, crowdSize, hourOf, passerSpeed } from '../app/renderer/game/crowd';
-import { FRONTS } from '../app/renderer/game/town';
+import { FRONTS, TOWN } from '../app/renderer/game/town';
 
 // People on the street (plan-1.6.md F3): two to five passing at any hour of the day, more in the morning and evening,
 // nobody deep in the night; fewer and quicker in the rain. They do not go in and say nothing; a click makes one look
@@ -101,6 +101,16 @@ describe('the crowd', () => {
     expect(now.some((id) => !first.includes(id))).toBe(true);
     expect(crowd.passers.length).toBeLessThanOrEqual(crowdSize(12, 'clear'));
     for (const p of crowd.passers) expect(p.x).toBeGreaterThanOrEqual(VIEW.left - 40);
+  });
+
+  it('sends people in from either end of the town too, not only from the middle (plan-2.0.md J1)', () => {
+    // First seen at night, so nobody is out; then the day comes and they walk in from beyond the edge of the view.
+    for (const [view, rng] of [[{ left: 0, right: 320 }, 0.1], [{ left: TOWN.width - 320, right: TOWN.width }, 0.9]] as const) {
+      const crowd = new Crowd(seq(rng));
+      crowd.tick(16, { ...day, hour: 2, view });
+      for (let t = 0; t < 8000; t += 100) crowd.tick(100, { ...day, view });
+      expect(crowd.passers.filter((p) => p.x >= view.left && p.x <= view.right).length, `${view.left}`).toBeGreaterThan(0);
+    }
   });
 
   it('has some stop at a door for a moment, facing the shop, then walk on', () => {
