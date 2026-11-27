@@ -7060,7 +7060,7 @@ const SCENARIOS = {
       await shop.shot(join(out, 'riverstreet-night.png'));
       await page.evaluate(() => { window.lamplightDebug.scene.setPeriod('day', true); window.lamplightDebug.scene.setWeather('rain', null, false); });
       await sleep(800);
-      await page.evaluate((id) => window.lamplightDebug.street.lookAt(id), 'florist');
+      await page.evaluate((id) => window.lamplightDebug.street.lookAt(id), 'flowershop');
       await sleep(400);
       await shop.shot(join(out, 'riverstreet-rain.png'));
       await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));

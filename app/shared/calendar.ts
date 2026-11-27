@@ -52,7 +52,7 @@ export function termOn(date: Date): Term | null {
  */
 export const BIRTHDAYS: Partial<Record<ActorId, [number, number]>> = {
   aqian: [0, 15], adeng: [2, 12], qingdai: [3, 20], guiyi: [4, 18], xiaozhe: [5, 24],
-  xiaoju: [6, 7], xiaoding: [7, 8], xiaodou: [8, 1], axin: [9, 9], laoshi: [10, 2],
+  xiaoju: [6, 7], xiaoding: [7, 8], xiaodou: [8, 1], axin: [9, 9], laoshi: [10, 2], fangjie: [1, 26], jianbo: [11, 6],
 };
 
 /** Whose birthday it is today. */

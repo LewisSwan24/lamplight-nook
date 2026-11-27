@@ -98,7 +98,7 @@ for (const rate of RATES) {
       await measure('street');
       // The river street (plan-2.0.md J1), which another checkout from before 2.0 does not have.
       if (!OTHER) {
-        await shop.page.evaluate(() => window.lamplightDebug.street.lookAt('florist'));
+        await shop.page.evaluate(() => window.lamplightDebug.street.lookAt('flowershop'));
         await sleep(2500);
         await measure('river');
       }

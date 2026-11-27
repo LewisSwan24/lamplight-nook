@@ -1076,7 +1076,7 @@
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
       "moved": "All moved in, {name}. Everything is where it was.",
-      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop", "bakery": "the bakery", "post": "the post office", "florist": "the florist", "bookshop": "the bookshop" },
+      "shops": { "cafe": "the cafe", "study": "the study", "print": "the print shop", "studio": "the studio", "workshop": "the workshop", "bakery": "the bakery", "post": "the post office", "flowershop": "the florist", "bookshop": "the bookshop" },
       "calling": "A question from {shop}. Click to go over",
       "notes": {
         "cafe": "The cafe.",
@@ -1086,7 +1086,7 @@
         "workshop": "The workshop is still being fitted out. It opens soon.",
         "bakery": "Auntie Olive's bakery. Today's bread is just out of the oven.",
         "post": "Pip's post office. Anything to send, just tell the shop.",
-        "florist": "The florist is still being fitted out. It opens soon.",
+        "flowershop": "The florist is still being fitted out. It opens soon.",
         "bookshop": "The bookshop is still being fitted out. It opens soon."
       }
     },

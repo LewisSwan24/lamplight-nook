@@ -25,7 +25,7 @@ BRIDGE = {'x': 0, 'w': 112}
 # Ground floors from the modular sheet: the florist's has striped awnings over two windows of flowers, the bookshop's
 # one wide arched window in grey stone. An upper floor to match each: red brick as on the first street, and grey stone.
 FRONTS = [
-    ('florist', 120, (0, 1328, 144, 1376), UPPER),
+    ('flowershop', 120, (0, 1328, 144, 1376), UPPER),
     ('bookshop', 376, (160, 1856, 272, 1920), (0, 1696, 288, 1746)),
 ]
 # The plot between them where the old clock tower stands.

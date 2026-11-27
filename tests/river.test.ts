@@ -10,7 +10,7 @@ describe('the river street, as drawn', () => {
     expect(river.height).toBe(main.height);
     expect(river.kerb).toBe(main.kerb);
     expect(river.bridge.x).toBe(0);
-    expect(river.fronts.map((f) => f.id)).toEqual(['florist', 'bookshop']);
+    expect(river.fronts.map((f) => f.id)).toEqual(['flowershop', 'bookshop']);
     const [florist, bookshop] = river.fronts;
     expect(florist.x).toBeGreaterThanOrEqual(river.bridge.x + river.bridge.w);
     expect(river.tower.x).toBeGreaterThanOrEqual(florist.x + florist.w);
@@ -32,7 +32,7 @@ describe('the river street, joined on', () => {
 
   it('has the florist and the bookshop to the right of the post office, where the river street has them', () => {
     const ids = FRONTS.map((f) => f.id);
-    expect(ids.slice(-3)).toEqual(['post', 'florist', 'bookshop']);
+    expect(ids.slice(-3)).toEqual(['post', 'flowershop', 'bookshop']);
     for (const f of river.fronts) expect(FRONTS.find((g) => g.id === f.id)).toMatchObject({ x: RIVER.x + f.x, w: f.w, door: RIVER.x + f.door });
   });
 
@@ -43,10 +43,10 @@ describe('the river street, joined on', () => {
   });
 
   it('finds the two new fronts by a click, closed until they open', () => {
-    expect(frontAt(doorOf('florist').x, TOWN.kerb - 20)).toBe('florist');
+    expect(frontAt(doorOf('flowershop').x, TOWN.kerb - 20)).toBe('flowershop');
     expect(frontAt(doorOf('bookshop').x, TOWN.kerb - 20)).toBe('bookshop');
     expect(frontAt(RIVER.x + river.tower.x + 2, TOWN.kerb - 20)).toBeNull();
-    expect(OPEN.has('florist')).toBe(false);
+    expect(OPEN.has('flowershop')).toBe(false);
     expect(OPEN.has('bookshop')).toBe(false);
   });
 

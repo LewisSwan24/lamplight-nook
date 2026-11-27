@@ -14,9 +14,9 @@ describe('two streets', () => {
   });
 
   it('puts the florist and the bookshop on the river street, the florist nearer the bridge', () => {
-    expect(streetOf('florist')).toBe('river');
+    expect(streetOf('flowershop')).toBe('river');
     expect(streetOf('bookshop')).toBe('river');
-    expect(shopsOn('river')).toEqual(['florist', 'bookshop']);
+    expect(shopsOn('river')).toEqual(['flowershop', 'bookshop']);
   });
 
   it('gives every shop exactly one street', () => {

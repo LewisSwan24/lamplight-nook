@@ -13,7 +13,7 @@ export const DEFAULT_SCENE: SceneId = 'cafe';
 export const cleanScene = (v: unknown): SceneId | undefined => (SCENES.includes(v as SceneId) ? (v as SceneId) : undefined);
 
 /** Every room a page can show: the two the home shop can be in, and the shops along the street (D2; the bakery and the post office since plan-1.6.md F1 and F2). */
-export const ROOMS = [...SCENES, 'print', 'studio', 'workshop', 'bakery', 'post'] as const;
+export const ROOMS = [...SCENES, 'print', 'studio', 'workshop', 'bakery', 'post', 'flowershop', 'bookshop'] as const;
 export type RoomId = (typeof ROOMS)[number];
 export const cleanRoom = (v: unknown): RoomId | undefined => (ROOMS.includes(v as RoomId) ? (v as RoomId) : undefined);
 /** One of the rooms the home shop can be in. */
