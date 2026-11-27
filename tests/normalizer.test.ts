@@ -90,6 +90,13 @@ describe('normalizer: cases not in the recording', () => {
     expect(n.push(msg({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'b', is_error: true }] } }))[0]).toMatchObject({ kind: 'tool_fail', test: true });
     n.push(pre('c', 'go test ./...'));
     expect(n.push(hook('PostToolUseFailure', { tool_name: 'Bash', tool_use_id: 'c', tool_input: { command: 'go test ./...' } }))[0]).toMatchObject({ kind: 'tool_fail', test: true });
+    // Output cut short through a pipe: the exit status is the pipe's last command, so how the tests went is not known.
+    expect(n.push(pre('e', 'cd words && npm test 2>&1 | tail -15'))[0]).toMatchObject({ kind: 'tool_start', test: true });
+    const cut = n.push(hook('PostToolUse', { tool_name: 'Bash', tool_use_id: 'e' }))[0];
+    expect(cut.kind).toBe('tool_ok');
+    expect('test' in cut).toBe(false);
+    n.push(pre('f', 'cd words && npm test 2>&1'));
+    expect(n.push(hook('PostToolUse', { tool_name: 'Bash', tool_use_id: 'f' }))[0]).toMatchObject({ kind: 'tool_ok', test: true });
     const plain = n.push(pre('d', 'npm run build'))[0];
     expect(plain.kind).toBe('tool_start');
     expect('test' in plain).toBe(false);

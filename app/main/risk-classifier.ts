@@ -1,5 +1,5 @@
 import { homedir } from 'node:os';
-import { isTestCommand } from '../shared/repair';
+import { isTestCommand, steppingIn, trimmedTest } from '../shared/repair';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fill, strings } from '../shared/i18n';
 import type { Risk, ToolKind } from '../shared/types';
@@ -130,10 +130,22 @@ function gitChanges(cmd: string, tool: string): boolean {
 /** Test runner options that run something else, load a plugin, or work in another folder: not a plain test run. */
 const TEST_REFUSED = /^(--prefix|-C|--cwd|--dir|--manifest-path|--rootdir|-p|-exec|--exec|-c|--config|-r|--require|--import|--loader|--experimental-loader|--workspace|-w)(=|$)/;
 
-/** The project's tests, run plainly in the folder: no other command with them, no option that runs or looks elsewhere. */
-function plainTest(cmd: string): boolean {
-  if (!isTestCommand(cmd) || BREAKS.test(cmd) || /[;&|`$()<>]/.test(cmd)) return false;
-  return cmd.trim().split(/\s+/).every((w) => !TEST_REFUSED.test(w) && !isAbsolute(w.replace(/^--?[\w-]+=/, '')) && !/(^|[\\/=])\.\.([\\/]|$)/.test(w));
+/** A folder to step into, named plainly: nothing a shell would expand, no home (a ~ only counts at the start), no previous folder, no option. */
+const PLAIN_DIR = /^(?![-~])[\p{L}\p{N}\p{M} _.\\/:+,~-]+$/u;
+
+/**
+ * The project's tests, run plainly in the folder: no other command with them, no option that runs or looks elsewhere.
+ * The fixer may step into a folder first, the borrowed copy or one inside it, but not one a link leads out of, and may
+ * keep the output short.
+ */
+function plainTest(cmd: string, ctx: RiskContext): boolean {
+  if (!isTestCommand(cmd) || BREAKS.test(cmd)) return false;
+  const { dir, rest: all } = steppingIn(cmd);
+  // Output kept short (`2>&1 | tail -15`) is still only the tests.
+  const rest = trimmedTest(all).core;
+  if (dir !== undefined && (!PLAIN_DIR.test(dir) || !reallyInside(ctx.workDir, abs(ctx.workDir, dir)))) return false;
+  if (/[;&|`$()<>]/.test(rest)) return false;
+  return rest.split(/\s+/).every((w) => !TEST_REFUSED.test(w) && !isAbsolute(w.replace(/^--?[\w-]+=/, '')) && !/(^|[\\/=])\.\.([\\/]|$)/.test(w));
 }
 
 const ORDER: Risk[] = ['safe', 'ask', 'serious', 'blocked'];
@@ -455,7 +467,7 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
     if (ctx.repair && gitChanges(cmd, tool)) return { risk: 'blocked', reason: R.repairGit };
     // A repair's tests run the repository's own code: the user is asked, in those words.
     // A plain test run asks in those words, unless it would be refused anyway; anything else is judged as itself.
-    if (ctx.repair && plainTest(cmd)) {
+    if (ctx.repair && plainTest(cmd, ctx)) {
       const as = classifyCall(tool, input, { ...ctx, repair: false });
       return as.risk === 'blocked' ? as : { risk: 'ask', reason: R.repairTests };
     }

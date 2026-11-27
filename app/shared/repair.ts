@@ -12,9 +12,32 @@ const EDITS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 /** Names shown on the line; the rest are counted. */
 const SHOWN = 3;
 
-/** A command that runs a project's tests, in the usual ways of the usual languages. */
-export function isTestCommand(command: string): boolean {
+/**
+ * A command that first steps into a folder, `cd <folder> && <the rest>`: the way a fixer runs the tests of the copy it
+ * was lent, which sits one folder down from where it works.
+ */
+export function steppingIn(command: string): { dir?: string; rest: string } {
+  const m = /^cd\s+(?:"([^"]*)"|'([^']*)'|([^\s"';&|]+))\s*&&\s*(\S[\s\S]*)$/.exec(command.trim());
+  return m ? { dir: m[1] ?? m[2] ?? m[3], rest: m[4] } : { rest: command.trim() };
+}
+
+/** What a fixer puts after its tests to keep the output short: errors in with the rest, and the last lines only. */
+const CUT = /\s*\|\s*(?:tail|head)(?:\s+-n)?\s+-?\d+\s*$/;
+const ERRORS_IN = /\s+2>&1\s*$/;
+
+/**
+ * A test command without that: `core` is the command itself. `cut` when the output went through a pipe, whose last
+ * command's exit status is the one that comes back, so it no longer says how the tests went.
+ */
+export function trimmedTest(command: string): { core: string; cut: boolean } {
   const c = command.trim();
+  const uncut = c.replace(CUT, '');
+  return { core: uncut.replace(ERRORS_IN, ''), cut: uncut !== c };
+}
+
+/** A command that runs a project's tests, in the usual ways of the usual languages, perhaps after stepping into a folder. */
+export function isTestCommand(command: string): boolean {
+  const c = steppingIn(command).rest;
   return /^(npm|yarn|pnpm|bun)\s+(run\s+)?(test|t)\b/.test(c)
     || /^(npx\s+)?(vitest|jest|mocha|ava|tap|pytest)\b/.test(c)
     || /^node\s+--test\b/.test(c)

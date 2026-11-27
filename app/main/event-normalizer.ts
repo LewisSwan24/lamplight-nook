@@ -1,6 +1,6 @@
 import { fill, pattern, strings } from '../shared/i18n';
 import { plainTodo, todosOf, type Todo } from '../shared/board';
-import { isTestCommand } from '../shared/repair';
+import { isTestCommand, steppingIn, trimmedTest } from '../shared/repair';
 import type { AiEvent, AiEventKind, Choice, RawAgentEvent, Risk } from '../shared/types';
 
 /**
@@ -43,10 +43,14 @@ function asAgent(type: unknown): Agent {
   return SUBAGENT_TYPES.includes(type as Agent) ? (type as Agent) : 'unknown';
 }
 
-/** A shell command that runs the project's tests (plan-1.8.md H9), marked on its events so the workshop can count it. */
-function testOf(tool: string, input: unknown): { test: true } | Record<string, never> {
+/**
+ * A shell command that runs the project's tests (plan-1.8.md H9), marked on its events so the workshop can count it.
+ * Its result is marked too (`outcome`), unless the output went through a pipe: then the exit status is the pipe's.
+ */
+function testOf(tool: string, input: unknown, outcome = false): { test: true } | Record<string, never> {
   const cmd = str(obj(input).command);
-  return (tool === 'Bash' || tool === 'PowerShell') && cmd && isTestCommand(cmd) ? { test: true } : {};
+  if (!(tool === 'Bash' || tool === 'PowerShell') || !cmd || !isTestCommand(cmd)) return {};
+  return outcome && trimmedTest(steppingIn(cmd).rest).cut ? {} : { test: true };
 }
 
 function baseName(p: string): string {
@@ -216,7 +220,7 @@ export class EventNormalizer {
         }
         const target = targetOf(tool, p.tool_input);
         const test = testOf(tool, p.tool_input);
-        if (id) this.running.set(id, { tool, agent, target, startedAt: t, longWaitSent: false, ...test });
+        if (id) this.running.set(id, { tool, agent, target, startedAt: t, longWaitSent: false, ...testOf(tool, p.tool_input, true) });
         if (tool === 'AskUserQuestion') return; // the permission callback produces ask_user
         if (TASK_TOOLS.has(tool)) {
           if (agent === 'main' && this.onTask(tool, obj(p.tool_input), id)) {
@@ -255,14 +259,14 @@ export class EventNormalizer {
         if (!tool || tool === 'AskUserQuestion' || tool === 'TodoWrite' || TASK_TOOLS.has(tool)) return;
         if (id && this.failedIds.has(id)) return;
         this.failStreak.set(agent, 0);
-        emit('tool_ok', agent, { tool, target: r?.target ?? targetOf(tool, p.tool_input), failStreak: 0, ...(r ? (r.test ? { test: true } : {}) : testOf(tool, p.tool_input)) });
+        emit('tool_ok', agent, { tool, target: r?.target ?? targetOf(tool, p.tool_input), failStreak: 0, ...(r ? (r.test ? { test: true } : {}) : testOf(tool, p.tool_input, true)) });
         return;
       }
       case 'PostToolUseFailure': {
         if (id) this.running.delete(id);
         if (!tool || TASK_TOOLS.has(tool) || (id && this.failedIds.has(id))) return;
         if (id) this.failedIds.add(id);
-        this.fail(agent, tool, targetOf(tool, p.tool_input), emit, 'test' in testOf(tool, p.tool_input));
+        this.fail(agent, tool, targetOf(tool, p.tool_input), emit, 'test' in testOf(tool, p.tool_input, true));
         return;
       }
       case 'SubagentStart': {

