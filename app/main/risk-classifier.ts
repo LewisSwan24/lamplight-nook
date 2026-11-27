@@ -92,6 +92,13 @@ const isGit = (word: string) => basename(word.replace(/['"]/g, '').replace(/\\/g
 const BREAKS = /[\x00-\x08\x0a-\x1f\x7f\x85\u2028\u2029]/;
 
 /**
+ * The characters a plain PowerShell command may hold: letters and digits in any script, spaces, and what paths, wildcards
+ * and quoted names need. Anything else (brackets that run what is inside them, a single & that starts a job and goes
+ * on, braces, @, and the rest) is more than the command its first word names.
+ */
+const PS_PLAIN = /^[\p{L}\p{N}\p{M} \t_.\\/:'"*?,=+~%#\[\]-]+$/u;
+
+/**
  * Some git in this command line that does more than look. Read the way the rest of a command line is read (simpleCommands);
  * a line that cannot be read that way, or git handed to another command to run, is refused whenever git is in it at all.
  */
@@ -456,6 +463,7 @@ function classifyCall(tool: string, input: Record<string, unknown>, ctx: RiskCon
     // PowerShell ends a statement at any line break, a carriage return and the Unicode separators too: a line holding one
     // is more than the command its first word names.
     if (BREAKS.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
+    if (!PS_PLAIN.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
     if (DELETE.test(cmd)) return { risk: 'serious', reason: R.delete };
     if (NETWORK_SEND.test(cmd)) return { risk: 'serious', reason: R.networkSend };
     if (COMPLEX.test(cmd) || /\$/.test(cmd)) return { risk: 'serious', reason: R.complexCommand };
