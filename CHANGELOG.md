@@ -44,6 +44,13 @@
   every other outing Clem borrows a book at the bookshop instead of the library, coming home past the bakery. The
   shop has 42 new chats about the new neighbours, the river and the old clock tower, and the old neighbours and the
   new ones talk of each other when they drop in.
+- **A year of mending the clock tower.** The town's own story, twelve chapters, about a month each: lanterns under
+  the stopped tower, a notice printed for the whole street, the gears cleaned, scaffolding, an old drawing on the
+  back of a map, a new roof, a face painted camellia cream, letters from old neighbours, flowers for the door, the
+  hands carried over the bridge, the old bell fished from the river, and the first stroke. A neighbour comes into
+  the shop to tell their chapter; one of the staff waits with a note until clicked. The next chapter comes with a new
+  month or ten more works, whichever is first, and the tower is mended a step every two chapters. Chapters told can
+  be read again in the notebook.
 
 ## 1.9.0 (2026-11-27)
 

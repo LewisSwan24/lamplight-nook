@@ -165,7 +165,7 @@ export async function showNotebook(api: LamplightApi, at?: 'connections') {
   const links = connectionsPage(api, linked, () => showNotebook(api, 'connections'), done);
   // What was done through them (C6) follows the connections.
   const outside = actionsPage(api, done, linked);
-  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), postcards(api), storiesPage({ stories: shop.town?.stories ?? {}, staff: shop.town?.staff }), ...pages(api, memory, spent, talks, reviseOld));
+  const body = el('div.notebook-pages', { tabindex: 0 }, ...(links ? [links] : []), ...(outside ? [outside] : []), postcards(api), storiesPage({ stories: shop.town?.stories ?? {}, staff: shop.town?.staff, year: shop.town?.year }), ...pages(api, memory, spent, talks, reviseOld));
   const actions = el('div.actions');
   const ask = () => {
     actions.replaceChildren(el('button', { onclick: confirm, disabled: !memory.commissions.length && !memory.stuckNotes.length }, N.forget));

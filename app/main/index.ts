@@ -1356,6 +1356,9 @@ ipcMain.handle(IPC.openKeptPostcard, (_e, i: number): boolean => {
 });
 ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
 ipcMain.handle(IPC.tellStaffStory, (_e, who: string) => (isStaffTeller(who) ? memory.tellStaffStory(who, now()) : null));
+ipcMain.handle(IPC.tellYear, () => memory.tellYear(now()));
+// The simulations step the shop through the year's months (plan-2.0.md J7); a packaged build keeps the computer's clock.
+ipcMain.handle(IPC.debugClock, (_e, at: string) => { if (!app.isPackaged) setClock(at); });
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));
 ipcMain.handle(IPC.markTold, (_e, id: string) => { if (typeof id === 'string' && /^[\w-]{1,64}$/.test(id)) memory.markTold(id); });
 // From the works shelf: the main thing a commission made, or its folder; only what the notebook recorded.

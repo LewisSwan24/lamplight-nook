@@ -54,7 +54,8 @@ import { TOWN_MOVE } from '../shared/town';
 import { chimeKey, chimeLevel, strokesAt, towerNews, towerStage, type TowerStage } from '../shared/tower';
 import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
 import { leftBehind, nextChapter, waiting, type Stories, type Teller } from '../shared/stories';
-import { showStaffStory, showStory } from './ui/story';
+import { showStaffStory, showStory, showYearChapter, yearOpening } from './ui/story';
+import { YEAR_TELLERS, isVisitingTeller, nextYearChapter, yearTower, type YearDays, type YearTeller } from '../shared/mainstory';
 import zhMemories from '../../lines/memories.yaml?raw';
 import enMemories from '../../lines/en/memories.yaml?raw';
 import { memoryLines, type Recalled } from '../shared/memories';
@@ -268,7 +269,7 @@ setInterval(() => {
   const blocked = document.hidden || document.querySelector('.backdrop');
   const busy = running || replaying;
   const mood: ShopMood = blocked ? 'blocked' : !busy ? 'idle' : stage.actorInfo('adeng').state === 'waiting' ? 'waiting' : 'working';
-  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside(), shopDays);
+  const talk = chatter.next(mood, Date.now(), scene.period, scene.outside(), { ...shopDays, tower: towerAt });
   if (talk) void stage.talk(talk.turns);
   // A one-off story is told once, ever.
   if (talk?.once) {
@@ -277,9 +278,11 @@ setInterval(() => {
   }
   if (atHome()) tendGarden(!busy);
   bringLetter(!busy && !blocked && scene.view === 'shop');
+  if (atHome()) bringYear(!busy && !blocked && scene.view === 'shop');
   if (atHome()) dropIn(!busy && !blocked && scene.view === 'shop');
   talkInShop(!busy && !blocked && scene.view === 'shop');
   nudgeStaff();
+  nudgeYear();
   if (running && !blocked) sayProgress();
 }, 5000);
 
@@ -330,7 +333,7 @@ function dropIn(quiet: boolean) {
 }
 function welcome(guest: GuestId) {
   const present = (who: string) => scene.anchorOf(who as ActorId) !== null;
-  const chat = pickVisit(ruleBook(home.room).chats, guest, scene.outside(), scene.period, present, heardVisits, shopDays);
+  const chat = pickVisit(ruleBook(home.room).chats, guest, scene.outside(), scene.period, present, heardVisits, { ...shopDays, tower: towerAt });
   if (chat) void scene.guestVisit(guest, chat.turns.map((t) => ({ ...t, text: fill(t.text, { lastWork: shopDays.lastWork ?? '' }) })));
 }
 
@@ -472,7 +475,9 @@ setInterval(pace, 5000);
 const syncVisibility = () => { for (const r of rooms.values()) r.stage.catchingUp = document.hidden; };
 document.addEventListener('visibilitychange', syncVisibility);
 // A member of staff with a chapter of their own story waiting tells it (plan-1.9.md I1); anyone else shows their card.
-scene.onActorClick = (actor) => (isStaffTeller(actor) && staffChapter(actor) !== null ? hearStaffStory(actor) : showActorCard(actor, stage.actorInfo(actor), view.detailed));
+// The year's chapter comes before someone's own (plan-2.0.md J7).
+scene.onActorClick = (actor) => (yearTeller() === actor ? hearYear()
+  : isStaffTeller(actor) && staffChapter(actor) !== null ? hearStaffStory(actor) : showActorCard(actor, stage.actorInfo(actor), view.detailed));
 scene.onSound = sfx;
 // Lines from a replay (the trial) are marked in the caption log, so they never pass for real work.
 scene.onSay = (who, text) => recordLine(who, replaying ? text + strings.ui.replayTag : text);
@@ -549,9 +554,11 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
  * with a bubble; what the chapters told have left stands there too, or for Auntie Olive and Pip hangs in their shops
  * (plan-1.6.md F4). Nothing else says a chapter is waiting.
  */
-let tales: { stories: Stories; done: number; today: string; staff: StaffStories; crew?: Record<Staffer, number> } = { stories: {}, done: 0, today: '', staff: {} };
-function tellAbout(state: { done: number; today: string; crew?: Record<Staffer, number>; town?: { stories: Stories; staff?: StaffStories } }) {
-  tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today, staff: state.town?.staff ?? {}, crew: state.crew };
+let tales: { stories: Stories; done: number; today: string; staff: StaffStories; crew?: Record<Staffer, number>; year: YearDays } = { stories: {}, done: 0, today: '', staff: {}, year: [] };
+function tellAbout(state: { done: number; today: string; crew?: Record<Staffer, number>; town?: { stories: Stories; staff?: StaffStories; year?: YearDays } }) {
+  tales = { stories: state.town?.stories ?? {}, done: state.done, today: state.today, staff: state.town?.staff ?? {}, crew: state.crew, year: state.town?.year ?? [] };
+  syncTower(yearTower(tales.year));
+  nudgeYear();
   street.setStories(waiting(tales.stories, tales.done, tales.today), leftBehind(tales.stories));
   for (const [, built] of rooms) built.scene.tales.show(leftBehind(tales.stories), built.scene.reducedMotion);
   nudgeStaff();
@@ -563,6 +570,48 @@ function nudgeStaff() {
   if (!tales.crew) return;
   const ready = staffWaiting(tales.staff, tales.crew, tales.today);
   for (const [room, built] of rooms) for (const who of ready) if (ROOM_CREW[room].includes(who) && !built.scene.busyTalking(who) && !built.scene.isSaying(who, '')) built.scene.say(who, '', 'note');
+}
+/**
+ * The year's story (plan-2.0.md J7): the chapter waiting today and who tells it. A neighbour comes into the home shop
+ * and hands it over; one of the staff waits with a note over their head until clicked. Each told mends the tower on.
+ */
+const yearChapter = () => nextYearChapter(tales.year, tales.done, tales.today);
+const yearTeller = (): YearTeller | null => { const n = yearChapter(); return n === null ? null : YEAR_TELLERS[n - 1]; };
+function hearYear() {
+  const chapter = yearChapter();
+  if (chapter === null) return;
+  const who = YEAR_TELLERS[chapter - 1];
+  for (const [, built] of rooms) if (!isVisitingTeller(who) && built.scene.isSaying(who as ActorId, '')) built.scene.say(who as ActorId, null);
+  showYearChapter(chapter, () => void window.lamplight.tellYear().then(async () => tellAbout(await window.lamplight.shopState())));
+}
+/** One of the staff with the year's chapter shows a note over their head, wherever they are. */
+function nudgeYear() {
+  const who = yearTeller();
+  if (!who || isVisitingTeller(who)) return;
+  for (const [room, built] of rooms) if (ROOM_CREW[room].includes(who) && !built.scene.busyTalking(who) && !built.scene.isSaying(who, '')) built.scene.say(who, '', 'note');
+}
+/**
+ * A neighbour with the year's chapter comes in once the home shop is quiet, and hands it over at the counter: only
+ * while you are in the shop to see them, not out on the street.
+ */
+let yearVisiting = false;
+function bringYear(quiet: boolean) {
+  const who = yearTeller();
+  if (!who || !isVisitingTeller(who) || yearVisiting || !quiet || document.body.classList.contains('outside') || scene.hasGuest() || document.querySelector('#ui > .card, #ui > form.card, .legal-backdrop')) return;
+  yearVisiting = true;
+  const chapter = yearChapter()!;
+  void scene.guestVisit(who, [{ speaker: who, text: yearOpening(chapter) }], () => hearYear()).then(() => { yearVisiting = false; });
+}
+/** How far the tower is mended, as the year's chapters say; the first time quietly, after that with a word at home. */
+let towerSynced = false;
+/** Set by the debug switch (J6): the year leaves the tower alone while it is. */
+let towerPinned = false;
+function syncTower(stage: TowerStage) {
+  if (towerPinned) return;
+  if (towerSynced) return setTower(stage);
+  towerSynced = true;
+  towerAt = stage;
+  street.setTower(stage);
 }
 function hearStaffStory(who: StaffTeller) {
   const chapter = staffChapter(who);
@@ -1278,12 +1327,17 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     // `rooms`: every room at work just now (D3), by room, with its scene and stage.
     // `tower`: show it in a look (plan-2.0.md J6), set the shop's clock and strike if it is the hour, and what it has struck.
     const tower = {
-      set: setTower,
+      set: (s: TowerStage) => { towerPinned = true; setTower(s); },
       tick: (iso: string) => { const offset = new Date(iso).getTime() - Date.now(); towerClock.now = () => new Date(Date.now() + offset); strikeHour(); },
       chimes,
       look: () => street.tower?.look(),
     };
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, tower, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
+    // `year`: move the shop's clock (main/clock.ts) and look again; what the year's story is at.
+    const year = {
+      clock: async (iso: string) => { await window.lamplight.debugClock(iso); tellAbout(await window.lamplight.shopState()); },
+      state: () => ({ told: tales.year.length, chapter: yearChapter(), teller: yearTeller(), tower: towerAt }),
+    };
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, tower, year, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
   }
   const env = $('env');
   env.textContent = [

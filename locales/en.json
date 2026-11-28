@@ -1089,7 +1089,9 @@
     },
     "stories": {
       "title": "{who} · Chapter {n} · {title}",
-      "heard": "Thank you"
+      "heard": "Thank you",
+      "year": "The year · Chapter {n} · {title}",
+      "line": "{who}: “{text}”"
     },
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
@@ -1332,6 +1334,8 @@
       "postcardBig": "That file is too big to be a postcard. It wasn't opened.",
       "postcardNotPostcard": "That isn't a Lamplight Nook postcard. It wasn't opened.",
       "postcardBroken": "This postcard is damaged and can't be opened.",
+      "yearTitle": "The year",
+      "yearText": "The town mending the clock tower together, a chapter a month.",
       "storiesTitle": "Stories",
       "storiesText": "The stories the neighbours and the staff have told, kept here to read again.",
       "storyChapter": "Chapter {n} · {title}",

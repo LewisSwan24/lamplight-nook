@@ -1,3 +1,4 @@
+import type { TowerStage } from '../../shared/tower';
 import type { Made } from '../../shared/growth';
 import { TEMPLATES } from '../../shared/templates';
 import type { GuestId, Speaker } from '../../shared/types';
@@ -87,11 +88,11 @@ export class VisitPlanner {
  */
 export function pickVisit(
   chats: Chat[], guest: GuestId, outside: { sky: Sky; holiday: Holiday | null; season: Season }, period: Period,
-  present: (who: Speaker) => boolean, used: Set<string>, shop: { made: Made; done: number; lastWork?: string }, rand: () => number = Math.random,
+  present: (who: Speaker) => boolean, used: Set<string>, shop: { made: Made; done: number; lastWork?: string; tower?: TowerStage }, rand: () => number = Math.random,
 ): Chat | null {
   const fits = chats.filter((c) => c.guest === guest && (!c.period || c.period === period)
     && (!c.sky || c.sky === outside.sky) && (!c.holiday || c.holiday === outside.holiday) && (!c.season || c.season === outside.season)
-    && (c.after === undefined || shop.done >= c.after)
+    && (c.after === undefined || shop.done >= c.after) && (!c.tower || c.tower === (shop.tower ?? 'stopped'))
     && (!c.made || !!shop.made[c.made]) && (!c.mentions || !!shop.lastWork)
     && c.turns.every((t) => t.speaker === guest || present(t.speaker)));
   if (!fits.length) return null;

@@ -6509,7 +6509,8 @@ const SCENARIOS = {
       const page_ = page.locator('.notebook-stories');
       await page_.waitFor({ timeout: 5000 });
       check(await page_.locator('details.notebook-story').count() === 2, `the notebook keeps ${await page_.locator('details.notebook-story').count()} stories, not 2`);
-      check(await page_.locator('.notebook-story-blank').count() === 25 + 24 - 2, `${await page_.locator('.notebook-story-blank').count()} blanks in the notebook`);
+      // Seven neighbours' five chapters each, eight staff's three, the year's twelve (plan-2.0.md J7), less the two told.
+      check(await page_.locator('.notebook-story-blank').count() === 7 * 5 + 8 * 3 + 12 - 2, `${await page_.locator('.notebook-story-blank').count()} blanks in the notebook`);
       const clem = page_.locator('details.notebook-story', { hasText: book.xiaoju[0].title });
       await clem.locator('summary').click();
       check((await clem.innerText()).includes(book.xiaoju[0].lines[1]), 'Clem\'s chapter does not open in the notebook');
@@ -7390,6 +7391,86 @@ const SCENARIOS = {
       await errand('qingdai', door('flowershop'), 'flowershop');
       await errand('xiaoju', door('bookshop'), 'bookshop');
       await shop.shot(join(out, 'twostreets-home.png'));
+    } finally { await shop.close(); }
+  },
+
+  /**
+   * The year's story told through (plan-2.0.md J7). The shop's clock moves on a month at a time; each month the chapter's
+   * teller comes: a neighbour walks into the shop and hands it over, one of the staff waits with a note until clicked.
+   * Every card has its title, its lines and what changed; each is written down when closed, and the tower moves on a
+   * look every two chapters until, after the twelfth, it stands mended and lit on the river street.
+   */
+  async mainstory(lang, out) {
+    const L = locale(lang);
+    const year = parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), 'year.yaml'), 'utf8'));
+    // shared/mainstory.ts YEAR_TELLERS, and which of them come in from outside (the neighbours).
+    const TELLERS = ['granny', 'adeng', 'mechanic', 'laoshi', 'bookseller', 'baker', 'qingdai', 'postman', 'florist', 'xiaodou', 'xiaoju', 'student'];
+    const VISITING = new Set(['granny', 'mechanic', 'bookseller', 'baker', 'postman', 'florist', 'student']);
+    const TOWER = ['stopped', 'stopped', 'stopped', 'stopped', 'scaffold', 'scaffold', 'roof', 'roof', 'face', 'face', 'hands', 'hands', 'lit'];
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'memory.json': JSON.stringify({
+        commissions: [], stuckNotes: [], greeted: 'c1',
+        shop: { done: 12, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } },
+      }),
+    });
+    const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.year ?? [];
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2027-01-05T10:00' });
+    const { page } = shop;
+    const state = () => page.evaluate(() => window.lamplightDebug.year.state());
+    const clickOn = async (who) => {
+      const spot = await page.evaluate((w) => {
+        const s = window.lamplightDebug.scene.actors.get(w).sprite;
+        const r = document.querySelector('#game canvas').getBoundingClientRect();
+        return { x: r.x + s.x * r.width / 320, y: r.y + (s.y - 10) * r.height / 180 };
+      }, who);
+      await page.mouse.click(spot.x, spot.y);
+      await sleep(700);
+    };
+    try {
+      await sleep(2500);
+      await page.evaluate(() => { window.lamplightDebug.scene.setWeather('clear', null, false); window.lamplightDebug.scene.setPeriod('day', true); });
+      for (let n = 1; n <= 12; n++) {
+        if (n > 1) await page.evaluate((iso) => window.lamplightDebug.year.clock(iso), `2027-${String(n).padStart(2, '0')}-05T10:00:00`);
+        const who = TELLERS[n - 1];
+        let v = await state();
+        check(v.chapter === n && v.teller === who, `month ${n}: ${JSON.stringify(v)}`);
+        const card = page.locator(`.year-card[data-year="${n}"]`);
+        if (VISITING.has(who)) {
+          // In through the door, to the counter, and the chapter handed over.
+          for (const end = Date.now() + 45_000; Date.now() < end && (await card.count()) === 0; await sleep(300));
+          check(await card.count() === 1, `${who} did not come in with chapter ${n}`);
+        } else {
+          let noted = false;
+          for (const end = Date.now() + 10_000; Date.now() < end && !noted; await sleep(200)) noted = await page.evaluate((w) => window.lamplightDebug.scene.isSaying(w, ''), who);
+          check(noted, `no note over ${who} with chapter ${n}`);
+          if (n === 2) await shop.shot(join(out, 'mainstory-note.png'));
+          await clickOn(who);
+          check(await card.count() === 1, `clicking ${who} opened no card for chapter ${n}`);
+        }
+        const c = year[n - 1];
+        const text = await card.innerText();
+        check(text.includes(c.title) && text.includes(Object.values(c.lines[0])[0]) && text.includes(c.note), `chapter ${n}'s card: ${text}`);
+        if ([1, 2, 6, 12].includes(n)) await shop.shot(join(out, `mainstory-${n}.png`));
+        await card.locator('button.primary').click();
+        for (const end = Date.now() + 5000; Date.now() < end && (await state()).told < n; await sleep(200));
+        v = await state();
+        check(v.told === n && v.chapter === null && saved().length === n, `chapter ${n} was not written down: ${JSON.stringify(v)} ${JSON.stringify(saved())}`);
+        check(v.tower === TOWER[n], `after chapter ${n} the tower is ${v.tower}, not ${TOWER[n]}`);
+        // The teller goes on their way before the next month comes.
+        for (const end = Date.now() + 20_000; Date.now() < end && (await page.evaluate(() => window.lamplightDebug.scene.hasGuest())); await sleep(300));
+      }
+      // The year done: no thirteenth, and the tower stands mended and lit on the river street.
+      await page.evaluate(() => window.lamplightDebug.year.clock('2028-01-10T10:00:00'));
+      check((await state()).chapter === null, 'a chapter after the twelfth');
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(800);
+      const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+      const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
+      await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, town.width + river.tower.x + river.tower.w / 2 - 160);
+      await sleep(500);
+      check((await page.evaluate(() => window.lamplightDebug.tower.look()))?.stage === 'lit', 'the tower on the street is not mended');
+      await shop.shot(join(out, 'mainstory-tower.png'));
     } finally { await shop.close(); }
   },
 

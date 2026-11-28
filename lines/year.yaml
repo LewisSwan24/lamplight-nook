@@ -1,0 +1,132 @@
+# The year's story (plan-2.0.md J7): twelve chapters, a month each, the town mending the old clock tower on the
+# river street. Each chapter: a title, a note of what changed (two bubbles at most), and who says what, a bubble a
+# line, the teller first (shared/mainstory.ts YEAR_TELLERS). Same writing rules as cafe.yaml.
+
+- title: "一月 钟楼下的灯"
+  note: "陈婆婆想再听一回钟声。全镇说好，一起修钟楼。"
+  lines:
+    - granny: "元宵那晚，钟楼底下挂满了灯。"
+    - xiaoju: "灯一亮，钟面上的裂缝都看得见。"
+    - granny: "我小时候，它每个钟点都敲。"
+    - student: "现在连针都没了。"
+    - granny: "我想再听它敲一回。"
+    - adeng: "那就修吧。"
+    - granny: "一条街的人，一年总修得好。"
+
+- title: "二月 一张告示"
+  note: "告示贴满了两条街，来报名的人比想的还多。"
+  lines:
+    - adeng: "修钟楼的事，得让全街都知道。"
+    - aqian: "告示我来印，五十张够不够？"
+    - adeng: "河边也贴几张。"
+    - qingdai: "我在告示角上画个钟。"
+    - laoshi: "写上：要木匠，要力气。"
+    - adeng: "第二天，告示前站满了人。"
+    - aqian: "五十张不够，又印了五十张。"
+
+- title: "三月 里头的齿轮"
+  note: "老周和小钉把齿轮一个个擦干净了。老石要换两根梁。"
+  lines:
+    - mechanic: "我拆了门上的木条，进了钟楼。"
+    - mechanic: "齿轮都还在，就是锈住了。"
+    - xiaoding: "我带了一桶油，一包砂纸。"
+    - laoshi: "木头的梁，有两根朽了。"
+    - mechanic: "齿轮归我们，梁归老石。"
+    - xiaoding: "一个齿轮，擦了一整个下午。"
+    - mechanic: "擦亮了，还能再走五十年。"
+
+- title: "四月 搭架子"
+  note: "钟楼两边搭起了脚手架。"
+  lines:
+    - laoshi: "架子今天搭起来了。"
+    - mechanic: "竹竿是我从旧仓库拉来的。"
+    - baker: "搭架子的人，每人两个包子。"
+    - xiaoju: "我也搭了一根！"
+    - laoshi: "扶着的那根。"
+    - xiaoju: "扶也算。"
+    - laoshi: "先换梁，再换瓦。"
+
+- title: "五月 旧图纸"
+  note: "简伯在旧地图背面找到了钟楼的图纸，造钟的人是陈婆婆家的。"
+  lines:
+    - bookseller: "我那张旧地图背面，有张图纸。"
+    - xiaoju: "画的是钟楼？"
+    - bookseller: "钟楼的里面，每个齿轮都画了。"
+    - student: "角上有个名字，是造钟的人。"
+    - bookseller: "这条街上，还有人姓这个。"
+    - xiaoju: "谁？"
+    - bookseller: "陈婆婆。"
+
+- title: "六月 端午的瓦"
+  note: "钟楼换上了蓝瓦新屋顶。端午那天，桂姨包了三百个粽子。"
+  lines:
+    - baker: "端午这天，我包了三百个粽子。"
+    - adeng: "三百个？"
+    - baker: "修屋顶的人多，河上划船的也多。"
+    - laoshi: "新瓦上去了，蓝的。"
+    - xiaoju: "从桥上看，像一顶新帽子。"
+    - baker: "帽子戴好了，就不怕下雨了。"
+
+- title: "七月 钟面的颜色"
+  note: "钟面刷成了白山茶那样的奶白，小赭一笔一笔写上了数字。"
+  lines:
+    - qingdai: "钟面要重新上色，我挑了三天。"
+    - florist: "用我店里那种奶白，像白山茶。"
+    - qingdai: "就是它。"
+    - xiaozhe: "数字我来写，一个一个描。"
+    - qingdai: "十二个数字，小赭写了一个月。"
+    - xiaozhe: "写坏了九个，都重写了。"
+
+- title: "八月 远方的信"
+  note: "搬走的老邻居寄来了信，还寄回一枚旧齿轮。架子拆了，钟面露了出来。"
+  lines:
+    - postman: "这个月，我送了好多封怪信。"
+    - adeng: "怎么怪？"
+    - postman: "都是从外地寄来，问钟楼的。"
+    - granny: "搬走的老邻居，都还记得。"
+    - postman: "有一封里夹着一枚旧齿轮。"
+    - granny: "那是当年掉下来的那个。"
+    - postman: "架子今天拆了，钟面露出来了。"
+
+- title: "九月 中秋的花"
+  note: "芳姐在店里养着两盆花，等钟楼修好那天摆到门口。中秋夜，大家在钟楼下吃月饼。"
+  lines:
+    - florist: "中秋了，钟楼修好那天得有花。"
+    - bookseller: "别挡着门。"
+    - florist: "门两边，一边一盆。"
+    - qingdai: "红的和黄的？"
+    - florist: "跟钟面配，我比过了。"
+    - florist: "先在店里养着，修好那天搬过去。"
+    - bookseller: "那晚，大家在钟楼下吃月饼。"
+
+- title: "十月 过桥的指针"
+  note: "小豆和老周把指针扛过了桥。钟楼装上了指针，又走起来了。"
+  lines:
+    - xiaodou: "指针是我扛过桥的！"
+    - xiaoju: "老周扛的大的，你扛的小的。"
+    - xiaodou: "小的也是指针。"
+    - mechanic: "装好了，上弦。"
+    - laoshi: "走了。"
+    - xiaodou: "我在桥上数了，一分钟走一格。"
+
+- title: "十一月 一口钟"
+  note: "旧钟从河底捞了上来，补好挂上了钟楼。第一声留给陈婆婆。"
+  lines:
+    - xiaoju: "钟楼上还差一口钟。"
+    - xiaoding: "旧钟在河底，我们捞上来了。"
+    - laoshi: "裂了一道，补得上。"
+    - adeng: "挂上去以后，先别敲。"
+    - xiaoju: "为什么？"
+    - adeng: "第一声，留给陈婆婆。"
+    - xiaoju: "那我先在心里敲一下。"
+
+- title: "十二月 第一声钟"
+  note: "陈婆婆敲响了第一声钟。钟楼修好了，整点会敲钟，夜里亮着灯。"
+  lines:
+    - student: "十二月，全街的人都来了。"
+    - granny: "我拉这根绳？"
+    - adeng: "您拉。"
+    - student: "钟响了。我数了，十二下。"
+    - granny: "跟我小时候听的一样。"
+    - student: "灯也亮了，从桥上看得见。"
+    - xiaoju: "明年元宵，就在这儿挂灯。"

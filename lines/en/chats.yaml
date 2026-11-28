@@ -3278,12 +3278,14 @@
 
 - id: bridge_tower_years
   when: idle
+  tower: stopped
   turns:
     - xiaoju: "How long has the clock tower been stopped?"
     - laoshi: "Longer than I've been on this street."
 
 - id: bridge_tower_time
   when: idle
+  tower: stopped
   turns:
     - adeng: "What time do the tower's hands say?"
     - qingdai: "No hands. Just a crack."
@@ -3291,6 +3293,7 @@
 
 - id: bridge_tower_inside
   when: idle
+  tower: stopped
   turns:
     - laoshi: "I'd like a look inside that clock tower."
     - adeng: "The door's boarded up."
@@ -3353,6 +3356,7 @@
 
 - id: bridge_boat
   when: idle
+  tower: stopped
   turns:
     - xiaoju: "Who rows the little boat on the river?"
     - adeng: "No idea. Same time every day."
@@ -3395,6 +3399,7 @@
 
 - id: bridge_tower_bell
   when: idle
+  tower: stopped
   turns:
     - laoshi: "Mended, that tower would strike the hours."
     - xiaoju: "At night too?"
@@ -3433,6 +3438,7 @@
 
 - id: bridge_zhou_gears
   when: idle
+  tower: stopped
   guest: mechanic
   turns:
     - mechanic: "The tower's gears are all still inside."
@@ -3505,6 +3511,7 @@
 
 - id: bridge_fern_tower
   when: idle
+  tower: stopped
   guest: florist
   turns:
     - florist: "I look at the tower next door every day."
@@ -3537,7 +3544,32 @@
 
 - id: bridge_page_map
   when: idle
+  tower: stopped
   guest: bookseller
   turns:
     - bookseller: "On my old map, the clock tower still runs."
     - laoshi: "A clock on a map never stops."
+
+- id: bridge_tower_watch
+  when: idle
+  tower: lit
+  turns:
+    - xiaoju: "I set my watch by the tower now."
+    - laoshi: "It keeps better time than your watch."
+
+- id: bridge_tower_lights
+  when: idle
+  period: night
+  tower: lit
+  turns:
+    - qingdai: "From our window you can see the tower lit."
+    - adeng: "A year ago it was dark over there."
+
+- id: bridge_chen_noon
+  when: idle
+  guest: granny
+  tower: lit
+  turns:
+    - granny: "Every noon I count the strokes."
+    - xiaoju: "How many today?"
+    - granny: "Twelve. Not one missing."

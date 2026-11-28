@@ -256,6 +256,10 @@ export interface LamplightApi {
   tellStory(who: GuestId): Promise<number | null>;
   /** A member of staff has told the chapter of their own story they had waiting (plan-1.9.md I1). */
   tellStaffStory(who: StaffTeller): Promise<number | null>;
+  /** The year's story has moved on the chapter that was waiting (plan-2.0.md J7): the chapter, or null if none was. */
+  tellYear(): Promise<number | null>;
+  /** Unpackaged builds only: move the shop's clock (main/clock.ts), for the simulations. */
+  debugClock(at: string): Promise<void>;
   /** The home-network connection (docs/plan-1.5.md E1): where it listens and the paired devices. */
   lanState(): Promise<LanState>;
   /** A new device to pair: the address with its key, and a QR code of it (SVG). */
@@ -611,6 +615,8 @@ export const IPC = {
   markMet: 'shop:mark-met',
   tellStory: 'shop:tell-story',
   tellStaffStory: 'shop:tell-staff-story',
+  tellYear: 'shop:tell-year',
+  debugClock: 'debug:clock',
   lanState: 'lan:state',
   lanPair: 'lan:pair',
   lanRemove: 'lan:remove',
