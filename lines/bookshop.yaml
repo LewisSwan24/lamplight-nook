@@ -210,3 +210,16 @@ shop_idle:
   - { id: bs_idle_summer_01, speaker: jianbo, when: season_summer, bubbles: ["夏天晒书，一页一页翻开。"] }
   - { id: bs_idle_autumn_01, speaker: jianbo, when: season_autumn, bubbles: ["秋天的光，最适合看书。"] }
   - { id: bs_idle_winter_01, speaker: jianbo, when: season_winter, bubbles: ["冬天手冷，翻页慢。"] }
+  - { id: bs_river_01, speaker: jianbo, bubbles: ["鸭子游到书店门口了。", "怕是也想看书。"] }
+  - { id: bs_river_02, speaker: jianbo, bubbles: ["小船过去了。", "以前这河上全是运货的船。"] }
+  - { id: bs_river_03, speaker: jianbo, when: sky_rain, bubbles: ["雨点落在河上，", "像一页一页翻书。"] }
+  - { id: bs_river_04, speaker: jianbo, when: sky_rain, bubbles: ["下雨天，书要离窗远一点。"] }
+  - { id: bs_river_05, speaker: jianbo, when: sky_snow, bubbles: ["河冻上了。", "小时候我们在上面滑过。"] }
+  - { id: bs_river_06, speaker: jianbo, when: sky_snow, bubbles: ["冰还薄，可别上去。"] }
+  - { id: bs_river_07, speaker: jianbo, when: sky_clear, bubbles: ["今天河水亮得像镜子。"] }
+  - { id: bs_river_08, speaker: jianbo, when: holiday_dragon_boat, bubbles: ["龙舟来了，听这鼓声。"] }
+  - { id: bs_river_09, speaker: jianbo, when: holiday_dragon_boat, bubbles: ["划龙舟，是为了屈原。", "架上有屈原的诗。"] }
+  - { id: bs_river_10, speaker: jianbo, when: holiday_lantern, bubbles: ["河灯漂过去了。", "一盏灯，一个心愿。"] }
+  - { id: bs_river_11, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["水里也有个月亮。"] }
+  - { id: bs_river_12, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["中秋放河灯，", "这条街的老规矩。"] }
+  - { id: bs_river_13, speaker: jianbo, when: period_dawn, bubbles: ["清早河上有雾。"] }

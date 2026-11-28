@@ -210,3 +210,16 @@ shop_idle:
   - { id: fl_idle_summer_01, speaker: fangjie, when: season_summer, bubbles: ["夏天的花，换水得勤。"] }
   - { id: fl_idle_autumn_01, speaker: fangjie, when: season_autumn, bubbles: ["秋天菊花多，样子一年比一年怪。"] }
   - { id: fl_idle_winter_01, speaker: fangjie, when: season_winter, bubbles: ["冬天手冻，扎花慢一点。"] }
+  - { id: fl_river_01, speaker: fangjie, bubbles: ["那两只鸭子又来了。", "早上我扔了点面包屑。"] }
+  - { id: fl_river_02, speaker: fangjie, bubbles: ["有条小船划过去了。", "划船的是对岸卖鱼的老周。"] }
+  - { id: fl_river_03, speaker: fangjie, when: sky_rain, bubbles: ["下雨了，河面全是小圈圈。"] }
+  - { id: fl_river_04, speaker: fangjie, when: sky_rain, bubbles: ["鸭子才不怕雨呢。"] }
+  - { id: fl_river_05, speaker: fangjie, when: sky_snow, bubbles: ["河面结了层薄冰。", "鸭子不知道躲哪儿去了。"] }
+  - { id: fl_river_06, speaker: fangjie, when: sky_clear, bubbles: ["太阳照在河上，晃眼睛。"] }
+  - { id: fl_river_07, speaker: fangjie, when: holiday_dragon_boat, bubbles: ["龙舟要从门口过了！", "鼓一响，我就知道。"] }
+  - { id: fl_river_08, speaker: fangjie, when: holiday_dragon_boat, bubbles: ["打鼓的还是去年那位。"] }
+  - { id: fl_river_09, speaker: fangjie, when: holiday_lantern, bubbles: ["河灯放下去了。", "一盏一盏往下漂。"] }
+  - { id: fl_river_10, speaker: fangjie, when: holiday_lantern, bubbles: ["莲花灯是我折的。"] }
+  - { id: fl_river_11, speaker: fangjie, when: holiday_mid_autumn, bubbles: ["月亮和河灯，都在水里。"] }
+  - { id: fl_river_12, speaker: fangjie, when: period_dusk, bubbles: ["傍晚的河，颜色最好看。"] }
+  - { id: fl_river_13, speaker: fangjie, when: period_night, bubbles: ["夜里听得见河水声。"] }

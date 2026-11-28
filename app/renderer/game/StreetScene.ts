@@ -17,6 +17,7 @@ import { type Outside, putAway } from './streetdecor';
 import { addUmbrella, holdUmbrella, preloadTownDecor, TownDecor } from './TownDecor';
 import { preloadTownGrowth, TownGrowth } from './TownGrowth';
 import { preloadTownStories, TownStories } from './TownStories';
+import { preloadRiverLife, RiverView } from './RiverView';
 import type { Teller } from '../../shared/stories';
 import { FALLING, FLASH_GAP_MS, flashesFor, fogFor } from './weather';
 import { periodAt } from './daytime';
@@ -51,6 +52,8 @@ const IN_MS = 360;
  * what stands in front (D6), the people and what falls.
  */
 const DEPTH = { street: 0, ground: 0.5, fronts: 1, grown: 2, story: 2.5, up: 3, people: 10, falling: 20 };
+/** The river's ducks and boats lie on its water; its lanterns over the shop's light (the shade), so they glow at night. */
+const RIVER_DEPTH = { water: DEPTH.ground + 0.2, glow: 1000 };
 
 /** The river street's layers (plan-2.0.md J1), laid on at the end of the first street; the tower stands on its own. */
 const RIVER_LAYERS = [['river-street', riverStreetUrl], ['river-fronts', riverFrontsUrl], ['river-props', riverPropsUrl], ['river-tower', riverTowerUrl]] as const;
@@ -96,6 +99,8 @@ export class StreetScene extends Phaser.Scene {
   private counts?: TownCounts;
   /** The neighbours' stories (D4), once the scene is up; who waits and what was left, as last told. */
   stories?: TownStories;
+  /** The river in front of the river street (plan-2.0.md J5), once the scene is up. */
+  river?: RiverView;
   private tales: { waiting: Teller[]; left: string[] } = { waiting: [], left: [] };
   /** The hour the street goes by, as the shop shows the day (crowd.ts hourOf). */
   hour: () => number = () => new Date().getHours();
@@ -116,6 +121,7 @@ export class StreetScene extends Phaser.Scene {
     if (!this.textures.exists('town-grow')) preloadTownGrowth(this.load);
     if (!this.textures.exists('town-decor')) preloadTownDecor(this.load);
     if (!this.textures.exists('town-story')) preloadTownStories(this.load);
+    if (!this.textures.exists('river-life')) preloadRiverLife(this.load);
     PASSER_SHEETS.forEach((url, i) => {
       if (!this.textures.exists(passerKey(i + 1))) this.load.spritesheet(passerKey(i + 1), url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     });
@@ -136,6 +142,7 @@ export class StreetScene extends Phaser.Scene {
     for (const image of this.decor.ground) image.setDepth(DEPTH.ground);
     for (const image of this.decor.up) image.setDepth(DEPTH.up);
     if (this.counts) this.decor.setGrown(streetGrown(this.counts.total));
+    this.river = new RiverView(this, RIVER_DEPTH);
     this.stories = new TownStories(this, { things: DEPTH.story, people: DEPTH.people });
     this.stories.show(this.tales.waiting, this.tales.left, this.calm());
     this.umbrella = addUmbrella(this).setDepth(DEPTH.people + 0.5);
@@ -185,6 +192,7 @@ export class StreetScene extends Phaser.Scene {
     this.shade.setFillStyle(this.tint());
     this.dress();
     this.walkCrowd(delta);
+    this.river?.update(this.time.now);
     const w = this.walker();
     if (!w) {
       this.seen?.setVisible(false);
@@ -247,14 +255,16 @@ export class StreetScene extends Phaser.Scene {
     return `${key}-walk-${p.dir > 0 ? 'right' : 'left'}`;
   }
 
-  /** Follow the shop's day: the season, the festival, the weather and what falls from the sky (D6). */
+  /** Follow the shop's day: the season, the festival, the weather and what falls from the sky (D6), and on the river (J5). */
   private dress() {
     const outside = this.outside();
     const calm = this.calm();
-    const key = `${outside.season} ${outside.holiday} ${outside.sky} ${calm}`;
+    const period = periodAt(this.hour());
+    const key = `${outside.season} ${outside.holiday} ${outside.sky} ${calm} ${period}`;
     if (key === this.dressed || !this.decor) return;
     this.dressed = key;
     this.decor.setOutside(outside);
+    this.river?.set(outside, period, calm);
     this.growth?.putAway(putAway(outside));
     this.falling?.destroy();
     this.falling = undefined;

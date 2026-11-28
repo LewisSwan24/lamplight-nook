@@ -23,6 +23,12 @@
   carries the order over the river, and the shop borrows what it lacks from the others, as the bakery and the post
   office do. Both shops now gather pieces as their work goes on (seedlings, a watering can, a hanging basket; a
   framed price list, a plaster bust, the library ladder), and the first book list brings Uncle Page by to visit.
+- **Life on the river.** The river in front of the river street follows the weather: rings spread on it in the
+  rain, it freezes over in a winter's snow, and the sun glints on it on a fine day. Two ducks paddle to and fro and
+  a little rowing boat goes by now and then, but nothing is out on the ice, and the ducks sleep at night. At the
+  dragon boat festival the dragon boat rows past with its drum; at the lantern festival and mid-autumn, lanterns
+  float on the water from dusk and glow after dark. Fern and Uncle Page have things to say about it all. With
+  less motion asked for, the ducks and lanterns stay where they are and no boat crosses.
 
 ## 1.9.0 (2026-11-27)
 

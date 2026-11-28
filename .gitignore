@@ -31,6 +31,9 @@ assets/sprites/*.png
 !assets/sprites/grow-workshop-*.png
 !assets/sprites/grow-bakery-*.png
 !assets/sprites/grow-post-*.png
+!assets/sprites/grow-flowershop-*.png
+!assets/sprites/grow-bookshop-*.png
+!assets/sprites/river-life.png
 !assets/sprites/season-*.png
 !assets/sprites/tale-*.png
 !assets/sprites/tools.png

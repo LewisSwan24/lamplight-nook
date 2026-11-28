@@ -42,3 +42,5 @@
 | `grow-bookshop-bust.png` | J4 书店做满 8 单：托架上的小石膏像 | 手画 | `scripts/art/growth.py` |
 | `grow-bookshop-ladder.png` | J4 书店做满 20 单：挂起来的书梯 | 手画 | `scripts/art/growth.py` |
 | `grow-bookshop-listboard.png` | J4 开过书单以后：窗户和黑板之间钉书单的软木板 | 手画 | `scripts/art/growth.py` |
+| `river-life.png` | J5 河上的东西：两帧鸭子、小船、龙舟、莲花灯、月亮灯、阳光反光、三圈雨点涟漪、一整条薄冰 | 手画 | `scripts/art/riverlife.py` |
+| `river-life.json` | J5 河上每样东西在 `river-life.png` 里的位置，游戏和测试都读它 | 手画，跟 `river-life.png` 一起算出来 | `scripts/art/riverlife.py` |
