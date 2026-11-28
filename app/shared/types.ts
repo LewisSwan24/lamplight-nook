@@ -258,6 +258,8 @@ export interface LamplightApi {
   tellStaffStory(who: StaffTeller): Promise<number | null>;
   /** The year's story has moved on the chapter that was waiting (plan-2.0.md J7): the chapter, or null if none was. */
   tellYear(): Promise<number | null>;
+  /** A neighbour bought the flowers in this vase of the flower shop's stand (plan-2.0.md J12). */
+  sellFlower(slot: number, who: GuestId): Promise<void>;
   /** Unpackaged builds only: move the shop's clock (main/clock.ts), for the simulations. */
   debugClock(at: string): Promise<void>;
   /** The home-network connection (docs/plan-1.5.md E1): where it listens and the paired devices. */
@@ -618,6 +620,7 @@ export const IPC = {
   tellStory: 'shop:tell-story',
   tellStaffStory: 'shop:tell-staff-story',
   tellYear: 'shop:tell-year',
+  sellFlower: 'shop:sell-flower',
   debugClock: 'debug:clock',
   lanState: 'lan:state',
   lanPair: 'lan:pair',
@@ -875,6 +878,8 @@ export type Work = {
   project: string;
   /** The shop that made it, from its template; a free-form order is home's (plan-1.8 H7). */
   shop: Shop;
+  /** The kind of work it was ordered as, if any: the flower shop pins its flower cards on its wall (plan-2.0.md J12). */
+  template?: string;
 };
 
 /** Where a project stands, on the project board (B2). Queued comes with B5. */

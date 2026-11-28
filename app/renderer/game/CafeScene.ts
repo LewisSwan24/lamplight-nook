@@ -122,6 +122,7 @@ import { GUEST_DOOR, GUEST_IDS, GUEST_SPEED, GUEST_SPOT, POST_SPOT } from './gue
 import { PASSER_FEET, WINDOW_PANES, passBy } from './passers';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky, holidayOn, seasonOf, skyOn, withWeather } from './weather';
 import { MENU_BOARD, menuFrame } from '../../shared/menu';
+import { COUNTER_CARD, FlowerStand, cardSpot, flowerCardIndex, preloadFlowers } from './FlowerStand';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -183,7 +184,7 @@ const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
 export type HintSpot = 'counter' | 'bell' | 'board';
-export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you' | 'cork' | 'pet' | `wall-${number}`;
+export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you' | 'cork' | 'pet' | `wall-${number}` | 'flowers' | `flowercard-${number}`;
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -256,6 +257,12 @@ export class CafeScene extends Phaser.Scene {
   onYouClick: () => void = () => {};
   /** A postcard on the post office's cork board was clicked (plan-1.6.md F2), by its place; null for the bare board. */
   onWallCard: (i: number | null) => void = () => {};
+  /** The card on the flower shop's counter was clicked (plan-2.0.md J12): today's flowers. */
+  onFlowers: () => void = () => {};
+  /** One of the flower shop's finished flower cards on its wall was clicked, by its place, newest first. */
+  onFlowerCard: (i: number) => void = () => {};
+  /** The flower shop's stand, its counter card and its wall of cards; in the flower shop only. */
+  flowers?: FlowerStand;
   /** The postcards pinned on the cork board, in the post office only. */
   private wallCards: { name: string; x: number; y: number; img: Phaser.GameObjects.Graphics; zone: Phaser.GameObjects.Zone }[] = [];
   private bell!: Phaser.GameObjects.Graphics;
@@ -381,6 +388,8 @@ export class CafeScene extends Phaser.Scene {
     if (this.room === MENU_BOARD.room && !this.textures.exists('bakery-board')) {
       this.load.spritesheet('bakery-board', bakeryBoardUrl, { frameWidth: MENU_BOARD.w, frameHeight: MENU_BOARD.h });
     }
+    // The flower shop's vases and cards (plan-2.0.md J12).
+    if (this.room === 'flowershop' && !this.textures.exists('flowers')) preloadFlowers(this.load);
     // Everything else the rooms share, loaded by the first one (the home shop's) for the whole game.
     if (this.textures.exists('cat')) return;
     // The town's street, seen through the inset and, out of the door, in the street scene (road-to-1.4.md D1).
@@ -438,6 +447,12 @@ export class CafeScene extends Phaser.Scene {
     this.growth = new ShopGrowth(this, this.room, () => {});
     this.growth.onShelfClick = () => this.activate('works');
     this.tales = new RoomTales(this, this.room);
+    if (this.room === 'flowershop') {
+      this.flowers = new FlowerStand(this, {
+        activate: (target) => this.activate(target),
+        hover: (target) => (target ? this.highlight(target as Target) : this.hovered?.startsWith('flower') && this.highlight(null)),
+      });
+    }
     // On the wall behind everyone, like what the stories leave.
     // Beside the season's vase on the big table, and drawn at its depth.
     if (this.room === 'cafe' || this.room === 'study') {
@@ -1025,6 +1040,9 @@ export class CafeScene extends Phaser.Scene {
     if (target === 'pet') return this.pet?.poke();
     if (target === 'you') return this.onYouClick();
     if (target === 'cork') return this.onWallCard(null);
+    if (target === 'flowers') return this.onFlowers();
+    const flowerCard = flowerCardIndex(target);
+    if (flowerCard !== null) return this.onFlowerCard(flowerCard);
     const card = wallIndex(target);
     if (card !== null) return this.onWallCard(card);
     const object = this.objects.find((b) => b.id === target);
@@ -1070,7 +1088,7 @@ export class CafeScene extends Phaser.Scene {
       ? this.wallCards.map((c, i) => ({ id: `wall-${i}` as const, x: c.x, y: c.y, w: WALL_CARD.w, h: WALL_CARD.h }))
       : [{ id: 'cork' as const, ...CORK }];
     const pet = this.pet ? [{ id: 'pet' as const, ...this.pet.bounds() }] : [];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...cork, ...pet, ...people, ...out];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...cork, ...(this.flowers?.targets() ?? []), ...pet, ...people, ...out];
   }
 
   /**
@@ -1696,6 +1714,12 @@ export class CafeScene extends Phaser.Scene {
     }
     const card = this.hovered ? wallIndex(this.hovered) : null;
     if (card !== null && this.wallCards[card]) zones.push({ key: `z-wall-${card}`, text: this.wallLabel(card), x: this.wallCards[card].x + WALL_CARD.w / 2, y: this.wallCards[card].y - 2, kind: 'zone' as const });
+    if (this.hovered === 'flowers') zones.push({ key: 'z-flowers', text: strings.ui.flowers.label, x: COUNTER_CARD.x + COUNTER_CARD.w / 2, y: COUNTER_CARD.y - 2, kind: 'zone' as const });
+    const flowerCard = this.hovered ? flowerCardIndex(this.hovered) : null;
+    if (flowerCard !== null && this.flowers?.titles[flowerCard]) {
+      const at = cardSpot(flowerCard);
+      zones.push({ key: `z-flowercard-${flowerCard}`, text: fill(strings.ui.flowers.wall, { title: this.flowers.titles[flowerCard] }), x: at.x + 4, y: at.y - 2, kind: 'zone' as const });
+    }
     if (this.hovered === 'cork') zones.push({ key: 'z-cork', text: strings.ui.visit.wallEmpty, x: CORK.x + CORK.w / 2, y: CORK.y - 2, kind: 'zone' as const });
     if (this.hovered === 'bell') zones.push({ key: 'z-bell', text: strings.zones.bell, x: BELL_POS.x + 3, y: BELL_POS.y - 2, kind: 'zone' as const });
     if (this.hovered === 'backdoor') zones.push({ key: 'z-garden', text: strings.zones.garden, x: BACK_DOOR.x + 8, y: BACK_DOOR.y - 2, kind: 'zone' as const });

@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
+import { withSale } from '../shared/flowers';
 import { holidayOn } from '../shared/holidays';
 import { localDay } from '../shared/localday';
 import { MAIN_FILES, shopOf } from '../shared/templates';
@@ -308,6 +309,15 @@ export class MemoryStore {
     return chapter;
   }
 
+  /** A neighbour bought the flowers in vase `slot` of the flower shop's stand (plan-2.0.md J12). */
+  sellFlower(slot: number, who: GuestId, now = new Date()): void {
+    const shop = this.shop();
+    if (!shop.town) return;
+    shop.town.flowers = withSale(shop.town.flowers ?? [], { day: localDay(now), slot, who });
+    this.data.shop = shop;
+    this.save();
+  }
+
   /** The shop is open on a festival (plan-2.0.md J8): the first day of each is kept for the town's record. */
   noteHoliday(now = new Date()): void {
     const shop = this.shop();
@@ -328,7 +338,7 @@ export class MemoryStore {
     const works = [...this.data.commissions].reverse().filter((c) => c.result === 'done').map((c) => ({
       id: c.id, title: c.title, date: c.date, icon: workIcon(c.form), rounds: c.asks?.length ?? 0, hasMain: Boolean(c.main),
       page: Boolean(c.main && MAIN_FILES.page(c.main)), want: c.form?.want, project: c.project!,
-      shop: shopOf(c.form?.demo ? undefined : c.form?.template),
+      shop: shopOf(c.form?.demo ? undefined : c.form?.template), template: c.form?.demo ? undefined : c.form?.template,
     }));
     return { ...structuredClone(this.shop()), works, today: localDay(now), crew: worksBy(this.data.commissions), bonds: bonds(this.data.commissions), recall: recallOf(this.data.commissions) };
   }

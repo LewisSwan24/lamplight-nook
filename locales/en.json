@@ -1093,6 +1093,47 @@
       "year": "The year · Chapter {n} · {title}",
       "line": "{who}: “{text}”"
     },
+    "flowers": {
+      "title": "Today's flowers",
+      "intro": "What is in the vases this morning. Any vase whose flowers are over gets a fresh bunch every morning.",
+      "label": "Today's flowers",
+      "stages": {
+        "bud": "in bud",
+        "open": "open",
+        "wilting": "wilting"
+      },
+      "came": {
+        "today": "came in today",
+        "yesterday": "came in yesterday",
+        "ago": "came in {n} days ago"
+      },
+      "sold": "{who} took these",
+      "soldToday": "Sold today",
+      "empty": "Nobody has come in for flowers yet today.",
+      "bought": "{who}: {flower}",
+      "wall": "A flower card: {title}",
+      "names": {
+        "rose": "Roses",
+        "carnation": "Carnations",
+        "babysbreath": "Baby's breath",
+        "tulip": "Tulips",
+        "peony": "Peonies",
+        "freesia": "Freesias",
+        "cherry": "Cherry blossom",
+        "sunflower": "Sunflowers",
+        "lily": "Lilies",
+        "hydrangea": "Hydrangeas",
+        "lotus": "Lotus",
+        "chrysanthemum": "Chrysanthemums",
+        "cosmos": "Cosmos",
+        "dahlia": "Dahlias",
+        "osmanthus": "Osmanthus",
+        "plum": "Plum blossom",
+        "narcissus": "Narcissi",
+        "camellia": "Camellias",
+        "wintersweet": "Wintersweet"
+      }
+    },
     "chronicle": {
       "title": "The town’s record",
       "intro": "Everything the shop has seen, each with the day it came. What hasn’t come yet keeps its place, blank.",

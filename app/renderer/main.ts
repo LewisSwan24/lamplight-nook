@@ -6,7 +6,7 @@ import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { NO_TALLY, tallyLine, tallyRepair, type RepairTally } from '../shared/repair';
-import type { ActorId, AnchorId, CharacterCommand, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
+import type { ActorId, AnchorId, CharacterCommand, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer, Work } from '../shared/types';
 import { chime, setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { StreetScene } from './game/StreetScene';
@@ -18,7 +18,7 @@ import { ACTORS, ANCHORS, BOARD_SLATE, CANVAS, ZONES, integerScale, toolIconPx, 
 import { Chatter, type ShopMood } from './stage/chatter';
 import { progressDue } from './stage/progress';
 import { onRuleBookChange, ruleBook, setApprenticeStage } from './stage/rulebook';
-import { openingTurns, pickLine } from './translator/lines';
+import { openingTurns, parseChats, pickLine, type Chat } from './translator/lines';
 import { inSeason, newlyInSeason } from '../shared/furnish';
 import { birthdayOn, termOn } from '../shared/calendar';
 import { Stage, replay } from './stage/stage';
@@ -32,6 +32,10 @@ import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, showInterrupted, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
 import { showChronicle } from './ui/chronicle';
+import { showTodayFlowers } from './ui/flowers';
+import zhFlowerBuyers from '../../lines/flower-buyers.yaml?raw';
+import enFlowerBuyers from '../../lines/en/flower-buyers.yaml?raw';
+import { nextBuyer, shelfOn, soldOn, type FlowerSale } from '../shared/flowers';
 import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
 import { showGrant } from './ui/connections';
@@ -82,7 +86,7 @@ const home = new CafeScene(homeScene());
 let scene: CafeScene = home;
 /** What the page hangs on a room (clicks, sounds, lines said): set on the home shop below, copied to a room gone into. */
 const ROOM_HOOKS = ['onGuestIn', 'onView', 'onBellClick', 'onActorClick', 'onSound', 'onSay', 'onStreet', 'onObjectClick', 'onYouClick',
-  'boardInUse', 'onBoardClick', 'onWorksClick', 'onCounterClick', 'onWallCard'] as const satisfies readonly (keyof CafeScene)[];
+  'boardInUse', 'onBoardClick', 'onWorksClick', 'onCounterClick', 'onWallCard', 'onFlowers', 'onFlowerCard'] as const satisfies readonly (keyof CafeScene)[];
 const street = new StreetScene();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -282,6 +286,7 @@ setInterval(() => {
   if (atHome()) bringYear(!busy && !blocked && scene.view === 'shop');
   if (atHome()) dropIn(!busy && !blocked && scene.view === 'shop');
   talkInShop(!busy && !blocked && scene.view === 'shop');
+  if (scene.room === 'flowershop') void tendFlowers(!busy && !blocked && scene.view === 'shop');
   nudgeStaff();
   nudgeYear();
   if (running && !blocked) sayProgress();
@@ -318,6 +323,59 @@ function greetIn(room: RoomId) {
   const line = shopTalk.greet(ruleBook(room).lines.shop_in ?? [], momentNow());
   if (line) void sayLine(line);
 }
+/**
+ * The flower shop (plan-2.0.md J12). The stand is what shared/flowers.ts says for today and the sales so far; the wall has
+ * the shop's finished flower cards, newest first. While someone is in the shop and it is quiet, now and then a neighbour
+ * comes in for flowers: in at the door, to the counter, a word with Fern, and that vase stands empty.
+ */
+const flowerShop: { day: string; sales: FlowerSale[]; cards: Work[]; cameAt: number; lastBuyer: number; synced: number } = {
+  day: '', sales: [], cards: [], cameAt: 0, lastBuyer: 0, synced: 0,
+};
+/** The first neighbour comes a little after someone comes in, then one every so often while it is quiet. */
+const FIRST_BUYER_MS = 20_000;
+const BUYER_EVERY_MS = 90_000;
+/** The stand is looked at again this often while someone is in the shop, so a new morning's flowers come in. */
+const FLOWERS_SYNC_MS = 60_000;
+async function syncFlowers(room: CafeScene) {
+  const state = await window.lamplight.shopState();
+  flowerShop.day = state.today;
+  flowerShop.sales = state.town?.flowers ?? [];
+  flowerShop.cards = state.works.filter((w) => w.template === 'flowercard');
+  flowerShop.synced = Date.now();
+  const at = room.flowers;
+  at?.setStand(shelfOn(flowerShop.day, flowerShop.sales), flowerShop.day);
+  at?.setCards(flowerShop.cards.map((w) => w.title));
+}
+async function tendFlowers(quiet: boolean) {
+  const now = Date.now();
+  if (now - flowerShop.synced > FLOWERS_SYNC_MS) await syncFlowers(scene);
+  if (!quiet || scene.hasGuest() || now - flowerShop.cameAt < FIRST_BUYER_MS || now - flowerShop.lastBuyer < BUYER_EVERY_MS) return;
+  const buyer = nextBuyer({ day: flowerShop.day, hour: hourOf(scene.period, new Date().getHours()) }, flowerShop.sales);
+  if (!buyer) return;
+  const chat = pickOne(flowerBuyers().filter((c) => c.guest === buyer.who));
+  if (!chat) return;
+  flowerShop.lastBuyer = now;
+  const name = strings.ui.flowers.names[shelfOn(flowerShop.day, flowerShop.sales)[buyer.slot].bunch!.flower];
+  // In English the name comes mid-sentence ("Take the roses"), so in lower case.
+  const flower = locale() === 'en' ? name.toLowerCase() : name;
+  const turns = chat.turns.map((t) => ({ ...t, text: fill(t.text, { flower }) }));
+  void scene.guestVisit(buyer.who, turns, async () => {
+    await window.lamplight.sellFlower(buyer.slot, buyer.who);
+    await syncFlowers(scene);
+  });
+}
+const pickOne = <T>(list: T[]): T | undefined => list[Math.floor(Math.random() * list.length)];
+let buyerBook: { lang: string; chats: Chat[] } | null = null;
+const flowerBuyers = (): Chat[] => {
+  if (buyerBook?.lang !== locale()) buyerBook = { lang: locale(), chats: parseChats(locale() === 'en' ? enFlowerBuyers : zhFlowerBuyers) };
+  return buyerBook.chats;
+};
+home.onFlowers = () => showTodayFlowers({ day: flowerShop.day, vases: shelfOn(flowerShop.day, flowerShop.sales), sold: soldOn(flowerShop.day, flowerShop.sales) });
+home.onFlowerCard = (i) => {
+  const work = flowerShop.cards[i];
+  if (work) void window.lamplight.openWork(work.id);
+};
+
 function talkInShop(quiet: boolean) {
   if (atHome() || !isKeptRoom(scene.room)) return;
   const line = shopTalk.next(Date.now(), quiet, [...(ruleBook(scene.room).lines.shop_idle ?? []), ...memoriesOf(ROOM_CREW[scene.room])], momentNow());
@@ -1213,6 +1271,11 @@ async function openShop() {
     if (!outside && isKeptRoom(room) && !running) greetIn(room);
     // The postcards opened since last time are on the board by the time anyone looks.
     if (room === 'post') void window.lamplight.keptPostcards().then((cards) => next.scene.setPostcards(cards));
+    // The flower shop's stand as it is this morning, and its flower cards on the wall (plan-2.0.md J12).
+    if (room === 'flowershop') {
+      flowerShop.cameAt = Date.now();
+      void syncFlowers(next.scene);
+    }
   };
   showRoom = enterRoom;
   const say = (text: string) => {
@@ -1348,7 +1411,19 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
       clock: async (iso: string) => { await window.lamplight.debugClock(iso); tellAbout(await window.lamplight.shopState()); },
       state: () => ({ told: tales.year.length, chapter: yearChapter(), teller: yearTeller(), tower: towerAt }),
     };
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, tower, year, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
+    // `flowers`: the flower shop's stand as drawn, and a neighbour sent in for flowers now (plan-2.0.md J12).
+    const flowers = {
+      look: () => scene.flowers?.look(),
+      buyerNow: () => { flowerShop.cameAt = 0; flowerShop.lastBuyer = 0; },
+      state: () => ({ day: flowerShop.day, sales: flowerShop.sales, cards: flowerShop.cards.map((w) => w.title) }),
+      /** What is keeping a buyer out, if anything. */
+      why: () => ({
+        room: scene.room, view: scene.view, running, replaying, hidden: document.hidden, backdrop: !!document.querySelector('.backdrop'),
+        guest: scene.hasGuest(), sinceCame: Date.now() - flowerShop.cameAt, sinceBuyer: Date.now() - flowerShop.lastBuyer,
+        hour: hourOf(scene.period, new Date().getHours()), buyer: nextBuyer({ day: flowerShop.day, hour: hourOf(scene.period, new Date().getHours()) }, flowerShop.sales),
+      }),
+    };
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, tower, year, flowers, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
   }
   const env = $('env');
   env.textContent = [

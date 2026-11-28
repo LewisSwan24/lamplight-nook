@@ -1,0 +1,16 @@
+# Neighbours coming into the flower shop for flowers (plan-2.0.md J12; lines/en/flower-buyers.yaml in English).
+# Same shape and writing rules as chats.yaml: the neighbour first, then Fern, who names the flowers ({flower}) as
+# she hands them over. Which neighbour comes and which vase they take: app/shared/flowers.ts nextBuyer.
+
+- { id: buy_granny_1, when: idle, guest: granny, turns: [{ granny: "相框前的花该换了。" }, { fangjie: "今天的{flower}正好，给您包上。" }] }
+- { id: buy_granny_2, when: idle, guest: granny, turns: [{ granny: "挑一把放窗台上看。" }, { fangjie: "{flower}放窗台，能开好几天。" }] }
+- { id: buy_student_1, when: idle, guest: student, turns: [{ student: "考完试了，买束花给自己。" }, { fangjie: "那就{flower}，颜色亮。" }] }
+- { id: buy_student_2, when: idle, guest: student, turns: [{ student: "同学过生日，帮我挑挑？" }, { fangjie: "{flower}吧，我给系根丝带。" }] }
+- { id: buy_mechanic_1, when: idle, guest: mechanic, turns: [{ mechanic: "店里太灰了，摆点花。" }, { fangjie: "{flower}好养，不怕机油味。" }] }
+- { id: buy_mechanic_2, when: idle, guest: mechanic, turns: [{ mechanic: "别笑，我也买一回花。" }, { fangjie: "{flower}拿去，没人笑。" }] }
+- { id: buy_baker_1, when: idle, guest: baker, turns: [{ baker: "柜台上缺一瓶花。" }, { fangjie: "配面包，就{flower}。" }] }
+- { id: buy_baker_2, when: idle, guest: baker, turns: [{ baker: "明天店庆，要一把喜庆的。" }, { fangjie: "{flower}，我多放几枝。" }] }
+- { id: buy_postman_1, when: idle, guest: postman, turns: [{ postman: "顺路，带一把回家。" }, { fangjie: "{flower}，路上别压着。" }] }
+- { id: buy_postman_2, when: idle, guest: postman, turns: [{ postman: "信送完了，给我留花了吗？" }, { fangjie: "留着呢，{flower}。" }] }
+- { id: buy_bookseller_1, when: idle, guest: bookseller, turns: [{ bookseller: "书桌上想放点颜色。" }, { fangjie: "{flower}，不香，不扰你看书。" }] }
+- { id: buy_bookseller_2, when: idle, guest: bookseller, turns: [{ bookseller: "拿两枝，夹在书里压干。" }, { fangjie: "{flower}的花瓣，压平了好看。" }] }

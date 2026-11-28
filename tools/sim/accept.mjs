@@ -7580,6 +7580,74 @@ const SCENARIOS = {
     }
   },
 
+  /**
+   * The flower shop comes alive (plan-2.0.md J12). The stand's six vases each hold a bunch for the day; the shop's two
+   * finished flower cards hang on its wall; the card on the counter opens today's flowers. A neighbour comes in for
+   * flowers, a word with Fern at the counter, and that vase stands empty: the sale is written down, and the card says who
+   * took what.
+   */
+  async flowershelf(lang, out) {
+    const L = locale(lang);
+    const F = L.ui.flowers;
+    const cards = ['A card for Mum', 'Thank-you flowers'];
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'memory.json': JSON.stringify({
+        commissions: cards.map((title, i) => ({ id: `c${1760000000000 + i * 86400000}`, title, date: '2027-04-2' + i, result: 'done', choices: {}, folder: 'C:/nowhere', form: { want: 'x', template: 'flowercard' } })),
+        stuckNotes: [], greeted: 'c1',
+        shop: { done: 6, told: ['town-move'], grown: [], met: [], town: { shops: { flowershop: { done: 2, grown: [] } }, street: [], stories: {} } },
+      }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2027-05-03T10:00' });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const look = () => page.evaluate(() => window.lamplightDebug.flowers.look());
+    const state = () => page.evaluate(() => window.lamplightDebug.flowers.state());
+    try {
+      await sleep(2500);
+      await page.evaluate(() => { window.lamplightDebug.scene.setWeather('clear', null, false); window.lamplightDebug.scene.setPeriod('day', true); });
+      await page.evaluate(() => window.lamplightDebug.street.onFront('flowershop', true));
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== 'flowershop'; await sleep(300));
+      check(await room() === 'flowershop', `did not go into the flower shop: ${await room()}`);
+      // The shop keeps its own hours: daytime in here too, so a neighbour may come in.
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(1500);
+      let v = await look();
+      check(v.vases.length === 6 && v.vases.every((f) => /^[a-z]+-(bud|open|wilting)$/.test(f)), `the stand: ${JSON.stringify(v)}`);
+      check(new Set(v.vases.map((f) => f.split('-')[0])).size === 6, `two vases hold the same flowers: ${v.vases}`);
+      check(v.cards === 2 && JSON.stringify((await state()).cards) === JSON.stringify([...cards].reverse()), `the cards on the wall: ${JSON.stringify(await state())}`);
+      const wallLabel = F.wall.replace('{title}', cards[1]);
+      check(await page.evaluate((l) => [...document.querySelectorAll('button.hotspot')].some((b) => b.getAttribute('aria-label') === l), wallLabel), `no hotspot "${wallLabel}"`);
+      await shop.shot(join(out, 'flowershelf-stand.png'));
+
+      // The card on the counter: six vases, nobody in for flowers yet.
+      await shop.hotspot(F.label);
+      const card = page.locator('.flowers-card');
+      await card.waitFor({ timeout: 5000 });
+      check(await card.locator('.flower-row').count() === 6 && (await card.innerText()).includes(F.empty), `today's flowers: ${await card.innerText()}`);
+      await shop.shot(join(out, 'flowershelf-card.png'));
+      await page.keyboard.press('Escape');
+
+      // A neighbour comes in for flowers.
+      await page.evaluate(() => window.lamplightDebug.flowers.buyerNow());
+      for (const end = Date.now() + 45_000; Date.now() < end && (await state()).sales.length === 0; await sleep(300)) {
+        if (await page.evaluate(() => window.lamplightDebug.scene.hasGuest())) await shop.shot(join(out, 'flowershelf-buyer.png'));
+      }
+      const sale = (await state()).sales[0];
+      check(sale && sale.day === '2027-05-03', `nobody bought flowers: ${JSON.stringify(await state())} ${JSON.stringify(await page.evaluate(() => window.lamplightDebug.flowers.why()))}`);
+      const kept = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.flowers;
+      check(JSON.stringify(kept) === JSON.stringify([sale]), `the sale was not written down: ${JSON.stringify(kept)}`);
+      v = await look();
+      check(v.vases[sale.slot] === 'vase', `vase ${sale.slot} still has flowers in it: ${v.vases}`);
+      await shop.hotspot(F.label);
+      await card.waitFor({ timeout: 5000 });
+      const text = await card.innerText();
+      check(await card.locator(`.flower-row[data-sold="${sale.who}"]`).count() === 1 && await card.locator('.flower-sold li').count() === 1 && text.includes(L.guests[sale.who]), `the card after the sale: ${text}`);
+      await shop.shot(join(out, 'flowershelf-sold.png'));
+      await page.keyboard.press('Escape');
+    } finally { await shop.close(); }
+  },
+
   async riverstreet(lang, out) {
     const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
     const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
