@@ -162,7 +162,8 @@ describe('the pictures for it', () => {
 
   it('has every street piece, and a pot, a sign and flags at each room’s front', () => {
     for (const g of STREET_GROWTH) expect(town.grow.some((p) => p.id === g.id && !('shop' in p)), g.id).toBe(true);
-    for (const room of ['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post']) {
+    // The river street's two since plan-2.0.md J5.
+    for (const room of ['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post', 'flowershop', 'bookshop']) {
       for (const g of FRONT_GROWTH) expect(town.grow.filter((p) => p.id === g.id && 'shop' in p && p.shop === room), `${room} ${g.id}`).toHaveLength(1);
     }
     for (const p of town.grow) {

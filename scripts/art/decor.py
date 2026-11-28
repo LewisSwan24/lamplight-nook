@@ -287,7 +287,7 @@ def draw_with(img, rows, x, y, colors):
 # SHOP_PIECE: the print shop a poster it printed, the studio a little painting, the workshop a sign cut from wood, and
 # the bakery (plan-1.6.md F1) a big biscuit hung on a ribbon, the festival piped on it in icing, and the post office (F2)
 # a big airmail envelope pinned up, the festival drawn on its front.
-SHOPS = ['print', 'studio', 'workshop', 'bakery', 'post']
+SHOPS = ['print', 'studio', 'workshop', 'bakery', 'post', 'flowershop', 'bookshop']
 HOLIDAY_ORDER = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid_autumn']  # weather.ts HOLIDAYS
 SHOP_PIECE = (180, 18)  # top-left of each shop's own piece, on the wall clear of the press, the drying line, the pegboard
 # The festival's piece on the wall: the narrow strip right of the window, before what the shop grows there (D5) from x 234.
@@ -383,26 +383,50 @@ def airmail(motif):
     return [''.join(r) for r in rows]
 
 
-OWN_PIECE = {'print': poster, 'studio': painting, 'workshop': wooden_sign, 'bakery': biscuit, 'post': airmail}
+def flower_tag(motif):
+    """The flower shop's (plan-2.0.md J5): a card like those tucked into a bouquet, a pink band along its top."""
+    return ['xxxxxxxxxxx', 'xpppppppppx'] + ['x' + row.replace('.', 'w') + 'x' for row in motif] + ['xxxxxxxxxxx']
+
+
+def book_jacket(motif):
+    """The bookshop's: a book stood face out, its dark spine at the left and the festival on its cover."""
+    return ['xxxxxxxxxxxx'] + ['xs' + row.replace('.', 'E') + 'x' for row in motif] + ['xxxxxxxxxxxx']
+
+
+OWN_PIECE = {'print': poster, 'studio': painting, 'workshop': wooden_sign, 'bakery': biscuit, 'post': airmail,
+             'flowershop': flower_tag, 'bookshop': book_jacket}
+
+
+# The river street's two rooms (plan-2.0.md J5) are laid out otherwise: the big table is covered in their work and the
+# clock hangs where the others have their own piece. So the festival's table piece stands on the counter, their own
+# piece hangs on the counter's front, and the tree or the pumpkins stand on the free floor at the left. The couplets
+# would cover what the stories left right of the back door (tales.py), so there the fu on the door is enough.
+SPOTS = {
+    'default': {'table': TABLE_PIECE, 'own': SHOP_PIECE, 'corner': (288, 139), 'couplets': COUPLETS},
+    'flowershop': {'table': (255, 78), 'own': (222, 81), 'corner': (64, 128), 'couplets': []},
+    'bookshop': {'table': (255, 78), 'own': (222, 81), 'corner': (64, 128), 'couplets': []},
+}
 
 
 def shop_frame(shop, holiday):
     img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    tx, ty = TABLE_PIECE
+    spot = SPOTS.get(shop, SPOTS['default'])
+    tx, ty = spot['table']
     sx, sy = SLOT
+    cx, cy = spot['corner']
     if holiday == 'halloween':
         draw(img, BAT, sx, sy)
-        img.alpha_composite(halloween.crop((163, 6, 189, 28)), (290, 154))  # a pile of pumpkins in the corner by the door
+        img.alpha_composite(halloween.crop((163, 6, 189, 28)), (cx + 2, cy + 15))  # a pile of pumpkins in the corner
         img.alpha_composite(halloween.crop((83, 7, 93, 22)), (tx - 2, ty - 14))  # a small pumpkin on the big table
     elif holiday == 'christmas':
-        img.alpha_composite(christmas.crop((17, 12, 47, 47)), (288, 143))  # the tree in the corner, as in the cafe
-        img.alpha_composite(christmas.crop((0, 100, 30, 140)), (288, 139))
+        img.alpha_composite(christmas.crop((17, 12, 47, 47)), (cx, cy + 4))  # the tree in the corner, as in the cafe
+        img.alpha_composite(christmas.crop((0, 100, 30, 140)), (cx, cy))
         img.alpha_composite(christmas.crop((147, 10, 157, 25)), (sx, sy + 6))  # a stocking on the wall
         img.alpha_composite(christmas.crop((226, 109, 238, 128)), (tx + 1, ty - 19))  # a little tree on the table
     elif holiday == 'new_year':
         draw(img, LANTERN, sx, sy)
         draw(img, FU, 292, 22)
-        for x, y in COUPLETS:
+        for x, y in spot['couplets']:
             for dy in range(26):
                 for dx in range(3):
                     img.putpixel((x + dx, y + dy), COLORS['r'])
@@ -417,7 +441,7 @@ def shop_frame(shop, holiday):
     elif holiday == 'mid_autumn':
         draw(img, MOON_LANTERN, sx + 1, sy - 1)
         draw_at(img, MOONCAKES, tx - 2, ty)
-    draw(img, OWN_PIECE[shop](MOTIFS[holiday]), *SHOP_PIECE)
+    draw(img, OWN_PIECE[shop](MOTIFS[holiday]), *spot['own'])
     return img
 
 

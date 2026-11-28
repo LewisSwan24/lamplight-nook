@@ -222,6 +222,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -275,6 +305,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -753,6 +813,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -806,6 +896,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -1266,6 +1386,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -1319,6 +1469,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -1787,6 +1967,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -1840,6 +2050,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -2296,6 +2536,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -2349,6 +2619,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -2802,6 +3102,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -2855,6 +3185,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -3309,6 +3669,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -3362,6 +3752,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -3715,7 +4135,12 @@
    }
   ],
   "on": {
-   "decor-christmas": 143.1,
+   "decor-christmas": 96.1,
+   "decor-dragon_boat": 96.1,
+   "decor-halloween": 96.1,
+   "decor-lantern": 96.1,
+   "decor-mid_autumn": 96.1,
+   "decor-new_year": 96.1,
    "grow-album": 102.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
@@ -3806,6 +4231,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -3859,6 +4314,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
@@ -4212,8 +4697,12 @@
    }
   ],
   "on": {
-   "decor-christmas": 143.1,
-   "decor-halloween": 156.1,
+   "decor-christmas": 96.1,
+   "decor-dragon_boat": 96.1,
+   "decor-halloween": 96.1,
+   "decor-lantern": 96.1,
+   "decor-mid_autumn": 96.1,
+   "decor-new_year": 96.1,
    "grow-album": 102.1,
    "grow-bonsai": 156.1,
    "grow-books": 156.1,
@@ -4308,6 +4797,36 @@
     "w": 14,
     "h": 10
    },
+   "bookshop-bust": {
+    "x": 252,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "bookshop-ladder": {
+    "x": 271,
+    "y": 18,
+    "w": 10,
+    "h": 12
+   },
+   "bookshop-listboard": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 13
+   },
+   "bookshop-pricelist": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 12
+   },
    "briefcase": {
     "x": 3,
     "y": 77,
@@ -4361,6 +4880,36 @@
     "y": 72,
     "w": 15,
     "h": 28
+   },
+   "flowershop-basket": {
+    "x": 271,
+    "y": 18,
+    "w": 12,
+    "h": 12
+   },
+   "flowershop-cardrack": {
+    "x": 85,
+    "y": 24,
+    "w": 7,
+    "h": 12
+   },
+   "flowershop-ivy": {
+    "x": 7,
+    "y": 17,
+    "w": 9,
+    "h": 13
+   },
+   "flowershop-seedtray": {
+    "x": 234,
+    "y": 20,
+    "w": 12,
+    "h": 8
+   },
+   "flowershop-watercan": {
+    "x": 254,
+    "y": 18,
+    "w": 12,
+    "h": 7
    },
    "fruit": {
     "x": 166,
