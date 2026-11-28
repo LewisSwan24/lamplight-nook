@@ -124,11 +124,16 @@ SIGN_ICONS = {
     'workshop': ['.....ll', '....l.l', '...lll.', '..lll..', '.lll...', 'lll....', 'll.....'],
     'bakery': ['.......', '.kkkkk.', 'koooook', 'kokokok', 'koooook', '.kkkkk.', '.......'],
     'post': ['.......', 'xxxxxxx', 'xwxwxwx', 'xwwxwwx', 'xwwwwwx', 'xxxxxxx', '.......'],
+    # The river street's (plan-2.0.md J5): a red flower on its stem, a stack of three books.
+    'flowershop': ['..r.r..', '.rrrrr.', '..rwr..', '.rrrrr.', '..rgr..', '...g...', '..ggg..'],
+    'bookshop': ['.......', '.rrrrr.', '.wwwww.', 'uuuuuu.', '.oooooo', 'gggggg.', '.......'],
 }
 SIGN_COLORS = {'x': (42, 34, 51, 255), 'k': (120, 80, 48, 255), 'G': (232, 184, 74, 255), 'w': (250, 246, 236, 255),
-               'u': (72, 104, 160, 255), 'o': (226, 196, 150, 255), 'r': (200, 72, 60, 255), 'l': (190, 190, 196, 255)}
-# The workshop's pot goes right of its door, clear of the tree in front of it.
-POT_SIDE = {'workshop': 14}
+               'u': (72, 104, 160, 255), 'o': (226, 196, 150, 255), 'r': (200, 72, 60, 255), 'l': (190, 190, 196, 255),
+               'g': (104, 150, 96, 255)}
+# The workshop's pot goes right of its door, clear of the tree in front of it; the flower shop's too, clear of the
+# pots of flowers already out on its left (plan-2.0.md J5).
+POT_SIDE = {'workshop': 14, 'flowershop': 12}
 FLAGS = [(200, 72, 60, 255), (232, 184, 74, 255), (104, 150, 96, 255), (72, 104, 160, 255)]
 
 
@@ -193,10 +198,13 @@ def grow_pieces(fronts, lot):
     for f in fronts:
         if f['id'] not in SIGN_ICONS:
             continue
+        # The sign and the flags hang from the top of the ground floor: on the first street at y 76; the river
+        # street's fronts say where theirs is (river.json `top`).
+        top = f.get('top', 76)
         out.append(('pot', city('Pot_3'), f['door'] + POT_SIDE.get(f['id'], -24), KERB + 1, f['id']))
-        out.append(('sign', sign(f['id']), f['x'] + f['w'] - 18, 98, f['id']))
+        out.append(('sign', sign(f['id']), f['x'] + f['w'] - 18, top + 22, f['id']))
         flags = bunting(f['w'] - 8)
-        out.append(('bunting', flags, f['x'] + 4, 74 + flags.height, f['id']))
+        out.append(('bunting', flags, f['x'] + 4, top - 2 + flags.height, f['id']))
     return out
 
 
@@ -269,7 +277,11 @@ def build():
         stands.append({'name': name.split('16x16_')[-1][:-4], 'left': x + foot[0], 'right': x + foot[2], 'top': bottom - 4, 'bottom': bottom})
 
     signs = Image.new('RGBA', (width, H), (0, 0, 0, 0))
-    sheet, grow = grow_sheet(fronts, lot)
+    # The river street's two fronts grow their pieces too (plan-2.0.md J5): it is laid on at the end of this street, so
+    # their places are this street's width further on. river.json is river.py's; run that first on a fresh checkout.
+    river = json.loads((OUT / 'river.json').read_text(encoding='utf8'))
+    beyond = [{**f, 'x': width + f['x'], 'door': width + f['door']} for f in river['fronts']]
+    sheet, grow = grow_sheet(fronts + beyond, lot)
 
     OUT.mkdir(parents=True, exist_ok=True)
     ground.save(OUT / 'town-street.png')

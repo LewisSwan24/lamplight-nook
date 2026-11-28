@@ -2,7 +2,7 @@ import type { StreetShop } from './dispatch';
 import type { Made } from './growth';
 import { TEMPLATES, type BroughtRoomId, type TemplateId } from './templates';
 import { ROOMS, type RoomId, type SceneId } from './scenes';
-import { SHOP_STREET, type TownDays } from './town';
+import type { TownDays } from './town';
 
 /**
  * The town grows with the work (road-to-1.4.md D5). The street by everything done together: two lamps, a bench, tubs of
@@ -91,8 +91,6 @@ export function townNews(before: TownCounts, after: TownCounts, made: { before: 
   const fresh = <T extends string>(was: T[], now: T[]) => now.filter((id) => !was.includes(id));
   const out: TownNews[] = fresh(streetGrown(before.total), streetGrown(after.total)).map((id) => ({ line: `grow_street_${id}` }));
   for (const room of ROOMS) {
-    // Only the first street's fronts have their pieces drawn (town.py); the river street's come in plan-2.0.md J5.
-    if (SHOP_STREET[room] !== 'main') continue;
     for (const id of fresh(frontGrown(before.shops[room]), frontGrown(after.shops[room]))) out.push({ line: `grow_front_${id}`, shop: room });
   }
   for (const room of ROOMS) {

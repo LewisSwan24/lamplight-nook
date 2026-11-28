@@ -12,13 +12,15 @@
    "id": "flowershop",
    "x": 120,
    "w": 144,
-   "door": 192
+   "door": 192,
+   "top": 76
   },
   {
    "id": "bookshop",
    "x": 376,
    "w": 112,
-   "door": 432
+   "door": 432,
+   "top": 60
   }
  ],
  "tower": {

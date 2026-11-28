@@ -39,16 +39,17 @@ describe('work sent to the river street', () => {
     expect(errandTo('bookshop', 'mcp__nook-office__render_png')).toBe('studio');
   });
 
-  it('says what grows inside, but nothing at the river fronts, which have no pieces drawn yet (J5)', () => {
+  it('says what grows inside, and at the river fronts too since they have their pieces (J5)', () => {
     const at = (flowershop: number) => townCounts({ done: flowershop, town: { shops: { flowershop: { done: flowershop, grown: [] } }, street: [], stories: {} } }, 'cafe');
-    const news = townNews(at(1), at(2)).concat(townNews(at(7), at(8)));
-    expect(news.filter((n) => n.shop === 'flowershop')).toEqual([]);
+    expect(townNews(at(1), at(2))).toContainEqual({ line: 'grow_front_pot', shop: 'flowershop' });
+    expect(townNews(at(7), at(8))).toContainEqual({ line: 'grow_front_sign', shop: 'flowershop' });
     expect(townNews(at(0), at(1)).map((n) => n.line)).toContain(`grow_flowershop_${ROOM_GROWTH.flowershop[0].id}`);
   });
 
-  it('keeps the cafe’s festival decorations in the river shops until they have their own (J5)', () => {
-    expect(roomDecor('flowershop', 'christmas')).toEqual({ key: 'decor-christmas' });
-    expect(roomDecor('bookshop', 'new_year')).toEqual({ key: 'decor-new_year' });
+  it('dresses the river shops for the festivals in frames of their own (J5)', () => {
+    expect(roomDecor('flowershop', 'christmas')).toEqual({ key: 'shops-decor', frame: 'flowershop-christmas' });
+    expect(roomDecor('bookshop', 'new_year')).toEqual({ key: 'shops-decor', frame: 'bookshop-new_year' });
+    expect(roomDecor('cafe', 'christmas')).toEqual({ key: 'decor-christmas' });
     expect(roomDecor('bakery', 'christmas')).toEqual({ key: 'shops-decor', frame: 'bakery-christmas' });
   });
 });

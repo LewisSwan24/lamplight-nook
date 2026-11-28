@@ -585,8 +585,9 @@ async function seasonsOnTheStreet(shop, out) {
   check((await street()).umbrella, 'no umbrella over Xiaoju on the street on a snowy day');
   await shop.shot(join(out, 'seasons-street-umbrella.png'));
 
-  // Each festival in each shop along the street: its own frame of shops-decor.png.
-  for (const room of ['print', 'studio', 'workshop']) {
+  // Each festival in each shop along the street: its own frame of shops-decor.png; the river street's two since
+  // plan-2.0.md J5, their pieces on the counter and the free floor.
+  for (const room of ['print', 'studio', 'workshop', 'flowershop', 'bookshop']) {
     await page.evaluate((room) => window.lamplightDebug.street.lookAt(room), room);
     await page.keyboard.press('Enter');
     await sleep(1500);
@@ -6201,7 +6202,8 @@ const SCENARIOS = {
     const FRONT = [['pot', 2], ['sign', 8], ['bunting', 20]];
     const due = (list, n) => list.filter(([, at]) => n >= at).map(([id]) => id);
     // How many of the total each shop along the street did; the home shop did the rest.
-    const SPLITS = { 0: {}, 10: { print: 8 }, 30: { print: 20, studio: 3, workshop: 2 }, 100: { print: 30, studio: 25, workshop: 20 } };
+    // The river street's two since plan-2.0.md J5.
+    const SPLITS = { 0: {}, 10: { print: 8 }, 30: { print: 20, studio: 3, workshop: 2, bookshop: 3 }, 100: { print: 30, studio: 25, workshop: 20, flowershop: 12, bookshop: 8 } };
     const seed = (done, split) => freshHome({
       'settings.json': onboarded(lang),
       'data-version.json': JSON.stringify({ data: 5 }),
@@ -6221,7 +6223,7 @@ const SCENARIOS = {
     const shown = (page) => page.evaluate(() => {
       const g = window.lamplightDebug.street.growth;
       const ids = ['lamps', 'bench', 'flowers', 'stall', 'park', 'fountain'];
-      const fronts = Object.fromEntries(['cafe', 'study', 'print', 'studio', 'workshop'].map((s) => [s, ['pot', 'sign', 'bunting'].filter((id) => g.shows(id, s))]));
+      const fronts = Object.fromEntries(['cafe', 'study', 'print', 'studio', 'workshop', 'flowershop', 'bookshop'].map((s) => [s, ['pot', 'sign', 'bunting'].filter((id) => g.shows(id, s))]));
       return { street: ids.filter((id) => g.shows(id)), fronts };
     });
     const scrollTo = (page, x) => page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, x);
@@ -6234,7 +6236,7 @@ const SCENARIOS = {
         await goOut(page);
         const v = await shown(page);
         check(JSON.stringify(v.street) === JSON.stringify(due(STREET, done)), `${done} done: the street shows ${v.street}`);
-        const own = { cafe: done - Object.values(split).reduce((a, b) => a + b, 0), study: 0, print: 0, studio: 0, workshop: 0, ...split };
+        const own = { cafe: done - Object.values(split).reduce((a, b) => a + b, 0), study: 0, print: 0, studio: 0, workshop: 0, flowershop: 0, bookshop: 0, ...split };
         for (const [s, n] of Object.entries(own)) check(JSON.stringify(v.fronts[s]) === JSON.stringify(due(FRONT, n)), `${done} done: the ${s} front shows ${v.fronts[s]} for ${n} of its own`);
         await scrollTo(page, 0);
         await sleep(300);
@@ -6243,6 +6245,11 @@ const SCENARIOS = {
         await sleep(300);
         await shop.shot(join(out, `towngrow-${done}-lot.png`));
         if (done === 100) {
+          for (const front of ['flowershop', 'bookshop']) {
+            await page.evaluate((f) => window.lamplightDebug.street.lookAt(f), front);
+            await sleep(300);
+            await shop.shot(join(out, `towngrow-100-${front}-front.png`));
+          }
           await page.evaluate(() => window.lamplightDebug.street.lookAt('print'));
           await sleep(300);
           await shop.shot(join(out, 'towngrow-100-print-front.png'));

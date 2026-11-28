@@ -33,12 +33,9 @@ export function putAway(outside: Outside): string[] {
 export const umbrellaUp = (sky: Sky): boolean => sky === 'rain' || sky === 'snow' || sky === 'storm';
 
 /** The shops along the street, in the order of the rows of shops-decor.png; its columns follow HOLIDAYS. */
-export const DECOR_SHOPS = ['print', 'studio', 'workshop', 'bakery', 'post'] as const;
+export const DECOR_SHOPS = ['print', 'studio', 'workshop', 'bakery', 'post', 'flowershop', 'bookshop'] as const;
 
-/**
- * Where a room's festival decorations are: the cafe and the study their own pictures, a shop along the street its frame.
- * The river street's two have no frames yet (plan-2.0.md J5) and hang the cafe's.
- */
+/** Where a room's festival decorations are: the cafe and the study their own pictures, a shop along the street its frame. */
 export function roomDecor(room: RoomId, holiday: Holiday): { key: string; frame?: string } {
   return (DECOR_SHOPS as readonly string[]).includes(room) ? { key: 'shops-decor', frame: `${room}-${holiday}` } : { key: `decor-${holiday}` };
 }

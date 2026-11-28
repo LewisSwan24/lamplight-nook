@@ -29,6 +29,10 @@
   dragon boat festival the dragon boat rows past with its drum; at the lantern festival and mid-autumn, lanterns
   float on the water from dusk and glow after dark. Fern and Uncle Page have things to say about it all. With
   less motion asked for, the ducks and lanterns stay where they are and no boat crosses.
+- **The river shops grow and dress up.** Like the shops on the first street, the flower shop and the bookshop gain
+  a pot by the door, a new sign (a red flower, a stack of books) and a string of flags as their work goes on. Inside,
+  each now dresses for the festivals in its own way, a little piece on the counter, a card or a book hung on its
+  front, and a Christmas tree or a pile of pumpkins on the floor.
 
 ## 1.9.0 (2026-11-27)
 

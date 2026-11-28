@@ -10,7 +10,7 @@ Reads the raw pack from assets/vendor/ (not in the repo) and writes, into assets
   river-fronts.png  the florist's and the bookshop's fronts, on a transparent strip as wide as the river street
   river-props.png   lamps, benches, trees and flowers, on a transparent strip
   river-tower.png   the clock tower as it stands at first: stopped, its roof half gone, its door boarded up
-  river.json        where the bridge, each front, door and the tower is, and the ground each prop stands on, read by
+  river.json        where the bridge, each front, door, ground floor and the tower is, and the ground each prop stands on, read by
                     app/renderer/game/town.ts, which puts the whole strip on at the end of the first street
 Run: py -3.12 scripts/art/river.py
 """
@@ -214,7 +214,8 @@ def build():
             ground.paste(ALLEY_COLOUR, (ax, 0, ax + ALLEY, KERB))
         strip.alpha_composite(upper, (x, top - upper.height))
         strip.alpha_composite(part, (x, top))
-        fronts.append({'id': name, 'x': x, 'w': w, 'door': x + w // 2})
+        # `top`: where the ground floor starts, which the pieces a front grows hang from (town.py, plan-2.0.md J5).
+        fronts.append({'id': name, 'x': x, 'w': w, 'door': x + w // 2, 'top': top})
 
     clock = tower()
     at = {'x': PLOT['x'] + (PLOT['w'] - clock.width) // 2, 'y': KERB - clock.height, 'w': clock.width, 'h': clock.height}
