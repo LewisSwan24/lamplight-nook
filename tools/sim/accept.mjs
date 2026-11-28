@@ -38,6 +38,13 @@ const LANGS = opt('lang', 'zh-CN,en').split(',');
 const ONLY = opt('only', '') ? opt('only', '').split(',') : null;
 const OUT = join(ROOT, opt('out', 'sim-out'));
 const SPEED = Number(opt('speed', '120'));
+const RIVER_SPEED = Math.max(SPEED, 350);
+
+/**
+ * The year's chapter (plan-2.0.md J7) falls due with the first work done: a neighbour brings it in, its card opens, and
+ * nothing else is said in the shop until it is put away. A scenario about something else holds it off from the start.
+ */
+const holdYear = (page) => page.evaluate(() => window.lamplightDebug.year.hold());
 
 /**
  * Work sent to a shop on the river street (plan-2.0.md J4): ordered at home, carried over by Adeng and made there by
@@ -47,10 +54,13 @@ const SPEED = Number(opt('speed', '120'));
 async function riverOrder(lang, out, { template, shop: where, keeper, piece, name, guest, made }) {
   const L = locale(lang);
   const home = freshHome({ 'settings.json': onboarded(lang) });
-  const shop = await launch({ lang, home, speed: SPEED });
+  // Slower than the others: at full speed the work can be done before the view has followed Adeng over the river, and
+  // a parcel handed over in a room nobody is watching is not put on the counter.
+  const shop = await launch({ lang, home, speed: RIVER_SPEED });
   const { page } = shop;
   const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
   try {
+    await holdYear(page);
     await sleep(1500);
     await shop.order({ template, want: W[lang][template] });
     await shop.shot(join(out, `${name}-slip.png`));
@@ -5538,6 +5548,7 @@ const SCENARIOS = {
     const shop = await launch({ lang, home, speed: SPEED });
     const { page } = shop;
     try {
+      await holdYear(page);
       await sleep(1500);
       await shop.order({ template: 'flashcards', want: W[lang].flashcards, files: [handout] });
       check(await page.locator('form.commission .material-tag').count() === 1, 'the handout is not on the slip');
@@ -5608,6 +5619,7 @@ const SCENARIOS = {
     const shop = await launch({ lang, home, speed: SPEED });
     const { page } = shop;
     try {
+      await holdYear(page);
       await sleep(1500);
       await shop.order({ template: 'ledgerbook', want: W[lang].ledgerbook });
       await shop.shot(join(out, 'ledgerbook-slip.png'));
@@ -5862,6 +5874,7 @@ const SCENARIOS = {
     const shop = await launch({ lang, home, speed: SPEED });
     const { page } = shop;
     try {
+      await holdYear(page);
       await sleep(1500);
       await shop.order({ template: 'picturebook', want: W[lang].picturebook });
       await shop.shot(join(out, 'picturebook-slip.png'));
@@ -5960,6 +5973,7 @@ const SCENARIOS = {
     const shop = await launch({ lang, home, speed: SPEED });
     const { page } = shop;
     try {
+      await holdYear(page);
       await sleep(1500);
       await shop.order({ template: 'comic', want: W[lang].comic });
       await shop.shot(join(out, 'comic-slip.png'));
@@ -6074,6 +6088,7 @@ const SCENARIOS = {
     const shop = await launch({ lang, home, speed: SPEED });
     const { page } = shop;
     try {
+      await holdYear(page);
       await sleep(1500);
       await shop.order({ template: 'minigame', want: W[lang].minigame });
       await shop.shot(join(out, 'minigame-slip.png'));
@@ -6275,6 +6290,7 @@ const SCENARIOS = {
     const home = seed(2, {});
     const shop = await launch({ lang, home, debug: true, speed: 100 });
     try {
+      await holdYear(shop.page);
       await sleep(2000);
       await shop.page.evaluate(() => {
         window.heard = [];

@@ -634,7 +634,9 @@ function nudgeStaff() {
  * The year's story (plan-2.0.md J7): the chapter waiting today and who tells it. A neighbour comes into the home shop
  * and hands it over; one of the staff waits with a note over their head until clicked. Each told mends the tower on.
  */
-const yearChapter = () => nextYearChapter(tales.year, tales.done, tales.today);
+/** Set by the debug switch: no chapter comes while it is, for the scenarios that are about something else. */
+let yearHeld = false;
+const yearChapter = () => (yearHeld ? null : nextYearChapter(tales.year, tales.done, tales.today));
 const yearTeller = (): YearTeller | null => { const n = yearChapter(); return n === null ? null : YEAR_TELLERS[n - 1]; };
 function hearYear() {
   const chapter = yearChapter();
@@ -1410,6 +1412,7 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     const year = {
       clock: async (iso: string) => { await window.lamplight.debugClock(iso); tellAbout(await window.lamplight.shopState()); },
       state: () => ({ told: tales.year.length, chapter: yearChapter(), teller: yearTeller(), tower: towerAt }),
+      hold: () => { yearHeld = true; },
     };
     // `flowers`: the flower shop's stand as drawn, and a neighbour sent in for flowers now (plan-2.0.md J12).
     const flowers = {
