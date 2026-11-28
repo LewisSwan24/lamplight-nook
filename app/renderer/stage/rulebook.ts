@@ -12,16 +12,23 @@ import studioRules from '../../../rules/studio.yaml?raw';
 import workshopRules from '../../../rules/workshop.yaml?raw';
 import bakeryRules from '../../../rules/bakery.yaml?raw';
 import postRules from '../../../rules/post.yaml?raw';
+// The two shops on the river street (plan-2.0.md J2).
+import flowershopRules from '../../../rules/flowershop.yaml?raw';
+import bookshopRules from '../../../rules/bookshop.yaml?raw';
 import zhPrint from '../../../lines/print.yaml?raw';
 import zhStudio from '../../../lines/studio.yaml?raw';
 import zhWorkshop from '../../../lines/workshop.yaml?raw';
 import zhBakery from '../../../lines/bakery.yaml?raw';
 import zhPost from '../../../lines/post.yaml?raw';
+import zhFlowershop from '../../../lines/flowershop.yaml?raw';
+import zhBookshop from '../../../lines/bookshop.yaml?raw';
 import enPrint from '../../../lines/en/print.yaml?raw';
 import enStudio from '../../../lines/en/studio.yaml?raw';
 import enWorkshop from '../../../lines/en/workshop.yaml?raw';
 import enBakery from '../../../lines/en/bakery.yaml?raw';
 import enPost from '../../../lines/en/post.yaml?raw';
+import enFlowershop from '../../../lines/en/flowershop.yaml?raw';
+import enBookshop from '../../../lines/en/bookshop.yaml?raw';
 import { locale } from '../../shared/i18n';
 import type { RoomId } from '../../shared/scenes';
 import type { ApprenticeStage } from '../../shared/staff';
@@ -37,6 +44,8 @@ const OWN: Partial<Record<RoomId, { rules: string; zh: string; en: string }>> = 
   workshop: { rules: workshopRules, zh: zhWorkshop, en: enWorkshop },
   bakery: { rules: bakeryRules, zh: zhBakery, en: enBakery },
   post: { rules: postRules, zh: zhPost, en: enPost },
+  flowershop: { rules: flowershopRules, zh: zhFlowershop, en: enFlowershop },
+  bookshop: { rules: bookshopRules, zh: zhBookshop, en: enBookshop },
 };
 
 function build(scene: RoomId, r: string, a: string, l: string, c: string): RuleBook {

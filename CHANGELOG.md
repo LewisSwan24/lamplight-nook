@@ -3,9 +3,15 @@
 ## Unreleased (2.0)
 
 - **The river street.** The first street no longer stops at the post office: past it, a bridge goes over the canal to a
-  street along the river, with the river where the road would be. On it stand the florist and the bookshop, not open yet,
+  street along the river, with the river where the road would be. On it stand the flower shop and the bookshop,
   and between them the old clock tower, stopped long ago, its roof half fallen in and its door boarded up. A stretch of
   riverbank with trees and a bench runs on past the bookshop. Drag along the street or use the arrow keys to get there.
+- **The flower shop and the bookshop open.** Fern, who used to sell flowers from a stall on the street, now keeps a shop
+  by the river: buckets of today's flowers, a stand, little pots on a shelf and a table for making up
+  bouquets. Next to the clock tower Uncle Page, new in town, keeps a bookshop of old books bought one at a time, with
+  a tall bookcase, a reading table and a globe. Click either door to go in. Each keeper says a word as you come in and
+  talks now and then when the shop is quiet, about the weather, the season, the time of day and the festivals. Their
+  birthdays are kept at home too. Work is not sent to either shop yet.
 
 ## 1.9.0 (2026-11-27)
 

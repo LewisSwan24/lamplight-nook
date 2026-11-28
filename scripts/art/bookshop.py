@@ -56,6 +56,8 @@ def reading_table():
     """The reading table: long and wooden, two piles of books and one lying open."""
     p = Pen(58, 22)
     p.box(0, 10, 57, 13, WOOD_L, line=WOOD_D)
+    # An apron board under the top, so it reads as a solid table.
+    p.fill(1, 14, 56, 15, WOOD_D)
     p.box(2, 14, 4, 20, WOOD, line=WOOD_D)
     p.box(53, 14, 55, 20, WOOD, line=WOOD_D)
     pile(p, 4, 10, 3, start=3)

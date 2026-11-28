@@ -1,0 +1,212 @@
+# Dialogue for the flower shop (plan-2.0.md J2), laid over lines/cafe.yaml: same format, same rules.
+# Fern does all the work; Adeng only brings the order over.
+# Spots: 花店柜台 (counter), 小盆栽架 (board), 花台 (shelf), 包花桌 (table), 花桶 (corner).
+
+opening:
+  - { id: fl_revise_again_01, speaker: fangjie, when: revise_again, bubbles: ["Last time it was \"{lastAsk}\".", "This time, \"{brief}\". Noted."] }
+  - { id: fl_revise_01, speaker: fangjie, when: revise, bubbles: ["\"{brief}\"? Fine.", "The ribbon isn't tied yet. Easy."] }
+  - { id: fl_revise_02, speaker: fangjie, when: revise, bubbles: ["Untie it and start again. It happens.", "\"{brief}\". On it."] }
+  - { id: fl_revise_03, speaker: fangjie, when: revise, bubbles: ["I'll put the old bunch in a jar.", "\"{brief}\". I'll call you when it's done."] }
+  - { id: fl_mem_02, speaker: fangjie, when: has_stuck_note, bubbles: ["\"{brief}\". Noted.", "Last time {stuckNote} held us up.", "I'll go round that bit first."] }
+  - { id: fl_mem_01, speaker: fangjie, when: has_memory, bubbles: ["\"{brief}\". Noted.", "Last time you picked {lastChoice}.", "I'll match it again."] }
+  - { id: fl_tpl_card_01, speaker: fangjie, when: tpl_card, bubbles: ["A card? I tuck one in a bunch every day.", "Names exactly as you gave them."] }
+  - { id: fl_tpl_card_02, speaker: fangjie, when: tpl_card, bubbles: ["A card should suit the flowers.", "Few words, every one meant."] }
+  - { id: fl_tpl_newsletter_01, speaker: fangjie, when: tpl_newsletter, bubbles: ["A newsletter? Like writing flower tags.", "The big news goes first."] }
+  - { id: fl_tpl_newsletter_02, speaker: fangjie, when: tpl_newsletter, bubbles: ["Dates and places get a line each.", "Like price tags. Seen at a glance."] }
+  - { id: fl_handed_01, speaker: fangjie, when: handed, bubbles: ["Got your things. Let me open them up.", "\"{brief}\". Noted."] }
+  - { id: fl_opening_01, speaker: fangjie, bubbles: ["\"{brief}\"?", "Right, let me put the shears down."] }
+  - { id: fl_opening_02, speaker: fangjie, bubbles: ["\"{brief}\"...", "The morning's flowers are done. Good timing."] }
+  - { id: fl_opening_03, speaker: fangjie, bubbles: ["Work's in.", "\"{brief}\". I'll write it on a tag."] }
+
+planning:
+  - { id: fl_plan_01, speaker: fangjie, bubbles: ["Work out the mix first, like a bouquet."] }
+  - { id: fl_plan_02, speaker: fangjie, bubbles: ["Which stem goes in first..."] }
+  - { id: fl_plan_03, speaker: fangjie, bubbles: ["Three steps. One stem at a time."] }
+
+draft_ready:
+  - { id: fl_draft_ready_01, speaker: fangjie, bubbles: ["The draft's on the counter.", "Look it over, then decide."] }
+  - { id: fl_draft_ready_02, speaker: fangjie, bubbles: ["Draft's ready.", "Whether it goes out is up to you."] }
+  - { id: fl_draft_ready_03, speaker: fangjie, bubbles: ["It's under the shears on the counter."] }
+
+writing:
+  - { id: fl_write_01, speaker: fangjie, bubbles: ["Starting."] }
+  - { id: fl_write_02, speaker: fangjie, bubbles: ["That stem's done. Next."] }
+  - { id: fl_write_03, speaker: fangjie, bubbles: ["Hm...", "That line's the right colour."] }
+  - { id: fl_write_04, speaker: fangjie, bubbles: ["Tie it first. The ribbon comes later."] }
+
+sub_go_research:
+  - { id: fl_go_rs_rain, speaker: fangjie, when: sky_rain, bubbles: ["Raining. The buckets have to come in.", "I'll look for {topic} at the stand."] }
+  - { id: fl_go_rs_01, speaker: fangjie, bubbles: ["{topic}? I'll look at the flower stand."] }
+  - { id: fl_go_rs_02, speaker: fangjie, bubbles: ["I wrote it in one of the flower books..."] }
+  - { id: fl_go_rs_03, speaker: fangjie, bubbles: ["The old patterns are pressed in the ledger."] }
+
+sub_back_research:
+  - { id: fl_back_rs_01, speaker: fangjie, bubbles: ["Found it.", "{count} of them will do."] }
+  - { id: fl_back_rs_02, speaker: fangjie, bubbles: ["This one fits.", "Same as the neighbours say."] }
+  - { id: fl_back_rs_03, speaker: fangjie, bubbles: ["All here, sorted by colour."] }
+
+sub_go_review:
+  - { id: fl_go_rv_01, speaker: fangjie, bubbles: ["I'll go over it at the bouquet table."] }
+  - { id: fl_go_rv_02, speaker: fangjie, bubbles: ["Every stem checked for a crooked one."] }
+  - { id: fl_go_rv_03, speaker: fangjie, bubbles: ["Stem by stem."] }
+
+sub_back_review:
+  - { id: fl_back_rv_issue, speaker: fangjie, when: has_issues, bubbles: ["{issueCount} things aren't right.", "I put a little tag on each."] }
+  - { id: fl_back_rv_ok, speaker: fangjie, when: no_issues, bubbles: ["Checked end to end. Nothing crooked."] }
+  - { id: fl_back_rv_ok2, speaker: fangjie, when: no_issues, bubbles: ["Checked. Every stem's in line."] }
+
+sub_go_design:
+  - { id: fl_go_ds_rain, speaker: fangjie, when: sky_rain, bubbles: ["Nobody buys flowers in the rain.", "I'll sketch it by the little pots."] }
+  - { id: fl_go_ds_01, speaker: fangjie, bubbles: ["I'll try a few by the shelf of pots."] }
+  - { id: fl_go_ds_02, speaker: fangjie, bubbles: ["How should it look..."] }
+  - { id: fl_go_ds_03, speaker: fangjie, bubbles: ["I'll fold a shape from wrapping paper."] }
+
+sub_back_design:
+  - { id: fl_back_ds_01, speaker: fangjie, bubbles: ["That's the look.", "Like a well-matched bunch."] }
+  - { id: fl_back_ds_02, speaker: fangjie, bubbles: ["Folded. Have a look."] }
+  - { id: fl_back_ds_03, speaker: fangjie, bubbles: ["Three of them. I like the middle one."] }
+
+stuck:
+  - { id: fl_stuck_01, speaker: fangjie, bubbles: ["Huh. This stem snapped.", "I'll try another way."] }
+  - { id: fl_stuck_02, speaker: fangjie, bubbles: ["That's not right. {whatsWrong}."] }
+  - { id: fl_stuck_03, speaker: fangjie, bubbles: ["The ribbon went on backwards..."] }
+  - { id: fl_stuck_04, speaker: fangjie, bubbles: ["Wrong colours together.", "Picking again."] }
+
+stuck_long:
+  - { id: fl_stuck_long_01, speaker: fangjie, bubbles: ["This one takes some doing.", "I'll keep at it. Carry on."] }
+  - { id: fl_stuck_long_02, speaker: fangjie, bubbles: ["Still at it. Not giving up."] }
+  - { id: fl_stuck_long_03, speaker: fangjie, bubbles: ["Bear with me. This stem's tricky."] }
+
+waiting:
+  - { id: fl_wait_01, speaker: fangjie, bubbles: ["It's on its way. Hang on."] }
+  - { id: fl_wait_02, speaker: fangjie, bubbles: ["No reply yet. Give it a moment."] }
+  - { id: fl_wait_03, speaker: fangjie, bubbles: ["Can't rush it. Flowers open slowly too."] }
+
+ask:
+  - { id: fl_ask_color, speaker: fangjie, when: demo_color, bubbles: ["Cream or pale mint. A bunch of each.", "Which one?"] }
+  - { id: fl_ask_01, speaker: fangjie, bubbles: ["Can I ask you something?", "{question}"] }
+  - { id: fl_ask_02, speaker: fangjie, bubbles: ["There are two ways to put this together.", "Pick one?"] }
+
+react_adopted:
+  - { id: fl_react_ad_01, speaker: fangjie, bubbles: ["Good. That's the mix."] }
+  - { id: fl_react_ad_02, speaker: fangjie, bubbles: ["Noted. It's on the board."] }
+  - { id: fl_react_ad_03, speaker: fangjie, bubbles: ["I'd have picked that one too."] }
+
+react_rejected:
+  - { id: fl_react_rj_01, speaker: fangjie, bubbles: ["Fine. Your call."] }
+  - { id: fl_react_rj_02, speaker: fangjie, bubbles: ["I'll keep this bunch for another time."] }
+  - { id: fl_react_rj_03, speaker: fangjie, bubbles: ["Right. A different bunch."] }
+
+react_delegated:
+  - { id: fl_react_dl_00, speaker: fangjie, bubbles: ["All right, I'll decide.", "I'll tell you once I have."] }
+  - { id: fl_react_dl_01, speaker: fangjie, bubbles: ["{choice}, then, because {reason}.", "Say if it doesn't suit."] }
+  - { id: fl_react_dl_02, speaker: fangjie, bubbles: ["I'll try {choice} first.", "We can swap it later."] }
+  - { id: fl_react_dl_03, speaker: fangjie, bubbles: ["{choice}.", "The why is on the board."] }
+
+serious:
+  - { id: fl_serious_01, speaker: fangjie, bubbles: ["This step means {action}.", "Once it's done, {consequence}.", "Have a look before you decide."] }
+  - { id: fl_serious_02, speaker: fangjie, bubbles: ["I won't touch this on my own.", "{action}: {consequence}."] }
+  - { id: fl_serious_03, speaker: fangjie, bubbles: ["Once it's cut, it won't go back on.", "Look closely before you click."] }
+
+refused:
+  - { id: fl_refused_01, speaker: fangjie, bubbles: ["Can't touch that.", "Another way."] }
+  - { id: fl_refused_02, speaker: fangjie, bubbles: ["That's not ours to do."] }
+  - { id: fl_refused_03, speaker: fangjie, bubbles: ["Someone else's order. I don't unwrap it."] }
+
+serious_yes:
+  - { id: fl_serious_yes_01, speaker: fangjie, bubbles: ["Right, I'll do it."] }
+  - { id: fl_serious_yes_02, speaker: fangjie, bubbles: ["Understood. Going ahead."] }
+  - { id: fl_serious_yes_03, speaker: fangjie, bubbles: ["So be it."] }
+
+serious_no:
+  - { id: fl_serious_no_01, speaker: fangjie, bubbles: ["Fine, I'll leave it.", "I'll find a way that doesn't need it."] }
+  - { id: fl_serious_no_02, speaker: fangjie, bubbles: ["Fine, I'll hold it back."] }
+  - { id: fl_serious_no_03, speaker: fangjie, bubbles: ["Leaving it. I'll go round."] }
+
+done:
+  - { id: fl_done_day, speaker: fangjie, when: daytime, bubbles: ["Done. It's on the counter.", "Have a look while it's light."] }
+  - { id: fl_done_dusk, speaker: fangjie, when: dusk, bubbles: ["Done.", "Getting dark. Time to close up."] }
+  - { id: fl_done_night, speaker: fangjie, when: night, bubbles: ["Done.", "It's late. Read it, then get some sleep."] }
+  - { id: fl_done_01, speaker: fangjie, bubbles: ["Tied up. Not a stem lost."] }
+  - { id: fl_done_02, speaker: fangjie, bubbles: ["Done. Ready to use.", "I went over it twice from the top."] }
+
+failed:
+  - { id: fl_failed_01, speaker: fangjie, bubbles: ["Couldn't get it done this time. Sorry.", "It stuck at {stuckAt}.", "I've put it on the board.", "Another way next time."] }
+  - { id: fl_failed_02, speaker: fangjie, bubbles: ["Didn't make it.", "Stuck at {stuckAt}. Noted."] }
+  - { id: fl_failed_03, speaker: fangjie, bubbles: ["That's it for today.", "What went wrong is on the board."] }
+
+net_retry:
+  - { id: fl_net_retry_01, speaker: fangjie, bubbles: ["The line's gone dead. I'll try again."] }
+  - { id: fl_net_retry_02, speaker: fangjie, bubbles: ["Nobody's answering. I'll ask again."] }
+  - { id: fl_net_retry_03, speaker: fangjie, bubbles: ["Bad signal. I'll try in a bit."] }
+
+cancelled:
+  - { id: fl_cancelled_01, speaker: fangjie, bubbles: ["All right, it can wait."] }
+  - { id: fl_cancelled_02, speaker: fangjie, bubbles: ["Fine. What's done, I'll keep."] }
+  - { id: fl_cancelled_03, speaker: fangjie, bubbles: ["Right, stopping here.", "The flowers go in a jar. They'll keep."] }
+
+# What the keeper says when someone walks in (app/renderer/stage/shoptalk.ts): a festival first, then the weather, else the time of day, the season or any.
+shop_in:
+  - { id: fl_in_birthday, speaker: fangjie, when: birthday_fangjie, bubbles: ["It's my birthday.", "I made a bunch for myself, for once."] }
+  - { id: fl_in_01, speaker: fangjie, bubbles: ["Come in. Buying, or just looking?"] }
+  - { id: fl_in_02, speaker: fangjie, bubbles: ["Come in. Mind the wet floor."] }
+  - { id: fl_in_03, speaker: fangjie, bubbles: ["One moment. Let me finish tying this."] }
+  - { id: fl_in_04, speaker: fangjie, bubbles: ["The bucket by the door is today's. Freshest."] }
+  - { id: fl_in_05, speaker: fangjie, bubbles: ["I sold on the street. Now there's a door."] }
+  - { id: fl_in_dawn_01, speaker: fangjie, when: period_dawn, bubbles: ["This early?", "The market van only just left."] }
+  - { id: fl_in_dawn_02, speaker: fangjie, when: period_dawn, bubbles: ["I've only just filled the buckets."] }
+  - { id: fl_in_day_01, speaker: fangjie, when: period_day, bubbles: ["Flowers wilt at noon. I'm misting them."] }
+  - { id: fl_in_dusk_01, speaker: fangjie, when: period_dusk, bubbles: ["What's left goes cheap tonight."] }
+  - { id: fl_in_dusk_02, speaker: fangjie, when: period_dusk, bubbles: ["Nearly closing. Come and pick."] }
+  - { id: fl_in_night_01, speaker: fangjie, when: period_night, bubbles: ["We're closed, but come in."] }
+  - { id: fl_in_night_02, speaker: fangjie, when: period_night, bubbles: ["This late, even the flowers have closed."] }
+  - { id: fl_in_rain_01, speaker: fangjie, when: sky_rain, bubbles: ["Raining. I've brought the buckets in."] }
+  - { id: fl_in_snow_01, speaker: fangjie, when: sky_snow, bubbles: ["Out in this snow?", "Shut the door. Flowers can't take cold."] }
+  - { id: fl_in_fog_01, speaker: fangjie, when: sky_fog, bubbles: ["In this fog? You found the door?"] }
+  - { id: fl_in_wind_01, speaker: fangjie, when: sky_wind, bubbles: ["Windy. Don't hold the paper.", "Put it on the counter."] }
+  - { id: fl_in_storm_01, speaker: fangjie, when: sky_storm, bubbles: ["Thunder. Wait it out in here."] }
+  - { id: fl_in_spring_01, speaker: fangjie, when: season_spring, bubbles: ["Spring. The little pots change daily."] }
+  - { id: fl_in_summer_01, speaker: fangjie, when: season_summer, bubbles: ["Hot? It's cooler by the buckets."] }
+  - { id: fl_in_autumn_01, speaker: fangjie, when: season_autumn, bubbles: ["Autumn. The osmanthus just came in."] }
+  - { id: fl_in_winter_01, speaker: fangjie, when: season_winter, bubbles: ["Winter. Few flowers, but there's plum."] }
+  - { id: fl_in_new_year, speaker: fangjie, when: holiday_new_year, bubbles: ["A good New Year to you.", "New Year flowers fill the doorway."] }
+  - { id: fl_in_lantern, speaker: fangjie, when: holiday_lantern, bubbles: ["Lantern Festival. I'm closing early."] }
+  - { id: fl_in_dragon_boat, speaker: fangjie, when: holiday_dragon_boat, bubbles: ["Dragon Boat Day. Mugwort by the bundle."] }
+  - { id: fl_in_mid_autumn, speaker: fangjie, when: holiday_mid_autumn, bubbles: ["Mid-Autumn. The osmanthus goes first."] }
+  - { id: fl_in_halloween, speaker: fangjie, when: holiday_halloween, bubbles: ["Halloween. Even the pumpkins are out."] }
+  - { id: fl_in_christmas, speaker: fangjie, when: holiday_christmas, bubbles: ["Christmas. A row of poinsettias out front."] }
+
+# What the keeper says now and then when the shop is quiet. "when" as above; none means any time.
+shop_idle:
+  - { id: fl_idle_01, speaker: fangjie, bubbles: ["This bucket needs fresh water."] }
+  - { id: fl_idle_02, speaker: fangjie, bubbles: ["Cut stems on a slant. They drink more."] }
+  - { id: fl_idle_03, speaker: fangjie, bubbles: ["I'll take the thorns off this rose first."] }
+  - { id: fl_idle_04, speaker: fangjie, bubbles: ["Nearly out of wrapping paper again."] }
+  - { id: fl_idle_05, speaker: fangjie, bubbles: ["Plenty of red ribbon. Not much white."] }
+  - { id: fl_idle_06, speaker: fangjie, bubbles: ["Turn the pots daily. They grow straight."] }
+  - { id: fl_idle_07, speaker: fangjie, bubbles: ["On the street, one gust and it all fell."] }
+  - { id: fl_idle_08, speaker: fangjie, bubbles: ["Baby's breath goes with anything."] }
+  - { id: fl_idle_09, speaker: fangjie, bubbles: ["This pothos came with me from home."] }
+  - { id: fl_idle_10, speaker: fangjie, bubbles: ["Lily pollen won't wash out of clothes."] }
+  - { id: fl_idle_11, speaker: fangjie, bubbles: ["The top of the stand is for sun-lovers."] }
+  - { id: fl_idle_12, speaker: fangjie, bubbles: ["The sunflowers keep turning to the window."] }
+  - { id: fl_idle_13, speaker: fangjie, bubbles: ["Shears are blunt. Sharpen them tomorrow."] }
+  - { id: fl_idle_14, speaker: fangjie, bubbles: ["Uncle Page buys a single stem every day."] }
+  - { id: fl_idle_15, speaker: fangjie, bubbles: ["Don't toss wilted ones. Dry them."] }
+  - { id: fl_idle_16, speaker: fangjie, bubbles: ["Today's carnations are a good colour."] }
+  - { id: fl_idle_17, speaker: fangjie, bubbles: ["This one's ordered. Picked up at three."] }
+  - { id: fl_idle_18, speaker: fangjie, bubbles: ["Damp by the river. Things open slower."] }
+  - { id: fl_idle_19, speaker: fangjie, bubbles: ["The bucket bottoms need a scrub."] }
+  - { id: fl_idle_20, speaker: fangjie, bubbles: ["Small tags. Don't hide the flowers."] }
+  - { id: fl_idle_21, speaker: fangjie, bubbles: ["Some don't say who it's for. I don't ask."] }
+  - { id: fl_idle_22, speaker: fangjie, bubbles: ["Too many leaves steal water. Pick some off."] }
+  - { id: fl_idle_23, speaker: fangjie, bubbles: ["These shears have been with me for years."] }
+  - { id: fl_idle_24, speaker: fangjie, bubbles: ["A narrow vase only needs three stems."] }
+  - { id: fl_idle_dawn_01, speaker: fangjie, when: period_dawn, bubbles: ["Morning flowers still have the dew on."] }
+  - { id: fl_idle_night_01, speaker: fangjie, when: period_night, bubbles: ["Lights off, and the scent gets stronger."] }
+  - { id: fl_idle_rain_01, speaker: fangjie, when: sky_rain, bubbles: ["Rainy days: fewer buyers, more orders."] }
+  - { id: fl_idle_wind_01, speaker: fangjie, when: sky_wind, bubbles: ["Windy. The door bucket needs a brick."] }
+  - { id: fl_idle_spring_01, speaker: fangjie, when: season_spring, bubbles: ["In spring, whatever comes in sells."] }
+  - { id: fl_idle_summer_01, speaker: fangjie, when: season_summer, bubbles: ["Summer: change the water twice a day."] }
+  - { id: fl_idle_autumn_01, speaker: fangjie, when: season_autumn, bubbles: ["Autumn chrysanthemums get odder every year."] }
+  - { id: fl_idle_winter_01, speaker: fangjie, when: season_winter, bubbles: ["Cold hands in winter. I tie slower."] }

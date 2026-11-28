@@ -24,6 +24,8 @@
     "xiaoding": "Tack",
     "guiyi": "Auntie Olive",
     "axin": "Pip",
+    "fangjie": "Fern",
+    "jianbo": "Uncle Page",
     "cat": "Chestnut"
   },
   "animals": {
@@ -1086,8 +1088,8 @@
         "workshop": "The workshop is still being fitted out. It opens soon.",
         "bakery": "Auntie Olive's bakery. Today's bread is just out of the oven.",
         "post": "Pip's post office. Anything to send, just tell the shop.",
-        "flowershop": "The florist is still being fitted out. It opens soon.",
-        "bookshop": "The bookshop is still being fitted out. It opens soon."
+        "flowershop": "Fern's flower shop. Today's flowers are out front.",
+        "bookshop": "Uncle Page's bookshop. Every old book in it was bought one at a time."
       }
     },
     "visit": {
@@ -1919,6 +1921,34 @@
       "ui": {
         "access": {
           "hotspotCounter": "Post office counter: hand in a commission"
+        }
+      }
+    },
+    "flowershop": {
+      "zones": {
+        "counter": "the flower counter",
+        "board": "the shelf of little pots",
+        "shelf": "the flower stand",
+        "table": "the bouquet table",
+        "corner": "the flower buckets"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Flower counter: hand in a commission"
+        }
+      }
+    },
+    "bookshop": {
+      "zones": {
+        "counter": "the bookshop counter",
+        "board": "the low bookcase",
+        "shelf": "the tall bookcase",
+        "table": "the reading table",
+        "corner": "the globe"
+      },
+      "ui": {
+        "access": {
+          "hotspotCounter": "Bookshop counter: hand in a commission"
         }
       }
     }

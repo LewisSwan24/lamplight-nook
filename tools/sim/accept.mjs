@@ -7002,6 +7002,36 @@ const SCENARIOS = {
    * riverbank; the florist and the bookshop say they are not open yet; by day, by night and in the rain; back in at the
    * cafe's front.
    */
+  // plan-2.0.md J2: the flower shop and the bookshop, each kept by one person, who says a word as you walk in.
+  async rivershops(lang, out) {
+    const L = locale(lang);
+    const home = freshHome({ 'settings.json': onboarded(lang) });
+    const shop = await launch({ lang, home, speed: SPEED });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const here = (ids) => page.evaluate((ids) => Object.fromEntries(ids.map((a) => [a, window.lamplightDebug.scene.anchorOf(a)])), ids);
+    try {
+      await sleep(2500);
+      for (const [id, keeper] of [['flowershop', 'fangjie'], ['bookshop', 'jianbo']]) {
+        await page.evaluate((id) => window.lamplightDebug.street.onFront(id, true), id);
+        for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== id; await sleep(300));
+        const hello = await greeted(page, lang, id, keeper);
+        check(hello !== null, `${keeper} said nothing from shop_in walking into the ${id}`);
+        await shop.shot(join(out, `${id}-hello.png`));
+        await sleep(2500);
+        check(await room() === id, `did not go into the ${id}: ${await room()}`);
+        const who = await here([keeper, 'adeng', 'xiaoju', 'laoshi']);
+        check(who[keeper] !== null && who.adeng === null && who.xiaoju === null && who.laoshi === null, `who is in the ${id}: ${JSON.stringify(who)}`);
+        check(await page.evaluate((k) => window.lamplightDebug.scene.textures.exists(k), keeper), `${L.actors[keeper]} has no picture`);
+        await shop.shot(join(out, `${id}-in.png`));
+      }
+      // Nobody is sent here with work until J4; a while in the quiet shop, and the keeper still stands in it alone.
+      await sleep(4000);
+      const later = await here(['jianbo', 'adeng', 'xiaoju']);
+      check(later.jianbo !== null && later.adeng === null && later.xiaoju === null, `who is in the bookshop later: ${JSON.stringify(later)}`);
+    } finally { await shop.close(); }
+  },
+
   async riverstreet(lang, out) {
     const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
     const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
@@ -7016,7 +7046,6 @@ const SCENARIOS = {
         const g = window.lamplightDebug.street;
         return { out: g.sys.isActive() && g.sys.isVisible(), x: g.cameras.main.scrollX, room: window.lamplightDebug.scene.sys.isVisible(), same: window.samePage === true };
       });
-      const note = () => page.evaluate(() => document.querySelector('.street-note:not([hidden])')?.textContent ?? '');
       const clickAt = async (x, y) => {
         const { x: scroll } = await look();
         const box = await page.locator('#game canvas').boundingBox();
@@ -7042,11 +7071,14 @@ const SCENARIOS = {
         await page.evaluate((id) => window.lamplightDebug.street.lookAt(id), f.id);
         await sleep(200);
         await shop.shot(join(out, `riverstreet-${f.id}.png`));
+        // Open since J2: a click goes in, and the street button brings the street back.
         await clickAt(town.width + f.x + f.w / 2, 60);
+        for (const end = Date.now() + 8000; Date.now() < end && (await page.evaluate(() => window.lamplightDebug.scene.room)) !== f.id; await sleep(300));
         v = await look();
-        const said = await note();
-        check(v.out, `a click on the ${f.id} took me off the street`);
-        check(said === L.ui.town.notes[f.id], `the ${f.id} said "${said}", not that it opens soon`);
+        check(!v.out && (await page.evaluate(() => window.lamplightDebug.scene.room)) === f.id, `a click on the ${f.id} did not go in: ${JSON.stringify(v)}`);
+        await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+        await sleep(800);
+        check((await look()).out, `the street did not come back from the ${f.id}`);
       }
       // The tower between them is no door.
       await clickAt(town.width + river.tower.x + river.tower.w / 2, 60);

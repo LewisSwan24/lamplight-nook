@@ -85,6 +85,8 @@ def work_table():
     """The reading table's place: a long wooden table, two bouquets being made up and a pair of scissors."""
     p = Pen(58, 18)
     p.box(0, 6, 57, 9, WOOD_L, line=WOOD_D)
+    # An apron board under the top, so it reads as a solid table.
+    p.fill(1, 10, 56, 11, WOOD_D)
     p.box(2, 10, 4, 16, WOOD, line=WOOD_D)
     p.box(53, 10, 55, 16, WOOD, line=WOOD_D)
     bouquet(p, 6, 1)

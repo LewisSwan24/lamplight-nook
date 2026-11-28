@@ -92,8 +92,8 @@ describe('counting by shop', () => {
     expect(state.done).toBe(5);
     expect(state.town!.shops.print).toEqual({ done: 3, grown: [{ id: 'proof', date: '2026-11-21' }, { id: 'ivy', date: '2026-11-21' }] });
     expect(state.town!.shops.studio!.done).toBe(1);
-    expect(townCounts(state, 'cafe')).toEqual({ total: 5, shops: { cafe: 1, study: 0, print: 3, studio: 1, workshop: 0, bakery: 0, post: 0 } });
-    expect(townCounts(state, 'study').shops).toEqual({ cafe: 0, study: 1, print: 3, studio: 1, workshop: 0, bakery: 0, post: 0 });
+    expect(townCounts(state, 'cafe')).toEqual({ total: 5, shops: { cafe: 1, study: 0, print: 3, studio: 1, workshop: 0, bakery: 0, post: 0, flowershop: 0, bookshop: 0 } });
+    expect(townCounts(state, 'study').shops).toEqual({ cafe: 0, study: 1, print: 3, studio: 1, workshop: 0, bakery: 0, post: 0, flowershop: 0, bookshop: 0 });
   });
 
   it('still counts the home shop’s finished works the way it always has', () => {
@@ -126,7 +126,7 @@ describe('counting by shop', () => {
 
 describe('what is worth a word', () => {
   const counts = (total: number, shops: Partial<Record<'cafe' | 'study' | 'print' | 'studio' | 'workshop' | 'bakery' | 'post', number>>) =>
-    ({ total, shops: { cafe: 0, study: 0, print: 0, studio: 0, workshop: 0, bakery: 0, post: 0, ...shops } });
+    ({ total, shops: { cafe: 0, study: 0, print: 0, studio: 0, workshop: 0, bakery: 0, post: 0, flowershop: 0, bookshop: 0, ...shops } });
 
   it('names the new street piece, the new thing at a front and the new piece inside a shop', () => {
     expect(townNews(counts(9, { cafe: 2, print: 7 }), counts(10, { cafe: 2, print: 8 }))).toEqual([

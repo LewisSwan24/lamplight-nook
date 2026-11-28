@@ -42,12 +42,12 @@ describe('the river street, joined on', () => {
     expect(streetAt(RIVER.x + river.bridge.x + river.bridge.w)).toBe('river');
   });
 
-  it('finds the two new fronts by a click, closed until they open', () => {
+  it('finds the two new fronts by a click, open since J2', () => {
     expect(frontAt(doorOf('flowershop').x, TOWN.kerb - 20)).toBe('flowershop');
     expect(frontAt(doorOf('bookshop').x, TOWN.kerb - 20)).toBe('bookshop');
     expect(frontAt(RIVER.x + river.tower.x + 2, TOWN.kerb - 20)).toBeNull();
-    expect(OPEN.has('flowershop')).toBe(false);
-    expect(OPEN.has('bookshop')).toBe(false);
+    expect(OPEN.has('flowershop')).toBe(true);
+    expect(OPEN.has('bookshop')).toBe(true);
   });
 
   it('lets the camera go all the way to the riverbank', () => {

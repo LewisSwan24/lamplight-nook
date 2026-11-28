@@ -3715,6 +3715,7 @@
    }
   ],
   "on": {
+   "decor-christmas": 143.1,
    "grow-album": 102.1,
    "grow-fruit": 102.1,
    "grow-ledger": 102.1,
@@ -4211,6 +4212,8 @@
    }
   ],
   "on": {
+   "decor-christmas": 143.1,
+   "decor-halloween": 156.1,
    "grow-album": 102.1,
    "grow-bonsai": 156.1,
    "grow-books": 156.1,

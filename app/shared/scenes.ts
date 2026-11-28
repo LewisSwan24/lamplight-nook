@@ -18,6 +18,12 @@ export type RoomId = (typeof ROOMS)[number];
 export const cleanRoom = (v: unknown): RoomId | undefined => (ROOMS.includes(v as RoomId) ? (v as RoomId) : undefined);
 /** One of the rooms the home shop can be in. */
 export const isScene = (room: RoomId): room is SceneId => (SCENES as readonly string[]).includes(room);
+/**
+ * A shop kept by a keeper of its own, where nobody from home works (D3): every room but the two at home. Wider than
+ * towngrow.ts's isStreetShop, which is only the shops with growing pieces and festival frames (the river street's two
+ * have neither until plan-2.0.md J4 and J5).
+ */
+export const isKeptRoom = (room: RoomId): boolean => !isScene(room);
 
 /**
  * Where the home shop is (from the preload; the cafe where there is none, as in tests). The other rooms are built

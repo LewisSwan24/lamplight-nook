@@ -26,6 +26,7 @@ from pathlib import Path
 from PIL import Image
 
 import backroom
+import decor
 import rug
 import scene
 import study
@@ -189,8 +190,8 @@ HOLIDAYS = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid
 def overlay_of(path, name):
     """The overlay as this room shows it: a shop along the street has its own festival decorations (road-to-1.4.md D6)."""
     holiday = path.stem[len('decor-'):]
-    if name in SHOPS and path.name.startswith('decor-') and holiday in HOLIDAYS:
-        col, row = HOLIDAYS.index(holiday), list(SHOPS).index(name)
+    if name in decor.SHOPS and path.name.startswith('decor-') and holiday in HOLIDAYS:
+        col, row = HOLIDAYS.index(holiday), decor.SHOPS.index(name)
         return Image.open(OUT / 'shops-decor.png').convert('RGBA').crop((col * 320, row * 180, col * 320 + 320, row * 180 + 180))
     return Image.open(path).convert('RGBA')
 
