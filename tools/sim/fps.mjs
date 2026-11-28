@@ -102,7 +102,8 @@ for (const rate of RATES) {
         await sleep(2500);
         await measure('river');
       }
-      for (const id of ['print', 'studio', 'workshop', 'bakery', 'post']) {
+      // The river shops (plan-2.0.md J2) are not in a checkout from before 2.0.
+      for (const id of ['print', 'studio', 'workshop', 'bakery', 'post', ...(OTHER ? [] : ['flowershop', 'bookshop'])]) {
         await visit(shop.page, id);
         await measure(id);
       }

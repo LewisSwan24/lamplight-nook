@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { parse } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import { BOAT, DRAGON_BOAT, WATER, riverOut, riverThings, waterOf } from '../app/renderer/game/riverlife';
-import { RIVER } from '../app/renderer/game/town';
+import { CAMERA_W, RIVER, cameraFor, riverInView } from '../app/renderer/game/town';
 import type { Outside } from '../app/renderer/game/streetdecor';
 
 const out = (o: Partial<Outside>): Outside => ({ season: 'spring', holiday: null, sky: 'clear', ...o });
@@ -116,5 +116,17 @@ describe('the river’s pictures and words', () => {
         expect(zh.some((l) => l.when === when), `${shop} ${when}`).toBe(true);
       }
     }
+  });
+});
+
+// plan-2.0.md J10, as road-to-1.4.md D8 saves the computer: the street left behind rests. The river is only moved on while
+// some of the river street is on screen.
+describe('the river at rest while the first street is looked at', () => {
+  it('is on screen only once the camera reaches past the end of the first street', () => {
+    expect(riverInView(0)).toBe(false);
+    expect(riverInView(RIVER.x - CAMERA_W)).toBe(false);
+    expect(riverInView(RIVER.x - CAMERA_W + 1)).toBe(true);
+    expect(riverInView(cameraFor(RIVER.tower.x))).toBe(true);
+    expect(riverInView(cameraFor(RIVER.x + RIVER.width))).toBe(true);
   });
 });

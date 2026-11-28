@@ -77,6 +77,8 @@ export function frontAt(x: number, y: number): ShopId | null {
 }
 
 /** How far the camera scrolls so that x sits in the middle, without showing past either end. */
+/** Whether any of the river street is on screen with the camera at `left` (plan-2.0.md J10, as D8 saves the computer). */
+export const riverInView = (left: number): boolean => left + CAMERA_W > RIVER.x;
 export const cameraFor = (x: number): number => Math.round(Math.min(Math.max(x - CAMERA_W / 2, 0), TOWN.width - CAMERA_W));
 
 /** The four who opened the shop, who carry it onto the street (road-to-1.4.md D7). */

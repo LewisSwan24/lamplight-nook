@@ -1,9 +1,15 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DATA_VERSION, migrate } from '../app/main/migrate';
 import { MemoryStore } from '../app/main/memory';
+import { PostcardWall } from '../app/main/postcard';
+import { chronicle } from '../app/shared/chronicle';
+import { DEFAULT_FURNISHING } from '../app/shared/furnish';
+import { GROWTH } from '../app/shared/growth';
+import { makePostcard, type Postcard } from '../app/shared/postcard';
+import { SCENES } from '../app/shared/scenes';
 import { projectSettled } from '../app/main/projects';
 import { PendingStore } from '../app/main/pending';
 import { SettingsStore } from '../app/main/settings';
@@ -386,5 +392,79 @@ describe('a shop kept since 1.0.0', () => {
     expect(shop.town).toEqual(memory.shop!.town);
     // The research done with 1.9.0 went out with Xiaoju, and counts towards Xiaoju's story.
     expect(shop.crew.xiaoju).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * plan-2.0.md J10: every old shop, upgraded from scratch, goes through what 2.0 writes the first time it is used (a
+ * festival noted, the year's first chapter, a postcard opened) and loses nothing: every work, its project, the count,
+ * what grew and when, the stories and the staff's stories, the street, the other shops. And the town's record shows all
+ * of it, each on the day it came. LAMPLIGHT_OLD_DATA=<a copy of a data folder> runs the same on that copy (it is copied
+ * again first, and the copy is left as it was).
+ */
+const LANTERN = new Date('2027-02-20T10:00:00');
+const friendCard = (): Postcard =>
+  makePostcard('Mei', { scene: 'study', furnish: Object.fromEntries(SCENES.map((s) => [s, DEFAULT_FURNISHING])) as Postcard['furnish'] }, { done: 3, grown: [], told: [] });
+
+function keptWhole(data: string) {
+  const look = () => {
+    const store = new MemoryStore(join(data, 'memory.json'));
+    const m = store.get();
+    const s = store.shopState(NOW);
+    return {
+      works: m.commissions.map((c) => ({ id: c.id, result: c.result, title: c.title, folder: c.folder, project: c.project })),
+      projects: m.projects.map((p) => ({ id: p.id, commissions: p.commissions, rounds: p.rounds.length })),
+      done: s.done, grown: s.grown, told: s.told, met: s.met,
+      stories: s.town?.stories, staff: s.town?.staff, street: s.town?.street, shops: s.town?.shops,
+      postcards: new PostcardWall(data).received(),
+    };
+  };
+  const before = look();
+  const store = new MemoryStore(join(data, 'memory.json'));
+  store.noteHoliday(LANTERN);
+  const chapter = store.tellYear(LANTERN);
+  new PostcardWall(data).keep(friendCard(), '2027-02-20');
+  const after = look();
+  expect({ ...after, postcards: after.postcards.slice(0, before.postcards.length) }).toEqual(before);
+  expect(after.postcards.slice(before.postcards.length).map((c) => c.date)).toEqual(before.postcards.some((c) => c.name === 'Mei') ? [] : ['2027-02-20']);
+
+  const shop = new MemoryStore(join(data, 'memory.json')).shopState(NOW);
+  const record = Object.fromEntries(chronicle({ shop, postcards: new PostcardWall(data).received() }).map((p) => [p.id, p.entries]));
+  const dated = (part: string) => Object.fromEntries(record[part].filter((e) => e.date !== null).map((e) => [e.id, e.date]));
+  expect(dated('grown')).toEqual({
+    ...Object.fromEntries(before.grown.filter((g) => GROWTH.some((x) => x.id === g.id)).map((g) => [g.id, g.date])),
+    ...Object.fromEntries((before.street ?? []).map((g) => [`street-${g.id}`, g.date])),
+  });
+  const chapters = (told: Record<string, string[]> | undefined) => Object.fromEntries(Object.entries(told ?? {}).flatMap(([who, days]) => days.map((d, i) => [`${who}-${i + 1}`, d])));
+  expect(dated('stories')).toEqual(chapters(before.stories));
+  expect(dated('staff')).toEqual(chapters(before.staff));
+  expect(dated('holidays')).toEqual(shop.town ? { lantern: '2027-02-20' } : {});
+  expect(dated('year')).toEqual(chapter === 1 ? { 'year-1': '2027-02-20' } : {});
+  expect(record.postcards.length).toBe(after.postcards.length);
+  return { before, chapter };
+}
+
+describe('2.0 opens every old shop whole (plan-2.0.md J10)', () => {
+  for (const version of ['0.5.0', '0.6.1', '0.7.0', '1.0.0', '1.9.0']) {
+    it(`${version}: upgraded, used once by 2.0, and nothing lost; the town's record has it all`, () => {
+      const { data, memory } = homeFrom(version);
+      migrate(data, NOW);
+      const { before, chapter } = keptWhole(data);
+      expect(before.works.map((w) => w.id)).toEqual(memory.commissions.map((c) => c.id));
+      // A shop with work behind it has the year's first chapter waiting on its first day.
+      expect(chapter).toBe(before.done >= 1 ? 1 : null);
+    });
+  }
+
+  it.runIf(process.env.LAMPLIGHT_OLD_DATA)('a copy of a real data folder, the same way', () => {
+    const data = join(mkdtempSync(join(tmpdir(), 'lamplight-real-')), 'data');
+    cpSync(process.env.LAMPLIGHT_OLD_DATA!, data, { recursive: true });
+    try {
+      const r = migrate(data, NOW);
+      const { before, chapter } = keptWhole(data);
+      console.log(JSON.stringify({ migrated: [r.from, r.to], works: before.works.length, projects: before.projects.length, done: before.done, grown: before.grown.length, street: before.street?.length, stories: Object.values(before.stories ?? {}).flat().length, staff: Object.values(before.staff ?? {}).flat().length, postcards: before.postcards.length, chapter }));
+    } finally {
+      rmSync(join(data, '..'), { recursive: true, force: true });
+    }
   });
 });

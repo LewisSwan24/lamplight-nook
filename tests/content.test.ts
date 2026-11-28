@@ -17,6 +17,7 @@ const tables = {
   tellers: { baker: [{ works: 3, left: 'bread' }, { works: 2, left: 'oven' }, { works: 9, left: 'sign' }] },
   growth: { shop: 4, street: 2, fronts: 1, rooms: 3 },
   holidays: ['lantern', 'mid_autumn'],
+  year: ['granny', 'adeng'],
 };
 
 describe('counting the content (plan-1.6.md F0)', () => {
@@ -31,6 +32,8 @@ describe('counting the content (plan-1.6.md F0)', () => {
     expect(total('客人')).toBe(2);
     expect(total('讲故事的人')).toBe(1);
     expect(total('故事章数')).toBe(3);
+    // The year's story (plan-2.0.md J10): one chapter for each of its tellers.
+    expect(total('主线章数')).toBe(2);
   });
 
   it('counts the things: what grows, the festivals, the pictures', () => {
@@ -45,8 +48,10 @@ describe('counting the content (plan-1.6.md F0)', () => {
     expect(c.lines.find((l: { file: string }) => l.file === 'chats.yaml')).toEqual({ file: 'chats.yaml', keys: 1, zh: 3, en: 3 });
     // A story's chapter is a key; its lines are what is said.
     expect(c.lines.find((l: { file: string }) => l.file === 'stories.yaml')).toEqual({ file: 'stories.yaml', keys: 2, zh: 3, en: 3 });
-    expect(total('台词（中文句）')).toBe(12);
-    expect(total('台词（英文句）')).toBe(12);
+    // So is a chapter of the year's story, whoever says each line.
+    expect(c.lines.find((l: { file: string }) => l.file === 'year.yaml')).toEqual({ file: 'year.yaml', keys: 2, zh: 3, en: 3 });
+    expect(total('台词（中文句）')).toBe(15);
+    expect(total('台词（英文句）')).toBe(15);
   });
 
   it('finds an English line missing', () => {
@@ -61,6 +66,13 @@ describe('counting the content (plan-1.6.md F0)', () => {
   it('finds story chapters that clash with each other or with the story file', () => {
     expect(c.problems).toContain('baker 第 2 章要 2 单，不比上一章多');
     expect(c.problems).toContain('baker 的故事在代码里 3 章，lines/stories.yaml 里 2 章');
+  });
+
+  it('finds the year\'s story with more or fewer chapters than it has tellers', () => {
+    expect(c.problems.join('\n')).not.toMatch(/主线/);
+    const more = count(SAMPLE, { ...tables, year: ['granny', 'adeng', 'baker'] }).problems;
+    expect(more).toContain('主线在代码里 3 章，lines/year.yaml 里 2 章');
+    expect(more).toContain('主线在代码里 3 章，lines/en/year.yaml 里 2 章');
   });
 
   it('finds a shop without its own lines', () => {
