@@ -223,6 +223,16 @@ body.debug #debug { display: block; }
 .chronicle-slot { width: 22px; height: 22px; margin: 0; box-sizing: border-box; border: 1.5px dashed currentColor; border-radius: 4px; }
 .chronicle-turn { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
 .chronicle-page { font-size: 12px; opacity: 0.7; }
+/* Today's flowers, the card on the flower shop's counter (plan-2.0.md J12): each vase as drawn, then who came in. */
+.flowers-card { display: flex; flex-direction: column; }
+.flowers-intro, .flower-none { font-size: 13px; opacity: 0.8; margin: 4px 0 8px; }
+.flower-rows, .flower-sold { list-style: none; margin: 0; padding: 0; }
+.flower-row { display: flex; align-items: flex-end; gap: 10px; margin: 2px 0; }
+.flower-vase { display: inline-block; flex: none; image-rendering: pixelated; background-repeat: no-repeat; }
+.flower-name { min-width: 6em; }
+.flower-about { font-size: 12px; opacity: 0.75; }
+.flower-row[data-sold] .flower-name { opacity: 0.6; }
+.flowers-sold-title { margin: 10px 0 4px; }
 .card-scroll { padding-right: 6px; }
 .dialog .who { font-family: var(--hand); font-size: 17px; color: var(--accent); }
 .dialog .question { font-family: var(--hand); font-size: 22px; line-height: 1.35; margin: 4px 0; }

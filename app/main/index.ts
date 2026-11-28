@@ -1359,6 +1359,7 @@ ipcMain.handle(IPC.openKeptPostcard, (_e, i: number): boolean => {
 ipcMain.handle(IPC.tellStory, (_e, who: GuestId) => memory.tellStory(who, now()));
 ipcMain.handle(IPC.tellStaffStory, (_e, who: string) => (isStaffTeller(who) ? memory.tellStaffStory(who, now()) : null));
 ipcMain.handle(IPC.tellYear, () => memory.tellYear(now()));
+ipcMain.handle(IPC.sellFlower, (_e, slot: number, who: GuestId) => memory.sellFlower(slot, who, now()));
 // The simulations step the shop through the year's months (plan-2.0.md J7); a packaged build keeps the computer's clock.
 ipcMain.handle(IPC.debugClock, (_e, at: string) => { if (!app.isPackaged) setClock(at); });
 ipcMain.handle(IPC.markMet, (_e, id: GuestId) => memory.markMet(id));

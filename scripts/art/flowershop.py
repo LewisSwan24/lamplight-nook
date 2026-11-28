@@ -57,19 +57,19 @@ def counter():
 
 
 def steps():
-    """The bookcase's place: a stand of three wooden steps, small pots and vases on each."""
+    """The bookcase's place: a stand of three wooden steps. The six vases on it are drawn by the game
+    (app/renderer/game/FlowerStand.ts, plan-2.0.md J12), so what is in them changes day by day; VASES are their feet."""
     p = Pen(46, 40)
     for i, (y, x0) in enumerate(((10, 18), (22, 9), (34, 0))):
         p.box(x0, y, 45, y + 3, WOOD_L, line=WOOD_D)
         p.box(x0, y + 4, x0 + 2, 38, WOOD, line=WOOD_D)
     p.box(43, 10, 45, 38, WOOD, line=WOOD_D)
     p.fill(0, 39, 45, 39, SHADOW)
-    img = p.img
-    for part, at in ((g('Blue_Vase_1_Four_Flowers'), (22, 10)), (g('Blue_Vase_2_Three_Flowers'), (34, 10)),
-                     (g('Blue_Vase_1_Two_Flowers'), (12, 22)), (g('Blue_Vase_2_Small_Flowers'), (26, 22)),
-                     (g('Blue_Vase_1_Small_Flowers'), (3, 34)), (g('Blue_Vase_2_Four_Flowers'), (17, 34))):
-        img.alpha_composite(part, (at[0], at[1] - part.height))
-    return shops.trim(img)
+    return p.img  # not trimmed: the top step stays at its place with no vases above it
+
+
+# The left foot of each vase on the stand, from the stand's top left: two on the top step, two on each below.
+VASES = [(22, 10), (34, 10), (12, 22), (26, 22), (3, 34), (17, 34)]
 
 
 def bouquet(p, x, y):

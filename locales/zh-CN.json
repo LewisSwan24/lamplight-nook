@@ -1093,6 +1093,47 @@
       "year": "这一年 · 第{n}章 · {title}",
       "line": "{who}：“{text}”"
     },
+    "flowers": {
+      "title": "今天的花",
+      "intro": "早上看过一遍花瓶，谢了的都换上了新的。",
+      "label": "今天的花",
+      "stages": {
+        "bud": "还是花苞",
+        "open": "开着",
+        "wilting": "快谢了"
+      },
+      "came": {
+        "today": "今天到的",
+        "yesterday": "昨天到的",
+        "ago": "{n} 天前到的"
+      },
+      "sold": "{who}买走了",
+      "soldToday": "今天卖出的",
+      "empty": "今天还没人来买花。",
+      "bought": "{who}：{flower}",
+      "wall": "花卡：{title}",
+      "names": {
+        "rose": "玫瑰",
+        "carnation": "康乃馨",
+        "babysbreath": "满天星",
+        "tulip": "郁金香",
+        "peony": "芍药",
+        "freesia": "小苍兰",
+        "cherry": "樱花",
+        "sunflower": "向日葵",
+        "lily": "百合",
+        "hydrangea": "绣球",
+        "lotus": "荷花",
+        "chrysanthemum": "菊花",
+        "cosmos": "波斯菊",
+        "dahlia": "大丽花",
+        "osmanthus": "桂花",
+        "plum": "梅花",
+        "narcissus": "水仙",
+        "camellia": "山茶",
+        "wintersweet": "蜡梅"
+      }
+    },
     "chronicle": {
       "title": "小镇记事",
       "intro": "店里见过的事都记在这儿，每件都写着是哪天来的。还没来的也留着位置，先空着。",

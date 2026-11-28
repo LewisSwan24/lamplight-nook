@@ -1,0 +1,16 @@
+# Neighbours coming into the flower shop for flowers (plan-2.0.md J12), in English: lines/flower-buyers.yaml is the
+# Chinese set. Same shape and writing rules as chats.yaml. Fern names the flowers ({flower}, lower case, never at the
+# start of a sentence) as she hands them over.
+
+- { id: buy_granny_1, when: idle, guest: granny, turns: [{ granny: "Time to change the flowers by the photo." }, { fangjie: "The {flower} are good today. I'll wrap them." }] }
+- { id: buy_granny_2, when: idle, guest: granny, turns: [{ granny: "Something for the windowsill." }, { fangjie: "Try the {flower}. They last on a sill." }] }
+- { id: buy_student_1, when: idle, guest: student, turns: [{ student: "Exams are done. Flowers for me." }, { fangjie: "Then the {flower}. They're bright." }] }
+- { id: buy_student_2, when: idle, guest: student, turns: [{ student: "A friend's birthday. Help me pick?" }, { fangjie: "The {flower}. I'll tie a ribbon on." }] }
+- { id: buy_mechanic_1, when: idle, guest: mechanic, turns: [{ mechanic: "The workshop's too grey. Some flowers." }, { fangjie: "The {flower}. They don't mind oil." }] }
+- { id: buy_mechanic_2, when: idle, guest: mechanic, turns: [{ mechanic: "Don't laugh. I'm buying flowers." }, { fangjie: "Take the {flower}. Nobody's laughing." }] }
+- { id: buy_baker_1, when: idle, guest: baker, turns: [{ baker: "The counter needs a vase of something." }, { fangjie: "The {flower} go well with bread." }] }
+- { id: buy_baker_2, when: idle, guest: baker, turns: [{ baker: "Shop's birthday tomorrow. Something bright." }, { fangjie: "The {flower}, and a few extra stems." }] }
+- { id: buy_postman_1, when: idle, guest: postman, turns: [{ postman: "On my way home. One bunch, please." }, { fangjie: "The {flower}. Don't squash them." }] }
+- { id: buy_postman_2, when: idle, guest: postman, turns: [{ postman: "Round's done. Did you keep me some?" }, { fangjie: "Right here. The {flower}." }] }
+- { id: buy_bookseller_1, when: idle, guest: bookseller, turns: [{ bookseller: "A bit of colour for the desk." }, { fangjie: "The {flower}. No scent to bother you." }] }
+- { id: buy_bookseller_2, when: idle, guest: bookseller, turns: [{ bookseller: "Two stems, to press in a book." }, { fangjie: "The {flower}. Their petals press flat." }] }

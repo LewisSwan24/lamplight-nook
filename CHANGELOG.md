@@ -33,6 +33,12 @@
   a pot by the door, a new sign (a red flower, a stack of books) and a string of flags as their work goes on. Inside,
   each now dresses for the festivals in its own way, a little piece on the counter, a card or a book hung on its
   front, and a Christmas tree or a pile of pumpkins on the floor.
+- **The flower shop comes alive.** Six vases stand on Fern's stand, each with a bunch of what is in season, and
+  every morning a vase whose flowers are over gets a fresh bunch: in bud the first day, then open, then wilting.
+  Neighbours come in for flowers while the shop is quiet, a word with Fern at the counter, and that vase stands
+  empty until its flowers would have been over. The little card on the counter opens today's flowers: what is in
+  each vase, how far open, when it came, or who took it. The flower cards you have had made hang on the wall
+  between the wreath and the clock; click one to open it.
 - **The clock tower mended.** Over the year the old clock tower on the river street is mended a step at a time:
   scaffolding up both sides, a new roof of blue slates, a clean clock face, then hands that keep the shop's time, the
   bell hung and the door mended, and at last a lamp by the door and lights along the roof after dark. Once mended it
