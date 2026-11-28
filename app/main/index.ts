@@ -1270,7 +1270,8 @@ ipcMain.handle(IPC.removeSchedule, (_e, id: unknown): boolean => {
   lookAtSchedules();
   return true;
 });
-ipcMain.handle(IPC.shopState, (): ShopState => memory.shopState(now()));
+// Open on a festival: its first day goes into the town's record (plan-2.0.md J8).
+ipcMain.handle(IPC.shopState, (): ShopState => (memory.noteHoliday(now()), memory.shopState(now())));
 // The stories go by the shop's clock, which the simulations can move on (D4); memory.ts refuses a chapter not waiting.
 /**
  * The shop on the home network (docs/plan-1.5.md E1): listening only while the switch is on, on a port picked the first
@@ -1342,12 +1343,13 @@ ipcMain.handle(IPC.openPostcard, async (): Promise<'open' | 'big' | 'notPostcard
     log?.info('postcard not opened', { reason: read.reason });
     return read.reason;
   }
-  postcards.keep(read.card);
+  postcards.keep(read.card, localDay(now()));
   visit.show(read.card, win);
   return 'open';
 });
 // The post office's wall (plan-1.6.md F2): the postcards opened before, and one of them looked at again.
 ipcMain.handle(IPC.keptPostcards, () => wallCards(postcards.cards()));
+ipcMain.handle(IPC.receivedPostcards, () => postcards.received());
 ipcMain.handle(IPC.openKeptPostcard, (_e, i: number): boolean => {
   const card = postcards.card(i);
   if (!win || !card) return false;

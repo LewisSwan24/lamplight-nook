@@ -63,6 +63,17 @@ export function showYearChapter(chapter: number, heard: () => void) {
 /** What the teller says coming into the shop with the chapter: its first line. */
 export const yearOpening = (chapter: number): string => yearChapters()[chapter - 1].lines[0].text;
 
+/** A chapter already told, as the town's record unfolds it (plan-2.0.md J8): its title, what was said, what changed. */
+export function toldChapter(part: 'year' | 'stories' | 'staff', who: string, n: number): { title: string; lines: HTMLElement[] } {
+  if (part === 'year') {
+    const c = yearChapters()[n - 1];
+    return { title: c.title, lines: [...yearLines(c), el('p.story-left', {}, c.note)] };
+  }
+  const c = (part === 'stories' ? stories() : staffStories())[who][n - 1];
+  const kept = part === 'staff' ? keepsake(keepsakeOf(who as StaffTeller, n), 2) : null;
+  return { title: c.title, lines: [...c.lines.map((line) => el('p.story-line', {}, `“${line}”`)), el('p.story-left', {}, kept, c.note)] };
+}
+
 function body(title: string, lines: string[] | HTMLElement[], note: string, kept?: string): HTMLElement[] {
   return [closeButton(),
     el('div.card-scroll', {},

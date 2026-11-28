@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
+import { holidayOn } from '../shared/holidays';
 import { localDay } from '../shared/localday';
 import { MAIN_FILES, shopOf } from '../shared/templates';
 import type { Shop } from '../shared/dispatch';
@@ -305,6 +306,16 @@ export class MemoryStore {
     this.data.shop = shop;
     this.save();
     return chapter;
+  }
+
+  /** The shop is open on a festival (plan-2.0.md J8): the first day of each is kept for the town's record. */
+  noteHoliday(now = new Date()): void {
+    const shop = this.shop();
+    const id = holidayOn(now);
+    if (!id || !shop.town || shop.town.holidays?.some((h) => h.id === id)) return;
+    shop.town.holidays = [...(shop.town.holidays ?? []), { id, date: localDay(now) }];
+    this.data.shop = shop;
+    this.save();
   }
 
   /** The latest finished works, by title and day only, for Adeng to know when talking an order over (plan-1.9.md I5). */

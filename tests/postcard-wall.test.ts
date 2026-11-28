@@ -46,19 +46,21 @@ describe('the wall on disk', () => {
     const dir = home();
     const wall = new PostcardWall(dir);
     expect(wall.cards()).toEqual([]);
-    wall.keep(from('Ann'));
-    wall.keep(from('Bo'));
+    wall.keep(from('Ann'), '2027-01-01');
+    wall.keep(from('Bo'), '2027-01-02');
     expect(new PostcardWall(dir).cards().map((c) => c.name)).toEqual(['Bo', 'Ann']);
     expect(new PostcardWall(dir).card(1)).toEqual(from('Ann'));
     expect(new PostcardWall(dir).card(5)).toBeNull();
   });
 
-  it('writes the postcards as they came, with no dates', () => {
+  // plan-2.0.md J8: the cards stay as they came, undated; only the town's record beside them keeps the day each was opened.
+  it('writes the postcards as they came, with no dates; the record beside them has the day and who, nothing else', () => {
     const dir = home();
-    new PostcardWall(dir).keep(from('Ann'));
-    const text = readFileSync(join(dir, 'postcards.json'), 'utf8');
-    expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}/);
-    expect(JSON.parse(text)).toEqual({ version: 1, cards: [JSON.parse(postcardText(from('Ann')))] });
+    new PostcardWall(dir).keep(from('Ann'), '2027-01-01');
+    const o = JSON.parse(readFileSync(join(dir, 'postcards.json'), 'utf8'));
+    expect(JSON.stringify(o.cards)).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(o.cards).toEqual([JSON.parse(postcardText(from('Ann')))]);
+    expect(o.received).toEqual([{ name: 'Ann', home: from('Ann').home, date: '2027-01-01', key: expect.any(String) }]);
   });
 
   it('starts empty from a broken file, and lets go of any card that would not open now', () => {

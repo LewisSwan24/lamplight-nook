@@ -274,6 +274,8 @@ export interface LamplightApi {
   openPostcard(): Promise<'open' | 'big' | 'notPostcard' | 'broken' | null>;
   /** The postcards the post office keeps on its wall (plan-1.6.md F2), newest first: who sent each and where their shop is. */
   keptPostcards(): Promise<{ name: string; home: SceneId }[]>;
+  /** Every postcard ever opened, oldest first, with the day it came (plan-2.0.md J8), for the town's record. */
+  receivedPostcards(): Promise<{ name: string; home: SceneId; date: string | null }[]>;
   /** Look at a kept postcard again, by its place on the wall: false if there is none there. */
   openKeptPostcard(i: number): Promise<boolean>;
   /** A work's folder was moved: ask where it is now. 'wrong' means its main file isn't in the folder picked; 'taken' that another work is there. */
@@ -625,6 +627,7 @@ export const IPC = {
   sendPostcard: 'postcard:send',
   openPostcard: 'postcard:open',
   keptPostcards: 'postcard:kept',
+  receivedPostcards: 'postcard:received',
   openKeptPostcard: 'postcard:open-kept',
   /** The postcard being looked at, for its own window's preload (sync), and leaving it. */
   visitCard: 'visit:card',

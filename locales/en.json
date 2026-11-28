@@ -1093,6 +1093,49 @@
       "year": "The year · Chapter {n} · {title}",
       "line": "{who}: “{text}”"
     },
+    "chronicle": {
+      "title": "The town’s record",
+      "intro": "Everything the shop has seen, each with the day it came. What hasn’t come yet keeps its place, blank.",
+      "parts": {
+        "year": "The year",
+        "stories": "Neighbours’ stories",
+        "staff": "The staff’s stories",
+        "grown": "What has grown",
+        "holidays": "Festivals",
+        "postcards": "Postcards"
+      },
+      "hints": {
+        "year": "A chapter comes with a new month, or after ten more commissions.",
+        "stories": "Neighbours tell their stories out on the street, a chapter at a time, as the shop does more.",
+        "staff": "The staff tell their own in their shops, once enough commissions have been done together.",
+        "grown": "Things grow in the shop and out on the street as commissions are done.",
+        "holidays": "Keep the shop open on a festival day and it is written down here.",
+        "postcards": "Postcards come from friends’ shops. Open one at the post office and it stays here for good."
+      },
+      "count": "{n} of {all}",
+      "blank": "Not yet",
+      "postcard": "From {name}, at {shop}",
+      "undated": "Before the record began",
+      "prev": "Back",
+      "next": "Next",
+      "page": "{n} / {all}",
+      "street": {
+        "lamps": "Street lamps",
+        "bench": "A bench",
+        "flowers": "Flower beds",
+        "stall": "A market stall",
+        "park": "A little park",
+        "fountain": "A fountain"
+      },
+      "holidays": {
+        "halloween": "Halloween",
+        "christmas": "Christmas",
+        "new_year": "Spring Festival",
+        "lantern": "Lantern Festival",
+        "dragon_boat": "Dragon Boat Festival",
+        "mid_autumn": "Mid-Autumn Festival"
+      }
+    },
     "town": {
       "moving": "The shop is moving onto the street. Click to skip.",
       "moved": "All moved in, {name}. Everything is where it was.",

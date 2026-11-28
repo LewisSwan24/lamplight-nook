@@ -85,6 +85,7 @@ const api: LamplightApi = {
   sendPostcard: () => ipcRenderer.invoke(IPC.sendPostcard),
   openPostcard: () => ipcRenderer.invoke(IPC.openPostcard),
   keptPostcards: () => ipcRenderer.invoke(IPC.keptPostcards),
+  receivedPostcards: () => ipcRenderer.invoke(IPC.receivedPostcards),
   openKeptPostcard: (i) => ipcRenderer.invoke(IPC.openKeptPostcard, i),
   reviseCommission: (req) => ipcRenderer.invoke(IPC.reviseCommission, req),
   restorePrevious: (id) => ipcRenderer.invoke(IPC.restorePrevious, id),
