@@ -1089,7 +1089,9 @@
     },
     "stories": {
       "title": "{who} · 第{n}章 · {title}",
-      "heard": "听完了"
+      "heard": "听完了",
+      "year": "这一年 · 第{n}章 · {title}",
+      "line": "{who}：“{text}”"
     },
     "town": {
       "moving": "店搬到街上来了。点一下就跳过。",
@@ -1332,6 +1334,8 @@
       "postcardBig": "这个文件太大了，不是明信片，没有打开。",
       "postcardNotPostcard": "这不是小灯屋的明信片，没有打开。",
       "postcardBroken": "这张明信片坏了，打不开。",
+      "yearTitle": "这一年",
+      "yearText": "全镇一起修钟楼，每月一章。",
       "storiesTitle": "故事",
       "storiesText": "街坊和店员讲过的故事，都记在这里，点开能再看一遍。",
       "storyChapter": "第{n}章 · {title}",

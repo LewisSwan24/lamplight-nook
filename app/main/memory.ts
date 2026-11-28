@@ -9,6 +9,7 @@ import { nextChapter, told } from '../shared/stories';
 import { bonds, worksBy } from '../shared/crew';
 import { RECALL_WORKS, recallOf } from '../shared/memories';
 import { nextStaffChapter, toldStaff, type StaffTeller } from '../shared/staffstories';
+import { nextYearChapter, toldYear } from '../shared/mainstory';
 import { roomGrown, streetGrown } from '../shared/towngrow';
 import { forgetAside, putAside } from './aside';
 import { addProjects, freeProjectId, projectIdFor, roundAgain, roundInfo } from './projects';
@@ -285,6 +286,22 @@ export class MemoryStore {
     const chapter = nextStaffChapter(who, shop.town.staff ?? {}, by, today);
     if (chapter === null) return null;
     shop.town.staff = toldStaff(shop.town.staff ?? {}, who, by, today);
+    this.data.shop = shop;
+    this.save();
+    return chapter;
+  }
+
+  /**
+   * The year's story moved on a chapter (plan-2.0.md J7): the day and the works done are written down. Returns the
+   * chapter, or null when none was waiting today.
+   */
+  tellYear(now = new Date()): number | null {
+    const shop = this.shop();
+    if (!shop.town) return null;
+    const today = localDay(now);
+    const chapter = nextYearChapter(shop.town.year ?? [], shop.done, today);
+    if (chapter === null) return null;
+    shop.town.year = toldYear(shop.town.year ?? [], shop.done, today);
     this.data.shop = shop;
     this.save();
     return chapter;

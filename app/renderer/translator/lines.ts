@@ -1,3 +1,4 @@
+import { TOWER_STAGES, type TowerStage } from '../../shared/tower';
 import { pairOf, type Bond, type Staffer } from '../../shared/crew';
 import { ALL_STAFF, STAFF, type ApprenticeStage } from '../../shared/staff';
 import { shortTitle } from '../../shared/memories';
@@ -51,6 +52,8 @@ export type Chat = {
   bond?: Bond;
   /** Only at this stage of Bean's apprenticeship (plan-1.9.md I2); Bean speaks in it. */
   stage?: ApprenticeStage;
+  /** Only while the clock tower is mended this far (shared/tower.ts, plan-2.0.md J7). */
+  tower?: TowerStage;
   turns: { speaker: Speaker; text: string }[];
 };
 
@@ -72,6 +75,7 @@ export function parseChats(text: string): Chat[] {
     ...(c.scene ? { scene: c.scene } : {}),
     ...(c.bond ? { bond: c.bond } : {}),
     ...(c.stage ? { stage: c.stage } : {}),
+    ...(c.tower ? { tower: c.tower } : {}),
     turns: c.turns.map((t) => {
       const [speaker, said] = Object.entries(t)[0];
       return { speaker: speaker as Speaker, text: String(said) };
@@ -230,7 +234,8 @@ export function lintChats(chats: Chat[], S: Strings = strings): string[] {
     const badGuest = chat.guest ? !GUEST_IDS.includes(chat.guest) || chat.turns[0].speaker !== chat.guest || guests.some((g) => g !== chat.guest) : guests.length > 0;
     // A chat between friends is between exactly two of the five at home, close or friends.
     const badBond = chat.bond !== undefined && (![2, 3].includes(chat.bond) || !bondPair(chat));
-    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badBond || badStage(chat.stage, chat.turns.map((t) => t.speaker)) || badSky || badHoliday || badSeason || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
+    const badTower = chat.tower !== undefined && !TOWER_STAGES.includes(chat.tower);
+    if (chat.turns.length < 2 || !['idle', 'waiting'].includes(chat.when) || badBond || badTower || badStage(chat.stage, chat.turns.map((t) => t.speaker)) || badSky || badHoliday || badSeason || badGuest || !knownScene(chat.scene)) problems.push(fill(L.badChat, { id: chat.id }));
     for (const turn of chat.turns) checkBubble(chat.id, turn.speaker, turn.text, problems, rules);
   }
   return problems;
@@ -264,6 +269,29 @@ export function lintStories(book: StoryBook, S: Strings = strings): string[] {
 }
 
 /** The staff's own stories (lines/staff-stories.yaml, plan-1.9.md I1): the same, with three chapters each of four to six bubbles. */
+/** A chapter of the year's story (lines/year.yaml, plan-2.0.md J7): a title, a note of what changed, and who says what. */
+export type YearChapter = { title: string; note: string; lines: { who: Speaker; text: string }[] };
+
+export function parseYear(text: string): YearChapter[] {
+  const raw = (parse(text) ?? []) as { title?: unknown; note?: unknown; lines?: Record<string, unknown>[] }[];
+  return raw.map((c) => ({
+    title: String(c.title ?? ''), note: String(c.note ?? ''),
+    lines: (c.lines ?? []).map((l) => { const [who, said] = Object.entries(l)[0]; return { who: who as Speaker, text: String(said) }; }),
+  }));
+}
+
+/** The bubble rules for every line of the year, and a note no longer than two bubbles. */
+export function lintYear(year: YearChapter[], S: Strings = strings): string[] {
+  const rules = rulesFor(S);
+  const problems: string[] = [];
+  year.forEach((c, i) => {
+    const id = `year_${i + 1}`;
+    if (!c.title || !c.note || visibleLength(c.note) > rules.max * 2) problems.push(fill(L.badStory, { id }));
+    for (const l of c.lines) checkBubble(id, l.who, l.text, problems, rules);
+  });
+  return problems;
+}
+
 export function lintStaffStories(book: StoryBook, S: Strings = strings): string[] {
   return lintBook(book, STAFF_TELLERS, (who) => STAFF_CHAPTERS[who as StaffTeller], 4, 6, S);
 }

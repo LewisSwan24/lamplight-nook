@@ -1,0 +1,132 @@
+# The year's story (plan-2.0.md J7): twelve chapters, a month each, the town mending the old clock tower on the
+# river street. Each chapter: a title, a note of what changed (two bubbles at most), and who says what, a bubble a
+# line, the teller first (shared/mainstory.ts YEAR_TELLERS). Same writing rules as cafe.yaml.
+
+- title: "January: Lights under the tower"
+  note: "Granny Chen wants to hear the bell again. The town agrees to mend the tower."
+  lines:
+    - granny: "Lanterns hung all round the tower tonight."
+    - xiaoju: "With the lights on, you can see the crack."
+    - granny: "When I was small, it struck every hour."
+    - student: "Now it hasn't even got hands."
+    - granny: "I'd like to hear it strike once more."
+    - adeng: "Then let's mend it."
+    - granny: "A whole street and a year. That's enough."
+
+- title: "February: A notice"
+  note: "Notices went up on both streets. More people signed up than anyone thought."
+  lines:
+    - adeng: "The whole street should hear of the tower."
+    - aqian: "I'll print notices. Is fifty enough?"
+    - adeng: "Put a few up by the river too."
+    - qingdai: "I'll draw a clock in the corner."
+    - laoshi: "Write: carpenters and strong arms wanted."
+    - adeng: "Next day, people crowded round the notices."
+    - aqian: "Fifty wasn't enough. I printed fifty more."
+
+- title: "March: The gears inside"
+  note: "Old Zhou and Tack cleaned the gears one by one. Flint will replace two beams."
+  lines:
+    - mechanic: "I took the boards off and went in."
+    - mechanic: "The gears are all there, just rusted solid."
+    - xiaoding: "I brought a can of oil and some sandpaper."
+    - laoshi: "Two of the wooden beams are rotten."
+    - mechanic: "We take the gears. Flint takes the beams."
+    - xiaoding: "One gear took a whole afternoon to clean."
+    - mechanic: "Clean, it'll run another fifty years."
+
+- title: "April: The scaffolding"
+  note: "Scaffolding went up on both sides of the tower."
+  lines:
+    - laoshi: "The scaffolding went up today."
+    - mechanic: "I hauled the poles from the old store."
+    - baker: "Two buns for everyone on the scaffold."
+    - xiaoju: "I put up a pole too!"
+    - laoshi: "You held one."
+    - xiaoju: "Holding counts."
+    - laoshi: "Beams first, then the roof."
+
+- title: "May: The old drawing"
+  note: "Uncle Page found the tower's plan on an old map. The clockmaker was Granny Chen's kin."
+  lines:
+    - bookseller: "On the back of my old map there's a drawing."
+    - xiaoju: "Of the clock tower?"
+    - bookseller: "The inside of it, every gear drawn."
+    - student: "A name in the corner. The clockmaker's."
+    - bookseller: "Someone on this street still has that name."
+    - xiaoju: "Who?"
+    - bookseller: "Granny Chen."
+
+- title: "June: Slates at Dragon Boat"
+  note: "The tower has a new roof of blue slates. Auntie Olive wrapped 300 zongzi."
+  lines:
+    - baker: "For Dragon Boat Day I wrapped 300 zongzi."
+    - adeng: "Three hundred?"
+    - baker: "Lots of roofers. Lots of rowers too."
+    - laoshi: "The new slates are on. Blue ones."
+    - xiaoju: "From the bridge it looks like a new hat."
+    - baker: "With its hat on, it can face the rain."
+
+- title: "July: The face's colour"
+  note: "The face was painted camellia cream, and Umber lettered the numbers by hand."
+  lines:
+    - qingdai: "The face needs paint. I took three days."
+    - florist: "Use the cream in my shop, like camellias."
+    - qingdai: "That's the one."
+    - xiaozhe: "I'll letter the numbers, one by one."
+    - qingdai: "Twelve numbers took Umber a month."
+    - xiaozhe: "I spoiled nine and did them again."
+
+- title: "August: Letters from far away"
+  note: "Old neighbours wrote, and one sent back a gear. The scaffold is down, the face is out."
+  lines:
+    - postman: "This month I carried a lot of odd letters."
+    - adeng: "Odd how?"
+    - postman: "All from far away, asking about the tower."
+    - granny: "The old neighbours who left still remember."
+    - postman: "One letter had an old gear inside."
+    - granny: "That's the one that fell off, back then."
+    - postman: "The scaffold is down. The face is out."
+
+- title: "September: Flowers at mid-autumn"
+  note: "Fern is growing two pots for the tower's door. Mooncakes by the tower at mid-autumn."
+  lines:
+    - florist: "Mid-autumn. The tower will want flowers."
+    - bookseller: "Not in front of the door."
+    - florist: "One pot each side of the door."
+    - qingdai: "Red and yellow?"
+    - florist: "To go with the face. I checked."
+    - florist: "They'll grow in my shop till the day."
+    - bookseller: "That night we had mooncakes by the tower."
+
+- title: "October: Hands over the bridge"
+  note: "Bean and Old Zhou carried the hands over the bridge. The tower keeps time again."
+  lines:
+    - xiaodou: "I carried the hands over the bridge!"
+    - xiaoju: "Old Zhou took the big one. You, the small."
+    - xiaodou: "The small one's a hand too."
+    - mechanic: "Fitted. Now wind it."
+    - laoshi: "It's going."
+    - xiaodou: "I counted on the bridge. A tick a minute."
+
+- title: "November: A bell"
+  note: "The old bell, fished from the river, is hung. Its first stroke is Granny Chen's."
+  lines:
+    - xiaoju: "The tower still needs a bell."
+    - xiaoding: "The old bell was in the river. We got it."
+    - laoshi: "It is cracked. It can be mended."
+    - adeng: "Once it's up, don't ring it yet."
+    - xiaoju: "Why not?"
+    - adeng: "The first stroke is for Granny Chen."
+    - xiaoju: "Then I'll ring it in my head."
+
+- title: "December: The first stroke"
+  note: "Granny Chen rang the first stroke. The tower strikes the hours, lit at night."
+  lines:
+    - student: "December. The whole street came."
+    - granny: "I pull this rope?"
+    - adeng: "You pull it."
+    - student: "The bell rang. I counted twelve."
+    - granny: "Just as I heard it as a child."
+    - student: "The lights came on, seen from the bridge."
+    - xiaoju: "Next lantern night, we hang them here."

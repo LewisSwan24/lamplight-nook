@@ -1,3 +1,4 @@
+import type { YearDays } from './mainstory';
 import type { StaffStories } from './staffstories';
 import type { GuestId } from './types';
 
@@ -40,6 +41,8 @@ export type TownDays = {
   stories: Partial<Record<GuestId, string[]>>;
   /** How far each member of staff's own story has got (plan-1.9.md I1, shared/staffstories.ts). Absent before 1.9. */
   staff?: StaffStories;
+  /** How far the year's story has got: each chapter's day and works done by then (plan-2.0.md J7). Absent before 2.0. */
+  year?: YearDays;
 };
 
 export const emptyTown = (): TownDays => ({ shops: {}, street: [], stories: {} });

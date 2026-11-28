@@ -3279,12 +3279,14 @@
 
 - id: bridge_tower_years
   when: idle
+  tower: stopped
   turns:
     - xiaoju: "河边那座钟楼，停了多少年了？"
     - laoshi: "比我在这条街上的年头长。"
 
 - id: bridge_tower_time
   when: idle
+  tower: stopped
   turns:
     - adeng: "钟楼上的针，停在几点？"
     - qingdai: "没有针，只有一道裂缝。"
@@ -3292,6 +3294,7 @@
 
 - id: bridge_tower_inside
   when: idle
+  tower: stopped
   turns:
     - laoshi: "那座钟楼，我想去看看里面。"
     - adeng: "门钉死了。"
@@ -3354,6 +3357,7 @@
 
 - id: bridge_boat
   when: idle
+  tower: stopped
   turns:
     - xiaoju: "河上那条小船，谁在划？"
     - adeng: "不知道，每天准时过一趟。"
@@ -3396,6 +3400,7 @@
 
 - id: bridge_tower_bell
   when: idle
+  tower: stopped
   turns:
     - laoshi: "钟楼要是修好了，会敲钟。"
     - xiaoju: "夜里也敲？"
@@ -3434,6 +3439,7 @@
 
 - id: bridge_zhou_gears
   when: idle
+  tower: stopped
   guest: mechanic
   turns:
     - mechanic: "河边那座钟楼，里头的齿轮还在。"
@@ -3506,6 +3512,7 @@
 
 - id: bridge_fern_tower
   when: idle
+  tower: stopped
   guest: florist
   turns:
     - florist: "店旁边那座钟楼，我天天看着。"
@@ -3538,7 +3545,32 @@
 
 - id: bridge_page_map
   when: idle
+  tower: stopped
   guest: bookseller
   turns:
     - bookseller: "我那张旧地图上，钟楼还在走。"
     - laoshi: "地图上的钟，不会停。"
+
+- id: bridge_tower_watch
+  when: idle
+  tower: lit
+  turns:
+    - xiaoju: "钟楼修好以后，我天天对表。"
+    - laoshi: "它比你的表准。"
+
+- id: bridge_tower_lights
+  when: idle
+  period: night
+  tower: lit
+  turns:
+    - qingdai: "夜里钟楼的灯，从窗口就看得见。"
+    - adeng: "一年前，那儿还是黑的。"
+
+- id: bridge_chen_noon
+  when: idle
+  guest: granny
+  tower: lit
+  turns:
+    - granny: "每天中午，我都数钟声。"
+    - xiaoju: "今天数到几下？"
+    - granny: "十二下，一下不少。"
