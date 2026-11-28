@@ -223,3 +223,10 @@ shop_idle:
   - { id: bs_river_11, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["There's a moon in the water too."] }
   - { id: bs_river_12, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["Lanterns on the river at mid-autumn.", "An old custom on this street."] }
   - { id: bs_river_13, speaker: jianbo, when: period_dawn, bubbles: ["Mist on the river this early."] }
+
+# Uncle Page lends a book from the catalogue (plan-2.0.md J13).
+lend:
+  - { id: bs_lend_01, speaker: jianbo, bubbles: ["Take it. No hurry."] }
+  - { id: bs_lend_02, speaker: jianbo, bubbles: ["A good one. Read it slowly."] }
+  - { id: bs_lend_03, speaker: jianbo, bubbles: ["A week, then I'll come round for it."] }
+  - { id: bs_lend_04, speaker: jianbo, bubbles: ["The pages are dry. Turn them gently."] }

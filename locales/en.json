@@ -1134,6 +1134,361 @@
         "wintersweet": "Wintersweet"
       }
     },
+    "books": {
+      "title": "The catalogue",
+      "intro": "Uncle Page buys old books on each book list's subject, a cubby to a list. Take one home; he comes for it a week later.",
+      "empty": "The bookcase is still empty. Have a book list made and Uncle Page buys four old books on its subject.",
+      "cubby": "Cubby {n} · {topic}",
+      "from": "From the list \"{title}\", in on {day}",
+      "page": "{n} / {of}",
+      "prev": "Back",
+      "next": "Next",
+      "borrow": "Take it home",
+      "lent": "At home till {day}",
+      "busy": "\"{title}\" is still at home",
+      "read": "Read",
+      "home": "Borrowed: {title}",
+      "topics": {
+        "history": "History",
+        "nature": "Nature",
+        "poetry": "Poetry",
+        "travel": "Travel",
+        "food": "Food and drink",
+        "science": "Science",
+        "novels": "Novels",
+        "art": "Art",
+        "philosophy": "Philosophy",
+        "children": "For children"
+      },
+      "condition": [
+        "Nearly new",
+        "Spine a little loose",
+        "Inscribed on the flyleaf",
+        "Pencil notes in the margins"
+      ],
+      "titles": {
+        "shiji": {
+          "title": "Records of the Grand Historian",
+          "author": "Sima Qian"
+        },
+        "wanli1587": {
+          "title": "1587, a Year of No Significance",
+          "author": "Ray Huang"
+        },
+        "gibbon": {
+          "title": "The History of the Decline and Fall of the Roman Empire",
+          "author": "Edward Gibbon"
+        },
+        "herodotus": {
+          "title": "The Histories",
+          "author": "Herodotus"
+        },
+        "thucydides": {
+          "title": "History of the Peloponnesian War",
+          "author": "Thucydides"
+        },
+        "zizhi": {
+          "title": "Comprehensive Mirror in Aid of Governance",
+          "author": "Sima Guang"
+        },
+        "chrysanthemum": {
+          "title": "The Chrysanthemum and the Sword",
+          "author": "Ruth Benedict"
+        },
+        "glorydream": {
+          "title": "The Glory and the Dream",
+          "author": "William Manchester"
+        },
+        "walden": {
+          "title": "Walden",
+          "author": "Henry David Thoreau"
+        },
+        "silentspring": {
+          "title": "Silent Spring",
+          "author": "Rachel Carson"
+        },
+        "sandcounty": {
+          "title": "A Sand County Almanac",
+          "author": "Aldo Leopold"
+        },
+        "selborne": {
+          "title": "The Natural History of Selborne",
+          "author": "Gilbert White"
+        },
+        "origin": {
+          "title": "On the Origin of Species",
+          "author": "Charles Darwin"
+        },
+        "solomonring": {
+          "title": "King Solomon's Ring",
+          "author": "Konrad Lorenz"
+        },
+        "fabre": {
+          "title": "Fabre's Book of Insects",
+          "author": "Jean-Henri Fabre"
+        },
+        "seawind": {
+          "title": "Under the Sea-Wind",
+          "author": "Rachel Carson"
+        },
+        "tang300": {
+          "title": "Three Hundred Tang Poems",
+          "author": "Sun Zhu"
+        },
+        "songs": {
+          "title": "The Book of Songs",
+          "author": "Anonymous"
+        },
+        "straybirds": {
+          "title": "Stray Birds",
+          "author": "Rabindranath Tagore"
+        },
+        "leavesgrass": {
+          "title": "Leaves of Grass",
+          "author": "Walt Whitman"
+        },
+        "song300": {
+          "title": "Three Hundred Song Lyrics",
+          "author": "Zhu Zumou"
+        },
+        "renjian": {
+          "title": "Poetic Remarks in the Human World",
+          "author": "Wang Guowei"
+        },
+        "odyssey": {
+          "title": "The Odyssey",
+          "author": "Homer"
+        },
+        "rubaiyat": {
+          "title": "The Rubaiyat",
+          "author": "Omar Khayyam"
+        },
+        "xuxiake": {
+          "title": "The Travel Diaries of Xu Xiake",
+          "author": "Xu Xiake"
+        },
+        "marcopolo": {
+          "title": "The Travels of Marco Polo",
+          "author": "Marco Polo"
+        },
+        "xiyuji": {
+          "title": "Great Tang Records on the Western Regions",
+          "author": "Xuanzang"
+        },
+        "ontheroad": {
+          "title": "On the Road",
+          "author": "Jack Kerouac"
+        },
+        "donkey": {
+          "title": "Travels with a Donkey in the Cévennes",
+          "author": "Robert Louis Stevenson"
+        },
+        "eightydays": {
+          "title": "Around the World in Eighty Days",
+          "author": "Jules Verne"
+        },
+        "italianjourney": {
+          "title": "Italian Journey",
+          "author": "Johann Wolfgang von Goethe"
+        },
+        "xiangxing": {
+          "title": "Random Sketches on a Trip to Hunan",
+          "author": "Shen Congwen"
+        },
+        "suiyuan": {
+          "title": "Recipes from the Garden of Contentment",
+          "author": "Yuan Mei"
+        },
+        "physiologytaste": {
+          "title": "The Physiology of Taste",
+          "author": "Jean Anthelme Brillat-Savarin"
+        },
+        "frenchcooking": {
+          "title": "Mastering the Art of French Cooking",
+          "author": "Julia Child"
+        },
+        "beeton": {
+          "title": "Mrs Beeton's Book of Household Management",
+          "author": "Isabella Beeton"
+        },
+        "yinshan": {
+          "title": "Proper and Essential Things for the Emperor's Food and Drink",
+          "author": "Hu Sihui"
+        },
+        "teaclassic": {
+          "title": "The Classic of Tea",
+          "author": "Lu Yu"
+        },
+        "qimin": {
+          "title": "Essential Techniques for the Welfare of the People",
+          "author": "Jia Sixie"
+        },
+        "salt": {
+          "title": "Salt: A World History",
+          "author": "Mark Kurlansky"
+        },
+        "brieftime": {
+          "title": "A Brief History of Time",
+          "author": "Stephen Hawking"
+        },
+        "tiangong": {
+          "title": "The Exploitation of the Works of Nature",
+          "author": "Song Yingxing"
+        },
+        "mengxi": {
+          "title": "Dream Pool Essays",
+          "author": "Shen Kuo"
+        },
+        "selfishgene": {
+          "title": "The Selfish Gene",
+          "author": "Richard Dawkins"
+        },
+        "cosmos": {
+          "title": "Cosmos",
+          "author": "Carl Sagan"
+        },
+        "feynman": {
+          "title": "Surely You're Joking, Mr. Feynman!",
+          "author": "Richard Feynman"
+        },
+        "doublehelix": {
+          "title": "The Double Helix",
+          "author": "James D. Watson"
+        },
+        "elements": {
+          "title": "Elements",
+          "author": "Euclid"
+        },
+        "redchamber": {
+          "title": "Dream of the Red Chamber",
+          "author": "Cao Xueqin"
+        },
+        "prideprejudice": {
+          "title": "Pride and Prejudice",
+          "author": "Jane Austen"
+        },
+        "quixote": {
+          "title": "Don Quixote",
+          "author": "Miguel de Cervantes"
+        },
+        "bordertown": {
+          "title": "Border Town",
+          "author": "Shen Congwen"
+        },
+        "janeeyre": {
+          "title": "Jane Eyre",
+          "author": "Charlotte Brontë"
+        },
+        "oldmansea": {
+          "title": "The Old Man and the Sea",
+          "author": "Ernest Hemingway"
+        },
+        "rickshaw": {
+          "title": "Rickshaw Boy",
+          "author": "Lao She"
+        },
+        "olivertwist": {
+          "title": "Oliver Twist",
+          "author": "Charles Dickens"
+        },
+        "storyofart": {
+          "title": "The Story of Art",
+          "author": "E. H. Gombrich"
+        },
+        "mustardseed": {
+          "title": "The Mustard Seed Garden Manual of Painting",
+          "author": "Wang Gai"
+        },
+        "waysseeing": {
+          "title": "Ways of Seeing",
+          "author": "John Berger"
+        },
+        "pathbeauty": {
+          "title": "The Path of Beauty",
+          "author": "Li Zehou"
+        },
+        "vangogh": {
+          "title": "The Letters of Vincent van Gogh",
+          "author": "Vincent van Gogh"
+        },
+        "zhangwu": {
+          "title": "Treatise on Superfluous Things",
+          "author": "Wen Zhenheng"
+        },
+        "yuanye": {
+          "title": "The Craft of Gardens",
+          "author": "Ji Cheng"
+        },
+        "vasari": {
+          "title": "Lives of the Artists",
+          "author": "Giorgio Vasari"
+        },
+        "analects": {
+          "title": "The Analects",
+          "author": "Confucius"
+        },
+        "daodejing": {
+          "title": "Tao Te Ching",
+          "author": "Laozi"
+        },
+        "zhuangzi": {
+          "title": "Zhuangzi",
+          "author": "Zhuangzi"
+        },
+        "meditations": {
+          "title": "Meditations",
+          "author": "Marcus Aurelius"
+        },
+        "republic": {
+          "title": "The Republic",
+          "author": "Plato"
+        },
+        "montaigne": {
+          "title": "Essays",
+          "author": "Michel de Montaigne"
+        },
+        "sophie": {
+          "title": "Sophie's World",
+          "author": "Jostein Gaarder"
+        },
+        "caigentan": {
+          "title": "Vegetable Roots Discourse",
+          "author": "Hong Yingming"
+        },
+        "littleprince": {
+          "title": "The Little Prince",
+          "author": "Antoine de Saint-Exupéry"
+        },
+        "charlotte": {
+          "title": "Charlotte's Web",
+          "author": "E. B. White"
+        },
+        "willows": {
+          "title": "The Wind in the Willows",
+          "author": "Kenneth Grahame"
+        },
+        "alice": {
+          "title": "Alice's Adventures in Wonderland",
+          "author": "Lewis Carroll"
+        },
+        "secretgarden": {
+          "title": "The Secret Garden",
+          "author": "Frances Hodgson Burnett"
+        },
+        "pooh": {
+          "title": "Winnie-the-Pooh",
+          "author": "A. A. Milne"
+        },
+        "anne": {
+          "title": "Anne of Green Gables",
+          "author": "L. M. Montgomery"
+        },
+        "scarecrow": {
+          "title": "The Scarecrow",
+          "author": "Ye Shengtao"
+        }
+      }
+    },
     "chronicle": {
       "title": "The town’s record",
       "intro": "Everything the shop has seen, each with the day it came. What hasn’t come yet keeps its place, blank.",

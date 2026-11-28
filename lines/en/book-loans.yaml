@@ -1,0 +1,9 @@
+# Uncle Page comes round for the book you borrowed, a week after (plan-2.0.md J13), in English: lines/book-loans.yaml
+# is the Chinese set. Same shape and writing rules as chats.yaml.
+
+- { id: loan_1, when: idle, guest: bookseller, turns: [{ bookseller: "Come for that book. All done?" }, { adeng: "Done. It's on the shelf." }, { bookseller: "Good. Borrow another soon." }] }
+- { id: loan_2, when: idle, guest: bookseller, turns: [{ bookseller: "A week's up. How's the book?" }, { xiaoju: "Fine. Not a page folded." }] }
+- { id: loan_3, when: idle, guest: bookseller, turns: [{ bookseller: "Passing by, so I'll take it back." }, { laoshi: "Read it twice. Solid work." }] }
+- { id: loan_4, when: idle, guest: bookseller, turns: [{ bookseller: "Time it went back to the shop." }, { qingdai: "I copied one of its pictures." }] }
+- { id: loan_5, when: idle, guest: bookseller, turns: [{ bookseller: "Someone's waiting to borrow it." }, { adeng: "Here it is." }] }
+- { id: loan_6, when: idle, guest: bookseller, turns: [{ bookseller: "How was it?" }, { xiaoju: "I read it till midnight." }] }

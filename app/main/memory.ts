@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { grownBy, workIcon, type GrowthId, madeOf } from '../shared/growth';
+import { type BookId, withLoan, withReturn } from '../shared/books';
 import { withSale } from '../shared/flowers';
 import { holidayOn } from '../shared/holidays';
 import { localDay } from '../shared/localday';
@@ -314,6 +315,24 @@ export class MemoryStore {
     const shop = this.shop();
     if (!shop.town) return;
     shop.town.flowers = withSale(shop.town.flowers ?? [], { day: localDay(now), slot, who });
+    this.data.shop = shop;
+    this.save();
+  }
+
+  /** A book from the bookshop taken home (plan-2.0.md J13); none while another is still out. */
+  borrowBook(book: BookId, now = new Date()): void {
+    const shop = this.shop();
+    if (!shop.town) return;
+    shop.town.loans = [...withLoan(shop.town.loans ?? [], book, localDay(now))];
+    this.data.shop = shop;
+    this.save();
+  }
+
+  /** Uncle Page has taken the borrowed book back (plan-2.0.md J13). */
+  returnBook(now = new Date()): void {
+    const shop = this.shop();
+    if (!shop.town) return;
+    shop.town.loans = withReturn(shop.town.loans ?? [], localDay(now));
     this.data.shop = shop;
     this.save();
   }

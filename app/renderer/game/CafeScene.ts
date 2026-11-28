@@ -123,6 +123,7 @@ import { PASSER_FEET, WINDOW_PANES, passBy } from './passers';
 import { HOLIDAYS, SEASONS, type Holiday, type Season, type Sky, holidayOn, seasonOf, skyOn, withWeather } from './weather';
 import { MENU_BOARD, menuFrame } from '../../shared/menu';
 import { COUNTER_CARD, FlowerStand, cardSpot, flowerCardIndex, preloadFlowers } from './FlowerStand';
+import { BookCase, LentBook, lentSpot } from './BookCase';
 import { HAND_OVER_MS, PICK_UP_MS, YOU_COUNTER, YOU_DOOR, YOU_SEAT, YOU_SPEED } from './you';
 import { CAT_FRAME, CAT_WALK_FRAME, DIRECTIONS, STAFF_ANIMS, STAFF_FRAME, STAFF_IDS, animKey, facingTowards, staffFrames } from './sprites';
 
@@ -184,7 +185,7 @@ const BELL = ['...k...', '..ggg..', '.ghggg.', '.ghggs.', 'gggggss', 'bbbbbbb'];
 const BELL_COLORS: Record<string, number> = { k: 0x8a5a1c, g: 0xe2b04a, h: 0xfff0b0, s: 0xb07d2a, b: 0x5a3b28 };
 /** `backdoor` looks out at the garden; `shopdoor` (the same door, from the garden) comes back in; `dog` and `hens` live out there. */
 export type HintSpot = 'counter' | 'bell' | 'board';
-export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you' | 'cork' | 'pet' | `wall-${number}` | 'flowers' | `flowercard-${number}`;
+export type Target = ActorId | ObjectId | 'counter' | 'bell' | 'backdoor' | 'shopdoor' | 'dog' | 'hens' | 'beds' | 'works' | 'guest' | 'you' | 'cork' | 'pet' | `wall-${number}` | 'flowers' | `flowercard-${number}` | 'lentbook';
 
 type Guest = { id: GuestId; sprite: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tween?: Phaser.Tweens.Tween; speech?: string; hovered?: boolean };
 
@@ -263,6 +264,12 @@ export class CafeScene extends Phaser.Scene {
   onFlowerCard: (i: number) => void = () => {};
   /** The flower shop's stand, its counter card and its wall of cards; in the flower shop only. */
   flowers?: FlowerStand;
+  /** The book borrowed from the bookshop, on top of the shelf at home, was clicked (plan-2.0.md J13). */
+  onLentBook: () => void = () => {};
+  /** The bookshop's bookcase, filled a cubby to a book list; in the bookshop only. */
+  bookcase?: BookCase;
+  /** The book borrowed from the bookshop, lying on the shelf; at home only. */
+  lentBook?: LentBook;
   /** The postcards pinned on the cork board, in the post office only. */
   private wallCards: { name: string; x: number; y: number; img: Phaser.GameObjects.Graphics; zone: Phaser.GameObjects.Zone }[] = [];
   private bell!: Phaser.GameObjects.Graphics;
@@ -451,6 +458,13 @@ export class CafeScene extends Phaser.Scene {
       this.flowers = new FlowerStand(this, {
         activate: (target) => this.activate(target),
         hover: (target) => (target ? this.highlight(target as Target) : this.hovered?.startsWith('flower') && this.highlight(null)),
+      });
+    }
+    if (this.room === 'bookshop') this.bookcase = new BookCase(this);
+    if (this.room === 'cafe' || this.room === 'study') {
+      this.lentBook = new LentBook(this, this.room, {
+        activate: () => this.activate('lentbook'),
+        hover: (on) => (on ? this.highlight('lentbook') : this.hovered === 'lentbook' && this.highlight(null)),
       });
     }
     // On the wall behind everyone, like what the stories leave.
@@ -1041,6 +1055,7 @@ export class CafeScene extends Phaser.Scene {
     if (target === 'you') return this.onYouClick();
     if (target === 'cork') return this.onWallCard(null);
     if (target === 'flowers') return this.onFlowers();
+    if (target === 'lentbook') return this.lentBook?.shown ? this.onLentBook() : undefined;
     const flowerCard = flowerCardIndex(target);
     if (flowerCard !== null) return this.onFlowerCard(flowerCard);
     const card = wallIndex(target);
@@ -1088,7 +1103,7 @@ export class CafeScene extends Phaser.Scene {
       ? this.wallCards.map((c, i) => ({ id: `wall-${i}` as const, x: c.x, y: c.y, w: WALL_CARD.w, h: WALL_CARD.h }))
       : [{ id: 'cork' as const, ...CORK }];
     const pet = this.pet ? [{ id: 'pet' as const, ...this.pet.bounds() }] : [];
-    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...cork, ...(this.flowers?.targets() ?? []), ...pet, ...people, ...out];
+    return [{ id: 'counter' as const, x: counter.x, y: counter.y, w: counter.w, h: counter.h }, ...bell, back, ...objects, ...guest, ...you, ...works, ...board, ...cork, ...(this.flowers?.targets() ?? []), ...(this.lentBook?.targets() ?? []), ...pet, ...people, ...out];
   }
 
   /**
@@ -1719,6 +1734,10 @@ export class CafeScene extends Phaser.Scene {
     if (flowerCard !== null && this.flowers?.titles[flowerCard]) {
       const at = cardSpot(flowerCard);
       zones.push({ key: `z-flowercard-${flowerCard}`, text: fill(strings.ui.flowers.wall, { title: this.flowers.titles[flowerCard] }), x: at.x + 4, y: at.y - 2, kind: 'zone' as const });
+    }
+    if (this.hovered === 'lentbook' && this.lentBook?.title) {
+      const at = lentSpot(this.room);
+      zones.push({ key: 'z-lentbook', text: fill(strings.ui.books.home, { title: this.lentBook.title }), x: at.x + at.w / 2, y: at.y - 2, kind: 'zone' as const });
     }
     if (this.hovered === 'cork') zones.push({ key: 'z-cork', text: strings.ui.visit.wallEmpty, x: CORK.x + CORK.w / 2, y: CORK.y - 2, kind: 'zone' as const });
     if (this.hovered === 'bell') zones.push({ key: 'z-bell', text: strings.zones.bell, x: BELL_POS.x + 3, y: BELL_POS.y - 2, kind: 'zone' as const });

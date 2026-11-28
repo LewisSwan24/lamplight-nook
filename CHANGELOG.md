@@ -39,6 +39,11 @@
   empty until its flowers would have been over. The little card on the counter opens today's flowers: what is in
   each vase, how far open, when it came, or who took it. The flower cards you have had made hang on the wall
   between the wreath and the clock; click one to open it.
+- **The bookshop's books.** Uncle Page's big bookcase starts empty and fills a cubby at a time: for each book list
+  the shop makes, he buys four old books on its subject, history, nature, poetry, travel, food, science, novels,
+  art, philosophy or books for children. Click the bookcase for the catalogue, a page to each cubby: which list
+  brought the books and when, and each book's title, author and condition. Take one home and it lies on the shelf
+  there; a week later Uncle Page comes round for it, and it is marked as read.
 - **The clock tower mended.** Over the year the old clock tower on the river street is mended a step at a time:
   scaffolding up both sides, a new roof of blue slates, a clean clock face, then hands that keep the shop's time, the
   bell hung and the door mended, and at last a lamp by the door and lights along the roof after dark. Once mended it
