@@ -92,6 +92,16 @@ STAFF['axin'] = {'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png'
                             'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_05_04.png',
                             'Accessories/16x16/Accessory_03_Backpack_01.png']}
 
+# Fern keeps the florist on the river street since plan-2.0.md J2, the same way: the neighbour's sheet written again as
+# staff (fangjie.png). Uncle Page keeps the bookshop next to the clock tower: someone new to the shop, older, in a brown
+# coat and glasses (jianbo.png).
+STAFF['fangjie'] = {'layers': ['Bodies/16x16/Body_04.png', 'Eyes/16x16/Eyes_01.png',
+                               'Outfits/16x16/Outfit_09_01.png', 'Hairstyles/16x16/Hairstyle_19_03.png'],
+                    'recolor': {'Outfits/16x16/Outfit_09_01.png': [((340, 20), '#5E8C4A')]}}
+STAFF['jianbo'] = {'layers': ['Bodies/16x16/Body_03.png', 'Eyes/16x16/Eyes_01.png',
+                              'Outfits/16x16/Outfit_23_01.png', 'Hairstyles/16x16/Hairstyle_03_06.png',
+                              'Accessories/16x16/Accessory_15_Glasses_02.png']}
+
 # Neighbours who drop in now and then (app/renderer/game/guests.ts): Auntie Gui from the bakery and
 # Axin the postman, with his mail bag; then those the work brings: Old Zhou from the garage, in his work clothes,
 # Granny Chen with her buns and glasses, and Xiaohe the student, with a backpack.

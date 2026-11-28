@@ -1,0 +1,212 @@
+# Dialogue for the bookshop (plan-2.0.md J2), laid over lines/cafe.yaml: same format, same rules.
+# Uncle Page does all the work; Adeng only brings the order over.
+# Spots: 书店柜台 (counter), 矮书架 (board), 大书架 (shelf), 看书的长桌 (table), 地球仪 (corner).
+
+opening:
+  - { id: bs_revise_again_01, speaker: jianbo, when: revise_again, bubbles: ["Last time we changed \"{lastAsk}\".", "This time, \"{brief}\". Noted."] }
+  - { id: bs_revise_01, speaker: jianbo, when: revise, bubbles: ["\"{brief}\"? All right.", "It isn't bound yet. Easy."] }
+  - { id: bs_revise_02, speaker: jianbo, when: revise, bubbles: ["Books have editions too.", "\"{brief}\". I'll see to it."] }
+  - { id: bs_revise_03, speaker: jianbo, when: revise, bubbles: ["I'll keep the old one inside a book.", "\"{brief}\". I'll call you when it's done."] }
+  - { id: bs_mem_02, speaker: jianbo, when: has_stuck_note, bubbles: ["\"{brief}\". Noted.", "Last time {stuckNote} held us up.", "I'll skip past that page first."] }
+  - { id: bs_mem_01, speaker: jianbo, when: has_memory, bubbles: ["\"{brief}\". Noted.", "Last time you chose {lastChoice}.", "The same way again."] }
+  - { id: bs_tpl_card_01, speaker: jianbo, when: tpl_card, bubbles: ["A card? I've found plenty inside old books.", "Names exactly as you gave them."] }
+  - { id: bs_tpl_card_02, speaker: jianbo, when: tpl_card, bubbles: ["A card gets read again and again.", "Few words, every one meant."] }
+  - { id: bs_tpl_newsletter_01, speaker: jianbo, when: tpl_newsletter, bubbles: ["A newsletter? Like setting a catalogue.", "The big news goes first."] }
+  - { id: bs_tpl_newsletter_02, speaker: jianbo, when: tpl_newsletter, bubbles: ["Dates and places each get a line.", "Like a spine. Seen at a glance."] }
+  - { id: bs_handed_01, speaker: jianbo, when: handed, bubbles: ["Got your things. Let me find my glasses.", "\"{brief}\". Noted."] }
+  - { id: bs_opening_01, speaker: jianbo, bubbles: ["\"{brief}\"?", "Right, let me put my pencil down."] }
+  - { id: bs_opening_02, speaker: jianbo, bubbles: ["\"{brief}\"...", "Just priced this pile. Good timing."] }
+  - { id: bs_opening_03, speaker: jianbo, bubbles: ["Work's in.", "\"{brief}\". I'll put it in my notebook."] }
+
+planning:
+  - { id: bs_plan_01, speaker: jianbo, bubbles: ["Contents first. Then chapter by chapter."] }
+  - { id: bs_plan_02, speaker: jianbo, bubbles: ["Which chapter to open with..."] }
+  - { id: bs_plan_03, speaker: jianbo, bubbles: ["Three chapters. One at a time."] }
+
+draft_ready:
+  - { id: bs_draft_ready_01, speaker: jianbo, bubbles: ["The draft's on the counter.", "Read it, then decide."] }
+  - { id: bs_draft_ready_02, speaker: jianbo, bubbles: ["Draft's done.", "Whether it goes out is yours to say."] }
+  - { id: bs_draft_ready_03, speaker: jianbo, bubbles: ["It's tucked in the book on the counter."] }
+
+writing:
+  - { id: bs_write_01, speaker: jianbo, bubbles: ["Starting."] }
+  - { id: bs_write_02, speaker: jianbo, bubbles: ["That page is done. Next."] }
+  - { id: bs_write_03, speaker: jianbo, bubbles: ["Hm...", "That line reads well."] }
+  - { id: bs_write_04, speaker: jianbo, bubbles: ["Write it down first. Punctuation later."] }
+
+sub_go_research:
+  - { id: bs_go_rs_rain, speaker: jianbo, when: sky_rain, bubbles: ["Raining. Books away from the window.", "I'll find {topic} on the tall shelves."] }
+  - { id: bs_go_rs_01, speaker: jianbo, bubbles: ["{topic}? I'll look on the tall bookcase."] }
+  - { id: bs_go_rs_02, speaker: jianbo, bubbles: ["I've seen it in a book somewhere..."] }
+  - { id: bs_go_rs_03, speaker: jianbo, bubbles: ["The old books are on the top shelf."] }
+
+sub_back_research:
+  - { id: bs_back_rs_01, speaker: jianbo, bubbles: ["Found it.", "{count} bits of it will do."] }
+  - { id: bs_back_rs_02, speaker: jianbo, bubbles: ["This checks out.", "Two books say the same."] }
+  - { id: bs_back_rs_03, speaker: jianbo, bubbles: ["All here, with bookmarks in."] }
+
+sub_go_review:
+  - { id: bs_go_rv_01, speaker: jianbo, bubbles: ["I'll go over it at the reading table."] }
+  - { id: bs_go_rv_02, speaker: jianbo, bubbles: ["Typos get found line by line."] }
+  - { id: bs_go_rv_03, speaker: jianbo, bubbles: ["Page by page."] }
+
+sub_back_review:
+  - { id: bs_back_rv_issue, speaker: jianbo, when: has_issues, bubbles: ["{issueCount} things aren't right.", "There is a slip of paper at each."] }
+  - { id: bs_back_rv_ok, speaker: jianbo, when: no_issues, bubbles: ["Read it end to end. No typos."] }
+  - { id: bs_back_rv_ok2, speaker: jianbo, when: no_issues, bubbles: ["Checked. It agrees with itself."] }
+
+sub_go_design:
+  - { id: bs_go_ds_rain, speaker: jianbo, when: sky_rain, bubbles: ["Nobody browses in the rain.", "I'll sketch it by the low bookcase."] }
+  - { id: bs_go_ds_01, speaker: jianbo, bubbles: ["I'll try a few by the low bookcase."] }
+  - { id: bs_go_ds_02, speaker: jianbo, bubbles: ["How should it be laid out..."] }
+  - { id: bs_go_ds_03, speaker: jianbo, bubbles: ["I'll cut a shape from an old dust jacket."] }
+
+sub_back_design:
+  - { id: bs_back_ds_01, speaker: jianbo, bubbles: ["That's the look.", "Like a good book's title page."] }
+  - { id: bs_back_ds_02, speaker: jianbo, bubbles: ["Cut out. Have a look."] }
+  - { id: bs_back_ds_03, speaker: jianbo, bubbles: ["Three of them. The middle one suits it."] }
+
+stuck:
+  - { id: bs_stuck_01, speaker: jianbo, bubbles: ["Huh. A page is missing.", "I'll try another way."] }
+  - { id: bs_stuck_02, speaker: jianbo, bubbles: ["That's not right. {whatsWrong}."] }
+  - { id: bs_stuck_03, speaker: jianbo, bubbles: ["Lost my glasses again..."] }
+  - { id: bs_stuck_04, speaker: jianbo, bubbles: ["Pages out of order.", "Setting them again."] }
+
+stuck_long:
+  - { id: bs_stuck_long_01, speaker: jianbo, bubbles: ["This one takes some doing.", "I'll go slowly. Carry on."] }
+  - { id: bs_stuck_long_02, speaker: jianbo, bubbles: ["Still at it. Not giving up."] }
+  - { id: bs_stuck_long_03, speaker: jianbo, bubbles: ["Bear with me. This part winds about."] }
+
+waiting:
+  - { id: bs_wait_01, speaker: jianbo, bubbles: ["It's on its way. Hang on."] }
+  - { id: bs_wait_02, speaker: jianbo, bubbles: ["No reply yet. Give it a moment."] }
+  - { id: bs_wait_03, speaker: jianbo, bubbles: ["Can't rush it. Good books are waited for."] }
+
+ask:
+  - { id: bs_ask_color, speaker: jianbo, when: demo_color, bubbles: ["Cream or pale mint. I printed one of each.", "Which one?"] }
+  - { id: bs_ask_01, speaker: jianbo, bubbles: ["A question for you.", "{question}"] }
+  - { id: bs_ask_02, speaker: jianbo, bubbles: ["There are two ways to write this.", "Pick one?"] }
+
+react_adopted:
+  - { id: bs_react_ad_01, speaker: jianbo, bubbles: ["Good. That's how it goes."] }
+  - { id: bs_react_ad_02, speaker: jianbo, bubbles: ["Noted. It's on the board."] }
+  - { id: bs_react_ad_03, speaker: jianbo, bubbles: ["I'd have picked that too."] }
+
+react_rejected:
+  - { id: bs_react_rj_01, speaker: jianbo, bubbles: ["All right. Your call."] }
+  - { id: bs_react_rj_02, speaker: jianbo, bubbles: ["I'll keep this one in a book for later."] }
+  - { id: bs_react_rj_03, speaker: jianbo, bubbles: ["Fine. Another one."] }
+
+react_delegated:
+  - { id: bs_react_dl_00, speaker: jianbo, bubbles: ["All right, I'll choose.", "I'll tell you once I have."] }
+  - { id: bs_react_dl_01, speaker: jianbo, bubbles: ["{choice}, then, because {reason}.", "Say if it doesn't suit."] }
+  - { id: bs_react_dl_02, speaker: jianbo, bubbles: ["Let's try {choice} first.", "We can change it later."] }
+  - { id: bs_react_dl_03, speaker: jianbo, bubbles: ["{choice}.", "The why is on the board."] }
+
+serious:
+  - { id: bs_serious_01, speaker: jianbo, bubbles: ["This step means {action}.", "Once it's done, {consequence}.", "Have a look before you decide."] }
+  - { id: bs_serious_02, speaker: jianbo, bubbles: ["I won't touch this on my own.", "{action}: {consequence}."] }
+  - { id: bs_serious_03, speaker: jianbo, bubbles: ["A torn page doesn't go back in.", "Look closely before you click."] }
+
+refused:
+  - { id: bs_refused_01, speaker: jianbo, bubbles: ["Can't touch that.", "Another way."] }
+  - { id: bs_refused_02, speaker: jianbo, bubbles: ["That's not ours to do."] }
+  - { id: bs_refused_03, speaker: jianbo, bubbles: ["Other people's letters. I don't read them."] }
+
+serious_yes:
+  - { id: bs_serious_yes_01, speaker: jianbo, bubbles: ["Right, I'll do it."] }
+  - { id: bs_serious_yes_02, speaker: jianbo, bubbles: ["Understood. Starting now."] }
+  - { id: bs_serious_yes_03, speaker: jianbo, bubbles: ["So be it."] }
+
+serious_no:
+  - { id: bs_serious_no_01, speaker: jianbo, bubbles: ["Fine, I'll leave it.", "I'll find a way that doesn't need it."] }
+  - { id: bs_serious_no_02, speaker: jianbo, bubbles: ["Fine, I'll hold it back."] }
+  - { id: bs_serious_no_03, speaker: jianbo, bubbles: ["Leaving it. I'll go round."] }
+
+done:
+  - { id: bs_done_day, speaker: jianbo, when: daytime, bubbles: ["Done. It's on the counter.", "Read it while it's light."] }
+  - { id: bs_done_dusk, speaker: jianbo, when: dusk, bubbles: ["Done.", "Getting dark. Time for the lamp."] }
+  - { id: bs_done_night, speaker: jianbo, when: night, bubbles: ["Done.", "It's late. Read it, then get some sleep."] }
+  - { id: bs_done_01, speaker: jianbo, bubbles: ["Done. Not a page missing."] }
+  - { id: bs_done_02, speaker: jianbo, bubbles: ["Done. Ready to use.", "I read it through twice."] }
+
+failed:
+  - { id: bs_failed_01, speaker: jianbo, bubbles: ["Couldn't get it done this time. Sorry.", "It stuck at {stuckAt}.", "I've put it on the board.", "Another way next time."] }
+  - { id: bs_failed_02, speaker: jianbo, bubbles: ["Didn't make it.", "Stuck at {stuckAt}. Noted."] }
+  - { id: bs_failed_03, speaker: jianbo, bubbles: ["That's it for today.", "What went wrong is on the board."] }
+
+net_retry:
+  - { id: bs_net_retry_01, speaker: jianbo, bubbles: ["The line's gone dead. I'll try again."] }
+  - { id: bs_net_retry_02, speaker: jianbo, bubbles: ["Nobody's answering. I'll ask again."] }
+  - { id: bs_net_retry_03, speaker: jianbo, bubbles: ["Bad signal. I'll try in a bit."] }
+
+cancelled:
+  - { id: bs_cancelled_01, speaker: jianbo, bubbles: ["All right, it can wait."] }
+  - { id: bs_cancelled_02, speaker: jianbo, bubbles: ["Fine. What's done, I'll keep."] }
+  - { id: bs_cancelled_03, speaker: jianbo, bubbles: ["Right, stopping here.", "The draft goes in a book. It'll keep."] }
+
+# What the keeper says when someone walks in (app/renderer/stage/shoptalk.ts): a festival first, then the weather, else the time of day, the season or any.
+shop_in:
+  - { id: bs_in_birthday, speaker: jianbo, when: birthday_jianbo, bubbles: ["It's my birthday.", "I've kept a good book back for myself."] }
+  - { id: bs_in_01, speaker: jianbo, bubbles: ["Come in and look. No need to buy."] }
+  - { id: bs_in_02, speaker: jianbo, bubbles: ["Take your time. The books won't run off."] }
+  - { id: bs_in_03, speaker: jianbo, bubbles: ["One moment. Let me price this one."] }
+  - { id: bs_in_04, speaker: jianbo, bubbles: ["A box of old books came. Not opened yet."] }
+  - { id: bs_in_05, speaker: jianbo, bubbles: ["The basket by the door is a coin a book."] }
+  - { id: bs_in_dawn_01, speaker: jianbo, when: period_dawn, bubbles: ["This early?", "Only just opened. The lamps aren't all on."] }
+  - { id: bs_in_dawn_02, speaker: jianbo, when: period_dawn, bubbles: ["Print's clearest in the morning."] }
+  - { id: bs_in_day_01, speaker: jianbo, when: period_day, bubbles: ["Quiet at noon. Sit anywhere."] }
+  - { id: bs_in_dusk_01, speaker: jianbo, when: period_dusk, bubbles: ["Getting dim. I'll put the lamp on."] }
+  - { id: bs_in_dusk_02, speaker: jianbo, when: period_dusk, bubbles: ["Closing soon. Hold on to what you've picked."] }
+  - { id: bs_in_night_01, speaker: jianbo, when: period_night, bubbles: ["We're closed, but come in."] }
+  - { id: bs_in_night_02, speaker: jianbo, when: period_night, bubbles: ["Book hunting at this hour?"] }
+  - { id: bs_in_rain_01, speaker: jianbo, when: sky_rain, bubbles: ["Raining. Leave the umbrella by the door."] }
+  - { id: bs_in_snow_01, speaker: jianbo, when: sky_snow, bubbles: ["Out in this snow?", "Warm your hands before you touch a book."] }
+  - { id: bs_in_fog_01, speaker: jianbo, when: sky_fog, bubbles: ["In this fog? You found the door?"] }
+  - { id: bs_in_wind_01, speaker: jianbo, when: sky_wind, bubbles: ["Windy. Shut the door, or the pages fly."] }
+  - { id: bs_in_storm_01, speaker: jianbo, when: sky_storm, bubbles: ["Thunder. Wait it out in here."] }
+  - { id: bs_in_spring_01, speaker: jianbo, when: season_spring, bubbles: ["Spring. Students come to swap textbooks."] }
+  - { id: bs_in_summer_01, speaker: jianbo, when: season_summer, bubbles: ["Hot? There's a breeze by the reading table."] }
+  - { id: bs_in_autumn_01, speaker: jianbo, when: season_autumn, bubbles: ["Autumn. School's back, so old books sell."] }
+  - { id: bs_in_winter_01, speaker: jianbo, when: season_winter, bubbles: ["Winter. More people reading."] }
+  - { id: bs_in_new_year, speaker: jianbo, when: holiday_new_year, bubbles: ["A good New Year to you.", "The old almanacs sold out."] }
+  - { id: bs_in_lantern, speaker: jianbo, when: holiday_lantern, bubbles: ["Lantern Festival. Riddle books by the door."] }
+  - { id: bs_in_dragon_boat, speaker: jianbo, when: holiday_dragon_boat, bubbles: ["Dragon Boat Day. Qu Yuan's poems up front."] }
+  - { id: bs_in_mid_autumn, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["Mid-Autumn. Moon poems up front."] }
+  - { id: bs_in_halloween, speaker: jianbo, when: holiday_halloween, bubbles: ["Halloween. Ghost stories sell best."] }
+  - { id: bs_in_christmas, speaker: jianbo, when: holiday_christmas, bubbles: ["Christmas. Old picture books, gift-wrapped."] }
+
+# What the keeper says now and then when the shop is quiet. "when" as above; none means any time.
+shop_idle:
+  - { id: bs_idle_01, speaker: jianbo, bubbles: ["Yellowed pages, but the print's clear."] }
+  - { id: bs_idle_02, speaker: jianbo, bubbles: ["I price in pencil. It rubs out."] }
+  - { id: bs_idle_03, speaker: jianbo, bubbles: ["No cover on this one. It goes cheap."] }
+  - { id: bs_idle_04, speaker: jianbo, bubbles: ["A ticket in this one. Forty years old."] }
+  - { id: bs_idle_05, speaker: jianbo, bubbles: ["I buy them one at a time. No hurry."] }
+  - { id: bs_idle_06, speaker: jianbo, bubbles: ["I can't reach the top shelf these days."] }
+  - { id: bs_idle_07, speaker: jianbo, bubbles: ["A few names on the globe are gone now."] }
+  - { id: bs_idle_08, speaker: jianbo, bubbles: ["Where did I put my glasses..."] }
+  - { id: bs_idle_09, speaker: jianbo, bubbles: ["Fern gave me a flower. It's on the shelf."] }
+  - { id: bs_idle_10, speaker: jianbo, bubbles: ["Someone wrote in the front of this one."] }
+  - { id: bs_idle_11, speaker: jianbo, bubbles: ["Spines facing out. Easier to find."] }
+  - { id: bs_idle_12, speaker: jianbo, bubbles: ["Damp by the river. Books need airing."] }
+  - { id: bs_idle_13, speaker: jianbo, bubbles: ["Old books smell. You get used to it."] }
+  - { id: bs_idle_14, speaker: jianbo, bubbles: ["This set lacks book three. Still looking."] }
+  - { id: bs_idle_15, speaker: jianbo, bubbles: ["Someone left that one half read."] }
+  - { id: bs_idle_16, speaker: jianbo, bubbles: ["A folded corner flattens under weight."] }
+  - { id: bs_idle_17, speaker: jianbo, bubbles: ["Buying a book, I only ask where it's from."] }
+  - { id: bs_idle_18, speaker: jianbo, bubbles: ["This dictionary is older than I am."] }
+  - { id: bs_idle_19, speaker: jianbo, bubbles: ["The low bookcase is for the children."] }
+  - { id: bs_idle_20, speaker: jianbo, bubbles: ["Out of bookmarks. Old tickets will do."] }
+  - { id: bs_idle_21, speaker: jianbo, bubbles: ["I'd sooner use the abacus."] }
+  - { id: bs_idle_22, speaker: jianbo, bubbles: ["New to this street. I don't know many yet."] }
+  - { id: bs_idle_23, speaker: jianbo, bubbles: ["This one I'm keeping. Not for sale."] }
+  - { id: bs_idle_24, speaker: jianbo, bubbles: ["Sellers always tell me where a book's been."] }
+  - { id: bs_idle_dawn_01, speaker: jianbo, when: period_dawn, bubbles: ["Dust everything before opening."] }
+  - { id: bs_idle_night_01, speaker: jianbo, when: period_night, bubbles: ["Read under the lamp, and it's late."] }
+  - { id: bs_idle_rain_01, speaker: jianbo, when: sky_rain, bubbles: ["Rain. Move the books by the window."] }
+  - { id: bs_idle_fog_01, speaker: jianbo, when: sky_fog, bubbles: ["Fog brings damp. The pages curl."] }
+  - { id: bs_idle_spring_01, speaker: jianbo, when: season_spring, bubbles: ["Spring damp brings bookworms."] }
+  - { id: bs_idle_summer_01, speaker: jianbo, when: season_summer, bubbles: ["In summer I air the books in the sun."] }
+  - { id: bs_idle_autumn_01, speaker: jianbo, when: season_autumn, bubbles: ["Autumn light is the best for reading."] }
+  - { id: bs_idle_winter_01, speaker: jianbo, when: season_winter, bubbles: ["Cold hands in winter. Slow pages."] }

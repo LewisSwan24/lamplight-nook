@@ -2,8 +2,7 @@ import { parse } from 'yaml';
 import { pattern, strings } from '../../shared/i18n';
 import { AGENT_ACTOR, ROOM_CREW } from '../../shared/staff';
 import { errandTo, type StreetShop } from '../../shared/dispatch';
-import type { RoomId } from '../../shared/scenes';
-import { isStreetShop } from '../../shared/towngrow';
+import { isKeptRoom, type RoomId } from '../../shared/scenes';
 import type { ActorId, AiEvent, AiEventKind, Bubble, CharacterCommand, Post } from '../../shared/types';
 import { PRIORITY } from './director';
 import { type ActorState, StateMachine } from './state-machine';
@@ -184,9 +183,9 @@ export class Translator {
     return this.seconds.has(run);
   }
 
-  /** One of the street shops, where nobody from home works (D3). */
+  /** A keeper's shop, where nobody from home works (D3). */
   private get shop(): boolean {
-    return isStreetShop(this.room);
+    return isKeptRoom(this.room);
   }
 
   /** Who is working for which round just now (B9): each round's lead, and whoever is on one of its errands. */

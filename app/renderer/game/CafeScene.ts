@@ -17,6 +17,10 @@ import bakeryBoardUrl from '../../../assets/sprites/bakery-board.png';
 import cakeUrl from '../../../assets/sprites/cake.png';
 import postUrl from '../../../assets/sprites/post-room.png';
 import postPiecesUrl from '../../../assets/sprites/post-pieces.png';
+import flowershopUrl from '../../../assets/sprites/flowershop-room.png';
+import flowershopPiecesUrl from '../../../assets/sprites/flowershop-pieces.png';
+import bookshopUrl from '../../../assets/sprites/bookshop-room.png';
+import bookshopPiecesUrl from '../../../assets/sprites/bookshop-pieces.png';
 import gardenUrl from '../../../assets/sprites/garden.png';
 import gardenCropsUrl from '../../../assets/sprites/garden-crops.png';
 import dogUrl from '../../../assets/sprites/dog.png';
@@ -73,6 +77,8 @@ import xiaozheUrl from '../../../assets/sprites/xiaozhe.png';
 import xiaodingUrl from '../../../assets/sprites/xiaoding.png';
 import guiyiUrl from '../../../assets/sprites/guiyi.png';
 import axinUrl from '../../../assets/sprites/axin.png';
+import fangjieUrl from '../../../assets/sprites/fangjie.png';
+import jianboUrl from '../../../assets/sprites/jianbo.png';
 import xiaojuUrl from '../../../assets/sprites/xiaoju.png';
 import you1Url from '../../../assets/sprites/you-1.png';
 import you2Url from '../../../assets/sprites/you-2.png';
@@ -125,7 +131,7 @@ const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerU
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = {
   rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl, fog: fogUrl, wind: windUrl, storm: stormUrl,
 };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl, dad: dadUrl, editor: editorUrl, mum: mumUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, fangjie: fangjieUrl, jianbo: jianboUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl, dad: dadUrl, editor: editorUrl, mum: mumUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 /** Bean's later looks (plan-1.9.md I2): the first is SHEETS.xiaodou. */
 const BEAN_SHEETS: Record<string, string> = { 'xiaodou-2': xiaodou2Url, 'xiaodou-3': xiaodou3Url };
@@ -164,7 +170,7 @@ const INK = 0x3b2a1e;
 const ROOM_ART = {
   cafe: [cafeUrl, cafePiecesUrl], study: [studyUrl, studyPiecesUrl], print: [printUrl, printPiecesUrl],
   studio: [studioUrl, studioPiecesUrl], workshop: [workshopUrl, workshopPiecesUrl], bakery: [bakeryUrl, bakeryPiecesUrl],
-  post: [postUrl, postPiecesUrl],
+  post: [postUrl, postPiecesUrl], flowershop: [flowershopUrl, flowershopPiecesUrl], bookshop: [bookshopUrl, bookshopPiecesUrl],
 } as const;
 /** Where the blank commission form lies on the counter (top-left corner, canvas pixels). */
 const FLOOR_LAMP = 0.2;

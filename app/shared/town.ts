@@ -14,7 +14,7 @@ export const SHOP_STREET = {
   workshop: 'main',
   bakery: 'main',
   post: 'main',
-  florist: 'river',
+  flowershop: 'river',
   bookshop: 'river',
 } as const satisfies Record<string, StreetId>;
 

@@ -7,7 +7,7 @@ import { CAMERA_W, FRONTS, MOVERS, cameraFor, doorOf, entering, followsOrder, fr
 
 describe('the street', () => {
   it('has nine fronts in a row, the cafe first, the post office last on the first street and the bookshop by the river (plan-2.0.md J1)', () => {
-    expect(FRONTS.map((f) => f.id)).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post', 'florist', 'bookshop']);
+    expect(FRONTS.map((f) => f.id)).toEqual(['cafe', 'study', 'print', 'studio', 'workshop', 'bakery', 'post', 'flowershop', 'bookshop']);
     for (const [a, b] of FRONTS.slice(1).map((f, i) => [FRONTS[i], f])) expect(b.x).toBeGreaterThan(a.x + a.w);
     expect(FRONTS.at(-1)!.x + FRONTS.at(-1)!.w).toBeLessThanOrEqual(TOWN.width);
   });

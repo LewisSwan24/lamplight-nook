@@ -84,7 +84,7 @@ describe('a postcard', () => {
     const state: ShopState = {
       done: 4, grown: [{ id: 'painting', date: '2026-11-01' }], told: ['town-move'], met: [{ id: 'baker', date: '2026-11-02' }],
       town: { shops: {}, street: [], stories: {}, staff: { laoshi: ['2026-11-20'] } }, today: '2026-11-22',
-      crew: { adeng: 4, xiaoju: 2, laoshi: 3, qingdai: 1, xiaodou: 0, aqian: 0, xiaozhe: 0, xiaoding: 1, guiyi: 0, axin: 0 },
+      crew: { adeng: 4, xiaoju: 2, laoshi: 3, qingdai: 1, xiaodou: 0, aqian: 0, xiaozhe: 0, xiaoding: 1, guiyi: 0, axin: 0, fangjie: 0, jianbo: 0 },
       bonds: { 'adeng+laoshi': 2 }, recall: { adeng: [{ title: 'A recalled title', date: '2026-11-01' }] },
       works: [{ id: 'c1', title: 'Rosa page', date: '2026-11-03', icon: 'page', rounds: 2, hasMain: true, page: true, want: WANT, project: 'p1', shop: 'workshop' }],
     };

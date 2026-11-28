@@ -25,6 +25,8 @@ declare global {
 }
 
 const V = strings.ui.visit;
+/** The neighbours' shops: a visitor's click on their door gets what they always say (the river street's since plan-2.0.md J2). */
+const NEIGHBOURS: string[] = ['bakery', 'post', 'flowershop', 'bookshop'];
 const card = window.lamplightVisit.card;
 const home = () => void window.lamplightVisit.home();
 
@@ -134,7 +136,7 @@ async function visit(card: Postcard) {
   // Their own front takes you back in; the other shops stay closed to a visitor, the neighbours' say what they always say.
   street.onFront = (id) => {
     if (id === card.home) return goOut(false);
-    say(id === 'bakery' || id === 'post' ? strings.ui.town.notes[id] : fill(V.onlyHere, { name: card.name }));
+    say(NEIGHBOURS.includes(id) ? strings.ui.town.notes[id] : fill(V.onlyHere, { name: card.name }));
   };
   const bar = el('div.visit-bar.paper', { role: 'banner' },
     el('span.visit-where', {}, fill(V.banner, { name: card.name })), toStreet, el('button.sticker.visit-home', { type: 'button', onclick: home }, V.home));

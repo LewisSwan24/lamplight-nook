@@ -491,6 +491,8 @@ birthday:
   - { id: bday_xiaodou, speaker: laoshi, when: birthday_xiaodou, bubbles: ["小豆，今天你生日。"], reply: { speaker: xiaodou, bubbles: ["我记在本子上了。"] } }
   - { id: bday_guiyi, speaker: adeng, when: birthday_guiyi, bubbles: ["今天桂姨生日。", "路过面包房，进去说一声。"] }
   - { id: bday_axin, speaker: adeng, when: birthday_axin, bubbles: ["今天阿信生日。", "邮局门口那束花是小橘放的。"] }
+  - { id: bday_fangjie, speaker: adeng, when: birthday_fangjie, bubbles: ["今天芳姐生日。", "花店的花，今天该有人送给芳姐。"] }
+  - { id: bday_jianbo, speaker: adeng, when: birthday_jianbo, bubbles: ["今天简伯生日。", "挑本旧书，给书店送过去。"] }
   - { id: bday_aqian, speaker: adeng, when: birthday_aqian, bubbles: ["今天阿铅生日。", "去印刷铺道个喜。"] }
   - { id: bday_xiaozhe, speaker: adeng, when: birthday_xiaozhe, bubbles: ["今天小赭生日。", "画室门口挂了张新画。"] }
   - { id: bday_xiaoding, speaker: adeng, when: birthday_xiaoding, bubbles: ["今天小钉生日。", "工坊里在放音乐，难得。"] }

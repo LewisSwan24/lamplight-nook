@@ -1,0 +1,380 @@
+# Bookshop rules (plan-2.0.md J2): the same format as rules/cafe.yaml, whose header explains it, and the same
+# steps as the post office's (rules/post.yaml). All the work goes to Uncle Page; Adeng only comes in with the
+# order from home (D3), hands it over at the counter and goes home again.
+# The cafe's spots go by other names here: counter = the bookshop counter, board = the low bookcase,
+# shelf = the tall bookcase, table = the reading table, corner = the globe. Nobody goes out: helpers' errands
+# are Uncle Page walking to a spot. The filing cabinet and the letter holder are the home shop's.
+
+- on: session_start
+  actor: jianbo
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: opening
+  priority: work
+  extra:
+    - { actor: adeng, state: ready, moveTo: counter, anim: gift, lines: dispatch_hand, own_lines: true, leave: true, priority: work }
+
+- on: plan
+  actor: jianbo
+  state: working
+  moveTo: board
+  anim: write
+  bubble: note
+  lines: planning
+  priority: work
+
+- on: thinking
+  actor: jianbo
+  state: thinking
+  anim: spin_cup
+  bubble: dots
+  priority: work
+
+- on: subagent_start
+  when: { agent: researcher }
+  actor: jianbo
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: researcher }
+  actor: jianbo
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: reviewer }
+  actor: jianbo
+  state: checking
+  moveTo: corner
+  anim: lift
+  lines: sub_go_review
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: reviewer }
+  actor: jianbo
+  state: ready
+  moveTo: counter
+  anim: idle
+  lines: sub_back_review
+  priority: subagent
+
+- on: subagent_start
+  when: { agent: designer }
+  actor: jianbo
+  state: working
+  moveTo: board
+  anim: read
+  bubble: idea
+  lines: sub_go_design
+  priority: subagent
+
+- on: subagent_stop
+  when: { agent: designer }
+  actor: jianbo
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_design
+  priority: subagent
+
+- on: subagent_start
+  actor: jianbo
+  state: working
+  moveTo: shelf
+  anim: read
+  lines: sub_go_research
+  priority: subagent
+
+- on: subagent_stop
+  actor: jianbo
+  state: ready
+  moveTo: counter
+  anim: gift
+  lines: sub_back_research
+  priority: subagent
+
+- on: tool_start
+  when: { agent: researcher }
+  actor: jianbo
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+- on: tool_start
+  when: { agent: reviewer }
+  actor: jianbo
+  state: checking
+  anim: lift
+  priority: work
+
+- on: tool_start
+  when: { agent: designer }
+  actor: jianbo
+  state: working
+  anim: read
+  bubble: idea
+  priority: work
+
+- on: tool_start
+  when: { agent: unknown }
+  actor: jianbo
+  state: working
+  anim: read
+  bubble: note
+  priority: work
+
+- on: progress
+  when: { agent: main }
+  actor: jianbo
+  state: working
+  moveTo: board
+  anim: read
+  priority: chat
+
+- on: tool_start
+  when: { agent: main, tool: mcp__nook-office__read_document }
+  actor: jianbo
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: [mcp__nook-office__make_docx, mcp__nook-office__make_xlsx, mcp__nook-office__make_pptx, mcp__nook-office__make_pdf, mcp__nook-office__edit_docx, mcp__nook-office__edit_xlsx, mcp__nook-office__edit_pptx, mcp__nook-office__render_png] }
+  actor: jianbo
+  state: working
+  moveTo: counter
+  anim: gift
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [mcp__nook-calendar__events, mcp__nook-folder__list, mcp__nook-folder__read] }
+  actor: jianbo
+  state: working
+  moveTo: counter
+  anim: read
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-folder__save_copy }
+  actor: jianbo
+  state: working
+  moveTo: shelf
+  anim: gift
+  priority: work
+
+- on: tool_ok
+  when: { agent: main, tool: mcp__nook-maildraft__draft }
+  actor: jianbo
+  state: working
+  moveTo: counter
+  anim: gift
+  lines: draft_ready
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Write, Edit, MultiEdit, NotebookEdit] }
+  actor: jianbo
+  state: working
+  moveTo: counter
+  anim: write
+  lines: writing
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Bash, PowerShell] }
+  actor: jianbo
+  state: working
+  moveTo: corner
+  anim: write
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [WebSearch, WebFetch] }
+  actor: jianbo
+  state: working
+  moveTo: counter
+  anim: phone
+  priority: work
+
+- on: tool_start
+  when: { agent: main, tool: [Read, Glob, Grep] }
+  actor: jianbo
+  state: working
+  moveTo: shelf
+  anim: read
+  priority: work
+
+- on: tool_start
+  when: { agent: main }
+  actor: jianbo
+  state: working
+  moveTo: table
+  anim: write
+  priority: work
+
+- on: long_wait
+  actor: jianbo
+  state: waiting
+  moveTo: window
+  anim: drink
+  bubble: tea
+  lines: waiting
+  priority: work
+
+- on: tool_fail
+  when: { failStreak: { lt: 3 } }
+  actor: jianbo
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck
+  own_lines: true
+  priority: fail
+
+- on: tool_fail
+  actor: jianbo
+  state: stuck
+  anim: scratch_head
+  bubble: sweat
+  lines: stuck_long
+  priority: fail
+
+- on: tool_ok
+  when: { agent: main }
+  actor: jianbo
+  state: working
+  priority: chat
+
+- on: ask_user
+  actor: jianbo
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: permission
+  when: { risk: [serious, blocked] }
+  actor: jianbo
+  state: serious
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: serious
+  priority: serious
+
+- on: permission
+  actor: jianbo
+  state: asking
+  moveTo: counter
+  anim: idle
+  bubble: question
+  lines: ask
+  priority: ask
+
+- on: decision
+  when: { choice: picked }
+  actor: jianbo
+  state: reacting
+  anim: idle
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  when: { choice: delegated }
+  actor: jianbo
+  state: reacting
+  anim: idle
+  lines: react_delegated
+  priority: fail
+
+- on: decision
+  when: { choice: allowed, risk: serious }
+  actor: jianbo
+  state: reacting
+  lines: serious_yes
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: blocked }
+  actor: jianbo
+  state: working
+  lines: refused
+  priority: fail
+
+- on: decision
+  when: { choice: denied, risk: serious }
+  actor: jianbo
+  state: reacting
+  lines: serious_no
+  priority: fail
+
+- on: decision
+  when: { choice: allowed }
+  actor: jianbo
+  state: reacting
+  lines: react_adopted
+  own_lines: true
+  priority: fail
+
+- on: decision
+  actor: jianbo
+  state: reacting
+  lines: react_rejected
+  own_lines: true
+  priority: fail
+
+- on: done
+  actor: jianbo
+  state: wrapping
+  moveTo: counter
+  anim: idle
+  lines: done
+  priority: fail
+
+- on: failed
+  actor: jianbo
+  state: low
+  moveTo: counter
+  anim: idle
+  lines: failed
+  priority: fail
+
+- on: net_error
+  actor: jianbo
+  state: low
+  moveTo: counter
+  anim: idle
+  bubble: alert
+  lines: failed
+  priority: fail
+
+- on: net_retry
+  actor: jianbo
+  state: waiting
+  moveTo: window
+  anim: idle
+  bubble: dots
+  lines: net_retry
+  priority: fail
+
+- on: cancelled
+  actor: jianbo
+  state: idle
+  moveTo: counter
+  anim: idle
+  lines: cancelled
+  priority: fail

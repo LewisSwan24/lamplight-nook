@@ -1,4 +1,4 @@
-import { homeScene, isScene, type RoomId } from '../shared/scenes';
+import { homeScene, isKeptRoom, isScene, type RoomId } from '../shared/scenes';
 import Phaser from 'phaser';
 import replayText from '../../demo/subagents.jsonl?raw';
 import zhTrial from '../../demo/trial.zh-CN.jsonl?raw';
@@ -314,7 +314,7 @@ function greetIn(room: RoomId) {
   if (line) void sayLine(line);
 }
 function talkInShop(quiet: boolean) {
-  if (atHome() || !isStreetShop(scene.room)) return;
+  if (atHome() || !isKeptRoom(scene.room)) return;
   const line = shopTalk.next(Date.now(), quiet, [...(ruleBook(scene.room).lines.shop_idle ?? []), ...memoriesOf(ROOM_CREW[scene.room])], momentNow());
   if (line) void sayLine(line);
 }
@@ -865,7 +865,7 @@ async function run(want: string, start: () => Promise<RunResult | null>) {
 /** Who the running card names: the people of the room the lead round is played in, a street shop's own or the home staff. */
 function crewOnCard(): ActorId[] {
   const room = roomOfRun(live()[0]?.run);
-  return isStreetShop(room) ? ROOM_CREW[room] : STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done));
+  return isKeptRoom(room) ? ROOM_CREW[room] : STAFF.filter((actor) => actor !== 'xiaodou' || apprenticeHere(shopDays.done));
 }
 
 /** The one card for work under way. */
@@ -1104,7 +1104,7 @@ async function openShop() {
     if (outside) goOut(false, byUser);
     else scene.setOutside(false);
     tidyRooms();
-    if (!outside && isStreetShop(room) && !running) greetIn(room);
+    if (!outside && isKeptRoom(room) && !running) greetIn(room);
     // The postcards opened since last time are on the board by the time anyone looks.
     if (room === 'post') void window.lamplight.keptPostcards().then((cards) => next.scene.setPostcards(cards));
   };

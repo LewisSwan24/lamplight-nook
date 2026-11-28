@@ -114,7 +114,7 @@ describe('the shop grows with the commissions done together', () => {
     store.clear();
     // Back to a shop opened since 1.4: in the town, with no move to show.
     expect(store.shopState()).toEqual({ done: 0, grown: [], told: [TOWN_MOVE], town: emptyTown(), works: [], today: expect.any(String),
-      crew: { adeng: 0, xiaoju: 0, laoshi: 0, qingdai: 0, xiaodou: 0, aqian: 0, xiaozhe: 0, xiaoding: 0, guiyi: 0, axin: 0 }, bonds: expect.any(Object), recall: {} });
+      crew: { adeng: 0, xiaoju: 0, laoshi: 0, qingdai: 0, xiaodou: 0, aqian: 0, xiaozhe: 0, xiaoding: 0, guiyi: 0, axin: 0, fangjie: 0, jianbo: 0 }, bonds: expect.any(Object), recall: {} });
   });
 
   it('has a line for every new piece, in both languages', () => {

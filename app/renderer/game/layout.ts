@@ -36,9 +36,10 @@ export const MAILSLOT = { x: 309, y: 31, w: 10, h: 12 } as const;
 export const OUTBOX = { cafe: { x: 262, y: 79, w: 8, h: 5 }, study: { x: 256, y: 80, w: 8, h: 5 },
   // The shops along the street have no basket (D2): a draft lies on the counter.
   print: { x: 248, y: 80, w: 8, h: 5 }, studio: { x: 258, y: 80, w: 8, h: 5 }, workshop: { x: 258, y: 78, w: 8, h: 5 },
-  bakery: { x: 258, y: 80, w: 8, h: 5 }, post: { x: 258, y: 80, w: 8, h: 5 } } as const;
+  bakery: { x: 258, y: 80, w: 8, h: 5 }, post: { x: 258, y: 80, w: 8, h: 5 },
+  flowershop: { x: 258, y: 80, w: 8, h: 5 }, bookshop: { x: 258, y: 80, w: 8, h: 5 } } as const;
 /** Where the cup stands on the counter in each room (its picture's top left). */
-export const CUP_AT = { cafe: { x: 256, y: 64 }, study: { x: 232, y: 62 }, print: { x: 236, y: 64 }, studio: { x: 236, y: 60 }, workshop: { x: 244, y: 60 }, bakery: { x: 240, y: 62 }, post: { x: 244, y: 62 } } as const;
+export const CUP_AT = { cafe: { x: 256, y: 64 }, study: { x: 232, y: 62 }, print: { x: 236, y: 64 }, studio: { x: 236, y: 60 }, workshop: { x: 244, y: 60 }, bakery: { x: 240, y: 62 }, post: { x: 244, y: 62 }, flowershop: { x: 240, y: 62 }, bookshop: { x: 240, y: 62 } } as const;
 
 /** Anchors: where characters stand (feet position) and which way they face there. */
 export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }> = {
@@ -57,7 +58,7 @@ export const ANCHORS: Record<AnchorId, { x: number; y: number; facing: Facing }>
 
 /** Each character's place at an anchor, so two characters at the same spot stand side by side. */
 // The shops' own people stand beside Adeng, the only one with them (D2).
-const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, xiaodou: -2, aqian: 1, xiaozhe: 1, xiaoding: 1, guiyi: 1, axin: 1, cat: 0 };
+const SLOT: Record<ActorId, number> = { adeng: 0, xiaoju: -1, laoshi: 1, qingdai: 2, xiaodou: -2, aqian: 1, xiaozhe: 1, xiaoding: 1, guiyi: 1, axin: 1, fangjie: 1, jianbo: 1, cat: 0 };
 const SLOT_GAP = 12;
 
 /** `chair`: there is a chair here, so the character can sit. */
@@ -176,6 +177,8 @@ const ROOM_SEATS: Partial<Record<RoomId, typeof SEATS>> = {
   workshop: { board: { xiaoding: AT_WORK }, counter: { xiaoding: AT_COUNTER } },
   bakery: { board: { guiyi: AT_WORK }, counter: { guiyi: AT_COUNTER } },
   post: { board: { axin: AT_WORK }, counter: { axin: AT_COUNTER } },
+  flowershop: { board: { fangjie: AT_WORK }, counter: { fangjie: AT_COUNTER } },
+  bookshop: { board: { jianbo: AT_WORK }, counter: { jianbo: AT_COUNTER } },
 };
 
 /** Every fixed place in a room, its own over the shared ones. */
@@ -242,5 +245,7 @@ export const ACTORS: { id: ActorId; name: string; home: AnchorId; height: number
   { id: 'xiaoding', name: A.xiaoding, home: 'board', height: 30 },
   { id: 'guiyi', name: A.guiyi, home: 'board', height: 30 },
   { id: 'axin', name: A.axin, home: 'board', height: 30 },
+  { id: 'fangjie', name: A.fangjie, home: 'board', height: 30 },
+  { id: 'jianbo', name: A.jianbo, home: 'board', height: 30 },
   { id: 'cat', name: A.cat, home: 'window', height: 12 },
 ];

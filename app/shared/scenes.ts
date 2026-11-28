@@ -13,11 +13,17 @@ export const DEFAULT_SCENE: SceneId = 'cafe';
 export const cleanScene = (v: unknown): SceneId | undefined => (SCENES.includes(v as SceneId) ? (v as SceneId) : undefined);
 
 /** Every room a page can show: the two the home shop can be in, and the shops along the street (D2; the bakery and the post office since plan-1.6.md F1 and F2). */
-export const ROOMS = [...SCENES, 'print', 'studio', 'workshop', 'bakery', 'post'] as const;
+export const ROOMS = [...SCENES, 'print', 'studio', 'workshop', 'bakery', 'post', 'flowershop', 'bookshop'] as const;
 export type RoomId = (typeof ROOMS)[number];
 export const cleanRoom = (v: unknown): RoomId | undefined => (ROOMS.includes(v as RoomId) ? (v as RoomId) : undefined);
 /** One of the rooms the home shop can be in. */
 export const isScene = (room: RoomId): room is SceneId => (SCENES as readonly string[]).includes(room);
+/**
+ * A shop kept by a keeper of its own, where nobody from home works (D3): every room but the two at home. Wider than
+ * towngrow.ts's isStreetShop, which is only the shops with growing pieces and festival frames (the river street's two
+ * have neither until plan-2.0.md J4 and J5).
+ */
+export const isKeptRoom = (room: RoomId): boolean => !isScene(room);
 
 /**
  * Where the home shop is (from the preload; the cafe where there is none, as in tests). The other rooms are built

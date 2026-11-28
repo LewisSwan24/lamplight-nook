@@ -14,7 +14,8 @@ Writes assets/sprites/<scene>-room.png, <scene>-pieces.png (one sheet, top to bo
 the study and the three shops of road-to-1.4.md D2 (shops.py): print-room.png and print-pieces.png, studio-room.png
 and studio-pieces.png, workshop-room.png and workshop-pieces.png, and since plan-1.6.md F1 the bakery
 (bakery.py): bakery-room.png and bakery-pieces.png, and since F2 the post office (post.py): post-room.png and
-post-pieces.png.
+post-pieces.png; since plan-2.0.md J2 the flower shop (flowershop.py): flowershop-room.png and
+flowershop-pieces.png, and the bookshop (bookshop.py): bookshop-room.png and bookshop-pieces.png.
 Run after every other art script: python3 scripts/art/pieces.py
 """
 import importlib
@@ -25,12 +26,13 @@ from pathlib import Path
 from PIL import Image
 
 import backroom
+import decor
 import rug
 import scene
 import study
 
 # The shops, by name; `print` is looked up rather than imported, so it does not hide the builtin.
-SHOPS = {name: importlib.import_module(name) for name in ('print', 'studio', 'workshop', 'bakery', 'post')}
+SHOPS = {name: importlib.import_module(name) for name in ('print', 'studio', 'workshop', 'bakery', 'post', 'flowershop', 'bookshop')}
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'assets/sprites'
 W, H = scene.W, scene.H
@@ -44,7 +46,9 @@ FOOT = {'cafe': {'table': 26, 'bench': 16, 'counter': 8, 'shelf': 16, 'cabinet':
         'studio': {'table': 12, 'easel': 6, 'counter': 8, 'shelf': 18, 'workbench': 6, 'lamp': 8, 'plant_l': 8, 'plant_r': 8},
         'workshop': {'table': 14, 'counter': 8, 'shelf': 16, 'workbench': 14, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
         'bakery': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
-        'post': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 8, 'lamp': 6, 'plant_l': 8, 'plant_r': 8}}
+        'post': {'table': 12, 'counter': 8, 'shelf': 14, 'workbench': 8, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'flowershop': {'table': 10, 'counter': 8, 'shelf': 12, 'workbench': 8, 'lamp': 6, 'plant_l': 8, 'plant_r': 8},
+        'bookshop': {'table': 10, 'counter': 8, 'shelf': 14, 'workbench': 10, 'lamp': 6, 'plant_l': 8, 'plant_r': 8}}
 CHAIR_FOOT = 12
 WALL = ('window', 'window2', 'window3', 'board')
 # Where the floor starts: what ends higher up hangs on the wall.
@@ -186,8 +190,8 @@ HOLIDAYS = ['halloween', 'christmas', 'new_year', 'lantern', 'dragon_boat', 'mid
 def overlay_of(path, name):
     """The overlay as this room shows it: a shop along the street has its own festival decorations (road-to-1.4.md D6)."""
     holiday = path.stem[len('decor-'):]
-    if name in SHOPS and path.name.startswith('decor-') and holiday in HOLIDAYS:
-        col, row = HOLIDAYS.index(holiday), list(SHOPS).index(name)
+    if name in decor.SHOPS and path.name.startswith('decor-') and holiday in HOLIDAYS:
+        col, row = HOLIDAYS.index(holiday), decor.SHOPS.index(name)
         return Image.open(OUT / 'shops-decor.png').convert('RGBA').crop((col * 320, row * 180, col * 320 + 320, row * 180 + 180))
     return Image.open(path).convert('RGBA')
 

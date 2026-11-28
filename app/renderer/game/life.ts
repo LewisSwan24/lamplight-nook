@@ -2,7 +2,7 @@ import type { ActorId } from '../../shared/types';
 import type { Facing } from './layout';
 
 /** Walking speed in canvas pixels per second: Xiaoju hurries, Laoshi takes his time. */
-export const WALK_SPEED: Record<ActorId, number> = { adeng: 38, xiaoju: 50, laoshi: 28, qingdai: 36, xiaodou: 46, aqian: 30, xiaozhe: 34, xiaoding: 48, guiyi: 32, axin: 44, cat: 34 };
+export const WALK_SPEED: Record<ActorId, number> = { adeng: 38, xiaoju: 50, laoshi: 28, qingdai: 36, xiaodou: 46, aqian: 30, xiaozhe: 34, xiaoding: 48, guiyi: 32, axin: 44, fangjie: 40, jianbo: 26, cat: 34 };
 
 /** How long a character stands still before glancing around: 6 to 14 seconds. */
 export function idleDelay(rand: number): number {

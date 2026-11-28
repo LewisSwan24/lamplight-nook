@@ -488,6 +488,8 @@ birthday:
   - { id: bday_xiaodou, speaker: laoshi, when: birthday_xiaodou, bubbles: ["Bean, it's your birthday today."], reply: { speaker: xiaodou, bubbles: ["I've written it down."] } }
   - { id: bday_guiyi, speaker: adeng, when: birthday_guiyi, bubbles: ["It's Auntie Olive's birthday.", "Stop by the bakery and say so."] }
   - { id: bday_axin, speaker: adeng, when: birthday_axin, bubbles: ["It's Pip's birthday.", "Clem left those flowers at the post office."] }
+  - { id: bday_fangjie, speaker: adeng, when: birthday_fangjie, bubbles: ["It's Fern's birthday.", "Fern should get flowers today, for once."] }
+  - { id: bday_jianbo, speaker: adeng, when: birthday_jianbo, bubbles: ["It's Uncle Page's birthday.", "Take an old book over to the bookshop."] }
   - { id: bday_aqian, speaker: adeng, when: birthday_aqian, bubbles: ["It's Pica's birthday.", "Drop in at the print shop."] }
   - { id: bday_xiaozhe, speaker: adeng, when: birthday_xiaozhe, bubbles: ["It's Umber's birthday.", "There's a new painting by the studio door."] }
   - { id: bday_xiaoding, speaker: adeng, when: birthday_xiaoding, bubbles: ["It's Tack's birthday.", "Music on in the workshop, for once."] }

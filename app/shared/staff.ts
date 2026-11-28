@@ -10,9 +10,10 @@ export const STAFF: ActorId[] = ['adeng', 'xiaoju', 'laoshi', 'qingdai', 'xiaodo
 /**
  * Those who keep the shops along the street (road-to-1.4.md D2): Pica the typesetter, Umber the painter, Tack the tinkerer, and
  * since plan-1.6.md F1 Auntie Gui the baker, who was a neighbour dropping in and now has her own shop open to the user, and
- * since F2 Axin the postman, at the post office.
+ * since F2 Axin the postman, at the post office; since plan-2.0.md J2 Fern at the flower shop and Uncle Page at the
+ * bookshop, on the river street.
  */
-export const SHOP_STAFF: ActorId[] = ['aqian', 'xiaozhe', 'xiaoding', 'guiyi', 'axin'];
+export const SHOP_STAFF: ActorId[] = ['aqian', 'xiaozhe', 'xiaoding', 'guiyi', 'axin', 'fangjie', 'jianbo'];
 /** Everyone, in the order of the portraits. */
 export const ALL_STAFF: ActorId[] = [...STAFF, ...SHOP_STAFF];
 
@@ -28,6 +29,8 @@ export const ROOM_CREW: Record<RoomId, ActorId[]> = {
   workshop: ['xiaoding'],
   bakery: ['guiyi'],
   post: ['axin'],
+  flowershop: ['fangjie'],
+  bookshop: ['jianbo'],
 };
 
 /**
