@@ -2,7 +2,7 @@ import type { StreetShop } from './dispatch';
 import type { Made } from './growth';
 import { TEMPLATES, type BroughtRoomId, type TemplateId } from './templates';
 import { ROOMS, type RoomId, type SceneId } from './scenes';
-import type { TownDays } from './town';
+import { SHOP_STREET, type TownDays } from './town';
 
 /**
  * The town grows with the work (road-to-1.4.md D5). The street by everything done together: two lamps, a bench, tubs of
@@ -37,6 +37,10 @@ export const ROOM_GROWTH = {
   bakery: [{ id: 'wheat', at: 1 }, { id: 'ivy', at: 3 }, { id: 'pin', at: 8 }, { id: 'garland', at: 20 }],
   // The post office (plan-1.6.md F2): the first stamp framed, the ivy, a brass post horn, a map of the rounds.
   post: [{ id: 'stamp', at: 1 }, { id: 'ivy', at: 3 }, { id: 'horn', at: 8 }, { id: 'map', at: 20 }],
+  // The flower shop (plan-2.0.md J4): a tray of seedlings, the ivy, a watering can on its hook, a hanging basket.
+  flowershop: [{ id: 'seedtray', at: 1 }, { id: 'ivy', at: 3 }, { id: 'watercan', at: 8 }, { id: 'basket', at: 20 }],
+  // The bookshop: the first price list pinned up, the ivy, a little plaster bust, the library ladder.
+  bookshop: [{ id: 'pricelist', at: 1 }, { id: 'ivy', at: 3 }, { id: 'bust', at: 8 }, { id: 'ladder', at: 20 }],
 } as const satisfies Record<StreetShop, readonly { id: string; at: number }[]>;
 /**
  * Pieces a kind of work brings into the shop along the street that does it (plan-1.8.md H5), counted by that kind
@@ -87,6 +91,8 @@ export function townNews(before: TownCounts, after: TownCounts, made: { before: 
   const fresh = <T extends string>(was: T[], now: T[]) => now.filter((id) => !was.includes(id));
   const out: TownNews[] = fresh(streetGrown(before.total), streetGrown(after.total)).map((id) => ({ line: `grow_street_${id}` }));
   for (const room of ROOMS) {
+    // Only the first street's fronts have their pieces drawn (town.py); the river street's come in plan-2.0.md J5.
+    if (SHOP_STREET[room] !== 'main') continue;
     for (const id of fresh(frontGrown(before.shops[room]), frontGrown(after.shops[room]))) out.push({ line: `grow_front_${id}`, shop: room });
   }
   for (const room of ROOMS) {

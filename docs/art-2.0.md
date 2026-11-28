@@ -32,3 +32,13 @@
 | `tale-libcard.png` | J3 简伯第三章：镇图书馆的借书证，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
 | `tale-map.png` | J3 简伯第四章：河边还是码头时的镇地图，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
 | `tale-buysign.png` | J3 简伯第五章：“收旧书”的木牌，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `grow-flowershop-seedtray.png` | J4 花店做满 1 单：墙上小架子上的一盘小苗 | 手画 | `scripts/art/growth.py` |
+| `grow-flowershop-ivy.png` | J4 花店做满 3 单：吊着的一盆绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-flowershop-watercan.png` | J4 花店做满 8 单：挂在墙上的旧水壶 | 手画 | `scripts/art/growth.py` |
+| `grow-flowershop-basket.png` | J4 花店做满 20 单：吊起来的一只花篮 | 手画 | `scripts/art/growth.py` |
+| `grow-flowershop-cardrack.png` | J4 写过花卡以后：窗户和黑板之间的卡片架 | 手画 | `scripts/art/growth.py` |
+| `grow-bookshop-pricelist.png` | J4 书店做满 1 单：裱起来的第一张价目单 | 手画 | `scripts/art/growth.py` |
+| `grow-bookshop-ivy.png` | J4 书店做满 3 单：吊着的一盆绿萝 | 手画 | `scripts/art/growth.py` |
+| `grow-bookshop-bust.png` | J4 书店做满 8 单：托架上的小石膏像 | 手画 | `scripts/art/growth.py` |
+| `grow-bookshop-ladder.png` | J4 书店做满 20 单：挂起来的书梯 | 手画 | `scripts/art/growth.py` |
+| `grow-bookshop-listboard.png` | J4 开过书单以后：窗户和黑板之间钉书单的软木板 | 手画 | `scripts/art/growth.py` |

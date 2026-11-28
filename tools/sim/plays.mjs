@@ -92,6 +92,20 @@ const T = {
     picturebook: ['弄清给谁、喜欢什么', '请青黛定人物和配色', '写八页故事，一页一页画', '画封面，送印刷铺排版', '请老石检查'],
     picturebookDone: '绘本做好了：《小满和月亮》，封面写着“给小满”，八页，排成了横版 PDF。',
     comic: ['弄清讲什么、谁说什么', '请青黛定人物和配色', '分成四格，画出来', '存成长图和 PDF，再看一遍', '请老石检查'],
+    flowercard: ['问清送给谁、谁送的', '挑一朵花，写上话', '画好，存成图片和 PDF', '请老石核对名字'],
+    flowercardDone: '花卡写好了：一张卡片大小的图片，另存了一份 PDF 方便打印。名字照你给的写，没给的留在方括号里。',
+    flowercardWords: { to: '给 [名字]', line: '生日快乐，花开得正好。', from: '[你的名字] 送' },
+    booklist: ['问清给谁、想读什么', '挑书，每本都查一遍', '分组写推荐的理由', '排成文档，另存一份 PDF', '请老石核对书名'],
+    booklistDone: '书单开好了：八本书分成三组，每本写了作者、年份和一句推荐。一份 Word 文档，另存了一份 PDF。',
+    booklistWords: {
+      title: '给刚上初中的孩子',
+      book: ([title, author, year, why]) => `《${title}》，${author}，${year}：${why}`,
+      groups: [
+        { h: '先读薄的', books: [['小王子', '圣埃克苏佩里', 1943, '一个晚上读得完，长大了再读一遍。'], ['夏洛的网', 'E. B. 怀特', 1952, '讲朋友，讲怎么告别。'], ['城南旧事', '林海音', 1960, '老北京胡同里的童年。']] },
+        { h: '读点故事长的', books: [['草房子', '曹文轩', 1997, '江南水乡的小学，六年的日子。'], ['汤姆·索亚历险记', '马克·吐温', 1876, '密西西比河边的淘气和冒险。'], ['骆驼祥子', '老舍', 1936, '初中课本里会碰到，先读整本。']] },
+        { h: '看看外面的世界', books: [['海底两万里', '儒勒·凡尔纳', 1870, '潜水艇里环游海底。'], ['昆虫记', '法布尔', 1879, '一辈子蹲在地上看虫子。']] },
+      ],
+    },
     comicDone: '四格漫画画好了：猫偷了鱼还不认，最后一格露了馅。一张长图，另存了一份 PDF。',
     minigame: ['弄清给谁玩、玩什么', '定好玩法和规则', '写成一个网页', '画出第一屏看一眼', '请老石试玩'],
     minigameDone: '小游戏做好了：翻牌找朋友，点两张一样的就留下，全翻开就赢。一个网页，打开就能玩，不用联网。',
@@ -207,6 +221,20 @@ const T = {
     picturebook: ['Who it is for, and what they love', 'Ask Iris for the look and colours', 'Write eight pages, draw each', 'Draw the cover, lay it out', 'Ask Flint to check it'],
     picturebookDone: 'The picture book is ready: "Xiaoman and the Moon", for Xiaoman, eight pages laid out as a landscape PDF.',
     comic: ['What happens, and who says what', 'Ask Iris for the look and colours', 'Split it into four, draw them', 'Save the picture and PDF, look', 'Ask Flint to check it'],
+    flowercard: ['Ask who it is for and who sends it', 'Pick a flower, write the words', 'Draw it, save the picture and a PDF', 'Ask Flint to check the names'],
+    flowercardDone: 'The flower card is ready: a card-sized picture, and a PDF of it to print. Names are as you gave them; a missing one is left in square brackets.',
+    flowercardWords: { to: 'To [name]', line: 'Many happy returns. The flowers are just right.', from: 'From [your name]' },
+    booklist: ['Ask who it is for and what they like', 'Pick the books, check every one', 'Group them, say why each', 'Lay it out as a document, save a PDF', 'Ask Flint to check the titles'],
+    booklistDone: 'The book list is ready: eight books in three groups, each with its author, year and a line on why. A Word document, and a PDF.',
+    booklistWords: {
+      title: 'For a child starting secondary school',
+      book: ([title, author, year, why]) => `${title} (${author}, ${year}): ${why}`,
+      groups: [
+        { h: 'Short ones first', books: [['The Little Prince', 'Antoine de Saint-Exupéry', 1943, 'One evening to read, and worth reading again later.'], ["Charlotte's Web", 'E. B. White', 1952, 'About friends, and saying goodbye.'], ['Holes', 'Louis Sachar', 1998, 'A dry lake, a family curse, and a lot of digging.']] },
+        { h: 'Longer stories', books: [['The Hobbit', 'J. R. R. Tolkien', 1937, 'A quiet home-lover sent off on an adventure.'], ['The Adventures of Tom Sawyer', 'Mark Twain', 1876, 'Mischief and adventure by the Mississippi.'], ['Wonder', 'R. J. Palacio', 2012, 'A first year at school, told from several sides.']] },
+        { h: 'The world outside', books: [['Twenty Thousand Leagues Under the Seas', 'Jules Verne', 1870, 'Round the world under the sea in a submarine.'], ['A Wrinkle in Time', "Madeleine L'Engle", 1962, 'Science, family and a trip across space.']] },
+      ],
+    },
     comicDone: 'The comic strip is ready: the cat took the fish and denies it, until the last panel gives it away. One long picture, and a PDF.',
     minigame: ['Who plays, and what game', 'Settle the rules', 'Write it as one page', 'Draw the first screen and look', 'Ask Flint to try it'],
     minigameDone: 'The game is ready: find the pairs. Turn over two cards; a matching pair stays face up. One page that plays with no network.',
@@ -349,6 +377,26 @@ function cardPage(t, w) {
   const big = Math.round(height / 7);
   return `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:${width}px ${height}px;margin:0}html,body{margin:0}body{width:${width}px;height:${height}px;box-sizing:border-box;border:${Math.round(big / 3)}px solid #e8b84a;padding:${big}px;background:#fdf3e3;color:#7a2e2a;font-family:system-ui,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow:hidden}h1{font-size:${big}px;margin:0}p{font-size:${Math.round(big / 2.6)}px;margin:.6em 0}.sun{width:${big}px;height:${big}px;border-radius:50%;background:#f6ae2d;margin-bottom:${Math.round(big / 3)}px}</style></head>\n`
     + `<body><div class="sun"></div><h1>${esc(C.greeting)}</h1><p>${esc(C.line)}</p><p>${esc(C.from)}</p></body></html>\n`;
+}
+
+/** A flower card (plan-2.0.md J4): 900 by 600, the words in the middle and a flower in the corner. */
+function flowercardPage(t) {
+  const C = t.flowercardWords;
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:900px 600px;margin:0}html,body{margin:0}body{width:900px;height:600px;box-sizing:border-box;padding:70px;background:#fbf6ee;color:#4a3a42;font-family:system-ui,sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;position:relative;overflow:hidden}h1{font-size:52px;margin:.3em 0}p{font-size:26px;margin:0}svg{position:absolute;right:40px;bottom:30px}</style></head>\n`
+    + `<body><p>${esc(C.to)}</p><h1>${esc(C.line)}</h1><p>${esc(C.from)}</p><svg width="90" height="140"><path d="M45 60 V140" stroke="#5a8a4a" stroke-width="6"/><circle cx="45" cy="45" r="30" fill="#d96a7a"/><circle cx="45" cy="45" r="11" fill="#f3c34a"/></svg></body></html>\n`;
+}
+
+/** A book list (plan-2.0.md J4), as make_docx's structure: a heading for each group, a line for each book. */
+function booklistDoc(t, w) {
+  const B = t.booklistWords;
+  return { title: w || B.title, blocks: B.groups.flatMap((g) => [{ h: 1, text: g.h }, { list: g.books.map(B.book) }]) };
+}
+
+/** The same list as an A4 page, for its PDF. */
+function booklistPage(t, w) {
+  const B = t.booklistWords;
+  const groups = B.groups.map((g) => `<h2>${esc(g.h)}</h2><ul>${g.books.map((b) => `<li>${esc(B.book(b))}</li>`).join('')}</ul>`).join('');
+  return `<!doctype html>\n<html><head><meta charset="utf-8"><style>@page{size:A4;margin:20mm}body{font-family:system-ui,sans-serif;color:#2a2233}h1{color:#6a4a2a}</style></head><body><h1>${esc(w || B.title)}</h1>${groups}</body></html>\n`;
 }
 
 /**
@@ -587,6 +635,17 @@ export function pickPlay(prompt, state, system = '') {
     state.vars.out = quoted(prompt, 'single self-contained page');
     [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
     return plays.comic;
+  }
+  if (/This is a small card to tuck in with a bouquet/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'single self-contained page');
+    [state.vars.png, state.vars.pdf] = [...prompt.matchAll(/as "([^"]+\.(?:png|pdf))" with the mcp__nook-office__/g)].map((m) => m[1]);
+    return plays.flowercard;
+  }
+  if (/This is a book list: a reading list/.test(prompt)) {
+    state.vars.out = quoted(prompt, 'make_docx tool as');
+    state.vars.page = quoted(prompt, 'single self-contained page');
+    state.vars.pdf = quoted(prompt, 'and save it as');
+    return plays.booklist;
   }
   if (/This is a small game to play in a browser/.test(prompt)) {
     state.vars.out = quoted(prompt, 'single self-contained page');
@@ -1219,6 +1278,22 @@ export const plays = {
       await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 800, height: 3200 });
       await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
       await s.read(s.state.vars.png);
+    },
+  }),
+  // The river street's two (plan-2.0.md J4): a flower card drawn like the post office's, a book list checked book by book.
+  flowercard: simpleText('flowercard', (t) => flowercardPage(t), (t) => t.flowercardDone, {
+    after: async (s) => {
+      await office(s, 'render_png', { page: s.state.vars.out, file: s.state.vars.png, width: 900, height: 600 });
+      await office(s, 'make_pdf', { page: s.state.vars.out, file: s.state.vars.pdf });
+      await s.read(s.state.vars.png);
+    },
+  }),
+  booklist: simpleText('booklist', null, (t) => t.booklistDone, {
+    research: true,
+    make: (s, o, w) => office(s, 'make_docx', { file: s.state.vars.out, ...booklistDoc(T[s.state.lang], w) }),
+    after: async (s) => {
+      await s.write(s.state.vars.page, booklistPage(T[s.state.lang], s.state.vars.want || ''));
+      await office(s, 'make_pdf', { page: s.state.vars.page, file: s.state.vars.pdf });
     },
   }),
   minigame: simpleText('minigame', null, (t) => t.minigameDone, {

@@ -4,7 +4,6 @@ import { GROWTH, type GrowthId } from './growth';
 import { SCENES, type SceneId } from './scenes';
 import { CHAPTERS, STREET_TELLERS, type StreetTeller } from './stories';
 import type { TownDays } from './town';
-import { ROOM_GROWTH } from './towngrow';
 import type { ShopDays } from './types';
 
 /**
@@ -19,7 +18,7 @@ export type Postcard = {
   furnish: Furnishings;
   grown: GrowthId[];
   done: number;
-  shops: Record<StreetShop, number>;
+  shops: Record<PostcardShop, number>;
   stories: Record<StreetTeller, number>;
 };
 
@@ -32,12 +31,17 @@ export const POSTCARD_NAME_MAX = 40;
 /** More commissions than any shop will finish. */
 const DONE_MAX = 100_000;
 
-const STREET_SHOPS = Object.keys(ROOM_GROWTH) as StreetShop[];
+/**
+ * The shops a postcard counts: the first street's. The river street's (plan-2.0.md J4) stay off it, as their tellers do,
+ * so a postcard sent from 2.0 still opens in 1.9.
+ */
+const STREET_SHOPS = ['print', 'studio', 'workshop', 'bakery', 'post'] as const satisfies readonly StreetShop[];
+type PostcardShop = (typeof STREET_SHOPS)[number];
 /**
  * The shops a postcard from 1.5 counts: the bakery and the post office opened in 1.6 (plan-1.6.md F1, F2), so there it has
  * done nothing.
  */
-const STREET_SHOPS_1_5: StreetShop[] = ['print', 'studio', 'workshop'];
+const STREET_SHOPS_1_5: PostcardShop[] = ['print', 'studio', 'workshop'];
 const GROWTH_IDS = new Set<string>(GROWTH.map((g) => g.id));
 const KEYS = ['postcard', 'version', 'name', 'home', 'furnish', 'grown', 'done', 'shops', 'stories'];
 
@@ -52,7 +56,7 @@ export function makePostcard(name: string, settings: { scene: SceneId; furnish: 
     furnish: cleanFurnishings(settings.furnish),
     grown: [...new Set(days.grown.map((g) => g.id))].filter((id) => GROWTH_IDS.has(id)),
     done: days.done,
-    shops: Object.fromEntries(STREET_SHOPS.map((s) => [s, town?.shops[s]?.done ?? 0])) as Record<StreetShop, number>,
+    shops: Object.fromEntries(STREET_SHOPS.map((s) => [s, town?.shops[s]?.done ?? 0])) as Record<PostcardShop, number>,
     stories: Object.fromEntries(STREET_TELLERS.map((t) => [t, Math.min(town?.stories[t]?.length ?? 0, CHAPTERS[t].length)])) as Record<StreetTeller, number>,
   };
 }
@@ -109,7 +113,7 @@ function check(o: Record<string, unknown>): Postcard | null {
   if (!isObject(stories) || !exactly(stories, STREET_TELLERS) || !STREET_TELLERS.every((t) => count(stories[t], CHAPTERS[t].length))) return null;
   return {
     name, home: home as SceneId, furnish: furnish as Furnishings, grown: grown as GrowthId[], done,
-    shops: shops as Record<StreetShop, number>, stories: stories as Record<StreetTeller, number>,
+    shops: shops as Record<PostcardShop, number>, stories: stories as Record<StreetTeller, number>,
   };
 }
 

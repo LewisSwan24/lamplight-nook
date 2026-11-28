@@ -44,7 +44,7 @@ export type SourceKind = { kind: 'file'; extensions: readonly string[]; maxBytes
 export const MAIN_FILES = {
   index: (name: string) => /index\.html$/i.test(name),
   revised: (name: string, files: Files) => name.startsWith(files.revisedPrefix),
-  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng || name === files.comicPng,
+  picture: (name: string, files: Files) => name === files.chartPng || name === files.posterPng || name === files.menuPng || name === files.cardPng || name === files.comicPng || name === files.flowercardPng,
   /** Revision cards (plan-1.8.md H1): their PDF, before the pages they were printed from and before the quiz. */
   cards: (name: string, files: Files) => name === files.flashcardsPdf,
   /** A travel journal (plan-1.8.md H6): its PDF, before the page it was printed from. */
@@ -464,6 +464,38 @@ export const TEMPLATES = [
       `If the project has tests, run them after the change and fix what your change broke. Run them as one command on its own line, cd "${sourceName}" && <the test command>: the user is asked before each test run, so put nothing else on that line. Install nothing new unless the tests cannot run without it.`,
       `When you are done, write "${files.repairNotes}" here, beside that folder and not inside it, as JSON: {"changes": [{"file": "<its path inside the repository, with />", "why": "<one sentence in ${language}>"}], "tests": {"ran": true or false, "command": "<the command you ran>", "passed": true or false, "note": "<one sentence in ${language}>"}}, with one entry for each file you changed, added or deleted.`,
       `In your final reply, say in ${language}, in one or two lines, what was wrong and what you changed.`,
+    ],
+  },
+  // The river street's two kinds (plan-2.0.md J4). A flower card is a little card tucked in with a bouquet, drawn as a
+  // picture like the post office's cards; its piece, a rack of cards, stands on the flower shop's wall.
+  {
+    id: 'flowercard', shop: 'flowershop', icon: 27, revise: true, main: 'picture', roomGrowth: { id: 'cardrack', at: 1 },
+    steps: ({ language, files }) => [
+      'This is a small card to tuck in with a bouquet of flowers, drawn as a picture: a few words, who it is for and who it is from.',
+      'Read the request first: who the flowers are for, who sends them, what the occasion is (a birthday, a thank-you, getting well, sorry, just because) and the words the user wants on it.',
+      `Lay it out as a single self-contained page "${files.flowercardPage}" 900 pixels wide and 600 high, the shape of a card lying down: CSS inline, no web fonts, nothing the page loads from outside this folder.`,
+      'Put the message in the middle as the biggest thing on it, "To" and the name above it and "From" and the name below. Draw one flower or a small sprig in a corner in inline SVG, simple shapes and soft flat colours, and leave the rest of the card plain.',
+      'Use the words the user gave, as they gave them. Where they gave none, write one or two plain warm lines for the occasion, no longer than a short sentence each. Never make up a name, a date or a shared memory; where a name is missing, leave a clear blank in square brackets.',
+      `Write every word on it in ${language}.`,
+      `Then save it as "${files.flowercardPng}" with the mcp__nook-office__render_png tool at 900 by 600, and as "${files.flowercardPdf}" with the mcp__nook-office__make_pdf tool, so it can be printed.`,
+      'When it is saved, look at it with the Read tool: check nothing is cut off or overlapping and every name is spelled as the user gave it, and fix the page and draw it again if not.',
+      `In your final reply, say in ${language}, in one line, who the card is for and what it says.`,
+    ],
+  },
+  // A book list (plan-2.0.md J4): a reading list drawn up at the bookshop, as a Word document with a PDF beside it. Every
+  // book on it must be real, so the researcher checks each one. Its piece, a board of lists, hangs on the bookshop's wall,
+  // and it is what brings Uncle Page by to visit (J3).
+  {
+    id: 'booklist', shop: 'bookshop', icon: 28, revise: true, main: 'office', roomGrowth: { id: 'listboard', at: 1 }, guest: 'bookseller',
+    steps: ({ language, files }) => [
+      'This is a book list: a reading list for one person or one subject, as a Word document with a PDF to print.',
+      `Read the request first: who it is for (their age, what they already like), what it is about, and how many books they want. Read what the user handed over in "${files.materials}" too, if anything: a list of books already read, a syllabus.`,
+      'Eight books unless the request asks for another number, and never more than fifteen. Group them into two to four short sections, by theme or from easiest to hardest, with a heading each.',
+      'List only books that really exist. Ask the researcher subagent to check every title, its author and the year it first came out, and drop any it cannot find. Never make up a book, an author, a year or a quotation.',
+      'For each book give its title, author and year, then one or two sentences on what it is and why it suits this reader. Say nothing about prices, editions or where to buy it.',
+      `Build it with the mcp__nook-office__make_docx tool as "${files.booklist}" in ${language}: give the tool the structure and it makes the file. Never write Office XML or a .docx by hand. Keep each book's title as it was published, and give its title in ${language} as well where a published translation has one.`,
+      `Then lay the same list out as a single self-contained page "${files.booklistPage}" for A4, CSS inline, no web fonts, nothing the page loads from outside this folder, and save it as "${files.booklistPdf}" with the mcp__nook-office__make_pdf tool.`,
+      `In your final reply, say in ${language}, in one line, who the list is for and how many books are on it.`,
     ],
   },
 ] as const satisfies readonly TemplateSpec[];

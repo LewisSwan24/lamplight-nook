@@ -14,7 +14,7 @@ import type { ActorId, AiEvent, CommissionMemo } from './types';
  */
 export type Staffer = Exclude<ActorId, 'cat'>;
 
-const KEEPER: Record<Exclude<Shop, 'home'>, Staffer> = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding', bakery: 'guiyi', post: 'axin' };
+const KEEPER: Record<Exclude<Shop, 'home'>, Staffer> = { print: 'aqian', studio: 'xiaozhe', workshop: 'xiaoding', bakery: 'guiyi', post: 'axin', flowershop: 'fangjie', bookshop: 'jianbo' };
 const HELPERS: Exclude<AiEvent['agent'], 'main'>[] = ['researcher', 'designer', 'reviewer', 'unknown'];
 
 /** Every finished work, in order, with who was on it. */

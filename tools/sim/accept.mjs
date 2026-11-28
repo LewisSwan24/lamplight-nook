@@ -39,6 +39,70 @@ const ONLY = opt('only', '') ? opt('only', '').split(',') : null;
 const OUT = join(ROOT, opt('out', 'sim-out'));
 const SPEED = Number(opt('speed', '120'));
 
+/**
+ * Work sent to a shop on the river street (plan-2.0.md J4): ordered at home, carried over by Adeng and made there by
+ * the keeper, who is named on the parcel. The shop's piece goes up on its wall, Adeng says so back home, and the
+ * kind's guest, if it has one, comes in and talks.
+ */
+async function riverOrder(lang, out, { template, shop: where, keeper, piece, name, guest, made }) {
+  const L = locale(lang);
+  const home = freshHome({ 'settings.json': onboarded(lang) });
+  const shop = await launch({ lang, home, speed: SPEED });
+  const { page } = shop;
+  const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+  try {
+    await sleep(1500);
+    await shop.order({ template, want: W[lang][template] });
+    await shop.shot(join(out, `${name}-slip.png`));
+    await shop.submit();
+    // Adeng carries it over, and the keeper makes it in the shop.
+    const carried = await page.waitForFunction((w) => window.lamplightDebug.scene.room === w, where, { timeout: 60_000, polling: 300 }).then(() => true, () => false);
+    check(carried, `the ${template} was not carried to the ${where}: ${await room()}`);
+    // Seen in the shop at work. Not sampled once: a picture sends the keeper over to the studio for the tool soon after.
+    const inside = await page.waitForFunction(([w, k]) => window.lamplightDebug.scene.room === w && window.lamplightDebug.scene.anchorOf(k) !== null, [where, keeper], { timeout: 15_000, polling: 100 }).then(() => true, () => false);
+    check(inside, `${keeper} is not in the ${where} making it`);
+    await shop.shot(join(out, `${name}-working.png`));
+    const done = await shop.workUntilDone();
+    check(done.ok, `the ${template} did not finish: ${JSON.stringify(done).slice(0, 300)}`);
+    check(await room() === where, `the ${template} was not made in the ${where}: ${await room()}`);
+    made(latestCommission(home));
+    await cardThumb(shop).catch(() => check(false, 'no thumbnail on the card'));
+    const parcels = await page.locator('.parcel .card-title').allInnerTexts();
+    check(parcels.length > 0 && parcels.every((t) => t.includes(L.actors[keeper])), `the parcel does not name ${L.actors[keeper]}: ${parcels}`);
+    await sleep(400);
+    await shop.shot(join(out, `${name}-done.png`));
+    await page.keyboard.press('Escape');
+
+    // Its piece is already up on the shop's wall.
+    await page.evaluate(() => window.lamplightDebug.scene.setWeather('clear', null, false));
+    await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+    await sleep(800);
+    check(await page.evaluate(([w, p]) => window.lamplightDebug.rooms.get(w)?.scene.growth.shows(`${w}-${p}`), [where, piece]), `no ${piece} on the ${where}'s wall`);
+    await shop.shot(join(out, `${name}-piece.png`));
+
+    // Back home, Adeng says so.
+    await page.evaluate(() => window.lamplightDebug.street.onFront('cafe', true));
+    for (const end = Date.now() + 20_000; Date.now() < end && (await room().catch(() => null)) !== 'cafe'; await sleep(300));
+    check(await room() === 'cafe', `did not go home: ${await room()}`);
+    const said = parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), 'cafe.yaml'), 'utf8')).grow.find((l) => l.id === `grow_${where}_${piece}`).bubbles[0];
+    const told = await page.waitForFunction((line) => window.lamplightDebug.scene.isSaying('adeng', line), said, { timeout: 60_000, polling: 200 }).then(() => true, () => false);
+    check(told, `nobody said: ${said}`);
+    await shop.shot(join(out, `${name}-told.png`));
+
+    if (guest) {
+      await page.evaluate(() => window.lamplightDebug.scene.sendGuestAway());
+      await page.evaluate((g) => window.lamplightDebug.welcome(g), guest);
+      const came = await page.waitForFunction((g) => {
+        const v = window.lamplightDebug.scene.guest;
+        return v?.id === g && v.speech;
+      }, guest, { timeout: 20_000 }).then(() => true, () => false);
+      check(came, `${guest} did not come in and say something`);
+      check(await page.evaluate((g) => window.lamplightDebug.scene.textures.exists(g), guest), `${guest} has no picture`);
+      await shop.shot(join(out, `${name}-guest.png`));
+    }
+  } finally { await shop.close(); }
+}
+
 const W = {
   'zh-CN': {
     page: '帮我做一个家庭聚会签到的小网页。',
@@ -64,6 +128,8 @@ const W = {
     journal: '帮我做一份杭州三天的旅行手账，打印出来带着走。',
     minigame: '帮我做一个给五岁女儿玩的翻牌小游戏。',
     comic: '帮我画一个四格漫画，讲家里的猫偷吃了鱼还不承认。',
+    flowercard: '帮我写一张随花送的卡片，给妈妈过生日，写：花开得正好，你也是。',
+    booklist: '帮我开一份书单，给刚上初中的孩子，喜欢冒险故事。',
     picturebook: '帮我做一本睡前绘本，给我儿子小满，他喜欢月亮和小猫。',
     repair: '加法写错了，2 加 3 算出来是 -1，帮我修一下。',
     repairPush: '加法写错了，帮我修一下，修好直接推上去。',
@@ -98,6 +164,8 @@ const W = {
     journal: 'Make me a travel journal for three days in Edinburgh, to print and take along.',
     minigame: 'Make me a matching pairs game for my five-year-old daughter.',
     comic: 'Draw me a four-panel comic about our cat stealing the fish and denying it.',
+    flowercard: "Write a card to go with flowers for Mum's birthday, saying: the flowers are out, and so are you.",
+    booklist: 'Make a book list for a child starting secondary school who loves adventure stories.',
     picturebook: 'Make a bedtime picture book for my son Xiaoman, who loves the moon and cats.',
     repair: 'The add function is wrong: 2 plus 3 comes out as -1. Please fix it.',
     repairPush: 'The add function is wrong. Fix it and push it straight up.',
@@ -5953,6 +6021,40 @@ const SCENARIOS = {
       check(await page.evaluate(() => window.lamplightDebug.scene.textures.exists('editor')), 'Xiaosu has no picture');
       await shop.shot(join(out, 'comic-su.png'));
     } finally { await shop.close(); }
+  },
+
+  /**
+   * A flower card (plan-2.0.md J4): ordered at home, carried over to the flower shop on the river street and made there
+   * by Fern, a picture 900 by 600 and a PDF. A rack of cards goes up on the flower shop's wall, and back home someone
+   * says so.
+   */
+  async floristorder(lang, out) {
+    const F = shopFiles(lang);
+    await riverOrder(lang, out, {
+      template: 'flowercard', shop: 'flowershop', keeper: 'fangjie', piece: 'cardrack', name: 'florist',
+      made: (dir) => {
+        const png = readFileSync(join(dir, F.flowercardPng));
+        check(png.subarray(1, 4).toString() === 'PNG' && png.readUInt32BE(16) === 900 && png.readUInt32BE(20) === 600, `${F.flowercardPng} is not a picture 900 by 600`);
+        check(readFileSync(join(dir, F.flowercardPdf)).subarray(0, 5).toString() === '%PDF-', `${F.flowercardPdf} is not a PDF`);
+        copyFileSync(join(dir, F.flowercardPng), join(out, 'florist-card-made.png'));
+      },
+    });
+  },
+
+  /**
+   * A book list (plan-2.0.md J4): ordered at home, carried over to the bookshop and drawn up there by Uncle Page, a Word
+   * document and a PDF, every book checked by the researcher. A cork board of lists goes up on the bookshop's wall,
+   * someone at home says so, and Uncle Page starts dropping in.
+   */
+  async bookorder(lang, out) {
+    const F = shopFiles(lang);
+    await riverOrder(lang, out, {
+      template: 'booklist', shop: 'bookshop', keeper: 'jianbo', piece: 'listboard', name: 'book', guest: 'bookseller',
+      made: (dir) => {
+        check(readFileSync(join(dir, F.booklist)).subarray(0, 2).toString() === 'PK', `${F.booklist} is not a Word document`);
+        check(readFileSync(join(dir, F.booklistPdf)).subarray(0, 5).toString() === '%PDF-', `${F.booklistPdf} is not a PDF`);
+      },
+    });
   },
 
   /**

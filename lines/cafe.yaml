@@ -396,6 +396,16 @@ grow:
   - { id: grow_post_ivy, speaker: xiaoju, when: grow_post_ivy, bubbles: ["邮局也吊了盆绿萝。", "挂在分信格边上，正好遮遮太阳。"] }
   - { id: grow_post_horn, speaker: laoshi, when: grow_post_horn, bubbles: ["阿信墙上挂了只铜邮号。", "老早送信的骑着马，就吹这个。"] }
   - { id: grow_post_map, speaker: adeng, when: grow_post_map, bubbles: ["邮局钉了张送信路线图。", "二十单了，阿信说每户都插过针。"] }
+  - { id: grow_flowershop_seedtray, speaker: adeng, when: grow_flowershop_seedtray, bubbles: ["花店墙上搁了一盘小苗。", "芳姐说是第一单那天种的。"] }
+  - { id: grow_flowershop_ivy, speaker: xiaoju, when: grow_flowershop_ivy, bubbles: ["花店也吊了盆绿萝。", "芳姐说，这盆不卖。"] }
+  - { id: grow_flowershop_watercan, speaker: laoshi, when: grow_flowershop_watercan, bubbles: ["芳姐把旧水壶挂上墙了。", "八单了，壶嘴都磨亮了。"] }
+  - { id: grow_flowershop_basket, speaker: adeng, when: grow_flowershop_basket, bubbles: ["花店吊起了一只花篮。", "二十单了，芳姐说该挂点好看的。"] }
+  - { id: grow_flowershop_cardrack, speaker: adeng, when: grow_flowershop_cardrack, bubbles: ["花店墙上多了个卡片架。", "写过的花卡，都留一张插在上面。"] }
+  - { id: grow_bookshop_pricelist, speaker: adeng, when: grow_bookshop_pricelist, bubbles: ["书店把第一张价目单裱起来了。", "简伯说，那时候一本才两块。"] }
+  - { id: grow_bookshop_ivy, speaker: xiaoju, when: grow_bookshop_ivy, bubbles: ["书店也吊了盆绿萝。", "简伯说，书架边上得有点绿。"] }
+  - { id: grow_bookshop_bust, speaker: laoshi, when: grow_bookshop_bust, bubbles: ["简伯架子上摆了个石膏像。", "旧书店里，总有这么一个。"] }
+  - { id: grow_bookshop_ladder, speaker: adeng, when: grow_bookshop_ladder, bubbles: ["书店挂起了一架书梯。", "二十单了，书架也高了。"] }
+  - { id: grow_bookshop_listboard, speaker: adeng, when: grow_bookshop_listboard, bubbles: ["书店墙上钉了块软木板。", "开过的书单，都钉在上面。"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["书桌上添了把茶壶。", "来的人都能喝一杯。"] }

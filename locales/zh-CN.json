@@ -321,6 +321,14 @@
         "picturebook": [
           "做一本睡前绘本，给我儿子，他喜欢月亮。",
           "做一本睡前绘本，给我女儿，她喜欢小兔子。"
+        ],
+        "flowercard": [
+          "写一张随花送的卡片，给妈妈过生日。",
+          "写一张随花送的卡片，谢谢楼下的王阿姨。"
+        ],
+        "booklist": [
+          "开一份书单，给刚上初中的孩子。",
+          "开一份讲城市历史的书单。"
         ]
       },
       "firstLabel": "递单",
@@ -437,6 +445,12 @@
       "repair": "修代码",
       "repairFill": "帮我在这个代码仓库里修一下：……",
       "repairHint": "借一个代码仓库给工坊。修理工在一个新分支上干活，你原来的分支和网上的仓库都不动。做完给你一张验货单，批了分支留着你自己合，不批就删掉。",
+      "flowercard": "写花卡",
+      "flowercardFill": "帮我写一张随花送的卡片，送给……，写上：……",
+      "flowercardHint": "花店写一张跟花一起送的小卡片：一句话，写明送给谁、谁送的，再画上一朵花。给了话就照用，没给就替你写一两句。交回一张图，另存一份 PDF 好打印。",
+      "booklist": "开书单",
+      "booklistFill": "帮我开一份书单，给……，想读……方面的书",
+      "booklistHint": "书店开一份书单：默认 8 本，最多 15 本，分成几组，每本写上作者和一句推荐的理由。只列真有的书，每本都查过。交回一份 Word 文档和一份 PDF。",
       "editHint": "只会改一份复制件，你的原文件不会被动。文本、网页、Word、Excel、PPT 和 PDF 都行，20MB 以内。PDF 改好以后是一份 Word。",
       "tidyHint": "店员们只看文件名、大小和日期，写一份整理方案给你，不会移动任何东西。",
       "needSource": "先选一下要处理的文件或文件夹。",
@@ -1456,6 +1470,12 @@
       "bookPage": "绘本.html",
       "bookPng": "绘本封面.png",
       "bookPdf": "绘本.pdf",
+      "flowercardPage": "花卡.html",
+      "flowercardPng": "花卡.png",
+      "flowercardPdf": "花卡.pdf",
+      "booklist": "书单.docx",
+      "booklistPage": "书单.html",
+      "booklistPdf": "书单.pdf",
       "repairNotes": "repair.json",
       "repairSheet": "验货单.md",
       "toolScript": "小工具.ps1",
@@ -1644,7 +1664,7 @@
       "search": "找一件：名字、当时说的话或月份",
       "kindsLabel": "按种类看",
       "shopsLabel": "按店看",
-      "shops": { "home": "小灯屋", "print": "印刷铺", "studio": "画室", "workshop": "工坊", "bakery": "面包房", "post": "邮局" },
+      "shops": { "home": "小灯屋", "print": "印刷铺", "studio": "画室", "workshop": "工坊", "bakery": "面包房", "post": "邮局", "flowershop": "花店", "bookshop": "书店" },
       "all": "全部",
       "found": "找到 {n} 件",
       "noMatch": "没有对得上的。换个词、换个种类或者换间店试试。",
@@ -1676,7 +1696,9 @@
         "minigame": "小游戏",
         "comic": "四格漫画",
         "picturebook": "绘本",
-        "repair": "修代码"
+        "repair": "修代码",
+        "flowercard": "花卡",
+        "booklist": "书单"
       }
     },
     "mini": {
