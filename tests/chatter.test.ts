@@ -60,9 +60,10 @@ describe('small talk', () => {
   });
 
   it('keeps time-of-day chats to their time', () => {
-    const c = new Chatter(chats.filter((x) => x.period === 'dusk'), [], 0, seeded(1));
+    const dusk = chats.filter((x) => x.period === 'dusk');
+    const c = new Chatter(dusk, [], 0, seeded(1));
     expect(c.next('idle', CHAT_GAP_MS, 'day')).toBeNull();
-    expect(c.next('idle', CHAT_GAP_MS, 'dusk')?.id).toBe('sunset');
+    expect(dusk.filter((x) => !x.guest && x.after === undefined).map((x) => x.id)).toContain(c.next('idle', CHAT_GAP_MS, 'dusk')?.id);
   });
 
   it('keeps weather and holiday chats to their days, and brings them up first', () => {

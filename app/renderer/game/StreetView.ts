@@ -5,7 +5,7 @@ import { animKey } from './sprites';
 import { type Outside, putAway } from './streetdecor';
 import { addUmbrella, holdUmbrella, TownDecor } from './TownDecor';
 import { TownGrowth } from './TownGrowth';
-import { INSET, PAVEMENT_Y, STOPS, STRIP_TOP, type StopId, VIEW, panFor, routeHome, stopForTool, walkMs } from './street';
+import { INSET, PAVEMENT_Y, STOPS, STRIP_TOP, type StopId, VIEW, firstStop, panFor, routeHome, stopForTool, walkMs } from './street';
 
 /** The town's street pictures, drawn in this order (scripts/art/town.py); CafeScene loads them. */
 export const TOWN_LAYERS = ['town-street', 'town-fronts', 'town-props', 'town-signs'] as const;
@@ -44,6 +44,9 @@ export class StreetView {
   who: ActorId | null = null;
   /** Where she is headed or stands, and the walks still to do, each waiting for the one before. */
   private stop: StopId = 'nook';
+  /** Where this outing went first, and how many there have been (street.ts firstStop). */
+  private first: StopId = 'library';
+  private outings = 0;
   private route: Promise<void> = Promise.resolve();
   private walking?: Phaser.Tweens.Tween;
   reducedMotion = false;
@@ -129,13 +132,14 @@ export class StreetView {
       this.walker?.play(animKey(actor, 'walk', 'down'), true);
       await this.tween({ y: PAVEMENT_Y, alpha: 1, duration: 360 });
     });
-    this.visit(stopForTool());
+    this.first = firstStop(actor, this.outings++);
+    this.visit(this.first);
   }
 
   /** She is out and starts something new: go to the shop it belongs to. */
   errand(actor: ActorId, tool?: string) {
     if (this.who !== actor) return;
-    this.visit(stopForTool(tool));
+    this.visit(stopForTool(tool, this.first));
   }
 
   /** Walk home (past the bakery), go in at the shop door and close the inset. Resolves when she is inside. */
@@ -174,7 +178,7 @@ export class StreetView {
     if (!this.who) this.goOut(actor, tint);
     this.walking?.stop();
     this.route = Promise.resolve();
-    this.stop = stopForTool();
+    this.stop = this.first;
     this.walker!.setPosition(STOPS[this.stop], PAVEMENT_Y).setAlpha(1).play(animKey(actor, 'idle', 'up'), true);
     this.strip.setAlpha(1).y = VIEW.y;
     this.frame.setAlpha(1).y = 0;

@@ -18,6 +18,7 @@ import { preloadTownGrowth, TownGrowth } from './TownGrowth';
 import { preloadTownStories, TownStories } from './TownStories';
 import { preloadRiverLife, RiverView } from './RiverView';
 import { preloadTower, TowerView } from './TowerView';
+import { strollAt, type Stroll } from './strolls';
 import type { TowerStage } from '../../shared/tower';
 import type { Teller } from '../../shared/stories';
 import { FALLING, FLASH_GAP_MS, flashesFor, fogFor } from './weather';
@@ -105,7 +106,11 @@ export class StreetScene extends Phaser.Scene {
   /** The old clock tower (plan-2.0.md J6), once the scene is up, and the look the year's story has mended it to. */
   tower?: TowerView;
   private towerStage: TowerStage = 'stopped';
-  /** The shop's clock, which the tower's hands keep. */
+  /** A neighbour on the way to the other street (plan-2.0.md J9), as last drawn; null when nobody is. */
+  strolling: Stroll | null = null;
+  private stroller?: Phaser.GameObjects.Sprite;
+  private strollUmbrella?: Phaser.GameObjects.Image;
+  /** The shop's clock, which the tower's hands keep and the neighbours' walks go by. */
   now: () => Date = () => new Date();
   private tales: { waiting: Teller[]; left: string[] } = { waiting: [], left: [] };
   /** The hour the street goes by, as the shop shows the day (crowd.ts hourOf). */
@@ -206,6 +211,7 @@ export class StreetScene extends Phaser.Scene {
     this.shade.setFillStyle(this.tint());
     this.dress();
     this.walkCrowd(delta);
+    this.walkNeighbour();
     this.river?.update(this.time.now);
     this.tower?.update(this.now());
     const w = this.walker();
@@ -261,6 +267,24 @@ export class StreetScene extends Phaser.Scene {
       drawn.umbrella.destroy();
       this.drawnPassers.delete(id);
     }
+  }
+
+  /** A neighbour walking over the bridge to the other street or back (strolls.ts), under an umbrella in the rain. */
+  private walkNeighbour() {
+    const sky = this.outside().sky;
+    const s = strollAt(this.now().getTime(), { hour: this.hour(), sky, away: this.tales.waiting });
+    this.strolling = s;
+    if (!s) {
+      this.stroller?.setVisible(false);
+      this.strollUmbrella?.setVisible(false);
+      return;
+    }
+    this.stroller ??= this.add.sprite(s.x, s.y, s.who).setOrigin(0.5, 1);
+    this.strollUmbrella ??= addUmbrella(this);
+    if (this.stroller.texture.key !== s.who) this.stroller.setTexture(s.who);
+    const depth = DEPTH.people - 1 + s.y / 1000;
+    this.stroller.setVisible(true).setPosition(Math.round(s.x), s.y).setDepth(depth).play(animKey(s.who, 'walk', s.dir > 0 ? 'right' : 'left'), true);
+    holdUmbrella(this.strollUmbrella.setVisible(umbrellaUp(sky)).setDepth(depth + 0.0005), s.x, s.y);
   }
 
   private passerAnim(p: Passer): string {

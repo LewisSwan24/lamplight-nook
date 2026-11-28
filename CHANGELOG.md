@@ -39,6 +39,11 @@
   strikes the hour by day, as many strokes as the hour: loudest by the river, softer across the bridge, faint indoors,
   and never from ten at night to seven in the morning. Someone at home remarks on each step and on the day's first
   chime.
+- **Two streets, one town.** The neighbours walk over the bridge and back by day: Fern to the bakery, Auntie Olive
+  to the flower shop, Pip and the others to Uncle Page's. Iris goes to Fern's for colours on every outing, and
+  every other outing Clem borrows a book at the bookshop instead of the library, coming home past the bakery. The
+  shop has 42 new chats about the new neighbours, the river and the old clock tower, and the old neighbours and the
+  new ones talk of each other when they drop in.
 
 ## 1.9.0 (2026-11-27)
 

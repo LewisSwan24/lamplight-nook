@@ -7309,6 +7309,90 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The two streets together (plan-2.0.md J9). With the shop's clock set to the minute of each walk: Fern crosses the
+   * bridge to the bakery, Auntie Olive the other way to the flower shop, and Pip comes back from the bookshop. Then
+   * Iris goes out for colours and stops at Fern's door, Clem's next outing is to Uncle Page's, and both come home.
+   */
+  async twostreets(lang, out) {
+    const L = locale(lang);
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
+    const door = (id) => town.width + river.fronts.find((f) => f.id === id).door;
+    const bridge = { from: town.width + river.bridge.x, to: town.width + river.bridge.x + river.bridge.w };
+    // The walks go by the clock's minute: the n-th in the list (strolls.ts STROLLS), there or back, at `secs` into it.
+    const WHO = ['florist', 'baker', 'bookseller', 'postman', 'student', 'granny', 'mechanic'];
+    const minuteOf = (who, back, secs) => {
+      const start = new Date(2026, 11, 3, 11, 0, 0).getTime();
+      const want = WHO.indexOf(who) + (back ? WHO.length : 0);
+      let m = Math.floor(start / 60000);
+      while (m % (2 * WHO.length) !== want) m++;
+      const d = new Date(m * 60000 + secs * 1000);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    };
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: SPEED });
+    const { page } = shop;
+    const walking = () => page.evaluate(() => {
+      const g = window.lamplightDebug.street;
+      return g.strolling ? { ...g.strolling, cam: g.cameras.main.scrollX } : null;
+    });
+    const watch = async (who, back, secs) => {
+      await page.evaluate((iso) => window.lamplightDebug.tower.tick(iso), minuteOf(who, back, secs));
+      await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, bridge.from + (bridge.to - bridge.from) / 2 - 160);
+      await sleep(400);
+      return walking();
+    };
+    try {
+      await sleep(2500);
+      await page.evaluate(() => { window.lamplightDebug.scene.setPeriod('day', true); window.lamplightDebug.scene.setWeather('clear', null, false); });
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(800);
+      check(await page.evaluate(() => window.lamplightDebug.street.sys.isVisible()), 'the street did not show');
+
+      // Fern over the bridge to the bakery; Auntie Olive the other way, to the flower shop.
+      let v = await watch('florist', false, 4.5);
+      check(v && v.who === 'florist' && v.dir === -1 && v.x > bridge.from && v.x < bridge.to, `Fern is not on the bridge: ${JSON.stringify(v)}`);
+      await shop.shot(join(out, 'twostreets-fern.png'));
+      v = await watch('baker', false, 9.5);
+      check(v && v.who === 'baker' && v.dir === 1 && v.x > bridge.from && v.x < bridge.to, `Auntie Olive is not on the bridge: ${JSON.stringify(v)}`);
+      await shop.shot(join(out, 'twostreets-olive.png'));
+      // A round later, the way back: Pip home from the bookshop.
+      v = await watch('postman', true, 12);
+      check(v && v.who === 'postman' && v.dir === -1 && v.x > bridge.from && v.x < door('bookshop'), `Pip is not on the way back: ${JSON.stringify(v)}`);
+      await shop.shot(join(out, 'twostreets-pip.png'));
+      // At night nobody goes.
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('night', true));
+      await sleep(400);
+      check((await watch('florist', false, 4.5)) === null, 'a neighbour is out walking at night');
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+
+      // Errands over the bridge, seen in the inset: Iris to Fern's for colours, then Clem to Uncle Page's.
+      await page.keyboard.press('Escape');
+      await sleep(800);
+      const errand = async (who, to, name) => {
+        await page.evaluate((w) => { void window.lamplightDebug.scene.walkTo(w, 'door'); }, who);
+        let w = null;
+        for (let i = 0; i < 90 && !(w && w.actor === who && Math.abs(w.x - to) < 2); i++) {
+          await sleep(500);
+          w = await page.evaluate(() => window.lamplightDebug.scene.streetWalker());
+        }
+        check(w && w.actor === who && Math.abs(w.x - to) < 2, `${who} did not get to the ${name}: ${JSON.stringify(w)}`);
+        await shop.shot(join(out, `twostreets-${name}.png`));
+        await page.evaluate((w) => { void window.lamplightDebug.scene.walkTo(w, 'counter'); }, who);
+        let back = false;
+        for (let i = 0; i < 120 && !back; i++) {
+          await sleep(500);
+          back = await page.evaluate((w) => window.lamplightDebug.scene.streetWalker() === null && window.lamplightDebug.scene.anchorOf(w) !== null, who);
+        }
+        check(back, `${who} did not come home from the ${name}`);
+      };
+      await errand('qingdai', door('flowershop'), 'flowershop');
+      await errand('xiaoju', door('bookshop'), 'bookshop');
+      await shop.shot(join(out, 'twostreets-home.png'));
+    } finally { await shop.close(); }
+  },
+
   async riverstreet(lang, out) {
     const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
     const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
