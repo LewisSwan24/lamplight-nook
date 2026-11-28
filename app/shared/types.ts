@@ -260,6 +260,10 @@ export interface LamplightApi {
   tellYear(): Promise<number | null>;
   /** A neighbour bought the flowers in this vase of the flower shop's stand (plan-2.0.md J12). */
   sellFlower(slot: number, who: GuestId): Promise<void>;
+  /** A book from the bookshop's catalogue taken home (plan-2.0.md J13); none while another is out. */
+  borrowBook(book: string): Promise<void>;
+  /** Uncle Page has taken the borrowed book back. */
+  returnBook(): Promise<void>;
   /** Unpackaged builds only: move the shop's clock (main/clock.ts), for the simulations. */
   debugClock(at: string): Promise<void>;
   /** The home-network connection (docs/plan-1.5.md E1): where it listens and the paired devices. */
@@ -621,6 +625,8 @@ export const IPC = {
   tellStaffStory: 'shop:tell-staff-story',
   tellYear: 'shop:tell-year',
   sellFlower: 'shop:sell-flower',
+  borrowBook: 'shop:borrow-book',
+  returnBook: 'shop:return-book',
   debugClock: 'debug:clock',
   lanState: 'lan:state',
   lanPair: 'lan:pair',

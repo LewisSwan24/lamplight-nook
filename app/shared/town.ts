@@ -1,3 +1,4 @@
+import type { Loan } from './books';
 import type { FlowerSale } from './flowers';
 import type { YearDays } from './mainstory';
 import type { StaffStories } from './staffstories';
@@ -48,6 +49,8 @@ export type TownDays = {
   holidays?: Gathered[];
   /** The flower shop's recent sales: the day, the vase, who bought it (plan-2.0.md J12, shared/flowers.ts). Absent before. */
   flowers?: FlowerSale[];
+  /** The bookshop's books taken home, one at a time, and when each went back (plan-2.0.md J13, shared/books.ts). Absent before. */
+  loans?: Loan[];
 };
 
 export const emptyTown = (): TownDays => ({ shops: {}, street: [], stories: {} });

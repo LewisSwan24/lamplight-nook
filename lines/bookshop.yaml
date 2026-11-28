@@ -223,3 +223,10 @@ shop_idle:
   - { id: bs_river_11, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["水里也有个月亮。"] }
   - { id: bs_river_12, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["中秋放河灯，", "这条街的老规矩。"] }
   - { id: bs_river_13, speaker: jianbo, when: period_dawn, bubbles: ["清早河上有雾。"] }
+
+# Uncle Page lends a book from the catalogue (plan-2.0.md J13).
+lend:
+  - { id: bs_lend_01, speaker: jianbo, bubbles: ["拿去吧，看完再说。"] }
+  - { id: bs_lend_02, speaker: jianbo, bubbles: ["这本好，慢慢看。"] }
+  - { id: bs_lend_03, speaker: jianbo, bubbles: ["一个礼拜，我上门去拿。"] }
+  - { id: bs_lend_04, speaker: jianbo, bubbles: ["书页脆，翻的时候轻一点。"] }

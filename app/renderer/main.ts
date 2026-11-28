@@ -6,7 +6,7 @@ import enTrial from '../../demo/trial.en.jsonl?raw';
 import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { NO_TALLY, tallyLine, tallyRepair, type RepairTally } from '../shared/repair';
-import type { ActorId, AnchorId, CharacterCommand, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer, Work } from '../shared/types';
+import type { ActorId, AnchorId, CharacterCommand, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, ShopState, UpdateOffer, Work } from '../shared/types';
 import { chime, setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { StreetScene } from './game/StreetScene';
@@ -33,6 +33,10 @@ import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, sho
 import { type ObjectId, objectReaction } from './game/objects';
 import { showChronicle } from './ui/chronicle';
 import { showTodayFlowers } from './ui/flowers';
+import { bookName, pageOf, showCatalogue } from './ui/catalogue';
+import zhBookLoans from '../../lines/book-loans.yaml?raw';
+import enBookLoans from '../../lines/en/book-loans.yaml?raw';
+import { isDue, onLoan, shelfOf, type Cubby, type Loan } from '../shared/books';
 import zhFlowerBuyers from '../../lines/flower-buyers.yaml?raw';
 import enFlowerBuyers from '../../lines/en/flower-buyers.yaml?raw';
 import { nextBuyer, shelfOn, soldOn, type FlowerSale } from '../shared/flowers';
@@ -86,7 +90,7 @@ const home = new CafeScene(homeScene());
 let scene: CafeScene = home;
 /** What the page hangs on a room (clicks, sounds, lines said): set on the home shop below, copied to a room gone into. */
 const ROOM_HOOKS = ['onGuestIn', 'onView', 'onBellClick', 'onActorClick', 'onSound', 'onSay', 'onStreet', 'onObjectClick', 'onYouClick',
-  'boardInUse', 'onBoardClick', 'onWorksClick', 'onCounterClick', 'onWallCard', 'onFlowers', 'onFlowerCard'] as const satisfies readonly (keyof CafeScene)[];
+  'boardInUse', 'onBoardClick', 'onWorksClick', 'onCounterClick', 'onWallCard', 'onFlowers', 'onFlowerCard', 'onLentBook'] as const satisfies readonly (keyof CafeScene)[];
 const street = new StreetScene();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -287,6 +291,7 @@ setInterval(() => {
   if (atHome()) dropIn(!busy && !blocked && scene.view === 'shop');
   talkInShop(!busy && !blocked && scene.view === 'shop');
   if (scene.room === 'flowershop') void tendFlowers(!busy && !blocked && scene.view === 'shop');
+  if (scene === home) void collectBook(!busy && !blocked && scene.view === 'shop');
   nudgeStaff();
   nudgeYear();
   if (running && !blocked) sayProgress();
@@ -370,6 +375,63 @@ const flowerBuyers = (): Chat[] => {
   if (buyerBook?.lang !== locale()) buyerBook = { lang: locale(), chats: parseChats(locale() === 'en' ? enFlowerBuyers : zhFlowerBuyers) };
   return buyerBook.chats;
 };
+/**
+ * The bookshop's books (plan-2.0.md J13): the bookcase filled a cubby to each book list made, its catalogue, the one
+ * book that can be at home, and Uncle Page coming round for it a week later.
+ */
+const bookShop: { day: string; cubbies: Cubby[]; loans: readonly Loan[]; synced: number; collecting: boolean } = {
+  day: '', cubbies: [], loans: [], synced: 0, collecting: false,
+};
+/** Looked at again this often while at home, so a new day brings Uncle Page round for the book that is due. */
+const BOOKS_SYNC_MS = 60_000;
+function applyBooks(state: ShopState) {
+  bookShop.day = state.today;
+  bookShop.cubbies = shelfOf(state.works.filter((w) => w.template === 'booklist'));
+  bookShop.loans = state.town?.loans ?? [];
+  bookShop.synced = Date.now();
+  const loan = onLoan(bookShop.loans);
+  for (const [, r] of rooms) r.scene.bookcase?.setShelf(bookShop.cubbies.map((c) => c.books), loan?.book ?? null);
+  home.lentBook?.set(loan ? { id: loan.book, title: bookName(loan.book).title } : null);
+}
+async function syncBooks() {
+  applyBooks(await window.lamplight.shopState());
+}
+function openCatalogue(page?: number) {
+  showCatalogue({
+    cubbies: bookShop.cubbies, loans: bookShop.loans, page,
+    onBorrow: async (book, at) => {
+      await window.lamplight.borrowBook(book);
+      await syncBooks();
+      openCatalogue(at);
+      const line = pickOne(ruleBook('bookshop').lines.lend ?? []);
+      if (line && scene.room === 'bookshop' && scene.anchorOf('jianbo') !== null) void stage.talk(line.bubbles.map((text) => ({ speaker: line.speaker, text })));
+    },
+  });
+}
+home.onLentBook = () => {
+  const loan = onLoan(bookShop.loans);
+  if (loan) openCatalogue(pageOf(bookShop.cubbies, loan.book));
+};
+let loanBook: { lang: string; chats: Chat[] } | null = null;
+const bookLoans = (): Chat[] => {
+  if (loanBook?.lang !== locale()) loanBook = { lang: locale(), chats: parseChats(locale() === 'en' ? enBookLoans : zhBookLoans) };
+  return loanBook.chats;
+};
+/** A week after the book went home, Uncle Page comes in for it once the shop is quiet, and takes it back. */
+async function collectBook(quiet: boolean) {
+  if (Date.now() - bookShop.synced > BOOKS_SYNC_MS) await syncBooks();
+  const loan = onLoan(bookShop.loans);
+  if (!loan || !isDue(loan, bookShop.day) || bookShop.collecting || !quiet || yearVisiting || scene.hasGuest()) return;
+  if (document.querySelector('#ui > .card, #ui > form.card, .legal-backdrop')) return;
+  const chat = pickOne(bookLoans().filter((c) => c.turns.every((t) => t.speaker === 'bookseller' || scene.anchorOf(t.speaker as ActorId) !== null)));
+  if (!chat) return;
+  bookShop.collecting = true;
+  await scene.guestVisit('bookseller', chat.turns, async () => {
+    await window.lamplight.returnBook();
+    await syncBooks();
+  });
+  bookShop.collecting = false;
+}
 home.onFlowers = () => showTodayFlowers({ day: flowerShop.day, vases: shelfOn(flowerShop.day, flowerShop.sales), sold: soldOn(flowerShop.day, flowerShop.sales) });
 home.onFlowerCard = (i) => {
   const work = flowerShop.cards[i];
@@ -590,6 +652,7 @@ async function refreshShop(fresh: GrowthId[] = [], justFinished = false) {
   // The scene builds its props on its first frame; wait for it when the shop has only just opened.
   while (!home.growth) await new Promise((r) => setTimeout(r, 100));
   home.growth.setGrown(state.grown.map((g) => g.id), fresh);
+  applyBooks(state);
   home.growth.setWorks(state.works.map((w) => w.icon));
   home.garden.setWorksDone(state.done);
   homeStage.setApprentice(apprenticeHere(state.done), justFinished && apprenticeNews(shopDays.done, state.done));
@@ -799,6 +862,8 @@ function sayOnce(line: string, delay: number, said?: () => void, vars: Record<st
 /** Clicking something in the shop: a line, a light, someone strolling over; never anything that costs money. */
 const objectTurns = new Map<ObjectId, number>();
 function clickObject(id: ObjectId) {
+  // The bookshop's bookcase opens its catalogue (plan-2.0.md J13).
+  if (id === 'shelf' && scene.room === 'bookshop') return openCatalogue();
   const turn = objectTurns.get(id) ?? 0;
   objectTurns.set(id, turn + 1);
   const now = new Date();
@@ -1278,6 +1343,7 @@ async function openShop() {
       flowerShop.cameAt = Date.now();
       void syncFlowers(next.scene);
     }
+    if (room === 'bookshop') void syncBooks();
   };
   showRoom = enterRoom;
   const say = (text: string) => {
@@ -1426,7 +1492,13 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
         hour: hourOf(scene.period, new Date().getHours()), buyer: nextBuyer({ day: flowerShop.day, hour: hourOf(scene.period, new Date().getHours()) }, flowerShop.sales),
       }),
     };
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, tower, year, flowers, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
+    // `books`: the bookshop's shelf and loans as worked out, what is drawn, and a fresh look at the shop (plan-2.0.md J13).
+    const books = {
+      state: () => ({ day: bookShop.day, cubbies: bookShop.cubbies.map((c) => ({ topic: c.topic, books: c.books })), loans: bookShop.loans }),
+      look: () => ({ shelf: rooms.get('bookshop')?.scene.bookcase?.look() ?? null, home: home.lentBook?.title ?? null }),
+      sync: () => syncBooks(),
+    };
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, tower, year, flowers, books, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
   }
   const env = $('env');
   env.textContent = [

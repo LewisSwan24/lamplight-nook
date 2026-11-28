@@ -1,0 +1,10 @@
+# Uncle Page comes round for the book you borrowed, a week after (plan-2.0.md J13; lines/en/book-loans.yaml in English).
+# Same shape and writing rules as chats.yaml: Uncle Page first, then whoever is in at home. Which exchange: one whose
+# other speakers are all in. When he comes: app/shared/books.ts LOAN_DAYS.
+
+- { id: loan_1, when: idle, guest: bookseller, turns: [{ bookseller: "来拿那本书，看完了吗？" }, { adeng: "看完了，在书架上。" }, { bookseller: "好，下回再借。" }] }
+- { id: loan_2, when: idle, guest: bookseller, turns: [{ bookseller: "一个礼拜到了，书还好吧？" }, { xiaoju: "好好的，一页没折。" }] }
+- { id: loan_3, when: idle, guest: bookseller, turns: [{ bookseller: "顺路过来，把书带回去。" }, { laoshi: "看了两遍。写得扎实。" }] }
+- { id: loan_4, when: idle, guest: bookseller, turns: [{ bookseller: "书该回店里了。" }, { qingdai: "里面的插图，我照着画了一张。" }] }
+- { id: loan_5, when: idle, guest: bookseller, turns: [{ bookseller: "那本书，有人等着借。" }, { adeng: "这就拿给您。" }] }
+- { id: loan_6, when: idle, guest: bookseller, turns: [{ bookseller: "看得怎么样？" }, { xiaoju: "看到半夜，第二天差点起不来。" }] }

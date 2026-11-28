@@ -22,6 +22,8 @@ const wall = (id: Target, scene: CafeScene) => (id === 'cork' ? strings.ui.visit
 /** The flower shop's counter card and the flower cards on its wall (plan-2.0.md J12). */
 const flowers = (id: Target, scene: CafeScene): string | undefined => {
   if (id === 'flowers') return strings.ui.flowers.label;
+  // The book borrowed from the bookshop, on the shelf at home (plan-2.0.md J13).
+  if (id === 'lentbook') return scene.lentBook?.title ? fill(strings.ui.books.home, { title: scene.lentBook.title }) : undefined;
   const i = flowerCardIndex(id);
   return i !== null && scene.flowers?.titles[i] ? fill(strings.ui.flowers.wall, { title: scene.flowers.titles[i] }) : undefined;
 };
@@ -56,7 +58,7 @@ export function updateHotspots(scene: CafeScene, rect: DOMRect, scale: number) {
       box.append(b);
     }
     // A pinned postcard's place can come to hold another friend's card.
-    if (h.id.startsWith('wall-') || h.id.startsWith('flowercard-')) b.setAttribute('aria-label', label(h.id, scene));
+    if (h.id.startsWith('wall-') || h.id.startsWith('flowercard-') || h.id === 'lentbook') b.setAttribute('aria-label', label(h.id, scene));
     Object.assign(b.style, { left: `${rect.left + h.x * scale}px`, top: `${rect.top + h.y * scale}px`, width: `${h.w * scale}px`, height: `${h.h * scale}px` });
   }
   for (const [id, b] of buttons) b.hidden = !seen.has(id);

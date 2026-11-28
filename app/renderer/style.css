@@ -232,6 +232,20 @@ body.debug #debug { display: block; }
 .flower-name { min-width: 6em; }
 .flower-about { font-size: 12px; opacity: 0.75; }
 .flower-row[data-sold] .flower-name { opacity: 0.6; }
+/* The bookshop's catalogue (plan-2.0.md J13): a page to each cubby of the bookcase. */
+.catalogue-card { display: flex; flex-direction: column; }
+.catalogue-intro, .catalogue-empty, .catalogue-from, .catalogue-busy { font-size: 13px; opacity: 0.8; margin: 4px 0 8px; }
+.catalogue-cubby { margin: 8px 0 0; }
+.catalogue-books { list-style: none; margin: 0; padding: 0; }
+.book-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.book-spine { flex: none; width: 6px; height: 22px; border-radius: 1px; box-shadow: inset -2px 0 rgba(58, 58, 80, 0.4); }
+.book-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.book-by { font-size: 12px; opacity: 0.75; }
+.book-read { font-size: 11px; opacity: 0.6; }
+.book-lent { flex: none; font-size: 12px; opacity: 0.8; text-align: right; max-width: 14em; }
+.book-borrow { flex: none; }
+.catalogue-turn { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.catalogue-count { font-size: 12px; opacity: 0.7; }
 .flowers-sold-title { margin: 10px 0 4px; }
 .card-scroll { padding-right: 6px; }
 .dialog .who { font-family: var(--hand); font-size: 17px; color: var(--accent); }

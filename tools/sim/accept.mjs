@@ -7664,6 +7664,93 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The bookshop's books (plan-2.0.md J13). Two book lists made, one on history and one on nature: the bookcase has two
+   * cubbies filled, four books each, and the rest empty. Click it and the catalogue opens on the first cubby; turn the
+   * page to the second and take a book home. Its gap shows on the shelf, it lies on the shelf at home, and a week later
+   * Uncle Page comes round for it: the loan is written down as back, and the book is gone from home.
+   */
+  async bookshelf(lang, out) {
+    const L = locale(lang);
+    const B = L.ui.books;
+    const lists = [['历史书单', 'History list', '想读点历史方面的书'], ['自然书单', 'Nature list', 'books about birds and insects']];
+    const home = freshHome({
+      'settings.json': onboarded(lang),
+      'memory.json': JSON.stringify({
+        commissions: lists.map(([zh, en, want], i) => ({ id: `c${1772000000000 + i * 86400000}`, title: lang === 'en' ? en : zh, date: `2027-03-0${i + 1}`, result: 'done', choices: {}, folder: 'C:/nowhere', form: { want, template: 'booklist' } })),
+        stuckNotes: [], greeted: 'c1',
+        shop: { done: 6, told: ['town-move'], grown: [], met: [], town: { shops: { bookshop: { done: 2, grown: [] } }, street: [], stories: {} } },
+      }),
+    });
+    const shop = await launch({ lang, home, speed: SPEED, clock: '2027-03-10T10:00' });
+    const { page } = shop;
+    const room = () => page.evaluate(() => window.lamplightDebug.scene.room);
+    const look = () => page.evaluate(() => window.lamplightDebug.books.look());
+    const state = () => page.evaluate(() => window.lamplightDebug.books.state());
+    const loans = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.loans ?? [];
+    const go = async (where) => {
+      await page.evaluate((w) => window.lamplightDebug.street.onFront(w, true), where);
+      for (const end = Date.now() + 15_000; Date.now() < end && (await room().catch(() => null)) !== where; await sleep(300));
+      check(await room() === where, `did not go into the ${where}: ${await room()}`);
+      await page.evaluate(() => { window.lamplightDebug.scene.setWeather('clear', null, false); window.lamplightDebug.scene.setPeriod('day', true); });
+      await sleep(1500);
+    };
+    try {
+      await holdYear(page);
+      await sleep(2500);
+      await go('bookshop');
+      check(JSON.stringify((await state()).cubbies.map((c) => c.topic)) === '["history","nature"]', `the cubbies: ${JSON.stringify(await state())}`);
+      check(JSON.stringify((await look()).shelf) === '[4,4]', `the bookcase: ${JSON.stringify(await look())}`);
+      await shop.shot(join(out, 'bookshelf-case.png'));
+
+      // The catalogue, a page to a cubby.
+      await shop.hotspot(L.ui.objects.names.shelf);
+      const card = page.locator('.catalogue-card');
+      await card.waitFor({ timeout: 5000 });
+      const cubby = card.locator('.catalogue-cubby');
+      check((await cubby.innerText()).includes(B.topics.history) && await card.locator('.book-row').count() === 4, `the first page: ${await card.innerText()}`);
+      check((await card.innerText()).includes(lists[0][lang === 'en' ? 1 : 0]), `the first page does not name its list: ${await card.innerText()}`);
+      await shop.shot(join(out, 'bookshelf-catalogue.png'));
+      await card.locator('.catalogue-next').click();
+      check((await cubby.innerText()).includes(B.topics.nature), `the second page: ${await card.innerText()}`);
+
+      // Take one home.
+      const book = await card.locator('.book-borrow').first().getAttribute('data-book');
+      const title = L.ui.books.titles[book].title;
+      await card.locator('.book-borrow').first().click();
+      for (const end = Date.now() + 5000; Date.now() < end && loans().length === 0; await sleep(200));
+      check(JSON.stringify(loans()) === JSON.stringify([{ book, day: '2027-03-10' }]), `the loan was not written down: ${JSON.stringify(loans())}`);
+      for (const end = Date.now() + 3000; Date.now() < end && await card.locator('.book-row[data-lent]').count() === 0; await sleep(200));
+      check(await card.locator('.book-row[data-lent]').count() === 1 && await card.locator('.book-borrow').count() === 0, `the page after taking it: ${await card.innerText()}`);
+      check(JSON.stringify((await look()).shelf) === '[4,3]', `no gap on the shelf: ${JSON.stringify(await look())}`);
+      await shop.shot(join(out, 'bookshelf-lent.png'));
+      await page.keyboard.press('Escape');
+
+      // At home, on the shelf.
+      await go('cafe');
+      check((await look()).home === title, `the book is not on the shelf at home: ${JSON.stringify(await look())}`);
+      const label = B.home.replace('{title}', title);
+      check(await page.evaluate((l) => [...document.querySelectorAll('button.hotspot')].some((b) => b.getAttribute('aria-label') === l), label), `no hotspot "${label}"`);
+      await shop.shot(join(out, 'bookshelf-home.png'));
+
+      // A week on, Uncle Page comes for it.
+      await page.evaluate(() => window.lamplightDebug.year.clock('2027-03-17T10:00:00'));
+      await page.evaluate(() => window.lamplightDebug.books.sync());
+      let seen = false;
+      for (const end = Date.now() + 60_000; Date.now() < end && !loans()[0]?.back; await sleep(300)) {
+        if (!seen && (await page.evaluate(() => window.lamplightDebug.scene.guest?.id)) === 'bookseller') {
+          seen = true;
+          await sleep(1200);
+          await shop.shot(join(out, 'bookshelf-collect.png'));
+        }
+      }
+      check(seen, 'Uncle Page did not come round');
+      check(loans()[0]?.back === '2027-03-17', `the book did not go back: ${JSON.stringify(loans())}`);
+      for (const end = Date.now() + 3000; Date.now() < end && (await look()).home !== null; await sleep(200));
+      check((await look()).home === null, `the book is still at home: ${JSON.stringify(await look())}`);
+    } finally { await shop.close(); }
+  },
+
   async riverstreet(lang, out) {
     const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
     const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
