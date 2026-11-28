@@ -406,6 +406,17 @@ grow:
   - { id: grow_bookshop_bust, speaker: laoshi, when: grow_bookshop_bust, bubbles: ["Uncle Page put a plaster bust up.", "Every old bookshop has one."] }
   - { id: grow_bookshop_ladder, speaker: adeng, when: grow_bookshop_ladder, bubbles: ["A library ladder hangs in the bookshop.", "Twenty jobs. The shelves grew taller."] }
   - { id: grow_bookshop_listboard, speaker: adeng, when: grow_bookshop_listboard, bubbles: ["A cork board went up in the bookshop.", "Every book list made is pinned there."] }
+  # The old clock tower on the river street (plan-2.0.md J6): a word as each step of the mending shows, and on the first chime of the day.
+  - { id: tower_scaffold, speaker: adeng, when: tower_scaffold, bubbles: ["There's scaffolding up on the clock tower.", "They're mending it, bit by bit."] }
+  - { id: tower_roof, speaker: xiaoju, when: tower_roof, bubbles: ["The clock tower has a new roof!", "Blue slates, all of it."] }
+  - { id: tower_face, speaker: qingdai, when: tower_face, bubbles: ["The scaffolding's off the clock tower.", "Its face is clean again."] }
+  - { id: tower_hands, speaker: laoshi, when: tower_hands, bubbles: ["The clock tower has its hands back.", "Whether it keeps time, we will see."] }
+  - { id: tower_lit, speaker: adeng, when: tower_lit, bubbles: ["The clock tower is mended, lit at night.", "It strikes the hour now. Listen for it."] }
+  - { id: tower_chime_01, speaker: xiaoju, when: tower_chime, bubbles: ["Listen, the clock tower's striking.", "You can hear it across the bridge!"] }
+  - { id: tower_chime_02, speaker: laoshi, when: tower_chime, bubbles: ["The bell.", "Time to get up and walk about."] }
+  - { id: tower_chime_03, speaker: adeng, when: tower_chime, bubbles: ["The clock tower again.", "It keeps good time, day after day."] }
+  - { id: tower_chime_04, speaker: qingdai, when: tower_chime, bubbles: ["There's the bell.", "I'll finish this stroke, then rest."] }
+  - { id: tower_chime_05, speaker: xiaoju, when: tower_chime, bubbles: ["On the hour, the tower's ringing.", "Since it was mended, we hear it daily."] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["A teapot on the desk.", "A cup for anyone who comes in."] }

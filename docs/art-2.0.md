@@ -11,7 +11,7 @@
 | `river-street.png` | J1 河边街的地面：天、对岸的树、桥下的河道和石栏杆、草地、人行道、第一条街的路过了桥到头，前面是河 | Modern Exteriors：`2_City_Terrains`、`1_Terrains_and_Fences`、`5_Floor_Modular_Buildings` 的屋顶。天、水、栏杆是手画 | `scripts/art/river.py` |
 | `river-fronts.png` | J1 花店和书店的门面。花店是红砖楼，两扇窗上有条纹遮阳篷。书店是灰石楼，一扇拱形大窗 | Modern Exteriors：`5_Floor_Modular_Buildings` | `scripts/art/river.py` |
 | `river-props.png` | J1 河边街的路灯、长椅、树、花盆，花店门口三桶花 | Modern Exteriors：`3_City_Props`、`17_Garden` | `scripts/art/river.py` |
-| `river-tower.png` | J1 河边停了的老钟楼：灰石塔身，钟面没有指针还裂了一道。木头钟架上的屋顶塌了一半，门用木条钉着，一边爬着藤。素材包里没有塔身（Q-J7） | 手画 | `scripts/art/river.py` |
+| `river-tower.png` | J1 河边停了的老钟楼：灰石塔身，钟面没有指针还裂了一道。木头钟架上的屋顶塌了一半，门用木条钉着，一边爬着藤。素材包里没有塔身（Q-J7）。J6 起街上不再用，换成 `tower.png` 的第一帧，一模一样，原先由 `river.py` 生成 | 手画 | `scripts/art/tower.py` |
 | `river.json` | J1 桥、两间店的门面和门、钟楼、每样摆设站在哪，`app/renderer/game/town.ts` 读，接在第一条街后面 | 手画（脚本算出来的位置） | `scripts/art/river.py` |
 | `flowershop.png` | J2 花店内景：芳姐的店。三层木台上摆着小花瓶，工作台上包着两束花。柜台上有一卷包花纸和一罐花枝，墙角三桶花，墙上挂一个花环 | Modern Interiors：`Room_Builder` 的地和墙。Modern Exteriors：`17_Garden` 的花瓶、花盆和花桶。木台、工作台、柜台、花环、墙上的搁板是手画 | `scripts/art/flowershop.py` |
 | `flowershop-room.png` | J2 花店，家具后面那层 | Modern Interiors 和 Modern Exteriors，同 `flowershop.png` | `scripts/art/pieces.py` |
@@ -44,3 +44,5 @@
 | `grow-bookshop-listboard.png` | J4 开过书单以后：窗户和黑板之间钉书单的软木板 | 手画 | `scripts/art/growth.py` |
 | `river-life.png` | J5 河上的东西：两帧鸭子、小船、龙舟、莲花灯、月亮灯、阳光反光、三圈雨点涟漪、一整条薄冰 | 手画 | `scripts/art/riverlife.py` |
 | `river-life.json` | J5 河上每样东西在 `river-life.png` 里的位置，游戏和测试都读它 | 手画，跟 `river-life.png` 一起算出来 | `scripts/art/riverlife.py` |
+| `tower.png` | J6 老钟楼修的六个样子：停着、搭架子、换屋顶、拆架子擦钟面、装指针挂钟修门、修好亮灯。第七帧是天黑后亮的灯串和门边灯。指针不在图里，街上照着店里的钟画 | 手画 | `scripts/art/tower.py` |
+| `tower.json` | J6 钟楼每帧多大、各帧叫什么、钟面在哪儿，街上画指针时读它 | 手画，跟 `tower.png` 一起算出来 | `scripts/art/tower.py` |

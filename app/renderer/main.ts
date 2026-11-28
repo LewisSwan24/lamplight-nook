@@ -7,7 +7,7 @@ import { normalizeAll } from '../main/event-normalizer';
 import { fill, locale, shorten, strings } from '../shared/i18n';
 import { NO_TALLY, tallyLine, tallyRepair, type RepairTally } from '../shared/repair';
 import type { ActorId, AnchorId, CharacterCommand, CommissionForm, CommissionResult, EnvStatus, LamplightApi, PendingRound, RawAgentEvent, RunInfo, RunResult, Settings, GuestId, UpdateOffer } from '../shared/types';
-import { setMix, setPeriod, sfx } from './audio/sound';
+import { chime, setMix, setPeriod, sfx } from './audio/sound';
 import { CafeScene } from './game/CafeScene';
 import { StreetScene } from './game/StreetScene';
 import { GardenPlanner, GardenTalk, gardenOpen, outdoorsFor } from './game/garden';
@@ -48,9 +48,10 @@ import { type BubbleBox, placeBubbles } from './ui/bubble-layout';
 import { emoteEl } from './ui/emotes';
 import { mountToolbar, noteEvent, setCalling, setOutsideButton, setWorking, syncToolbar, view } from './ui/toolbar';
 import { el, layer } from './ui/dom';
-import { MOVERS, OPEN, entering, followsOrder, roomFor } from './game/town';
+import { MOVERS, OPEN, entering, followsOrder, roomFor, streetAt } from './game/town';
 import type { StreetShop } from '../shared/dispatch';
 import { TOWN_MOVE } from '../shared/town';
+import { chimeKey, chimeLevel, strokesAt, towerNews, towerStage, type TowerStage } from '../shared/tower';
 import { isStreetShop, roomGrown, townCounts, townNews, type TownCounts } from '../shared/towngrow';
 import { leftBehind, nextChapter, waiting, type Stories, type Teller } from '../shared/stories';
 import { showStaffStory, showStory } from './ui/story';
@@ -594,6 +595,48 @@ function noticeBeds(news: ReturnType<typeof bedNews>) {
   if (news) sayOnce(`grow_${news}`, BEDS_LINE_DELAY_MS);
 }
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+/**
+ * The old clock tower on the river street (plan-2.0.md J6): the year's story mends it (J7); until then it stands as the
+ * debug switch sets it. Once lit it strikes the hour by day, louder the nearer you are, and at home someone remarks on
+ * the first chime of the day. `towerClock` is the shop's clock, which the scenarios can set.
+ */
+const towerClock = { now: () => new Date() };
+let towerAt: TowerStage = towerStage(0);
+let lastStruck = '';
+let chimeSaidOn = '';
+/** Every chime struck, for the scenarios. */
+const chimes: { at: string; strokes: number; level: number }[] = [];
+/** Where the bell is heard from: the room you are in, or the street, once you are out (openShop). */
+let hearingFrom = (): Parameters<typeof chimeLevel>[0] => ({ room: scene.room });
+/** After the bell's last stroke has died away. */
+const CHIME_LINE_DELAY_MS = 8000;
+/** After whatever else was new has had its word. */
+const TOWER_LINE_DELAY_MS = 9000;
+const STRIKE_CHECK_MS = 15_000;
+function setTower(stage: TowerStage) {
+  const news = towerNews(towerAt, stage);
+  towerAt = stage;
+  street.setTower(stage);
+  if (news) sayOnce(news, TOWER_LINE_DELAY_MS);
+}
+function strikeHour() {
+  const now = towerClock.now();
+  const strokes = strokesAt(now, towerAt);
+  const at = chimeKey(now);
+  if (!strokes || at === lastStruck) return;
+  lastStruck = at;
+  const where = hearingFrom();
+  const level = chimeLevel(where);
+  chime(strokes, level);
+  chimes.push({ at, strokes, level });
+  const day = localDay(now);
+  if ('room' in where && where.room === home.room && chimeSaidOn !== day) {
+    chimeSaidOn = day;
+    sayOnce('tower_chime', CHIME_LINE_DELAY_MS);
+  }
+}
+setInterval(strikeHour, STRIKE_CHECK_MS);
 /** Once a year, whenever the shop is opened that day or is still open when the day comes. */
 let birthdayWaiting = '';
 async function noticeBirthday() {
@@ -1073,6 +1116,9 @@ async function openShop() {
   street.outside = () => scene.outside();
   street.calm = () => scene.reducedMotion;
   street.hour = () => hourOf(scene.period, new Date().getHours());
+  street.now = () => towerClock.now();
+  street.setTower(towerAt);
+  hearingFrom = () => (outside ? { street: streetAt(street.cameras.main.scrollX + CANVAS.width / 2) } : { room: scene.room });
   street.onActor = (id) => scene.onActorClick(id);
   street.onNeighbour = hearStory;
   street.onFront = (id, open) => {
@@ -1230,7 +1276,14 @@ window.lamplight.envStatus().then(({ hasApiKey, hasClaude, debug }) => {
     // pretendRunning: show what the shop looks like mid-commission (bell out, form away) without running one.
     const pretendRunning = (on: boolean) => { running = on ? 'debug' : null; setWorking(on); scene.setFormWaiting(!on); scene.setBell(on); };
     // `rooms`: every room at work just now (D3), by room, with its scene and stage.
-    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
+    // `tower`: show it in a look (plan-2.0.md J6), set the shop's clock and strike if it is the hour, and what it has struck.
+    const tower = {
+      set: setTower,
+      tick: (iso: string) => { const offset = new Date(iso).getTime() - Date.now(); towerClock.now = () => new Date(Date.now() + offset); strikeHour(); },
+      chimes,
+      look: () => street.tower?.look(),
+    };
+    Object.assign(window, { lamplightDebug: { get scene() { return scene; }, street, tower, get stage() { return stage; }, rooms, ui, view, replay: startReplay, pretendRunning, welcome, chatter, get shopDays() { return shopDays; }, get memories() { return memories; }, lines: () => ruleBook(scene.room).lines } });
   }
   const env = $('env');
   env.textContent = [

@@ -33,6 +33,12 @@
   a pot by the door, a new sign (a red flower, a stack of books) and a string of flags as their work goes on. Inside,
   each now dresses for the festivals in its own way, a little piece on the counter, a card or a book hung on its
   front, and a Christmas tree or a pile of pumpkins on the floor.
+- **The clock tower mended.** Over the year the old clock tower on the river street is mended a step at a time:
+  scaffolding up both sides, a new roof of blue slates, a clean clock face, then hands that keep the shop's time, the
+  bell hung and the door mended, and at last a lamp by the door and lights along the roof after dark. Once mended it
+  strikes the hour by day, as many strokes as the hour: loudest by the river, softer across the bridge, faint indoors,
+  and never from ten at night to seven in the morning. Someone at home remarks on each step and on the day's first
+  chime.
 
 ## 1.9.0 (2026-11-27)
 

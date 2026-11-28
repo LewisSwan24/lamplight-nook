@@ -2,10 +2,13 @@
 
 UI sounds are picked from Cyberleaf "Modern UI SFX" (assets/vendor/sfx, not in the repo; its license
 allows use in the app but not remixing, so each file is only re-encoded and levelled). The shop
-sounds the pack doesn't have (door bell, counter bell, mallet, pencil) are synthesized here. Deterministic (fixed seed).
-Needs ffmpeg with libvorbis. Run: python3 scripts/audio/sfx.py
+sounds the pack doesn't have (door bell, counter bell, mallet, pencil, and the clock tower's bell, plan-2.0.md J6) are
+synthesized here. Deterministic (fixed seed). Needs ffmpeg with libvorbis. Run: python3 scripts/audio/sfx.py, or with
+--bell to write only the tower's bell, which needs nothing from the pack.
 """
+import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -28,7 +31,7 @@ PICKED = {
 }
 # Peak level per sound (UI clicks quieter than news).
 PEAK = {'click': 0.35, 'open': 0.4, 'close': 0.35, 'ask': 0.5, 'success': 0.5, 'fail': 0.45, 'serious': 0.55,
-        'door': 0.45, 'mallet': 0.4, 'pencil': 0.25, 'ding': 0.45}
+        'door': 0.45, 'mallet': 0.4, 'pencil': 0.25, 'ding': 0.45, 'bell': 0.5}
 
 
 def load(path: Path) -> np.ndarray:
@@ -39,11 +42,14 @@ def load(path: Path) -> np.ndarray:
 
 def save(name: str, x: np.ndarray):
     x = x / max(np.abs(x).max(), 1e-9) * PEAK[name]
-    with tempfile.NamedTemporaryFile(suffix='.f32') as tmp:
+    # Closed before ffmpeg reads it: Windows will not open a temporary file a second time while it is open.
+    with tempfile.NamedTemporaryFile(suffix='.f32', delete=False) as tmp:
         tmp.write(x.astype(np.float32).tobytes())
-        tmp.flush()
+    try:
         subprocess.run(['ffmpeg', '-v', 'quiet', '-y', '-f', 'f32le', '-ar', str(RATE), '-ac', '1', '-i', tmp.name,
                         '-c:a', 'libvorbis', '-q:a', '4', str(OUT / f'{name}.ogg')], check=True)
+    finally:
+        os.unlink(tmp.name)
 
 
 def t(seconds: float) -> np.ndarray:
@@ -69,6 +75,16 @@ def service_bell() -> np.ndarray:
     partials = [(1.0, 1.0, 0.9), (2.0, 0.35, 0.5), (3.01, 0.2, 0.3), (4.2, 0.1, 0.2)]
     ring = sum(a * np.sin(2 * np.pi * 2350 * r * tt) * np.exp(-tt / d) for r, a, d in partials)
     return ring * np.minimum(tt / 0.001, 1)
+
+
+def tower_bell() -> np.ndarray:
+    """One stroke of the clock tower's bell: a low hum, the strike and its minor third, fifth and octave, ringing on."""
+    tt = t(3.2)
+    f0 = 392
+    # A church bell's partials over its strike note: hum, prime, tierce, quint, nominal; the low ones ring longest.
+    partials = [(0.5, 0.6, 2.2), (1.0, 1.0, 1.4), (1.2, 0.45, 0.9), (1.5, 0.3, 0.7), (2.0, 0.35, 0.6), (2.67, 0.12, 0.3)]
+    ring = sum(a * np.sin(2 * np.pi * f0 * r * tt) * np.exp(-tt / d) for r, a, d in partials)
+    return ring * np.minimum(tt / 0.003, 1)
 
 
 def mallet(rng) -> np.ndarray:
@@ -97,6 +113,9 @@ def pencil(rng) -> np.ndarray:
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    save('bell', tower_bell())
+    if '--bell' in sys.argv:
+        return
     for name, rel in PICKED.items():
         save(name, load(PACK / rel))
     rng = np.random.default_rng(11)

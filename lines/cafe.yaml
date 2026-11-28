@@ -406,6 +406,17 @@ grow:
   - { id: grow_bookshop_bust, speaker: laoshi, when: grow_bookshop_bust, bubbles: ["简伯架子上摆了个石膏像。", "旧书店里，总有这么一个。"] }
   - { id: grow_bookshop_ladder, speaker: adeng, when: grow_bookshop_ladder, bubbles: ["书店挂起了一架书梯。", "二十单了，书架也高了。"] }
   - { id: grow_bookshop_listboard, speaker: adeng, when: grow_bookshop_listboard, bubbles: ["书店墙上钉了块软木板。", "开过的书单，都钉在上面。"] }
+  # The old clock tower on the river street (plan-2.0.md J6): a word as each step of the mending shows, and on the first chime of the day.
+  - { id: tower_scaffold, speaker: adeng, when: tower_scaffold, bubbles: ["河边那座钟楼搭起架子了。", "说是要一点点修好。"] }
+  - { id: tower_roof, speaker: xiaoju, when: tower_roof, bubbles: ["钟楼换上新屋顶了！", "瓦片是蓝的。"] }
+  - { id: tower_face, speaker: qingdai, when: tower_face, bubbles: ["钟楼的架子拆了。", "钟面擦得干干净净。"] }
+  - { id: tower_hands, speaker: laoshi, when: tower_hands, bubbles: ["钟楼装上指针了。", "走得准不准，过几天再看。"] }
+  - { id: tower_lit, speaker: adeng, when: tower_lit, bubbles: ["钟楼修好了，晚上还亮灯。", "整点会敲钟，到时候听听。"] }
+  - { id: tower_chime_01, speaker: xiaoju, when: tower_chime, bubbles: ["听，钟楼在敲钟。", "隔着桥也听得见呢。"] }
+  - { id: tower_chime_02, speaker: laoshi, when: tower_chime, bubbles: ["钟响了。", "该起来走两步。"] }
+  - { id: tower_chime_03, speaker: adeng, when: tower_chime, bubbles: ["钟楼又敲了。", "一天一天，它走得挺准。"] }
+  - { id: tower_chime_04, speaker: qingdai, when: tower_chime, bubbles: ["钟声传过来了。", "我把这一笔画完再歇。"] }
+  - { id: tower_chime_05, speaker: xiaoju, when: tower_chime, bubbles: ["整点了，钟楼在响。", "修好以后，每天都听得见。"] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["书桌上多了盆绿植！", "我会记得浇水。"], reply: { speaker: laoshi, bubbles: ["上回那盆也这么说。"] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["书桌上添了把茶壶。", "来的人都能喝一杯。"] }

@@ -6,7 +6,6 @@ import streetUrl from '../../../assets/sprites/town-street.png';
 import riverStreetUrl from '../../../assets/sprites/river-street.png';
 import riverFrontsUrl from '../../../assets/sprites/river-fronts.png';
 import riverPropsUrl from '../../../assets/sprites/river-props.png';
-import riverTowerUrl from '../../../assets/sprites/river-tower.png';
 import { streetGrown, type TownCounts } from '../../shared/towngrow';
 import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
@@ -18,6 +17,8 @@ import { addUmbrella, holdUmbrella, preloadTownDecor, TownDecor } from './TownDe
 import { preloadTownGrowth, TownGrowth } from './TownGrowth';
 import { preloadTownStories, TownStories } from './TownStories';
 import { preloadRiverLife, RiverView } from './RiverView';
+import { preloadTower, TowerView } from './TowerView';
+import type { TowerStage } from '../../shared/tower';
 import type { Teller } from '../../shared/stories';
 import { FALLING, FLASH_GAP_MS, flashesFor, fogFor } from './weather';
 import { periodAt } from './daytime';
@@ -55,8 +56,8 @@ const DEPTH = { street: 0, ground: 0.5, fronts: 1, grown: 2, story: 2.5, up: 3, 
 /** The river's ducks and boats lie on its water; its lanterns over the shop's light (the shade), so they glow at night. */
 const RIVER_DEPTH = { water: DEPTH.ground + 0.2, glow: 1000 };
 
-/** The river street's layers (plan-2.0.md J1), laid on at the end of the first street; the tower stands on its own. */
-const RIVER_LAYERS = [['river-street', riverStreetUrl], ['river-fronts', riverFrontsUrl], ['river-props', riverPropsUrl], ['river-tower', riverTowerUrl]] as const;
+/** The river street's layers (plan-2.0.md J1), laid on at the end of the first street; the clock tower is TowerView's (J6). */
+const RIVER_LAYERS = [['river-street', riverStreetUrl], ['river-fronts', riverFrontsUrl], ['river-props', riverPropsUrl]] as const;
 
 /**
  * The town's street (road-to-1.4.md D1): seven fronts in a row, wider than the canvas, and past the bridge at its far
@@ -101,6 +102,11 @@ export class StreetScene extends Phaser.Scene {
   stories?: TownStories;
   /** The river in front of the river street (plan-2.0.md J5), once the scene is up. */
   river?: RiverView;
+  /** The old clock tower (plan-2.0.md J6), once the scene is up, and the look the year's story has mended it to. */
+  tower?: TowerView;
+  private towerStage: TowerStage = 'stopped';
+  /** The shop's clock, which the tower's hands keep. */
+  now: () => Date = () => new Date();
   private tales: { waiting: Teller[]; left: string[] } = { waiting: [], left: [] };
   /** The hour the street goes by, as the shop shows the day (crowd.ts hourOf). */
   hour: () => number = () => new Date().getHours();
@@ -122,6 +128,7 @@ export class StreetScene extends Phaser.Scene {
     if (!this.textures.exists('town-decor')) preloadTownDecor(this.load);
     if (!this.textures.exists('town-story')) preloadTownStories(this.load);
     if (!this.textures.exists('river-life')) preloadRiverLife(this.load);
+    if (!this.textures.exists('tower')) preloadTower(this.load);
     PASSER_SHEETS.forEach((url, i) => {
       if (!this.textures.exists(passerKey(i + 1))) this.load.spritesheet(passerKey(i + 1), url, { frameWidth: STAFF_FRAME.width, frameHeight: STAFF_FRAME.height });
     });
@@ -134,7 +141,8 @@ export class StreetScene extends Phaser.Scene {
     this.add.image(RIVER.x, 0, 'river-street').setOrigin(0).setDepth(DEPTH.street);
     this.add.image(RIVER.x, 0, 'river-fronts').setOrigin(0).setDepth(DEPTH.fronts);
     this.add.image(RIVER.x, 0, 'river-props').setOrigin(0).setDepth(DEPTH.fronts);
-    this.add.image(RIVER.tower.x, RIVER.tower.y, 'river-tower').setOrigin(0).setDepth(DEPTH.fronts);
+    this.tower = new TowerView(this, { tower: DEPTH.fronts, glow: RIVER_DEPTH.glow });
+    this.tower.set(this.towerStage, periodAt(this.hour()));
     this.growth = new TownGrowth(this);
     for (const image of this.growth.images) image.setDepth(DEPTH.grown);
     if (this.counts) this.growth.show(this.counts);
@@ -182,6 +190,12 @@ export class StreetScene extends Phaser.Scene {
     this.decor?.setGrown(streetGrown(counts.total));
   }
 
+  /** Show the clock tower mended so far (plan-2.0.md J6). */
+  setTower(stage: TowerStage) {
+    this.towerStage = stage;
+    this.tower?.set(stage, periodAt(this.hour()));
+  }
+
   /** Who has a chapter waiting and what the chapters told have left (D4). */
   setStories(waiting: Teller[], left: string[]) {
     this.tales = { waiting, left };
@@ -193,6 +207,7 @@ export class StreetScene extends Phaser.Scene {
     this.dress();
     this.walkCrowd(delta);
     this.river?.update(this.time.now);
+    this.tower?.update(this.now());
     const w = this.walker();
     if (!w) {
       this.seen?.setVisible(false);
@@ -265,6 +280,7 @@ export class StreetScene extends Phaser.Scene {
     this.dressed = key;
     this.decor.setOutside(outside);
     this.river?.set(outside, period, calm);
+    this.tower?.set(this.towerStage, period);
     this.growth?.putAway(putAway(outside));
     this.falling?.destroy();
     this.falling = undefined;
