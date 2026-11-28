@@ -210,3 +210,16 @@ shop_idle:
   - { id: bs_idle_summer_01, speaker: jianbo, when: season_summer, bubbles: ["In summer I air the books in the sun."] }
   - { id: bs_idle_autumn_01, speaker: jianbo, when: season_autumn, bubbles: ["Autumn light is the best for reading."] }
   - { id: bs_idle_winter_01, speaker: jianbo, when: season_winter, bubbles: ["Cold hands in winter. Slow pages."] }
+  - { id: bs_river_01, speaker: jianbo, bubbles: ["The ducks swam up to the door.", "Maybe they want a book too."] }
+  - { id: bs_river_02, speaker: jianbo, bubbles: ["There goes the little boat.", "This river used to be full of barges."] }
+  - { id: bs_river_03, speaker: jianbo, when: sky_rain, bubbles: ["Rain on the river,", "like pages turning."] }
+  - { id: bs_river_04, speaker: jianbo, when: sky_rain, bubbles: ["On rainy days, books keep from the window."] }
+  - { id: bs_river_05, speaker: jianbo, when: sky_snow, bubbles: ["The river froze.", "We used to slide on it as children."] }
+  - { id: bs_river_06, speaker: jianbo, when: sky_snow, bubbles: ["The ice is thin. Don't go out on it."] }
+  - { id: bs_river_07, speaker: jianbo, when: sky_clear, bubbles: ["The river shines like a mirror today."] }
+  - { id: bs_river_08, speaker: jianbo, when: holiday_dragon_boat, bubbles: ["Here comes the dragon boat. Hear the drum."] }
+  - { id: bs_river_09, speaker: jianbo, when: holiday_dragon_boat, bubbles: ["The boats race for Qu Yuan.", "Qu Yuan's poems are on the shelf."] }
+  - { id: bs_river_10, speaker: jianbo, when: holiday_lantern, bubbles: ["The lanterns are drifting by.", "One lantern, one wish."] }
+  - { id: bs_river_11, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["There's a moon in the water too."] }
+  - { id: bs_river_12, speaker: jianbo, when: holiday_mid_autumn, bubbles: ["Lanterns on the river at mid-autumn.", "An old custom on this street."] }
+  - { id: bs_river_13, speaker: jianbo, when: period_dawn, bubbles: ["Mist on the river this early."] }

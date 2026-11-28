@@ -210,3 +210,16 @@ shop_idle:
   - { id: fl_idle_summer_01, speaker: fangjie, when: season_summer, bubbles: ["Summer: change the water twice a day."] }
   - { id: fl_idle_autumn_01, speaker: fangjie, when: season_autumn, bubbles: ["Autumn chrysanthemums get odder every year."] }
   - { id: fl_idle_winter_01, speaker: fangjie, when: season_winter, bubbles: ["Cold hands in winter. I tie slower."] }
+  - { id: fl_river_01, speaker: fangjie, bubbles: ["Those two ducks are back.", "I threw them some crumbs this morning."] }
+  - { id: fl_river_02, speaker: fangjie, bubbles: ["A little boat just went by.", "Old Zhou from the fish stall, rowing."] }
+  - { id: fl_river_03, speaker: fangjie, when: sky_rain, bubbles: ["Rain. The river is all little rings."] }
+  - { id: fl_river_04, speaker: fangjie, when: sky_rain, bubbles: ["The ducks don't mind the rain."] }
+  - { id: fl_river_05, speaker: fangjie, when: sky_snow, bubbles: ["The river has iced over.", "Who knows where the ducks went."] }
+  - { id: fl_river_06, speaker: fangjie, when: sky_clear, bubbles: ["Sun on the river. It's dazzling."] }
+  - { id: fl_river_07, speaker: fangjie, when: holiday_dragon_boat, bubbles: ["The dragon boat is coming past!", "I always hear the drum first."] }
+  - { id: fl_river_08, speaker: fangjie, when: holiday_dragon_boat, bubbles: ["Same drummer as last year."] }
+  - { id: fl_river_09, speaker: fangjie, when: holiday_lantern, bubbles: ["The river lanterns are out.", "Drifting off one by one."] }
+  - { id: fl_river_10, speaker: fangjie, when: holiday_lantern, bubbles: ["I folded those lotus lanterns."] }
+  - { id: fl_river_11, speaker: fangjie, when: holiday_mid_autumn, bubbles: ["The moon and the lanterns, all in the water."] }
+  - { id: fl_river_12, speaker: fangjie, when: period_dusk, bubbles: ["The river looks best at dusk."] }
+  - { id: fl_river_13, speaker: fangjie, when: period_night, bubbles: ["At night you can hear the river."] }

@@ -7136,6 +7136,80 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The river through the year (plan-2.0.md J5): out on the river street with the clock turned to a fine day, rain, a
+   * winter's snow, the dragon boat festival and mid-autumn night. The sun glints and the ducks swim; the rain rings the
+   * water; the snow freezes it and nothing is out on it; the dragon boat rows by; moon lanterns float in the dark.
+   */
+  async river(lang, out) {
+    const L = locale(lang);
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: SPEED });
+    const { page } = shop;
+    const seen = () => page.evaluate(() => window.lamplightDebug.street.river.seen());
+    const look = (x) => page.evaluate((sx) => { window.lamplightDebug.street.cameras.main.scrollX = sx; }, x);
+    const turn = async (season, sky, holiday, period) => {
+      await page.evaluate(([s, k, h, p]) => {
+        const scene = window.lamplightDebug.scene;
+        scene.setSeason(s);
+        scene.setWeather(k, h, false);
+        scene.setPeriod(p, true);
+      }, [season, sky, holiday, period]);
+      await sleep(1200);
+    };
+    try {
+      await sleep(2500);
+      await turn('summer', 'clear', null, 'day');
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(800);
+      check(await page.evaluate(() => window.lamplightDebug.street.sys.isVisible()), 'the street did not show');
+      await page.evaluate(() => window.lamplightDebug.street.lookAt('flowershop'));
+      await sleep(600);
+
+      // A fine day: the sun glints on the water and the two ducks are out.
+      let v = await seen();
+      check(v.water === 'glint' && v.glints > 0 && !v.ice, `a fine day: ${JSON.stringify(v)}`);
+      check(v.things.filter((t) => t.kind === 'duck').length === 2, `the ducks are not out: ${JSON.stringify(v.things)}`);
+      const duck = v.things.find((t) => t.kind === 'duck');
+      await look(town.width + duck.x - 160);
+      await sleep(300);
+      await shop.shot(join(out, 'river-fine.png'));
+
+      // Rain: rings spread on the water in view.
+      await turn('summer', 'rain', null, 'day');
+      await page.evaluate(() => window.lamplightDebug.street.lookAt('bookshop'));
+      await sleep(1500);
+      v = await seen();
+      check(v.water === 'ripples' && v.ripples > 3 && v.glints === 0, `rain on the river: ${JSON.stringify(v)}`);
+      await shop.shot(join(out, 'river-rain.png'));
+
+      // A winter's snow: the river iced over, nothing out on it.
+      await turn('winter', 'snow', null, 'day');
+      v = await seen();
+      check(v.water === 'ice' && v.ice && v.things.length === 0, `snow on the river: ${JSON.stringify(v)}`);
+      await shop.shot(join(out, 'river-snow.png'));
+
+      // The dragon boat festival: the dragon boat rows by (it crosses every seventy seconds).
+      await turn('summer', 'clear', 'dragon_boat', 'day');
+      const boat = await page.waitForFunction(() => window.lamplightDebug.street.river.seen().things.find((t) => t.kind === 'dragonboat') ?? null, null, { timeout: 80_000, polling: 250 })
+        .then((h) => h.jsonValue(), () => null);
+      check(boat !== null, 'no dragon boat on the river on its day');
+      if (boat) {
+        await look(town.width + boat.x - 160);
+        await sleep(200);
+        await shop.shot(join(out, 'river-dragon-boat.png'));
+      }
+
+      // Mid-autumn night: moon lanterns afloat, glowing in the dark; the ducks asleep.
+      await turn('autumn', 'clear', 'mid_autumn', 'night');
+      await page.evaluate(() => window.lamplightDebug.street.lookAt('flowershop'));
+      await sleep(600);
+      v = await seen();
+      check(v.things.filter((t) => t.kind === 'moonlantern').length >= 5 && !v.things.some((t) => t.kind === 'duck'), `mid-autumn night: ${JSON.stringify(v.things)}`);
+      await shop.shot(join(out, 'river-mid-autumn.png'));
+    } finally { await shop.close(); }
+  },
+
   async riverstreet(lang, out) {
     const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
     const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
