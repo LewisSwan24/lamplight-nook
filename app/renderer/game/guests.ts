@@ -12,7 +12,7 @@ import type { Holiday, Season, Sky } from './weather';
  * the front door, stop by the counter for a few words (lines/chats.yaml, chats with `guest:`) and go
  * again; they leave at once when a commission comes in. Pure: the caller asks every few seconds.
  */
-export const GUEST_IDS: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil', 'bookkeeper', 'dad', 'editor', 'mum'];
+export const GUEST_IDS: GuestId[] = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil', 'bookkeeper', 'dad', 'editor', 'mum', 'bookseller'];
 /** Old friends of the shop, who come from the start. */
 const OLD_FRIENDS: GuestId[] = ['baker', 'postman'];
 

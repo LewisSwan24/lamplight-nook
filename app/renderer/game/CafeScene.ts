@@ -38,6 +38,7 @@ import bookkeeperUrl from '../../../assets/sprites/bookkeeper.png';
 import dadUrl from '../../../assets/sprites/dad.png';
 import editorUrl from '../../../assets/sprites/editor.png';
 import mumUrl from '../../../assets/sprites/mum.png';
+import booksellerUrl from '../../../assets/sprites/bookseller.png';
 import grannyUrl from '../../../assets/sprites/granny.png';
 import studentUrl from '../../../assets/sprites/student.png';
 import catUrl from '../../../assets/sprites/cat.png';
@@ -131,7 +132,7 @@ const SEASON_URLS: Record<Season, string> = { spring: springUrl, summer: summerU
 const WEATHER_URLS: Record<(typeof SKIES)[number], string> = {
   rain: rainUrl, snow: snowUrl, leaves: leavesUrl, petals: petalsUrl, fog: fogUrl, wind: windUrl, storm: stormUrl,
 };
-const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, fangjie: fangjieUrl, jianbo: jianboUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl, dad: dadUrl, editor: editorUrl, mum: mumUrl };
+const SHEETS: Record<ActorId | GuestId, string> = { adeng: adengUrl, xiaoju: xiaojuUrl, laoshi: laoshiUrl, qingdai: qingdaiUrl, xiaodou: xiaodouUrl, aqian: aqianUrl, xiaozhe: xiaozheUrl, xiaoding: xiaodingUrl, guiyi: guiyiUrl, axin: axinUrl, fangjie: fangjieUrl, jianbo: jianboUrl, cat: catUrl, baker: bakerUrl, postman: postmanUrl, mechanic: mechanicUrl, granny: grannyUrl, student: studentUrl, cook: cookUrl, lodger: lodgerUrl, florist: floristUrl, organizer: organizerUrl, pupil: pupilUrl, bookkeeper: bookkeeperUrl, dad: dadUrl, editor: editorUrl, mum: mumUrl, bookseller: booksellerUrl };
 /** The player's looks, in order (shared/avatars.ts). */
 /** Bean's later looks (plan-1.9.md I2): the first is SHEETS.xiaodou. */
 const BEAN_SHEETS: Record<string, string> = { 'xiaodou-2': xiaodou2Url, 'xiaodou-3': xiaodou3Url };

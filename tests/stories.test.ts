@@ -4,11 +4,13 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import art from '../assets/sprites/town-story.json';
 import town from '../assets/sprites/town.json';
+import river from '../assets/sprites/river.json';
 import { MemoryStore } from '../app/main/memory';
 import { LOCALES } from '../app/shared/i18n';
 import { CHAPTERS, STORY_DAYS, STREET_TELLERS, TELLERS, TELLER_SHOP, keptIn, leftBehind, nextChapter, told, waiting } from '../app/shared/stories';
 import { lintStories, parseStories } from '../app/renderer/translator/lines';
 import { streetArea } from '../app/renderer/game/town';
+import type { RoomId } from '../app/shared/scenes';
 import { readPng } from './png';
 
 // The neighbours' stories (road-to-1.4.md D4): Old Zhou, Granny Chen and Xiaohe each have five chapters, which come with
@@ -21,8 +23,8 @@ const day = (d: string) => new Date(`${d}T10:00:00`);
 const doneTimes = (store: MemoryStore, n: number) => { for (let i = 0; i < n; i++) store.finished(day('2026-11-01')); };
 
 describe('when a chapter comes', () => {
-  it('has five chapters for each of the five, staggered by the work done, the days between the same for all', () => {
-    expect(TELLERS).toEqual(['mechanic', 'granny', 'student', 'baker', 'postman']);
+  it('has five chapters for each of the seven, staggered by the work done, the days between the same for all', () => {
+    expect(TELLERS).toEqual(['mechanic', 'granny', 'student', 'baker', 'postman', 'florist', 'bookseller']);
     expect(STREET_TELLERS).toEqual(['mechanic', 'granny', 'student']);
     expect(CHAPTERS.mechanic.map((c) => c.works)).toEqual([3, 12, 22, 35, 48]);
     expect(CHAPTERS.granny.map((c) => c.works)).toEqual([5, 15, 25, 38, 50]);
@@ -34,6 +36,13 @@ describe('when a chapter comes', () => {
     const fresh = [...CHAPTERS.baker, ...CHAPTERS.postman].map((c) => c.works);
     expect(new Set(fresh).size).toBe(10);
     expect(fresh.filter((n) => old.has(n))).toEqual([]);
+    // Fern and Uncle Page (plan-2.0.md J3): the same, never on a count anyone else has.
+    expect(CHAPTERS.florist.map((c) => c.works)).toEqual([4, 14, 24, 36, 52]);
+    expect(CHAPTERS.bookseller.map((c) => c.works)).toEqual([7, 17, 30, 44, 60]);
+    const before = new Set([...old, ...fresh]);
+    const river = [...CHAPTERS.florist, ...CHAPTERS.bookseller].map((c) => c.works);
+    expect(new Set(river).size).toBe(10);
+    expect(river.filter((n) => before.has(n))).toEqual([]);
     expect(STORY_DAYS).toEqual([0, 3, 4, 5, 7]);
     // All of them in the thirty days the acceptance scenario moves through.
     expect(STORY_DAYS.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(30);
@@ -69,25 +78,28 @@ describe('when a chapter comes', () => {
     expect(told(all, 'student', 500, '2027-01-01')).toBe(all);
   });
 
-  it('says who is waiting with a chapter: Old Zhou, Granny Chen, Xiaohe, Auntie Olive, Pip', () => {
+  it('says who is waiting with a chapter: Old Zhou, Granny Chen, Xiaohe, Auntie Olive, Pip, Fern, Uncle Page', () => {
     expect(waiting({}, 0, '2026-11-20')).toEqual([]);
-    expect(waiting({}, 5, '2026-11-20')).toEqual(['mechanic', 'granny']);
-    expect(waiting({}, 6, '2026-11-20')).toEqual(['mechanic', 'granny', 'baker']);
-    expect(waiting({ mechanic: ['2026-11-20'] }, 50, '2026-11-21')).toEqual(['granny', 'student', 'baker', 'postman']);
+    expect(waiting({}, 4, '2026-11-20')).toEqual(['mechanic', 'florist']);
+    expect(waiting({}, 6, '2026-11-20')).toEqual(['mechanic', 'granny', 'baker', 'florist']);
+    expect(waiting({}, 7, '2026-11-20')).toEqual(['mechanic', 'granny', 'baker', 'florist', 'bookseller']);
+    expect(waiting({ mechanic: ['2026-11-20'] }, 50, '2026-11-21')).toEqual(['granny', 'student', 'baker', 'postman', 'florist', 'bookseller']);
   });
 
   it('leaves one thing per chapter told, all different', () => {
     const ids = TELLERS.flatMap((t) => CHAPTERS[t].map((c) => c.left));
-    expect(new Set(ids).size).toBe(25);
+    expect(new Set(ids).size).toBe(35);
     expect(CHAPTERS.mechanic.at(-1)!.left).toBe('bicycle');
     expect(leftBehind({})).toEqual([]);
     expect(leftBehind({ mechanic: ['2026-11-20', '2026-11-23'], student: ['2026-11-20'] })).toEqual([CHAPTERS.mechanic[0].left, CHAPTERS.mechanic[1].left, CHAPTERS.student[0].left]);
   });
 
-  it('keeps what the baker and the postman leave in their own shops, and nothing of theirs on the street', () => {
-    expect(TELLER_SHOP).toEqual({ baker: 'bakery', postman: 'post' });
+  it('keeps what the baker, the postman, Fern and Uncle Page leave in their own shops, and nothing of theirs on the street', () => {
+    expect(TELLER_SHOP).toEqual({ baker: 'bakery', postman: 'post', florist: 'flowershop', bookseller: 'bookshop' });
     expect(keptIn('bakery')).toEqual(CHAPTERS.baker.map((c) => c.left));
     expect(keptIn('post')).toEqual(CHAPTERS.postman.map((c) => c.left));
+    expect(keptIn('flowershop')).toEqual(CHAPTERS.florist.map((c) => c.left));
+    expect(keptIn('bookshop')).toEqual(CHAPTERS.bookseller.map((c) => c.left));
     expect(keptIn('cafe')).toEqual([]);
     expect(keptIn('workshop')).toEqual([]);
   });
@@ -192,6 +204,10 @@ describe('what the stories leave on the street', () => {
     expect(Math.abs(at.student.x - front('study').door)).toBeLessThan(40);
     expect(Math.abs(at.baker.x - front('bakery').door)).toBeLessThan(40);
     expect(Math.abs(at.postman.x - front('post').door)).toBeLessThan(40);
+    // Fern and Uncle Page at their doors on the river street, which starts where the first street ends.
+    const riverDoor = (id: string) => town.width + river.fronts.find((f) => f.id === id)!.door;
+    expect(Math.abs(at.florist.x - riverDoor('flowershop'))).toBeLessThan(40);
+    expect(Math.abs(at.bookseller.x - riverDoor('bookshop'))).toBeLessThan(40);
   });
 });
 
@@ -211,7 +227,7 @@ describe('what the baker and the postman leave in their shops', () => {
     it(`hangs ${teller}'s five things on the ${room} wall, each its own, clear of the clock, the grown pieces and each other`, () => {
       const others = readdirSprites(`grow-${room}-`).map((f) => opaque(f).at);
       const seen = new Set<number>();
-      for (const id of keptIn(room as 'bakery' | 'post')) {
+      for (const id of keptIn(room as RoomId)) {
         const file = `tale-${id}.png`;
         expect(existsSync(`${SPRITES}/${file}`), file).toBe(true);
         const { png, at } = opaque(file);

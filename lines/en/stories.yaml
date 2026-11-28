@@ -208,3 +208,90 @@ postman:
       - It came from home. She opened it by me.
       - Read it, said nothing, went to knead dough.
       - The office sent a badge. It hangs here.
+
+florist:
+  - title: "The cutting"
+    left: cutting
+    note: "A little jar with a rose sprig hangs on the flower shop wall."
+    lines:
+      - "The first plant in this shop wasn't bought."
+      - "Auntie Olive cut me a sprig of her rose."
+      - "It sat in a jam jar till it put out roots."
+      - "Once it took, I dared to set up a stall."
+  - title: "The stall sign"
+    left: stallsign
+    note: "Fern's old stall sign hangs on the wall."
+    lines:
+      - "I sold from the kerb for six years."
+      - "A stool, some buckets and a little sign."
+      - "Pip painted the letters on it."
+      - "Big letters, Pip said, for the cyclists."
+  - title: "The pressed rose"
+    left: pressed
+    note: "A small frame on the wall holds a pressed rose."
+    lines:
+      - "Granny Chen buys one rose every year."
+      - "Not for a vase. It goes inside a book."
+      - "Last year Granny Chen gave me an old one."
+      - "I framed it. The colour's still there."
+  - title: "The seeds"
+    left: seeds
+    note: "A small old packet of seeds is pinned to the wall."
+    lines:
+      - "These seeds were from my mum."
+      - "Mum grew vegetables all her life."
+      - "I came to town with them and my shears."
+      - "I never had the heart to sow them."
+  - title: "Opening day"
+    left: snapshot
+    note: "A photo of the flower shop's opening day hangs on the wall."
+    lines:
+      - "The day I opened, the whole street came."
+      - "Clem took a photo of me at the door."
+      - "Auntie Olive asked after the rose."
+      - "Its grandchildren are all over town now."
+      - "This street feels like home."
+
+bookseller:
+  - title: "The first book"
+    left: dictionary
+    note: "A dictionary in brown paper stands on a little shelf on the wall."
+    lines:
+      - "My first old book was a dictionary."
+      - "I was twelve. A month's pocket money."
+      - "No cover, so I wrapped it in brown paper."
+      - "Tens of thousands since. It's still on top."
+  - title: "The ticket"
+    left: stub
+    note: "An old ticket to the sea, forty years gone, is pinned up."
+    lines:
+      - "The best part of buying is leafing through."
+      - "Letters, photos, tickets fall out."
+      - "One ticket: to the sea, forty years ago."
+      - "It's my bookmark now, for that trip."
+  - title: "The library card"
+    left: libcard
+    note: "An old town library card hangs on the wall."
+    lines:
+      - "The library brought me to this street."
+      - "It cleared out old stock. I took the lot."
+      - "Clem was in the queue with an armful."
+      - "Clem said, \"Open a shop. I'd come daily.\""
+      - "So I stayed."
+  - title: "The map"
+    left: map
+    note: "An old map of the town, the river still a wharf, hangs up."
+    lines:
+      - "An old town history had a map inside."
+      - "The river had a wharf then, not a street."
+      - "The clock tower's on it, still going."
+      - "It's up on the wall till the tower's mended."
+  - title: "The sign"
+    left: buysign
+    note: "The \"Old books bought\" sign hangs inside the bookshop."
+    lines:
+      - "My \"Old books bought\" sign: forty years."
+      - "Seven streets. I left each when it ran dry."
+      - "This street never runs dry."
+      - "Clem reads them and sells them back to me."
+      - "I'm staying. The sign comes inside."

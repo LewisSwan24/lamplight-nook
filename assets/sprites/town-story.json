@@ -172,6 +172,18 @@
    "y": 131,
    "anim": "idle",
    "facing": "down"
+  },
+  "florist": {
+   "x": 1308,
+   "y": 131,
+   "anim": "idle",
+   "facing": "down"
+  },
+  "bookseller": {
+   "x": 1548,
+   "y": 131,
+   "anim": "idle",
+   "facing": "down"
   }
  }
 }

@@ -6199,6 +6199,8 @@ const SCENARIOS = {
     const L = locale(lang);
     const book = parseYaml(readFileSync(join(ROOT, lang === 'en' ? 'lines/en/stories.yaml' : 'lines/stories.yaml'), 'utf8'));
     const art = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town-story.json'), 'utf8'));
+    // The whole town, the river street included (plan-2.0.md J1), so the camera reaches Fern and Uncle Page.
+    const WIDTH = ['town.json', 'river.json'].reduce((w, f) => w + JSON.parse(readFileSync(join(ROOT, 'assets/sprites', f), 'utf8')).width, 0);
     const TELLERS = ['mechanic', 'granny', 'student'];
     const home = freshHome({
       'settings.json': onboarded(lang),
@@ -6220,7 +6222,7 @@ const SCENARIOS = {
       return { waiting: s.waiting(), left: ids.filter((id) => s.shows(id)) };
     }, art.parts.map((p) => p.id));
     const scrollTo = async (page, x) => {
-      await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = Math.round(Math.max(0, Math.min(x - 160, 1128 - 320))); }, x);
+      await page.evaluate(([x, w]) => { window.lamplightDebug.street.cameras.main.scrollX = Math.round(Math.max(0, Math.min(x - 160, w - 320))); }, [x, WIDTH]);
       await sleep(300);
     };
     const saved = () => JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.stories;
@@ -6284,8 +6286,8 @@ const SCENARIOS = {
       } finally { await shop.close(); }
     }
 
-    // Auntie Olive and Pip: waiting at their own doors with a bubble; a click opens their first chapter, and what it
-    // leaves hangs on their shop's wall, not on the street.
+    // Auntie Olive and Pip, and since plan-2.0.md J3 Fern and Uncle Page on the river street: waiting at their own doors
+    // with a bubble; a click opens their first chapter, and what it leaves hangs on their shop's wall, not on the street.
     const day = '2026-12-21';
     const shop = await launch({ lang, home, speed: SPEED, clock: `${day}T10:00` });
     const { page } = shop;
@@ -6294,11 +6296,11 @@ const SCENARIOS = {
       await sleep(2500);
       await goOut(page);
       const v = await seen(page);
-      check(JSON.stringify(v.waiting) === JSON.stringify(['baker', 'postman']), `${day}: waiting ${v.waiting}, not Auntie Olive and Pip`);
-      for (const [who, shopId, first, next] of [['baker', 'bakery', 'tin', 'starter'], ['postman', 'post', 'satchel', 'bundle']]) {
+      check(JSON.stringify(v.waiting) === JSON.stringify(['baker', 'postman', 'florist', 'bookseller']), `${day}: waiting ${v.waiting}, not the four keepers`);
+      for (const [who, shopId, first, next] of [['baker', 'bakery', 'tin', 'starter'], ['postman', 'post', 'satchel', 'bundle'], ['florist', 'flowershop', 'cutting', 'stallsign'], ['bookseller', 'bookshop', 'dictionary', 'stub']]) {
         const at = art.waits[who];
         await scrollTo(page, at.x);
-        if (who === 'baker') await shop.shot(join(out, 'stories-waiting-bakery.png'));
+        if (who === 'baker' || who === 'florist') await shop.shot(join(out, `stories-waiting-${shopId}.png`));
         const spot = await page.evaluate((w) => window.lamplightDebug.street.stories.spot(w), who);
         const scroll = await page.evaluate(() => window.lamplightDebug.street.cameras.main.scrollX);
         const box = await page.locator('#game canvas').boundingBox();

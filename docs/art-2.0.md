@@ -21,3 +21,14 @@
 | `bookshop-pieces.png` | J2 书店，家具前面那层 | Modern Interiors，同 `bookshop.png` | `scripts/art/pieces.py` |
 | `fangjie.png` | J2 芳姐当店主时的行走图，和客人芳姐同一套搭配 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
 | `jianbo.png` | J2 书店店主简伯的行走图：年纪大些，棕色外套，戴眼镜 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `bookseller.png` | J3 简伯出门讲故事时的行走图，跟店主简伯同一套搭配 | Modern Interiors：`Character_Generator` | `scripts/art/characters.py` |
+| `tale-cutting.png` | J3 芳姐第一章：小瓶里插着桂姨给的一枝月季，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-stallsign.png` | J3 芳姐第二章：摆摊时的小木牌，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-pressed.png` | J3 芳姐第三章：相框里陈婆婆送的压花，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-seeds.png` | J3 芳姐第四章：老家带来的一包种子，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-snapshot.png` | J3 芳姐第五章：开张那天的照片，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-dictionary.png` | J3 简伯第一章：架子上包着牛皮纸的字典，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-stub.png` | J3 简伯第二章：四十年前去海边的车票，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-libcard.png` | J3 简伯第三章：镇图书馆的借书证，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-map.png` | J3 简伯第四章：河边还是码头时的镇地图，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
+| `tale-buysign.png` | J3 简伯第五章：“收旧书”的木牌，挂在店里墙上 | 手画 | `scripts/art/tales.py` |
