@@ -3230,3 +3230,314 @@
   turns:
     - bookseller: "Cold in the bookshop. Here to warm my hands."
     - adeng: "Sit down. Coffee's nearly ready."
+
+# The two streets (plan-2.0.md J9): the shop talks of its new neighbours over the bridge, the river and the
+# clock tower; the old neighbours on Fern and Uncle Page, and the two of them on the old street.
+
+- id: bridge_new_faces
+  when: idle
+  turns:
+    - xiaoju: "Have you been to the two shops by the river?"
+    - adeng: "Fern's. I came away with a sprig."
+    - xiaoju: "And none for me!"
+
+- id: bridge_page_books
+  when: idle
+  turns:
+    - xiaoju: "Uncle Page's books go up to the ceiling."
+    - laoshi: "I looked at the ladder. One rung is loose."
+    - xiaoju: "You checked that too?"
+
+- id: bridge_borrow
+  when: idle
+  turns:
+    - xiaoju: "I borrowed a book from Uncle Page."
+    - adeng: "Did you leave a slip?"
+    - xiaoju: "Uncle Page says no slip, just bring it back."
+
+- id: bridge_colours
+  when: idle
+  turns:
+    - qingdai: "Fern's flowers beat my colour cards."
+    - adeng: "So you pick your colours at Fern's now?"
+    - qingdai: "I've been three times already."
+
+- id: bridge_river_walk
+  when: idle
+  turns:
+    - adeng: "I walked along the river this afternoon."
+    - laoshi: "It's windy by the water."
+    - adeng: "Which is why it was one lap."
+
+- id: bridge_ducks
+  when: idle
+  turns:
+    - xiaoju: "Do the two ducks on the river have names?"
+    - qingdai: "Fern calls them Big White and Little White."
+    - xiaoju: "One of them is grey."
+
+- id: bridge_tower_years
+  when: idle
+  turns:
+    - xiaoju: "How long has the clock tower been stopped?"
+    - laoshi: "Longer than I've been on this street."
+
+- id: bridge_tower_time
+  when: idle
+  turns:
+    - adeng: "What time do the tower's hands say?"
+    - qingdai: "No hands. Just a crack."
+    - adeng: "Then it's never quite time."
+
+- id: bridge_tower_inside
+  when: idle
+  turns:
+    - laoshi: "I'd like a look inside that clock tower."
+    - adeng: "The door's boarded up."
+    - laoshi: "Boards come off."
+
+- id: bridge_plank
+  when: idle
+  turns:
+    - xiaoju: "The third plank on the bridge creaks."
+    - laoshi: "So does the fourth. You missed it."
+
+- id: bridge_far
+  when: idle
+  turns:
+    - xiaoju: "The bookshop is a long way on foot."
+    - adeng: "You get the bridge and the river, though."
+    - xiaoju: "True."
+
+- id: bridge_snacks
+  when: idle
+  turns:
+    - xiaoju: "Back from the river, I pass the bakery."
+    - qingdai: "So that's why there are always snacks?"
+    - xiaoju: "It's on the way."
+
+- id: bridge_stall
+  when: idle
+  turns:
+    - adeng: "Fern used to have a stall on the corner."
+    - xiaoju: "Now Fern has a shop instead."
+    - adeng: "The stall sign still hangs up."
+
+- id: bridge_page_first
+  when: idle
+  turns:
+    - qingdai: "Uncle Page knew nobody here at first."
+    - xiaoju: "Now the whole street borrows books there."
+
+- id: bridge_buckets
+  when: idle
+  turns:
+    - laoshi: "I mended the buckets outside Fern's."
+    - qingdai: "The leaky ones?"
+    - laoshi: "Not any more."
+
+- id: bridge_river_sunset
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: "The sunset on the river is new each day."
+    - xiaoju: "Painting it again?"
+    - qingdai: "I've done a dozen."
+
+- id: bridge_river_night
+  when: idle
+  period: night
+  turns:
+    - adeng: "The river is quieter at night."
+    - laoshi: "The ducks are asleep."
+
+- id: bridge_boat
+  when: idle
+  turns:
+    - xiaoju: "Who rows the little boat on the river?"
+    - adeng: "No idea. Same time every day."
+    - xiaoju: "Better than the clock tower."
+
+- id: bridge_river_rain
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: "Rain puts little rings all over the river."
+    - qingdai: "Rings in rings. Good to paint."
+
+- id: bridge_end_of_street
+  when: idle
+  turns:
+    - adeng: "This street used to end at the post office."
+    - laoshi: "Now there's a bridge."
+    - adeng: "And two more neighbours."
+
+- id: bridge_flower_card
+  when: idle
+  turns:
+    - qingdai: "The flower on Fern's cards is hand-drawn."
+    - adeng: "Better than I could."
+    - qingdai: "No need to compare."
+
+- id: bridge_book_list
+  when: idle
+  turns:
+    - xiaoju: "Uncle Page wrote me a book list."
+    - laoshi: "How many?"
+    - xiaoju: "Fifteen. That's a year's reading."
+
+- id: bridge_wave
+  when: idle
+  turns:
+    - adeng: "Fern waved to me on the bridge."
+    - xiaoju: "And Uncle Page?"
+    - adeng: "Reading in the shop. Never looked up."
+
+- id: bridge_tower_bell
+  when: idle
+  turns:
+    - laoshi: "Mended, that tower would strike the hours."
+    - xiaoju: "At night too?"
+    - laoshi: "Not at night."
+
+- id: bridge_olive_fern
+  when: idle
+  guest: baker
+  turns:
+    - baker: "Fern came by for two loaves this morning."
+    - adeng: "So Fern's a regular too?"
+    - baker: "Every day, then back over the bridge."
+
+- id: bridge_olive_page
+  when: idle
+  guest: baker
+  turns:
+    - baker: "Uncle Page buys plain bread, nothing sweet."
+    - xiaoju: "Then I'll eat the sweet ones for Uncle Page."
+
+- id: bridge_pip_page
+  when: idle
+  guest: postman
+  turns:
+    - postman: "Uncle Page gets five or six parcels a day."
+    - adeng: "All books?"
+    - postman: "All books. Heavy ones."
+
+- id: bridge_pip_fern
+  when: idle
+  guest: postman
+  turns:
+    - postman: "When I bring Fern the post, I get a flower."
+    - xiaoju: "Who is it for?"
+    - postman: "For the post office windowsill."
+
+- id: bridge_zhou_gears
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: "The tower's gears are all still inside."
+    - laoshi: "Rusted?"
+    - mechanic: "Yes. Clean them and they'd turn."
+
+- id: bridge_zhou_page
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: "I put two nails in Uncle Page's ladder."
+    - laoshi: "The loose one was the third rung."
+    - mechanic: "The third, yes."
+
+- id: bridge_chen_pressed
+  when: idle
+  guest: granny
+  turns:
+    - granny: "Fern wants my pressed flowers for bouquets."
+    - qingdai: "How many years of pressing?"
+    - granny: "More years than you are old."
+
+- id: bridge_chen_bridge
+  when: idle
+  guest: granny
+  turns:
+    - granny: "I crossed over and sat a while at Fern's."
+    - adeng: "Was the bridge all right?"
+    - granny: "Holding the rail, slowly."
+
+- id: bridge_he_table
+  when: idle
+  guest: student
+  turns:
+    - student: "Uncle Page's table beats the library."
+    - xiaoju: "I sit by the window there."
+    - student: "So that seat is yours."
+
+- id: bridge_he_plant
+  when: idle
+  guest: student
+  turns:
+    - student: "Before exams, Fern gave me a little pothos."
+    - adeng: "On your desk?"
+    - student: "I look at it when the reading gets long."
+
+- id: bridge_fern_morning
+  when: idle
+  guest: florist
+  turns:
+    - florist: "Mornings, I cross for Auntie Olive's bread."
+    - xiaoju: "Then coffee with us?"
+    - florist: "Depends how the flowers sell."
+
+- id: bridge_fern_page
+  when: idle
+  guest: florist
+  turns:
+    - florist: "Uncle Page's shop was bare. I left a pot."
+    - adeng: "What did Uncle Page say?"
+    - florist: "Not in front of the books."
+
+- id: bridge_fern_ducks
+  when: idle
+  guest: florist
+  turns:
+    - florist: "The river ducks come to my door for food."
+    - xiaoju: "What do you feed them?"
+    - florist: "Bread crusts from Auntie Olive's."
+
+- id: bridge_fern_tower
+  when: idle
+  guest: florist
+  turns:
+    - florist: "I look at the tower next door every day."
+    - laoshi: "Leaning?"
+    - florist: "Not leaning. Just not going."
+
+- id: bridge_page_crossing
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "Crossing over, I walk slow and see more."
+    - adeng: "What did you see?"
+    - bookseller: "A cat sunning outside the post office."
+
+- id: bridge_page_pip
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "Pip has never been late with a parcel."
+    - xiaoju: "Heavy parcels?"
+    - bookseller: "Heavy. So I have tea ready."
+
+- id: bridge_page_clem
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "Clem's books come back with bookmarks in."
+    - xiaoju: "That's where I got to."
+    - bookseller: "Halfway, every one."
+
+- id: bridge_page_map
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "On my old map, the clock tower still runs."
+    - laoshi: "A clock on a map never stops."

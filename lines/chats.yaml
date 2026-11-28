@@ -3231,3 +3231,314 @@
   turns:
     - bookseller: "冬天书店冷，我来你们这儿暖暖手。"
     - adeng: "坐，咖啡马上好。"
+
+# The two streets (plan-2.0.md J9): the shop talks of its new neighbours over the bridge, the river and the
+# clock tower; the old neighbours on Fern and Uncle Page, and the two of them on the old street.
+
+- id: bridge_new_faces
+  when: idle
+  turns:
+    - xiaoju: "河边那两家店，你们去过没？"
+    - adeng: "去过花店，芳姐送了我一枝。"
+    - xiaoju: "怎么没给我留！"
+
+- id: bridge_page_books
+  when: idle
+  turns:
+    - xiaoju: "简伯的书店，书一直堆到房顶。"
+    - laoshi: "梯子我看了，有一级松了。"
+    - xiaoju: "你连这个都看？"
+
+- id: bridge_borrow
+  when: idle
+  turns:
+    - xiaoju: "我从简伯那儿借了本书。"
+    - adeng: "借条写了吗？"
+    - xiaoju: "简伯说不用写，记得还就行。"
+
+- id: bridge_colours
+  when: idle
+  turns:
+    - qingdai: "芳姐的花，颜色比色卡还准。"
+    - adeng: "那以后去芳姐店里挑颜色？"
+    - qingdai: "已经去过三回了。"
+
+- id: bridge_river_walk
+  when: idle
+  turns:
+    - adeng: "下午我沿着河走了一圈。"
+    - laoshi: "河边风大。"
+    - adeng: "所以只走了一圈。"
+
+- id: bridge_ducks
+  when: idle
+  turns:
+    - xiaoju: "河上那两只鸭子，有名字吗？"
+    - qingdai: "芳姐叫它们大白和小白。"
+    - xiaoju: "明明有一只是灰的。"
+
+- id: bridge_tower_years
+  when: idle
+  turns:
+    - xiaoju: "河边那座钟楼，停了多少年了？"
+    - laoshi: "比我在这条街上的年头长。"
+
+- id: bridge_tower_time
+  when: idle
+  turns:
+    - adeng: "钟楼上的针，停在几点？"
+    - qingdai: "没有针，只有一道裂缝。"
+    - adeng: "那就是一直没到点。"
+
+- id: bridge_tower_inside
+  when: idle
+  turns:
+    - laoshi: "那座钟楼，我想去看看里面。"
+    - adeng: "门钉死了。"
+    - laoshi: "木条是能拆的。"
+
+- id: bridge_plank
+  when: idle
+  turns:
+    - xiaoju: "桥上第三块木板，踩上去会响。"
+    - laoshi: "第四块也响，你没注意。"
+
+- id: bridge_far
+  when: idle
+  turns:
+    - xiaoju: "去书店跑一趟，路可真远。"
+    - adeng: "路上能过桥看河呀。"
+    - xiaoju: "那倒是。"
+
+- id: bridge_snacks
+  when: idle
+  turns:
+    - xiaoju: "从河边回来，正好路过面包店。"
+    - qingdai: "所以每次都带点心回来？"
+    - xiaoju: "顺路嘛。"
+
+- id: bridge_stall
+  when: idle
+  turns:
+    - adeng: "芳姐以前在街口摆摊。"
+    - xiaoju: "现在有自己的店了。"
+    - adeng: "摊子的牌子还挂着。"
+
+- id: bridge_page_first
+  when: idle
+  turns:
+    - qingdai: "简伯刚来的时候，谁也不认识。"
+    - xiaoju: "现在全街都去书店借书。"
+
+- id: bridge_buckets
+  when: idle
+  turns:
+    - laoshi: "花店门口那几个桶，是我修的。"
+    - qingdai: "漏水的那几个？"
+    - laoshi: "现在不漏了。"
+
+- id: bridge_river_sunset
+  when: idle
+  period: dusk
+  turns:
+    - qingdai: "河上的夕阳，一天一个颜色。"
+    - xiaoju: "你又要画了？"
+    - qingdai: "画了十几张了。"
+
+- id: bridge_river_night
+  when: idle
+  period: night
+  turns:
+    - adeng: "夜里的河，比白天安静。"
+    - laoshi: "鸭子睡了。"
+
+- id: bridge_boat
+  when: idle
+  turns:
+    - xiaoju: "河上那条小船，谁在划？"
+    - adeng: "不知道，每天准时过一趟。"
+    - xiaoju: "比钟楼还准。"
+
+- id: bridge_river_rain
+  when: idle
+  sky: rain
+  turns:
+    - xiaoju: "下雨天，河面上全是小圈圈。"
+    - qingdai: "一圈套一圈，很好画。"
+
+- id: bridge_end_of_street
+  when: idle
+  turns:
+    - adeng: "以前这条街走到邮局就到头了。"
+    - laoshi: "现在多了一座桥。"
+    - adeng: "还多了两户邻居。"
+
+- id: bridge_flower_card
+  when: idle
+  turns:
+    - qingdai: "芳姐花卡角上的花，是自己画的。"
+    - adeng: "画得比我好。"
+    - qingdai: "这个不用比。"
+
+- id: bridge_book_list
+  when: idle
+  turns:
+    - xiaoju: "简伯给我开了一张书单。"
+    - laoshi: "几本？"
+    - xiaoju: "十五本，够看一年了。"
+
+- id: bridge_wave
+  when: idle
+  turns:
+    - adeng: "过桥的时候，芳姐跟我打了招呼。"
+    - xiaoju: "简伯呢？"
+    - adeng: "在店里看书，没抬头。"
+
+- id: bridge_tower_bell
+  when: idle
+  turns:
+    - laoshi: "钟楼要是修好了，会敲钟。"
+    - xiaoju: "夜里也敲？"
+    - laoshi: "夜里不敲。"
+
+- id: bridge_olive_fern
+  when: idle
+  guest: baker
+  turns:
+    - baker: "芳姐早上来买了两个面包。"
+    - adeng: "芳姐也是老主顾了？"
+    - baker: "天天来，买完就过桥回去。"
+
+- id: bridge_olive_page
+  when: idle
+  guest: baker
+  turns:
+    - baker: "简伯不吃甜的，只买白面包。"
+    - xiaoju: "那甜的我替简伯吃。"
+
+- id: bridge_pip_page
+  when: idle
+  guest: postman
+  turns:
+    - postman: "简伯的包裹，一天能有五六个。"
+    - adeng: "都是书？"
+    - postman: "都是书，沉得很。"
+
+- id: bridge_pip_fern
+  when: idle
+  guest: postman
+  turns:
+    - postman: "我过桥送信，芳姐总塞给我一枝花。"
+    - xiaoju: "送给谁的？"
+    - postman: "送给邮局的窗台。"
+
+- id: bridge_zhou_gears
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: "河边那座钟楼，里头的齿轮还在。"
+    - laoshi: "锈了没有？"
+    - mechanic: "锈了，擦擦还能转。"
+
+- id: bridge_zhou_page
+  when: idle
+  guest: mechanic
+  turns:
+    - mechanic: "简伯那架书梯，我给加了两颗钉。"
+    - laoshi: "松的是第三级。"
+    - mechanic: "就是第三级。"
+
+- id: bridge_chen_pressed
+  when: idle
+  guest: granny
+  turns:
+    - granny: "我压的那些花，芳姐要拿去配花束。"
+    - qingdai: "压了多少年的花？"
+    - granny: "比你年纪还大。"
+
+- id: bridge_chen_bridge
+  when: idle
+  guest: granny
+  turns:
+    - granny: "我过桥去芳姐那儿坐了一会儿。"
+    - adeng: "桥上走得稳吗？"
+    - granny: "扶着栏杆，慢慢走。"
+
+- id: bridge_he_table
+  when: idle
+  guest: student
+  turns:
+    - student: "简伯书店的长桌，比图书馆还安静。"
+    - xiaoju: "我常坐靠窗那个位子。"
+    - student: "原来是你占的。"
+
+- id: bridge_he_plant
+  when: idle
+  guest: student
+  turns:
+    - student: "考试前，芳姐送了我一盆小绿萝。"
+    - adeng: "放在书桌上？"
+    - student: "看书看累了，就看看它。"
+
+- id: bridge_fern_morning
+  when: idle
+  guest: florist
+  turns:
+    - florist: "每天早上过桥，先去桂姨那儿买早点。"
+    - xiaoju: "然后来我们这儿喝咖啡？"
+    - florist: "那得看花卖得怎么样。"
+
+- id: bridge_fern_page
+  when: idle
+  guest: florist
+  turns:
+    - florist: "简伯那边太素了，我给摆了盆花。"
+    - adeng: "简伯怎么说？"
+    - florist: "说别挡着书。"
+
+- id: bridge_fern_ducks
+  when: idle
+  guest: florist
+  turns:
+    - florist: "河上的鸭子，天天来我门口要吃的。"
+    - xiaoju: "喂它们什么？"
+    - florist: "面包边，桂姨那儿要来的。"
+
+- id: bridge_fern_tower
+  when: idle
+  guest: florist
+  turns:
+    - florist: "店旁边那座钟楼，我天天看着。"
+    - laoshi: "歪了没有？"
+    - florist: "没歪，就是不走。"
+
+- id: bridge_page_crossing
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "过桥来一趟，走得慢，看得多。"
+    - adeng: "看见什么了？"
+    - bookseller: "邮局门口有只猫，在晒太阳。"
+
+- id: bridge_page_pip
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "阿信送书，从来不迟。"
+    - xiaoju: "包裹沉吧？"
+    - bookseller: "沉，所以我泡好茶等着。"
+
+- id: bridge_page_clem
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "小橘借的书，还回来时夹着书签。"
+    - xiaoju: "那是我看到的地方。"
+    - bookseller: "每本都只看到一半。"
+
+- id: bridge_page_map
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "我那张旧地图上，钟楼还在走。"
+    - laoshi: "地图上的钟，不会停。"
