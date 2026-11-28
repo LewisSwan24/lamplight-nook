@@ -51,6 +51,10 @@
   the shop to tell their chapter; one of the staff waits with a note until clicked. The next chapter comes with a new
   month or ten more works, whichever is first, and the tower is mended a step every two chapters. Chapters told can
   be read again in the notebook.
+- **The town's record.** Click the shelf at home and the book opens: the year, the neighbours' stories, the staff's,
+  what has grown, the festivals the shop was open for, and every postcard ever opened, even after the post office's
+  wall has let it go. Each thing has the day it came, and chapters unfold to read again. What hasn't come yet keeps
+  its place as a blank, with a line on how such things come and nothing given away.
 
 ## 1.9.0 (2026-11-27)
 

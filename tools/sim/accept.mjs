@@ -2084,9 +2084,13 @@ const SCENARIOS = {
         await ask(O.names.clock, [O.clock.split('{')[0]]);
         await ask(O.names.frontdoor, Object.values(O.door));
         await ask(O.names.window, [O.window.split('{')[0]]);
-        for (const [name, lines] of [['table', O.table], ['workbench', O.workbench], ['plant', O.plant], ['cup', O.cup], ['shelf', O.shelf]]) {
+        for (const [name, lines] of [['table', O.table], ['workbench', O.workbench], ['plant', O.plant], ['cup', O.cup]]) {
           await ask(O.names[name], lines);
         }
+        // The shelf holds the town's record (plan-2.0.md J8): it opens the book.
+        await shop.hotspot(O.names.shelf);
+        await shop.page.locator('.chronicle-card').waitFor({ timeout: 5000 });
+        await shop.page.keyboard.press('Escape');
         await shop.shot(join(out, `objects-${scene}-idle.png`));
         const lamp = () => shop.page.evaluate(() => window.lamplightDebug.scene.floorLamp.base);
         const before = await lamp();
@@ -7472,6 +7476,108 @@ const SCENARIOS = {
       check((await page.evaluate(() => window.lamplightDebug.tower.look()))?.stage === 'lit', 'the tower on the street is not mended');
       await shop.shot(join(out, 'mainstory-tower.png'));
     } finally { await shop.close(); }
+  },
+
+  /**
+   * The town's record (plan-2.0.md J8): the book on the home shop's shelf. With a full year behind the shop, every part
+   * is filled in, each thing with its day, chapters unfold to read again, and the postcards page has every card ever
+   * opened, more than the post office's wall holds. A new shop's book is all blanks, each page saying how things come;
+   * opened on the Lantern Festival, that one festival is already written down.
+   */
+  async chronicle(lang, out) {
+    const L = locale(lang);
+    const C = L.ui.chronicle;
+    const PARTS = ['year', 'stories', 'staff', 'grown', 'holidays', 'postcards'];
+    const yaml = (name) => parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), name), 'utf8'));
+    const year = yaml('year.yaml');
+    const stories = yaml('stories.yaml');
+    const staff = yaml('staff-stories.yaml');
+    const day = (i) => `2027-${String(1 + (i % 12)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`;
+    const told = (book) => Object.fromEntries(Object.entries(book).map(([who, chapters]) => [who, chapters.map((_, i) => day(i))]));
+    const growth = Object.keys(L.growth);
+    const street = Object.keys(C.street);
+    const holidays = Object.keys(C.holidays);
+    const friends = Array.from({ length: 8 }, (_, i) => ({ name: `Friend ${i + 1}`, home: i % 2 ? 'cafe' : 'study', date: i === 0 ? null : day(i), key: `k${i}` }));
+    const full = {
+      'settings.json': onboarded(lang),
+      'memory.json': JSON.stringify({
+        commissions: [], stuckNotes: [], greeted: 'c1',
+        shop: {
+          done: 140, told: ['town-move'], met: [], grown: growth.map((id, i) => ({ id, date: day(i) })),
+          town: {
+            shops: {}, street: street.map((id, i) => ({ id, date: day(i) })), stories: told(stories), staff: told(staff),
+            year: year.map((_, i) => ({ day: day(i), done: 1 + i * 10 })), holidays: holidays.map((id, i) => ({ id, date: day(i) })),
+          },
+        },
+      }),
+      'postcards.json': JSON.stringify({ version: 1, cards: [], received: friends }),
+    };
+    const fresh = {
+      'settings.json': onboarded(lang),
+      'memory.json': JSON.stringify({ commissions: [], stuckNotes: [], greeted: 'c1', shop: { done: 0, told: ['town-move'], grown: [], met: [], town: { shops: {}, street: [], stories: {} } } }),
+    };
+    const count = (book) => Object.values(book).reduce((n, c) => n + c.length, 0);
+    const SIZE = { year: year.length, stories: count(stories), staff: count(staff), grown: growth.length + street.length, holidays: holidays.length };
+
+    for (const [kind, seed, clock] of [['full', full, '2027-12-20T10:00'], ['fresh', fresh, '2027-02-20T10:00']]) {
+      const home = freshHome(seed);
+      const shop = await launch({ lang, home, speed: SPEED, clock });
+      const { page } = shop;
+      try {
+        await sleep(2000);
+        await page.evaluate(() => { window.lamplightDebug.scene.setWeather('clear', null, false); window.lamplightDebug.scene.setPeriod('day', true); });
+        const book = page.locator('.chronicle-card');
+        for (let i = 0; i < 5 && (await book.count()) === 0; i++) { await shop.hotspot(L.ui.objects.names.shelf); await sleep(600); }
+        check(await book.count() === 1, `${kind}: the shelf opened no book`);
+        check((await book.locator('.card-title').innerText()).includes(C.title), `${kind}: the book has no title`);
+        for (const [i, part] of PARTS.entries()) {
+          if (i > 0) { await book.locator('.chronicle-next').click(); await sleep(250); }
+          const at = page.locator('.chronicle-card');
+          check(await at.getAttribute('data-part') === part, `${kind}: page ${i + 1} is ${await at.getAttribute('data-part')}, not ${part}`);
+          check((await at.locator('.chronicle-part').innerText()).includes(C.parts[part]), `${kind}: no name on the ${part} page`);
+          const dated = await at.locator('.chronicle-entry').count();
+          const blank = await at.locator('.chronicle-blank').count();
+          const hint = await at.locator('.chronicle-hint').count();
+          if (kind === 'full') {
+            const want = part === 'postcards' ? friends.length : SIZE[part];
+            check(dated === want && blank === 0 && hint === 0, `full: ${part} has ${dated} dated, ${blank} blank, hint ${hint}; wanted ${want} dated`);
+            if (part === 'year') {
+              // A chapter unfolds to read again: its title, its first line, what changed.
+              await at.locator('.chronicle-chapter summary').first().click();
+              const text = await at.locator('.chronicle-chapter').first().innerText();
+              check(text.includes(year[0].title) && text.includes(Object.values(year[0].lines[0])[0]) && text.includes(year[0].note), `full: chapter 1 does not unfold: ${text}`);
+              await shop.shot(join(out, 'chronicle-full-year.png'));
+            }
+            if (part === 'postcards') {
+              const text = await at.innerText();
+              check(friends.every((f) => text.includes(f.name)) && text.includes(C.undated), `full: the postcards page is missing a card: ${text}`);
+            }
+            if (['grown', 'postcards'].includes(part)) await shop.shot(join(out, `chronicle-full-${part}.png`));
+          } else {
+            // A new shop: blanks everywhere, each page with its line on how things come and no names given away. The
+            // Lantern Festival, the day the shop opened, is the one thing written down.
+            const lantern = part === 'holidays' ? 1 : 0;
+            const want = part === 'postcards' ? 0 : SIZE[part] - lantern;
+            check(dated === lantern && blank === want && hint === 1, `fresh: ${part} has ${dated} dated, ${blank} blank, hint ${hint}`);
+            check((await at.locator('.chronicle-hint').innerText()).includes(C.hints[part]), `fresh: the ${part} hint is wrong`);
+            if (part === 'holidays') check((await at.locator('.chronicle-entry').innerText()).includes(C.holidays.lantern), 'fresh: the Lantern Festival is not written down');
+            if (['year', 'grown', 'holidays'].includes(part)) await shop.shot(join(out, `chronicle-fresh-${part}.png`));
+          }
+        }
+        if (kind === 'fresh') {
+          const kept = JSON.parse(readFileSync(join(home.data, 'memory.json'), 'utf8')).shop.town.holidays;
+          check(JSON.stringify(kept) === JSON.stringify([{ id: 'lantern', date: '2027-02-20' }]), `fresh: the festival kept is ${JSON.stringify(kept)}`);
+          // What has not grown gives nothing away.
+          await book.locator('.chronicle-prev').click();
+          await book.locator('.chronicle-prev').click();
+          const grown = await page.locator('.chronicle-card').innerText();
+          check(street.every((id) => !grown.includes(C.street[id])), `fresh: the grown page names what has not grown: ${grown}`);
+        }
+        await page.keyboard.press('Escape');
+        await sleep(300);
+        check(await page.locator('.chronicle-card').count() === 0, `${kind}: Escape did not close the book`);
+      } finally { await shop.close(); }
+    }
   },
 
   async riverstreet(lang, out) {

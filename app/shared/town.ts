@@ -43,6 +43,8 @@ export type TownDays = {
   staff?: StaffStories;
   /** How far the year's story has got: each chapter's day and works done by then (plan-2.0.md J7). Absent before 2.0. */
   year?: YearDays;
+  /** The first day the shop was open for each festival (plan-2.0.md J8, shared/holidays.ts). Absent before 2.0. */
+  holidays?: Gathered[];
 };
 
 export const emptyTown = (): TownDays => ({ shops: {}, street: [], stories: {} });

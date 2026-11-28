@@ -31,6 +31,7 @@ import { answerFirst, boardSteps, budgetLine, clearWorkSigns, commissionFormOpen
 import { ACTIVE_FPS, applyFps, framesPerSecond, type Loop } from './game/pacer';
 import { closeRunning, hasFailureCard, onCapGo, refreshRunning, showFailure, showInterrupted, showPending, showRunning } from './ui/run';
 import { type ObjectId, objectReaction } from './game/objects';
+import { showChronicle } from './ui/chronicle';
 import { showLegal, showNotReady, showSettings, showTrialEnd, showWelcome } from './ui/setup';
 import { onNotebookForget, showDataTrouble, onNotebookRevise, showMonthCapNews, showNotebook } from './ui/notebook';
 import { showGrant } from './ui/connections';
@@ -747,12 +748,22 @@ function clickObject(id: ObjectId) {
   }, strings.ui.objects);
   if ('open' in r) return openProgress();
   if ('lamp' in r) return void (sfx('click'), scene.toggleLamp());
+  // The town's record on the shelf (plan-2.0.md J8): Laoshi goes over, and the book opens as the shop has it now. A
+  // word said under the book would go unheard, so it is kept for when nothing covers the shop.
+  if (r.book) {
+    if (r.walk && !scene.reducedMotion && scene.anchorOf('laoshi') !== null) void scene.walkTo('laoshi', r.walk);
+    return void openRecord();
+  }
   const here = STAFF.filter((a) => scene.anchorOf(a) !== null);
   const speaker = here.includes(r.by) ? r.by : here[0];
   if (!speaker) return;
   if (r.wiggle) scene.wiggle(id);
   if (r.walk && !scene.reducedMotion) void scene.walkTo(speaker, r.walk);
   void stage.answer(speaker, r.say);
+}
+async function openRecord(page = 0) {
+  const [shop, postcards] = await Promise.all([window.lamplight.shopState(), window.lamplight.receivedPostcards()]);
+  showChronicle({ shop, postcards }, page);
 }
 scene.onObjectClick = (id) => (id === 'board' && projectsKept ? void showProjects(window.lamplight) : clickObject(id));
 scene.onYouClick = () => void stage.answer('adeng', strings.ui.objects.you);

@@ -63,7 +63,7 @@ export type ObjectContext = {
 
 export type Objects = (typeof LOCALES)['en']['ui']['objects'];
 export type Reaction =
-  | { say: string; by: ActorId; walk?: AnchorId; wiggle?: boolean }
+  | { say: string; by: ActorId; walk?: AnchorId; wiggle?: boolean; book?: true }
   | { open: 'progress' }
   | { lamp: true };
 
@@ -92,8 +92,9 @@ export function objectReaction(id: ObjectId, ctx: ObjectContext, O: Objects): Re
     case 'table':
       if (!running) return { say: pick(O.table, turn), by: 'adeng' };
       return { say: ctx.materials.length ? fill(O.tableMaterials, { list: ctx.materials.join(O.listJoin) }) : O.tableNothing, by: 'adeng' };
+    // The town's record lives on the shelf (plan-2.0.md J8): clicking it opens the book, busy or not.
     case 'shelf':
-      return running ? { say: pick(O.shelfBusy, turn), by: 'laoshi' } : { say: pick(O.shelf, turn), by: 'laoshi', walk: 'shelf' };
+      return running ? { say: pick(O.shelfBusy, turn), by: 'laoshi', book: true } : { say: pick(O.shelf, turn), by: 'laoshi', walk: 'shelf', book: true };
     case 'workbench':
       if (running && ctx.laoshiDoing) return { say: fill(O.workbenchBusy, { doing: ctx.laoshiDoing }), by: 'laoshi' };
       return { say: pick(O.workbench, turn), by: 'laoshi' };
