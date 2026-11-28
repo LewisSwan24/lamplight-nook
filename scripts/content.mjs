@@ -15,7 +15,7 @@ import { parse } from 'yaml';
  * @returns {Promise<Tables>}
  */
 export async function loadTables() {
-  const [{ TEMPLATES }, { ROOMS, SCENES }, { ALL_STAFF }, { GUESTS }, { CHAPTERS }, { GROWTH }, town, { HOLIDAYS }, { STAFF_CHAPTERS }] = await Promise.all([
+  const [{ TEMPLATES }, { ROOMS, SCENES }, { ALL_STAFF }, { GUESTS }, { CHAPTERS }, { GROWTH }, town, { HOLIDAYS }, { STAFF_CHAPTERS }, { YEAR_TELLERS }] = await Promise.all([
     import('../app/shared/templates.ts'),
     import('../app/shared/scenes.ts'),
     import('../app/shared/staff.ts'),
@@ -23,8 +23,9 @@ export async function loadTables() {
     import('../app/shared/stories.ts'),
     import('../app/shared/growth.ts'),
     import('../app/shared/towngrow.ts'),
-    import('../app/renderer/game/weather.ts'),
+    import('../app/shared/holidays.ts'),
     import('../app/shared/staffstories.ts'),
+    import('../app/shared/mainstory.ts'),
   ]);
   return {
     templates: TEMPLATES.map((t) => ({ id: t.id, shop: t.shop })),
@@ -41,12 +42,13 @@ export async function loadTables() {
       rooms: Object.values(town.ROOM_GROWTH).reduce((n, pieces) => n + pieces.length, 0),
     },
     holidays: [...HOLIDAYS],
+    year: [...YEAR_TELLERS],
   };
 }
 
 /**
  * @typedef {{ templates: { id: string, shop?: string }[], scenes: string[], rooms: string[], staff: string[], guests: string[],
- *   tellers: Record<string, { works: number, left: string }[]>, staffTellers?: Record<string, { works: number, left: string }[]>, growth: Record<string, number>, holidays: string[] }} Tables
+ *   tellers: Record<string, { works: number, left: string }[]>, staffTellers?: Record<string, { works: number, left: string }[]>, growth: Record<string, number>, holidays: string[], year?: string[] }} Tables
  * @typedef {{ file: string, keys: number, zh: number, en: number }} LineCount
  * @typedef {{ totals: { label: string, value: number }[], lines: LineCount[], problems: string[], notes: string[] }} Count
  */
@@ -64,9 +66,10 @@ function tally(text) {
   const keys = [];
   let said = 0;
   if (Array.isArray(doc)) {
-    for (const chat of doc) {
-      keys.push(String(chat.id));
-      said += chat.turns?.length ?? 0;
+    // A list is the chats, each with turns, or the year's story (plan-2.0.md J7), chapters each with lines.
+    for (const [i, item] of doc.entries()) {
+      keys.push(item.id !== undefined ? String(item.id) : `第 ${i + 1} 章`);
+      said += item.turns?.length ?? item.lines?.length ?? 0;
     }
     return { keys, said };
   }
@@ -171,6 +174,13 @@ export function count(root, t) {
   // The staff's own stories (plan-1.9.md I1), in their own file.
   const staffTellers = t.staffTellers ?? {};
   problems.push(...checkStories(root, staffTellers, ['lines/staff-stories.yaml', 'lines/en/staff-stories.yaml'], false).problems);
+  // The year's story (plan-2.0.md J7): a chapter for each of its tellers, in each language.
+  const year = t.year ?? [];
+  for (const file of ['lines/year.yaml', 'lines/en/year.yaml']) {
+    const text = read(root, file);
+    const written = text === null ? 0 : (parse(text) ?? []).length;
+    if (year.length && written !== year.length) problems.push(`主线在代码里 ${year.length} 章，${file} 里 ${written} 章`);
+  }
 
   // Each shop along the street speaks its own lines over the home shop's (renderer/stage/rulebook.ts).
   for (const room of t.rooms.filter((r) => !t.scenes.includes(r))) {
@@ -184,6 +194,7 @@ export function count(root, t) {
     ['客人', t.guests.length],
     ['讲故事的人', Object.keys(t.tellers).length],
     ['故事章数', Object.values(t.tellers).reduce((n, c) => n + c.length, 0)],
+    ['主线章数', year.length],
     ['讲故事的店员', Object.keys(staffTellers).length],
     ['店员故事章数', Object.values(staffTellers).reduce((n, c) => n + c.length, 0)],
     ['长出来的东西', Object.values(t.growth).reduce((n, g) => n + g, 0)],

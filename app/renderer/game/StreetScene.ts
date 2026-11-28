@@ -11,7 +11,7 @@ import type { ActorId } from '../../shared/types';
 import { CANVAS } from './layout';
 import { animKey } from './sprites';
 import type { Walker } from './StreetView';
-import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, RIVER, type ShopId, TOWN } from './town';
+import { cameraFor, doorOf, FRONTS, frontAt, OPEN, paradePlan, RIVER, riverInView, type ShopId, TOWN } from './town';
 import { type Outside, putAway } from './streetdecor';
 import { addUmbrella, holdUmbrella, preloadTownDecor, TownDecor } from './TownDecor';
 import { preloadTownGrowth, TownGrowth } from './TownGrowth';
@@ -212,7 +212,8 @@ export class StreetScene extends Phaser.Scene {
     this.dress();
     this.walkCrowd(delta);
     this.walkNeighbour();
-    this.river?.update(this.time.now);
+    // The river street left behind rests (plan-2.0.md J10, road-to-1.4.md D8): nothing on the water moves out of sight.
+    if (riverInView(this.cameras.main.scrollX)) this.river?.update(this.time.now);
     this.tower?.update(this.now());
     const w = this.walker();
     if (!w) {
