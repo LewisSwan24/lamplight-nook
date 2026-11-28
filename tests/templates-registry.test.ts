@@ -30,7 +30,7 @@ describe('the template table', () => {
   });
 
   it('gives every template its own shelf icon, with the demo fifth', () => {
-    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair']);
+    expect(WORK_ICONS).toEqual(['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair', 'flowercard', 'booklist']);
   });
 
   it('adds a chart and a poster last, whose result is the picture they draw (road-to-1.3.md C2)', () => {
@@ -152,7 +152,7 @@ describe('the template table', () => {
   });
 
   it('adds a four-panel comic after the small game, drawn in the studio, whose piece hangs in the studio (plan-1.8.md H3)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-3, -2)).toEqual(['comic']);
+    expect(TEMPLATES.map((t) => t.id).slice(-5, -4)).toEqual(['comic']);
     const t = template('comic');
     expect([t.shop, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['studio', 24, 'picture', { id: 'strip', at: 1 }, 'editor', true, false, false, false]);
     for (const [lang, S] of Object.entries(LOCALES)) {
@@ -173,7 +173,7 @@ describe('the template table', () => {
   });
 
   it('adds a picture book, drawn in the studio and laid out in the print shop (plan-1.8.md H4)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-2, -1)).toEqual(['picturebook']);
+    expect(TEMPLATES.map((t) => t.id).slice(-4, -3)).toEqual(['picturebook']);
     const t = template('picturebook');
     expect([t.shop, t.then, t.icon, t.main, t.roomGrowth, t.guest, t.revise, 'growth' in t, 'source' in t, 'photos' in t]).toEqual(['studio', 'print', 25, 'book', { id: 'book', at: 1 }, 'mum', true, false, false, false]);
     for (const [lang, S] of Object.entries(LOCALES)) {
@@ -196,8 +196,34 @@ describe('the template table', () => {
     }
   });
 
-  it('adds a repair last, done in the workshop on a branch of a repository the user lends (plan-1.8.md H9)', () => {
-    expect(TEMPLATES.map((t) => t.id).slice(-1)).toEqual(['repair']);
+  it('adds a flower card and a book list last, made on the river street (plan-2.0.md J4)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-2)).toEqual(['flowercard', 'booklist']);
+    const card = template('flowercard');
+    const list = template('booklist');
+    expect([card.shop, card.icon, card.main, card.revise, card.roomGrowth, 'guest' in card]).toEqual(['flowershop', 27, 'picture', true, { id: 'cardrack', at: 1 }, false]);
+    expect([list.shop, list.icon, list.main, list.revise, list.roomGrowth, list.guest]).toEqual(['bookshop', 28, 'office', true, { id: 'listboard', at: 1 }, 'bookseller']);
+    for (const [lang, S] of Object.entries(LOCALES)) {
+      const F = S.ui.files;
+      // The card's picture is what its result card opens; the list's Word document.
+      expect(MAIN_FILES.picture(F.flowercardPng, F), lang).toBe(true);
+      expect(MAIN_FILES.office(F.booklist), lang).toBe(true);
+      for (const id of ['flowercard', 'booklist']) {
+        expect((S.ui.templates as Record<string, string>)[`${id}Hint`], `${lang} ${id}Hint`).toBeTruthy();
+        expect((S.ui.shelf.kinds as Record<string, string>)[id], `${lang} kinds.${id}`).toBeTruthy();
+      }
+      const drawn = card.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      for (const f of [F.flowercardPage, F.flowercardPng, F.flowercardPdf]) expect(drawn, lang).toContain(`"${f}"`);
+      expect(drawn).toContain('at 900 by 600');
+      const listed = list.steps({ language: 'L', files: F, sourceName: '', original: '', revised: '' }).join(' ');
+      for (const f of [F.booklist, F.booklistPage, F.booklistPdf]) expect(listed, lang).toContain(`"${f}"`);
+      // Every book on it is real: the researcher checks each one, and nothing is made up.
+      expect(listed).toContain('researcher subagent to check every title');
+      expect(listed).toContain('never more than fifteen');
+    }
+  });
+
+  it('adds a repair after the picture book, done in the workshop on a branch of a repository the user lends (plan-1.8.md H9)', () => {
+    expect(TEMPLATES.map((t) => t.id).slice(-3, -2)).toEqual(['repair']);
     const t = template('repair');
     expect([t.shop, t.icon, t.main, t.revise, t.source, 'growth' in t, 'roomGrowth' in t, 'photos' in t]).toEqual(['workshop', 26, 'writeup', false, { kind: 'repo' }, false, false, false]);
     for (const [lang, S] of Object.entries(LOCALES)) {
@@ -293,6 +319,8 @@ describe('the template table', () => {
     expect(at('workshop')).toEqual(['minigame', 'page', 'repair', 'tool']);
     expect(at('bakery')).toEqual(['menu', 'recipe']);
     expect(at('post')).toEqual(['card', 'newsletter']);
+    expect(at('flowershop')).toEqual(['flowercard']);
+    expect(at('bookshop')).toEqual(['booklist']);
     expect(at('home')).toEqual(['edit', 'flashcards', 'letter', 'notes', 'plan', 'research', 'tidy', 'travel']);
     for (const t of TEMPLATES) expect(SHOPS, t.id).toContain(t.shop);
     // A commission without a kind (written in the user's own words), or the demo, stays in the home shop.

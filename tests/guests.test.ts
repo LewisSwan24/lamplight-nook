@@ -135,6 +135,9 @@ describe('new neighbours, who come because of the work', () => {
     expect(welcomeGuests({ comic: 1 })).toEqual(['baker', 'postman', 'editor']);
     // A picture book (plan-1.8.md H4) brings Xiaoman's mum, who reads to him at bedtime.
     expect(welcomeGuests({ picturebook: 1 })).toEqual(['baker', 'postman', 'mum']);
+    // A book list from the bookshop (plan-2.0.md J4) brings Uncle Page by; a flower card brings nobody new.
+    expect(welcomeGuests({ booklist: 1 })).toEqual(['baker', 'postman', 'bookseller']);
+    expect(welcomeGuests({ flowercard: 1 })).toEqual(['baker', 'postman']);
   });
 
   it('only sends those who are welcome, and someone new soon after they are', () => {

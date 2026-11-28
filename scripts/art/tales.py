@@ -306,10 +306,11 @@ SPRITES = {
 PLACES = {
     'tin': (127, 16), 'starter': (145, 17), 'ticket': (162, 18), 'ledger': (80, 16), 'plait': (305, 16),
     'satchel': (305, 14), 'scarf': (306, 28), 'bundle': (80, 16), 'badge': (81, 28), 'envelope': (169, 18),
-    # The flower shop and the bookshop (plan-2.0.md J3): on the plaster below the trim: above the pots shelf, either side of the low bookcase, between the third
-    # window and the back door, and right of the door.
-    'cutting': (156, 24), 'stallsign': (234, 22), 'pressed': (252, 24), 'seeds': (268, 25), 'snapshot': (305, 24),
-    'stub': (123, 26), 'libcard': (169, 22), 'map': (234, 24), 'buysign': (256, 22), 'dictionary': (306, 26),
+    # The flower shop and the bookshop (plan-2.0.md J3): on the plaster below the trim, above the pots shelf, beside the
+    # blackboard and the low bookcase, under the three wall slots the shops' own pieces take (growth.py) and right of
+    # the back door.
+    'cutting': (152, 24), 'stallsign': (164, 22), 'pressed': (306, 34), 'seeds': (238, 35), 'snapshot': (305, 22),
+    'stub': (124, 24), 'libcard': (169, 22), 'map': (256, 33), 'buysign': (236, 34), 'dictionary': (306, 24),
 }
 
 

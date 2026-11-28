@@ -396,6 +396,16 @@ grow:
   - { id: grow_post_ivy, speaker: xiaoju, when: grow_post_ivy, bubbles: ["The post office has an ivy pot too.", "By the sorting rack. It keeps the sun off."] }
   - { id: grow_post_horn, speaker: laoshi, when: grow_post_horn, bubbles: ["Pip hung a brass post horn up.", "Riders blew those, back in the day."] }
   - { id: grow_post_map, speaker: adeng, when: grow_post_map, bubbles: ["A map of the rounds in the post office.", "Twenty jobs. Pip says every door has a pin."] }
+  - { id: grow_flowershop_seedtray, speaker: adeng, when: grow_flowershop_seedtray, bubbles: ["Fern put a tray of seedlings up.", "Sown the day of the first order."] }
+  - { id: grow_flowershop_ivy, speaker: xiaoju, when: grow_flowershop_ivy, bubbles: ["The flower shop has an ivy pot too.", "Fern says that one is not for sale."] }
+  - { id: grow_flowershop_watercan, speaker: laoshi, when: grow_flowershop_watercan, bubbles: ["Fern hung the old watering can up.", "Eight jobs. The spout is worn bright."] }
+  - { id: grow_flowershop_basket, speaker: adeng, when: grow_flowershop_basket, bubbles: ["A hanging basket in the flower shop.", "Twenty jobs. Fern wanted something pretty."] }
+  - { id: grow_flowershop_cardrack, speaker: adeng, when: grow_flowershop_cardrack, bubbles: ["A rack of cards in the flower shop.", "Fern keeps a copy of each one there."] }
+  - { id: grow_bookshop_pricelist, speaker: adeng, when: grow_bookshop_pricelist, bubbles: ["The bookshop framed its first price list.", "Uncle Page says books were cheap then."] }
+  - { id: grow_bookshop_ivy, speaker: xiaoju, when: grow_bookshop_ivy, bubbles: ["The bookshop has an ivy pot too.", "Uncle Page says shelves need some green."] }
+  - { id: grow_bookshop_bust, speaker: laoshi, when: grow_bookshop_bust, bubbles: ["Uncle Page put a plaster bust up.", "Every old bookshop has one."] }
+  - { id: grow_bookshop_ladder, speaker: adeng, when: grow_bookshop_ladder, bubbles: ["A library ladder hangs in the bookshop.", "Twenty jobs. The shelves grew taller."] }
+  - { id: grow_bookshop_listboard, speaker: adeng, when: grow_bookshop_listboard, bubbles: ["A cork board went up in the bookshop.", "Every book list made is pinned there."] }
   # In the study (shared/scenes.ts): the same moments, said to fit the room.
   - { id: grow_plant, scene: study, speaker: xiaoju, when: grow_plant, bubbles: ["A plant on the desk!", "I'll remember to water it."], reply: { speaker: laoshi, bubbles: ["You said that about the last one."] } }
   - { id: grow_teapot, scene: study, speaker: adeng, when: grow_teapot, bubbles: ["A teapot on the desk.", "A cup for anyone who comes in."] }

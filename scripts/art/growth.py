@@ -210,8 +210,11 @@ def pieces_by_id():
 # flashcards (a white card with a red line in front of a cream one, plan-1.8.md H1),
 # ledgerbook (a pie chart in cream, red and green, plan-1.8.md H5), minigame (a blue gamepad, plan-1.8.md H2),
 # comic (four panels, two by two, plan-1.8.md H3), picturebook (a closed book, a moon on its blue cover, plan-1.8.md H4),
-# repair (a dark screen on a stand with a green prompt and cursor, plan-1.8.md H9).
+# repair (a dark screen on a stand with a green prompt and cursor, plan-1.8.md H9),
+# flowercard (a cream card with a red flower on a green stem, plan-2.0.md J4), booklist (a white list beside a blue book).
 ICONS = {
+    'flowercard': ['yyyyyyyy', 'yyypyyyy', 'yyprpyyy', 'yyypgyyy', 'yyyggyyy', 'yyygyxxy', 'yyygyyyy', 'yyyyyyyy'],
+    'booklist': ['wwwwwwww', 'wxxxxwuw', 'wwwwwwuw', 'wxxxwwuw', 'wwwwwwuw', 'wxxxxwww', 'wwwwwwww', 'wxxwwwww'],
     'page': ['bbbbbbbb', 'byyyyyyb', 'byyssyyb', 'bygsssyb', 'bggggggb', 'bggggggb', 'bbbbbbbb', '........'],
     'research': ['.uuuuuu.', '.uwwwwuu', '.uuuuuuu', '.uyyyyuu', '.uuuuuuu', '.uuuuuuu', '.wwwwwwu', '.uuuuuu.'],
     'edit': ['........', 'ddddddd.', 'dwwwwwd.', 'ddwwwdd.', 'dwdrdwd.', 'dwwwwwd.', 'ddddddd.', '........'],
@@ -248,7 +251,7 @@ COLORS = {
     'c': (196, 226, 236, 255), 'a': (112, 172, 204, 255), 'f': (236, 116, 44, 255), 'h': (168, 120, 48, 255),
     'm': (150, 70, 96, 255), 'n': (138, 44, 36, 255), 'v': (54, 66, 58, 255),
 }
-ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair']
+ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 'album', 'resume', 'notes', 'travel', 'tool', 'document', 'slides', 'chart', 'poster', 'menu', 'recipe', 'card', 'newsletter', 'flashcards', 'ledgerbook', 'minigame', 'comic', 'picturebook', 'repair', 'flowercard', 'booklist']
 
 
 # What the three shops along the street gather, each counting its own work (road-to-1.4.md D5). All drawn by hand, all
@@ -260,6 +263,10 @@ ORDER = ['page', 'research', 'edit', 'tidy', 'demo', 'letter', 'sheet', 'plan', 
 #   workshop: grow-workshop-gear.png, grow-workshop-ivy.png, grow-workshop-clock.png, grow-workshop-blueprint.png
 #   bakery (plan-1.6.md F1): grow-bakery-wheat.png, grow-bakery-ivy.png, grow-bakery-pin.png, grow-bakery-garland.png
 #   post (plan-1.6.md F2): grow-post-stamp.png, grow-post-ivy.png, grow-post-horn.png, grow-post-map.png
+#   flowershop (plan-2.0.md J4): grow-flowershop-seedtray.png, grow-flowershop-ivy.png, grow-flowershop-watercan.png,
+#     grow-flowershop-basket.png
+#   bookshop (plan-2.0.md J4): grow-bookshop-pricelist.png, grow-bookshop-ivy.png, grow-bookshop-bust.png,
+#     grow-bookshop-ladder.png
 # The bakery's two kinds of work bring pieces to the home shop too, among the overlays below: grow-chalkboard.png for a
 # menu and grow-cookbook.png for a recipe; and the post office's (plan-1.6.md F2) grow-cardline.png for a greeting card
 # and grow-newsletters.png for a newsletter. Revision cards (plan-1.8.md H1) bring grow-cardstack.png.
@@ -301,6 +308,14 @@ ROOM_DRAWN = {
     'blueprint': ['..r........r..', 'xxxxxxxxxxxxxx', 'xuuuuuuuuuuuux', 'xuwwwwwuuwuuux', 'xuwuuuwuuwuuux', 'xuwuuuwwwwwuux',
                   'xuwwwwwuuuwuux', 'xuuuuwuuuuwuux', 'xuuuuwwwwwwuux', 'xuuuuuuuuuuuux', 'xxxxxxxxxxxxxx'],
 }
+# The flower shop's: a tray of seedlings on a little shelf, a watering can on its hook, a hanging basket of flowers.
+# The bookshop's: the first price list in a frame, a little plaster bust on a bracket, the library ladder hung up.
+ROOM_DRAWN['seedtray'] = ['.g...g...g..', 'ggg.ggg.ggg.', '.g...g...g..', 'xxxxxxxxxxxx', 'xbbbbbbbbbbx', 'xxxxxxxxxxxx', 'kkkkkkkkkkkk', '.k........k.']
+ROOM_DRAWN['watercan'] = ['....xxxx......', '...x....x.....', '..xaaaaaax...x', '..xaccaaaxxxax', '..xaaaaaax....', '..xaaaaaax....', '..xxxxxxxx....']
+ROOM_DRAWN['basket'] = ['......x.......', '.....x.x......', '....x...x.....', '...x.....x....', '..x.......x...', '..pgrgpgrgp...', '.gggggggggggg.', '.xkkkkkkkkkkx.', '..xkbkbkbkbx..', '...xkkkkkkx...', '....xxxxxx....', '.....g..g.....']
+ROOM_DRAWN['pricelist'] = ['xxxxxxxxxxxx', 'xkkkkkkkkkkx', 'xkwwwwwwwwkx', 'xkwxxxwwrwkx', 'xkwwwwwwwwkx', 'xkwxxxxwrwkx', 'xkwwwwwwwwkx', 'xkwxxxwwrwkx', 'xkwwwwwwwwkx', 'xkwxxxxwrwkx', 'xkkkkkkkkkkx', 'xxxxxxxxxxxx']
+ROOM_DRAWN['bust'] = ['...xxxx...', '..xwwwwx..', '..xwlwlx..', '..xwwwwx..', '...xwwx...', '..xwwwwx..', '.xwwwwwwx.', '.xwwwwwwx.', '.xxxxxxxx.', 'kkkkkkkkkk', '.k......k.', '..k....k..']
+ROOM_DRAWN['ladder'] = ['.k........k.', '.kkkkkkkkkk.', '.k........k.', '.k........k.', '.kkkkkkkkkk.', '.k........k.', '.k........k.', '.kkkkkkkkkk.', '.k........k.', '.k........k.', '.kkkkkkkkkk.', '.k........k.']
 ROOM_SLOTS = {'first': (234, 20), 'ivy': (7, 17), 'eighth': (252, 18), 'twentieth': (270, 18)}
 # What a kind of work brings into the shop that does it (plan-1.8.md H5), by shop: (piece, where its top left goes).
 # These lie on furniture, so each has a place of its own rather than a wall slot. The family ledger lies open on the
@@ -326,7 +341,13 @@ ROOM_DRAWN['strip'] = ['.....r.....', 'xxxxxxxxxxx', 'xccccccGGcx', 'xcwwwcccccx
 # Written as grow-print-book.png.
 ROOM_DRAWN['book'] = ['xxxxxxxxx', 'xrcccGccx', 'xrccGGccx', 'xrcccGccx', 'xrccccccx', 'xrggggggx', 'xrwwwwwwx', 'xrwllllwx',
                       'xrwwwwwwx', 'xxxxxxxxx']
-ROOM_WORK = {'print': [('ledgerbook', (245, 74)), ('book', (66, 26))], 'workshop': [('arcade', (182, 22))], 'studio': [('strip', (184, 17))]}
+# A flower card (plan-2.0.md J4) stands a little rack of cards between the second window and the blackboard of the
+# flower shop; a book list pins a cork board of lists in the same place in the bookshop. Written as
+# grow-flowershop-cardrack.png and grow-bookshop-listboard.png.
+ROOM_DRAWN['cardrack'] = ['.xxxxx.', '.xwrwx.', '.xwwwx.', 'xxxxxxx', 'xwgwpwx', 'xwwwwwx', 'xxxxxxx', 'xwpwgwx', 'xwwwwwx', 'xxxxxxx', 'kkkkkkk', 'k.....k']
+ROOM_DRAWN['listboard'] = ['xxxxxxx', 'xooooox', 'xwwoyyx', 'xwxoyxx', 'xwwoyyx', 'xwxoyxx', 'xwwoyyx', 'xooooox', 'xyyowwx', 'xyxowxx', 'xyyowwx', 'xooooox', 'xxxxxxx']
+ROOM_WORK = {'print': [('ledgerbook', (245, 74)), ('book', (66, 26))], 'workshop': [('arcade', (182, 22))], 'studio': [('strip', (184, 17))],
+             'flowershop': [('cardrack', (85, 24))], 'bookshop': [('listboard', (85, 24))]}
 # Shop -> (piece, slot), in the order they come (shared/growth.ts ROOM_GROWTH).
 ROOM_PIECES = {
     'print': [('proof', 'first'), ('ivy', 'ivy'), ('typecase', 'eighth'), ('ribbon', 'twentieth')],
@@ -334,6 +355,8 @@ ROOM_PIECES = {
     'workshop': [('gear', 'first'), ('ivy', 'ivy'), ('clock', 'eighth'), ('blueprint', 'twentieth')],
     'bakery': [('wheat', 'first'), ('ivy', 'ivy'), ('pin', 'eighth'), ('garland', 'twentieth')],
     'post': [('stamp', 'first'), ('ivy', 'ivy'), ('horn', 'eighth'), ('map', 'twentieth')],
+    'flowershop': [('seedtray', 'first'), ('ivy', 'ivy'), ('watercan', 'eighth'), ('basket', 'twentieth')],
+    'bookshop': [('pricelist', 'first'), ('ivy', 'ivy'), ('bust', 'eighth'), ('ladder', 'twentieth')],
 }
 
 

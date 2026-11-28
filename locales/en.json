@@ -321,6 +321,14 @@
         "picturebook": [
           "Make a bedtime picture book for my son, who loves the moon.",
           "Make a bedtime picture book for my daughter, who loves rabbits."
+        ],
+        "flowercard": [
+          "Write a card to go with flowers for Mum's birthday.",
+          "Write a card to go with flowers to thank our neighbour."
+        ],
+        "booklist": [
+          "Make a book list for a child starting secondary school.",
+          "Make a book list on the history of cities."
         ]
       },
       "firstLabel": "Handing in",
@@ -437,6 +445,12 @@
       "repair": "Fix code",
       "repairFill": "In this code repository, please fix: ...",
       "repairHint": "Lend the workshop a code repository. The fixer works on a new branch, and your own branches and anything online stay as they are. You get a review sheet: approve it and the branch stays for you to merge, or turn it down and the branch is deleted.",
+      "flowercard": "Flower card",
+      "flowercardFill": "Write a card to go with flowers for ..., saying: ...",
+      "flowercardHint": "The flower shop writes a small card to tuck in with a bouquet: one line, who it is for and who it is from, and a flower drawn on it. Your own words are used as written; if you give none, a line or two is written for you. You get a picture, and a PDF to print.",
+      "booklist": "Book list",
+      "booklistFill": "Make a book list for ..., who wants to read about ...",
+      "booklistHint": "The bookshop draws up a reading list: eight books unless you ask for more (fifteen at most), in a few groups, each with its author and one line on why. Only books that really exist, and every one is checked. You get a Word document and a PDF.",
       "editHint": "Only a copy is edited; your file stays as it is. Text, web pages, Word, Excel, PowerPoint or PDF, up to 20 MB. A PDF comes back as a Word document.",
       "tidyHint": "The staff only see names, sizes and dates. They write you a plan and move nothing.",
       "needSource": "Choose the file or folder first.",
@@ -1456,6 +1470,12 @@
       "bookPage": "picture-book.html",
       "bookPng": "picture-book-cover.png",
       "bookPdf": "picture-book.pdf",
+      "flowercardPage": "flower-card.html",
+      "flowercardPng": "flower-card.png",
+      "flowercardPdf": "flower-card.pdf",
+      "booklist": "book-list.docx",
+      "booklistPage": "book-list.html",
+      "booklistPdf": "book-list.pdf",
       "repairNotes": "repair.json",
       "repairSheet": "review-sheet.md",
       "toolScript": "tool.ps1",
@@ -1644,7 +1664,7 @@
       "search": "Find one: a name, what you asked, a month",
       "kindsLabel": "By kind",
       "shopsLabel": "By shop",
-      "shops": { "home": "Lamplight Nook", "print": "Print shop", "studio": "Studio", "workshop": "Workshop", "bakery": "Bakery", "post": "Post office" },
+      "shops": { "home": "Lamplight Nook", "print": "Print shop", "studio": "Studio", "workshop": "Workshop", "bakery": "Bakery", "post": "Post office", "flowershop": "Flower shop", "bookshop": "Bookshop" },
       "all": "All",
       "found": "{n} found",
       "noMatch": "Nothing matches. Try other words, another kind or another shop.",
@@ -1676,7 +1696,9 @@
         "minigame": "Small game",
         "comic": "Comic strip",
         "picturebook": "Picture book",
-        "repair": "Fix code"
+        "repair": "Fix code",
+        "flowercard": "Flower cards",
+        "booklist": "Book lists"
       }
     },
     "mini": {

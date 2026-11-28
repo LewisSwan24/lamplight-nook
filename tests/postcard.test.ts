@@ -49,6 +49,13 @@ describe('sending a postcard', () => {
     expect(Object.keys(JSON.parse(text)).sort()).toEqual(['done', 'furnish', 'grown', 'home', 'name', 'postcard', 'shops', 'stories', 'version']);
   });
 
+  it('leaves the river street’s shops off, so a postcard from 2.0 still opens in 1.9 (plan-2.0.md J4)', () => {
+    const river = { ...days, town: { ...days.town!, shops: { ...days.town!.shops, flowershop: { done: 4, grown: [] }, bookshop: { done: 2, grown: [] } } } };
+    const text = postcardText(makePostcard('Lewis', { scene: 'study', furnish }, river));
+    expect(Object.keys(JSON.parse(text).shops)).toEqual(['print', 'studio', 'workshop', 'bakery', 'post']);
+    expect(readPostcard(text).ok).toBe(true);
+  });
+
   it('keeps the name short', () => {
     expect(makePostcard('x'.repeat(100), { scene: 'cafe', furnish }, days).name).toHaveLength(40);
   });

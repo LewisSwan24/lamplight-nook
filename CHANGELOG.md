@@ -11,11 +11,18 @@
   bouquets. Next to the clock tower Uncle Page, new in town, keeps a bookshop of old books bought one at a time, with
   a tall bookcase, a reading table and a globe. Click either door to go in. Each keeper says a word as you come in and
   talks now and then when the shop is quiet, about the weather, the season, the time of day and the festivals. Their
-  birthdays are kept at home too. Work is not sent to either shop yet.
+  birthdays are kept at home too.
 - **Fern's and Uncle Page's stories.** As the shop's work goes on, Fern and Uncle Page wait at their doors on the river
   street with a story to tell, five chapters each, like the other neighbours: the rose cutting Auntie Olive gave, the
   stall sign Pip painted, the first dictionary bought at twelve, the library sale where Uncle Page met Clem, an old
   map with the clock tower still running. What each chapter leaves hangs on the wall of the teller's own shop.
+- **Flower cards and book lists.** Two new kinds of work, made on the river street. Fern writes a flower card to
+  tuck in with a bouquet: a few words, who it is for and who it is from, and a flower drawn in the corner, as a
+  picture and a PDF. Uncle Page draws up a book list, eight books unless you ask for more, in a few groups with a
+  line on why each suits the reader, as a Word document and a PDF; every book on it is checked to be real. Adeng
+  carries the order over the river, and the shop borrows what it lacks from the others, as the bakery and the post
+  office do. Both shops now gather pieces as their work goes on (seedlings, a watering can, a hanging basket; a
+  framed price list, a plaster bust, the library ladder), and the first book list brings Uncle Page by to visit.
 
 ## 1.9.0 (2026-11-27)
 
