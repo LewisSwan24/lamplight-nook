@@ -24,9 +24,10 @@ export type ActorId = 'adeng' | 'xiaoju' | 'laoshi' | 'qingdai' | 'xiaodou' | 'a
  * from the flower shop (`florist`) and Mrs Wu from the residents' committee (`organizer`); since plan-1.8.md H1 Lele, who
  * has exams coming (`pupil`), since H5 Auntie Qin, who keeps her household's accounts (`bookkeeper`), and since H2
  * Duoduo's dad, who wanted a small game for his daughter (`dad`), since H3 Xiaosu, who edits a newsletter account
- * and needs a comic a week (`editor`), and since H4 Xiaoman's mum, who reads to him at bedtime (`mum`).
+ * and needs a comic a week (`editor`), and since H4 Xiaoman's mum, who reads to him at bedtime (`mum`); since plan-2.0.md
+ * J3 Uncle Page from the bookshop (`bookseller`), who has a story to tell.
  */
-export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil', 'bookkeeper', 'dad', 'editor', 'mum'] as const;
+export const GUESTS = ['baker', 'postman', 'mechanic', 'granny', 'student', 'cook', 'lodger', 'florist', 'organizer', 'pupil', 'bookkeeper', 'dad', 'editor', 'mum', 'bookseller'] as const;
 export type GuestId = (typeof GUESTS)[number];
 /** Anyone who can say something in the shop. */
 export type Speaker = ActorId | GuestId;

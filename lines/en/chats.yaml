@@ -3166,3 +3166,67 @@
     - xiaodou: "Where?"
     - qingdai: "A little in the corner of each page."
     - xiaodou: "That’s over three hundred!"
+
+# Uncle Page from the bookshop (plan-2.0.md J3), once something brings him by.
+
+- id: page_glasses
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "Did I leave my glasses here?"
+    - adeng: "They're on your head."
+    - bookseller: "No wonder I spent all morning looking."
+
+- id: page_keep
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "One day someone will collect what you make."
+    - xiaoju: "What for?"
+    - bookseller: "To tuck in a book for whoever comes next."
+
+- id: page_coffee
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "A coffee, a book, a whole afternoon."
+    - laoshi: "The chairs here are made for it."
+
+- id: page_spring
+  when: idle
+  guest: bookseller
+  after: 20
+  season: spring
+  turns:
+    - bookseller: "Spring. A cartload of old textbooks came in."
+    - adeng: "Will they sell?"
+    - bookseller: "Next spring the students buy them back."
+
+- id: page_summer
+  when: idle
+  guest: bookseller
+  after: 20
+  season: summer
+  turns:
+    - bookseller: "Hot out. I'm airing old books by the river."
+    - qingdai: "Won't the wind take them?"
+    - bookseller: "A stone on every one."
+
+- id: page_autumn
+  when: idle
+  guest: bookseller
+  after: 20
+  season: autumn
+  turns:
+    - bookseller: "Autumn. The reading table is full."
+    - xiaoju: "Save me a seat!"
+    - bookseller: "The one by the window is always yours."
+
+- id: page_winter
+  when: idle
+  guest: bookseller
+  after: 20
+  season: winter
+  turns:
+    - bookseller: "Cold in the bookshop. Here to warm my hands."
+    - adeng: "Sit down. Coffee's nearly ready."

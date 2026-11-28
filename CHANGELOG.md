@@ -12,6 +12,10 @@
   a tall bookcase, a reading table and a globe. Click either door to go in. Each keeper says a word as you come in and
   talks now and then when the shop is quiet, about the weather, the season, the time of day and the festivals. Their
   birthdays are kept at home too. Work is not sent to either shop yet.
+- **Fern's and Uncle Page's stories.** As the shop's work goes on, Fern and Uncle Page wait at their doors on the river
+  street with a story to tell, five chapters each, like the other neighbours: the rose cutting Auntie Olive gave, the
+  stall sign Pip painted, the first dictionary bought at twelve, the library sale where Uncle Page met Clem, an old
+  map with the clock tower still running. What each chapter leaves hangs on the wall of the teller's own shop.
 
 ## 1.9.0 (2026-11-27)
 

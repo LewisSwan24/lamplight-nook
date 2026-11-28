@@ -7,15 +7,16 @@ import type { GuestId } from './types';
  * before; the first needs only the work. They come one at a time, are told once, and each leaves something on the
  * street (scripts/art/story.py). `town.stories` keeps, for each neighbour, the day each chapter was told.
  * Auntie Olive the baker and Pip the postman (plan-1.6.md F4) tell theirs the same way, waiting at their own doors, and
- * leave their things in their own shops instead (scripts/art/tales.py).
+ * leave their things in their own shops instead (scripts/art/tales.py), and since plan-2.0.md J3 so do Fern at the flower
+ * shop and Uncle Page at the bookshop, on the river street.
  */
-export const TELLERS = ['mechanic', 'granny', 'student', 'baker', 'postman'] as const satisfies readonly GuestId[];
+export const TELLERS = ['mechanic', 'granny', 'student', 'baker', 'postman', 'florist', 'bookseller'] as const satisfies readonly GuestId[];
 export type Teller = (typeof TELLERS)[number];
 /** The three whose things stand on the street; a postcard carries only theirs (shared/postcard.ts). */
 export const STREET_TELLERS = ['mechanic', 'granny', 'student'] as const satisfies readonly Teller[];
 export type StreetTeller = (typeof STREET_TELLERS)[number];
 /** Whose things are kept inside a shop of theirs rather than on the street. */
-export const TELLER_SHOP = { baker: 'bakery', postman: 'post' } as const satisfies Partial<Record<Teller, RoomId>>;
+export const TELLER_SHOP = { baker: 'bakery', postman: 'post', florist: 'flowershop', bookseller: 'bookshop' } as const satisfies Partial<Record<Teller, RoomId>>;
 /** The day each chapter was told, in order, by neighbour. */
 export type Stories = Partial<Record<GuestId, string[]>>;
 
@@ -29,6 +30,8 @@ export const CHAPTERS: Record<Teller, { works: number; left: string }[]> = {
   student: [{ works: 8, left: 'books' }, { works: 18, left: 'notice' }, { works: 28, left: 'cactus' }, { works: 40, left: 'bookshelf' }, { works: 50, left: 'cap' }],
   baker: [{ works: 6, left: 'tin' }, { works: 16, left: 'starter' }, { works: 26, left: 'ticket' }, { works: 42, left: 'ledger' }, { works: 54, left: 'plait' }],
   postman: [{ works: 10, left: 'satchel' }, { works: 20, left: 'bundle' }, { works: 32, left: 'envelope' }, { works: 45, left: 'scarf' }, { works: 57, left: 'badge' }],
+  florist: [{ works: 4, left: 'cutting' }, { works: 14, left: 'stallsign' }, { works: 24, left: 'pressed' }, { works: 36, left: 'seeds' }, { works: 52, left: 'snapshot' }],
+  bookseller: [{ works: 7, left: 'dictionary' }, { works: 17, left: 'stub' }, { works: 30, left: 'libcard' }, { works: 44, left: 'map' }, { works: 60, left: 'buysign' }],
 };
 
 const isTeller = (who: GuestId): who is Teller => (TELLERS as readonly string[]).includes(who);
@@ -54,7 +57,7 @@ export function told(stories: Stories, who: GuestId, done: number, today: string
 /** Who has a chapter waiting, in their order along the street's story. */
 export const waiting = (stories: Stories, done: number, today: string): Teller[] => TELLERS.filter((t) => nextChapter(t, stories, done, today) !== null);
 
-/** Everything a room can keep of the stories: the baker's five in the bakery, the postman's in the post office. */
+/** Everything a room can keep of the stories: each keeper's five in their own shop. */
 export const keptIn = (room: RoomId): string[] =>
   TELLERS.filter((t) => (TELLER_SHOP as Partial<Record<Teller, RoomId>>)[t] === room).flatMap((t) => CHAPTERS[t].map((c) => c.left));
 

@@ -284,6 +284,9 @@ WAITS = {
     # Auntie Olive and Pip (plan-1.6.md F4) step out of their own doors; what they leave hangs inside (tales.py).
     'baker': {'x': 900, 'y': 131, 'anim': 'idle', 'facing': 'down'},
     'postman': {'x': 1044, 'y': 131, 'anim': 'idle', 'facing': 'down'},
+    # Fern and Uncle Page (plan-2.0.md J3) at their doors on the river street (river.json, from x 1128 on).
+    'florist': {'x': 1308, 'y': 131, 'anim': 'idle', 'facing': 'down'},
+    'bookseller': {'x': 1548, 'y': 131, 'anim': 'idle', 'facing': 'down'},
 }
 
 

@@ -189,6 +189,9 @@ GUESTS = {
         'layers': ['Bodies/16x16/Body_02.png', 'Eyes/16x16/Eyes_01.png',
                    'Outfits/16x16/Outfit_19_01.png', 'Hairstyles/16x16/Hairstyle_04_03.png'],
     },
+    # Uncle Page from the bookshop (plan-2.0.md J3) out on the street with his stories: the keeper's sheet (jianbo.png)
+    # written again as a neighbour, as Fern's is the other way round. Written as bookseller.png.
+    'bookseller': STAFF['jianbo'],
 }
 
 # The looks a player can pick for themselves (app/shared/avatars.ts, in the same order), saved as

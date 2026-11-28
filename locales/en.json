@@ -49,7 +49,8 @@
     "bookkeeper": "Auntie Qin",
     "dad": "Duoduo's dad",
     "editor": "Xiaosu",
-    "mum": "Xiaoman's mum"
+    "mum": "Xiaoman's mum",
+    "bookseller": "Uncle Page"
   },
   "you": {
     "label": "You"
@@ -930,7 +931,8 @@
         "bookkeeper": "Just a minute. The shopping is in my basket.",
         "dad": "Just a minute. Duoduo is playing outside.",
         "editor": "Just a minute. This week's post isn't settled.",
-        "mum": "Just a minute. Xiaoman is still at nursery."
+        "mum": "Just a minute. Xiaoman is still at nursery.",
+        "bookseller": "Passing by. Just a look at your shelves."
       },
       "you": "Your commission is under way. Have a seat.",
       "grownMade": {

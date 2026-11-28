@@ -3167,3 +3167,67 @@
     - xiaodou: "画在哪？"
     - qingdai: "每页角上画一点。"
     - xiaodou: "那要画三百多个！"
+
+# Uncle Page from the bookshop (plan-2.0.md J3), once something brings him by.
+
+- id: page_glasses
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "我的眼镜是不是落在这儿了？"
+    - adeng: "在你头上。"
+    - bookseller: "难怪找了一上午。"
+
+- id: page_keep
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "你们做的东西，以后也会有人收的。"
+    - xiaoju: "收去干什么？"
+    - bookseller: "夹在书里，留给后来的人看。"
+
+- id: page_coffee
+  when: idle
+  guest: bookseller
+  turns:
+    - bookseller: "一杯咖啡，一本书，坐一下午。"
+    - laoshi: "这儿的椅子经坐。"
+
+- id: page_spring
+  when: idle
+  guest: bookseller
+  after: 20
+  season: spring
+  turns:
+    - bookseller: "开春了，学生卖来一车旧课本。"
+    - adeng: "卖得出去吗？"
+    - bookseller: "明年开春，又是学生来买。"
+
+- id: page_summer
+  when: idle
+  guest: bookseller
+  after: 20
+  season: summer
+  turns:
+    - bookseller: "天热，我把旧书摊在河边晒。"
+    - qingdai: "不怕风吹跑？"
+    - bookseller: "一本压一块石头。"
+
+- id: page_autumn
+  when: idle
+  guest: bookseller
+  after: 20
+  season: autumn
+  turns:
+    - bookseller: "秋天看书的人多，长桌坐满了。"
+    - xiaoju: "给我留个位子！"
+    - bookseller: "靠窗那个，一直给你留着。"
+
+- id: page_winter
+  when: idle
+  guest: bookseller
+  after: 20
+  season: winter
+  turns:
+    - bookseller: "冬天书店冷，我来你们这儿暖暖手。"
+    - adeng: "坐，咖啡马上好。"

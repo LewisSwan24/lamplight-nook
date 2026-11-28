@@ -43,6 +43,9 @@ describe('the two shops on the river street', () => {
     expect(en.actors.fangjie).toBe(en.guests.florist);
     expect(zh.actors.jianbo).toBe('简伯');
     expect(en.actors.jianbo).toBe('Uncle Page');
+    // Out on the street Uncle Page is a neighbour too, with a story to tell (plan-2.0.md J3).
+    expect(zh.guests.bookseller).toBe(zh.actors.jianbo);
+    expect(en.guests.bookseller).toBe(en.actors.jianbo);
   });
 
   it('has its furniture, and things in it with names to hover', () => {
