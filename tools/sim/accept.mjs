@@ -7217,6 +7217,98 @@ const SCENARIOS = {
     } finally { await shop.close(); }
   },
 
+  /**
+   * The clock tower mended (plan-2.0.md J6): out on the river street, the tower in each of its six looks, as the debug
+   * switch sets it until the year's story does (J7). Its hands keep the shop's time once on; lit, it glows after dark and
+   * strikes the hour: three strokes at three, none at eleven at night, each hour once, quieter on the first street and
+   * fainter still at home, where someone says so on the day's first chime. Each step it moves on has its word at home.
+   */
+  async clocktower(lang, out) {
+    const L = locale(lang);
+    const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
+    const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
+    const stages = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/tower.json'), 'utf8')).stages.filter((s) => s !== 'lights');
+    const grow = parseYaml(readFileSync(join(ROOT, 'lines', ...(lang === 'en' ? ['en'] : []), 'cafe.yaml'), 'utf8')).grow;
+    const first = (when) => grow.filter((l) => l.when === when).map((l) => l.bubbles[0]);
+    const shop = await launch({ lang, home: freshHome({ 'settings.json': onboarded(lang) }), speed: SPEED });
+    const { page } = shop;
+    const look = () => page.evaluate(() => window.lamplightDebug.tower.look());
+    const chimes = () => page.evaluate(() => window.lamplightDebug.tower.chimes.slice());
+    const tick = (iso) => page.evaluate((t) => window.lamplightDebug.tower.tick(t), iso);
+    try {
+      await sleep(2500);
+      // Everything said from now on, as it appears over people's heads.
+      await page.evaluate(() => {
+        window.heard = [];
+        setInterval(() => {
+          const now = document.getElementById('labels').innerText;
+          if (window.heard.at(-1) !== now) window.heard.push(now);
+        }, 200);
+      });
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await tick('2026-12-03T15:20:00');
+      await page.locator(`.toolbar button.tool-btn[aria-label="${L.ui.toolbar.street}"]`).click();
+      await sleep(800);
+      check(await page.evaluate(() => window.lamplightDebug.street.sys.isVisible()), 'the street did not show');
+      await page.evaluate((x) => { window.lamplightDebug.street.cameras.main.scrollX = x; }, town.width + river.tower.x + river.tower.w / 2 - 160);
+      await sleep(300);
+
+      // As it stands at first, then each step of the mending; the hands on from the fifth, at twenty past three.
+      let v = await look();
+      check(v.stage === 'stopped' && v.hands === null && !v.lights, `the tower at first: ${JSON.stringify(v)}`);
+      for (const stage of stages) {
+        await page.evaluate((st) => window.lamplightDebug.tower.set(st), stage);
+        await sleep(300);
+        v = await look();
+        const on = stage === 'hands' || stage === 'lit';
+        check(v.stage === stage && (v.hands !== null) === on, `the tower ${stage}: ${JSON.stringify(v)}`);
+        if (on) check(v.hands.hour === 100 && v.hands.minute === 120, `the hands at 3:20 point at ${JSON.stringify(v.hands)}`);
+        await shop.shot(join(out, `clocktower-${stage}.png`));
+      }
+      // Lit, after dark: its bulbs glow over the night.
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('night', true));
+      await sleep(500);
+      check((await look()).lights, 'the lit tower is dark at night');
+      await shop.shot(join(out, 'clocktower-night.png'));
+      await page.evaluate(() => window.lamplightDebug.scene.setPeriod('day', true));
+      await sleep(300);
+      check(!(await look()).lights, 'the tower is lit by day');
+
+      // Three o'clock on the river street: three strokes, full out; once only, however often the clock is looked at.
+      await tick('2026-12-03T15:00:05');
+      await tick('2026-12-03T15:00:40');
+      let c = await chimes();
+      check(c.length === 1 && c[0].strokes === 3 && c[0].level === 1, `three o'clock by the tower: ${JSON.stringify(c)}`);
+      // Eleven at night: quiet.
+      await tick('2026-12-03T23:00:05');
+      check((await chimes()).length === 1, 'the bell struck at eleven at night');
+      // Four o'clock from the first street: four strokes, quieter.
+      await page.evaluate(() => window.lamplightDebug.street.lookAt('cafe'));
+      await sleep(300);
+      await tick('2026-12-04T16:00:05');
+      c = await chimes();
+      check(c.length === 2 && c[1].strokes === 4 && c[1].level < c[0].level, `four o'clock on the first street: ${JSON.stringify(c)}`);
+
+      // Back in at home: five o'clock is fainter still, and someone there says so.
+      await page.keyboard.press('Escape');
+      await sleep(1000);
+      check(!(await page.evaluate(() => window.lamplightDebug.street.sys.isVisible())), 'Escape did not bring me back in');
+      await tick('2026-12-04T17:00:05');
+      c = await chimes();
+      check(c.length === 3 && c[2].strokes === 5 && c[2].level < c[1].level, `five o'clock at home: ${JSON.stringify(c)}`);
+      const heard = (words) => page.evaluate((ws) => window.heard.some((h) => ws.some((w) => h.includes(w))), words);
+      let news = false;
+      let chimed = false;
+      for (const end = Date.now() + 90_000; Date.now() < end && !(news && chimed); await sleep(500)) {
+        news = await heard(first('tower_lit'));
+        chimed = await heard(first('tower_chime'));
+      }
+      check(news, `nobody at home said the tower was mended: ${first('tower_lit')}`);
+      check(chimed, 'nobody at home remarked on the chime');
+      await shop.shot(join(out, 'clocktower-home.png'));
+    } finally { await shop.close(); }
+  },
+
   async riverstreet(lang, out) {
     const town = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/town.json'), 'utf8'));
     const river = JSON.parse(readFileSync(join(ROOT, 'assets/sprites/river.json'), 'utf8'));
@@ -7250,7 +7342,7 @@ const SCENARIOS = {
         v = await look();
       }
       check(v.x === width - 320, `the arrow keys stop at ${v.x}, short of the end of the riverbank at ${width - 320}`);
-      check(await page.evaluate(() => ['river-street', 'river-fronts', 'river-props', 'river-tower'].every((k) => window.lamplightDebug.street.textures.exists(k))), 'the river street is not drawn');
+      check(await page.evaluate(() => ['river-street', 'river-fronts', 'river-props', 'tower'].every((k) => window.lamplightDebug.street.textures.exists(k))), 'the river street is not drawn');
       await shop.shot(join(out, 'riverstreet-bank.png'));
       for (const f of river.fronts) {
         await page.evaluate((id) => window.lamplightDebug.street.lookAt(id), f.id);

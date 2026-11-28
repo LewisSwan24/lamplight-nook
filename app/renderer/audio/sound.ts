@@ -41,6 +41,28 @@ export function sfx(name: Sfx) {
   }
 }
 
+/** Seconds between the strokes of the clock tower's bell. */
+const STROKE_S = 1.8;
+
+/**
+ * The clock tower striking the hour (plan-2.0.md J6): so many strokes, at a level for how far away it is
+ * (shared/tower.ts chimeLevel). Quiet if muted or in serious mode, as every other sound of the shop.
+ */
+export function chime(strokes: number, level: number) {
+  const volume = sfxVolume('bell', state, performance.now()) * level;
+  const buffer = buffers.get('bell');
+  if (!volume || !buffer || strokes <= 0) return;
+  if (ctx.state === 'suspended') void ctx.resume();
+  for (let i = 0; i < strokes; i++) {
+    const src = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    gain.gain.value = volume;
+    src.buffer = buffer;
+    src.connect(gain).connect(ctx.destination);
+    src.start(ctx.currentTime + i * STROKE_S);
+  }
+}
+
 /** Change what the mix depends on; the music fades to its new level. */
 export function setMix(patch: Partial<MixState>) {
   Object.assign(state, patch);

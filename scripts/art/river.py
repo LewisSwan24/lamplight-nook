@@ -3,13 +3,13 @@
 Left to right: the bridge over the canal, the florist, the old clock tower that stopped long ago, the bookshop, and a
 stretch of riverbank. The street is in front of the buildings as on the first street; where the first street has the
 road, this one has the river. Fronts, trees, lamps and benches come from LimeZu Modern Exteriors (as town.py); the sky,
-the water, the bridge's railing and the clock tower are drawn here by hand (plan-2.0.md Q-J7).
+the water and the bridge's railing are drawn here by hand (plan-2.0.md Q-J7). The clock tower is tower.py's (J6), which
+draws it in each look as it is mended; this only leaves it its plot.
 
 Reads the raw pack from assets/vendor/ (not in the repo) and writes, into assets/sprites/:
   river-street.png  the ground: sky and the far bank behind, the bridge, roofs, pavement, the river in front
   river-fronts.png  the florist's and the bookshop's fronts, on a transparent strip as wide as the river street
   river-props.png   lamps, benches, trees and flowers, on a transparent strip
-  river-tower.png   the clock tower as it stands at first: stopped, its roof half gone, its door boarded up
   river.json        where the bridge, each front, door, ground floor and the tower is, and the ground each prop stands on, read by
                     app/renderer/game/town.ts, which puts the whole strip on at the end of the first street
 Run: py -3.12 scripts/art/river.py
@@ -18,6 +18,7 @@ import json
 
 from PIL import Image, ImageDraw
 
+from tower import H as TOWER_H, W as TOWER_W
 from town import ALLEY, ALLEY_COLOUR, GRASS, H, KERB, OUT, ROAD, T, UPPER, city, fences, garden, modular, terrain
 
 W = 784
@@ -107,64 +108,6 @@ def river(img):
             img.paste(WATER_LIGHT, (x, y, x + 5, y + 1))
 
 
-def tower():
-    """
-    The clock tower as it stands when 2.0 opens: grey stone, a wooden belfry whose roof has half fallen in, a clock face
-    with no hands, the door boarded up and ivy up one side. J6 draws it mended, stage by stage.
-    """
-    w, h = 56, KERB - 2
-    img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    body_top = 40
-    # The stone body, its courses picked out every six rows, each row of blocks offset from the one below.
-    d.rectangle((8, body_top, 47, h - 1), fill=(150, 146, 150, 255))
-    for i, y in enumerate(range(body_top + 5, h, 6)):
-        d.line((8, y, 47, y), fill=(118, 114, 120, 255))
-        for x in range(8 + (6 if i % 2 else 0), 48, 12):
-            d.line((x, y - 5, x, y - 1), fill=(118, 114, 120, 255))
-    d.rectangle((8, body_top, 8, h - 1), fill=(96, 92, 100, 255))
-    d.rectangle((47, body_top, 47, h - 1), fill=(96, 92, 100, 255))
-    # A wider base, darker.
-    d.rectangle((4, h - 14, 51, h - 1), fill=(120, 116, 122, 255))
-    d.line((4, h - 14, 51, h - 14), fill=(176, 172, 176, 255))
-    # The door, arched and boarded up.
-    d.rectangle((22, h - 24, 33, h - 1), fill=(104, 72, 48, 255))
-    d.pieslice((22, h - 30, 33, h - 19), 180, 360, fill=(104, 72, 48, 255))
-    for x in (25, 28, 31):
-        d.line((x, h - 27, x, h - 1), fill=(84, 56, 38, 255))
-    d.line((21, h - 22, 34, h - 12), fill=(164, 128, 88, 255), width=2)
-    d.line((21, h - 12, 34, h - 22), fill=(164, 128, 88, 255), width=2)
-    # The clock face: no hands, a crack across it.
-    cx, cy, r = 27, 60, 11
-    d.ellipse((cx - r - 2, cy - r - 2, cx + r + 2, cy + r + 2), fill=(84, 80, 88, 255))
-    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(214, 206, 184, 255))
-    for dx, dy in ((0, -r + 2), (r - 2, 0), (0, r - 2), (-r + 2, 0)):
-        d.point((cx + dx, cy + dy), fill=(84, 80, 88, 255))
-    d.line((cx - 7, cy - 6, cx - 1, cy + 1, cx + 2, cy - 1, cx + 8, cy + 6), fill=(132, 124, 112, 255))
-    # The belfry: bare wooden posts with a cross brace, the roof half fallen in.
-    for x in (10, 27, 44):
-        d.rectangle((x, 14, x + 1, body_top), fill=(108, 76, 52, 255))
-    d.line((11, 16, 27, body_top - 2), fill=(108, 76, 52, 255))
-    d.line((45, 16, 28, body_top - 2), fill=(108, 76, 52, 255))
-    d.rectangle((6, body_top - 2, 49, body_top), fill=(96, 92, 100, 255))
-    # What is left of the roof: the left slope, slates missing, the ridge beam bare on the right.
-    for y in range(2, 15):
-        left = 27 - round(y * 1.6)
-        for x in range(left, 28):
-            if (x + y) % 7 == 3 and y > 6:
-                continue
-            img.putpixel((x, y), (70, 74, 92, 255) if (x + 2 * y) % 5 else (90, 96, 116, 255))
-    d.line((28, 2, 48, 14), fill=(108, 76, 52, 255))
-    d.line((27, 1, 28, 1), fill=(108, 76, 52, 255))
-    # Ivy up the left side.
-    for y in range(body_top + 6, h - 14, 2):
-        x = 9 + ((y * 5) % 4)
-        img.putpixel((x, y), (74, 120, 70, 255))
-        if y % 6 == 0:
-            img.putpixel((x + 1, y + 1), (98, 146, 84, 255))
-    return img
-
-
 # Street furniture: (sprite, x of its left edge, y of its bottom), as on the first street.
 PROPS = [
     (lambda: city('Street_Lamp_5'), 92, KERB + 10),
@@ -217,8 +160,7 @@ def build():
         # `top`: where the ground floor starts, which the pieces a front grows hang from (town.py, plan-2.0.md J5).
         fronts.append({'id': name, 'x': x, 'w': w, 'door': x + w // 2, 'top': top})
 
-    clock = tower()
-    at = {'x': PLOT['x'] + (PLOT['w'] - clock.width) // 2, 'y': KERB - clock.height, 'w': clock.width, 'h': clock.height}
+    at = {'x': PLOT['x'] + (PLOT['w'] - TOWER_W) // 2, 'y': KERB - TOWER_H, 'w': TOWER_W, 'h': TOWER_H}
 
     props = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     stands = []
@@ -232,7 +174,6 @@ def build():
     ground.save(OUT / 'river-street.png')
     strip.save(OUT / 'river-fronts.png')
     props.save(OUT / 'river-props.png')
-    clock.save(OUT / 'river-tower.png')
     data = {'width': W, 'height': H, 'kerb': KERB, 'road': ROAD, 'bridge': BRIDGE, 'fronts': fronts, 'tower': at, 'props': stands}
     (OUT / 'river.json').write_text(json.dumps(data, indent=1) + '\n', encoding='utf8')
     return data
